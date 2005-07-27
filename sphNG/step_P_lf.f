@@ -1151,7 +1151,7 @@ c     (see Accretion Power in Astrophysics, Frank, King, & Raine)
 c
          IF (iaccevol.EQ.'v') THEN
             IF (qratio.GE.0.05) THEN
-               xyzmh(5,ipt1) = accfac*semiaxis*(0.38-0.20*LOG10(qratio)) 
+               xyzmh(5,ipt1) = accfac*semiaxis*(0.38-0.20*LOG10(qratio))
             ELSE
                WRITE (iprint,*) 'ERROR: qratio < 0.05'
                CALL quit

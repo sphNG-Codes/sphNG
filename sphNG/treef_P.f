@@ -196,7 +196,8 @@ C$OMP END CRITICAL (neighlistoverflow)
                         neighover(nneigh(m)-nlmax+1,numoverflowlocal)=n
                      ELSE
                         WRITE (iprint,*) 'nlovermax EXCEEDED',
-     &                    nneigh(m), nlmax, m, iorig(m), numoverflowlocal
+     &                    nneigh(m), nlmax, m, iorig(m), 
+     &                    numoverflowlocal
                         CALL quit
                      ENDIF
                   ENDIF

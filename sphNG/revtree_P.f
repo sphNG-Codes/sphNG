@@ -19,6 +19,7 @@ c************************************************************
       INCLUDE 'COMMONS/nearmpt'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/nextmpt'
+      INCLUDE 'COMMONS/logun'
 
       natom = nnatom
 

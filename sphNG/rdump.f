@@ -40,7 +40,7 @@ c      INCLUDE 'COMMONS/torq'
       CHARACTER*7 where
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
-      INTEGER*8 nptmass
+      INTEGER*8 number8
       DIMENSION nums(8)
 
       DATA icall/2/

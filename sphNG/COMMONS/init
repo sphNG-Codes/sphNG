@@ -1,0 +1,1 @@
+      COMMON /init  / dtini, istepmin, istepmax

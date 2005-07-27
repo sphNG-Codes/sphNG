@@ -1,0 +1,3 @@
+      REAL*4 poten, dq
+
+      COMMON /ener1 / poten(idim), dq(idim)

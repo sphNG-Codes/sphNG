@@ -1,0 +1,3 @@
+      COMMON /binary/ deadbound, specang, fractan, fracradial,
+     &                anglostx, anglosty, anglostz, ptmassin, 
+     &                nstop, nfastd, nreassign, naccrete, nkill

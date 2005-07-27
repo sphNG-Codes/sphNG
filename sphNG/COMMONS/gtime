@@ -1,0 +1,3 @@
+      REAL gt
+
+      COMMON /gtime / gt

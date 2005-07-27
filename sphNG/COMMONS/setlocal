@@ -1,0 +1,6 @@
+      PARAMETER (nvelmax=64)
+      
+      REAL*4 velx, vely, velz
+      COMMON /setloc/ velx(nvelmax,nvelmax,nvelmax),
+     &     vely(nvelmax,nvelmax,nvelmax),
+     &     velz(nvelmax,nvelmax,nvelmax)

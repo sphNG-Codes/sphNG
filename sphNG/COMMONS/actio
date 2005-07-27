@@ -1,0 +1,3 @@
+      COMMON /actio / job, namerun, namenextrun, inname
+      CHARACTER*20 namerun, namenextrun
+      CHARACTER*11 job, inname

@@ -1,0 +1,2 @@
+      COMMON /outneigh/ ioutinf, ioutsup, ioutmin, ioutmax, 
+     &                  inmin, inmax, inminsy, inmaxsy

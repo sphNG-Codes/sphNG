@@ -1,0 +1,1 @@
+      COMMON /binfile/ iaccpr, ikillpr, ireasspr, inotify

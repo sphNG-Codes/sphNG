@@ -1,0 +1,3 @@
+      PARAMETER (itable=40000)
+      COMMON /table / wij(0:itable), grwij(0:itable), fmass(0:itable),
+     &                fpoten(0:itable), dphidh(0:itable), dvtable

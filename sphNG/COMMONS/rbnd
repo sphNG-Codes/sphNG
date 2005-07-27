@@ -1,0 +1,1 @@
+      COMMON /rbnd  / rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl

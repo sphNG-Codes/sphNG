@@ -1,0 +1,2 @@
+      COMMON /infor / version
+      CHARACTER*40 version

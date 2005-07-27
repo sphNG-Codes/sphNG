@@ -1,0 +1,2 @@
+      COMMON /varet / varsta
+      CHARACTER*7 varsta

@@ -1,0 +1,1 @@
+      COMMON /ibmcom/ istarttime(6), starttime

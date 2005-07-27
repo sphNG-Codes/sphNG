@@ -1,0 +1,15 @@
+      PARAMETER (mmax=2*idim + 2)
+      PARAMETER (nmaxlevel=1000)
+
+      REAL*4 qrad
+      INTEGER*1 imfac
+      LOGICAL*1 iflagtree
+
+      COMMON /parms / natom, nlevel, nactatom, nroot
+      COMMON /datums/ qrad(7,mmax),isibdaupar(3,mmax),
+     &		      next1(idim),next2(idim),next3(idim),
+     &                key(idim), ihash(mmax), 
+     &		      list(mmax), nay(mmax), 
+     &		      listmap(idim), level(nmaxlevel), iflagtree(mmax),
+     &		      imfac(idim)
+c     &		      ,levelnum(mmax)

@@ -1,0 +1,3 @@
+      INTEGER*1 iremove
+
+      COMMON /accrem/iremove(idim)

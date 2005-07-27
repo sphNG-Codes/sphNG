@@ -1,0 +1,3 @@
+      REAL*4 alphaMM
+
+      COMMON /numpa / alphaMM(idim), alphamin, alphamax, alpha, beta

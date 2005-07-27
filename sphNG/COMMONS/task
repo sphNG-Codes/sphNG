@@ -1,0 +1,2 @@
+      COMMON /task  / what
+      CHARACTER*7 what

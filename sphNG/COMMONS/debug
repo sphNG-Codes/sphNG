@@ -1,0 +1,3 @@
+      COMMON /debug / idebug, itrace
+      CHARACTER*7 idebug
+      CHARACTER*3 itrace

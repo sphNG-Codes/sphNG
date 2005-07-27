@@ -1,0 +1,53 @@
+c
+c--The parameter `igrape' tells the program whether it is finding the
+c     forces and neighbours of particles using the BINARY TREE (igrape=0)
+c     or the GRAPE board (igrape=1).
+c
+      INTEGER igrape, isoft
+
+c      PARAMETER (igrape=1)
+      PARAMETER (igrape=0)
+ 
+      INTEGER nmaxboards, nmaxchips, nmaxneighbours
+ 
+      PARAMETER  (nmaxboards = 1)
+      PARAMETER  (nmaxchips = 8)
+      PARAMETER  (nmaxneighbours = 1024)
+c      PARAMETER  (nmaxboards = 2)
+c      PARAMETER  (nmaxchips = 16)
+c      PARAMETER  (nmaxneighbours = 4096)
+c
+c--The parameter `isoft' tells the program whether to soften the 
+c     gravitational forces using kernel smoothing of the potential
+c     (isoft=0), or using the 1/(r+e) smoothing used by the GRAPE (isoft=1).
+c
+c     NOTE:  This only has an effect when the BINARY TREE is used.
+c            When igrape=1, the softening is ALWAYS done as 1/(r+e).
+
+      PARAMETER (isoft=0)
+c      PARAMETER (isoft=1)
+c
+c--Allow or dis-allow timing to be done
+c
+      LOGICAL itiming
+
+c      PARAMETER (itiming=.FALSE.)
+      PARAMETER (itiming=.TRUE.)
+c
+c--Specify how gravity and neighbours are done for sink particles
+c	0: Gravity and neighbours of sinks done in gptall.f
+c	1: Gravity between sinks done in gforspt.f as N^2
+c	      gravity between gas and sinks done in treef.f
+c	      neighbours of sinks computed in treef.f
+c	2: All gravity and neighbours done in treef.f
+c
+      INTEGER iptintree
+c      PARAMETER (iptintree=0)
+      PARAMETER (iptintree=1)
+c      PARAMETER (iptintree=2)
+c
+c--Allow partial revision of tree instead of full tree revision
+c
+      LOGICAL ipartialrevtree
+c        PARAMETER (ipartialrevtree=.FALSE.)
+       PARAMETER (ipartialrevtree=.TRUE.)

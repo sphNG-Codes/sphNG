@@ -1,0 +1,3 @@
+      INTEGER iprint, iterm, idisk1, idisk2, idisk3, imaxrec
+
+      COMMON /logun / iprint, iterm, idisk1, idisk2, idisk3, imaxrec

@@ -1,0 +1,2 @@
+      COMMON /timei/  it0(idim),it1(idim),isteps(idim),imax,imaxstep,
+     &                iteighth

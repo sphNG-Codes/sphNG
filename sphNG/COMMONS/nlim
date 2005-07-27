@@ -1,0 +1,4 @@
+      INTEGER*2 nneigh
+      INTEGER*8 nneightot
+
+      COMMON /nlim  / nneigh(idim), nneightot, neimin, neimax, nrange

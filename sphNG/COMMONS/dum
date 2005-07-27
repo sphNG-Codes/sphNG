@@ -1,0 +1,5 @@
+      PARAMETER (mmax2=2*idim + 2)
+      REAL*4 dumalpha
+
+      COMMON /dum   / dumxyzmh(5,mmax2), dumvxyzu(4,idim), 
+     &		      dumalpha(idim)

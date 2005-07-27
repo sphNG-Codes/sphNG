@@ -1,0 +1,5 @@
+      REAL*4 romax2, valphamax2, valphamin2
+      COMMON /out2  / cmx2, cmy2, cmz2, vcmx2, vcmy2, vcmz2, 
+     &		      dmax2, zmax2, tmean2, tmax2, 
+     &	              hmi2, hma2, romean2, rocen2, 
+     &		      valphamax2, valphamin2, romax2

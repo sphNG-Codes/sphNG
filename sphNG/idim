@@ -1,0 +1,7 @@
+      INTEGER idim, iptdim, iptneigh
+      REAL tiny
+
+      PARAMETER (idim=35001000)
+      PARAMETER (iptdim=1000)
+      PARAMETER (iptneigh=10000)
+      PARAMETER (tiny=1.0E-16)

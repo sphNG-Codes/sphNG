@@ -1,0 +1,3 @@
+      REAL*4 gravxyzstore,potenstore
+
+      COMMON /gravi/ gravxyzstore(3,idim),potenstore(idim)

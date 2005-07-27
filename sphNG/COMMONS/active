@@ -1,0 +1,3 @@
+      INTEGER nactive
+
+      COMMON /active/ nactive

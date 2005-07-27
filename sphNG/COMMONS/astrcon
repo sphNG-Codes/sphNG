@@ -1,0 +1,1 @@
+      COMMON /astrcon/ solarm, solarr, earthm, earthr, au, pc, gmw

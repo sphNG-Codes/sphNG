@@ -1,0 +1,4 @@
+      REAL*4 ptmassinner
+      INTEGER*2 nactotal
+
+      COMMON /accnum/ ptmassinner(iptdim), nactotal(iptdim)

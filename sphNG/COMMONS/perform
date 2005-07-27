@@ -1,0 +1,32 @@
+      REAL tins, tginit, tgload, tgcall1, tgsort, tdens, 
+     &	tforce, tggrav, tgnei, tgcall2, tgcall3, tgnmisc, 
+     &	tgnstor, tgforpt, ttest, tmtree, ttreef, trevt,
+     &	taccrete, ts1, ts2, ts3, ts4, ts5, ts6, ts7, ts8, ts9,
+     &	td1, td2, revtreep1, revtreep2
+      REAL tins1, tginit1, tgload1, tgcall11, tgsort1, tdens1, 
+     &	tforce1, tggrav1, tgnei1, tgcall21, tgcall31, tgnmisc1, 
+     &	tgnstor1, tgforpt1, ttest1, tmtree1, ttreef1, trevt1,
+     &	taccrete1, ts11, ts21, ts31, ts41, ts51, ts61, ts71, ts81,
+     &	ts91, td11, td21
+      REAL tins2, tginit2, tgload2, tgcall12, tgsort2, tdens2, 
+     &	tforce2, tggrav2, tgnei2, tgcall22, tgcall32, tgnmisc2, 
+     &	tgnstor2, tgforpt2, ttest2, tmtree2, ttreef2, trevt2,
+     &	taccrete2, ts12, ts22, ts32, ts42, ts52, ts62, ts72, ts82,
+     &	ts92, td12, td22
+
+      INTEGER ninit1, ninit2, ninit3, ninit4, ninit5
+
+      COMMON /perform/ tins, tins1, tins2, tginit1, tginit2, tginit,
+     &	tgload1, tgload2, tgload, tgcall11, tgcall12, tgcall1, tgsort1,
+     &	tgsort2, tgsort, tdens, tdens1, tdens2, tforce, tforce1, 
+     &	tforce2, tggrav1, tggrav2, tggrav,
+     &	tgnei1, tgnei2, tgnei, tgcall21, tgcall22, tgcall2, 
+     &	tgcall31, tgcall32, tgcall3, tgnmisc1, tgnmisc2, tgnmisc,
+     &	tgnstor1, tgnstor2, tgnstor, tgforpt1, tgforpt2, tgforpt,
+     &  ttest1, ttest2, ttest, tmtree1, tmtree2, tmtree, ttreef1, 
+     &	ttreef2, ttreef, trevt1, trevt2, trevt, revtreep1, revtreep2,
+     &	taccrete, taccrete1, taccrete2,
+     &  ts1,ts11,ts12, ts2,ts21,ts22, ts3,ts31,ts32, ts4,ts41,ts42,
+     &  ts5,ts51,ts52, ts6,ts61,ts62, ts7,ts71,ts72, ts8,ts81,ts82,
+     &  ts9,ts91,ts92, td1,td11,td12, td2,td21,td22,
+     &	ninit1, ninit2, ninit3, ninit4, ninit5

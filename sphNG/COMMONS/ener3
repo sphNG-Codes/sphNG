@@ -1,0 +1,3 @@
+      REAL*4 dgrav
+
+      COMMON /ener3 / dgrav(idim)

@@ -1,0 +1,2 @@
+      COMMON /ptbin / accfac, iaccevol
+      CHARACTER*1 iaccevol

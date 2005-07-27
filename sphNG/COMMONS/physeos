@@ -1,0 +1,2 @@
+      COMMON /physeos/ gamphys1, gamphys2, gamphys3, rhoref1, 
+     &	rhoref2, rhoref3, rhochange1, rhochange2, rhophys1

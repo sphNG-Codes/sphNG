@@ -1,0 +1,3 @@
+      REAL dtmax
+
+      COMMON /stepopt/ dtmax

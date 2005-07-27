@@ -1,0 +1,1 @@
+      COMMON /ptdump/ iptcreat, iptout, iptprint, iptoutnum

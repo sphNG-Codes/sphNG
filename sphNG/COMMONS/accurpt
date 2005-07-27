@@ -1,0 +1,4 @@
+      COMMON /accurpt/ptmsyn(iptdim), ptmadd(iptdim),
+     &                xmomsyn(iptdim), ymomsyn(iptdim),  
+     &                zmomsyn(iptdim), xmomadd(iptdim),  
+     &                ymomadd(iptdim), zmomadd(iptdim)

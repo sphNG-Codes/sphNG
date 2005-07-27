@@ -1,0 +1,1 @@
+      COMMON /nearmpt/nearpt(iptneigh,iptdim), nptlist(iptdim)

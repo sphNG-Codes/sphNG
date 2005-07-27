@@ -1,0 +1,76 @@
+carac	ptmass
+curlist	llist
+current	iscurrent L*1
+delay	notacc L*1
+densi	rho *4
+divve	divv,curlv,ddv *4
+dum	x,y,z,vx,vy,vz,u,h,alpha
+dumderivi	dumrho,dumpr,dumvs *4
+ener1	poten, dq, pdv *4
+ener3	dphit, dgrav *4
+eosq	pr,vsound *4
+f1	f1vx,f1vy,f1vz,f1u,f1h,f1dadt
+f2
+ghost	ireal I*4, hasghost L*1
+gravi	gravx, gravy, gravz, gravxstore, gravystore, gravzstore, potenstore
+		potenstore is R*4, rest R*8
+maspres	disfrac *4
+nearmpt	nearpt(iptneigh,iptdim), nptlist(iptdim)
+neighbor	neighb(nlmax,idim),neighover(nlovermax,noverflow)
+nextmpt	listacc(nlstaccmax=20000)
+nneigh	nneigh
+numpa	alphaMM *4
+part	x,y,z,vx,vy,vz,u,h
+phase	iphase I*1
+pres	gradpx, gradpy, gradpz
+ptmass	spinx,spiny,spinz,listpm,angaddx,y,z,spinadx,y,z  (all iptdim)
+sort	tempsort, itempsort,iorig, isort
+timeextra	nlstbins,it1bin,it2bin,it2,listbins
+timei	it0,it1,isteps
+tlist	nearl(iptneigh)
+torq	(not in LF)
+treecom_P	lots of stuff, need to check again, also combine vnode
+visc	artvix,artviy,artviz
+
+Suggest:  x,y,z,h,mass,h (same as in mtree, but masses can be zero there)
+
+treecom_P in gforsa,gforsn,mtree_P,revtree_P,treef_P
+
+
+Removed:	iupdate,levelnum, next(mmax)
+Reduced: mmax-> idim next1, next2, next3, key
+		iflagtree(mmax) -> logical*1
+
+iremove,iavail,iscurrent,notacc,ireal,hasghost,potenstore,iphase,
+2:nneigh
+rho,divv,curlv,ddv,dumrho,pr,vs,poten,dq,pdv,dphit,dgrav,pr,vs,disfrac,alphaMM,itempsort,iorig,isort,it2,it0,it1,isteps,listmap,key,next1,next2,next3,llist
+ptmass,dum(9),f1(6),gravx(3),gravstore(3),xyz(8),gradp(3),tempsort,artvix(3),
+mmax:vnode(5),4:qrad(7),isibdaupar(3),ihash,list,nay,iflagtree:1
+mmax:listga,listgn in treef_P
+listbins(idim,30) !!! 2.040GB
+
+f2(9),torq(5)  !!! for RK only
+
+deleted 4:listavail,4:update (0.136)			8
+pdv is equivalenced to du in forcei and energ.f		4
+ddvx(3) DEMOTED TO R*4 in forcei_P_ddv.f		12	0.408
+dphit removed 						4	0.476
+disfrac removed EQUIV with tempsort			4	0.544
+dumpr, dumvs removed					8	0.680
+gravx, gravxstore, gradpx, artvix (x3) down to R*4	48	1.496
+gravx(3) removed entirely				12
+gradp(3)						12
+artvix(3)						12	2.108
+removed itempsort and tempsort by EQUIV with tree stuff	12	2.312
+listga, listgn						8*N	2.448 (31.8)
+
+iremove,iavail,iscurrent,notacc,ireal,hasghost,potenstore,iphase,imfac
+2:nneigh
+4:rho,divv,curlv,ddv,dumrho,poten,dq,dgrav,pr,vs,alphaMM,iorig,isort,it2,it0,it1,isteps,listmap,key,next1,next2,next3,llist
+8:ptmass,dum(9),f1(6),gravstore(3),xyz(8)
+mmax:vnode(5),4:qrad(7),isibdaupar(3),ihash,list,nay,iflagtree:1
+idim,threadprivate:listga,listgn in treef_P
+listbins(idim,30) !!! 2.040GB
+
+
+it1 could be removed for LF, but is still in accrete_P, derivi_P, mesop, phoenix, wdump

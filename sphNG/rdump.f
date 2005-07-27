@@ -97,7 +97,7 @@ c--Default real
          WRITE (*,*) 'ERROR 5 in rdump'
          CALL quit
       ENDIF
-      READ (idisk1, END=100) gt, dtmax, gamma, rhozero, RK2,
+      READ (idisk1, END=100) gt, dtmaxdp, gamma, rhozero, RK2,
      &     escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
      &     specang, ptmassin
 c--real*4

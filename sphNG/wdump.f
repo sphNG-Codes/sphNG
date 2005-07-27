@@ -47,6 +47,7 @@ c      INCLUDE 'COMMONS/torq'
       CHARACTER*7 where
       CHARACTER*100 fileident
       INTEGER*4 int1, int2
+      INTEGER*8 number8
       DIMENSION nums(8)
 
       DATA where/'wdump'/
@@ -68,11 +69,11 @@ c
       int1 = 690706
       int2 = 780806
       i1 = int1
-      r1 = i2
+      r1 = real(int2)
 c
-c--Write ouput file
+c--Write output file
 c
-      WRITE (idisk1, ERR=100) int1,i1,int2,r1,int1
+      WRITE (idisk1, ERR=100) int1,r1,int2,i1,int1
       fileident = 'FHydro1'
       WRITE (idisk1, ERR=100) fileident
 c
@@ -110,7 +111,7 @@ c
 c
 c--Array length 1
 c
-      number = npart
+      number8 = npart
       nums(1) = 1
       nums(2) = 1
       nums(3) = 0
@@ -119,7 +120,7 @@ c
       nums(6) = 9
       nums(7) = 2
       nums(8) = 0
-      WRITE (idisk1, ERR=100) number, (nums(i), i=1,8)
+      WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
 c--Default int
       WRITE (idisk1, ERR=100) (isteps(isort(i)), i=1, npart)
 c--int*1
@@ -146,7 +147,7 @@ c--real*8
 c
 c--Array length 2
 c
-      number = nptmass
+      number8 = nptmass
       nums(1) = 1
       nums(2) = 0
       nums(3) = 0
@@ -155,7 +156,7 @@ c
       nums(6) = 9
       nums(7) = 0
       nums(8) = 0
-      WRITE (idisk1, ERR=100) number, (nums(i), i=1,8)
+      WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
 c--Default int
       WRITE (idisk1, ERR=100) (iorig(listpm(i)), i=1,nptmass)
 c--int*1
@@ -242,7 +243,7 @@ c
 c
 c--Array length 1
 c
-      number = npart
+      number8 = npart
       nums(1) = 0
       nums(2) = 1
       nums(3) = 0
@@ -251,7 +252,7 @@ c
       nums(6) = 5
       nums(7) = 2
       nums(8) = 0
-      WRITE (idisk1, ERR=100) number, (nums(i), i=1,8)
+      WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
 c--Default int
 c      WRITE (idisk1, ERR=100) (isteps(isort(i)), i=1, npart)
 c--int*1
@@ -282,7 +283,7 @@ c--real*8
 c
 c--Array length 2
 c
-      number = nptmass
+      number8 = nptmass
       nums(1) = 1
       nums(2) = 0
       nums(3) = 0
@@ -291,7 +292,7 @@ c
       nums(6) = 1
       nums(7) = 0
       nums(8) = 0
-      WRITE (idisk1, ERR=100) number, (nums(i), i=1,8)
+      WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
 c--Default int
       WRITE (idisk1, ERR=100) (iorig(listpm(i)), i=1,nptmass)
 c--int*1

@@ -40,6 +40,7 @@ c      INCLUDE 'COMMONS/torq'
       CHARACTER*7 where
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
+      INTEGER*8 nptmass
       DIMENSION nums(8)
 
       DATA icall/2/
@@ -62,9 +63,9 @@ c
 c
 c--Write ouput file
 c
-      READ (idisk1, END=100) int1i,i1i,int2i,r1i,int3i
+      READ (idisk1, END=100) int1i,r1i,int2i,i1i,int3i
       IF (int1i.NE.int1) THEN
-         WRITE (*,*) 'ERROR 1 in rdump'
+         WRITE (*,*) 'ERROR 1 in rdump: ENDIANNESS wrong?'
          CALL quit
       ENDIF
       IF (int2i.NE.int2) THEN
@@ -121,11 +122,12 @@ c
 c
 c--Read array type 1
 c
-      READ (idisk1, END=100) number, (nums(i), i=1,8)
-      IF (number.NE.npart) THEN
+      READ (idisk1, END=100) number8, (nums(i), i=1,8)
+      IF (number8.NE.npart) THEN
          WRITE (*,*) 'ERROR 8 in rdump: npart wrong'
          CALL quit
       ENDIF
+      npart = number8
 c--Default int
       READ (idisk1, END=100) (isteps(i), i=1, npart)
 c--int*1
@@ -152,7 +154,8 @@ c--real*8
 c
 c--Array length 2
 c
-      READ (idisk1, END=100) nptmass, (nums(i), i=1,8)
+      READ (idisk1, END=100) number8, (nums(i), i=1,8)
+      nptmass = number8
 c--Default int
       READ (idisk1, END=100) (listpm(i), i=1,nptmass)
 c--int*1

@@ -189,7 +189,8 @@ c
             WRITE (iprint, 98015) tgnmisc/60., tgnmisc/tins*100.
             WRITE (iprint, 98014) tgnstor/60., tgnstor/tins*100.
             WRITE (iprint, 98013) tgcall3/60., tgcall3/tins*100.
-            WRITE (iprint,*) 'ninit = ',ninit1,ninit2,ninit3,ninit4,ninit5
+            WRITE (iprint,*) 'ninit = ',ninit1,ninit2,ninit3,
+     &                       ninit4,ninit5
 c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
             tdens = 0.
             tforce = 0.

@@ -192,7 +192,7 @@ c
                   vxyzu(2,i) = vxyzu(2,i) * xyzmh(1,i) / xi
                ELSEIF (ifcor.EQ.2) THEN
                   vxyzu(2,i) = vxyzu(2,i) * xyzmh(3,i) / zi
-                  vxyzu(3,i) = vxyzu(3,i) * xyzmh(2,i) / yi                  
+                  vxyzu(3,i) = vxyzu(3,i) * xyzmh(2,i) / yi
                ENDIF
                xyzmh(3,i) = zi
                xyzmh(2,i) = yi

@@ -3,6 +3,7 @@
       INCLUDE 'idim'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/kerne'
+      INCLUDE 'COMMONS/logun'
 
       DIMENSION xyzmh(5,idim), list(idim)
 

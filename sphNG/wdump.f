@@ -195,11 +195,11 @@ c
       int1 = 690706
       int2 = 780806
       i1 = int1
-      r1 = i2
+      r1 = real(int2)
 c
 c--Write ouput file
 c
-      WRITE (idisk1, ERR=100) int1,i1,int2,r1,int1
+      WRITE (idisk1, ERR=100) int1,r1,int2,i1,int1
       fileident = 'SHydro1'
       WRITE (idisk1, ERR=100) fileident
 c

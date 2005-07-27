@@ -14,6 +14,7 @@ c************************************************************
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/part'
+      INCLUDE 'COMMONS/tming'
 
       CHARACTER*7 where
 
@@ -55,6 +56,7 @@ c
             isort(i) = i
             iorig(i) = i
          END DO
+         nfullstep = 1
          CALL wdump(idisk1)
          CLOSE (idisk1)
       ENDIF
@@ -84,6 +86,7 @@ c
             isort(i) = i
             iorig(i) = i
          END DO
+         nfullstep = 1
          CALL wdump(idisk3)
          CLOSE (idisk3)
          CLOSE (idisk2)

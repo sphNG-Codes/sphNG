@@ -53,6 +53,7 @@ c
       READ (iterm, *) iexf
       READ (iterm, *) iexpan
       READ (iterm, *) nstep
+      READ (iterm, *) nfullstep
       READ (iterm, *) iptoutnum
       READ (iterm, *) tol, tolptm, tolh
       READ (iterm, *) ipos

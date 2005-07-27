@@ -172,8 +172,8 @@ c
                      CALL quit
                   ELSE
                      IF (nneigh(m).EQ.nlmax) THEN
-                        write (*,*) 'over ',m,n,neighb(nlmax,m),
-     &                       numoverflow
+c                        write (*,*) 'over ',m,n,neighb(nlmax,m),
+c     &                       numoverflow
                         IF (neighb(nlmax,m).LT.0) THEN
                            numoverflowlocal = -neighb(nlmax,m)
                         neighover(nneigh(m)-nlmax+1,numoverflowlocal)=n

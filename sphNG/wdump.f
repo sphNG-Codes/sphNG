@@ -16,6 +16,7 @@ c************************************************************
       INCLUDE 'COMMONS/kerne'
       INCLUDE 'COMMONS/gtime'
       INCLUDE 'COMMONS/bodys'
+      INCLUDE 'COMMONS/ener1'
       INCLUDE 'COMMONS/ener2'
       INCLUDE 'COMMONS/ener3'
       INCLUDE 'COMMONS/recor'
@@ -38,11 +39,15 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/numpa'
       INCLUDE 'COMMONS/divve'
       INCLUDE 'COMMONS/treecom_P'
+      INCLUDE 'COMMONS/tming'
 
       DIMENSION itempsort(idim), tempsort(idim)
       EQUIVALENCE (itempsort, next1), (tempsort, key)
 
       CHARACTER*7 where
+      CHARACTER*100 fileident
+      INTEGER*4 int1, int2
+      DIMENSION nums(8)
 
       DATA where/'wdump'/
 c
@@ -50,30 +55,273 @@ c--Write
 c
       irec = irec + 1
       iresort = iresort + 1
+      ifulldump = ifulldump + 1
+      write (*,*) ifulldump,nfullstep
+      IF (ifulldump.EQ.nfullstep) THEN
+         ifulldump = 0
+c
+c--Write full dump file
+c----------------------
+c
+c--Standard numbers
+c
+      int1 = 690706
+      int2 = 780806
+      i1 = int1
+      r1 = i2
+c
+c--Write ouput file
+c
+      WRITE (idisk1, ERR=100) int1,i1,int2,r1,int1
+      fileident = 'FHydro1'
+      WRITE (idisk1, ERR=100) fileident
+c
+c--Single values
+c
+c--Default int
+      number = 6
+      WRITE (idisk1, ERR=100) number
+      WRITE (idisk1, ERR=100) npart,n1,n2,nreassign,naccrete,nkill
+c--int*1, int*2, int*4, int*8
+      number = 0
+      DO i = 1, 4
+         WRITE (idisk1, ERR=100) number
+      END DO
+c--Default real
+      number = 14
+      WRITE (idisk1, ERR=100) number
+      WRITE (idisk1, ERR=100) gt, dtmax, gamma, rhozero, RK2,
+     &     escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
+     &     specang, ptmassin
+c--real*4
+      number = 0
+      WRITE (idisk1, ERR=100) number
+c--real*8
+      number = 3
+      WRITE (idisk1, ERR=100) number
+      WRITE (idisk1, ERR=100) udist, umass, utime
+c
+c--Arrays
+c
+c--Number of array lengths
+c
+      number = 2
+      WRITE (idisk1, ERR=100) number
+c
+c--Array length 1
+c
+      number = npart
+      nums(1) = 1
+      nums(2) = 1
+      nums(3) = 0
+      nums(4) = 0
+      nums(5) = 0
+      nums(6) = 9
+      nums(7) = 2
+      nums(8) = 0
+      WRITE (idisk1, ERR=100) number, (nums(i), i=1,8)
+c--Default int
+      WRITE (idisk1, ERR=100) (isteps(isort(i)), i=1, npart)
+c--int*1
+      WRITE (idisk1, ERR=100) (iphase(isort(i)), i=1, npart)
+c--int*2
 
-      WRITE (idisk1, ERR=100) udist, umass, utime,
-     &     npart, n1, n2, gt, gamma, rhozero, RK2,
-     &     escap, tkin, tgrav, tterm
+c--int*4
+
+c--int*8
+
+c--Default real
       DO j = 1, 5
          WRITE (idisk1, ERR=100) (xyzmh(j,isort(i)), i=1, npart)
       END DO
       DO j = 1, 4
          WRITE (idisk1, ERR=100) (vxyzu(j,isort(i)), i=1, npart)
-      END DO
+      END DO      
+c--real*4
       WRITE (idisk1, ERR=100) (rho(isort(i)), i=1, npart)
-      WRITE (idisk1, ERR=100) (dgrav(isort(i)), i=1, npart)
-      WRITE (idisk1, ERR=100) dtmax, (isteps(isort(i)), i=1, npart)
+      WRITE (idisk1, ERR=100) (dgrav(isort(i)), i=1, npart)      
+c     WRITE (idisk1, ERR=100) (alphaMM(isort(i)), i=1, npart)
+c--real*8
+
+c
+c--Array length 2
+c
+      number = nptmass
+      nums(1) = 1
+      nums(2) = 0
+      nums(3) = 0
+      nums(4) = 0
+      nums(5) = 0
+      nums(6) = 9
+      nums(7) = 0
+      nums(8) = 0
+      WRITE (idisk1, ERR=100) number, (nums(i), i=1,8)
+c--Default int
+      WRITE (idisk1, ERR=100) (iorig(listpm(i)), i=1,nptmass)
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+      WRITE (idisk1, ERR=100) (spinx(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) (spiny(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) (spinz(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) (angaddx(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) (angaddy(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) (angaddz(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) (spinadx(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) (spinady(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) (spinadz(i),i=1,nptmass)
+c--real*4
+
+c--real*8
+
+c
+c--End writing of full dump file
+c-------------------------------
+c
+      ELSE
+c
+c--Write small dump file
+c----------------------------
+c
+c--Standard numbers
+c
+      int1 = 690706
+      int2 = 780806
+      i1 = int1
+      r1 = i2
+c
+c--Write ouput file
+c
+      WRITE (idisk1, ERR=100) int1,i1,int2,r1,int1
+      fileident = 'SHydro1'
+      WRITE (idisk1, ERR=100) fileident
+c
+c--Single values
+c
+c--Default int
+      number = 6
+      WRITE (idisk1, ERR=100) number
+      WRITE (idisk1, ERR=100) npart,n1,n2,nreassign,naccrete,nkill
+c--int*1, int*2, int*4, int*8
+      number = 0
+      DO i = 1, 4
+         WRITE (idisk1, ERR=100) number
+      END DO
+c--Default real
+      number = 15
+      DO i = 1, npart
+         IF (iphase(i).EQ.0) THEN
+            pmassinitial = xyzmh(4,i)
+            GOTO 40
+         ENDIF
+      END DO
+ 40   WRITE (idisk1, ERR=100) number
+      WRITE (idisk1, ERR=100) gt, dtmax, gamma, rhozero, RK2,
+     &     escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
+     &     specang, ptmassin, pmassinitial
+c--real*4
+      number = 0
+      WRITE (idisk1, ERR=100) number
+c--real*8
+      number = 3
+      WRITE (idisk1, ERR=100) number
+      WRITE (idisk1, ERR=100) udist, umass, utime
+c
+c--Arrays
+c
+c--Number of array lengths
+c
+      number = 2
+      WRITE (idisk1, ERR=100) number
+c
+c--Array length 1
+c
+      number = npart
+      nums(1) = 0
+      nums(2) = 1
+      nums(3) = 0
+      nums(4) = 0
+      nums(5) = 0
+      nums(6) = 5
+      nums(7) = 2
+      nums(8) = 0
+      WRITE (idisk1, ERR=100) number, (nums(i), i=1,8)
+c--Default int
+c      WRITE (idisk1, ERR=100) (isteps(isort(i)), i=1, npart)
+c--int*1
       WRITE (idisk1, ERR=100) (iphase(isort(i)), i=1, npart)
-      WRITE (idisk1, ERR=100) nptmass, (iorig(listpm(i)), i=1,nptmass),
-     &     (spinx(i),i=1,nptmass), (spiny(i),i=1,nptmass),
-     &     (spinz(i),i=1,nptmass)
-     &     ,(angaddx(i),i=1,nptmass), (angaddy(i),i=1,nptmass),
-     &     (angaddz(i),i=1,nptmass),
-     &     anglostx, anglosty, anglostz,
-     &     nreassign, naccrete, nkill, specang, ptmassin,
-     &     (spinadx(i),i=1,nptmass),(spinady(i),i=1,nptmass),
-     &     (spinadz(i),i=1,nptmass)
-c     &     ,(alphaMM(isort(i)), i=1, npart)
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+      DO j = 1, 3
+         WRITE (idisk1, ERR=100) (xyzmh(j,isort(i)), i=1, npart)
+      END DO
+c      DO j = 1, 4
+c         WRITE (idisk1, ERR=100) (vxyzu(j,isort(i)), i=1, npart)
+c      END DO      
+c--real*4
+      WRITE (idisk1, ERR=100) (rho(isort(i)), i=1, npart)
+      DO i = 1, npart
+         dq(i) = xyzmh(5,i)
+      END DO
+      WRITE (idisk1, ERR=100) (dq(isort(i)), i=1, npart)      
+c      WRITE (idisk1, ERR=100) (dgrav(isort(i)), i=1, npart)      
+c     WRITE (idisk1, ERR=100) (alphaMM(isort(i)), i=1, npart)
+c--real*8
+
+c
+c--Array length 2
+c
+      number = nptmass
+      nums(1) = 1
+      nums(2) = 0
+      nums(3) = 0
+      nums(4) = 0
+      nums(5) = 0
+      nums(6) = 1
+      nums(7) = 0
+      nums(8) = 0
+      WRITE (idisk1, ERR=100) number, (nums(i), i=1,8)
+c--Default int
+      WRITE (idisk1, ERR=100) (iorig(listpm(i)), i=1,nptmass)
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+      WRITE (idisk1, ERR=100) (xyzmh(4,listpm(i)), i=1,nptmass)
+c      WRITE (idisk1, ERR=100) (spinx(i),i=1,nptmass)
+c      WRITE (idisk1, ERR=100) (spiny(i),i=1,nptmass)
+c      WRITE (idisk1, ERR=100) (spinz(i),i=1,nptmass)
+c      WRITE (idisk1, ERR=100) (angaddx(i),i=1,nptmass)
+c      WRITE (idisk1, ERR=100) (angaddy(i),i=1,nptmass)
+c      WRITE (idisk1, ERR=100) (angaddz(i),i=1,nptmass)
+c      WRITE (idisk1, ERR=100) (spinadx(i),i=1,nptmass)
+c      WRITE (idisk1, ERR=100) (spinady(i),i=1,nptmass)
+c      WRITE (idisk1, ERR=100) (spinadz(i),i=1,nptmass)
+c--real*4
+
+c--real*8
+
+c
+c--End writing of small dump file
+c--------------------------------
+c
+      ENDIF
 
 c
 c--Sort particles to ensure most efficient running.  Note that this 

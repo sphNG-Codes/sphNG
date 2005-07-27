@@ -38,6 +38,9 @@ c      INCLUDE 'COMMONS/torq'
       EQUIVALENCE (itempsort, next1), (tempsort, key)
 
       CHARACTER*7 where
+      CHARACTER*100 fileident
+      INTEGER*4 int1, int2, int1i, int2i, int3i
+      DIMENSION nums(8)
 
       DATA icall/2/
       DATA where/'rdump'/
@@ -48,30 +51,136 @@ c
 99001 FORMAT (' entry subroutine rdump')
 
       ichkl = 0
-      READ (idisk1, END=100) udisti, umassi, utimei,
-     &     npart, n1, n2, gt, gamma, rhozero, RK2,
-     &     escap, tkin, tgrav, tterm
+c
+c--Dump file
+c-------------
+c
+c--Standard numbers
+c
+      int1 = 690706
+      int2 = 780806
+c
+c--Write ouput file
+c
+      READ (idisk1, END=100) int1i,i1i,int2i,r1i,int3i
+      IF (int1i.NE.int1) THEN
+         WRITE (*,*) 'ERROR 1 in rdump'
+         CALL quit
+      ENDIF
+      IF (int2i.NE.int2) THEN
+         WRITE (*,*) 'ERROR 2 in rdump: default integer size wrong'
+         CALL quit
+      ENDIF
+      IF (int3i.NE.int1) THEN
+         WRITE (*,*) 'ERROR 3 in rdump: default real size wrong'
+         CALL quit
+      ENDIF
+      READ (idisk1, END=100) fileident
+c
+c--Single values
+c
+c--Default int
+      READ (idisk1, END=100) number
+      IF (number.NE.6) THEN
+         WRITE (*,*) 'ERROR 4 in rdump'
+         CALL quit
+      ENDIF
+      READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill
+c--int*1, int*2, int*4, int*8
+      DO i = 1, 4
+         READ (idisk1, END=100) number
+      END DO
+c--Default real
+      READ (idisk1, END=100) number
+      IF (number.NE.14) THEN
+         WRITE (*,*) 'ERROR 5 in rdump'
+         CALL quit
+      ENDIF
+      READ (idisk1, END=100) gt, dtmax, gamma, rhozero, RK2,
+     &     escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
+     &     specang, ptmassin
+c--real*4
+      READ (idisk1, END=100) number
+c--real*8
+      READ (idisk1, END=100) number
+      IF (number.NE.3) THEN
+         WRITE (*,*) 'ERROR 6 in rdump'
+         CALL quit
+      ENDIF
+      READ (idisk1, END=100) udisti, umassi, utimei
+c
+c--Arrays
+c
+c--Number of array lengths
+c
+      READ (idisk1, END=100) number
+      IF (number.NE.2) THEN
+         WRITE (*,*) 'ERROR 7 in rdump'
+         CALL quit
+      ENDIF
+c
+c--Read array type 1
+c
+      READ (idisk1, END=100) number, (nums(i), i=1,8)
+      IF (number.NE.npart) THEN
+         WRITE (*,*) 'ERROR 8 in rdump: npart wrong'
+         CALL quit
+      ENDIF
+c--Default int
+      READ (idisk1, END=100) (isteps(i), i=1, npart)
+c--int*1
+      READ (idisk1, END=100) (iphase(i), i=1, npart)
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
       DO j = 1, 5
          READ (idisk1, END=100) (xyzmh(j,i), i=1, npart)
       END DO
       DO j = 1, 4
          READ (idisk1, END=100) (vxyzu(j,i), i=1, npart)
-      END DO
+      END DO      
+c--real*4
       READ (idisk1, END=100) (rho(i), i=1, npart)
-      READ (idisk1, END=100) (dgrav(i), i=1, npart)
-      READ (idisk1, END=100) dtmaxdp, (isteps(i), i=1, npart)
-      READ (idisk1, END=100) (iphase(i), i=1, npart)
-      READ (idisk1, END=100) nptmass, (listpm(i), i=1, nptmass),
-     &     (spinx(i),i=1,nptmass), (spiny(i),i=1,nptmass),
-     &     (spinz(i),i=1,nptmass)
-     &     ,(angaddx(i),i=1,nptmass), (angaddy(i),i=1,nptmass),
-     &     (angaddz(i),i=1,nptmass),
-     &     anglostx, anglosty, anglostz,
-     &     nreassign, naccrete, nkill, specang, ptmassin,
-     &     (spinadx(i),i=1,nptmass),(spinady(i),i=1,nptmass),
-     &     (spinadz(i),i=1,nptmass)
-c     &     ,(alphaMM(i), i=1, npart)
+      READ (idisk1, END=100) (dgrav(i), i=1, npart)      
+c     READ (idisk1, END=100) (alphaMM(i), i=1, npart)
+c--real*8
 
+c
+c--Array length 2
+c
+      READ (idisk1, END=100) nptmass, (nums(i), i=1,8)
+c--Default int
+      READ (idisk1, END=100) (listpm(i), i=1,nptmass)
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+      READ (idisk1, END=100) (spinx(i),i=1,nptmass)
+      READ (idisk1, END=100) (spiny(i),i=1,nptmass)
+      READ (idisk1, END=100) (spinz(i),i=1,nptmass)
+      READ (idisk1, END=100) (angaddx(i),i=1,nptmass)
+      READ (idisk1, END=100) (angaddy(i),i=1,nptmass)
+      READ (idisk1, END=100) (angaddz(i),i=1,nptmass)
+      READ (idisk1, END=100) (spinadx(i),i=1,nptmass)
+      READ (idisk1, END=100) (spinady(i),i=1,nptmass)
+      READ (idisk1, END=100) (spinadz(i),i=1,nptmass)
+c--real*4
+
+c--real*8
+
+c
+c--End reading of dump file
+c--------------------------
+c
       gtdouble = DBLE(gt)
 c
 c--Sort particles to ensure most efficient running.  Note that this 

@@ -1,13 +1,14 @@
 1       Pressure gradient (0: off, 1: on)
 1 1.0 2.0   Artificial viscosity (0: off, 1: on) and alpha and beta
-1       Coriolis and centrifugal force (0: off, 1: on)
+0       Coriolis and centrifugal force (0: off, 1: on)
 0       Kinetic energy: radiated: (0), dissipated (1)
 0       P dV: radiated (0), dissipated (1)
 0.0     Artificial damping (0., 1. or 2.)
 0       External force (1 > 9) flag ?
 0       Expanding or contracting referential (0: off, 1: on)
-1       Dump every N maximum time steps
-64      N Ptmass Dumps every maximum time steps (binned into power of 2)
+1       Binary Dump every N maximum time steps
+1       Full Binary Dump every N Binary Dumps
+256      N Ptmass Dumps every maximum time steps (binned into power of 2)
 1e-5 1e-9 1e-5  Precision of the Runge-Kutta integration (absolute error)
 1       Model number for starting next job (9999 = last model)
 10000.  Maximum CPU time for program (minutes)

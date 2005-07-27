@@ -18,6 +18,7 @@ c************************************************************
       INCLUDE 'COMMONS/actio'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/debug'
+      INCLUDE 'COMMONS/tming'
 
       CHARACTER*7 where
       CHARACTER*1 iok, smooth
@@ -162,6 +163,7 @@ c--Smooth data
 c
          IF (smooth.EQ.'y') CALL smoothd
 
+         nfullstep = 1
          CALL wdump(idisk2)
 
       END DO

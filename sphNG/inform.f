@@ -24,6 +24,7 @@ c************************************************************
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/numpa'
+      INCLUDE 'COMMONS/recor'
 
       CHARACTER*7 where
 c
@@ -236,7 +237,7 @@ c
 c
 c--Update input file
 c
-         CALL wrinsph
+         IF (ifulldump.EQ.0) CALL wrinsph
 
       ENDIF
 

@@ -117,6 +117,8 @@ c
       READ (iterm, *) iexpan
       READ (iterm, *) nstep
       IF (nstep.LT.1) nstep = 1
+      READ (iterm, *) nfullstep
+      IF (nstep.LT.1) nfullstep = 1
 
       READ (iterm, *) iptoutnum
       xlog2 = 0.30103 + 0.00001

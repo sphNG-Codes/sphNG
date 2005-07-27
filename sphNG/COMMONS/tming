@@ -1,1 +1,1 @@
-      COMMON /tming / tstep, tmax, nstep, ncount, tstop
+      COMMON /tming / tstep, tmax, tstop, nstep, nfullstep, ncount

@@ -98,6 +98,8 @@ c
 88009 FORMAT(2X,I2,'  Expansion')
       WRITE (iterm, 88010) nstep
 88010 FORMAT(2X,I2,'  Binary Dump Every N Max Time Steps')
+      WRITE (iterm, 88017) nfullstep
+88017 FORMAT(2X,I2,'  Full Binary Dump Every N Binary Dumps')
       WRITE (iterm, 89020) iptoutnum
 89020 FORMAT(2X,I4,'  N Ptmass Dumps Per Max Timestep') 
       WRITE (iterm, 88011) tol, tolptm, tolh

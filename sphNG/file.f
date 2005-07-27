@@ -20,7 +20,7 @@ c************************************************************
 
       IF (ifirst) THEN
          ifirst = .FALSE.
-         GOTO 100
+c         GOTO 100
       ENDIF
 c
 c--Check for file status

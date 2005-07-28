@@ -54,6 +54,7 @@ c      INCLUDE 'COMMONS/setlocal'
 
       CHARACTER*20 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
+      CHARACTER*1 ien
 c
 c--Initialise time
 c
@@ -443,10 +444,12 @@ c
          READ (*,*) exttemp
          extu = 3.0/2.0*exttemp*Rg/gmw/uergg
          WRITE(*,88112)
-88112    FORMAT(/,'   What is the external density  (units gm/cc)?')
+88112    FORMAT(/,'   External density (gm/cc) (-ve=use rhozero)?')
          READ (*,*) extdens
-         extdens = extdens/udens
-         pext = 2.0/3.0*extu*extdens
+         IF (extdens.GT.0.) THEN
+            extdens = extdens/udens
+            pext = 2.0/3.0*extu*extdens
+         ENDIF
       ENDIF
       IF (ibound.EQ.8) THEN
          WRITE(*,88113)
@@ -605,8 +608,8 @@ c--Set Non-Uniform Density Distribution
 c
  550     WRITE(*, 99016)
 99016    FORMAT (' Coords for density variations: Cartesian    (1)', /,
-     &      '                                Cylinderical (2)', /,
-     &      '                                Spherical    (3)')
+     &      '                                 Cylindrical (2)', /,
+     &      '                                 Spherical   (3)')
          READ (*,*) icoord
          IF ((icoord.LT.1).OR.(icoord.GT.3)) GOTO 550
 
@@ -713,6 +716,11 @@ c
          WRITE(*,*) 'ERROR igeom'
          CALL quit
       ENDIF
+      WRITE(*,*) ' rhozero = ',rhozero
+      IF (ibound.EQ.7) THEN
+         IF (extdens.LE.0.) pext = 2./3.*extu*rhozero
+         WRITE(*,*) ' setting external pressure = ',pext
+      ENDIF
 c
 c--Set Particle Masses
 c
@@ -756,10 +764,31 @@ c
          READ (*, *) thermal
       ELSE
          varsta = 'intener'
-         WRITE (*, 99028)
-99028    FORMAT (' Value of initial average temperature in kelvin ')
-         READ (*, *) thermal
-         thermal = 3.0/2.0*thermal*Rg/gmw/uergg
+99027    WRITE (*, 99028)
+99028    FORMAT (' Do you want to enter: ',/,
+     &     '    value of initial average temperature in kelvin: (t) ',/,
+     &     '    initial average sound speed (code units)      : (s) ',/,
+     &     '    initial average internal energy (code units)  : (u) ?')
+         READ(*,99128) ien
+99128    FORMAT(A1)	 
+	 IF (ien.EQ.'t') THEN
+	    WRITE(*,99129)
+99129       FORMAT (' Value of initial average temperature in kelvin:')
+	    READ (*,*) thermal
+            thermal = 3.0/2.0*thermal*Rg/gmw/uergg
+	 ELSE IF (ien.EQ.'u') THEN
+	    WRITE(*,99130)
+99130       FORMAT (' Value of internal energy (code units)') 
+	    READ (*,*) thermal
+	 ELSE IF (ien.EQ.'s') THEN
+	    WRITE(*,99131) udist/utime
+99131       FORMAT (' Value of sound speed in units of ',1pe10.4,'cm/s')
+	    READ (*,*) thermal
+	    vsound = ABS(thermal)
+	    vsound2 = vsound*vsound
+	 ELSE
+            GOTO 99027
+         ENDIF
       ENDIF
       rhocrt = rhocrit * udens
       rhocrt2 = rhocrit2 * udens
@@ -779,20 +808,38 @@ c
 99032       FORMAT (' Enter gamma')
             READ (*,*) gamma
             gm1 = gamma - 1.0
-            RK2 = thermal/(rhozero**gm1)
+            WRITE (*,99033)
+99033       FORMAT (' Do you want to specify the polytropic K? (y/n)',/,
+     &           '(otherwise uses initial temp/internal energy/vsound)')
+            READ (*,*) iok
+            IF (iok.eq.'y'.or.iok.EQ.'Y') THEN
+               WRITE(*,99133)
+99133          FORMAT (' Enter polytropic K:')         
+               READ (*,*) RK2
+               RK2 = RK2*1.5
+               WRITE(*,*) 'RK2 = ',RK2
+            ELSE            
+               RK2 = thermal/(rhozero**gm1)
+            ENDIF            
          ELSE IF (encal.EQ.'a') THEN
             gamma = 5.0/3.0
             gm1 = gamma - 1.0
+	    IF (ien.EQ.'s') thermal = vsound2/(gamma*gm1)
             RK2 = thermal/(rhozero**gm1)
          ELSE IF (encal.EQ.'i' .OR. encal.EQ.'t') THEN
             gamma = 1.0
             RK2 = thermal
+	    IF (ien.EQ.'s') thermal = 1.5*vsound2
+            RK2 = thermal
+            tempiso = 2./3.*thermal/(Rg/gmw/uergg)
+            WRITE(*,*) 'isothermal temperature = ',tempiso
          ELSE IF (encal.EQ.'v') THEN
 c
 c--Value of gamma is irrelevant for definition of variable e.o.s.
 c
             gamma = 5.0/3.0
             gm1 = gamma - 1.0
+	    IF (ien.EQ.'s') thermal = vsound2*1.5  !!!/(gamma*gm1)
             RK2 = thermal/(rhozero**gm1)
          ELSE IF (encal.EQ.'x') THEN
 c
@@ -800,6 +847,7 @@ c--Value of gamma is irrelevant for definition of physical e.o.s.
 c
             gamma = 5.0/3.0
             gm1 = gamma - 1.0
+	    IF (ien.EQ.'s') thermal = vsound2/(gamma*gm1)
             RK2 = thermal/(rhozero**gm1)
          ELSE
             GOTO 616
@@ -870,12 +918,6 @@ c
          END DO
       ENDIF
 
-      nactive = npart
-      WRITE (*, 99044)
-99044 FORMAT(' Do you want to adjust smoothing length',/,
-     + ' to have similar number of neighbours ? (y/n) ')
-      READ (*, 99004) iok
-      IF (iok.EQ.'y' .OR. iok.EQ.'Y') CALL hcalc
 c
 c--Set Center of Mass at Zero
 c
@@ -1274,7 +1316,16 @@ c
 77771 FORMAT(A20)
  778  n1 = npart
       n2 = 0
-c 
+c
+c--adjust smoothing lengths (also calculated initial density)
+c
+      nactive = npart
+      WRITE (*, 99044)
+99044 FORMAT(' Do you want to adjust smoothing length',/,
+     + ' to have similar number of neighbours ? (y/n) ')
+      READ (*, 99004) iok
+      IF (iok.EQ.'y' .OR. iok.EQ.'Y') CALL hcalc
+       
       WRITE (*, 99056)
 99056 FORMAT (//, ' END OF SETUP')
 c

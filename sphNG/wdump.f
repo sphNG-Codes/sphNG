@@ -57,7 +57,6 @@ c
       irec = irec + 1
       iresort = iresort + 1
       ifulldump = ifulldump + 1
-      write (*,*) ifulldump,nfullstep
       IF (ifulldump.EQ.nfullstep) THEN
          ifulldump = 0
 c

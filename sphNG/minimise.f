@@ -33,7 +33,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/numpa'
       INCLUDE 'COMMONS/treecom_P'
 
-      CHARACTER*1 ians
+      CHARACTER*1 ians1, ians2
       CHARACTER*20 filename
       CHARACTER*100 fileident
       INTEGER*4 int1, int2
@@ -48,64 +48,68 @@ c
       READ (*,99001) filename
 99001 FORMAT(A20)
 
-      WRITE (*,*) 'Full or small NG dump (f/s)?'
-      READ (*,99002) ians
+      WRITE (*,*) 'Original dump file or semi-new (o/s)?'
+      READ (*,99002) ians1
 99002 FORMAT(A1)
+
+      WRITE (*,*) 'Full or small NG dump (f/s)?'
+      READ (*,99002) ians2
 
       OPEN (11,FILE=filename,FORM='unformatted')
 
-      READ (11, END=100) udist, umass, utime,
-     &     npart, n1, n2, gt, gamma, rhozero, RK2,
-     &     (xyzmh(5,i), i=1, npart), escap, tkin, tgrav, tterm,
-     &     (xyzmh(1,i), i=1, npart), (xyzmh(2,i), i=1, npart),
-     &     (xyzmh(3,i), i=1, npart), (vxyzu(1,i), i=1, npart),
-     &     (vxyzu(2,i), i=1, npart), (vxyzu(3,i), i=1, npart),
-     &     (vxyzu(4,i), i=1, npart), (xyzmh(4,i), i=1, npart),
-     &     (rho(i), i=1, npart), (dgrav(i), i=1, npart),
-     &     dtmax, (isteps(i), i=1, npart)
-     &     ,(iphase(i), i=1, npart),
-     &     nptmass, (listpm(i), i=1, nptmass),
-     &     (spinx(i),i=1,nptmass), (spiny(i),i=1,nptmass),
-     &     (spinz(i),i=1,nptmass)
-     &     ,(angaddx(i),i=1,nptmass), (angaddy(i),i=1,nptmass),
-     &     (angaddz(i),i=1,nptmass),
-     &     anglostx, anglosty, anglostz,
-     &     nreassign, naccrete, nkill, specang, ptmassin,
-     &     (spinadx(i),i=1,nptmass),(spinady(i),i=1,nptmass),
-     &     (spinadz(i),i=1,nptmass)
+      IF (ians1.EQ.'o') THEN
+         READ (11, END=100) udist, umass, utime,
+     &        npart, n1, n2, gt, gamma, rhozero, RK2,
+     &        (xyzmh(5,i), i=1, npart), escap, tkin, tgrav, tterm,
+     &        (xyzmh(1,i), i=1, npart), (xyzmh(2,i), i=1, npart),
+     &        (xyzmh(3,i), i=1, npart), (vxyzu(1,i), i=1, npart),
+     &        (vxyzu(2,i), i=1, npart), (vxyzu(3,i), i=1, npart),
+     &        (vxyzu(4,i), i=1, npart), (xyzmh(4,i), i=1, npart),
+     &        (rho(i), i=1, npart), (dgrav(i), i=1, npart),
+     &        dtmax, (isteps(i), i=1, npart)
+     &        ,(iphase(i), i=1, npart),
+     &        nptmass, (listpm(i), i=1, nptmass),
+     &        (spinx(i),i=1,nptmass), (spiny(i),i=1,nptmass),
+     &        (spinz(i),i=1,nptmass)
+     &        ,(angaddx(i),i=1,nptmass), (angaddy(i),i=1,nptmass),
+     &        (angaddz(i),i=1,nptmass),
+     &        anglostx, anglosty, anglostz,
+     &        nreassign, naccrete, nkill, specang, ptmassin,
+     &        (spinadx(i),i=1,nptmass),(spinady(i),i=1,nptmass),
+     &        (spinadz(i),i=1,nptmass)
 c     &     ,(alphaMM(i), i=1, npart)
-      write (*,*) udist,umass,utime
 
-      goto 444
+      ELSE
 
-      READ (11, END=100) udist, umass, utime,
-     &     npart, n1, n2, gt, gamma, rhozero, RK2,
-     &     escap, tkin, tgrav, tterm
-      DO j = 1, 5
-         READ (11, END=100) (xyzmh(j,i), i=1, npart)
-      END DO
-      DO j = 1, 4
-         READ (11, END=100) (vxyzu(j,i), i=1, npart)
-      END DO
-      READ (11, END=100) (rho(i), i=1, npart)
-      READ (11, END=100) (dgrav(i), i=1, npart)
-      READ (11, END=100) dtmax, (isteps(i), i=1, npart)
-      READ (11, END=100) (iphase(i), i=1, npart)
-      READ (11, END=100) nptmass, (listpm(i), i=1, nptmass),
-     &     (spinx(i),i=1,nptmass), (spiny(i),i=1,nptmass),
-     &     (spinz(i),i=1,nptmass)
-     &     ,(angaddx(i),i=1,nptmass), (angaddy(i),i=1,nptmass),
-     &     (angaddz(i),i=1,nptmass),
-     &     anglostx, anglosty, anglostz,
-     &     nreassign, naccrete, nkill, specang, ptmassin,
-     &     (spinadx(i),i=1,nptmass),(spinady(i),i=1,nptmass),
-     &     (spinadz(i),i=1,nptmass)
+         READ (11, END=100) udist, umass, utime,
+     &        npart, n1, n2, gt, gamma, rhozero, RK2,
+     &        escap, tkin, tgrav, tterm
+         DO j = 1, 5
+            READ (11, END=100) (xyzmh(j,i), i=1, npart)
+         END DO
+         DO j = 1, 4
+            READ (11, END=100) (vxyzu(j,i), i=1, npart)
+         END DO
+         READ (11, END=100) (rho(i), i=1, npart)
+         READ (11, END=100) (dgrav(i), i=1, npart)
+         READ (11, END=100) dtmax, (isteps(i), i=1, npart)
+         READ (11, END=100) (iphase(i), i=1, npart)
+         READ (11, END=100) nptmass, (listpm(i), i=1, nptmass),
+     &        (spinx(i),i=1,nptmass), (spiny(i),i=1,nptmass),
+     &        (spinz(i),i=1,nptmass)
+     &        ,(angaddx(i),i=1,nptmass), (angaddy(i),i=1,nptmass),
+     &        (angaddz(i),i=1,nptmass),
+     &        anglostx, anglosty, anglostz,
+     &        nreassign, naccrete, nkill, specang, ptmassin,
+     &        (spinadx(i),i=1,nptmass),(spinady(i),i=1,nptmass),
+     &        (spinadz(i),i=1,nptmass)
 c     &     ,(alphaMM(i), i=1, npart)
- 444  CLOSE(11)
+      ENDIF
+      CLOSE(11)
 
       OPEN (12,FILE=filename,FORM='unformatted')
 
-      IF (ians.EQ.'f') THEN
+      IF (ians2.EQ.'f') THEN
 c
 c--Write full dump file
 c----------------------
@@ -167,6 +171,22 @@ c
       nums(7) = 2
       nums(8) = 0
       WRITE (12, ERR=100) number8, (nums(i), i=1,8)
+c
+c--Array length 2
+c
+      number8 = nptmass
+      nums(1) = 1
+      nums(2) = 0
+      nums(3) = 0
+      nums(4) = 0
+      nums(5) = 0
+      nums(6) = 9
+      nums(7) = 0
+      nums(8) = 0
+      WRITE (12, ERR=100) number8, (nums(i), i=1,8)
+c
+c--Arrays of length 1
+c
 c--Default int
       WRITE (12, ERR=100) (isteps(i), i=1, npart)
 c--int*1
@@ -191,18 +211,8 @@ c     WRITE (12, ERR=100) (alphaMM(i), i=1, npart)
 c--real*8
 
 c
-c--Array length 2
+c--Arrays of length 2
 c
-      number8 = nptmass
-      nums(1) = 1
-      nums(2) = 0
-      nums(3) = 0
-      nums(4) = 0
-      nums(5) = 0
-      nums(6) = 9
-      nums(7) = 0
-      nums(8) = 0
-      WRITE (12, ERR=100) number8, (nums(i), i=1,8)
 c--Default int
       WRITE (12, ERR=100) (listpm(i), i=1,nptmass)
 c--int*1
@@ -299,6 +309,22 @@ c
       nums(7) = 2
       nums(8) = 0
       WRITE (12, ERR=100) number8, (nums(i), i=1,8)
+c
+c--Array length 2
+c
+      number8 = nptmass
+      nums(1) = 1
+      nums(2) = 0
+      nums(3) = 0
+      nums(4) = 0
+      nums(5) = 0
+      nums(6) = 1
+      nums(7) = 0
+      nums(8) = 0
+      WRITE (12, ERR=100) number8, (nums(i), i=1,8)
+c
+c--Arrays of length 1
+c
 c--Default int
 c      WRITE (12, ERR=100) (isteps(i), i=1, npart)
 c--int*1
@@ -327,18 +353,8 @@ c     WRITE (12, ERR=100) (alphaMM(i), i=1, npart)
 c--real*8
 
 c
-c--Array length 2
+c--Arrays of length 2
 c
-      number8 = nptmass
-      nums(1) = 1
-      nums(2) = 0
-      nums(3) = 0
-      nums(4) = 0
-      nums(5) = 0
-      nums(6) = 1
-      nums(7) = 0
-      nums(8) = 0
-      WRITE (12, ERR=100) number8, (nums(i), i=1,8)
 c--Default int
       WRITE (12, ERR=100) (listpm(i), i=1,nptmass)
 c--int*1

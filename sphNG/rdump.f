@@ -120,7 +120,7 @@ c
          CALL quit
       ENDIF
 c
-c--Read array type 1
+c--Read array type 1 header
 c
       READ (idisk1, END=100) number8, (nums(i), i=1,8)
       IF (number8.NE.npart) THEN
@@ -128,6 +128,14 @@ c
          CALL quit
       ENDIF
       npart = number8
+c
+c--Array length 2 header
+c
+      READ (idisk1, END=100) number8, (nums(i), i=1,8)
+      nptmass = number8
+c
+c--Read array type 1 arrays
+c
 c--Default int
       READ (idisk1, END=100) (isteps(i), i=1, npart)
 c--int*1
@@ -147,15 +155,10 @@ c--Default real
       END DO      
 c--real*4
       READ (idisk1, END=100) (rho(i), i=1, npart)
-      READ (idisk1, END=100) (dgrav(i), i=1, npart)      
+      READ (idisk1, END=100) (dgrav(i), i=1, npart)
 c     READ (idisk1, END=100) (alphaMM(i), i=1, npart)
 c--real*8
 
-c
-c--Array length 2
-c
-      READ (idisk1, END=100) number8, (nums(i), i=1,8)
-      nptmass = number8
 c--Default int
       READ (idisk1, END=100) (listpm(i), i=1,nptmass)
 c--int*1

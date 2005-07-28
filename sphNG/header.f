@@ -336,5 +336,7 @@ c
       WRITE (iprint, 99025) file1
 99025 FORMAT (//,' Name of input file : ', A7, //)
 
+      CALL FLUSH (iprint)
+
       RETURN
       END

@@ -1,13 +1,11 @@
       PROGRAM minimise
 c************************************************************
 c                                                           *
-c  This routine reads a dump into memory                    *
+c  This routine reads a dump in old format and outputs NG   *
 c                                                           *
 c************************************************************
 
       INCLUDE 'idim'
-
-      REAL*8 umassi, udisti, utimei
 
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/part'
@@ -18,6 +16,7 @@ c************************************************************
       INCLUDE 'COMMONS/gtime'
       INCLUDE 'COMMONS/gtdble'
       INCLUDE 'COMMONS/bodys'
+      INCLUDE 'COMMONS/ener1'
       INCLUDE 'COMMONS/ener2'
       INCLUDE 'COMMONS/ener3'
       INCLUDE 'COMMONS/fracg'
@@ -34,34 +33,38 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/numpa'
       INCLUDE 'COMMONS/treecom_P'
 
-      DIMENSION itempsort(idim), tempsort(idim)
-      EQUIVALENCE (itempsort, next1), (tempsort, key)
-
-      CHARACTER*7 where
+      CHARACTER*1 ians
+      CHARACTER*20 filename
+      CHARACTER*100 fileident
+      INTEGER*4 int1, int2
+      INTEGER*8 number8
+      DIMENSION nums(8)
 
       DATA icall/2/
-      DATA where/'rdump'/
 c
 c--Read
 c
-      IF (itrace.EQ.'all') WRITE (*, 99001)
-99001 FORMAT (' entry subroutine rdump')
+      WRITE (*,*) 'Enter filename'
+      READ (*,99001) filename
+99001 FORMAT(A20)
 
-      ichkl = 0
-      READ (idisk1, END=100) udisti, umassi, utimei,
+      WRITE (*,*) 'Full or small NG dump (f/s)?'
+      READ (*,99002) ians
+99002 FORMAT(A1)
+
+      OPEN (11,FILE=filename,FORM='unformatted')
+
+      READ (11, END=100) udist, umass, utime,
      &     npart, n1, n2, gt, gamma, rhozero, RK2,
-     &     escap, tkin, tgrav, tterm
-      DO j = 1, 5
-         READ (idisk1, END=100) (xyzmh(j,i), i=1, npart)
-      END DO
-      DO j = 1, 4
-         READ (idisk1, END=100) (vxyzu(j,i), i=1, npart)
-      END DO
-      READ (idisk1, END=100) (rho(i), i=1, npart)
-      READ (idisk1, END=100) (dgrav(i), i=1, npart)
-      READ (idisk1, END=100) dtmaxdp, (isteps(i), i=1, npart)
-      READ (idisk1, END=100) (iphase(i), i=1, npart)
-      READ (idisk1, END=100) nptmass, (listpm(i), i=1, nptmass),
+     &     (xyzmh(5,i), i=1, npart), escap, tkin, tgrav, tterm,
+     &     (xyzmh(1,i), i=1, npart), (xyzmh(2,i), i=1, npart),
+     &     (xyzmh(3,i), i=1, npart), (vxyzu(1,i), i=1, npart),
+     &     (vxyzu(2,i), i=1, npart), (vxyzu(3,i), i=1, npart),
+     &     (vxyzu(4,i), i=1, npart), (xyzmh(4,i), i=1, npart),
+     &     (rho(i), i=1, npart), (dgrav(i), i=1, npart),
+     &     dtmax, (isteps(i), i=1, npart)
+     &     ,(iphase(i), i=1, npart),
+     &     nptmass, (listpm(i), i=1, nptmass),
      &     (spinx(i),i=1,nptmass), (spiny(i),i=1,nptmass),
      &     (spinz(i),i=1,nptmass)
      &     ,(angaddx(i),i=1,nptmass), (angaddy(i),i=1,nptmass),
@@ -71,212 +74,306 @@ c
      &     (spinadx(i),i=1,nptmass),(spinady(i),i=1,nptmass),
      &     (spinadz(i),i=1,nptmass)
 c     &     ,(alphaMM(i), i=1, npart)
+      write (*,*) udist,umass,utime
 
-      DO i=1,npart
+      goto 444
+
+      READ (11, END=100) udist, umass, utime,
+     &     npart, n1, n2, gt, gamma, rhozero, RK2,
+     &     escap, tkin, tgrav, tterm
+      DO j = 1, 5
+         READ (11, END=100) (xyzmh(j,i), i=1, npart)
+      END DO
+      DO j = 1, 4
+         READ (11, END=100) (vxyzu(j,i), i=1, npart)
+      END DO
+      READ (11, END=100) (rho(i), i=1, npart)
+      READ (11, END=100) (dgrav(i), i=1, npart)
+      READ (11, END=100) dtmax, (isteps(i), i=1, npart)
+      READ (11, END=100) (iphase(i), i=1, npart)
+      READ (11, END=100) nptmass, (listpm(i), i=1, nptmass),
+     &     (spinx(i),i=1,nptmass), (spiny(i),i=1,nptmass),
+     &     (spinz(i),i=1,nptmass)
+     &     ,(angaddx(i),i=1,nptmass), (angaddy(i),i=1,nptmass),
+     &     (angaddz(i),i=1,nptmass),
+     &     anglostx, anglosty, anglostz,
+     &     nreassign, naccrete, nkill, specang, ptmassin,
+     &     (spinadx(i),i=1,nptmass),(spinady(i),i=1,nptmass),
+     &     (spinadz(i),i=1,nptmass)
+c     &     ,(alphaMM(i), i=1, npart)
+ 444  CLOSE(11)
+
+      OPEN (12,FILE=filename,FORM='unformatted')
+
+      IF (ians.EQ.'f') THEN
+c
+c--Write full dump file
+c----------------------
+c
+c--Standard numbers
+c
+      int1 = 690706
+      int2 = 780806
+      i1 = int1
+      r1 = real(int2)
+c
+c--Write output file
+c
+      WRITE (12, ERR=100) int1,r1,int2,i1,int1
+      fileident = 'FHydro1'
+      WRITE (12, ERR=100) fileident
+c
+c--Single values
+c
+c--Default int
+      number = 6
+      WRITE (12, ERR=100) number
+      WRITE (12, ERR=100) npart,n1,n2,nreassign,naccrete,nkill
+c--int*1, int*2, int*4, int*8
+      number = 0
+      DO i = 1, 4
+         WRITE (12, ERR=100) number
+      END DO
+c--Default real
+      number = 14
+      WRITE (12, ERR=100) number
+      WRITE (12, ERR=100) gt, dtmax, gamma, rhozero, RK2,
+     &     escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
+     &     specang, ptmassin
+c--real*4
+      number = 0
+      WRITE (12, ERR=100) number
+c--real*8
+      number = 3
+      WRITE (12, ERR=100) number
+      WRITE (12, ERR=100) udist, umass, utime
+c
+c--Arrays
+c
+c--Number of array lengths
+c
+      number = 2
+      WRITE (12, ERR=100) number
+c
+c--Array length 1
+c
+      number8 = npart
+      nums(1) = 1
+      nums(2) = 1
+      nums(3) = 0
+      nums(4) = 0
+      nums(5) = 0
+      nums(6) = 9
+      nums(7) = 2
+      nums(8) = 0
+      WRITE (12, ERR=100) number8, (nums(i), i=1,8)
+c--Default int
+      WRITE (12, ERR=100) (isteps(i), i=1, npart)
+c--int*1
+      WRITE (12, ERR=100) (iphase(i), i=1, npart)
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+      DO j = 1, 5
+         WRITE (12, ERR=100) (xyzmh(j,i), i=1, npart)
+      END DO
+      DO j = 1, 4
+         WRITE (12, ERR=100) (vxyzu(j,i), i=1, npart)
+      END DO      
+c--real*4
+      WRITE (12, ERR=100) (rho(i), i=1, npart)
+      WRITE (12, ERR=100) (dgrav(i), i=1, npart)      
+c     WRITE (12, ERR=100) (alphaMM(i), i=1, npart)
+c--real*8
+
+c
+c--Array length 2
+c
+      number8 = nptmass
+      nums(1) = 1
+      nums(2) = 0
+      nums(3) = 0
+      nums(4) = 0
+      nums(5) = 0
+      nums(6) = 9
+      nums(7) = 0
+      nums(8) = 0
+      WRITE (12, ERR=100) number8, (nums(i), i=1,8)
+c--Default int
+      WRITE (12, ERR=100) (listpm(i), i=1,nptmass)
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+      WRITE (12, ERR=100) (spinx(i),i=1,nptmass)
+      WRITE (12, ERR=100) (spiny(i),i=1,nptmass)
+      WRITE (12, ERR=100) (spinz(i),i=1,nptmass)
+      WRITE (12, ERR=100) (angaddx(i),i=1,nptmass)
+      WRITE (12, ERR=100) (angaddy(i),i=1,nptmass)
+      WRITE (12, ERR=100) (angaddz(i),i=1,nptmass)
+      WRITE (12, ERR=100) (spinadx(i),i=1,nptmass)
+      WRITE (12, ERR=100) (spinady(i),i=1,nptmass)
+      WRITE (12, ERR=100) (spinadz(i),i=1,nptmass)
+c--real*4
+
+c--real*8
+
+c
+c--End writing of full dump file
+c-------------------------------
+c
+      ELSE
+c
+c--Write small dump file
+c----------------------------
+c
+c--Standard numbers
+c
+      int1 = 690706
+      int2 = 780806
+      i1 = int1
+      r1 = i2
+c
+c--Write ouput file
+c
+      WRITE (12, ERR=100) int1,i1,int2,r1,int1
+      fileident = 'SHydro1'
+      WRITE (12, ERR=100) fileident
+c
+c--Single values
+c
+c--Default int
+      number = 6
+      WRITE (12, ERR=100) number
+      WRITE (12, ERR=100) npart,n1,n2,nreassign,naccrete,nkill
+c--int*1, int*2, int*4, int*8
+      number = 0
+      DO i = 1, 4
+         WRITE (12, ERR=100) number
+      END DO
+c--Default real
+      number = 15
+      DO i = 1, npart
          IF (iphase(i).EQ.0) THEN
-            pmassvalue = xyzmh(4,i)
-            GOTO 150
+            pmassinitial = xyzmh(4,i)
+            GOTO 40
          ENDIF
       END DO
- 150  CONTINUE
+ 40      WRITE (12, ERR=100) number
+      WRITE (12, ERR=100) gt, dtmax, gamma, rhozero, RK2,
+     &     escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
+     &     specang, ptmassin, pmassinitial
+c--real*4
+      number = 0
+      WRITE (12, ERR=100) number
+c--real*8
+      number = 3
+      WRITE (12, ERR=100) number
+      WRITE (12, ERR=100) udist, umass, utime
+c
+c--Arrays
+c
+c--Number of array lengths
+c
+      number = 2
+      WRITE (12, ERR=100) number
+c
+c--Array length 1
+c
+      number8 = npart
+      nums(1) = 0
+      nums(2) = 1
+      nums(3) = 0
+      nums(4) = 0
+      nums(5) = 0
+      nums(6) = 5
+      nums(7) = 2
+      nums(8) = 0
+      WRITE (12, ERR=100) number8, (nums(i), i=1,8)
+c--Default int
+c      WRITE (12, ERR=100) (isteps(i), i=1, npart)
+c--int*1
+      WRITE (12, ERR=100) (iphase(i), i=1, npart)
+c--int*2
 
-      WRITE (12, ERR=200) udisti, umassi, utimei,
-     &     npart, gt, pmassvalue
+c--int*4
+
+c--int*8
+
+c--Default real
       DO j = 1, 3
-         WRITE (12, ERR=200) (xyzmh(j,i), i=1, npart)
+         WRITE (12, ERR=100) (xyzmh(j,i), i=1, npart)
       END DO
-      WRITE (12, ERR=200) (xyzmh(5,i), i=1, npart)
-      WRITE (12, ERR=200) (rho(i), i=1, npart)
-      WRITE (12, ERR=200) (iphase(i), i=1, npart)
-      WRITE (12, ERR=200) nptmass, (listpm(i), i=1, nptmass)
+c      DO j = 1, 4
+c         WRITE (12, ERR=100) (vxyzu(j,i), i=1, npart)
+c      END DO      
+c--real*4
+      WRITE (12, ERR=100) (rho(i), i=1, npart)
+      DO i = 1, npart
+         dq(i) = xyzmh(5,i)
+      END DO
+      WRITE (12, ERR=100) (dq(i), i=1, npart)      
+c      WRITE (12, ERR=100) (dgrav(i), i=1, npart)      
+c     WRITE (12, ERR=100) (alphaMM(i), i=1, npart)
+c--real*8
 
-      gtdouble = DBLE(gt)
 c
-c--Sort particles to ensure most efficient running.  Note that this 
-c     should not be visible to the outside observer.  In other words,
-c     an array must be kept of original list of particles and this
-c     must be used to index *ANY* value from an array which is written 
-c     to the outside.  This requires modification to almost every output
-c     line in the code.  Done 21 Nov 2000.
+c--Array length 2
 c
-      xminimum = 1.0E+30
-      xmaximum = -1.0E+30
-      DO i = 1, npart
-         xmaximum = MAX(xmaximum, xyzmh(1,i))
-         xminimum = MIN(xminimum, xyzmh(1,i))
-      END DO
-      xrange = xmaximum-xminimum
-      istepmin = imax
-      istepmax = 0
-      DO i = 1, npart
-         llist(i) = i
-         IF (iphase(i).EQ.-1) THEN
-            tempsort(i) = LOG(REAL(imax))/LOG(2.0)
-            istepmax = imax
-         ELSE
-            IF (gt.EQ.0.0 .OR. isteps(i).EQ.0) THEN
-               tempsort(i) = (xyzmh(1,i)-xminimum)/xrange
-            ELSE
-               tempsort(i) = LOG(REAL(isteps(i)))/LOG(2.0) +
-     &           (xyzmh(1,i)-xminimum)/xrange
-            ENDIF
-            istepmin = MIN(istepmin, isteps(i))
-            istepmax = MAX(istepmax, isteps(i))
-         ENDIF
-      END DO
-c
-c--Sort particles based on their individual timesteps and x
-c
+      number8 = nptmass
+      nums(1) = 1
+      nums(2) = 0
+      nums(3) = 0
+      nums(4) = 0
+      nums(5) = 0
+      nums(6) = 1
+      nums(7) = 0
+      nums(8) = 0
+      WRITE (12, ERR=100) number8, (nums(i), i=1,8)
+c--Default int
+      WRITE (12, ERR=100) (listpm(i), i=1,nptmass)
+c--int*1
 
-      CALL indexx(npart, llist, tempsort, iorig)
+c--int*2
 
-      DO i = 1, npart
-         isort(iorig(i)) = i
-         tempsort(i) = xyzmh(5,iorig(i))
-      END DO
-      DO i = 1, npart
-         xyzmh(5,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = xyzmh(1,iorig(i))
-      END DO
-      DO i = 1, npart
-         xyzmh(1,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = xyzmh(2,iorig(i))
-      END DO
-      DO i = 1, npart
-         xyzmh(2,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = xyzmh(3,iorig(i))
-      END DO
-      DO i = 1, npart
-         xyzmh(3,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = vxyzu(1,iorig(i))
-      END DO
-      DO i = 1, npart
-         vxyzu(1,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = vxyzu(2,iorig(i))
-      END DO
-      DO i = 1, npart
-         vxyzu(2,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = vxyzu(3,iorig(i))
-      END DO
-      DO i = 1, npart
-         vxyzu(3,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = vxyzu(4,iorig(i))
-      END DO
-      DO i = 1, npart
-         vxyzu(4,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = xyzmh(4,iorig(i))
-      END DO
-      DO i = 1, npart
-         xyzmh(4,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = rho(iorig(i))
-      END DO
-      DO i = 1, npart
-         rho(i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = dgrav(iorig(i))
-      END DO
-      DO i = 1, npart
-         dgrav(i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         itempsort(i) = isteps(iorig(i))
-      END DO
-      DO i = 1, npart
-         isteps(i) = itempsort(i)
-      END DO
-      DO i = 1, npart
-         itempsort(i) = iphase(iorig(i))
-      END DO
-      DO i = 1, npart
-         iphase(i) = itempsort(i)
-      END DO
-      DO i = 1, nptmass
-         listpm(i) = isort(listpm(i))
-      END DO
-c
-c--Zero torques
-c
-c      DO i = 1, idim
-c         torqt(i) = 0.
-c         torqg(i) = 0.
-c         torqp(i) = 0.
-c         torqv(i) = 0.
-c         torqc(i) = 0.
-c      END DO
-c
-c--Check units in file the same as in the code!
-c
-      IF (udisti.LT.0.99999*udist .OR. udisti.GT.1.00001*udist) THEN
-         CALL error(where,1)
-      ELSEIF (umassi.LT.0.99999*umass .OR.umassi.GT.1.00001*umass) THEN
-         CALL error(where,2)
-      ENDIF
-      IF (npart.GT.idim) THEN
-         CALL error(where,3)
-      ENDIF
-c
-c--Check that dtmax times are the same.  If not, modify isteps(i) as in mesop.f
-c
-ccc      GOTO 50
+c--int*4
 
-      IF (gt.NE.0.0 .AND. 
-     &     (dtmaxdp.LT.0.9999*dtmax .OR. dtmaxdp.GT.1.0001*dtmax)) THEN
-         ipower = INT(LOG10(dtmax/dtmaxdp)/LOG10(2.0))
+c--int*8
 
-         ifactor = 2**ABS(ipower)
-         imaxnew = imaxstep/ifactor
-         iminnew = 2*ifactor
+c--Default real
+      WRITE (12, ERR=100) (xyzmh(4,listpm(i)), i=1,nptmass)
+c      WRITE (12, ERR=100) (spinx(i),i=1,nptmass)
+c      WRITE (12, ERR=100) (spiny(i),i=1,nptmass)
+c      WRITE (12, ERR=100) (spinz(i),i=1,nptmass)
+c      WRITE (12, ERR=100) (angaddx(i),i=1,nptmass)
+c      WRITE (12, ERR=100) (angaddy(i),i=1,nptmass)
+c      WRITE (12, ERR=100) (angaddz(i),i=1,nptmass)
+c      WRITE (12, ERR=100) (spinadx(i),i=1,nptmass)
+c      WRITE (12, ERR=100) (spinady(i),i=1,nptmass)
+c      WRITE (12, ERR=100) (spinadz(i),i=1,nptmass)
+c--real*4
 
-         IF (ipower.LT.0) THEN
-            DO j = 1, npart
-               IF (iphase(j).NE.-1) THEN
-                  isteps(j) = MIN(isteps(j), imaxnew)
-                  isteps(j) = isteps(j)*ifactor
-               ENDIF
-            END DO
-         ELSEIF (ipower.GT.0) THEN
-            DO j = 1, npart
-               IF (iphase(j).NE.-1) THEN
-                  IF (isteps(j)/ifactor .LT. 2) CALL error(where, 4)
-                  isteps(j) = isteps(j)/ifactor
-               ENDIF
-            END DO
-         ENDIF
-      ENDIF
+c--real*8
+
 c
-c--Change reference frame
+c--End writing of small dump file
+c--------------------------------
 c
- 50   IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
-c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2)) THEN
-         CALL chanref(icall)
-      ELSEIF (ifcor.GT.2) THEN
-         ifcor = ifcor - 2
       ENDIF
 
-      IF (itrace.EQ.'all') WRITE (*, 99002)
-99002 FORMAT (' exit subroutine rdump')
+      CLOSE(12)
       RETURN
 
- 100  ichkl = 1
-
+ 100  WRITE (*,*) 'ERROR'
+      
       RETURN
       END

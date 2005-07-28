@@ -46,7 +46,6 @@ c************************************************************
       INCLUDE 'COMMONS/binary'
       INCLUDE 'COMMONS/nearmpt'
       INCLUDE 'COMMONS/initpt'
-      INCLUDE 'COMMONS/artvb'
       INCLUDE 'COMMONS/table'
       INCLUDE 'COMMONS/kerne'
       INCLUDE 'COMMONS/accurpt'
@@ -1243,9 +1242,9 @@ C$OMP DO SCHEDULE(runtime)
       DO j = nlst0 + 1, nlst0 + nlst1
          i = llist(j)
          iscurrent(i) = .FALSE.
-         dum2vxyz(1,i) = dumvxyz(1,i)
-         dum2vxyz(2,i) = dumvxyz(2,i)
-         dum2vxyz(3,i) = dumvxyz(3,i)
+         dum2vxyz(1,i) = dumvxyzu(1,i)
+         dum2vxyz(2,i) = dumvxyzu(2,i)
+         dum2vxyz(3,i) = dumvxyzu(3,i)
 c
 c--Label particles on which predicted forces have been computed
 c
@@ -1994,7 +1993,7 @@ ccc            semiaxis = 1.0 - (totmass-1.0)/0.08 * 0.020
                   cmvx = cmvx + xyzmh(4,i)*vxyzu(1,i)
                   cmvy = cmvy + xyzmh(4,i)*vxyzu(2,i)
                   cmvz = cmvz + xyzmh(4,i)*vxyzu(3,i)
-                  simmass = simmass + pmass(4,i)
+                  simmass = simmass + xyzmh(4,i)
                ENDIF
             END DO
             cmvx = cmvx/simmass

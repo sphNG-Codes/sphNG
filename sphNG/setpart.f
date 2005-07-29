@@ -550,7 +550,7 @@ c
          delx = 0.5*h1
          dely = h1*SQRT(3.)/6.
       ENDIF
-      fach = SQRT(faclod)
+
       IF (idist.EQ.1 .OR. idist.EQ.2) THEN
          nx = INT(deltax/(facx*h1)) + 1
          ny = INT(deltay/(facy*h1)) + 2

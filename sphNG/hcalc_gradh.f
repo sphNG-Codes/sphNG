@@ -126,18 +126,21 @@ c
       hfact = 1.2
       
       DO ipart=1,npart
-         xyzmh(5,ipart) = hfact*(xyzmh(4,ipart)/rhozero)**third
+         dumxyzmh(5,ipart) = hfact*(dumxyzmh(4,ipart)/rhozero)**third
       ENDDO      
-      CALL iterate_density(jneigh,npart,xyzmh,vxyzu,
+      CALL iterate_density(jneigh,npart,dumxyzmh,vxyzu,
      &                     nlst_in,nlst_end,llist,itime)
+      DO ipart=1,npart
+         xyzmh(5,ipart) = dumxyzmh(5,ipart)
+      ENDDO
 c
 c--get h max and min just for fun
 c
       hhmin = 1.e12
       hhmax = -1.e12
       DO ipart=1,npart
-         IF (xyzmh(5,ipart).LT.hhmin) hhmin = xyzmh(5,ipart)
-         IF (xyzmh(5,ipart).GT.hhmax) hhmax = xyzmh(5,ipart)
+         IF (xyzmh(5,ipart).LT.hhmin) hhmin = dumxyzmh(5,ipart)
+         IF (xyzmh(5,ipart).GT.hhmax) hhmax = dumxyzmh(5,ipart)
       ENDDO
       WRITE(*,*) ' min h = ',hhmin,' max h = ',hhmax      
 

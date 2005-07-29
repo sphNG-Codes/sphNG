@@ -44,6 +44,7 @@ c
 c--Initialise
 c
       ncalc = nlst_end - nlst_in + 1
+      ncalctot = 0
       jneigh = 0
       its = 0
       RedoNeighbours = .false.
@@ -64,6 +65,7 @@ c  by taking a Newton-Raphson iteration
       
       DO WHILE ((ncalc.GT.0).AND.(its.LE.maxits))
          its = its + 1
+         ncalctot = ncalctot + ncalc
 c
 c--recalculate the neighbour lists if necessary
 c  (I have made this a direct call to treef so that we only recalculate
@@ -102,18 +104,18 @@ c
             IF (omegai.GT.tiny) gradhs(1,i) = 1./omegai
             gradhs(2,i) = dhdrhoi*gradhs(2,i)
             
-            print*,i,'rho=',rho(i),rhoi,'gradh= ',gradhs(1,i)
+            !!print*,i,'rho=',rho(i),rhoi,'gradh= ',gradhs(1,i)
 c
 c--Newton Raphson
 c            
             func = rhoi - rho(i)
             IF (.not. BiSection) THEN
                dfdh = omegai/dhdrhoi
-!               hnew = hi - func/dfdh
-!               IF (hnew.le.0. .or. omegai.LT.tiny) THEN
-!                  WRITE(iprint,*) 'using fixed point ',i,hnew,omegai
+               hnew = hi - func/dfdh
+               IF (hnew.le.0. .or. omegai.LT.tiny) THEN
+                  WRITE(iprint,*) 'using fixed point ',i,hnew,omegai
                   hnew = hfact*(pmassi/rho(i))**third
-!               ENDIF
+               ENDIF
             
             ELSE
                IF (func .lt. 0.) THEN
@@ -222,8 +224,8 @@ c
          curlv(i) = curlv(i)*gradhs(1,i)
       ENDDO
       
-      WRITE(iprint,*) 'Finished density, its = ',its,
-     &     ' on ',nlst_end-nlst_in+1,' particles'
+      WRITE(iprint,*) 'Finished density, its = ',its,' total = ',
+     &     ncalctot,' on ',nlst_end-nlst_in+1,' particles'
       IF (irestrict.GT.0) WRITE(iprint,*) 
      & 'restricted h growth on ',irestrict,' particles'
 

@@ -1,4 +1,3 @@
-      PARAMETER (mmax=2*idim + 2)
       PARAMETER (nmaxlevel=1000)
 
       REAL*4 qrad

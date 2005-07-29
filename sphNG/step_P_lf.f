@@ -182,7 +182,7 @@ c--Make the tree
 c
          IF (igrape.EQ.0 .AND. (nactive.NE.nptmass .OR. 
      &                                      iptintree.GT.0)) THEN
-            CALL insulate(1,ntot,npart,dumxyzmh,f1vyxzu)
+            CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)
          ENDIF
 c
 c--Compute forces on all particles

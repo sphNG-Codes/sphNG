@@ -16,7 +16,7 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,idim)
+      DIMENSION xyzmh(5,mmax)
 
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/nlim'

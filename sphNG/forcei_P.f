@@ -12,9 +12,9 @@ c************************************************************
 
       DIMENSION xyzmh(5,idim), vxyzu(4,idim)
       REAL*4 trho(idim), pr(idim), vsound(idim), dha(2,idim)
+      REAL*4 alphaMMpass(idim)
       DIMENSION list(idim)
       DIMENSION fxyzu(4,idim)
-      DIMENSION alphaMMpass(idim)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'

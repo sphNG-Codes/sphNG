@@ -5,3 +5,4 @@
       PARAMETER (iptdim=1000)
       PARAMETER (iptneigh=10000)
       PARAMETER (tiny=1.0E-16)
+      PARAMETER (mmax=2*idim + 2)

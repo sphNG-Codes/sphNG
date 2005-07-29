@@ -10,10 +10,9 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,idim),vxyzu(4,idim),dvxyzu(4,idim)
-      REAL*4 dha(2,idim)
+      DIMENSION xyzmh(5,mmax),vxyzu(4,idim),dvxyzu(4,idim)
+      REAL*4 dha(2,idim),alphaMM(idim)
       DIMENSION ireal(idim)
-      DIMENSION alphaMM(idim)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'

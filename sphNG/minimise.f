@@ -33,7 +33,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/numpa'
       INCLUDE 'COMMONS/treecom_P'
 
-      CHARACTER*1 ians1, ians2
+      CHARACTER*1 ians1, ians2, iskip
       CHARACTER*20 filename
       CHARACTER*100 fileident
       INTEGER*4 int1, int2
@@ -55,9 +55,14 @@ c
       WRITE (*,*) 'Full or small NG dump (f/s)?'
       READ (*,99002) ians2
 
+      WRITE (*,*) 'Do you want to skip a dump (y/n)?'
+      READ (*,99002) iskip
+
       OPEN (11,FILE=filename,FORM='unformatted')
 
       IF (ians1.EQ.'o') THEN
+         IF (iskip.EQ.'y') READ (11, END=100)
+
          READ (11, END=100) udist, umass, utime,
      &        npart, n1, n2, gt, gamma, rhozero, RK2,
      &        (xyzmh(5,i), i=1, npart), escap, tkin, tgrav, tterm,
@@ -80,6 +85,11 @@ c
 c     &     ,(alphaMM(i), i=1, npart)
 
       ELSE
+         IF (iskip.EQ.'y') THEN
+            DO i = 1, 15
+               READ (11, END=100)
+            END DO
+         ENDIF
 
          READ (11, END=100) udist, umass, utime,
      &        npart, n1, n2, gt, gamma, rhozero, RK2,

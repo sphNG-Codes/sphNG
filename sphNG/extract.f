@@ -63,9 +63,7 @@ c      INCLUDE 'COMMONS/torq'
          OPEN (UNIT = 8, FILE = ifile(k), FORM = 'unformatted')
          PRINT *, 'reading file ', ifile(k)
 
-         DO 10 j = 1, 9999
-
-            image = image + 1
+         DO 10 image = 1, 9999
 
             PRINT *, 'reading image number ', image
 c

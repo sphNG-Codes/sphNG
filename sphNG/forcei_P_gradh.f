@@ -373,9 +373,9 @@ c
                      phii = phii + rij1*part1potenkernel
                   ENDIF
                   dsofti = 0.5*grpmi*gradsofti
-                  gravxi = gravxi - dsofti*runix
-                  gravyi = gravyi - dsofti*runiy
-                  gravzi = gravzi - dsofti*runiz
+                  gravxi = gravxi + dsofti*runix
+                  gravyi = gravyi + dsofti*runiy
+                  gravzi = gravzi + dsofti*runiz
                ENDIF
 
             ELSE
@@ -415,15 +415,15 @@ c
                      phij = phij + rij1*part1potenkernel
                   ENDIF
                   dsoftj = 0.5*grpmj*gradhs(2,j)
-                  gravxi = gravxi - dsoftj*runix
-                  gravyi = gravyi - dsoftj*runiy
-                  gravzi = gravzi - dsoftj*runiz
+                  gravxi = gravxi + dsoftj*runix
+                  gravyi = gravyi + dsoftj*runiy
+                  gravzi = gravzi + dsoftj*runiz
                ENDIF
             ELSE
                grkernj = 0.
                gradpj = 0.
-               fmi = 1.
-               phii = -rij1
+               fmj = 1.
+               phij = -rij1
             ENDIF
 c
 c--gravitational force softening
@@ -563,6 +563,7 @@ c
             fxyzu(2,ipart) = fxyzu(2,ipart) + gravyi
             fxyzu(3,ipart) = fxyzu(3,ipart) + gravzi
             poten(ipart) = poten(ipart) + poteni
+            dgrav(ipart) = 0.
          ENDIF
 c
 c--Pressure gradients

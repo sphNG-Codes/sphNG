@@ -134,15 +134,18 @@ c
          xyzmh(5,ipart) = dumxyzmh(5,ipart)
       ENDDO
 c
-c--get h max and min just for fun
+c--get h max and min and print to screen
 c
       hhmin = 1.e12
       hhmax = -1.e12
+      hhav = 0.
       DO ipart=1,npart
          IF (xyzmh(5,ipart).LT.hhmin) hhmin = dumxyzmh(5,ipart)
          IF (xyzmh(5,ipart).GT.hhmax) hhmax = dumxyzmh(5,ipart)
+         hhav = hhav + xyzmh(5,ipart)
       ENDDO
-      WRITE(*,*) ' min h = ',hhmin,' max h = ',hhmax      
+      hhav = hhav/real(npart)
+      WRITE(*,*) ' min h = ',hhmin,' max h = ',hhmax,' av h =',hhav
 
       RETURN
       END

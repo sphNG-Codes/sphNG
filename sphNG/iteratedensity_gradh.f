@@ -14,7 +14,7 @@ c************************************************************
       INCLUDE 'COMMONS/physcon'
 
       INTEGER maxits,nneighmax,neides
-      PARAMETER(maxitsnr=100,maxits=100)
+      PARAMETER(maxits=100)
       PARAMETER(nneighmax=300)
       REAL tol,third,hfact
       PARAMETER(hfact=1.2) !!!,neides=INT(32./3.*pi*hfact**3))
@@ -26,8 +26,8 @@ c************************************************************
       INTEGER jneigh,ncalc
       REAL fsx,fsy,fsz,epot
       REAL pmassi,rhoi,omegai
-      DIMENSION hminbii(idim),hmaxbii(idim)
-      LOGICAL RedoNeighbours,BiSection
+      DIMENSION h_old(idim)
+      LOGICAL RedoNeighbours
       
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/debug'
@@ -48,16 +48,17 @@ c
       jneigh = 0
       its = 0
       RedoNeighbours = .false.
+      NeighboursChanged = .false.
       nlst_beg = nlst_in
       nlst_fin = nlst_end
       irestrict = 0
-      BiSection = .false.
 
       DO i=nlst_beg,nlst_fin
          j = list(i)
          iredolist(i) = j
          gradhs(1,j) = 0.
          gradhs(2,j) = 0.
+         h_old(j) = xyzmh(5,j)
       ENDDO
 c
 c--We calculate the density self-consistently with the smoothing length
@@ -72,10 +73,6 @@ c  (I have made this a direct call to treef so that we only recalculate
 c   neighbours on particles in the redo list)
 c
 c         WRITE(iprint,*) 'Density iteration ',its,' ncalc = ',ncalc
-c         IF (ncalc.LE.5 .AND. ncalc.GT.0) THEN
-c            WRITE(iprint,*) 'redolist = ',
-c     &           (iredolist(i),' nneigh=',nneigh(i),';',i=1,ncalc)
-c         ENDIF
 
          IF (RedoNeighbours) THEN
             WRITE(iprint,*) 'Recalculating neighbours...'
@@ -83,6 +80,7 @@ c         ENDIF
                i = iredolist(j)
                CALL treef(i,npart,xyzmh,acc,0,fsx,fsy,fsz,epot)
             ENDDO
+            NeighboursChanged = .true.
          ENDIF
 c
 c--calculate density using current h value
@@ -109,27 +107,16 @@ c
 c--Newton Raphson
 c            
             func = rhoi - rho(i)
-            IF (.not. BiSection) THEN
-               dfdh = omegai/dhdrhoi
-               hnew = hi - func/dfdh
-               IF (hnew.le.0. .or. omegai.LT.tiny) THEN
-                  WRITE(iprint,*) 'using fixed point ',i,hnew,omegai
-                  hnew = hfact*(pmassi/rho(i))**third
-               ENDIF
-            
-            ELSE
-               IF (func .lt. 0.) THEN
-                  hmaxbii(i) = hi
-               ELSE
-                  hminbii(i) = hi 
-               ENDIF
-               hnew = 0.5*(hminbii(i) + hmaxbii(i))
-c               WRITE(iprint,*) i,'bisection, h = ',hnew,func
+            dfdh = omegai/dhdrhoi
+            hnew = hi - func/dfdh
+            IF (hnew.le.0. .or. omegai.LT.tiny) THEN
+               WRITE(iprint,*) 'using fixed point ',i,hnew,omegai
+               hnew = hfact*(pmassi/rho(i))**third
             ENDIF
 c
 c--work out whether particle is converged, if not add to list to redo
 c           
-            IF (abs(hnew-hi)/hi.gt.tol 
+            IF (abs(hnew-hi)/h_old(i).gt.tol 
      &          .OR. omegai .LT.0. .OR. nneigh(i).GT.nneighmax) THEN
 c
 c--don't let number of neighbours get too big
@@ -184,26 +171,10 @@ c
             gradhs(1,i) = gradhs(1,j)
             gradhs(2,i) = gradhs(2,j)
          ENDDO
-c
-c--switch to Bisection if not converging
-c
-         IF (its.EQ.maxitsnr) THEN
-            WRITE(iprint,*) 'Newton-Raphson not converging:'
-            WRITE(iprint,*) 'starting Bisection, ncalc=',ncalc
-            DO i=1,ncalc
-               j = iredolist(i)
-               hminbii(j) = 0.5*xyzmh(5,j)
-               !--set hmax so that h(j) is the initial guess
-               hmaxbii(j) = 2.*xyzmh(5,j) - hminbii(j)
-               WRITE(iprint,*) j,'h=',xyzmh(5,j),' hmin = ',hminbii(j),
-     &                           ' hmax = ',hmaxbii(j)
-            ENDDO
-            BiSection = .true.
-         ENDIF
 
       ENDDO
 c
-c--if *still* not converged something very wrong
+c--if not converged something very wrong
 c
       IF (its.GE.maxits) THEN
          WRITE(iprint,*) 'WARNING: DENSITY NOT CONVERGED on ',ncalc, 
@@ -224,7 +195,13 @@ c
          curlv(i) = curlv(i)*gradhs(1,i)
       ENDDO
       
-      WRITE(iprint,*) 'Finished density, its = ',its,' total = ',
+      IF (NeighboursChanged) THEN
+         WRITE(iprint,*) 'Recalculating all neighbours...'
+         DO i=1,npart
+            CALL treef(i,npart,xyzmh,acc,0,fsx,fsy,fsz,epot)
+         ENDDO
+      ENDIF
+      WRITE(iprint,*) 'density its ',its,' total= ',
      &     ncalctot,' on ',nlst_end-nlst_in+1,' particles'
       IF (irestrict.GT.0) WRITE(iprint,*) 
      & 'restricted h growth on ',irestrict,' particles'

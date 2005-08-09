@@ -47,17 +47,17 @@ SOURCES= sph.f accrete_P.f addump.f angmom.f boundry.f \
         scaling.f secmes.f setpart.f smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f step_P_lf_gradh.f timestep.f \
 	toten.f treef_P_gradh.f unifdis.f unit.f \
-	wdump.f wrinsph.f zzsun_f77_double1.f
+	wdump_gradh.f wrinsph.f zzsun_f77_double1.f
 
 OBJECTS = $(SOURCES:.f=.o) zzsun_f77_double2.o
 
-build: sph_tree_lf
+build: sph_gradh
 
 zzsun_f77_double2.o: zzsun_f77_double2.f
 			     $(FC) -c $(ZZFFLAGS) zzsun_f77_double2.f -o zzsun_f77_double2.o
 
-sph_tree_lf: $(OBJECTS)
+sph_gradh: $(OBJECTS)
 	$(FC) $(FFLAGS) -o $@ $(OBJECTS)
 
 clean:
-	\rm -f *.o sph_tree_lf
+	\rm -f *.o sph_gradh

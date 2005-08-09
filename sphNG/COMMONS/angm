@@ -1,1 +1,2 @@
       COMMON /angm  / angx, angy, angz, angto
+      COMMON /linm  / xmom, ymom, zmom, totmom

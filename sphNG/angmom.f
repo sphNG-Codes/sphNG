@@ -27,8 +27,12 @@ c
       angx = 0.
       angy = 0.
       angz = 0.
+      xmom = 0.
+      ymom = 0.
+      zmom = 0.
+      totmom = 0.
 c
-c--Compute total angular momentum
+c--Compute total angular and linear momenta
 c
       DO i = 1, npart
          IF (iphase(i).GE.0) THEN
@@ -38,6 +42,9 @@ c
      &           xyzmh(1,i)*vxyzu(3,i))
             angz = angz + xyzmh(4,i)*(xyzmh(1,i)*vxyzu(2,i) - 
      &           vxyzu(1,i)*xyzmh(2,i))
+            xmom = xmom + xyzmh(4,i)*vxyzu(1,i)
+            ymom = ymom + xyzmh(4,i)*vxyzu(2,i)
+            zmom = zmom + xyzmh(4,i)*vxyzu(3,i)
          ENDIF
       END DO
 c
@@ -47,13 +54,18 @@ c
          angx = angx + spinx(i)
          angy = angy + spiny(i)
          angz = angz + spinz(i)
+         xmom = xmom + xyzmh(4,i)*vxyzu(1,i)
+         ymom = ymom + xyzmh(4,i)*vxyzu(2,i)
+         zmom = zmom + xyzmh(4,i)*vxyzu(3,i)
       END DO
 
       angto = SQRT(angx**2 + angy**2 + angz**2)
+      totmom = SQRT(xmom**2 + ymom**2 + zmom**2)
 
       IF (idebug(1:6).EQ.'angmom') THEN
-         WRITE (iprint, 99002) angx, angy, angz, angto
-99002    FORMAT (1X, 4(1PE12.5,1X))
+         WRITE (iprint, 99002) angx, angy, angz, angto,
+     &                         xmom, ymom, zmom, totmom
+99002    FORMAT (1X, 8(1PE12.5,1X))
       ENDIF
 
       RETURN

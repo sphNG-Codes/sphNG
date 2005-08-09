@@ -83,7 +83,7 @@ c--Energies + total angular momentum
 c
          total = tkin + tgrav + tterm
          WRITE (iprint, 99004, ERR=100) total,tkin,trotz,trotx,tgrav,
-     &                               tterm,angto
+     &                               tterm,angto,totmom
 99004    FORMAT (' General properties of system : ', /,
      &           ' total energy                       : ', 1PE14.5, /,
      &           ' kinetic energy                     : ', 1PE14.5, /,
@@ -91,7 +91,8 @@ c
      &           ' rotational energy around x         : ', 1PE14.5, /,
      &           ' potential energy                   : ', 1PE14.5, /,
      &           ' internal energy                    : ', 1PE14.5, /,
-     &           ' total angular momentum             : ', 1PE14.5)
+     &           ' total angular momentum             : ', 1PE14.5, /,
+     &           ' total linear momentum              : ', 1PE14.5)
          alph = tterm / ABS(tgrav)
          betl = trotz / ABS(tgrav)
          betr = trotx / ABS(tgrav)

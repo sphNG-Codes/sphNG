@@ -42,11 +42,11 @@ SOURCES= sph.f accrete_P.f addump.f angmom.f boundry.f \
 	inopts.f insulate_TREE_P.f integs.f ktable.f labrun.f lunit_double.f \
 	mainop.f mesop.f modif.f mtree_P.f \
 	newrun.f options.f phoenix.f \
-	place.f preset.f \
+	place.f preset_gradh.f \
 	prout.f ran1.f rdump.f reduce.f revtree_P.f save.f \
         scaling.f secmes.f setpart.f smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f step_P_lf_gradh.f timestep.f \
-	toten.f treef_P_gradh.f unifdis.f unit.f \
+	toten.f treef_P_gradh.f unifdis.f unit_bb97.f \
 	wdump_gradh.f wrinsph.f zzsun_f77_double1.f
 
 OBJECTS = $(SOURCES:.f=.o) zzsun_f77_double2.o

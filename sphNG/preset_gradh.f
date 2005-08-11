@@ -35,6 +35,8 @@ c************************************************************
       INCLUDE 'COMMONS/delay'
       INCLUDE 'COMMONS/useles'
       INCLUDE 'COMMONS/gtime'
+      INCLUDE 'COMMONS/ener3'
+      INCLUDE 'COMMONS/gradhterms'
 
       CHARACTER*7 where
       CHARACTER*21 ptfile, accfile, killfile, reassfile
@@ -85,10 +87,13 @@ c--Open notify file
 c
       OPEN (inotify,FILE='notify')
 c
-c--Initialize du and viscosity switch
+c--Initialize du and viscosity switch and gradhterms
 c
       DO i = 1, npart
          IF (ifsvi.EQ.6 .AND. gt.EQ.0.0) alphaMM(i) = alphamin
+         dgrav(i) = 0.
+         gradhs(1,i) = 1.
+         gradhs(2,i) = 0.
       END DO
 c
 c--Set constant for artificial viscosity

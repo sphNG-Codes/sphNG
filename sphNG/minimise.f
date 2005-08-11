@@ -48,7 +48,7 @@ c
       READ (*,99001) filename
 99001 FORMAT(A20)
 
-      WRITE (*,*) 'Original dump file or semi-new (o/s)?'
+      WRITE (*,*) 'Original dump file or semi-new or new-full(o/s/n)?'
       READ (*,99002) ians1
 99002 FORMAT(A1)
 
@@ -84,7 +84,7 @@ c
      &        (spinadz(i),i=1,nptmass)
 c     &     ,(alphaMM(i), i=1, npart)
 
-      ELSE
+      ELSEIF (ians1.EQ.'s') THEN
          IF (iskip.EQ.'y') THEN
             DO i = 1, 15
                READ (11, END=100)
@@ -114,6 +114,145 @@ c     &     ,(alphaMM(i), i=1, npart)
      &        (spinadx(i),i=1,nptmass),(spinady(i),i=1,nptmass),
      &        (spinadz(i),i=1,nptmass)
 c     &     ,(alphaMM(i), i=1, npart)
+      ELSE
+c
+c--Dump file
+c-------------
+c
+c--Standard numbers
+c
+      int1 = 690706
+      int2 = 780806
+c
+c--Write ouput file
+c
+      READ (11, END=100) int1i,r1i,int2i,i1i,int3i
+      IF (int1i.NE.int1) THEN
+         WRITE (*,*) 'ERROR 1 in rdump: ENDIANNESS wrong?'
+         STOP
+      ENDIF
+      IF (int2i.NE.int2) THEN
+         WRITE (*,*) 'ERROR 2 in rdump: default integer size wrong'
+         STOP
+      ENDIF
+      IF (int3i.NE.int1) THEN
+         WRITE (*,*) 'ERROR 3 in rdump: default real size wrong'
+         STOP
+      ENDIF
+      READ (11, END=100) fileident
+c
+c--Single values
+c
+c--Default int
+      READ (11, END=100) number
+      IF (number.NE.6) THEN
+         WRITE (*,*) 'ERROR 4 in rdump'
+         STOP
+      ENDIF
+      READ (11, END=100) npart,n1,n2,nreassign,naccrete,nkill
+c--int*1, int*2, int*4, int*8
+      DO i = 1, 4
+         READ (11, END=100) number
+      END DO
+c--Default real
+      READ (11, END=100) number
+      IF (number.NE.14) THEN
+         WRITE (*,*) 'ERROR 5 in rdump'
+         STOP
+      ENDIF
+      READ (11, END=100) gt, dtmax, gamma, rhozero, RK2,
+     &     escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
+     &     specang, ptmassin
+c--real*4
+      READ (11, END=100) number
+c--real*8
+      READ (11, END=100) number
+      IF (number.NE.3) THEN
+         WRITE (*,*) 'ERROR 6 in rdump'
+         STOP
+      ENDIF
+      READ (11, END=100) udist, umass, utime
+c
+c--Arrays
+c
+c--Number of array lengths
+c
+      READ (11, END=100) number
+      IF (number.NE.2) THEN
+         WRITE (*,*) 'ERROR 7 in rdump'
+         STOP
+      ENDIF
+c
+c--Read array type 1 header
+c
+      READ (11, END=100) number8, (nums(i), i=1,8)
+      IF (number8.NE.npart) THEN
+         WRITE (*,*) 'ERROR 8 in rdump: npart wrong'
+         STOP
+      ENDIF
+      npart = number8
+c
+c--Read array type 2 header
+c
+      READ (11, END=100) number8, (nums(i), i=1,8)
+      nptmass = number8
+c
+c--Read array type 1 arrays
+c
+c--Default int
+      READ (11, END=100) (isteps(i), i=1, npart)
+c--int*1
+      READ (11, END=100) (iphase(i), i=1, npart)
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+      DO j = 1, 5
+         READ (11, END=100) (xyzmh(j,i), i=1, npart)
+      END DO
+      DO j = 1, 4
+         READ (11, END=100) (vxyzu(j,i), i=1, npart)
+      END DO      
+c--real*4
+      READ (11, END=100) (rho(i), i=1, npart)
+      READ (11, END=100) (dgrav(i), i=1, npart)
+c     READ (11, END=100) (alphaMM(i), i=1, npart)
+c--real*8
+
+c
+c--Read array type 2 arrays
+c
+c--Default int
+      READ (11, END=100) (listpm(i), i=1,nptmass)
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+      READ (11, END=100) (spinx(i),i=1,nptmass)
+      READ (11, END=100) (spiny(i),i=1,nptmass)
+      READ (11, END=100) (spinz(i),i=1,nptmass)
+      READ (11, END=100) (angaddx(i),i=1,nptmass)
+      READ (11, END=100) (angaddy(i),i=1,nptmass)
+      READ (11, END=100) (angaddz(i),i=1,nptmass)
+      READ (11, END=100) (spinadx(i),i=1,nptmass)
+      READ (11, END=100) (spinady(i),i=1,nptmass)
+      READ (11, END=100) (spinadz(i),i=1,nptmass)
+c--real*4
+
+c--real*8
+
+c
+c--End reading of dump file
+c--------------------------
+         
       ENDIF
       CLOSE(11)
 

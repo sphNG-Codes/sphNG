@@ -25,9 +25,9 @@ c************************************************************
       DATA where/'eospg'/
 
       gama1 = gamma - 1.
-      rhocrt = rhocrit * udens
-      rhocrt2 = rhocrit2 * udens
-      rhocrt3 = rhocrit3 * udens
+c      rhocrt = rhocrit * udens
+c      rhocrt2 = rhocrit2 * udens
+c      rhocrt3 = rhocrit3 * udens
 c
 c--Variable is internal energy
 c

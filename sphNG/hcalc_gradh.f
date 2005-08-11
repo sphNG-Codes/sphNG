@@ -37,9 +37,7 @@ c
       neimax = 70
 c      neimin = 80
 c      neimax = 120
-      acc = 0.5
-      idumg = 0
-      idummy = 0
+      acc = 0.9
 
       neimean = (neimax + neimin) / 2
       neirange = (neimax - neimin) / 4
@@ -49,8 +47,6 @@ c      neimax = 120
       ikount = 0
 
       WRITE(*,*) neimax, neimean, neimin, neisup, neiinf, neirange
-
-   5  CONTINUE
 
       nlst = npart
       DO i = 1, npart
@@ -82,29 +78,18 @@ c      neimax = 120
 
       icount = 0
 
-   10 CONTINUE
-
       icount = icount + 1
       ikount = ikount + 1
-      ioutinf1 = 0
-      ioutsup1 = 0
-      ioutinf2 = 0
-      ioutsup2 = 0
-      iagain = 0
       WRITE(*,*) ' Calculating neighbour changes'
 c
 c--Get neighbours
 c
       IF (igrape.EQ.0) THEN
-         CALL insulate(5, ntot, npart, dumxyzmh, f1vxyzu)
+         CALL insulate(3, ntot, npart, dumxyzmh, f1vxyzu)
       ELSEIF (igrape.EQ.1) THEN
          CALL insulate(4, ntot, npart, dumxyzmh, f1vxyzu)
       ENDIF
       WRITE(*,*) ' Got neighbours from tree'
-
- 15   DO i = 1, npart
-         iscurrent(i) = .FALSE.
-      END DO
 c
 c--calculate density
 c
@@ -121,8 +106,6 @@ c
       itime = 0
       nlst_in = 1
       nlst_end = nlst
-      dt = 0.
-      imaxstep = 1073741824/2
       hfact = 1.2
       
       DO ipart=1,npart
@@ -146,6 +129,10 @@ c
       ENDDO
       hhav = hhav/real(npart)
       WRITE(*,*) ' min h = ',hhmin,' max h = ',hhmax,' av h =',hhav
+
+      DO i = 1, npart
+         iscurrent(i) = .FALSE.
+      END DO
 
       RETURN
       END

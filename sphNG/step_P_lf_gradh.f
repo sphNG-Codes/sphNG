@@ -63,13 +63,13 @@ c************************************************************
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/timeextra'
 
-      DIMENSION nsteplist(30)
+c      DIMENSION nsteplist(30)
 
       LOGICAL ifirst
       LOGICAL icenter
       CHARACTER*7 where
-      CHARACTER*5 ptdebug
-      CHARACTER*2 itemchar
+c      CHARACTER*5 ptdebug
+c      CHARACTER*2 itemchar
       DATA ifirst/.true./
       DATA icenter/.false./
       DATA small/1.0E-04/

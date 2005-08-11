@@ -231,7 +231,6 @@ c
          xi = xyzmh(1,ipart)
          yi = xyzmh(2,ipart)
          zi = xyzmh(3,ipart)
-         pmassi = xyzmh(4,ipart)
          hi = xyzmh(5,ipart)
          hi1 = 1./hi
          hi21 = hi1*hi1
@@ -247,7 +246,6 @@ c
          gravyi = 0.
          gravzi = 0.
          poteni = 0.
-         dphiti = 0.
 
          gradxi = 0.
          gradyi = 0.

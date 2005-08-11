@@ -162,7 +162,7 @@ c--This line was altered for individual timesteps
 c
                hn = xyzmh(5,n)
 c               rcut2 = ((hm + xyzmh(5,n))*radkernel/2.0)**2
-               rcut2 = (max(hm,xyzmh(5,n))*radkernel)**2
+               rcut2 = (max(hm,hn)*radkernel)**2
                IF (rr.LT.rcut2 .AND. iphase(n).EQ.0 .AND.
      &                                         iphase(m).EQ.0) THEN
                   nneigh(m) = nneigh(m) + 1

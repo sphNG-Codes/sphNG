@@ -23,7 +23,7 @@ c************************************************************
       REAL*4 velmax
 
       CHARACTER*20 filename
-      CHARACTER*1 prof, iok
+      CHARACTER*1 prof
 c
 c--Allow for tracing flow
 c
@@ -150,7 +150,7 @@ c
             xyzmh(1,i) = x1
             xyzmh(2,i) = y1
             xyzmh(3,i) = z1
-            xyzmh(5,i) = (1.0 / zprobr) ** third
+            xyzmh(5,i) = 1.0 !!(1.0 / zprobr) ** third
          END DO
 
          probavn = probavn / FLOAT(npart - nptmass)

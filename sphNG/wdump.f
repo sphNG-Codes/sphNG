@@ -335,7 +335,7 @@ c--End writing of small dump file
 c--------------------------------
 c
       ENDIF
-
+      CALL FLUSH (idisk1)
 c
 c--Sort particles to ensure most efficient running.  Note that this 
 c     should not be visible to the outside observer.  In other words,

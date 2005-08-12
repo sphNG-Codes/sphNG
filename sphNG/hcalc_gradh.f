@@ -26,6 +26,7 @@ c************************************************************
       INCLUDE 'COMMONS/f1'
       INCLUDE 'COMMONS/dum'
       INCLUDE 'COMMONS/polyk2'
+      INCLUDE 'COMMONS/call'
 c
 c--Allow for tracing flow
 c
@@ -81,11 +82,12 @@ c      neimax = 120
       icount = icount + 1
       ikount = ikount + 1
       WRITE(*,*) ' Calculating neighbour changes'
+      icall = 1
 c
 c--Get neighbours
 c
       IF (igrape.EQ.0) THEN
-         CALL insulate(3, ntot, npart, dumxyzmh, f1vxyzu)
+         CALL insulate(5, ntot, npart, dumxyzmh, f1vxyzu)
       ELSEIF (igrape.EQ.1) THEN
          CALL insulate(4, ntot, npart, dumxyzmh, f1vxyzu)
       ENDIF

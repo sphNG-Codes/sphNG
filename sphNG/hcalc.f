@@ -25,6 +25,7 @@ c************************************************************
       INCLUDE 'COMMONS/btree'
       INCLUDE 'COMMONS/f1'
       INCLUDE 'COMMONS/dum'
+      INCLUDE 'COMMONS/call'
 c
 c--Allow for tracing flow
 c
@@ -91,6 +92,7 @@ c      neimax = 120
       ioutsup2 = 0
       iagain = 0
       WRITE(*,*) ' Calculating neighbour changes'
+      icall = 1
 c
 c--Get neighbours
 c

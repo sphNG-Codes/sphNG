@@ -77,7 +77,7 @@ c
 c
 c--Write ouput file
 c
-      READ (idisk1, END=100) int1i,r1i,int2i,i1i,int3i
+      READ (idisk1, END=300) int1i,r1i,int2i,i1i,int3i
       IF (int1i.NE.int1) THEN
          WRITE (*,*) 'ERROR 1 in rdump: ENDIANNESS wrong?'
          CALL quit
@@ -90,44 +90,44 @@ c
          WRITE (*,*) 'ERROR 3 in rdump: default real size wrong'
          CALL quit
       ENDIF
-      READ (idisk1, END=100) fileident
+      READ (idisk1, END=300) fileident
 c
 c--Single values
 c
 c--Default int
-      READ (idisk1, END=100) number
+      READ (idisk1, END=300) number
       IF (number.NE.6) THEN
          WRITE (*,*) 'ERROR 4 in rdump'
          CALL quit
       ENDIF
-      READ (idisk1, END=100) np1,n11,n12
+      READ (idisk1, END=300) np1,n11,n12
 c--int*1, int*2, int*4, int*8
       DO i = 1, 4
-         READ (idisk1, END=100) number
+         READ (idisk1, END=300) number
       END DO
 c--Default real
-      READ (idisk1, END=100) number
+      READ (idisk1, END=300) number
       IF (number.NE.14) THEN
          WRITE (*,*) 'ERROR 5 in rdump'
          CALL quit
       ENDIF
-      READ (idisk1, END=100) t1, dtmax1, gamma1, rhozero1, RK21,
+      READ (idisk1, END=300) t1, dtmax1, gamma1, rhozero1, RK21,
      &     escap1, tkin1, tgrav1, tterm1
 c--real*4
-      READ (idisk1, END=100) number
+      READ (idisk1, END=300) number
 c--real*8
-      READ (idisk1, END=100) number
+      READ (idisk1, END=300) number
       IF (number.NE.3) THEN
          WRITE (*,*) 'ERROR 6 in rdump'
          CALL quit
       ENDIF
-      READ (idisk1, END=100) udist, umass, utime
+      READ (idisk1, END=300) udist, umass, utime
 c
 c--Arrays
 c
 c--Number of array lengths
 c
-      READ (idisk1, END=100) number
+      READ (idisk1, END=300) number
       IF (number.NE.2) THEN
          WRITE (*,*) 'ERROR 7 in rdump'
          CALL quit
@@ -135,7 +135,7 @@ c
 c
 c--Read array type 1 header
 c
-      READ (idisk1, END=100) number8, (nums(i), i=1,8)
+      READ (idisk1, END=300) number8, (nums(i), i=1,8)
       IF (number8.NE.np1) THEN
          WRITE (*,*) 'ERROR 8 in rdump: npart wrong'
          CALL quit
@@ -144,25 +144,25 @@ c
 c
 c--Read array type 2 header
 c
-      READ (idisk1, END=100) number8, (nums(i), i=1,8)
+      READ (idisk1, END=300) number8, (nums(i), i=1,8)
       nptmass1 = number8
 c
 c--Read array type 1 arrays
 c
 c--Default int
-      READ (idisk1, END=100) (isteps(i), i=1, np1)
+      READ (idisk1, END=300) (isteps(i), i=1, np1)
 c--int*1
-      READ (idisk1, END=100) (iphase(i), i=1, np1)
+      READ (idisk1, END=300) (iphase(i), i=1, np1)
 c--int*2,int*4,int*8
 c--Default real
       DO j = 1, 5
-         READ (idisk1, END=100) (xyzmh(j,i), i=1, np1)
+         READ (idisk1, END=300) (xyzmh(j,i), i=1, np1)
       END DO
       DO j = 1, 4
-         READ (idisk1, END=100) (vxyzu(j,i), i=1, np1)
+         READ (idisk1, END=300) (vxyzu(j,i), i=1, np1)
       END DO      
 c--real*4
-      READ (idisk1, END=100) (rho(i), i=1, np1)
+      READ (idisk1, END=300) (rho(i), i=1, np1)
 c
 c--End reading of dump file
 c--------------------------
@@ -193,7 +193,7 @@ c
 c
 c--Write ouput file
 c
-      READ (idisk1, END=100) int1i,r1i,int2i,i1i,int3i
+      READ (idisk1, END=300) int1i,r1i,int2i,i1i,int3i
       IF (int1i.NE.int1) THEN
          WRITE (*,*) 'ERROR 1 in rdump: ENDIANNESS wrong?'
          CALL quit
@@ -206,44 +206,44 @@ c
          WRITE (*,*) 'ERROR 3 in rdump: default real size wrong'
          CALL quit
       ENDIF
-      READ (idisk1, END=100) fileident
+      READ (idisk1, END=300) fileident
 c
 c--Single values
 c
 c--Default int
-      READ (idisk1, END=100) number
+      READ (idisk1, END=300) number
       IF (number.NE.6) THEN
          WRITE (*,*) 'ERROR 4 in rdump'
          CALL quit
       ENDIF
-      READ (idisk1, END=100) np2,n21,n22
+      READ (idisk1, END=300) np2,n21,n22
 c--int*1, int*2, int*4, int*8
       DO i = 1, 4
-         READ (idisk1, END=100) number
+         READ (idisk1, END=300) number
       END DO
 c--Default real
-      READ (idisk1, END=100) number
+      READ (idisk1, END=300) number
       IF (number.NE.14) THEN
          WRITE (*,*) 'ERROR 5 in rdump'
          CALL quit
       ENDIF
-      READ (idisk1, END=100) t2, dtmax2, gamma2, rhozero2, RK22,
+      READ (idisk1, END=300) t2, dtmax2, gamma2, rhozero2, RK22,
      &     escap2, tkin2, tgrav2, tterm2
 c--real*4
-      READ (idisk1, END=100) number
+      READ (idisk1, END=300) number
 c--real*8
-      READ (idisk1, END=100) number
+      READ (idisk1, END=300) number
       IF (number.NE.3) THEN
          WRITE (*,*) 'ERROR 6 in rdump'
          CALL quit
       ENDIF
-      READ (idisk1, END=100) udist, umass, utime
+      READ (idisk1, END=300) udist, umass, utime
 c
 c--Arrays
 c
 c--Number of array lengths
 c
-      READ (idisk1, END=100) number
+      READ (idisk1, END=300) number
       IF (number.NE.2) THEN
          WRITE (*,*) 'ERROR 7 in rdump'
          CALL quit
@@ -251,7 +251,7 @@ c
 c
 c--Read array type 1 header
 c
-      READ (idisk1, END=100) number8, (nums(i), i=1,8)
+      READ (idisk1, END=300) number8, (nums(i), i=1,8)
       IF (number8.NE.np1) THEN
          WRITE (*,*) 'ERROR 8 in rdump: npart wrong'
          CALL quit
@@ -260,25 +260,25 @@ c
 c
 c--Read array type 2 header
 c
-      READ (idisk1, END=100) number8, (nums(i), i=1,8)
+      READ (idisk1, END=300) number8, (nums(i), i=1,8)
       nptmass2 = number8
 c
 c--Read array type 1 arrays
 c
 c--Default int
-      READ (idisk1, END=100) (isteps(i+np1), i=1, np2)
+      READ (idisk1, END=300) (isteps(i+np1), i=1, np2)
 c--int*1
-      READ (idisk1, END=100) (iphase(i+np1), i=1, np2)
+      READ (idisk1, END=300) (iphase(i+np1), i=1, np2)
 c--int*2,int*4,int*8
 c--Default real
       DO j = 1, 5
-         READ (idisk1, END=100) (xyzmh(j,i+np1), i=1, np2)
+         READ (idisk1, END=300) (xyzmh(j,i+np1), i=1, np2)
       END DO
       DO j = 1, 4
-         READ (idisk1, END=100) (vxyzu(j,i+np1), i=1, np2)
+         READ (idisk1, END=300) (vxyzu(j,i+np1), i=1, np2)
       END DO      
 c--real*4
-      READ (idisk1, END=100) (rho(i+np1), i=1, np2)
+      READ (idisk1, END=300) (rho(i+np1), i=1, np2)
 c
 c--End reading of dump file
 c--------------------------

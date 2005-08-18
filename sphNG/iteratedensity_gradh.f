@@ -27,7 +27,7 @@ c************************************************************
       REAL fsx,fsy,fsz,epot
       REAL pmassi,rhoi,omegai
       DIMENSION h_old(idim)
-      LOGICAL RedoNeighbours
+      LOGICAL RedoNeighbours,NeighboursChanged
       
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/debug'
@@ -99,7 +99,7 @@ c
             rhoi = pmassi/(hi/hfact)**3
             dhdrhoi = -hi/(3.*rhoi)
             omegai = 1. - dhdrhoi*gradhs(1,i)
-            IF (omegai.GT.tiny) gradhs(1,i) = 1./omegai
+            gradhs(1,i) = 1./omegai
             gradhs(2,i) = dhdrhoi*gradhs(2,i)
             
             !!print*,i,'rho=',rho(i),rhoi,'gradh= ',gradhs(1,i)

@@ -81,7 +81,8 @@ c
 c
 c--Energies + total angular momentum
 c
-         total = tkin + tgrav + tterm
+         total = tkin + tgrav
+         IF (igrp.NE.0) total = total + tterm
          WRITE (iprint, 99004, ERR=100) total,tkin,trotz,trotx,tgrav,
      &                               tterm,angto,totmom
 99004    FORMAT (' General properties of system : ', /,
@@ -93,10 +94,18 @@ c
      &           ' internal energy                    : ', 1PE14.5, /,
      &           ' total angular momentum             : ', 1PE14.5, /,
      &           ' total linear momentum              : ', 1PE14.5)
-         alph = tterm / ABS(tgrav)
-         betl = trotz / ABS(tgrav)
-         betr = trotx / ABS(tgrav)
-         ajeans = 1 / alph
+         
+         IF (tgrav.GT.0.) THEN
+            alph = tterm / ABS(tgrav)
+            betl = trotz / ABS(tgrav)
+            betr = trotx / ABS(tgrav)
+            ajeans = 1 / alph
+         ELSE
+            alph = 0.
+            betl = 0.
+            betr = 0.
+            ajeans = 0.
+         ENDIF
          WRITE (iprint, 88001, ERR=100) alph, betl, betr, ajeans
 88001    FORMAT (' evolutionary energy parmeters : ', /,
      &           '                        alpha  : ', 1PE14.5, /,

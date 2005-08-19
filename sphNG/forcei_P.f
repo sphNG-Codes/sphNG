@@ -178,7 +178,7 @@ C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(poteni,dphiti,gradxi,gradyi,gradzi,artxi,artyi,artzi)
 C$OMP& private(pdvi,dqi,rhoi,pro2i,vsoundi,k,j,hj,dx,dy,dz)
 C$OMP& private(rij2,rij,rij1,pmassj,runix,runiy,runiz,hmean,hmean21)
-C$OMP& private(hmean41,dhmean,v2,v,index,dxx,index1,rij2grav,fm)
+C$OMP& private(hmean41,dhmean,v2,v,index,dxx,index1,rij2grav,rijgrav,fm)
 C$OMP& private(phi,dphi,dfmassdx,dfptdx,dpotdh,xmasj,rhoj,robar)
 C$OMP& private(dgrwdx,grwtij,grpm,poro2j,dvx,dvy,dvz,projv,vsbar)
 C$OMP& private(f,adivi,acurlvi,fi,adivj,acurlvj,fj,t12j)
@@ -334,11 +334,13 @@ c
             IF (igrape.EQ.0 .AND. igphi.NE.0) THEN
                IF (isoft.EQ.1) THEN
                   rij2grav = dx*dx + dy*dy + dz*dz + psoft**2
+                  rijgrav = SQRT(rij2grav)
                   fm = 1.0
-                  phi = - 1./SQRT(rij2grav)
+                  phi = - 1./rijgrav
                   dphi = 0.0
                ELSEIF (isoft.EQ.0) THEN
                   rij2grav = rij2
+                  rijgrav = rij
                   IF (v.GE.radkernel) THEN
                      fm = 1.0
                      phi = -rij1
@@ -363,10 +365,10 @@ c
 c--Gravitational force calculation
 c
                IF (j.LE.npart) THEN
-                  xmasj = fm*pmassj/rij2grav
-                  gravxi = gravxi - xmasj*runix
-                  gravyi = gravyi - xmasj*runiy
-                  gravzi = gravzi - xmasj*runiz
+                  xmasj = fm*pmassj/(rij2grav*rijgrav)
+                  gravxi = gravxi - xmasj*dx
+                  gravyi = gravyi - xmasj*dy
+                  gravzi = gravzi - xmasj*dz
                   poteni = poteni + phi*pmassj
                   dphiti = dphiti + pmassj*dphi
                ENDIF

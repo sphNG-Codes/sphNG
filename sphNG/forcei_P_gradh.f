@@ -181,7 +181,7 @@ C$OMP& private(pdvi,dqi,rhoi,pro2i,vsoundi,k,j,hj,dx,dy,dz)
 C$OMP& private(rij2,rij,rij1,pmassj,runix,runiy,runiz,hmean,hmean21)
 C$OMP& private(hi1,hi21,hi41,v2i,vi)
 C$OMP& private(hj1,hj21,hj41,v2j,vj)
-C$OMP& private(index,dxx,index1,rij2grav,fm)
+C$OMP& private(index,dxx,index1,rij2grav,rijgrav,fm)
 C$OMP& private(phi,dphi,dfmassdx,dfptdx,dpotdh,xmasj,rhoj,robar)
 C$OMP& private(dgrwdx,grwtij,grpm,poro2j,dvx,dvy,dvz,projv,vsbar)
 C$OMP& private(f,adivi,acurlvi,fi,adivj,acurlvj,fj,t12j)
@@ -371,9 +371,9 @@ c
                      phii = phii + rij1*part1potenkernel
                   ENDIF
                   dsofti = 0.5*grpmi*gradsofti
-                  gravxi = gravxi + dsofti*runix
-                  gravyi = gravyi + dsofti*runiy
-                  gravzi = gravzi + dsofti*runiz
+                  gravxi = gravxi - dsofti*runix
+                  gravyi = gravyi - dsofti*runiy
+                  gravzi = gravzi - dsofti*runiz
                ENDIF
 
             ELSE
@@ -413,9 +413,9 @@ c
                      phij = phij + rij1*part1potenkernel
                   ENDIF
                   dsoftj = 0.5*grpmj*gradhs(2,j)
-                  gravxi = gravxi + dsoftj*runix
-                  gravyi = gravyi + dsoftj*runiy
-                  gravzi = gravzi + dsoftj*runiz
+                  gravxi = gravxi - dsoftj*runix
+                  gravyi = gravyi - dsoftj*runiy
+                  gravzi = gravzi - dsoftj*runiz
                ENDIF
             ELSE
                grkernj = 0.
@@ -429,10 +429,12 @@ c
             IF (igrape.EQ.0 .AND. igphi.NE.0) THEN
                IF (isoft.EQ.1) THEN
                   rij2grav = dx*dx + dy*dy + dz*dz + psoft**2
+                  rijgrav = SQRT(rijgrav)
                   fm = 1.0
-                  phi = - 1./SQRT(rij2grav)
+                  phi = - 1./rijgrav
                ELSEIF (isoft.EQ.0) THEN
                   rij2grav = rij2
+                  rijgrav = rij
                   fm = 0.5*(fmi + fmj)
                   phi = 0.5*(phii + phij)
                ELSE
@@ -442,10 +444,10 @@ c
 c--Gravitational force calculation
 c
                IF (j.LE.npart) THEN
-                  xmasj = fm*pmassj/rij2grav
-                  gravxi = gravxi - xmasj*runix
-                  gravyi = gravyi - xmasj*runiy
-                  gravzi = gravzi - xmasj*runiz
+                  xmasj = fm*pmassj/(rij2grav*rijgrav)
+                  gravxi = gravxi - xmasj*dx
+                  gravyi = gravyi - xmasj*dy
+                  gravzi = gravzi - xmasj*dz
                   poteni = poteni + phi*pmassj
                ENDIF
             ENDIF

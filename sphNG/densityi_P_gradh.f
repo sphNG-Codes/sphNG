@@ -158,11 +158,9 @@ c
 c
 c--derivative of gravitational potential w.r.t. h
 c
-               IF (isoft.EQ.0) THEN
-                  dpotdh = (dphidh(index1) - dphidh(index))/dvtable
-                  dphi = (dphidh(index) + dpotdh*dxx)*hi21
-                  gradsofti = gradsofti + pmassj*dphi
-               ENDIF
+               dpotdh = (dphidh(index1) - dphidh(index))/dvtable
+               dphi = (dphidh(index) + dpotdh*dxx)
+               gradsofti = gradsofti - pmassj*dphi
 c
 c--Compute density
 c
@@ -190,9 +188,11 @@ c
          curlv(ipart) = cnormk*SQRT(curlvxi**2+curlvyi**2+curlvzi**2)
 	 gradhs(1,ipart) = cnormk*(gradhi + 
      &	       selfnormkernel*pmassi*(-3.*hi41))
-         gradhs(2,ipart) = cnormk*(gradsofti + pmassi*dphidh(0)*hi21)
+         IF (isoft.EQ.0) THEN
+            gradhs(2,ipart) = (gradsofti - pmassi*dphidh(0))*hi21
+         ENDIF
 c
-c--Pressure and sound velocity from ideal gas law...
+c--Pressure and sound velocity from ideal gas law... 
 c
          CALL eospg(ipart, vxyzu, rho, pr, vsound)
 c

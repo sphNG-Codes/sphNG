@@ -246,6 +246,9 @@ c
          gravyi = 0.
          gravzi = 0.
          poteni = 0.
+         dsoftxi = 0.
+         dsoftyi = 0.
+         dsoftzi = 0.
 
          gradxi = 0.
          gradyi = 0.
@@ -370,10 +373,10 @@ c
                   ELSEIF (vi.GT.part1kernel) THEN
                      phii = phii + rij1*part1potenkernel
                   ENDIF
-                  dsofti = 0.5*grpmi*gradsofti
-                  gravxi = gravxi - dsofti*runix
-                  gravyi = gravyi - dsofti*runiy
-                  gravzi = gravzi - dsofti*runiz
+                  dsofttermi = 0.5*grpmi*gradsofti
+                  dsoftxi = dsoftxi - dsofttermi*runix
+                  dsoftyi = dsoftyi - dsofttermi*runiy
+                  dsoftzi = dsoftzi - dsofttermi*runiz
                ENDIF
 
             ELSE
@@ -412,10 +415,10 @@ c
                   ELSEIF (vj.GT.part1kernel) THEN
                      phij = phij + rij1*part1potenkernel
                   ENDIF
-                  dsoftj = 0.5*grpmj*gradhs(2,j)
-                  gravxi = gravxi - dsoftj*runix
-                  gravyi = gravyi - dsoftj*runiy
-                  gravzi = gravzi - dsoftj*runiz
+                  dsofttermj = 0.5*grpmj*gradhs(2,j)
+                  dsoftxi = dsoftxi - dsofttermj*runix
+                  dsoftyi = dsoftyi - dsofttermj*runiy
+                  dsoftzi = dsoftzi - dsofttermj*runiz
                ENDIF
             ELSE
                grkernj = 0.
@@ -429,7 +432,7 @@ c
             IF (igrape.EQ.0 .AND. igphi.NE.0) THEN
                IF (isoft.EQ.1) THEN
                   rij2grav = dx*dx + dy*dy + dz*dz + psoft**2
-                  rijgrav = SQRT(rijgrav)
+                  rijgrav = SQRT(rij2grav)
                   fm = 1.0
                   phi = - 1./rijgrav
                ELSEIF (isoft.EQ.0) THEN
@@ -559,9 +562,9 @@ c
 c--Store quantities
 c 
          IF (igrape.EQ.0 .AND. igphi.NE.0) THEN
-            fxyzu(1,ipart) = fxyzu(1,ipart) + gravxi
-            fxyzu(2,ipart) = fxyzu(2,ipart) + gravyi
-            fxyzu(3,ipart) = fxyzu(3,ipart) + gravzi
+            fxyzu(1,ipart) = fxyzu(1,ipart) + gravxi + dsoftxi*cnormk
+            fxyzu(2,ipart) = fxyzu(2,ipart) + gravyi + dsoftyi*cnormk
+            fxyzu(3,ipart) = fxyzu(3,ipart) + gravzi + dsoftzi*cnormk
             poten(ipart) = poten(ipart) + poteni
             dgrav(ipart) = 0.
          ENDIF

@@ -56,7 +56,7 @@ c
          force2 = fxyzu(1,i)**2 + fxyzu(2,i)**2 + fxyzu(3,i)**2
          IF (force2.NE.0.0) THEN
             rmod = 0.3*SQRT(xyzmh(5,i)/SQRT(force2))
-            IF (iphase(i).GT.0) rmod = rmod/100.0
+            IF (iphase(i).GT.0) rmod = rmod/1000.0
             rmod = rmod/(dt*isteps(i)/imaxstep)
          ELSE
             rmod = 1.0E+30

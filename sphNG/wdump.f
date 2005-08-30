@@ -344,7 +344,7 @@ c     must be used to index *ANY* value from an array which is written
 c     to the outside.  This requires modification to almost every output
 c     line in the code.  Done 21 Nov 2000.
 c
-      IF (gt.EQ.0. .OR. iresort.LT.5) GOTO 777
+      IF (gt.EQ.0. .OR. iresort.LT.20) GOTO 777
 
       iresort = 0
 

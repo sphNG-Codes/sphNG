@@ -25,6 +25,7 @@ c************************************************************
       INCLUDE 'COMMONS/f1'
       INCLUDE 'COMMONS/eosq'
 
+      REAL*4 sm, q
       DIMENSION sm(idim), q(idim)
 
       EQUIVALENCE (sm, pr), (q, vsound)

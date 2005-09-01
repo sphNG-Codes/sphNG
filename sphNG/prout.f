@@ -95,7 +95,7 @@ c
      &           ' total angular momentum             : ', 1PE14.5, /,
      &           ' total linear momentum              : ', 1PE14.5)
          
-         IF (tgrav.GT.0.) THEN
+         IF (ABS(tgrav).GT.tiny) THEN
             alph = tterm / ABS(tgrav)
             betl = trotz / ABS(tgrav)
             betr = trotx / ABS(tgrav)

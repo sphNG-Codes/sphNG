@@ -47,6 +47,8 @@ c************************************************************
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/dumderivi'
       INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/call'
+      INCLUDE 'COMMONS/gtime'
 
 c      INCLUDE 'COMMONS/timeextra'
 

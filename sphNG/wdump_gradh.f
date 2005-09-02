@@ -122,7 +122,7 @@ c
       nums(4) = 0
       nums(5) = 0
       nums(6) = 9
-      nums(7) = 2
+      nums(7) = 3
       nums(8) = 0
       WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
 c
@@ -201,10 +201,11 @@ c--Default real
       END DO
       DO j = 1, 4
          WRITE (idisk1, ERR=100) (vxyzu(j,isort(i)), i=1, npart)
-      END DO      
+      END DO
 c--real*4
       WRITE (idisk1, ERR=100) (rho(isort(i)), i=1, npart)
-      WRITE (idisk1, ERR=100) (gradhs(1,isort(i)), i=1, npart)
+      WRITE (idisk1, ERR=100) (gradhs(1,isort(i)), i=1, npart)      
+      WRITE (idisk1, ERR=100) (gradhs(2,isort(i)), i=1, npart)
 c     WRITE (idisk1, ERR=100) (alphaMM(isort(i)), i=1, npart)
 c--real*8
 

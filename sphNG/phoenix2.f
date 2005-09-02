@@ -57,7 +57,7 @@ c
          ipos = numinject/2
          imove = ipos/2
 c         write (*,*) rand
-         DO j = 1, LOG(1.0*numinject)/LOG(2.0)+1
+         DO j = 1, INT(LOG(1.0*numinject)/LOG(2.0))+1
 c            write (*,*) ipos,xinjecttable(1,ipos),imove
             IF (rand.GT.xinjecttable(1,ipos)) THEN
                ipos = ipos+imove

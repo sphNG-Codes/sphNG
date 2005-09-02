@@ -29,7 +29,7 @@ c      write (*,*) 'Enter kap'
       u=u2*uergg*umass
       rho=rho2*umass/udist**3
       cv=cv2*uergg*umass 
-      IF(u.EQ.0.0.OR.rho.EQ.0.0.OR.cv.EQ.0.0) CALL FAILED(7,ltg,lrho)         
+      IF(u.EQ.0.0.OR.rho.EQ.0.0.OR.cv.EQ.0.0) CALL FAILED(7,ltg,lrho)
 
 !     Call for each particle
 !     rkappa (intent=out) is opacity of particle 

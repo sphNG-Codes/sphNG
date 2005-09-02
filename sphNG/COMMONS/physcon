@@ -1,1 +1,1 @@
-      COMMON /physcon/gg, c, Rg, pi
+      COMMON /physcon/gg, c, Rg, pi, radconst

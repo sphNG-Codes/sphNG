@@ -23,11 +23,12 @@ c************************************************************
       DIMENSION xyzmh(5,idim),vxyzu(4,idim),list(idim)
       DIMENSION newlist(idim), iredolist(idim), ifakelist(idim)
 
-      INTEGER ncalc
+      INTEGER ncalc,nredone
       REAL fsx,fsy,fsz,epot
       REAL pmassi,rhoi,omegai
       DIMENSION h_old(idim)
-      LOGICAL RedoNeighbours,NeighboursChanged
+      LOGICAL NeighboursChanged
+      INTEGER iRedoNeighbours(idim)
       
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/debug'
@@ -46,11 +47,11 @@ c
       ncalc = nlst_end - nlst_in + 1
       ncalctot = 0
       its = 0
-      RedoNeighbours = .false.
       NeighboursChanged = .false.
       nlst_beg = nlst_in
       nlst_fin = nlst_end
       irestrict = 0
+      nredone = 0
 
       DO i=nlst_beg,nlst_fin
          j = list(i)
@@ -58,6 +59,7 @@ c
          gradhs(1,j) = 0.
          gradhs(2,j) = 0.
          h_old(j) = xyzmh(5,j)
+         iRedoNeighbours(j) = 0
       ENDDO
 c
 c--We calculate the density self-consistently with the smoothing length
@@ -73,14 +75,14 @@ c   neighbours on particles in the redo list)
 c
 c         WRITE(iprint,*) 'Density iteration ',its,' ncalc = ',ncalc
 
-         IF (RedoNeighbours) THEN
-            WRITE(iprint,*) 'Recalculating neighbours...'
-            DO j=nlst_beg,nlst_fin
-               i = iredolist(j)
+         DO j=nlst_beg,nlst_fin
+            i = iredolist(j)
+            IF (iRedoNeighbours(i).EQ.1) THEN
                CALL treef(i,npart,xyzmh,acc,0,fsx,fsy,fsz,epot)
-            ENDDO
-            NeighboursChanged = .true.
-         ENDIF
+               NeighboursChanged = .true.
+               nredone = nredone + 1
+            ENDIF
+         ENDDO
 c
 c--calculate density using current h value
 c
@@ -90,9 +92,9 @@ c
 c--calculate gradient terms, take Newton-Raphson iteration
 c
          ncalc = 0
-         RedoNeighbours = .false.
          DO j=nlst_beg,nlst_fin
             i = iredolist(j)
+            iRedoNeighbours(i) = 0
             pmassi = xyzmh(4,i)
             hi = xyzmh(5,i)
             rhoi = pmassi/(hi/hfact)**3
@@ -120,7 +122,7 @@ c
 c
 c--don't let number of neighbours get too big
 c
-               IF (hnew.GT.hi .OR. nneigh(i).GT.nneighmax) THEN
+               IF (hnew.GT.h_old(i) .OR. nneigh(i).GT.nneighmax) THEN
                   IF (nneigh(i).GT.nneighmax) THEN
 c--stop iterations on this particle
                      irestrict = irestrict + 1
@@ -135,9 +137,9 @@ c--calculate density/gradh with this h and then exit
                      rhoi = pmassi/(hi/hfact)**3
                      dhdrhoi = -hi/(3.*rhoi)
                      gradhs(1,i) = 1.
-                     gradhs(2,i) = 1.
+                     gradhs(2,i) = 0.
                   ELSE
-                     RedoNeighbours = .true.                  
+                     iRedoNeighbours(i) = 1                  
                      ncalc = ncalc + 1
                      newlist(ncalc) = i
                      xyzmh(5,i) = hnew
@@ -195,7 +197,7 @@ c
       ENDDO
       
       IF (NeighboursChanged) THEN
-         WRITE(iprint,*) 'Recalculating all neighbours...'
+         WRITE(iprint,*) 'Recalculating all neighbours...',nredone
          DO i=1,npart
             CALL treef(i,npart,xyzmh,acc,0,fsx,fsy,fsz,epot)
          ENDDO

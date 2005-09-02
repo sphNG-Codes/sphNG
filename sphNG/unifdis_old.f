@@ -1,13 +1,9 @@
       SUBROUTINE unifdis(igeom, idist, np, h1, facx, facy, facz,
-     &                   delx, dely, nx, ny, nz, ibound)
+     &                      delx, dely, nx, ny, nz, ibound)
 c************************************************************
 c                                                           *
 c  This subroutine positions particles in a uniform         *
 c     coordinate distribution                               *
-c                                                           *
-c  Changes by D.Price: added hfact so that the smoothing    *
-c  length is hfact * particle spacing (previous was unity)  *
-c  This determines the number of neighbours                 *
 c                                                           *
 c************************************************************
 
@@ -32,8 +28,7 @@ c
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
 99001 FORMAT (' entry subroutine unifdis ')
 
-      hfact = 1.2
-      delz = 0.
+      third = 1./3.
 c
 c--Set uniform particle distribution
 c
@@ -81,7 +76,7 @@ c
             xyzmh(1,i) = x1
             xyzmh(2,i) = y1
             xyzmh(3,i) = z1
-            xyzmh(5,i) = hfact*h1
+            xyzmh(5,i) = h1
          END DO
 c
 c--Rings - so that m-modes are all zero
@@ -147,7 +142,7 @@ c                  theta = (itheta - 1./3.*MOD(iz,3))*steptheta
                   xyzmh(1,npart) = x1
                   xyzmh(2,npart) = y1
                   xyzmh(3,npart) = z1
-                  xyzmh(5,npart) = hfact*stepr
+                  xyzmh(5,npart) = stepr
 
  120              CONTINUE
                END DO
@@ -233,7 +228,7 @@ c
                xyzmh(2,npart) = yi
                IF (zi.GT.zmax) zi = zmax
                xyzmh(3,npart) = zi
-               xyzmh(5,npart) = hfact*h1
+               xyzmh(5,npart) = h1
  150        ENDIF
          END DO
 
@@ -306,7 +301,7 @@ c
                xyzmh(2,npart) = yi
                IF (zi.GT.zmax) zi = zmax
                xyzmh(3,npart) = zi
-               xyzmh(5,npart) = hfact*h1
+               xyzmh(4,npart) = h1
  160        ENDIF
          END DO
 
@@ -335,55 +330,38 @@ c
             ENDIF
             
             IF (idist.EQ.2) THEN
-c           changes here may have stuffed up sphdis.f - D.Price	    
-
-!               xstart = FLOAT(INT(xmin/stepx))*stepx + 0.5*delx
-!               ystart = FLOAT(INT(ymin/stepy))*stepy + 0.5*dely
-!     &              + stepy/2.0 
-!     &              - dely/2.0
-!               zstart = FLOAT(INT(zmin/stepz))*stepz + 0.5*stepz
-               xstart = xmin + 0.5*delx
-	       ystart = ymin + 0.5*dely
-	       zstart = zmin + 0.5*stepz
+               xstart = FLOAT(INT(xmin/stepx)-1)*stepx
+               ystart = FLOAT(INT(ymin/stepy)-1)*stepy 
+     &              + stepy/2.0 
+     &              - dely/2.0
+               zstart = FLOAT(INT(zmin/stepz))*stepz
                jy = MOD(l, 2)
-               jz = MOD(m, 3)
-	       IF (jz.EQ.0) THEN	! 3rd layer
-		  ystart = ystart + 2.*dely
-	          IF (jy.EQ.0) xstart = xstart + delx		   
-	       ELSEIF (jz.EQ.2) THEN	! 2nd layer	  
-	          ystart = ystart + dely
-		  IF (jy.EQ.1) xstart = xstart + delx
-	       ELSEIF (jy.EQ.0) THEN    ! first layer	  
-	          xstart = xstart + delx
-	       ENDIF
-
+               jz = MOD(m, 2)
+               IF (jz.EQ.1) THEN
+                  IF (jy.EQ.0) xstart = xstart + delx
+               ELSEIF (jy.EQ.1) THEN
+                  xstart = xstart + delx
+                  ystart = ystart + dely
+               ELSE
+                  ystart = ystart + dely
+               ENDIF
             ELSEIF (idist.EQ.1) THEN
-	          xstart = (xmin+xmax)/2.0
-     &               -(INT(ABS(0.5*(xmax-xmin)/stepx)+0.5))*stepx
-     &               + 0.5*stepx	
-                  ystart = (ymin+ymax)/2.0
-     &              -(INT(ABS(0.5*(ymax-ymin)/stepy)+0.5))*stepy
-     &               + 0.5*stepy
-                  zstart = (zmin+zmax)/2.0
-     &              -(INT(ABS(0.5*(zmax-zmin)/stepz)+0.5))*stepz
-     &               + 0.5*stepz
-
-!               xstart = (xmin+xmax)/2.0-(INT(ABS(xmin/stepx)+0.5))*stepx
-!     &              + 0.5*stepx
-!               ystart = (ymin+ymax)/2.0-(INT(ABS(ymin/stepy)+0.5))*stepy
-!     &              + 0.5*stepy
-!               zstart = (zmin+zmax)/2.0-(INT(ABS(zmin/stepz)+0.5))*stepz
-!     &              + 0.5*stepz
+               xstart = (xmin+xmax)/2.0-(INT(ABS(xmin/stepx)+0.5))*stepx
+     &              + 0.5*stepx
+               ystart = (ymin+ymax)/2.0-(INT(ABS(ymin/stepy)+0.5))*stepy
+     &              + 0.5*stepy
+               zstart = (zmin+zmax)/2.0-(INT(ABS(zmin/stepz)+0.5))*stepz
+     &              + 0.5*stepz
             ELSEIF (idist.EQ.4) THEN
                jx = MOD(k, 2)
                IF (jx.EQ.1) THEN
                   xstart = xmin + 0.5*stepx
-                  ystart = ymin + dely
-                  zstart = zmin + delz
+                  ystart = ymin
+                  zstart = zmin 
                ELSE
                   xstart = xmin + 0.5*stepx
-                  ystart = ymin + 0.5*stepy + dely
-                  zstart = zmin + 0.5*stepz + delz
+                  ystart = ymin + 0.5*stepy
+                  zstart = zmin + 0.5*stepz
                ENDIF
             ENDIF
             xi = xstart + FLOAT(k - 1)*stepx
@@ -432,7 +410,7 @@ c           changes here may have stuffed up sphdis.f - D.Price
                xyzmh(2,npart) = yi
                IF (zi.GT.zmax) zi = zmax
                xyzmh(3,npart) = zi
-               xyzmh(5,npart) = hfact*h1
+               xyzmh(5,npart) = 1.1*h1
  180        ENDIF
  200     CONTINUE
       ENDIF

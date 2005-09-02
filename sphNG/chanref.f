@@ -17,6 +17,8 @@ c************************************************************
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/typef'
+      INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/radtrans'
 c
 c--Allow for tracing flow
 c
@@ -50,6 +52,7 @@ c
 
                rho(i) = rho(i)/sdens
                vxyzu(4,i) = vxyzu(4,i)/sergg
+               IF (encal.EQ.'r') ekcle(1,i) = ekcle(1,i)/sergg
  50         CONTINUE
          ELSE IF ( ifcor.EQ.2 ) THEN
             DO 80 i = 1, npart
@@ -66,6 +69,7 @@ c
 
                rho(i) = rho(i)/sdens
                vxyzu(4,i) = vxyzu(4,i)/sergg
+               IF (encal.EQ.'r') ekcle(1,i) = ekcle(1,i)/sergg
  80         CONTINUE
          ENDIF
          RETURN
@@ -88,6 +92,7 @@ c
 
                rho(i) = rho(i)*sdens
                vxyzu(4,i) = vxyzu(4,i)*sergg
+               IF (encal.EQ.'r') ekcle(1,i) = ekcle(1,i)*sergg
                poten(i) = poten(i)*sergg
  100        CONTINUE
          ELSE IF ( ifcor.EQ.2 ) THEN
@@ -105,6 +110,7 @@ c
 
                rho(i) = rho(i)*sdens
                vxyzu(4,i) = vxyzu(4,i)*sergg
+               IF (encal.EQ.'r') ekcle(1,i) = ekcle(1,i)*sergg
                poten(i) = poten(i)*sergg
  120        CONTINUE
          ENDIF

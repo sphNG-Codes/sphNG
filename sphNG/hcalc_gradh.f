@@ -27,6 +27,8 @@ c************************************************************
       INCLUDE 'COMMONS/dum'
       INCLUDE 'COMMONS/polyk2'
       INCLUDE 'COMMONS/call'
+      INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/mhd'
 c
 c--Allow for tracing flow
 c
@@ -56,13 +58,15 @@ c      neimax = 120
       END DO
 
       IF (ibound.EQ.1)
-     &      CALL ghostp1(npart, xyzmh, vxyzu)
+     &      CALL ghostp1(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
       IF (ibound.EQ.2)
-     &      CALL ghostp2(npart, xyzmh, vxyzu)
-      IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound.GE.90)
-     &      CALL ghostp3(npart, xyzmh, vxyzu)
+     &      CALL ghostp2(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
+      IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound/10.EQ.9)
+     &      CALL ghostp3(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
+      IF (ibound.EQ.100)
+     &     CALL ghostp100(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
       IF (ibound.EQ.11)
-     &      CALL ghostp11(npart, xyzmh, vxyzu)
+     &      CALL ghostp11(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
       IF (ibound.EQ.0) nghost = 0
 
       ntot = npart + nghost
@@ -104,7 +108,6 @@ c
             iscurrent(i) = .TRUE.
          ENDIF
       END DO    
-      jneigh = 0
       itime = 0
       nlst_in = 1
       nlst_end = nlst
@@ -113,7 +116,7 @@ c
       DO ipart=1,npart
          dumxyzmh(5,ipart) = hfact*(dumxyzmh(4,ipart)/rhozero)**third
       ENDDO      
-      CALL iterate_density(jneigh,npart,dumxyzmh,vxyzu,
+      CALL iterate_density(npart,dumxyzmh,vxyzu,
      &                     nlst_in,nlst_end,llist,itime)
       DO ipart=1,npart
          xyzmh(5,ipart) = dumxyzmh(5,ipart)

@@ -10,6 +10,7 @@ c        (3) Accretion disk                                 *
 c        (4) Rotating cylinder                              *
 c        (5) Central point mass                             *
 c        (6) Distant point mass                             *
+c        (7) Central point mass and planet                  *
 c                                                           *
 c************************************************************
 
@@ -21,6 +22,7 @@ c************************************************************
       INCLUDE 'COMMONS/ener1'
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/xforce'
+      INCLUDE 'COMMONS/rbnd'
 c
 c--Unit angular momentum
 c
@@ -114,6 +116,43 @@ c
          fxyzu(2,ipart) = fxyzu(2,ipart) - xmass*runiy/d2
          fxyzu(3,ipart) = fxyzu(3,ipart) - xmass*runiz/d2
          poten(ipart) = poten(ipart) - xmass/d
+c
+c--Central point mass and planet
+c
+      ELSEIF (iexf.EQ.7) THEN
+         xi = xyzmh(1,ipart)
+         yi = xyzmh(2,ipart)
+         zi = xyzmh(3,ipart)
+         d2 = (xi*xi + yi*yi + zi*zi + tiny)
+         d = SQRT(d2)
+         runix = xi/d
+         runiy = yi/d
+         runiz = zi/d
+
+         fxyzu(1,ipart) = fxyzu(1,ipart) - xmass*runix/d2
+         fxyzu(2,ipart) = fxyzu(2,ipart) - xmass*runiy/d2
+         fxyzu(3,ipart) = fxyzu(3,ipart) - xmass*runiz/d2
+         poten(ipart) = poten(ipart) - xmass/d
+c
+c--Assumes planet at location (1,0,0) in code units
+c
+         xi = xi - 1.0
+c
+c--Radius of earth is 8.2e-6 in 5.2au code units
+c--Radius of 30 M_e solid core would be 2.5e-5 in 5.2 au code units
+c
+         rplanet = 2.5E-05
+         rplanet = 1.0E-03
+         d2 = (xi*xi + yi*yi + zi*zi + (rplanet)**2)
+         d = SQRT(d2)
+         runix = xi/d
+         runiy = yi/d
+         runiz = zi/d
+
+         fxyzu(1,ipart) = fxyzu(1,ipart) - planetmass*runix/d2
+         fxyzu(2,ipart) = fxyzu(2,ipart) - planetmass*runiy/d2
+         fxyzu(3,ipart) = fxyzu(3,ipart) - planetmass*runiz/d2
+         poten(ipart) = poten(ipart) - planetmass/d
       ENDIF
 
       RETURN

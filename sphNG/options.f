@@ -38,6 +38,7 @@ c************************************************************
       INCLUDE 'COMMONS/crpart'
       INCLUDE 'COMMONS/ptbin'
       INCLUDE 'COMMONS/useles'
+      INCLUDE 'COMMONS/radtrans'
 c
 c--Allow for tracing flow
 c
@@ -97,6 +98,8 @@ c--Read options
 c
       READ (iterm, 99006) encal
 99006 FORMAT (A1)
+      IF (encal.EQ.'r') READ (iterm, *) tolerance
+
       READ (iterm, *) initialptm
       READ (iterm, 99006) iaccevol
       IF (iaccevol.EQ.'v' .OR. iaccevol.EQ.'s') READ (iterm, *) accfac
@@ -155,14 +158,21 @@ c
          READ (iterm, *) deadbound
          READ (iterm, *) fractan, fracradial, nstop, nfastd
       ENDIF
-      IF (ibound.GE.90) THEN
+      IF (ibound/10.EQ.9) THEN
          READ (iterm, *) deadbound
          READ (iterm, *) fractan, fracradial, nshell, rshell
       ENDIF
+      IF (ibound.EQ.100) THEN
+         READ (iterm, *) variation,phibound,flowrate,signorm,
+     &        hoverr,partm
+      ENDIF
 
       xmass = 0.
-      IF (iexf.EQ.5 .OR. iexf.EQ.6) THEN
+      IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7) THEN
          READ (iterm, *) xmass
+      ENDIF
+      IF (iexf.EQ.7) THEN
+         READ (iterm, *) planetmass
       ENDIF
 
       IF (iptmass.NE.0 .OR. initialptm.NE.0) THEN
@@ -181,7 +191,7 @@ c
       rcyl = 0.
       rmind = 0.
       IF (ibound.EQ.1 .OR. ibound.EQ.3 .OR. ibound.EQ.8 .OR. 
-     &                                           ibound.GE.90) THEN 
+     &                                           ibound/10.EQ.9) THEN 
           READ (iterm, *) rmind, rmax, 
      &                   xmin, xmax, ymin, ymax, zmin, zmax
       ELSEIF (ibound.EQ.2) THEN

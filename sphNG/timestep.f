@@ -1,4 +1,4 @@
-       SUBROUTINE timestep (dt,idtsyn,nlst,llist,fxyzu)
+       SUBROUTINE timestep (dt,idtsyn,nlst,llist,fxyzu,Bevolxyz)
 c************************************************************
 c                                                           *
 c  This subroutine calculates the new timestep for each     *
@@ -10,6 +10,7 @@ c************************************************************
       INCLUDE 'igrape'
 
       DIMENSION llist(idim),fxyzu(4,idim)
+      DIMENSION Bevolxyz(3,imhd)
 
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/eosq'

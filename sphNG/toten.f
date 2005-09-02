@@ -24,6 +24,7 @@ c************************************************************
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/phase'
+      INCLUDE 'COMMONS/radtrans'
 c
 c--Allow for tracing flow
 c
@@ -39,6 +40,7 @@ c
       tgrav = 0.
       tpot = 0.
       tterm = 0.
+      trad = 0.
       escap = 0.
 c
 c--Scaling factors
@@ -87,7 +89,8 @@ c
             ELSE
                ttherm = pmassi*pr(i)/(gama1*rho(i))
             ENDIF
-            total = tinout + tpot + ttherm
+            tradi = ekcle(1,i)*pmassi
+            total = tinout + tpot + ttherm + tradi
             IF (total.GT.0.) escap = escap + pmassi
          ENDIF
       END DO
@@ -107,7 +110,10 @@ c
 c--Variable of state is specific internal energy
 c
          DO i = 1, npart
-            IF (iphase(i).EQ.0) tterm = tterm + xyzmh(4,i)*vxyzu(4,i)
+            IF (iphase(i).EQ.0) THEN
+               tterm = tterm + xyzmh(4,i)*vxyzu(4,i)
+               trad = trad + xyzmh(4,i)*ekcle(1,i)
+            ENDIF
          END DO
 c
 c--Variable of state is specific entropy
@@ -123,7 +129,7 @@ c
       ENDIF
 
       IF (idebug(1:5).EQ.'toten') THEN
-         WRITE (iprint, 99002) tkin, trotz,trotx, tgrav, tterm
+         WRITE (iprint, 99002) tkin, trotz,trotx, tgrav, tterm, trad
 99002    FORMAT (1X, 3(1PE12.5,1X))
       ENDIF
 

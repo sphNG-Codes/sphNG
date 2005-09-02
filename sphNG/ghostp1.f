@@ -1,4 +1,4 @@
-      SUBROUTINE ghostp1(npart, xyzmh, vxyzu)
+      SUBROUTINE ghostp1(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
 c************************************************************
 c                                                           *
 c  This subroutine computes the list of ghost particles for *
@@ -10,6 +10,8 @@ c************************************************************
 
       DIMENSION xyzmh(5,idim)
       DIMENSION vxyzu(4,idim)
+      DIMENSION ekcle(4,iradtrans)
+      DIMENSION Bevolxyz(3,imhd)
 
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/densi'
@@ -19,6 +21,10 @@ c************************************************************
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/kerne'
+      INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/astrcon'
+      INCLUDE 'COMMONS/cgas'
 
       CHARACTER*7 where
 
@@ -30,10 +36,12 @@ c
 99001 FORMAT (' entry subroutine ghostp1')
 
       nghost = 0
+      uradconst = radconst/uergcc
 c
 c--Find ghost particles (for all particles within radkernel*h of boundary)
 c
       DO 200 i = 1, npart
+         nghostold = nghost
          hasghost(i) = .FALSE.
          IF (iphase(i).NE.0) GOTO 200
          xi = xyzmh(1,i)
@@ -47,6 +55,7 @@ c
          vzi = vxyzu(3,i)
          ui = vxyzu(4,i)
          rhoi = rho(i)
+
          delta = 0.1*hi
 c
 c--X axis
@@ -572,6 +581,22 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+         ENDIF
+
+         IF (nghostold.NE.nghost) THEN
+            IF (encal.EQ.'r') THEN
+               DO j=1,5
+                  ekcle(j,nptot) = ekcle(j,i)
+               END DO
+               vxyzu(4,nptot) = 0.704097133431896
+               ekcle(1,nptot) = uradconst*(vxyzu(4,nptot)/
+     &              ekcle(3,nptot))**4/50.226017
+            ENDIF
+            IF (imhd.EQ.idim) THEN
+               DO j=1,3
+                  Bevolxyz(j,nptot) = Bevolxyz(j,i)
+               END DO
+            ENDIF
          ENDIF
 
  200  CONTINUE

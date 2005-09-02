@@ -462,7 +462,7 @@ c
 88115    FORMAT(/,'   How many particles from end start fast dumping?')
          READ (*,*) nfastd
       ENDIF
-      IF (ibound.GE.90) THEN
+      IF (ibound/10.EQ.9) THEN
          WRITE(*,88113)
          READ (*,*) deadbound
          WRITE(*,88116)
@@ -633,7 +633,7 @@ c
             IF (icoord.EQ.1) THEN
                CALL cartdis(igeom, idist, np, h1)
             ELSE IF (icoord.EQ.2) THEN
-               CALL cyldis
+               CALL cyldis(igeom,np)
             ELSE
                CALL sphdis(igeom, idist, np ,h1, facx, facy, facz, 
      &                   delx, dely, nx, ny, nz)

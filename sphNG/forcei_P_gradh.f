@@ -1,6 +1,6 @@
-      SUBROUTINE forcei(jneigh,nlst_in,nlst_end,list,dt,itime,
+      SUBROUTINE forcei(nlst_in,nlst_end,list,dt,itime,
      &      npart,xyzmh,vxyzu,fxyzu,dha,
-     &      trho,pr,vsound,alphaMMpass)
+     &      trho,pr,vsound,alphaMMpass,ekcle,dedxyz)
 c************************************************************
 c                                                           *
 c  This subroutine computes the forces on particle ipart    *
@@ -15,6 +15,8 @@ c************************************************************
       REAL*4 alphaMMpass(idim)
       DIMENSION list(idim)
       DIMENSION fxyzu(4,idim)
+      DIMENSION ekcle(5,iradtrans)
+      DIMENSION dedxyz(3,iradtrans)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -173,7 +175,7 @@ C$OMP& shared(iphase,listpm,iprint,nptmass,iorig)
 C$OMP& shared(alphaMMpass,alphamin,ddv,ddvxyz)
 C$OMP& shared(igrp,igphi,ifsvi,iexf)
 C$OMP& shared(ifcor,iexpan,iener,damp)
-C$OMP& shared(realtime)
+C$OMP& shared(realtime,ekcle,encal,dedxyz)
 C$OMP& private(n,ipart,stepsi,numneigh)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(poteni,dphiti,gradxi,gradyi,gradzi,artxi,artyi,artzi)
@@ -625,6 +627,15 @@ c
 c--Homologous expansion or contraction
 c
          IF (iexpan.GT.0) CALL homexp(ipart,realtime,vxyzu,fxyzu) 
+c
+c--Radiation pressure force
+c
+         IF (encal.EQ.'r') THEN
+            DO j = 1, 3
+               fxyzu(j,ipart) = fxyzu(j,ipart) -
+     &              ekcle(4,ipart)/trho(ipart)*dedxyz(j,ipart)
+            END DO
+         ENDIF
 c
 c--Damp velocities if appropiate
 c

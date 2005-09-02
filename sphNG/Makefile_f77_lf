@@ -36,12 +36,15 @@ SOURCES= sph.f accrete_P.f addump.f angmom.f boundry.f \
 	chekopt.f condense.f constan.f coriol.f cyldis.f cylmas.f cylpres.f \
 	cylvel.f densityi_P.f derivi_P.f endrun.f energ.f eospg.f \
 	error.f evol.f externf.f extract.f \
-        file.f forcei_P.f getneigh.f gforsa_P.f gforsn_P.f gforspt_P.f \
-	ghostp1.f ghostp2.f ghostp3.f ghostp11.f gptall.f hcalc.f hdot_P.f \
+        file.f forcei_P.f getneigh.f \
+	getcv.f get1overmu.f getkappa.f \
+	gforsa_P.f gforsn_P.f gforspt_P.f \
+	ghostp1.f ghostp2.f ghostp3.f ghostp11.f ghostp100.f \
+        gptall.f hcalc.f hdot_P.f \
 	header.f homexp.f indexx.f indexx2.f indexx3.f inform.f \
 	inopts.f insulate_TREE_P.f integs.f ktable.f labrun.f lunit_double.f \
 	mainop.f mesop.f modif.f mtree_P.f \
-	newrun.f options.f phoenix.f \
+	newrun.f options.f phoenix.f phoenix2.f \
 	place.f preset.f \
 	prout.f ran1.f rdump.f reduce.f revtree_P.f save.f \
         scaling.f secmes.f setpart.f smoothd_P.f \

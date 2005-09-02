@@ -25,6 +25,11 @@ c************************************************************
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/numpa'
       INCLUDE 'COMMONS/recor'
+      INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/astrcon'
+      INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/radtrans'
 
       CHARACTER*7 where
 c
@@ -36,6 +41,8 @@ c
 c--Compute : center of mass, velocity of cm, mean density and dispersion
 c     for first object
 c
+      uradconst = radconst/uergcc
+
       cmx1 = 0.
       cmy1 = 0.
       cmz1 = 0.
@@ -90,6 +97,23 @@ c
 
             valphamax1 = MAX(valphamax1, alphaMM(i))
             valphamin1 = MIN(valphamin1, alphaMM(i))
+
+            IF (encal.EQ.'r') THEN
+               tempgas = vxyzu(4,i)/ekcle(3,i)
+               tgmean1 = tgmean1 + tempgas
+               tgmax1 = MAX(tgmax1, tempgas)
+               temprad = (ekcle(1,i)*rho(i)/uradconst)**0.25
+               trmean1 = trmean1 + temprad
+               trmax1 = MAX(trmax1, temprad)
+            ELSEIF (gamma.EQ.1.0) THEN
+               tempgas = gmw*uergg/Rg*2.0/3.0*vxyzu(4,i)
+               tgmean1 = tgmean1 + tempgas
+               tgmax1 = MAX(tgmax1, tempgas)
+            ELSE
+               tempgas = gmw*uergg/Rg*(gamma-1.0)*vxyzu(4,i)
+               tgmean1 = tgmean1 + tempgas
+               tgmax1 = MAX(tgmax1, tempgas)
+            ENDIF
          ENDIF
       END DO
       DO j = 1, nptmass
@@ -114,11 +138,13 @@ c
       vcmz1 = vcmz1/fmas1
 
       romean1 = romean1/n1new
+      tgmean1 = tgmean1/n1new
+      trmean1 = trmean1/n1new
 c
 c--If doing accretion on to binary, then recentre the centre of mass and
 c     set the centre of mass velocity to zero
 c
-      IF (ibound.EQ.8 .OR. ibound.GE.90) THEN
+      IF (ibound.EQ.8 .OR. ibound/10.EQ.9) THEN
          WRITE (iprint,*) 'ZERO CENTRE OF MASS'
          DO i=1, npart
             IF (iphase(i).GE.0) THEN
@@ -190,6 +216,10 @@ c
       END DO
       dmax1 = SQRT(dmax1)
       rocen1 = rho(imin)
+      IF (encal.EQ.'r') THEN
+         tgcen1 = vxyzu(4,imin)/ekcle(3,imin)
+         trcen1 = (ekcle(1,imin)*rocen1/uradconst)**0.25
+      ENDIF
 
       dmax2 = 0.
       zmax2 = 0.
@@ -238,7 +268,7 @@ c
 c--Update input file
 c
          IF (ifulldump.EQ.0) CALL wrinsph
-
+x
       ENDIF
 
       IF (idebug(1:6).EQ.'inform') THEN

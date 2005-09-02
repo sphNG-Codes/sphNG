@@ -25,6 +25,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/secret'
       INCLUDE 'COMMONS/accrem'
       INCLUDE 'COMMONS/avail'
+      INCLUDE 'COMMONS/rbnd'
 
       CHARACTER*7 where
 
@@ -34,6 +35,8 @@ c--Define options of this run
 c
       imax = 1073741824
       imaxstep = imax/2
+
+      nlistinactive = 0
 
       CALL options
 c

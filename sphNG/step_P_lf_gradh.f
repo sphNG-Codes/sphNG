@@ -62,14 +62,14 @@ c************************************************************
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/timeextra'
+      INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/mhd'
 
 c      DIMENSION nsteplist(30)
 
       LOGICAL ifirst
       LOGICAL icenter
       CHARACTER*7 where
-c      CHARACTER*5 ptdebug
-c      CHARACTER*2 itemchar
       DATA ifirst/.true./
       DATA icenter/.false./
       DATA small/1.0E-04/
@@ -90,6 +90,7 @@ c
       xlog2 = 0.30103
       ncrit = INT(nactive/10.0)
       ilocal = 0
+      naddedplanet = 0
 c
 c--Integration
 c
@@ -144,6 +145,12 @@ c
                DO k = 1, 4
                   dumvxyzu(k,i) = vxyzu(k,i) 
                END DO
+               IF (imhd.EQ.idim) THEN
+                  DO k = 1, 3
+                     dumBevolxyz(k,i) = Bevolxyz(k,i)
+                  END DO
+               ENDIF
+
                IF (ifsvi.EQ.6) dumalpha(i) = alphaMM(i)
 cccc               IF (ran1(1).LT.0.001) THEN
                nlst = nlst + 1
@@ -157,11 +164,14 @@ c
 c--Create ghost particles
 c
          nghost = 0
-         IF (ibound.EQ.1) CALL ghostp1(npart,xyzmh,vxyzu)
-         IF (ibound.EQ.2) CALL ghostp2(npart,xyzmh,vxyzu)
-         IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound.GE.90) 
-     &                    CALL ghostp3(npart,xyzmh,vxyzu)
-         IF (ibound.EQ.11) CALL ghostp11(npart,xyzmh, vxyzu)
+         IF (ibound.EQ.1) CALL ghostp1(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+         IF (ibound.EQ.2) CALL ghostp2(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+         IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound/10.EQ.9) 
+     &                    CALL ghostp3(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+         IF (ibound.EQ.100) 
+     &        CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+         IF (ibound.EQ.11) 
+     &        CALL ghostp11(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
          ntot = npart + nghost
 
          DO i = npart + 1, ntot
@@ -172,6 +182,11 @@ c
                dumvxyzu(k,i) = vxyzu(k,i)
             END DO
             IF (ifsvi.EQ.6) dumalpha(i) = alphaMM(ireal(i))
+            IF (imhd.EQ.idim) THEN
+               DO k = 1, 3
+                  dumBevolxyz(k,i) = Bevolxyz(k,i)
+               END DO
+            ENDIF
          END DO
 c
 c--Set integer time to zero
@@ -204,7 +219,7 @@ c         ENDIF
 c      END DO
 
          CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
-     &        npart,ntot,ireal,dumalpha)
+     &        npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz)
 
          IF (gt.EQ.0.0) THEN
 c
@@ -225,7 +240,7 @@ c                  vsound(i) = SQRT(2./3.*vxyzu(4,i))
             END DO
             nlst0 = nlst
 
-            CALL timestep(dt,itnext,nlst,llist,f1vxyzu)
+            CALL timestep(dt,itnext,nlst,llist,f1vxyzu,Bevolxyz)
 
             DO i = 1, nptmass
                isteps(listpm(i)) = istepmin
@@ -459,7 +474,7 @@ C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
 C$OMP& shared(it0,itime,imaxdens,cnormk,iener)
 C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass)
-C$OMP& shared(ifsvi,alphaMM,alphamax)
+C$OMP& shared(ifsvi,alphaMM,alphamax,Bevolxyz,encal)
 C$OMP& private(i,j,dtfull,dthalf,delvx,delvy,delvz)
 C$OMP& private(iii,pmasspt)
 C$OMP& reduction(+:ioutmax)
@@ -498,7 +513,8 @@ c
 c
 c--Update u(i) and h(i)
 c
-         vxyzu(4,i) = vxyzu(4,i) + dtfull*f1vxyzu(4,i)
+         IF (encal.NE.'r') 
+     &        vxyzu(4,i) = vxyzu(4,i) + dtfull*f1vxyzu(4,i)
 
          IF (iener.EQ.2 .AND. vxyzu(4,i).LT.0.0) vxyzu(4,i)=0.15
 
@@ -516,6 +532,17 @@ c--Update viscosity switch
 c
          IF (ifsvi.EQ.6) alphaMM(i) = MIN(alphamax, alphaMM(i) +
      &        dtfull*f1ha(2,i))
+c
+c--Update MHD
+c
+         IF (imhd.EQ.idim) THEN
+            Bevolxyz(1,i) = Bevolxyz(1,i)
+c     &              + dtfull*f1vxyzu(1,i)
+            Bevolxyz(2,i) = Bevolxyz(2,i)
+c     &              + dtfull*f1vxyzu(2,i)
+            Bevolxyz(3,i) = Bevolxyz(3,i)
+c     &              + dtfull*f1vxyzu(3,i)
+         ENDIF
 c
 c--Synchronize the advanced particle times with current time
 c
@@ -542,11 +569,14 @@ c
      &                                    .OR. idonebound.EQ.1) THEN
 c      IF (imakeghost.EQ.1 .OR. idonebound.EQ.1) THEN
          nghost = 0
-         IF (ibound.EQ.1) CALL ghostp1(npart,xyzmh,vxyzu)
-         IF (ibound.EQ.2) CALL ghostp2(npart,xyzmh,vxyzu)
-         IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound.GE.90) 
-     &                    CALL ghostp3(npart,xyzmh,vxyzu)
-         IF (ibound.EQ.11) CALL ghostp11(npart,xyzmh,vxyzu)
+         IF (ibound.EQ.1) CALL ghostp1(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+         IF (ibound.EQ.2) CALL ghostp2(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+         IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound/10.EQ.9) 
+     &                    CALL ghostp3(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+         IF (ibound.EQ.100) 
+     &        CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+         IF (ibound.EQ.11) 
+     &        CALL ghostp11(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
          ntot = npart + nghost
       ENDIF
 c
@@ -558,16 +588,21 @@ c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
-C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener)
-C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax)
+C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
+C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,deltat,deltat2)
       DO j = 1, npart
          IF (iphase(j).GE.0) THEN
             deltat = dt*(itime - it0(j))/imaxstep
             deltat2 = 0.5*deltat
-            DO k = 1, 4
+            DO k = 1, 3
                dumvxyzu(k,j) = vxyzu(k,j) + deltat2*f1vxyzu(k,j)
             END DO
+            IF (encal.NE.'r') THEN
+               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
+            ELSE
+               dumvxyzu(4,j) = vxyzu(4,j)
+            ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15 
             DO k = 1, 3
                dumxyzmh(k,j) = xyzmh(k,j) + deltat*dumvxyzu(k,j)
@@ -576,6 +611,11 @@ C$OMP& private(j,k,deltat,deltat2)
             dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
             IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,alphaMM(j)+
      &           deltat*f1ha(2,j))
+            IF (imhd.EQ.idim) THEN
+               DO k = 1, 3
+                  dumBevolxyz(k,j) = Bevolxyz(k,j)
+               END DO
+            ENDIF
          ENDIF
       END DO
 C$OMP END PARALLEL DO
@@ -587,18 +627,24 @@ C$OMP END PARALLEL DO
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
-C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener)
-C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax)
+C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
+C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,ipart,deltat,deltat2)
                DO j = 1, nlstbins(i)
                   ipart = listbins(j,i)
                   IF (iphase(ipart).GE.0) THEN
                      deltat = dt*(itime - it0(ipart))/imaxstep
                      deltat2 = 0.5*deltat
-                     DO k = 1, 4
+                     DO k = 1, 3
                         dumvxyzu(k,ipart) = vxyzu(k,ipart) + 
      &                       deltat2*f1vxyzu(k,ipart)
                      END DO
+                     IF (encal.NE.'r') THEN
+                        dumvxyzu(4,ipart) = vxyzu(4,ipart) +
+     &                       deltat*f1vxyzu(4,ipart)
+                     ELSE
+                        dumvxyzu(4,ipart) = vxyzu(4,ipart)
+                     ENDIF
                      IF (iener.EQ.2 .AND. dumvxyzu(4,ipart).LT.0.0) 
      &                    dumvxyzu(4,ipart)=0.15
                      DO k = 1, 3
@@ -606,10 +652,15 @@ C$OMP& private(j,k,ipart,deltat,deltat2)
      &                       deltat*dumvxyzu(k,ipart)
                      END DO
                      dumxyzmh(4,ipart) = xyzmh(4,ipart)
-                     dumxyzmh(5,ipart) = xyzmh(5,ipart)
-     &                   + deltat*f1ha(1,ipart)
+                     dumxyzmh(5,ipart) = xyzmh(5,ipart) + 
+     &                    deltat*f1ha(1,ipart)
                      IF (ifsvi.EQ.6) dumalpha(ipart) = MIN(alphamax,
      &                    alphaMM(ipart) + deltat*f1ha(2,ipart))
+                     IF (imhd.EQ.idim) THEN
+                        DO k = 1, 3
+                           dumBevolxyz(k,ipart) = Bevolxyz(k,ipart)
+                        END DO
+                     ENDIF
                   ENDIF
                END DO
 C$OMP END PARALLEL DO
@@ -643,8 +694,9 @@ C$OMP END PARALLEL DO
       IF (nghost.GT.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumxyzmh,dumvxyzu)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumxyzmh,dumvxyzu,encal)
 C$OMP& shared(iphase,iener,ifsvi,dumalpha,alphaMM,alphamax)
+C$OMP& shared(Bevolxyz,dumBevolxyz)
 C$OMP& private(j,k,l,deltat)
       DO j = npart + 1, npart + nghost
          IF (iphase(j).GE.0) THEN
@@ -653,7 +705,11 @@ C$OMP& private(j,k,l,deltat)
             DO l = 1, 3
                dumvxyzu(l,j) = vxyzu(l,j)
             END DO
-            dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
+            IF (encal.NE.'r') THEN
+               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
+            ELSE
+               dumvxyzu(4,j) = vxyzu(4,j)
+            ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
             DO l = 1, 3
                dumxyzmh(l,j) = xyzmh(l,j) + deltat*dumvxyzu(l,j)
@@ -662,6 +718,11 @@ C$OMP& private(j,k,l,deltat)
             dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,k)
             IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax, alphaMM(k) 
      &           + deltat*f1ha(2,k))
+            IF (imhd.EQ.idim) THEN
+               DO l = 1, 3
+                  dumBevolxyz(l,j) = Bevolxyz(l,j)
+               END DO
+            ENDIF
          ENDIF
       END DO
 C$OMP END PARALLEL DO
@@ -703,7 +764,7 @@ c--Compute forces on list particles
 c
  200  icall = 3
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
-     &     ntot,ireal,dumalpha)
+     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz)
 
 c      PRINT *,'h(1)4: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
 
@@ -758,7 +819,7 @@ c      PRINT *,'h(1)5: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
 c
 c--Set new timesteps
 c
-      CALL timestep(dt,idtsyn,nlst,llist,f1vxyzu)
+      CALL timestep(dt,idtsyn,nlst,llist,f1vxyzu,Bevolxyz)
 c
 c--Make point mass timesteps equal to the minimum time step used
 c
@@ -786,7 +847,7 @@ c
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst,llist)
 C$OMP& shared(it2,isteps,igphi)
-C$OMP& shared(dgrav,dumvxyzu,vxyzu)
+C$OMP& shared(dgrav,dumvxyzu,vxyzu,dumxyzmh)
 C$OMP& shared(it0,ibound,deadbound)
 C$OMP& shared(iprint,xyzmh,poten,iphase,ikillpr)
 C$OMP& shared(ikilled,nactive,nkill,time,iorig,nlstacc,listacc)
@@ -802,7 +863,7 @@ C$OMP DO SCHEDULE(runtime)
 c
 c--Dead particle boundaries
 c
-         IF (ibound.EQ.8 .OR. ibound.GE.90) THEN
+         IF (ibound.EQ.8 .OR. ibound/10.EQ.9) THEN
             r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
             IF (r2.GT.(1.05*deadbound)**2) THEN
                iphase(i) = -1
@@ -967,7 +1028,7 @@ c--Create NEW particles to keep number of particles within a shell
 c     constant.  
 c
       IF (nptmass.NE.0 .OR. icreate.EQ.1) THEN
-         IF (ibound.GE.90 .AND. nshell.GT.inshell) THEN
+         IF (ibound/10.EQ.9 .AND. nshell.GT.inshell) THEN
             STOP 'THIS WEIRD MATTHEW BIT NOT VALID WITH GRAD H YET'
             iaccr = 0
             ikilled = 0
@@ -994,11 +1055,7 @@ c
             END DO
 
             nghost = 0
-            IF (ibound.EQ.1) CALL ghostp1(npart,xyzmh,vxyzu)
-            IF (ibound.EQ.2) CALL ghostp2(npart,xyzmh,vxyzu)
-            IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound.GE.90) 
-     &           CALL ghostp3(npart,xyzmh,vxyzu)
-            IF (ibound.EQ.11) CALL ghostp11(npart,xyzmh,vxyzu)
+            CALL ghostp3(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
             ntot = npart + nghost
 
             DO j = npart - nlst + 1, npart
@@ -1006,7 +1063,7 @@ c
                   DO k = 1, 5
                      dumxyzmh(k,j) = xyzmh(k,j)
                   END DO
-                  DO k = 1, 3
+                  DO k = 1, 4
                      dumvxyzu(k,j) = vxyzu(k,j)
                   END DO
                   IF (ifsvi.EQ.6) dumalpha(j) = alphaMM(j)
@@ -1025,7 +1082,11 @@ c
                   DO l = 1, 3
                      dumvxyzu(l,j) = vxyzu(l,j)
                   END DO
-                  dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
+                  IF (encal.NE.'r') THEN
+                     dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
+                  ELSE
+                     dumvxyzu(4,j) = vxyzu(4,j)
+                  ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                   IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,
      &                 alphaMM(k) + deltat*f1ha(2,k))
@@ -1076,7 +1137,7 @@ c
 
             icall = 4
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
-     &           npart,ntot,ireal,dumalpha)
+     &           npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz)
 
             time = dt*itime/imaxstep + gt
             DO j = 1, nlst
@@ -1096,6 +1157,239 @@ c
          IF (nactive - nptmass.LT.50 .AND. nactive.NE.nptmass) 
      &                                      CALL error(where,1)
 
+      ENDIF
+c
+c--Create NEW particles in box surrounding planet in disc (ibound=100)
+c
+      IF (ibound.EQ.100) THEN
+c
+c--Work out how many particles to add
+c
+         timelocal = dt*itime/imaxstep
+         nlst0 = INT(timelocal*flowrate) - naddedplanet
+         IF (nlst0.GT.10) THEN
+            nlst = nlst0
+            WRITE (iprint,*) 'Add ',nlst0,' recyc ',nlistinactive,
+     &           ' npart ',npart,' nkill ',nkill
+            WRITE (*,*) 'Add ',nlst0,' recyc ',nlistinactive,
+     &           ' npart ',npart,' nkill ',nkill
+c
+c--Set values
+c
+            iaccr = 0
+            ikilled = 0
+            nlstacc = 0
+            nneightotsave = nneightot
+c
+c--Create new particle in free spot, add to list llist
+c
+            icountaddnpart = 0
+            DO i = 1, nlst0
+               IF (i.LE.nlistinactive) THEN
+                  nnew = listinactive(nlistinactive-i+1)
+               ELSE
+                  icountaddnpart = icountaddnpart + 1
+                  nnew = npart + icountaddnpart
+                  IF (nnew.GT.idim) CALL error(where,3)
+               ENDIF
+               llist(i) = nnew
+               CALL phoenix2(nnew, idtsyn, itime)
+               nactive = nactive + 1
+            END DO
+            IF (icountaddnpart.NE.0 .AND.
+     &           icountaddnpart.NE.nlst0-nlistinactive) THEN
+               WRITE (*,*) 'ERROR: icountaddnpart'
+               CALL quit
+            ENDIF
+            npart = npart + MAX(0,nlst0-nlistinactive)
+            n1 = n1 + MAX(0,nlst0-nlistinactive)
+            nlistinactive = MAX(0,nlistinactive-nlst0)
+            WRITE (*,*) 'New nlistinactive = ',nlistinactive
+c
+c--Set is current of new particles
+c
+            DO i = 1, nlst0
+               iscurrent(llist(i)) = .TRUE.
+            END DO
+c
+c--Redo ghosts
+c
+            nghost = 0
+            CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+            ntot = npart + nghost
+c
+c--Set dummy's for new particles
+c
+            DO i = 1, nlst0
+               j = llist(i)
+               IF (iphase(j).GE.0) THEN
+                  DO k = 1, 5
+                     dumxyzmh(k,j) = xyzmh(k,j)
+                  END DO
+                  DO k = 1, 4
+                     dumvxyzu(k,j) = vxyzu(k,j)
+                  END DO
+                  IF (ifsvi.EQ.6) dumalpha(j) = alphaMM(j)
+               ENDIF
+            END DO
+c
+c--Set dummy's for all ghosts
+c
+            DO j = npart + 1, npart + nghost
+               IF (iphase(j).GE.0) THEN
+                  k = ireal(j)
+                  deltat = dt*(itime - it0(k))/imaxstep
+                  DO l = 1, 3
+                     dumxyzmh(l,j) = xyzmh(l,j) + deltat*vxyzu(l,j)
+                  END DO
+                  dumxyzmh(4,j) = xyzmh(4,j)
+                  dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,k)
+                  DO l = 1, 3
+                     dumvxyzu(l,j) = vxyzu(l,j)
+                  END DO
+                  IF (encal.NE.'r') THEN
+                     dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
+                  ELSE
+                     dumvxyzu(4,j) = vxyzu(4,j)
+                  ENDIF
+            IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
+                  IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,
+     &                 alphaMM(k) + deltat*f1ha(2,k))
+               ENDIF
+            END DO
+c
+c--Rebuild the tree
+c
+            IF (igrape.EQ.0) THEN
+               CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)
+            ENDIF
+c
+c--Set smoothing lengths of new particles
+c
+            neighmean = (neimax + neimin)/2
+
+            iokay = 1
+            DO j = 1, nlst0
+               i = llist(j)
+
+               ivalue = 0
+               ichkloop = 0
+ 2001          ichkloop = ichkloop + 1
+
+               IF (igrape.EQ.0) THEN
+                  CALL insulate(3,ntot,npart,dumxyzmh,f1vxyzu)
+                  numneigh = nneigh(i)
+               ELSE
+                  CALL getneigh(i,ntot,xyzmh(5,i),dumxyzmh,nlist,
+     &                 iptneigh,nearl)
+                  numneigh = nlist
+               ENDIF
+
+               IF (numneigh.GT.1) THEN
+                  xyzmh(5,i) = (xyzmh(5,i)/
+     &                 (FLOAT(numneigh)/FLOAT(neighmean))**(1.0/3.0) +
+     &                 ivalue*xyzmh(5,i))/(ivalue + 1)
+               ELSE
+                  xyzmh(5,i) = xyzmh(5,i)*2.0
+               ENDIF
+               dumxyzmh(5,i) = xyzmh(5,i)
+               IF (ichkloop.GT.100) THEN
+                  ivalue = 2
+                  IF (ichkloop.GT.200) ivalue = 4
+                  IF (ichkloop.GT.300) ivalue = 8
+               ENDIF
+               IF (ichkloop.GT.500)  THEN
+                  IF (numneigh.LE.neimax.AND.
+     &              numneigh.GE.neimin) GOTO 2002
+
+                  WRITE (iprint,*) 'i,h,nneigh ',i,xyzmh(5,i),numneigh
+                  WRITE (iprint,*) 'x,y,z ',xyzmh(1,i),xyzmh(2,i),
+     &                 xyzmh(3,i)
+                  CALL error(where,2)
+               ENDIF
+
+               IF (numneigh.GT.(neimax - nrange) .OR.
+     &              numneigh.LT.(neimin + nrange)) GOTO 2001
+ 2002          CONTINUE
+            END DO
+c
+c--Set accelerations on new particles using call to derivi
+c
+            icall = 4
+            PRINT *,"icall 4 triggered"
+            CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
+     &           f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+c
+c--Write new particles to file
+c
+            time = dt*itime/imaxstep + gt
+            DO j = 1, nlst0
+               i = llist(j)
+               WRITE (ireasspr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
+     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),poten(i)
+               iscurrent(i) = .FALSE.
+            END DO
+            CALL FLUSH (ireasspr)
+c
+c--Restore values for neighbours output
+c
+            nneightot = nneightotsave
+            timeflowold = time
+c
+c--Check that nactive and new particles set up correctly
+c
+            IF (nactive - nptmass.LT.50 .AND. nactive.NE.nptmass)
+     &           CALL error(where,4)
+c
+c--Update the lists of particles in each bin
+c
+            DO j = 1, nlst0
+               i = llist(j)
+               ibin = INT(LOG10(REAL(isteps(i)))/xlog2+0.5)
+               IF (ibin.GT.nbinmax) THEN
+                  WRITE (*,*) 'ERROR - ibin.GT.nbinmax 5'
+                  WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax 5'
+                  CALL quit
+               ENDIF
+               nlstbins(ibin) = nlstbins(ibin) + 1
+               IF (nlstbins(ibin).GT.idim) THEN
+                  WRITE (*,*) 'ERROR - nlstbins(ibin).GT.idim 5'
+                  WRITE (iprint,*) 'ERROR - nlstbins(ibin).GT.idim 5'
+                  CALL quit
+               ENDIF
+               listbins(nlstbins(ibin),ibin) = i
+
+               IF (it1bin(ibin).NE.it1(i)) THEN
+                  WRITE (*,*) 'ERROR - it1bin 5',it1bin(ibin),it1(i),i,
+     &                 it0(i),itime,isteps(i),it2(i)
+                  CALL quit
+               ENDIF
+               IF (it2bin(ibin).NE.it2(i)) THEN
+                  WRITE (*,*) 'ERROR - it2bin 5',it2bin(ibin),it2(i),i,
+     &                 it0(i),itime,isteps(i),it1(i)
+                  CALL quit
+               ENDIF
+c
+c--Check that particle is not in any other bin
+c
+               DO k = 1, nbinmax
+                  IF (k.NE.ibin) THEN
+                     DO l = 1, nlstbins(k)
+                        IF (listbins(l,k).EQ.i) THEN
+                           WRITE (*,*) 'Particle ',i,' in two bins!'
+                           WRITE (*,*) 'Bins ',ibin,k,nlstbins(k)
+                           CALL quit
+                        ENDIF
+                     END DO
+                  ENDIF
+               END DO
+            END DO
+
+            naddedplanet = naddedplanet + nlst0
+         ENDIF
+c
+c--End creation of NEW particles for Embedded Planet (ibound=100)
+c
       ENDIF
 c
 c--If accreted mass and angular momentum is large enough, then add on to

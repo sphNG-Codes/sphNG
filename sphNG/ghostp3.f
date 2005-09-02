@@ -1,4 +1,4 @@
-      SUBROUTINE ghostp3(npart, xyzmh, vxyzu)
+      SUBROUTINE ghostp3(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
 c************************************************************
 c                                                           *
 c  This subroutine computes the list of ghost particles for *
@@ -10,8 +10,9 @@ c************************************************************
 
       DIMENSION xyzmh(5,idim)
       DIMENSION vxyzu(4,idim)
+      DIMENSION ekcle(4,iradtrans)
+      DIMENSION Bevolxyz(3,imhd)
 
-      INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/densi'
       INCLUDE 'COMMONS/rbnd'
@@ -21,6 +22,10 @@ c************************************************************
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/crpart'
       INCLUDE 'COMMONS/kerne'
+      INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/astrcon'
+      INCLUDE 'COMMONS/cgas'
 
       CHARACTER*7 where
 
@@ -34,11 +39,20 @@ c
       nghost = 0
       inshell = 0
 c
+c--Set boundary temperature for radiative transfer
+c
+c      boundtemp=11.9
+      boundtemp=12.037
+c      boundtemp=10.115
+
+      uradconst = radconst/uergcc
+c
 c--If ibound = 3, 8, or 9 then we have spherical boundaries
 c--now find ghost for spherical boundaries
 c
       rmax2 = rmax*rmax
       DO 300 i = 1, npart
+         nghostold = nghost
          hasghost(i) = .FALSE.
          IF (iphase(i).NE.0) GOTO 300
          xi = xyzmh(1,i)
@@ -87,6 +101,32 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+         ENDIF
+
+         IF (nghostold.NE.nghost) THEN
+            IF (encal.EQ.'r') THEN
+               IF (rhoi.EQ.0.0) THEN
+                  ekcle(3,nptot) = 1.5*Rg/(gmw*uergg)
+                  vxyzu(4,nptot) = boundtemp*ekcle(3,nptot)
+                  ekcle(1,nptot) = uradconst*(vxyzu(4,nptot)/
+     &                 ekcle(3,nptot))**4/(1.0/(4.0*pi/3.0*3.2**3))
+                  ekcle(2,nptot) = getkappa(vxyzu(4,nptot),
+     &                 ekcle(3,nptot),(1.0/(4.0*pi/3.0*3.2**3)))
+               ELSE
+                  ekcle(3,nptot) = 1.5*Rg/(gmw*uergg)
+c                  vxyzu(4,nptot) = boundtemp*ekcle(3,nptot)
+                  ekcle(1,nptot) = uradconst*(boundtemp)**4/rhoi
+                  ekcle(2,nptot) = getkappa(vxyzu(4,nptot),
+     &                 ekcle(3,nptot),rhoi)
+               ENDIF
+               ekcle(4,nptot) = ekcle(4,i)
+               ekcle(5,nptot) = ekcle(5,i)
+            ENDIF
+            IF (imhd.EQ.idim) THEN
+               DO j=1,3
+                  Bevolxyz(j,nptot) = Bevolxyz(j,i)
+               END DO
+            ENDIF
          ENDIF
 
  300  CONTINUE

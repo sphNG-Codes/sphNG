@@ -1,1 +1,1 @@
-      COMMON /ener2 / trotz, trotx, tkin, tgrav, tterm
+      COMMON /ener2 / trotz, trotx, tkin, tgrav, tterm, trad

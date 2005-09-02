@@ -1,4 +1,4 @@
-      SUBROUTINE densityi (jneigh,npart,xyzmh,vxyzu,
+      SUBROUTINE densityi (npart,xyzmh,vxyzu,
      &            nlst_in,nlst_end,list,itime)
 c************************************************************
 c                                                           *

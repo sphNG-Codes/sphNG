@@ -39,7 +39,7 @@ c
          CLOSE (iaccpr)
       ENDIF
       IF (job(1:9).EQ.'evolution' .AND. 
-     &                          (ibound.EQ.8 .OR. ibound.GE.90)) THEN
+     &     (ibound.EQ.8 .OR. ibound/10.EQ.9 .OR. ibound.EQ.100)) THEN
          CLOSE (ikillpr)
          CLOSE (ireasspr)
       ENDIF

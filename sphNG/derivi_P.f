@@ -1,5 +1,5 @@
       SUBROUTINE derivi (dt,itime,xyzmh,vxyzu,
-     &              dvxyzu,dha,npart,ntot,ireal,alphaMM)
+     &     dvxyzu,dha,npart,ntot,ireal,alphaMM,ekcle,Bevolxyz)
 c************************************************************
 c                                                           *
 c  This subroutine drives the computation of the forces on  *
@@ -13,6 +13,8 @@ c************************************************************
       DIMENSION xyzmh(5,mmax),vxyzu(4,idim),dvxyzu(4,idim)
       REAL*4 dha(2,idim),alphaMM(idim)
       DIMENSION ireal(idim)
+      DIMENSION ekcle(5,iradtrans)
+      DIMENSION Bevolxyz(3,imhd)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -44,10 +46,12 @@ c************************************************************
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/dumderivi'
+      INCLUDE 'COMMONS/unit'
 
 c      INCLUDE 'COMMONS/timeextra'
 
       CHARACTER*7 where
+      DIMENSION dedxyz(3,iradtrans)
 
       DATA where/'derivi'/
 c
@@ -58,6 +62,7 @@ c
 c
 c--Set constants first time around
 c
+      uradconst = radconst/uergcc
       nlst_in = 1
       nlst_end = nlst
       IF (itrace.EQ.'all') WRITE (iprint, 99002) nlst_in, nlst_end
@@ -97,7 +102,6 @@ c
             CALL gforspt(xyzmh,dvxyzu)
          ENDIF
       ENDIF
-
 c
 c--Only want to do density and updates for non-sinks
 c
@@ -108,9 +112,7 @@ c     do not search twice the list particles
 c
          IF (itiming) CALL getused(tdens1)
 
-         jneigh = 0
-
-         CALL densityi(jneigh,npart,xyzmh,vxyzu,
+         CALL densityi(npart,xyzmh,vxyzu,
      &        nlst_in,nlst_end,llist,itime)
 
          IF (itiming) THEN
@@ -152,6 +154,7 @@ c
                ENDIF
             END DO
          END DO
+         nlstall = nlst + nlistavail
          IF (itiming) THEN
             CALL getused(td12)
             td1 = td1 + (td12 - td11)
@@ -159,15 +162,26 @@ c
 
          IF (itiming) CALL getused(td21)
 C$OMP PARALLEL default(none)
-C$OMP& shared(npart,it1,imax,itime,it0,isteps,dt,imaxstep)
-C$OMP& shared(divv,rho,dumrho,vxyzu,pr,vsound,ntot,ireal)
-C$OMP& shared(iphase,nlst,llist,nlistavail,iavail)
+C$OMP& shared(npart,it1,imax,itime,it0,isteps,dt,imaxstep,ekcle)
+C$OMP& shared(divv,rho,dumrho,vxyzu,pr,vsound,ntot,ireal,ibound,icall)
+C$OMP& shared(iphase,nlst,llist,nlistavail,iavail,encal,uradconst)
 C$OMP& private(i,j,deltat,deltarho,ipart)
 C$OMP DO SCHEDULE (runtime)
          DO i = 1, nlst+nlistavail
             ipart = llist(i)
             IF (i.LE.nlst) THEN
                dumrho(ipart) = rho(ipart)
+c
+c--Set e(i) for the first time around because density only set here
+c     This sets radiation and matter to have same initial temperature
+c
+               IF (icall.EQ.1 .AND. encal.EQ.'r') THEN
+                  IF (ekcle(1,ipart).EQ.0.0) THEN
+                     ekcle(3,ipart) = getcv(rho(ipart),vxyzu(4,ipart))
+                     ekcle(1,ipart) = uradconst*(vxyzu(4,ipart)/
+     &                    ekcle(3,ipart))**4/rho(ipart)
+                  ENDIF
+               ENDIF
             ELSE
                iavail(ipart) = 0
 
@@ -201,6 +215,8 @@ C$OMP DO SCHEDULE (runtime)
             vsound(i) = vsound(j)
             divv(i) = 0.
             vxyzu(4,i) = vxyzu(4,j)
+            IF (encal.EQ.'r' .AND. ibound.EQ.100) 
+     &           ekcle(1,i) = ekcle(1,j)
          END DO
 C$OMP END DO
 C$OMP END PARALLEL
@@ -214,14 +230,36 @@ c--End if for nlst>nptmass
 c
       ENDIF
 c
+c--Compute implicit radiative transfer
+c
+      IF (itiming) CALL getused(tass1)
+
+      IF(encal.EQ.'r') THEN
+         WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
+c         CALL ASS(nlst_in,nlst_end,nlstall,llist,dt,itime,npart,
+c     &        xyzmh,vxyzu,ekcle,dumrho,vsound,dedxyz)
+
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlstall,vxyzu,dumrho,pr,vsound,llist)
+C$OMP& private(i,ipart)
+         DO i = 1, nlstall
+            ipart = llist(i)
+            CALL eospg(ipart,vxyzu,dumrho,pr,vsound)
+         END DO
+C$OMP END PARALLEL DO
+      END IF
+
+      IF (itiming) THEN
+        CALL getused(tass2)
+        tass = tass + (tass2 - tass1)
+      ENDIF
+c
 c--Compute forces on EACH particle
 c
-      jneigh = 0
-
       IF (itiming) CALL getused(tforce1)
 
-      CALL forcei(jneigh,nlst_in,nlst_end,llist,dt,itime,npart,
-     &     xyzmh,vxyzu,dvxyzu,dha,dumrho,pr,vsound,alphaMM)
+      CALL forcei(nlst_in,nlst_end,llist,dt,itime,npart,
+     &     xyzmh,vxyzu,dvxyzu,dha,dumrho,pr,vsound,alphaMM,ekcle,dedxyz)
 
       IF (itiming) THEN
          CALL getused(tforce2)

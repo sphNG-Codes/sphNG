@@ -26,6 +26,8 @@ c************************************************************
       INCLUDE 'COMMONS/f1'
       INCLUDE 'COMMONS/dum'
       INCLUDE 'COMMONS/call'
+      INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/mhd'
 c
 c--Allow for tracing flow
 c
@@ -59,13 +61,15 @@ c      neimax = 120
       END DO
 
       IF (ibound.EQ.1)
-     &      CALL ghostp1(npart, xyzmh, vxyzu)
+     &      CALL ghostp1(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
       IF (ibound.EQ.2)
-     &      CALL ghostp2(npart, xyzmh, vxyzu)
-      IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound.GE.90)
-     &      CALL ghostp3(npart, xyzmh, vxyzu)
+     &      CALL ghostp2(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
+      IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound/10.EQ.9)
+     &      CALL ghostp3(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
+      IF (ibound.EQ.100) 
+     &     CALL ghostp100(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
       IF (ibound.EQ.11)
-     &      CALL ghostp11(npart, xyzmh, vxyzu)
+     &      CALL ghostp11(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
       IF (ibound.EQ.0) nghost = 0
 
       ntot = npart + nghost

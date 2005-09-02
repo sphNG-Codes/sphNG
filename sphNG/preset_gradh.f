@@ -37,6 +37,11 @@ c************************************************************
       INCLUDE 'COMMONS/gtime'
       INCLUDE 'COMMONS/ener3'
       INCLUDE 'COMMONS/gradhterms'
+      INCLUDE 'COMMONS/optbl'
+      INCLUDE 'COMMONS/tgtbl'
+      INCLUDE 'COMMONS/mutbl'
+      INCLUDE 'COMMONS/debug'
+      INCLUDE 'COMMONS/cgas'
 
       CHARACTER*7 where
       CHARACTER*21 ptfile, accfile, killfile, reassfile
@@ -76,7 +81,7 @@ c
 99992 FORMAT ('K', A20)
       WRITE (reassfile,99993) namerun
 99993 FORMAT ('R', A20)
-      IF (ibound.EQ.8 .OR. ibound.GE.90) THEN
+      IF (ibound.EQ.8 .OR. ibound/10.EQ.9 .OR. ibound.EQ.100) THEN
          OPEN (ikillpr, FILE=killfile, STATUS='unknown',
      &        FORM='unformatted')
          OPEN (ireasspr, FILE=reassfile, STATUS='unknown',
@@ -194,6 +199,42 @@ c
 c--Compute tables for kernel quantities
 c
       CALL ktable
+c
+c--Load in tables of opacity and cv
+c
+      IF (encal.EQ.'r') THEN
+         OPEN(UNIT=8,FILE='/home/mbate/tables/opacitytbl')
+         DO i=1, opmxtg
+            READ(8,*) (optable(i,j), j=1, opmxrh)
+         ENDDO
+         CLOSE(8)
+
+         OPEN(UNIT=8,FILE='/home/mbate/tables/gasttbl',
+     &        FORM='unformatted')
+         DO i=1, tgmxu
+            READ(8) (tgtable(i,j), j=1, tgmxrh)
+         ENDDO
+         CLOSE(8)
+
+         OPEN(UNIT=8,FILE='/home/mbate/tables/molmasstbl',
+     &        FORM='unformatted')
+         DO i=1, mumxu
+            READ(8) (mutable(i,j), j=1, mumxrh)
+         ENDDO
+         CLOSE(8)
+      ENDIF
+c
+c--Build table for choosing inflow into planet/disc simulation
+c
+      IF (ibound.EQ.100) CALL cumradtable
+c
+c--Build table for choosing inflow into planet/disc simulation from ZEUS
+c     output
+c
+      IF (ibound.EQ.100) CALL zeustable
+
+      IF (itrace.EQ.'all') WRITE(iprint,250)
+ 250  FORMAT(' exit subroutine preset')
 
       RETURN
       END

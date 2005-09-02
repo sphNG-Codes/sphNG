@@ -24,6 +24,8 @@ c************************************************************
       INCLUDE 'COMMONS/polyk2'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/timei'
+      INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/mhd'
 
       CHARACTER*7 where
       CHARACTER*1 iok
@@ -128,7 +130,7 @@ c
 c--Number of array lengths
 c
       READ (idisk1, END=300) number
-      IF (number.NE.2) THEN
+      IF (number.LT.2 .OR. number.GT.4) THEN
          WRITE (*,*) 'ERROR 7 in rdump'
          CALL quit
       ENDIF
@@ -147,6 +149,32 @@ c
       READ (idisk1, END=300) number8, (nums(i), i=1,8)
       nptmass1 = number8
 c
+c--Read array type 3 header
+c
+      IF (number.GE.3) THEN
+         READ (idisk1, END=300) number8, (nums(i), i=1,8)
+         IF (number8.GT.iradtrans .OR. number8.NE.1 .AND. 
+     &        number8.NE.np1) THEN
+            WRITE (*,*) 'ERROR 9 in rdump: iradtrans wrong ',number8,
+     &           iradtrans,np1
+            CALL quit
+         ENDIF
+         nradtrans = number8
+      ENDIF
+c
+c--Read array type 4 header
+c
+      IF (number.GE.4) THEN
+         READ (idisk1, END=300) number8, (nums(i), i=1,8)
+         IF (number8.GT.imhd .OR. number8.NE.1 .AND. 
+     &        number8.NE.np1) THEN
+            WRITE (*,*) 'ERROR 10 in rdump: imhd wrong ',number8,
+     &           imhd,np1
+            CALL quit
+         ENDIF
+         nmhd = number8
+      ENDIF
+c
 c--Read array type 1 arrays
 c
 c--Default int
@@ -163,6 +191,79 @@ c--Default real
       END DO      
 c--real*4
       READ (idisk1, END=300) (rho(i), i=1, np1)
+      READ (idisk1, END=300)
+c     READ (idisk1, END=300) (alphaMM(i), i=1, np1)
+c--real*8
+
+c
+c--Read array type 2 arrays
+c
+      IF (nptmass1.GT.0) THEN
+c--Default int
+         READ (idisk1, END=300) 
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+         DO j = 1, 9
+            READ (idisk1, END=300)
+         END DO
+c--real*4
+
+c--real*8
+
+      ENDIF
+      IF (number.GE.3 .AND. nradtrans.GT.1) THEN
+c
+c--Array length 3 arrays
+c      
+c--Default int
+
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+         DO j = 1, 5
+            READ (idisk1, END=300) (ekcle(j,i), i=1, np1)
+         END DO
+c--real*4
+
+c--real*8
+
+      ENDIF
+      IF (number.GE.4 .AND. nmhd.GT.1) THEN
+c
+c--Array length 4 arrays
+c      
+c--Default int
+
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+         DO j = 1, 3
+            READ (idisk1, END=300) (Bevolxyz(j,i), i=1, np1)
+         END DO
+c--real*4
+
+c--real*8
+
+      ENDIF
 c
 c--End reading of dump file
 c--------------------------
@@ -244,7 +345,7 @@ c
 c--Number of array lengths
 c
       READ (idisk1, END=300) number
-      IF (number.NE.2) THEN
+      IF (number.LT.2 .OR. number.GT.4) THEN
          WRITE (*,*) 'ERROR 7 in rdump'
          CALL quit
       ENDIF
@@ -252,7 +353,7 @@ c
 c--Read array type 1 header
 c
       READ (idisk1, END=300) number8, (nums(i), i=1,8)
-      IF (number8.NE.np1) THEN
+      IF (number8.NE.np2) THEN
          WRITE (*,*) 'ERROR 8 in rdump: npart wrong'
          CALL quit
       ENDIF
@@ -262,6 +363,32 @@ c--Read array type 2 header
 c
       READ (idisk1, END=300) number8, (nums(i), i=1,8)
       nptmass2 = number8
+c
+c--Read array type 3 header
+c
+      IF (number.GE.3) THEN
+         READ (idisk1, END=300) number8, (nums(i), i=1,8)
+         IF (number8.GT.iradtrans .OR. number8.NE.1 .AND. 
+     &        number8.NE.np2) THEN
+            WRITE (*,*) 'ERROR 9 in rdump: iradtrans wrong ',number8,
+     &           iradtrans,np2
+            CALL quit
+         ENDIF
+         nradtrans = number8
+      ENDIF
+c
+c--Read array type 4 header
+c
+      IF (number.GE.4) THEN
+         READ (idisk1, END=300) number8, (nums(i), i=1,8)
+         IF (number8.GT.imhd .OR. number8.NE.1 .AND. 
+     &        number8.NE.np2) THEN
+            WRITE (*,*) 'ERROR 10 in rdump: imhd wrong ',number8,
+     &           imhd,np2
+            CALL quit
+         ENDIF
+         nmhd = number8
+      ENDIF
 c
 c--Read array type 1 arrays
 c
@@ -279,6 +406,79 @@ c--Default real
       END DO      
 c--real*4
       READ (idisk1, END=300) (rho(i+np1), i=1, np2)
+      READ (idisk1, END=300)
+c     READ (idisk1, END=300) (alphaMM(i+np1), i=1, np1)
+c--real*8
+
+c
+c--Read array type 2 arrays
+c
+      IF (nptmass1.GT.0) THEN
+c--Default int
+         READ (idisk1, END=300) 
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+         DO j = 1, 9
+            READ (idisk1, END=300)
+         END DO
+c--real*4
+
+c--real*8
+
+      ENDIF
+      IF (number.GE.3 .AND. nradtrans.GT.1) THEN
+c
+c--Array length 3 arrays
+c      
+c--Default int
+
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+         DO j = 1, 5
+            READ (idisk1, END=300) (ekcle(j,i+np1), i=1, np1)
+         END DO
+c--real*4
+
+c--real*8
+
+      ENDIF
+      IF (number.GE.4 .AND. nmhd.GT.1) THEN
+c
+c--Array length 4 arrays
+c      
+c--Default int
+
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+         DO j = 1, 3
+            READ (idisk1, END=300) (Bevolxyz(j,i+np1), i=1, np1)
+         END DO
+c--real*4
+
+c--real*8
+
+      ENDIF
 c
 c--End reading of dump file
 c--------------------------

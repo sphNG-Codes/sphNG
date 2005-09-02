@@ -39,6 +39,7 @@ c************************************************************
       INCLUDE 'COMMONS/crpart'
       INCLUDE 'COMMONS/ptbin'
       INCLUDE 'COMMONS/useles'
+      INCLUDE 'COMMONS/radtrans'
 c
 c--Allow for tracing flow
 c
@@ -66,6 +67,10 @@ c--Write options
 c
       WRITE (iterm, 99006) encal
 99006 FORMAT (A1)
+      IF (encal.EQ.'r') THEN
+         WRITE (iterm, 99008) tolerance
+99008    FORMAT(2X,1F6.4,'  Implicit radiative transfer tolerance')
+      ENDIF
 
       WRITE (iterm, 89000) initialptm
 89000 FORMAT(2X,I2,'  Point Masses Initially')
@@ -91,7 +96,7 @@ c
       WRITE (iterm, 88006) damp
 88006 FORMAT(2X,1PE12.5,'  Damping')
       WRITE (iterm, 88007) ibound
-88007 FORMAT(2X,I2,'  Boundry')
+88007 FORMAT(1X,I3,'  Boundry')
       WRITE (iterm, 88008) iexf
 88008 FORMAT(2X,I2,'  External Forces')
       WRITE (iterm, 88009) iexpan
@@ -144,16 +149,26 @@ c
 88037    FORMAT(2X,2(1PE12.5,1X),I6,1X,I6,
      &        '  New Particle Velocities And Nstop')
       ENDIF
-      IF (ibound.GE.90) THEN
+      IF (ibound/10.EQ.9) THEN
          WRITE (iterm, 88036) deadbound
          WRITE (iterm, 88038) fractan, fracradial, nshell, rshell
 88038    FORMAT(2X,2(1PE12.5,1X),I6,1X,1PE12.5,
      &        '  New Part. Vels., Nshell, and Rshell')
       ENDIF
+      IF (ibound.EQ.100) THEN
+         WRITE (iterm, 88039) variation,phibound,flowrate,signorm,
+     &        hoverr,partm
+88039        FORMAT(2X,6(1PE12.5,1X),
+     &        '  Rad variation, Phi, flowrate, sigma, HoverR, partmass')
+      ENDIF
 
-      IF (iexf.EQ.5 .OR. iexf.EQ.6) THEN
+      IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7) THEN
          WRITE (iterm, 88040) xmass
 88040    FORMAT(2X,1PE12.5,'  External Forces Mass')
+      ENDIF
+      IF (iexf.EQ.7) THEN
+         WRITE (iterm, 88043) planetmass
+88043    FORMAT(2X,1PE12.5,'  Planet Mass')
       ENDIF
 
       IF (iptmass.NE.0 .OR. nptmass.NE.0) THEN
@@ -174,7 +189,7 @@ c
       rzero = 0.0
       rminus1 = -1.0
       IF (ibound.EQ.1 .OR. ibound.EQ.3 .OR. ibound.EQ.8 .OR. 
-     &                                           ibound.GE.90) THEN 
+     &                                           ibound/10.EQ.9) THEN 
          WRITE (iterm, 88050) rmind, rmax,
      &                        xmin, xmax, ymin, ymax, zmin, zmax
       ELSEIF (ibound.EQ.2) THEN

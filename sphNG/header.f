@@ -41,6 +41,8 @@ c************************************************************
       INCLUDE 'COMMONS/ptbin'
       INCLUDE 'COMMONS/physeos'
       INCLUDE 'COMMONS/useles'
+      INCLUDE 'COMMONS/xforce'
+      INCLUDE 'COMMONS/radtrans'
 
       REAL*8 angmom
 
@@ -197,13 +199,23 @@ c
             WRITE (iprint,99501) pext
 99501       FORMAT (/,' Boundary type: constant pressure',/,
      &           '          pressure: ',1PE12.4,/)
-         ELSEIF (ibound.EQ.8 .OR. ibound.GE.90) THEN 
+         ELSEIF (ibound.EQ.8 .OR. ibound/10.EQ.9) THEN 
             WRITE (iprint,99502) deadbound, specang, fractan, fracradial
 99502       FORMAT (/,' Boundary type: dead particle',/,
      &           '            radius: ',1PE12.4,/,
      &           '   spec. ang. mom.: ',1PE12.4,/,
      &           '  frac. tangential: ',1PE12.4,/,
      &           '  frac. radial    : ',1PE12.4,/)
+         ELSEIF (ibound.EQ.100) THEN 
+            WRITE (iprint,99533) variation,phibound,flowrate,
+     &           signorm,hoverr,planetmass
+99533       FORMAT (/,' Boundary type: planet/disc  ',/,
+     &           '  radius variation: ',1PE12.4,/,
+     &           '  phi boundary    : ',1PE12.4,/,
+     &           '  flowrate        : ',1PE12.4,/,
+     &           '  sigma normal.   : ',1PE12.4,/,
+     &           '  disc H/R        : ',1PE12.4,/,
+     &           '  planet mass     : ',1PE12.4,/)
          ENDIF
 c
 c--Critical densities for variable gamma
@@ -245,6 +257,12 @@ c
      &           ' RK2 tolerance - gas             : ', 1PE12.3, /,
      &           '               - point masses    : ', 1PE12.3, /,
      &           '               - smoothing length: ', 1PE12.3, //)
+         IF (encal.EQ.'r') THEN
+            WRITE (iprint, 99113) tolerance
+99113       FORMAT (' Radiative transfer tolerance    : ',1PE12.3, //)
+         ELSE
+            WRITE (iprint, *)
+         ENDIF
 c
 c--Print out massive point mass details
 c

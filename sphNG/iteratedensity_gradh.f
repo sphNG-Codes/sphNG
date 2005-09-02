@@ -1,4 +1,4 @@
-      SUBROUTINE iterate_density(jneigh,npart,xyzmh,vxyzu,
+      SUBROUTINE iterate_density(npart,xyzmh,vxyzu,
      &           nlst_in,nlst_end,list,itime)
 c************************************************************
 c                                                           *
@@ -23,7 +23,7 @@ c************************************************************
       DIMENSION xyzmh(5,idim),vxyzu(4,idim),list(idim)
       DIMENSION newlist(idim), iredolist(idim), ifakelist(idim)
 
-      INTEGER jneigh,ncalc
+      INTEGER ncalc
       REAL fsx,fsy,fsz,epot
       REAL pmassi,rhoi,omegai
       DIMENSION h_old(idim)
@@ -45,7 +45,6 @@ c--Initialise
 c
       ncalc = nlst_end - nlst_in + 1
       ncalctot = 0
-      jneigh = 0
       its = 0
       RedoNeighbours = .false.
       NeighboursChanged = .false.
@@ -85,7 +84,7 @@ c         WRITE(iprint,*) 'Density iteration ',its,' ncalc = ',ncalc
 c
 c--calculate density using current h value
 c
-         CALL densityi(jneigh,npart,xyzmh,vxyzu,
+         CALL densityi(npart,xyzmh,vxyzu,
      &               nlst_beg,nlst_fin,iredolist,itime)
 c
 c--calculate gradient terms, take Newton-Raphson iteration
@@ -131,7 +130,7 @@ c     &            i,'h=',hi,hnew,'rho=',rho(i),'neigh = ',nneigh(i)
                      xyzmh(5,i) = hi
                      ifakelist(1) = i
 c--calculate density/gradh with this h and then exit
-                     CALL densityi(jneigh,npart,xyzmh,vxyzu,
+                     CALL densityi(npart,xyzmh,vxyzu,
      &                    1,1,ifakelist,itime)
                      rhoi = pmassi/(hi/hfact)**3
                      dhdrhoi = -hi/(3.*rhoi)

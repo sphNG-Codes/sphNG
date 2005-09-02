@@ -10,6 +10,7 @@ c************************************************************
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/astrcon'
+      INCLUDE 'COMMONS/cgas'
 c
 c--Mathematical constants
 c
@@ -20,6 +21,7 @@ c
       c = 2.997924e10   
       gg = 6.672041e-8
       Rg = 8.314e7
+      radconst = 7.5646e-15
 c
 c--Astronomical constants (in cgs units)
 c
@@ -43,6 +45,7 @@ c--Gas molecular weight, mu
 c
 c      gmw = 2.0
       gmw = 2.46
+      IF (encal.EQ.'r') gmw = 4.0/(2*0.7+0.28)
 
       RETURN
       END

@@ -171,6 +171,8 @@ c
 
       FUNCTION velweight(nspace, x, y, z, vel)
 
+      INCLUDE 'idim'
+
       INCLUDE 'COMMONS/rbnd'
 
       DIMENSION vel(64,64,64)

@@ -11,6 +11,7 @@ c************************************************************
       REAL*4 rho,pr,vsound
       DIMENSION vxyzu(4,idim), rho(idim), pr(idim), vsound(idim)
 
+      INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/varet'
       INCLUDE 'COMMONS/polyk2'
@@ -19,15 +20,13 @@ c************************************************************
       INCLUDE 'COMMONS/typef'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/physeos'
+      INCLUDE 'COMMONS/radtrans'
 
       CHARACTER*7 where
 
       DATA where/'eospg'/
 
       gama1 = gamma - 1.
-c      rhocrt = rhocrit * udens
-c      rhocrt2 = rhocrit2 * udens
-c      rhocrt3 = rhocrit3 * udens
 c
 c--Variable is internal energy
 c
@@ -96,6 +95,13 @@ c--Adiabatic equation of state
 c
       ELSEIF (encal.EQ.'a') THEN
             pr(ipart) =  gama1 * vxyzu(4,ipart) * rho(ipart)
+            vsound(ipart) = SQRT(gamma*pr(ipart)/rho(ipart))
+c
+c--Radiative transfer equation of state
+c
+      ELSEIF (encal.EQ.'r') THEN
+            pr(ipart) =  Rg*rho(ipart)*(vxyzu(4,ipart)/ekcle(3,ipart))*
+     &        get1overmu(rho(ipart),vxyzu(4,ipart))/uergg
             vsound(ipart) = SQRT(gamma*pr(ipart)/rho(ipart))
 c
 c--Polytropic equation of state

@@ -2,7 +2,7 @@
      &	tforce, tggrav, tgnei, tgcall2, tgcall3, tgnmisc, 
      &	tgnstor, tgforpt, ttest, tmtree, ttreef, trevt,
      &	taccrete, ts1, ts2, ts3, ts4, ts5, ts6, ts7, ts8, ts9,
-     &	td1, td2, revtreep1, revtreep2
+     &	td1, td2, revtreep1, revtreep2, tass1, tass2, tass
       REAL tins1, tginit1, tgload1, tgcall11, tgsort1, tdens1, 
      &	tforce1, tggrav1, tgnei1, tgcall21, tgcall31, tgnmisc1, 
      &	tgnstor1, tgforpt1, ttest1, tmtree1, ttreef1, trevt1,
@@ -25,7 +25,7 @@
      &	tgnstor1, tgnstor2, tgnstor, tgforpt1, tgforpt2, tgforpt,
      &  ttest1, ttest2, ttest, tmtree1, tmtree2, tmtree, ttreef1, 
      &	ttreef2, ttreef, trevt1, trevt2, trevt, revtreep1, revtreep2,
-     &	taccrete, taccrete1, taccrete2,
+     &	taccrete, taccrete1, taccrete2, tass1, tass2, tass,
      &  ts1,ts11,ts12, ts2,ts21,ts22, ts3,ts31,ts32, ts4,ts41,ts42,
      &  ts5,ts51,ts52, ts6,ts61,ts62, ts7,ts71,ts72, ts8,ts81,ts82,
      &  ts9,ts91,ts92, td1,td11,td12, td2,td21,td22,

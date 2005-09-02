@@ -82,9 +82,9 @@ c
 c--Energies + total angular momentum
 c
          total = tkin + tgrav
-         IF (igrp.NE.0) total = total + tterm
+         IF (igrp.NE.0) total = total + tterm + trad
          WRITE (iprint, 99004, ERR=100) total,tkin,trotz,trotx,tgrav,
-     &                               tterm,angto,totmom
+     &                               tterm,trad,angto,totmom
 99004    FORMAT (' General properties of system : ', /,
      &           ' total energy                       : ', 1PE14.5, /,
      &           ' kinetic energy                     : ', 1PE14.5, /,
@@ -92,6 +92,7 @@ c
      &           ' rotational energy around x         : ', 1PE14.5, /,
      &           ' potential energy                   : ', 1PE14.5, /,
      &           ' internal energy                    : ', 1PE14.5, /,
+     &           ' radiation energy                   : ', 1PE14.5, /,
      &           ' total angular momentum             : ', 1PE14.5, /,
      &           ' total linear momentum              : ', 1PE14.5)
          
@@ -122,7 +123,7 @@ c--Accretion
 c
          WRITE (iprint, 88002, ERR=100) nactive
 88002    FORMAT (' number of active particles    : ', I8)
-         IF (ibound.EQ.8 .OR. ibound.GE.90) THEN
+         IF (ibound.EQ.8 .OR. ibound/10.EQ.9 .OR. ibound.EQ.100) THEN
             WRITE (iprint, 88003, ERR=100) nreassign
 88003       FORMAT (' number of reassigned part.    : ', I8)
             WRITE (iprint, 88004, ERR=100) naccrete
@@ -147,8 +148,9 @@ c
 c--Object no 1
 c
          WRITE (iprint, 99006, ERR=100) n1, cmx1, cmy1, cmz1, vcmx1,
-     &          vcmy1, vcmz1, hmi1, hma1, dmax1,
-     &          zmax1, romean1, romax1, rocen1, valphamin1, valphamax1
+     &        vcmy1, vcmz1, hmi1, hma1, dmax1,
+     &        zmax1, romean1, romax1, rocen1,
+     &        valphamin1, valphamax1, tgmean1, tgmax1, tgcen1
 99006    FORMAT (/, ' Object number 1 (', I8, ' particles ) : ', /,
      &           ' center of mass  x :', 1PE14.5, '  y :', 1PE14.5,
      &           '  z :', 1PE14.5, /, ' velocity cm    vx :', 1PE14.5,
@@ -157,7 +159,16 @@ c
      &           ' max. dist. cm   r :', 1PE14.5, '  z :', 1PE14.5, /,
      &           ' density      mean :', 1PE14.5, ' max:', 1PE14.5, 
      &           ' cen:', 1PE14.5, /,
-     &           ' visc. switch  min :', 1PE14.5, ' max:', 1PE14.5, /)
+     &           ' visc. switch  min :', 1PE14.5, ' max:', 1PE14.5, /,
+     &           ' temperature  mean :', 1PE14.5, ' max:', 1PE14.5,
+     &           ' cen:', 1PE14.5, /
+     &           )
+         IF (encal.EQ.'r') THEN
+            WRITE (iprint, 99106, ERR=100) trmean1, trmax1, trcen1
+99106       FORMAT (' temper. rad. mean :', 1PE14.5, ' max:', 
+     &           1PE14.5, ' cen:', 1PE14.5, /)
+         ENDIF
+
 c
 c--Object no 2
 c
@@ -224,6 +235,8 @@ c
 99102       FORMAT (' Gamma variable equation of state')
             IF (encal.EQ.'x') WRITE (iprint, 99104)
 99104       FORMAT (' Physical equation of state')
+            IF (encal.EQ.'r') WRITE (iprint, 99105)
+99105       FORMAT (' Implicit Radiation/Adiabatic equation of state')
 
             IF (idist.GE.1) WRITE (iprint, 99015) xlmax, xlmin, ylmax,
      &                               ylmin, zlmax, zlmin

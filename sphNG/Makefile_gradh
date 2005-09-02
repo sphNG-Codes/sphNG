@@ -13,8 +13,10 @@
 
 .KEEP_STATE:
 
-FORTRAN = ifc
-FC = ifc
+FORTRAN = xlf_r -qnosave
+FC = xlf_r -qnosave
+#FORTRAN = ifc
+#FC = ifc
 #FC = xlf90_r -qfixed=72
 #RENAMES = -brename:.itime,.itime_ -brename:.idate,.idate_ \
 #          -brename:.etime,.etime_ -brename:.flush,.flush_
@@ -24,24 +26,30 @@ RENAMES =
 ### Prepare for debugging                                  ###
 ##############################################################
 
-#FFLAGS = -O5 -qalign=4k -qautodbl=dbl4 -q64 -qsmp
-#ZZFFLAGS = -O3 -q64 -qsmp=noauto -qextname
-ZFFLAGS= -O3 -w90 -w95 -Vaxlib -cm ##-q64  -qextname -qsmp=noauto
-ZZFFLAGS = ${ZFFLAGS} # -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
-#ZZFFLAGS = -O3 -q64 -qextname # -C -qsigtrap -g
-FFLAGS = ${ZZFFLAGS} -r8 
+ZFFLAGS= -O3 -q64  -qextname -qsmp=noauto
+ZZFFLAGS = ${ZFFLAGS} # -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap
+-qfloat=nans 
+FFLAGS = ${ZZFFLAGS} -qrealsize=8
+
+#ZFFLAGS= -O3 -w90 -w95 -Vaxlib -cm ##-q64  -qextname -qsmp=noauto
+#ZZFFLAGS = ${ZFFLAGS} # -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
+#FFLAGS = ${ZZFFLAGS} -r8 
 
 SOURCES= sph.f accrete_P.f addump.f angmom.f boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f \
 	chekopt.f condense.f constan.f coriol.f cyldis.f cylmas.f cylpres.f \
 	cylvel.f densityi_P_gradh.f derivi_P_gradh.f endrun.f energ.f eospg.f \
 	error.f evol.f externf.f extract.f \
-        file.f forcei_P_gradh.f getneigh.f gforsa_P.f gforsn_P.f gforspt_P.f \
-	ghostp1.f ghostp2.f ghostp3.f ghostp11.f gptall.f hcalc_gradh.f hdot_P_gradh.f \
-	header.f homexp.f indexx.f indexx2.f indexx3.f inform.f iteratedensity_gradh.f \
+        file.f forcei_P_gradh.f getneigh.f \
+	getcv.f get1overmu.f getkappa.f \
+	gforsa_P.f gforsn_P.f gforspt_P.f \
+	ghostp1.f ghostp2.f ghostp3.f ghostp11.f ghostp100.f \
+	gptall.f hcalc_gradh.f hdot_P_gradh.f \
+	header.f homexp.f indexx.f indexx2.f indexx3.f inform.f \
+	iteratedensity_gradh.f \
 	inopts.f insulate_TREE_P.f integs.f ktable.f labrun.f lunit_double.f \
 	mainop.f mesop.f modif.f mtree_P.f \
-	newrun.f options.f phoenix.f \
+	newrun.f options.f phoenix.f phoenix2.f \
 	place.f preset_gradh.f \
 	prout.f ran1.f rdump.f reduce.f revtree_P.f save.f \
         scaling.f secmes.f setpart.f smoothd_P.f \

@@ -33,6 +33,8 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/curlist'
       INCLUDE 'COMMONS/numpa'
       INCLUDE 'COMMONS/treecom_P'
+      INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/mhd'
 
       DIMENSION itempsort(idim), tempsort(idim)
       EQUIVALENCE (itempsort, next1), (tempsort, key)
@@ -61,7 +63,7 @@ c
       int1 = 690706
       int2 = 780806
 c
-c--Write ouput file
+c--Read ouput file
 c
       READ (idisk1, END=100) int1i,r1i,int2i,i1i,int3i
       IF (int1i.NE.int1) THEN
@@ -115,7 +117,7 @@ c
 c--Number of array lengths
 c
       READ (idisk1, END=100) number
-      IF (number.NE.2) THEN
+      IF (number.LT.2 .OR. number.GT.4) THEN
          WRITE (*,*) 'ERROR 7 in rdump'
          CALL quit
       ENDIF
@@ -133,6 +135,32 @@ c--Read array type 2 header
 c
       READ (idisk1, END=100) number8, (nums(i), i=1,8)
       nptmass = number8
+c
+c--Read array type 3 header
+c
+      IF (number.GE.3) THEN
+         READ (idisk1, END=100) number8, (nums(i), i=1,8)
+         IF (number8.GT.iradtrans .OR. number8.NE.1 .AND. 
+     &        number8.NE.npart) THEN
+            WRITE (*,*) 'ERROR 9 in rdump: iradtrans wrong ',number8,
+     &           iradtrans,npart
+            CALL quit
+         ENDIF
+         nradtrans = number8
+      ENDIF
+c
+c--Read array type 4 header
+c
+      IF (number.GE.4) THEN
+         READ (idisk1, END=100) number8, (nums(i), i=1,8)
+         IF (number8.GT.imhd .OR. number8.NE.1 .AND. 
+     &        number8.NE.npart) THEN
+            WRITE (*,*) 'ERROR 10 in rdump: imhd wrong ',number8,
+     &           imhd,npart
+            CALL quit
+         ENDIF
+         nmhd = number8
+      ENDIF
 c
 c--Read array type 1 arrays
 c
@@ -186,6 +214,52 @@ c--real*4
 
 c--real*8
 
+      IF (number.GE.3 .AND. nradtrans.GT.1) THEN
+c
+c--Array length 3 arrays
+c      
+c--Default int
+
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+         DO j = 1, 5
+            READ (idisk1, END=100) (ekcle(j,i), i=1, npart)
+         END DO
+c--real*4
+
+c--real*8
+
+      ENDIF
+      IF (number.GE.4 .AND. nmhd.GT.1) THEN
+c
+c--Array length 4 arrays
+c      
+c--Default int
+
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+         DO j = 1, 3
+            READ (idisk1, END=100) (Bevolxyz(j,i), i=1, npart)
+         END DO
+c--real*4
+
+c--real*8
+
+      ENDIF
 c
 c--End reading of dump file
 c--------------------------
@@ -297,6 +371,59 @@ c
       DO i = 1, npart
          dgrav(i) = tempsort(i)
       END DO
+      IF (encal.EQ.'r') THEN
+         DO i = 1, npart
+            tempsort(i) = ekcle(1,iorig(i))
+         END DO
+         DO i = 1, npart
+            ekcle(1,i) = tempsort(i)
+         END DO
+         DO i = 1, npart
+            tempsort(i) = ekcle(2,iorig(i))
+         END DO
+         DO i = 1, npart
+            ekcle(2,i) = tempsort(i)
+         END DO
+         DO i = 1, npart
+            tempsort(i) = ekcle(3,iorig(i))
+         END DO
+         DO i = 1, npart
+            ekcle(3,i) = tempsort(i)
+         END DO
+         DO i = 1, npart
+            tempsort(i) = ekcle(4,iorig(i))
+         END DO
+         DO i = 1, npart
+            ekcle(4,i) = tempsort(i)
+         END DO
+         DO i = 1, npart
+            tempsort(i) = ekcle(5,iorig(i))
+         END DO
+         DO i = 1, npart
+            ekcle(5,i) = tempsort(i)
+         END DO
+      ENDIF
+      IF (imhd.EQ.idim) THEN
+         DO i = 1, npart
+            tempsort(i) = Bevolxyz(1,iorig(i))
+         END DO
+         DO i = 1, npart
+            Bevolxyz(1,i) = tempsort(i)
+         END DO
+         DO i = 1, npart
+            tempsort(i) = Bevolxyz(2,iorig(i))
+         END DO
+         DO i = 1, npart
+            Bevolxyz(2,i) = tempsort(i)
+         END DO
+         DO i = 1, npart
+            tempsort(i) = Bevolxyz(3,iorig(i))
+         END DO
+         DO i = 1, npart
+            Bevolxyz(3,i) = tempsort(i)
+         END DO
+      ENDIF
+
       DO i = 1, npart
          itempsort(i) = isteps(iorig(i))
       END DO

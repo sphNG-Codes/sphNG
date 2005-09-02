@@ -961,7 +961,7 @@ c
 
          DO i = 1, nptmass
             j = listpm(i)
-            IF (ibound.EQ.8 .OR. ibound.GE.90) THEN
+            IF (ibound.EQ.8 .OR. ibound/10.EQ.9) THEN
                WRITE (iptprint)iorig(j),xyzmh(1,j),xyzmh(2,j),
      &              xyzmh(3,j),vxyzu(1,j),vxyzu(2,j),vxyzu(3,j),
      &              xyzmh(4,j),rho(j),nactotal(i),ptmassinner(i),

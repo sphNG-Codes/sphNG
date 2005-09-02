@@ -70,15 +70,15 @@ c      rhocrit2 = rhocrit * (200.**1.5)
 c
 c      rhocrit2 = 1.0e-11
 c      rhocrit2 = 1.0e-12
-c      gamdh = 1.10
+      gamdh = 1.10
 c      gamdh = 1.15
 c      gamdh = 1.05
-      gamdh = 1.0
+c      gamdh = 1.0
 c
 c--Critical density for changing gamma from 1.1 to 5/3 for variable e.o.s.
 c
-      rhocrit3 = 1.0e-0
-c      rhocrit3 = 1.0e-3
+c      rhocrit3 = 1.0e-0
+      rhocrit3 = 1.0e-3
 c      rhocrit3 = 1.0e-10
 c      rhocrit3 = 1.0e-11
 c      rhocrit3 = 1.0e-12

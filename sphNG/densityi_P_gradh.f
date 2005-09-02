@@ -1,4 +1,4 @@
-      SUBROUTINE densityi (jneigh,npart,xyzmh,vxyzu,
+      SUBROUTINE densityi (npart,xyzmh,vxyzu,
      &            nlst_in,nlst_end,list,itime)
 c************************************************************
 c                                                           *
@@ -55,15 +55,15 @@ C$OMP& shared(nlst_in,nlst_end,list,divv,curlv,gradhs)
 C$OMP& shared(hmax,xyzmh,vxyzu,pr,vsound,rho)
 C$OMP& shared(nneigh,neighb,neighover,selfnormkernel)
 C$OMP& shared(cnormk,radkernel,dvtable,wij,grwij)
-C$OMP& shared(listpm,iphase)
+C$OMP& shared(listpm,iphase,dphidh)
 C$OMP& shared(iprint,nptmass,iptmass,radcrit2,iorig)
 C$OMP& private(n,ipart,j,k,xi,yi,zi,vxi,vyi,vzi,pmassi,hi,hj,rhoi)
 C$OMP& private(divvi,curlvxi,curlvyi,curlvzi,gradhi,gradsofti)
-C$OMP& private(pmassj,hi,hi1,hi21,hi31,hi41)
+C$OMP& private(pmassj,hi1,hi21,hi31,hi41)
 C$OMP& private(dx,dy,dz,dvx,dvy,dvz,rij2,rij1,v2)
 C$OMP& private(index,dxx,index1,dwdx,wtij,dgrwdx,grwtij)
 C$OMP& private(projv,procurlvx,procurlvy,procurlvz)
-C$OMP& private(l,iptcur)
+C$OMP& private(l,iptcur,dphi,dwdhi,dpotdh)
 C$OMP& reduction(MAX:rhonext)
       DO 50 n = nlst_in, nlst_end
          ipart = list(n)

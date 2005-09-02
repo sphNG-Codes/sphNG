@@ -41,13 +41,13 @@ c
       IF (iener.EQ.1 .AND. damp.NE.0.) CALL error(where, 2)
 
       IF (encal.EQ.'i' .AND. (iener.EQ.1 .OR. ichoc.EQ.1)) 
-     &                                    CALL error(where,3)
+     &                                   CALL error(where,3)
 
-      IF (encal.EQ.'a' .AND. (iener.EQ.0 .OR. ichoc.EQ.0)) 
-     &                                    CALL error(where,4)
+      IF ((encal.EQ.'a' .OR. encal.EQ.'r') .AND. 
+     &     (iener.EQ.0 .OR. ichoc.EQ.0)) CALL error(where,4)
 
       IF ((encal.EQ.'p' .OR. encal.EQ.'v' .OR. encal.EQ.'x') .AND.  
-     &      (iener.EQ.1 .OR. ichoc.EQ.1)) CALL error(where,5)
+     &     (iener.EQ.1 .OR. ichoc.EQ.1)) CALL error(where,5)
 
       RETURN
       END

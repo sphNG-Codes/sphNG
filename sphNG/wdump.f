@@ -40,6 +40,8 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/divve'
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/tming'
+      INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/mhd'
 
       DIMENSION itempsort(idim), tempsort(idim)
       EQUIVALENCE (itempsort, next1), (tempsort, key)
@@ -73,7 +75,7 @@ c
 c--Write output file
 c
       WRITE (idisk1, ERR=100) int1,r1,int2,i1,int1
-      fileident = 'FHydro1'
+      fileident = 'FHydroRTMHD1'
       WRITE (idisk1, ERR=100) fileident
 c
 c--Single values
@@ -106,6 +108,8 @@ c
 c--Number of array lengths
 c
       number = 2
+      IF (encal.EQ.'r') number = 3
+      IF (imhd.EQ.idim) number = 4
       WRITE (idisk1, ERR=100) number
 c
 c--Array length 1 header
@@ -132,7 +136,51 @@ c
       nums(6) = 9
       nums(7) = 0
       nums(8) = 0
-      WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)      
+      WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
+c
+c--Array length 3 header
+c
+      IF (number.GE.3) THEN
+         IF (encal.EQ.'r') THEN
+            number8 = iradtrans
+         ELSE
+            number8 = 0
+         ENDIF
+         nums(1) = 0
+         nums(2) = 0
+         nums(3) = 0
+         nums(4) = 0
+         nums(5) = 0
+         IF (encal.EQ.'r') THEN
+            nums(6) = 5
+         ELSE
+            nums(6) = 0
+         ENDIF
+         nums(7) = 0
+         nums(8) = 0
+         WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
+      ENDIF
+c
+c--Array length 4 header
+c
+      IF (number.GE.4) THEN
+         IF (imhd.EQ.idim) THEN
+            number8 = imhd
+         ELSE
+            number8 = 0
+         ENDIF
+         nums(1) = 0
+         nums(2) = 0
+         nums(3) = 0
+         nums(4) = 0
+         nums(5) = 0
+         IF (imhd.EQ.idim) THEN
+            nums(6) = 3
+         ENDIF
+         nums(7) = 0
+         nums(8) = 0
+         WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
+      ENDIF
 c
 c--Array length 1 arrays
 c      
@@ -187,6 +235,52 @@ c--real*4
 
 c--real*8
 
+      IF (encal.EQ.'r' .AND. iradtrans.GT.1) THEN
+c
+c--Array length 3 arrays
+c      
+c--Default int
+
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+         DO j = 1, 5
+            WRITE (idisk1, ERR=100) (ekcle(j,isort(i)), i=1, iradtrans)
+         END DO
+c--real*4
+
+c--real*8
+
+      ENDIF
+      IF (imhd.EQ.idim) THEN
+c
+c--Array length 4 arrays
+c      
+c--Default int
+
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+         DO j = 1, 3
+            WRITE (idisk1, ERR=100) (Bevolxyz(j,isort(i)), i=1, imhd)
+         END DO
+c--real*4
+
+c--real*8
+
+      ENDIF
 c
 c--End writing of full dump file
 c-------------------------------
@@ -206,7 +300,7 @@ c
 c--Write output file
 c
       WRITE (idisk1, ERR=100) int1,r1,int2,i1,int1
-      fileident = 'SHydro1'
+      fileident = 'SHydroRTMHD1'
       WRITE (idisk1, ERR=100) fileident
 c
 c--Single values
@@ -245,6 +339,8 @@ c
 c--Number of array lengths
 c
       number = 2
+      IF (encal.EQ.'r') number = 3
+      IF (imhd.EQ.idim) number = 4
       WRITE (idisk1, ERR=100) number
 c
 c--Array length 1 header
@@ -272,6 +368,50 @@ c
       nums(7) = 0
       nums(8) = 0
       WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
+c
+c--Array length 3 header
+c
+      IF (number.GE.3) THEN
+         IF (encal.EQ.'r') THEN
+            number8 = iradtrans
+         ELSE
+            number8 = 0
+         ENDIF
+         nums(1) = 0
+         nums(2) = 0
+         nums(3) = 0
+         nums(4) = 0
+         nums(5) = 0
+         IF (encal.EQ.'r') THEN
+            nums(6) = 1
+         ELSE
+            nums(6) = 0
+         ENDIF
+         nums(7) = 0
+         nums(8) = 0
+         WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
+      ENDIF
+c
+c--Array length 4 header
+c
+      IF (number.GE.4) THEN
+         IF (imhd.EQ.idim) THEN
+            number8 = imhd
+         ELSE
+            number8 = 0
+         ENDIF
+         nums(1) = 0
+         nums(2) = 0
+         nums(3) = 0
+         nums(4) = 0
+         nums(5) = 0
+         IF (imhd.EQ.idim) THEN
+            nums(6) = 3
+         ENDIF
+         nums(7) = 0
+         nums(8) = 0
+         WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
+      ENDIF
 c
 c--Array length 1 arrays
 c
@@ -330,6 +470,52 @@ c--real*4
 
 c--real*8
 
+      IF (encal.EQ.'r' .AND. iradtrans.GT.1) THEN
+c
+c--Array length 3 arrays
+c
+c--Default int
+
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+         DO j = 1, 1
+            WRITE (idisk1, ERR=100) (ekcle(j,isort(i)), i=1, iradtrans)
+         END DO
+c--real*4
+
+c--real*8
+
+      ENDIF
+      IF (imhd.EQ.idim) THEN
+c
+c--Array length 4 arrays
+c
+c--Default int
+
+c--int*1
+
+c--int*2
+
+c--int*4
+
+c--int*8
+
+c--Default real
+         DO j = 1, 3
+            WRITE (idisk1, ERR=100) (Bevolxyz(j,isort(i)), i=1, imhd)
+         END DO
+c--real*4
+
+c--real*8
+
+      ENDIF
 c
 c--End writing of small dump file
 c--------------------------------
@@ -526,6 +712,58 @@ c
       DO i = 1, npart
          ddv(i) = tempsort(i)
       END DO
+      IF (encal.EQ.'r') THEN
+         DO i = 1, iradtrans
+            tempsort(i) = ekcle(1,llist(i))
+         END DO
+         DO i = 1, iradtrans
+            ekcle(1,i) = tempsort(i)
+         END DO
+         DO i = 1, iradtrans
+            tempsort(i) = ekcle(2,llist(i))
+         END DO
+         DO i = 1, iradtrans
+            ekcle(2,i) = tempsort(i)
+         END DO
+         DO i = 1, iradtrans
+            tempsort(i) = ekcle(3,llist(i))
+         END DO
+         DO i = 1, iradtrans
+            ekcle(3,i) = tempsort(i)
+         END DO
+         DO i = 1, iradtrans
+            tempsort(i) = ekcle(4,llist(i))
+         END DO
+         DO i = 1, iradtrans
+            ekcle(4,i) = tempsort(i)
+         END DO
+         DO i = 1, iradtrans
+            tempsort(i) = ekcle(5,llist(i))
+         END DO
+         DO i = 1, iradtrans
+            ekcle(5,i) = tempsort(i)
+         END DO
+      ENDIF
+      IF (imhd.EQ.idim) THEN
+         DO i = 1, imhd
+            tempsort(i) = Bevolxyz(1,llist(i))
+         END DO
+         DO i = 1, imhd
+            Bevolxyz(1,i) = tempsort(i)
+         END DO
+         DO i = 1, imhd
+            tempsort(i) = Bevolxyz(2,llist(i))
+         END DO
+         DO i = 1, imhd
+            Bevolxyz(2,i) = tempsort(i)
+         END DO
+         DO i = 1, imhd
+            tempsort(i) = Bevolxyz(3,llist(i))
+         END DO
+         DO i = 1, imhd
+            Bevolxyz(3,i) = tempsort(i)
+         END DO
+      ENDIF
 c
 c--iorig
 c
@@ -559,11 +797,13 @@ c
 c--Must rebuild the ghosts and make the tree again after sorting
 c
       nghost = 0
-      IF (ibound.EQ.1) CALL ghostp1(npart,xyzmh,vxyzu)
-      IF (ibound.EQ.2) CALL ghostp2(npart,xyzmh,vxyzu)
-      IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound.GE.90)
-     &     CALL ghostp3(npart,xyzmh,vxyzu)
-      IF (ibound.EQ.11) CALL ghostp11(npart,xyzmh,vxyzu)
+      IF (ibound.EQ.1) CALL ghostp1(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+      IF (ibound.EQ.2) CALL ghostp2(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+      IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound/10.EQ.9)
+     &     CALL ghostp3(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+      IF (ibound.EQ.100) 
+     &     CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+      IF (ibound.EQ.11) CALL ghostp11(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
 
       ntot = npart + nghost
 

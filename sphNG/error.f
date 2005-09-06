@@ -175,6 +175,7 @@ c
 99022    FORMAT (' incompatible units between code and binary file')
          IF (iwhat.EQ.1) WRITE (iprint,*)'   Units: udist'
          IF (iwhat.EQ.2) WRITE (iprint,*)'   Units: umass'
+	 IF (iwhat.EQ.4) WRITE (iprint,*)'   Units: umagfd'
          CALL quit
       ENDIF
 c

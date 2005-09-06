@@ -1,2 +1,2 @@
-      REAL*8 umass, udist, udens, utime, uergg, uergcc
-      COMMON /units / umass, udist, udens, utime, uergg, uergcc
+      REAL*8 umass, udist, udens, utime, uergg, uergcc, umagfd
+      COMMON /units / umass, udist, udens, utime, uergg, uergcc, umagfd

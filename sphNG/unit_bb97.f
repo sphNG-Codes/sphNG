@@ -49,9 +49,9 @@ c--------------------
 c
 c--Critical density for changing gamma from 1 to 1.4 for variable eq. of state
 c
-c      rhocrit = 1.e-14
+      rhocrit = 1.e-14
 c      rhocrit = 2.e-13
-      rhocrit = 1.e-13
+c      rhocrit = 1.e-13
 c      rhocrit = 1.e-12
 c      rhocrit = 1.e-16
       gam = 1.4
@@ -68,7 +68,7 @@ c-- gam = 5/3
 c
 c      rhocrit2 = rhocrit * (200.**1.5)
 c
-      rhocrit2 = 1.0e-11
+      rhocrit2 = 1.0e-10
 c      rhocrit2 = 1.0e-12
 c      gamdh = 1.10
 c      gamdh = 1.15
@@ -78,14 +78,14 @@ c
 c--Critical density for changing gamma from 1.1 to 5/3 for variable e.o.s.
 c
 c      rhocrit3 = 1.0e-3
-c      rhocrit3 = 1.0e-10
-      rhocrit3 = 1.0e-11
+      rhocrit3 = 1.0e-10
+c      rhocrit3 = 1.0e-11
 c      rhocrit3 = 1.0e-12
       gamah = 5./3.
 c
 c--****** For turning off 2nd collapse phase! ******
 c
-      rhocrit2 = rhocrit3
+c      rhocrit2 = rhocrit3
 c
 c
 c
@@ -147,6 +147,16 @@ c
 c  d) ergs per cc
 c
       uergcc = DBLE(umass)/(DBLE(udist)*DBLE(utime)**2)
+c
+c  e) magnetic flux density
+c
+c     (specify charge unit in esu)
+c
+      ucharge = DSQRT(DBLE(umass)*DBLE(udist)/cgsmu0)
+c
+c     (set units for magnetic field)
+c
+      umagfd = DBLE(umass)/(DBLE(utime)*DBLE(ucharge))
 
       IF (idebug(1:4).EQ.'unit') THEN
          WRITE (iprint, 99002) umass, udist, udens, utime, uergg, uergcc

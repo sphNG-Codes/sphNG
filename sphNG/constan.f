@@ -22,6 +22,7 @@ c
       gg = 6.672041e-8
       Rg = 8.314e7
       radconst = 7.5646e-15
+      cgsmu0 = 4.*pi
 c
 c--Astronomical constants (in cgs units)
 c
@@ -43,8 +44,8 @@ c
 c
 c--Gas molecular weight, mu
 c
-c      gmw = 2.0
-      gmw = 2.46
+      gmw = 2.0
+c      gmw = 2.46
       IF (encal.EQ.'r') gmw = 4.0/(2*0.7+0.28)
 
       RETURN

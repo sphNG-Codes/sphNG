@@ -3,7 +3,7 @@ c************************************************************
 c                                                           *
 c  This subroutine integrate the system of differential     *
 c     equations for one timestep using                      *
-c     a second-order Runge-Kutta-Fehlberg method.           *
+c     a second-order Leapfrog scheme.                       *
 c                                                           *
 c************************************************************
 

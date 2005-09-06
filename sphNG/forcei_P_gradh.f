@@ -365,7 +365,7 @@ ccc               ddvscalar = ddvscalar+hi*projv*rij/(rij**2+epsil2*hi*hi)
 c
 c--i contribution to force softening (including pseudo-pressure term)
 c
-               IF (isoft.EQ.0) THEN
+               IF (isoft.EQ.0 .OR. isoft.EQ.2) THEN
                   dfmassdx = (fmass(index1) - fmass(index))/dvtable
                   fmi = (fmass(index) + dfmassdx*dxx)
                   dfptdx = (fpoten(index1) - fpoten(index))/dvtable
@@ -407,7 +407,7 @@ c
 c
 c--j contribution to force softening (including pseudo-pressure term)
 c
-               IF (isoft.EQ.0) THEN
+               IF (isoft.EQ.0 .OR. isoft.EQ.2) THEN
                   dfmassdx = (fmass(index1) - fmass(index))/dvtable
                   fmj = (fmass(index) + dfmassdx*dxx)
                   dfptdx = (fpoten(index1) - fpoten(index))/dvtable
@@ -428,49 +428,22 @@ c
                fmj = 1.
                phij = -rij1
             ENDIF
-c
-c--gravitational force softening
-c            
-            IF (igrape.EQ.0 .AND. igphi.NE.0) THEN
-               IF (isoft.EQ.1) THEN
-                  rij2grav = dx*dx + dy*dy + dz*dz + psoft**2
-                  rijgrav = SQRT(rij2grav)
-                  fm = 1.0
-                  phi = - 1./rijgrav
-               ELSEIF (isoft.EQ.0) THEN
-                  rij2grav = rij2
-                  rijgrav = rij
-                  fm = 0.5*(fmi + fmj)
-                  phi = 0.5*(phii + phij)
-               ELSE
-                  CALL error(where,1)
-               ENDIF
-c
-c--Gravitational force calculation
-c
-               IF (j.LE.npart) THEN
-                  xmasj = fm*pmassj/(rij2grav*rijgrav)
-                  gravxi = gravxi - xmasj*dx
-                  gravyi = gravyi - xmasj*dy
-                  gravzi = gravzi - xmasj*dz
-                  poteni = poteni + phi*pmassj
-               ENDIF
-            ENDIF
+
 c
 c--Artificial viscosity and pressure forces
 c
 c--No artificial viscosity or pressure between particles across a point mass
 c
-            DO ii = 1, nptmass
-               iptcurv = listpm(ii)
-               xii = xyzmh(1,iptcurv)
-               yii = xyzmh(2,iptcurv)
-               zii = xyzmh(3,iptcurv)
-               vpos = (xii-xi)*(xii-xyzmh(1,j)) + 
-     &              (yii-yi)*(yii-xyzmh(2,j)) +
-     &              (zii-zi)*(zii-xyzmh(3,j))
-               IF (vpos.LT.0.0) GOTO 70
-            END DO 
+c            DO ii = 1, nptmass
+c               iptcurv = listpm(ii)
+c               xii = xyzmh(1,iptcurv)
+c               yii = xyzmh(2,iptcurv)
+c               zii = xyzmh(3,iptcurv)
+c               vpos = (xii-xi)*(xii-xyzmh(1,j)) + 
+c     &              (yii-yi)*(yii-xyzmh(2,j)) +
+c     &              (zii-zi)*(zii-xyzmh(3,j))
+c               IF (vpos.LT.0.0) GOTO 60
+c            END DO 
 
             IF (vi.LT.radkernel .OR. vj.LT.radkernel) THEN
 c
@@ -501,7 +474,7 @@ c                  beta - it sets beta to be 2*alpha automatically.
 c
                   IF (ifsvi.NE.5) THEN
                      vsbar = 0.5*(vsoundi + vsound(j))
-                     f = projv*v/(v2 + epsil)
+                     f = projv !!!*v/(v2 + epsil)
                      IF (ifsvi.EQ.2 .OR. ifsvi.EQ.4) THEN
                         adivi = ABS(divv(ipart)/rhoi)
                         acurlvi = ABS(curlv(ipart)/rhoi)
@@ -559,6 +532,72 @@ c
                   dqi = dqi + t12j*projv
                ENDIF
             ENDIF
+            
+60          CONTINUE
+c
+c--gravitational force softening
+c            
+            IF (igrape.EQ.0 .AND. igphi.NE.0) THEN
+c--Plummer
+               IF (isoft.EQ.1) THEN
+                  rij2grav = dx*dx + dy*dy + dz*dz + psoft**2
+                  rijgrav = SQRT(rij2grav)
+                  fm = 1.0
+                  phi = - 1./rijgrav
+c--Average softening kernel
+               ELSEIF (isoft.EQ.0) THEN
+                  rij2grav = rij2
+                  rijgrav = rij
+                  fm = 0.5*(fmi + fmj)
+                  phi = 0.5*(phii + phij)
+c--Average softening lengths
+               ELSEIF (isoft.EQ.2) THEN
+                  rij2grav = rij2
+                  rijgrav = rij
+                  IF (iphase(ipart).GE.1) THEN
+                     hmean = hj/2.0
+                  ELSEIF (iphase(j).GE.1) THEN
+                     hmean = hi/2.0
+                  ELSE
+                     hmean = 0.5*(hi + hj)
+                  ENDIF
+                  hmean21 = 1./(hmean*hmean)
+                  v2 = rij2*hmean21
+                  IF (v2.GE.radkernel*radkernel) THEN
+                     fm = 1.0
+                     phi = -rij1
+                     dphi = 0.0
+                  ELSE
+                     index = v2/dvtable
+                     index1 = index + 1
+                     IF (index.GT.itable) index = itable
+                     IF (index1.GT.itable) index1 = itable
+                     dxx = v2 - index*dvtable
+                     dfmassdx = (fmass(index1) - fmass(index))/dvtable
+                     fm = (fmass(index) + dfmassdx*dxx)
+                     dfptdx = (fpoten(index1) - fpoten(index))/dvtable
+                     phi = (fpoten(index) + dfptdx*dxx)/hmean
+                     IF (v.GT.part2kernel) THEN
+                        phi = phi + rij1*part2potenkernel
+                     ELSEIF (v.GT.part1kernel) THEN
+                        phi = phi + rij1*part1potenkernel
+                     ENDIF
+                  ENDIF
+               ELSE
+                  CALL error(where,1)
+               ENDIF
+c
+c--Gravitational force calculation
+c
+               IF (j.LE.npart) THEN
+                  xmasj = fm*pmassj/(rij2grav*rijgrav)
+                  gravxi = gravxi - xmasj*dx
+                  gravyi = gravyi - xmasj*dy
+                  gravzi = gravzi - xmasj*dz
+                  poteni = poteni + phi*pmassj
+               ENDIF
+            ENDIF
+
  70      CONTINUE
 c
 c--Store quantities

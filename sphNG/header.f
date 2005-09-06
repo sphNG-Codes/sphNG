@@ -139,7 +139,7 @@ c
                WRITE (iprint, 98003) psoft
 98003          FORMAT ('                           Softening = ',
      &              1PE12.5)
-            ELSEIF (isoft.EQ.0) THEN
+            ELSEIF (isoft.EQ.0 .OR. isoft.EQ.2) THEN
                WRITE (iprint, 98004)
 98004          FORMAT ('                           Kernel Softening')
             ELSE

@@ -158,9 +158,11 @@ c
 c
 c--derivative of gravitational potential w.r.t. h
 c
-               dpotdh = (dphidh(index1) - dphidh(index))/dvtable
-               dphi = (dphidh(index) + dpotdh*dxx)
-               gradsofti = gradsofti - pmassj*dphi
+               IF (isoft.EQ.0) THEN
+                  dpotdh = (dphidh(index1) - dphidh(index))/dvtable
+                  dphi = (dphidh(index) + dpotdh*dxx)*hi21
+                  gradsofti = gradsofti - pmassj*dphi
+               ENDIF
 c
 c--Compute density
 c
@@ -181,6 +183,25 @@ c
                curlvyi = curlvyi - pmassj*procurlvy
                curlvzi = curlvzi - pmassj*procurlvz
             ENDIF
+c
+c--gravity softening term using mean h
+c            
+            IF (isoft.EQ.2) THEN
+               hmean = 0.5*(hi + xyzmh(5,j))
+               hmean21 = 1./(hmean*hmean)
+               v2 = rij2*hmean21
+               IF (v2.LT.radkernel**2) THEN
+                  index = v2/dvtable
+                  dxx = v2 - index*dvtable
+                  index1 = index + 1
+                  IF (index.GT.itable) index = itable
+                  IF (index1.GT.itable) index1 = itable
+                  dpotdh = (dphidh(index1) - dphidh(index))/dvtable
+                  dphi = (dphidh(index) + dpotdh*dxx)*hmean21
+                  gradsofti = gradsofti - pmassj*dphi            
+               ENDIF
+            ENDIF
+            
  40      CONTINUE
 
          rho(ipart) = cnormk*(rhoi + selfnormkernel*pmassi*hi31)
@@ -188,8 +209,8 @@ c
          curlv(ipart) = cnormk*SQRT(curlvxi**2+curlvyi**2+curlvzi**2)
 	 gradhs(1,ipart) = cnormk*(gradhi + 
      &	       selfnormkernel*pmassi*(-3.*hi41))
-         IF (isoft.EQ.0) THEN
-            gradhs(2,ipart) = (gradsofti - pmassi*dphidh(0))*hi21
+         IF (isoft.EQ.0 .OR. isoft.EQ.2) THEN
+            gradhs(2,ipart) = gradsofti - pmassi*dphidh(0)*hi21
          ENDIF
 c
 c--Pressure and sound velocity from ideal gas law... 

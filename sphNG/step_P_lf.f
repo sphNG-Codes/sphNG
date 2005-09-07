@@ -220,7 +220,7 @@ c         ENDIF
 c      END DO
 
          CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
-     &        npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &        npart,ntot,ireal,dumalpha,ekcle)
 
          IF (gt.EQ.0.0) THEN
 c
@@ -762,7 +762,7 @@ c--Compute forces on list particles
 c
  200  icall = 3
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
-     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &     ntot,ireal,dumalpha,ekcle)
 
 c      PRINT *,'h(1)4: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
 
@@ -1130,7 +1130,7 @@ c
 
             icall = 4
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
-     &           npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &           npart,ntot,ireal,dumalpha,ekcle)
 
             time = dt*itime/imaxstep + gt
             DO j = 1, nlst
@@ -1311,7 +1311,7 @@ c
             icall = 4
             PRINT *,"icall 4 triggered"
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
-     &           f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &           f1ha,npart,ntot,ireal,dumalpha,ekcle)
 c
 c--Write new particles to file
 c

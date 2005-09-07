@@ -246,7 +246,7 @@ c      END DO
 c      WRITE (*,*) 'passed 2'
 
  432     CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
-     &        ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &        ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
 
 c         IF (icall.EQ.1) THEN
 c             icall = 3
@@ -503,7 +503,7 @@ c
       IF (itbinupdate.GE.nbinmax-1 .OR. (.NOT. ipartialrevtree)) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& private(j,k,deltat)
@@ -529,7 +529,7 @@ C$OMP& private(j,k,deltat)
      &           deltat*f1ha(2,j))
             IF (imhd.EQ.idim) THEN
                DO k = 1, 3
-                  dumBevolxyz(k,j) = Bevolxyz(k,j)
+                  dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
                END DO
             ENDIF
          ENDIF
@@ -542,7 +542,7 @@ C$OMP END PARALLEL DO
             DO i = 1, itbinupdate
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& private(j,k,ipart,deltat)
@@ -569,7 +569,8 @@ C$OMP& private(j,k,ipart,deltat)
      &               alphaMM(ipart)+deltat*f1ha(2,ipart))
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, 3
-                           dumBevolxyz(k,ipart) = Bevolxyz(k,ipart)
+                           dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) + 
+     &                        deltat*f1Bxyz(k,ipart)
                         END DO
                      ENDIF
                   ENDIF
@@ -603,7 +604,7 @@ C$OMP END PARALLEL DO
       IF (nghost.GT.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& private(j,k,l,deltat)
@@ -629,7 +630,7 @@ C$OMP& private(j,k,l,deltat)
      &                                    deltat*f1ha(2,k))
             IF (imhd.EQ.idim) THEN
                DO l = 1, 3
-                  dumBevolxyz(l,j) = Bevolxyz(l,j)
+                  dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,j)
                END DO
             ENDIF
          ENDIF
@@ -673,7 +674,7 @@ c--Compute forces on list particles
 c
       icall = 2
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f2vxyzu,f2ha,npart,
-     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f2Bxyz)
 c
 c--Save velocities at half time step
 c
@@ -791,7 +792,7 @@ c      ENDIF
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst0,llist,iscurrent,dt,isteps,imaxstep,f21,f22)
 C$OMP& shared(xyzmh,vxyzu,dum2vxyz)
-C$OMP& shared(f1vxyzu,f1ha,f2vxyzu,f2ha)
+C$OMP& shared(f1vxyzu,f1ha,f2vxyzu,f2ha,f2Bxyz)
 C$OMP& shared(gravx,gravy,gradpx,gradpy,artvix,artviy,gravx1,gravy1)
 C$OMP& shared(gradpx1,gradpy1,artvix1,artviy1,torqt,torqg,torqp)
 C$OMP& shared(torqv,torqc,it0,itime,imaxdens,cnormk,iener)
@@ -934,11 +935,11 @@ c-MHD
 c
             IF (imhd.EQ.idim) THEN
                Bevolxyz(1,i) = Bevolxyz(1,i)
-c     &              + dtf21*f1vxyzu(1,i) + dtf22*f2vxyzu(1,i)
+     &              + dtf21*f1Bxyz(1,i) + dtf22*f2Bxyz(1,i)
                Bevolxyz(2,i) = Bevolxyz(2,i)
-c     &              + dtf21*f1vxyzu(2,i) + dtf22*f2vxyzu(2,i)
+     &              + dtf21*f1Bxyz(2,i) + dtf22*f2Bxyz(2,i)
                Bevolxyz(3,i) = Bevolxyz(3,i)
-c     &              + dtf21*f1vxyzu(3,i) + dtf22*f2vxyzu(3,i)
+     &              + dtf21*f1Bxyz(3,i) + dtf22*f2Bxyz(3,i)
             ENDIF
 c
 c--Synchronize the advanced particle times with current time
@@ -1116,7 +1117,7 @@ c
       IF (itbinupdate.GE.nbinmax-1 .OR. (.NOT. ipartialrevtree)) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,deltat)
@@ -1141,7 +1142,7 @@ C$OMP& private(j,k,deltat)
      &           deltat*f1ha(2,j))
             IF (imhd.EQ.idim) THEN
                DO k = 1, 3
-                  dumBevolxyz(k,j) = Bevolxyz(k,j)
+                  dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
                END DO
             ENDIF
          ENDIF
@@ -1154,7 +1155,7 @@ C$OMP END PARALLEL DO
             DO i = 1, itbinupdate
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,ipart,deltat)
@@ -1181,7 +1182,8 @@ C$OMP& private(j,k,ipart,deltat)
      &                    alphaMM(ipart) + deltat*f1ha(2,ipart))
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, 3
-                           dumBevolxyz(k,ipart) = Bevolxyz(k,ipart)
+                           dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) +
+     &                      deltat*f1Bxyz(k,ipart)
                         END DO
                      ENDIF
                   ENDIF
@@ -1215,7 +1217,7 @@ C$OMP END PARALLEL DO
       IF (nghost.GT.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,l,deltat)
@@ -1241,7 +1243,7 @@ C$OMP& private(j,k,l,deltat)
      &           + deltat*f1ha(2,k))
             IF (imhd.EQ.idim) THEN
                DO l = 1, 3
-                  dumBevolxyz(l,j) = Bevolxyz(l,j)
+                  dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,j)
                END DO
             ENDIF
          ENDIF
@@ -1287,7 +1289,7 @@ c     evaluations!!
 c
  200  icall = 3
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f2vxyzu,f2ha,npart,
-     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f2Bxyz)
 c
 c--Synchronization time
 c
@@ -1552,6 +1554,11 @@ c
          f1vxyzu(4,i) = f2vxyzu(4,i)
          f1ha(1,i) = f2ha(1,i)
          IF (ifsvi.EQ.6) f1ha(2,i) = f2ha(2,i)
+         IF (imhd.EQ.idim) THEN
+            f1Bxyz(1,i) = f2Bxyz(1,i)
+            f1Bxyz(2,i) = f2Bxyz(2,i)
+            f1Bxyz(3,i) = f2Bxyz(3,i)         
+         ENDIF
 
 c         gravx1(i) = gravx(i)
 c         gravy1(i) = gravy(i)
@@ -1790,6 +1797,7 @@ c     constant.
 c
       IF (nptmass.NE.0 .OR. icreate.EQ.1) THEN
          IF (ibound/10.EQ.9 .AND. nshell.GT.inshell) THEN
+            STOP 'eek: WEIRD MATTHEW BIT NOT IMPLEMENTED FOR GRADH,MHD'
             iaccr = 0
             ikilled = 0
             nlstacc = 0
@@ -1896,7 +1904,7 @@ c
 
             icall = 4
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
-     &           f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &         f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
 
             time = dt*itime/imaxstep + gt
             DO j = 1, nlst0
@@ -2077,7 +2085,7 @@ c
             icall = 4
             PRINT *,"icall 4 triggered"
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
-     &           f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &        f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
 c
 c--Write new particles to file
 c

@@ -219,7 +219,7 @@ c         ENDIF
 c      END DO
 
          CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
-     &        npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &        npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
 
          IF (gt.EQ.0.0) THEN
 c
@@ -470,12 +470,12 @@ c      PRINT *,'h(1)1: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
       IF (itiming) CALL getused(ts71)
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst,llist,iscurrent,dt,isteps,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
 C$OMP& shared(it0,itime,imaxdens,cnormk,iener)
 C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass)
 C$OMP& shared(ifsvi,alphaMM,alphamax,Bevolxyz,encal)
-C$OMP& private(i,j,dtfull,dthalf,delvx,delvy,delvz)
+C$OMP& private(i,j,k,dtfull,dthalf,delvx,delvy,delvz)
 C$OMP& private(iii,pmasspt)
 C$OMP& reduction(+:ioutmax)
       DO j = 1, nlst
@@ -536,12 +536,9 @@ c
 c--Update MHD
 c
          IF (imhd.EQ.idim) THEN
-            Bevolxyz(1,i) = Bevolxyz(1,i)
-c     &              + dtfull*f1vxyzu(1,i)
-            Bevolxyz(2,i) = Bevolxyz(2,i)
-c     &              + dtfull*f1vxyzu(2,i)
-            Bevolxyz(3,i) = Bevolxyz(3,i)
-c     &              + dtfull*f1vxyzu(3,i)
+            DO k = 1, 3
+               Bevolxyz(k,i) = Bevolxyz(k,i) + dtfull*f1Bxyz(k,i)
+            ENDDO
          ENDIF
 c
 c--Synchronize the advanced particle times with current time
@@ -587,7 +584,7 @@ c
       IF (itbinupdate.GE.nbinmax-1 .OR. (.NOT. ipartialrevtree)) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,deltat,deltat2)
@@ -613,7 +610,7 @@ C$OMP& private(j,k,deltat,deltat2)
      &           deltat*f1ha(2,j))
             IF (imhd.EQ.idim) THEN
                DO k = 1, 3
-                  dumBevolxyz(k,j) = Bevolxyz(k,j)
+                  dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
                END DO
             ENDIF
          ENDIF
@@ -626,7 +623,7 @@ C$OMP END PARALLEL DO
             DO i = 1, itbinupdate
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,ipart,deltat,deltat2)
@@ -658,7 +655,8 @@ C$OMP& private(j,k,ipart,deltat,deltat2)
      &                    alphaMM(ipart) + deltat*f1ha(2,ipart))
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, 3
-                           dumBevolxyz(k,ipart) = Bevolxyz(k,ipart)
+                           dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) +
+     &                          deltat*f1Bxyz(k,ipart)
                         END DO
                      ENDIF
                   ENDIF
@@ -694,7 +692,7 @@ C$OMP END PARALLEL DO
       IF (nghost.GT.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumxyzmh,dumvxyzu,encal)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,dumxyzmh,dumvxyzu,encal)
 C$OMP& shared(iphase,iener,ifsvi,dumalpha,alphaMM,alphamax)
 C$OMP& shared(Bevolxyz,dumBevolxyz)
 C$OMP& private(j,k,l,deltat)
@@ -720,7 +718,7 @@ C$OMP& private(j,k,l,deltat)
      &           + deltat*f1ha(2,k))
             IF (imhd.EQ.idim) THEN
                DO l = 1, 3
-                  dumBevolxyz(l,j) = Bevolxyz(l,j)
+                  dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,j)
                END DO
             ENDIF
          ENDIF
@@ -764,7 +762,7 @@ c--Compute forces on list particles
 c
  200  icall = 3
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
-     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
 
 c      PRINT *,'h(1)4: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
 
@@ -1137,7 +1135,7 @@ c
 
             icall = 4
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
-     &           npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &           npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
 
             time = dt*itime/imaxstep + gt
             DO j = 1, nlst
@@ -1317,8 +1315,8 @@ c--Set accelerations on new particles using call to derivi
 c
             icall = 4
             PRINT *,"icall 4 triggered"
-            CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
-     &           f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+            CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
+     &           ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
 c
 c--Write new particles to file
 c

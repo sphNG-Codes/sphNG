@@ -246,7 +246,7 @@ c      END DO
 c      WRITE (*,*) 'passed 2'
 
  432     CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
-     &        ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &        ntot,ireal,dumalpha,ekcle)
 
 c         IF (icall.EQ.1) THEN
 c             icall = 3
@@ -673,7 +673,7 @@ c--Compute forces on list particles
 c
       icall = 2
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f2vxyzu,f2ha,npart,
-     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &     ntot,ireal,dumalpha,ekcle)
 c
 c--Save velocities at half time step
 c
@@ -1287,7 +1287,7 @@ c     evaluations!!
 c
  200  icall = 3
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f2vxyzu,f2ha,npart,
-     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &     ntot,ireal,dumalpha,ekcle)
 c
 c--Synchronization time
 c
@@ -1887,7 +1887,7 @@ c
 
             icall = 4
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
-     &           f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &           f1ha,npart,ntot,ireal,dumalpha,ekcle)
 
             time = dt*itime/imaxstep + gt
             DO j = 1, nlst0
@@ -2068,7 +2068,7 @@ c
             icall = 4
             PRINT *,"icall 4 triggered"
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
-     &           f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz)
+     &           f1ha,npart,ntot,ireal,dumalpha,ekcle)
 c
 c--Write new particles to file
 c

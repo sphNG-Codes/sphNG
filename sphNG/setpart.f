@@ -44,6 +44,8 @@ c************************************************************
       INCLUDE 'COMMONS/crpart'
       INCLUDE 'COMMONS/ptbin'
       INCLUDE 'COMMONS/active'
+      INCLUDE 'COMMONS/mhd'
+      INCLUDE 'COMMONS/Bzero'
 c      INCLUDE 'COMMONS/setlocal'
 
       PARAMETER (nvelmax=128)
@@ -749,6 +751,10 @@ c
          IF (ichang.EQ.5) GOTO 210
       ENDIF
 c
+c--Magnetic field setup once we know rhozero
+c
+      IF (imhd.EQ.idim) call setBfield
+c
 c--Set e.o.s. related quantities
 c
       WRITE (*, 99022)
@@ -1317,14 +1323,35 @@ c
  778  n1 = npart
       n2 = 0
 c
-c--adjust smoothing lengths (also calculated initial density)
+c--adjust smoothing lengths (also calculates initial density)
+c  MUST be done (to get density) if evolving B/rho
 c
       nactive = npart
       WRITE (*, 99044)
 99044 FORMAT(' Do you want to adjust smoothing length',/,
      + ' to have similar number of neighbours ? (y/n) ')
       READ (*, 99004) iok
-      IF (iok.EQ.'y' .OR. iok.EQ.'Y') CALL hcalc
+      IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim) CALL hcalc
+
+      IF (imhd.EQ.idim) THEN
+         WRITE(*,99145)
+99145    FORMAT(' Calculating B/rho from B for MHD evolution...')
+         DO i=1,npart
+            IF (rho(i).LE.0.) STOP 'ERROR!!! rho = 0 setting up B/rho!'
+            rho1i = 1./rho(i)
+            DO j=1,3
+               Bevolxyz(j,i) = Bevolxyz(j,i)*rho1i
+            ENDDO
+         ENDDO
+      
+         IF (ibound.EQ.7) THEN
+            Bextx = Bxzero
+            Bexty = Byzero
+            Bextz = Bzzero
+            WRITE(*,99055) Bextx,Bexty,Bextz
+99055       FORMAT(' Setting external B field = ',3(1PE12.4,2X)) 
+         ENDIF
+      ENDIF
        
       WRITE (*, 99056)
 99056 FORMAT (//, ' END OF SETUP')
@@ -1343,6 +1370,11 @@ c
          WRITE (iprint, 99058) (vxyzu(4,i), i=1, npart)
          WRITE (iprint, 99058) (xyzmh(4,i), i=1, npart)
          WRITE (iprint, 99058) (rho(i), i=1, npart)
+         IF (imhd.EQ.idim) THEN
+            WRITE (iprint, 99058) (Bevolxyz(1,i), i=1, npart)
+            WRITE (iprint, 99058) (Bevolxyz(2,i), i=1, npart)
+            WRITE (iprint, 99058) (Bevolxyz(3,i), i=1, npart)
+         ENDIF
 99058    FORMAT (1X, 5(1PE12.5,1X))
       ENDIF
 

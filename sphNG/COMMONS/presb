@@ -1,1 +1,1 @@
-      COMMON /presb / pext
+      COMMON /presb / pext,Bextx,Bexty,Bextz

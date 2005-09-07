@@ -119,8 +119,8 @@ c
 
 c      CALL iterate_density(npart,dumxyzmh,vxyzu,
 c     &                     nlst_in,nlst_end,llist,itime)
-      CALL derivi(dt,itime,dumxyzmh,dumvxyzu,
-     &            f1vxyzu,f1ha,npart,ntot,ireal,alphaMM)
+      CALL derivi(dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,ntot,
+     &            ireal,alphaMM,ekcle,Bevolxyz,f1Bxyz)
 
       DO ipart=1,npart
          xyzmh(5,ipart) = dumxyzmh(5,ipart)

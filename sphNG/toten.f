@@ -100,7 +100,11 @@ c
             ELSE
                ttherm = pmassi*pr(i)/(gama1*rho(i))
             ENDIF
-            tradi = ekcle(1,i)*pmassi
+            IF (encal.EQ.'r' .AND. iradtrans.EQ.idim) THEN
+               tradi = ekcle(1,i)*pmassi
+            ELSE
+               tradi = 0.
+            ENDIF
             total = tinout + tpot + ttherm + tradi
             IF (total.GT.0.) escap = escap + pmassi
          ENDIF
@@ -124,7 +128,9 @@ c
          DO i = 1, npart
             IF (iphase(i).EQ.0) THEN
                tterm = tterm + xyzmh(4,i)*vxyzu(4,i)
-               trad = trad + xyzmh(4,i)*ekcle(1,i)
+               IF (encal.EQ.'r' .AND. iradtrans.EQ.idim) THEN
+                  trad = trad + xyzmh(4,i)*ekcle(1,i)
+               ENDIF
             ENDIF
          END DO
 c

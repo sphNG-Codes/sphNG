@@ -29,6 +29,8 @@ c************************************************************
       INCLUDE 'COMMONS/call'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/mhd'
+      INCLUDE 'COMMONS/numpa'
+      INCLUDE 'COMMONS/timei'
 c
 c--Allow for tracing flow
 c
@@ -116,7 +118,8 @@ c
       DO ipart=1,npart
          dumxyzmh(5,ipart) = hfact*(dumxyzmh(4,ipart)/rhozero)**third
       ENDDO      
-
+      
+      imaxstep = 1073741824/2
 c      CALL iterate_density(npart,dumxyzmh,vxyzu,f1ha,
 c     &                     nlst_in,nlst_end,llist,itime)
       CALL derivi(dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,ntot,

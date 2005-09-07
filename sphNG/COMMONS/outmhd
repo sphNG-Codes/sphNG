@@ -1,0 +1,4 @@
+      COMMON /outmhd/ betamhdav,betamhdmax,betamhdmin,divBmax,
+     &                divBav,curlBmax,curlBav,div2curlBav,div2curlBmax,
+     &                omegamhdmax,omegamhdav,fracdivBok,omegtol,
+     &                fluxtot,crosshel,Bmin,Bmean,Bmax

@@ -25,6 +25,7 @@ c************************************************************
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/mhd'
 c
 c--Allow for tracing flow
 c
@@ -40,6 +41,7 @@ c
       tgrav = 0.
       tpot = 0.
       tterm = 0.
+      tmag = 0.
       trad = 0.
       escap = 0.
 c
@@ -79,6 +81,15 @@ c
             poteni = pmassi*(poten(i) + dgrav(i))/rscale
             tgrav = tgrav + poteni
 c
+c--Magnetic energy
+c
+	    IF (imhd.EQ.idim) THEN
+	       B2i = Bevolxyz(1,i)**2 + Bevolxyz(2,i)**2 
+     &                                + Bevolxyz(3,i)**2
+               tmagi = B2i*rho(i)
+               tmag = tmag + pmassi*tmagi
+            ENDIF
+c
 c--Escapors
 c
             IF (xi*vxi + yi*vyi + zi*vzi.LT.0.) vtot2 = 0.
@@ -101,6 +112,7 @@ c
       trotz = 0.5*trotz
       trotx = 0.5*trotx
       tgrav = 0.5*tgrav
+      tmag = 0.5*tmag
       escap = escap
 c
 c--Thermal energy
@@ -129,8 +141,8 @@ c
       ENDIF
 
       IF (idebug(1:5).EQ.'toten') THEN
-         WRITE (iprint, 99002) tkin, trotz,trotx, tgrav, tterm, trad
-99002    FORMAT (1X, 3(1PE12.5,1X))
+         WRITE (iprint, 99002) tkin,trotz,trotx,tgrav,tterm,tmag,trad
+99002    FORMAT (1X, 7(1PE12.5,1X))
       ENDIF
 
       RETURN

@@ -42,6 +42,7 @@ c************************************************************
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/physeos'
+      INCLUDE 'COMMONS/outmhd'
 
       CHARACTER*24 sentenc
       CHARACTER*7 where
@@ -82,9 +83,9 @@ c
 c--Energies + total angular momentum
 c
          total = tkin + tgrav
-         IF (igrp.NE.0) total = total + tterm + trad
+         IF (igrp.NE.0) total = total + tterm + tmag + trad
          WRITE (iprint, 99004, ERR=100) total,tkin,trotz,trotx,tgrav,
-     &                               tterm,trad,angto,totmom
+     &                               tterm,tmag,trad,angto,totmom
 99004    FORMAT (' General properties of system : ', /,
      &           ' total energy                       : ', 1PE14.5, /,
      &           ' kinetic energy                     : ', 1PE14.5, /,
@@ -92,6 +93,7 @@ c
      &           ' rotational energy around x         : ', 1PE14.5, /,
      &           ' potential energy                   : ', 1PE14.5, /,
      &           ' internal energy                    : ', 1PE14.5, /,
+     &           ' magnetic energy                    : ', 1PE14.5, /,
      &           ' radiation energy                   : ', 1PE14.5, /,
      &           ' total angular momentum             : ', 1PE14.5, /,
      &           ' total linear momentum              : ', 1PE14.5)
@@ -145,6 +147,25 @@ c
 88008       FORMAT (' new boundary radius: ',1PE12.5)
          ENDIF
 c
+c--Magnetic field parameters	(computed in mhdparams)
+c
+         IF (imhd.EQ.idim) THEN    
+	    WRITE (iprint, 66001, ERR=100) betamhdmin,betamhdmax,
+     &           betamhdav,divBmax,divBav,curlBmax,curlBav,div2curlBmax,
+     &           div2curlBav,omegamhdmax,omegamhdav,omegtol,fracdivBok,
+     &           fluxtot,crosshel
+66001       FORMAT (/,' Magnetic field parameters : ', /,
+     &   '          plasma beta  min : ', 1PE14.5,'  max : ', 1PE14.5,
+     &   ' mean : ', 1PE14.5, /,     
+     &   '                 div B max : ', 1PE14.5,'  mean: ', 1PE14.5,/,
+     &   '                curl B max : ', 1PE14.5,'  mean: ', 1PE14.5,/,
+     &   '      (div B)/(curl B) max : ', 1PE14.5,'  mean: ', 1PE14.5,/,
+     &   '              divB*h/B max : ', 1PE14.5,
+     &   ' mean : ', 1PE14.5,' frac < ',1PE9.2,' : ',0PF6.2,'%',//,
+     &   ' total magnetic flux  (int nabla.B dV) : ', 1PE14.5,/,
+     &   ' total cross helicity (int v.B dV)     : ', 1PE14.5)
+         ENDIF
+c
 c--Object no 1
 c
          WRITE (iprint, 99006, ERR=100) n1, cmx1, cmy1, cmz1, vcmx1,
@@ -163,6 +184,11 @@ c
      &           ' temperature  mean :', 1PE14.5, ' max:', 1PE14.5,
      &           ' cen:', 1PE14.5, /
      &           )
+         IF (imhd.EQ.idim) THEN
+            WRITE (iprint, 99105) Bmin, Bmean, Bmax
+99105       FORMAT (' mag field    min  :', 1PE14.5, 'mean:', 1PE14.5,
+     &              ' max:', 1PE14.5,/)         
+         ENDIF
          IF (encal.EQ.'r') THEN
             WRITE (iprint, 99106, ERR=100) trmean1, trmax1, trcen1
 99106       FORMAT (' temper. rad. mean :', 1PE14.5, ' max:', 

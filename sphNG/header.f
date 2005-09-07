@@ -60,14 +60,15 @@ c
       angmom = umass*dble(udist**2)/dble(utime)
       velo = udist/utime
       WRITE (iprint, 99001) umass, udist, udens, utime, velo, uergg,
-     &                      angmom
+     &                      angmom,umagfd
 99001 FORMAT (//, ' The computations are done in the following units',
      &        /, ' units of :  mass       :', 1PD12.4,
      &        '   distance    :', 1PE12.4, /,
      &        '             density    :', 1PE12.4, '   time        :',
      &        1PE12.4, /, '             velocity   :', 1PE12.4,
      &        '   energy/mass :', 1PE12.4, /,
-     &        '             ang. mom.  :', 1PE12.4, //)
+     &        '             ang. mom.  :', 1PE12.4,
+     &        '   mag field   :', 1PE12.4, //)
 c
 c--Write options
 c
@@ -262,6 +263,13 @@ c
 99113       FORMAT (' Radiative transfer tolerance    : ',1PE12.3, //)
          ELSE
             WRITE (iprint, *)
+         ENDIF
+c
+c--Magnetic field details
+c
+         IF (imhd.EQ.idim) THEN
+            WRITE(iprint,99114)
+99213       FORMAT(' Magnetic fields are ON',//)
          ENDIF
 c
 c--Print out massive point mass details

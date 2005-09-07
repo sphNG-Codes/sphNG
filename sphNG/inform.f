@@ -246,6 +246,10 @@ c
 c--Compute total angular momentum
 c
       CALL angmom
+c
+c--Compute various parameters to do with the magnetic field
+c
+      IF (imhd.EQ.idim) CALL mhdparams
 
       IF (where(1:6).NE.'newrun') THEN
 c

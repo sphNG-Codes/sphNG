@@ -42,6 +42,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/tming'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/mhd'
+      INCLUDE 'COMMONS/divcurlB'
       INCLUDE 'COMMONS/gradhterms'
 
       DIMENSION itempsort(idim), tempsort(idim)
@@ -52,6 +53,7 @@ c      INCLUDE 'COMMONS/torq'
       INTEGER*4 int1, int2
       INTEGER*8 number8
       DIMENSION nums(8)
+      DIMENSION Bxyz(3,imhd)
 
       DATA where/'wdump'/
 c
@@ -100,9 +102,9 @@ c--real*4
       number = 0
       WRITE (idisk1, ERR=100) number
 c--real*8
-      number = 3
+      number = 4
       WRITE (idisk1, ERR=100) number
-      WRITE (idisk1, ERR=100) udist, umass, utime
+      WRITE (idisk1, ERR=100) udist, umass, utime, umagfd
 c
 c--Arrays
 c
@@ -143,7 +145,7 @@ c--Array length 3 header
 c
       IF (number.GE.3) THEN
          IF (encal.EQ.'r') THEN
-            number8 = iradtrans
+            number8 = npart
          ELSE
             number8 = 0
          ENDIF
@@ -166,7 +168,7 @@ c--Array length 4 header
 c
       IF (number.GE.4) THEN
          IF (imhd.EQ.idim) THEN
-            number8 = imhd
+            number8 = npart
          ELSE
             number8 = 0
          ENDIF
@@ -178,7 +180,7 @@ c
          IF (imhd.EQ.idim) THEN
             nums(6) = 3
          ENDIF
-         nums(7) = 0
+         nums(7) = 4
          nums(8) = 0
          WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
       ENDIF
@@ -237,7 +239,7 @@ c--real*4
 
 c--real*8
 
-      IF (encal.EQ.'r' .AND. iradtrans.GT.1) THEN
+      IF (encal.EQ.'r' .AND. iradtrans.EQ.idim) THEN
 c
 c--Array length 3 arrays
 c      
@@ -253,7 +255,7 @@ c--int*8
 
 c--Default real
          DO j = 1, 5
-            WRITE (idisk1, ERR=100) (ekcle(j,isort(i)), i=1, iradtrans)
+            WRITE (idisk1, ERR=100) (ekcle(j,isort(i)), i=1, npart)
          END DO
 c--real*4
 
@@ -275,11 +277,17 @@ c--int*4
 c--int*8
 
 c--Default real
+c
+c--dump B not B/rho
+c
          DO j = 1, 3
-            WRITE (idisk1, ERR=100) (Bevolxyz(j,isort(i)), i=1, imhd)
+            WRITE (idisk1, ERR=100) 
+     &            (Bevolxyz(j,isort(i))*rho(i), i=1, npart)
          END DO
 c--real*4
-
+         DO j = 1, 4
+            WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, npart)
+         ENDDO
 c--real*8
 
       ENDIF
@@ -332,9 +340,9 @@ c--real*4
       number = 0
       WRITE (idisk1, ERR=100) number
 c--real*8
-      number = 3
+      number = 4
       WRITE (idisk1, ERR=100) number
-      WRITE (idisk1, ERR=100) udist, umass, utime
+      WRITE (idisk1, ERR=100) udist, umass, utime, umagfd
 c
 c--Arrays
 c
@@ -375,7 +383,7 @@ c--Array length 3 header
 c
       IF (number.GE.3) THEN
          IF (encal.EQ.'r') THEN
-            number8 = iradtrans
+            number8 = npart
          ELSE
             number8 = 0
          ENDIF
@@ -398,7 +406,7 @@ c--Array length 4 header
 c
       IF (number.GE.4) THEN
          IF (imhd.EQ.idim) THEN
-            number8 = imhd
+            number8 = npart
          ELSE
             number8 = 0
          ENDIF
@@ -472,7 +480,7 @@ c--real*4
 
 c--real*8
 
-      IF (encal.EQ.'r' .AND. iradtrans.GT.1) THEN
+      IF (encal.EQ.'r' .AND. iradtrans.EQ.idim) THEN
 c
 c--Array length 3 arrays
 c
@@ -488,7 +496,7 @@ c--int*8
 
 c--Default real
          DO j = 1, 1
-            WRITE (idisk1, ERR=100) (ekcle(j,isort(i)), i=1, iradtrans)
+            WRITE (idisk1, ERR=100) (ekcle(j,isort(i)), i=1, npart)
          END DO
 c--real*4
 
@@ -511,7 +519,8 @@ c--int*8
 
 c--Default real
          DO j = 1, 3
-            WRITE (idisk1, ERR=100) (Bevolxyz(j,isort(i)), i=1, imhd)
+            WRITE (idisk1, ERR=100)
+     &            (Bevolxyz(j,isort(i))*rho(i), i=1, npart)
          END DO
 c--real*4
 
@@ -715,54 +724,54 @@ c
          ddv(i) = tempsort(i)
       END DO
       IF (encal.EQ.'r') THEN
-         DO i = 1, iradtrans
+         DO i = 1, npart
             tempsort(i) = ekcle(1,llist(i))
          END DO
-         DO i = 1, iradtrans
+         DO i = 1, npart
             ekcle(1,i) = tempsort(i)
          END DO
-         DO i = 1, iradtrans
+         DO i = 1, npart
             tempsort(i) = ekcle(2,llist(i))
          END DO
-         DO i = 1, iradtrans
+         DO i = 1, npart
             ekcle(2,i) = tempsort(i)
          END DO
-         DO i = 1, iradtrans
+         DO i = 1, npart
             tempsort(i) = ekcle(3,llist(i))
          END DO
-         DO i = 1, iradtrans
+         DO i = 1, npart
             ekcle(3,i) = tempsort(i)
          END DO
-         DO i = 1, iradtrans
+         DO i = 1, npart
             tempsort(i) = ekcle(4,llist(i))
          END DO
-         DO i = 1, iradtrans
+         DO i = 1, npart
             ekcle(4,i) = tempsort(i)
          END DO
-         DO i = 1, iradtrans
+         DO i = 1, npart
             tempsort(i) = ekcle(5,llist(i))
          END DO
-         DO i = 1, iradtrans
+         DO i = 1, npart
             ekcle(5,i) = tempsort(i)
          END DO
       ENDIF
       IF (imhd.EQ.idim) THEN
-         DO i = 1, imhd
+         DO i = 1, npart
             tempsort(i) = Bevolxyz(1,llist(i))
          END DO
-         DO i = 1, imhd
+         DO i = 1, npart
             Bevolxyz(1,i) = tempsort(i)
          END DO
-         DO i = 1, imhd
+         DO i = 1, npart
             tempsort(i) = Bevolxyz(2,llist(i))
          END DO
-         DO i = 1, imhd
+         DO i = 1, npart
             Bevolxyz(2,i) = tempsort(i)
          END DO
-         DO i = 1, imhd
+         DO i = 1, npart
             tempsort(i) = Bevolxyz(3,llist(i))
          END DO
-         DO i = 1, imhd
+         DO i = 1, npart
             Bevolxyz(3,i) = tempsort(i)
          END DO
       ENDIF

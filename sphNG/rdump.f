@@ -7,7 +7,7 @@ c************************************************************
 
       INCLUDE 'idim'
 
-      REAL*8 umassi, udisti, utimei
+      REAL*8 umassi, udisti, utimei, umagfdi
 
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/part'
@@ -106,11 +106,21 @@ c--real*4
       READ (idisk1, END=100) number
 c--real*8
       READ (idisk1, END=100) number
-      IF (number.NE.3) THEN
-         WRITE (*,*) 'ERROR 6 in rdump'
+      IF (number.LT.3) THEN
+         WRITE (*,*) 'ERROR 6 in rdump: nreal8 too small header'
          CALL quit
       ENDIF
-      READ (idisk1, END=100) udisti, umassi, utimei
+      IF (imhd.EQ.idim) THEN
+         IF (number.GT.3) THEN
+            READ (idisk1, END=100) udisti, umassi, utimei, umagfdi
+         ELSE
+            WRITE (iprint,*) 'WARNING: no mag field units in rdump'
+            READ (idisk1, END=100) udisti, umassi, utimei
+            umagfdi = umagfd         
+         ENDIF
+      ELSE
+         READ (idisk1, END=100) udisti, umassi, utimei
+      ENDIF
 c
 c--Arrays
 c
@@ -181,9 +191,21 @@ c--Default real
       DO j = 1, 4
          READ (idisk1, END=100) (vxyzu(j,i), i=1, npart)
       END DO      
+c--skip unnecessary reals
+      IF (nums(6).GT.9) THEN
+         DO j=1,nums(6)-9
+            READ (idisk1, END=100)
+         ENDDO
+      ENDIF    
 c--real*4
       READ (idisk1, END=100) (rho(i), i=1, npart)
       READ (idisk1, END=100) (dgrav(i), i=1, npart)
+c--skip unnecessary real*4's
+      IF (nums(7).GT.2) THEN
+         DO j=1,nums(7)-2
+            READ (idisk1, END=100)
+         ENDDO
+      ENDIF
 c     READ (idisk1, END=100) (alphaMM(i), i=1, npart)
 c--real*8
 
@@ -214,7 +236,8 @@ c--real*4
 
 c--real*8
 
-      IF (number.GE.3 .AND. nradtrans.GT.1) THEN
+      IF (number.GE.3 .AND. nradtrans.EQ.npart 
+     &    .AND. encal.EQ.'r') THEN
 c
 c--Array length 3 arrays
 c      
@@ -237,7 +260,7 @@ c--real*4
 c--real*8
 
       ENDIF
-      IF (number.GE.4 .AND. nmhd.GT.1) THEN
+      IF (number.GE.4 .AND. nmhd.EQ.npart .AND. imhd.EQ.idim) THEN
 c
 c--Array length 4 arrays
 c      
@@ -252,9 +275,24 @@ c--int*4
 c--int*8
 
 c--Default real
+c
+c--read B field from dump
+c
          DO j = 1, 3
             READ (idisk1, END=100) (Bevolxyz(j,i), i=1, npart)
          END DO
+c
+c--convert from B to B/rho for evolution
+c
+         DO i=1,npart
+            IF (rho(i).LE.0.) THEN
+               WRITE(*,*) 'ERROR: rho -ve in read dump, evolving B/rho'
+               CALL quit
+            ENDIF
+            DO j = 1,3
+               Bevolxyz(j,i) = Bevolxyz(j,i)/rho(i)
+            ENDDO
+         ENDDO
 c--real*4
 
 c--real*8
@@ -456,6 +494,9 @@ c
          CALL error(where,1)
       ELSEIF (umassi.LT.0.99999*umass .OR.umassi.GT.1.00001*umass) THEN
          CALL error(where,2)
+      ELSEIF (imhd.EQ.idim .AND.
+     &   umagfdi.LT.0.9999*umagfd .OR.umagfdi.GT.1.00001*umagfd) THEN
+         CALL error(where,4)
       ENDIF
       IF (npart.GT.idim) THEN
          CALL error(where,3)

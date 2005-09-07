@@ -43,7 +43,7 @@ c      INCLUDE 'COMMONS/torq'
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
       INTEGER*8 number8
-      DIMENSION nums(8)
+      DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
 
       DATA icall/2/
       DATA where/'rdump'/
@@ -134,7 +134,7 @@ c
 c
 c--Read array type 1 header
 c
-      READ (idisk1, END=100) number8, (nums(i), i=1,8)
+      READ (idisk1, END=100) number8, (nums1(i), i=1,8)
       IF (number8.NE.npart) THEN
          WRITE (*,*) 'ERROR 8 in rdump: npart wrong'
          CALL quit
@@ -143,14 +143,14 @@ c
 c
 c--Read array type 2 header
 c
-      READ (idisk1, END=100) number8, (nums(i), i=1,8)
+      READ (idisk1, END=100) number8, (nums2(i), i=1,8)
       nptmass = number8
 c
 c--Read array type 3 header
 c
       IF (number.GE.3) THEN
-         READ (idisk1, END=100) number8, (nums(i), i=1,8)
-         IF (number8.GT.iradtrans .OR. number8.NE.1 .AND. 
+         READ (idisk1, END=100) number8, (nums3(i), i=1,8)
+         IF (number8.GT.iradtrans .OR. number8.NE.0 .AND. 
      &        number8.NE.npart) THEN
             WRITE (*,*) 'ERROR 9 in rdump: iradtrans wrong ',number8,
      &           iradtrans,npart
@@ -162,7 +162,7 @@ c
 c--Read array type 4 header
 c
       IF (number.GE.4) THEN
-         READ (idisk1, END=100) number8, (nums(i), i=1,8)
+         READ (idisk1, END=100) number8, (nums4(i), i=1,8)
          IF (number8.GT.imhd .OR. number8.NE.1 .AND. 
      &        number8.NE.npart) THEN
             WRITE (*,*) 'ERROR 10 in rdump: imhd wrong ',number8,
@@ -192,8 +192,8 @@ c--Default real
          READ (idisk1, END=100) (vxyzu(j,i), i=1, npart)
       END DO      
 c--skip unnecessary reals
-      IF (nums(6).GT.9) THEN
-         DO j=1,nums(6)-9
+      IF (nums1(6).GT.9) THEN
+         DO j=1,nums1(6)-9
             READ (idisk1, END=100)
          ENDDO
       ENDIF    
@@ -201,8 +201,8 @@ c--real*4
       READ (idisk1, END=100) (rho(i), i=1, npart)
       READ (idisk1, END=100) (dgrav(i), i=1, npart)
 c--skip unnecessary real*4's
-      IF (nums(7).GT.2) THEN
-         DO j=1,nums(7)-2
+      IF (nums1(7).GT.2) THEN
+         DO j=1,nums1(7)-2
             READ (idisk1, END=100)
          ENDDO
       ENDIF

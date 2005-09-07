@@ -1,5 +1,5 @@
       SUBROUTINE derivi (dt,itime,xyzmh,vxyzu,
-     &     dvxyzu,dha,npart,ntot,ireal,alphaMM,ekcle,Bevolxyz)
+     &     dvxyzu,dha,npart,ntot,ireal,alphaMM,ekcle,Bevolxyz,dBxyz)
 c************************************************************
 c                                                           *
 c  This subroutine drives the computation of the forces on  *
@@ -15,6 +15,7 @@ c************************************************************
       DIMENSION ireal(idim)
       DIMENSION ekcle(5,iradtrans)
       DIMENSION Bevolxyz(3,imhd)
+      DIMENSION dBxyz(3,imhd),Bxyz(3,imhd)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -118,7 +119,7 @@ c
 
 c         CALL densityi(npart,xyzmh,vxyzu,
 c     &        nlst_in,nlst_end,llist,itime)
-         CALL iterate_density(npart,xyzmh,vxyzu,
+         CALL iterate_density(npart,xyzmh,vxyzu,dha,
      &        nlst_in,nlst_end,llist,itime)
 
          IF (itiming) THEN
@@ -225,6 +226,26 @@ C$OMP DO SCHEDULE (runtime)
      &           ekcle(1,i) = ekcle(1,j)
          END DO
 C$OMP END DO
+c
+c--make sure that B is sent in to force (instead of the evolved variable B/rho)
+c
+      IF (imhd.EQ.idim) THEN
+C$OMP    DO SCHEDULE (runtime)
+         DO i=1,ntot
+            DO j=1,3
+               Bxyz(j,i) = Bevolxyz(j,i)*dumrho(i)
+            ENDDO
+         ENDDO
+C$OMP    END DO
+cc      ELSE
+ccC$OMP    DO SCHEDULE (runtime)
+cc         DO i=1,ntot
+cc            DO j=1,3
+cc               Bxyz(j,i) = Bevolxyz(j,i)
+cc            ENDDO
+cc         ENDDO
+ccC$OMP    END DO
+      ENDIF
 C$OMP END PARALLEL
 
          IF (itiming) THEN
@@ -265,7 +286,8 @@ c
       IF (itiming) CALL getused(tforce1)
 
       CALL forcei(nlst_in,nlst_end,llist,dt,itime,npart,
-     &     xyzmh,vxyzu,dvxyzu,dha,dumrho,pr,vsound,alphaMM,ekcle,dedxyz)
+     &     xyzmh,vxyzu,dvxyzu,dha,dumrho,pr,vsound,alphaMM,
+     &     ekcle,dedxyz,Bxyz,dBxyz)
 
       IF (itiming) THEN
          CALL getused(tforce2)

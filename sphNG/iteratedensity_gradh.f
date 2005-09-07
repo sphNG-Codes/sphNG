@@ -1,4 +1,4 @@
-      SUBROUTINE iterate_density(npart,xyzmh,vxyzu,
+      SUBROUTINE iterate_density(npart,xyzmh,vxyzu,dha,
      &           nlst_in,nlst_end,list,itime)
 c************************************************************
 c                                                           *
@@ -20,6 +20,7 @@ c************************************************************
       PARAMETER(hfact=1.2) !!!,neides=INT(32./3.*pi*hfact**3))
       PARAMETER(tol=1.e-3,third=1./3.)
 
+      REAL*4 dha(2,idim)
       DIMENSION xyzmh(5,idim),vxyzu(4,idim),list(idim)
       DIMENSION newlist(idim), iredolist(idim), ifakelist(idim)
 
@@ -38,6 +39,9 @@ c************************************************************
       INCLUDE 'COMMONS/nlim'
       INCLUDE 'COMMONS/divve'
       INCLUDE 'COMMONS/btree'
+      INCLUDE 'COMMONS/outneigh'
+      INCLUDE 'COMMONS/call'
+      INCLUDE 'COMMONS/useles'
 
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
 99001 FORMAT ('entry subroutine iterate_density')
@@ -138,6 +142,7 @@ c--calculate density/gradh with this h and then exit
                      dhdrhoi = -hi/(3.*rhoi)
                      gradhs(1,i) = 1.
                      gradhs(2,i) = 0.
+                     dha(1,i) = 0. !!dhdrhoi*(-divv(i))
                   ELSE
                      iRedoNeighbours(i) = 1                  
                      ncalc = ncalc + 1
@@ -148,6 +153,21 @@ c--calculate density/gradh with this h and then exit
                   ncalc = ncalc + 1
                   newlist(ncalc) = i
                   xyzmh(5,i) = hnew
+                  dha(1,i) = dhdrhoi*(-divv(i))
+c
+c--neighbour statistics for output
+c
+                  IF (icall.EQ.3) THEN
+                     numneigh = nneigh(i)
+                     inmin = MIN(inmin,numneigh)
+                     inmax = MAX(inmax,numneigh)
+                     inminsy = MIN(inminsy,numneigh)
+                     inmaxsy = MAX(inmaxsy,numneigh)
+                     IF (hnew.LT.hmin .AND. numneigh.GT.neimin)
+     &                  ioutmin = ioutmin + 1
+                     IF (numneigh.GT.neimax) ioutsup = ioutsup + 1
+                     IF (numneigh.LT.neimin) ioutinf = ioutinf + 1
+                  ENDIF
                ENDIF
 
                IF (its.GE.(maxits-1)) THEN

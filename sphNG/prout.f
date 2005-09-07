@@ -186,7 +186,7 @@ c
      &           )
          IF (imhd.EQ.idim) THEN
             WRITE (iprint, 99105) Bmin, Bmean, Bmax
-99105       FORMAT (' mag field    min  :', 1PE14.5, 'mean:', 1PE14.5,
+99206       FORMAT (' mag field    min  :', 1PE14.5, 'mean:', 1PE14.5,
      &              ' max:', 1PE14.5,/)         
          ENDIF
          IF (encal.EQ.'r') THEN

@@ -1,0 +1,5 @@
+c
+c--divergence of the magnetic field and the current density J
+c
+      REAL*4 divcurlB
+      COMMON /divBJ/ divcurlB(4,imhd)

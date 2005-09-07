@@ -1,5 +1,5 @@
       SUBROUTINE derivi (dt,itime,xyzmh,vxyzu,
-     &     dvxyzu,dha,npart,ntot,ireal,alphaMM,ekcle,Bevolxyz)
+     &     dvxyzu,dha,npart,ntot,ireal,alphaMM,ekcle)
 c************************************************************
 c                                                           *
 c  This subroutine drives the computation of the forces on  *
@@ -14,7 +14,6 @@ c************************************************************
       REAL*4 dha(2,idim),alphaMM(idim)
       DIMENSION ireal(idim)
       DIMENSION ekcle(5,iradtrans)
-      DIMENSION Bevolxyz(3,imhd)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'

@@ -117,7 +117,7 @@ c
          dumxyzmh(5,ipart) = hfact*(dumxyzmh(4,ipart)/rhozero)**third
       ENDDO      
 
-c      CALL iterate_density(npart,dumxyzmh,vxyzu,
+c      CALL iterate_density(npart,dumxyzmh,vxyzu,f1ha,
 c     &                     nlst_in,nlst_end,llist,itime)
       CALL derivi(dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,ntot,
      &            ireal,alphaMM,ekcle,Bevolxyz,f1Bxyz)

@@ -1,6 +1,6 @@
       SUBROUTINE forcei(nlst_in,nlst_end,list,dt,itime,
      &      npart,xyzmh,vxyzu,fxyzu,dha,
-     &      trho,pr,vsound,alphaMMpass,ekcle,dedxyz)
+     &      trho,pr,vsound,alphaMMpass,ekcle,dedxyz,Bxyz,dBxyz)
 c************************************************************
 c                                                           *
 c  This subroutine computes the forces on particle ipart    *
@@ -17,6 +17,7 @@ c************************************************************
       DIMENSION fxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
       DIMENSION dedxyz(3,iradtrans)
+      DIMENSION Bxyz(3,imhd),dBxyz(3,imhd)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -51,6 +52,7 @@ c************************************************************
       INCLUDE 'COMMONS/outneigh'
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/curlist'
+      INCLUDE 'COMMONS/divcurlB'
       INCLUDE 'COMMONS/gradhterms'
 
       REAL*4 ddvxyz(3,idim)
@@ -77,7 +79,7 @@ C$OMP& shared(nlst_in,nlst_end,list,nneigh,iphase,neighover,neighb)
 C$OMP& shared(xyzmh,radkernel,trho,grwij,vxyzu,dvtable)
 C$OMP& shared(ddvxyz,cnormk)
 C$OMP& private(n,ipart,ddvxi,ddvyi,ddvzi,k,j,dx,dy,dz,rij2,rij,rij1)
-C$OMP& private(hmean,hmean21,hmean41,v,v2,index,dxx,index1,rhoj,grwtij)
+C$OMP& private(hi,hi21,hi41,vi,v2i,gradhi,index,dxx,index1,rhoj,grwtij)
 C$OMP& private(dgrwdx,grpm,dvx,dvy,dvz,edotv,termx,termy,termz)
 C$OMP& private(ddvscalar)
       DO 180 n = nlst_in, nlst_end
@@ -108,28 +110,29 @@ c
             rij = SQRT(rij2)
             rij1 = 1./rij
 c
-c--Define mean h
+c--Use hi
 c
-            hmean = 0.5*(xyzmh(5,ipart) + xyzmh(5,j))
-            hmean21 = 1./(hmean*hmean)
-            hmean41 = hmean21*hmean21
+            hi = xyzmh(5,ipart)
+            hi21 = 1./(hi*hi)
+            hi41 = hi21*hi21
+            gradhi = gradhs(1,ipart)
 
-            v2 = rij2*hmean21
-            v = rij/hmean
+            v2i = rij2*hi21
+            vi = rij/hi
 
-            index = v2/dvtable
-            dxx = v2 - index*dvtable
+            index = v2i/dvtable
+            dxx = v2i - index*dvtable
             index1 = index + 1
             IF (index1.GT.itable) index1 = itable
 
-            IF (v.LT.radkernel) THEN
+            IF (vi.LT.radkernel) THEN
                rhoj = trho(j)
 c 
 c--Get kernel quantities from interpolation in table
 c
                dgrwdx = (grwij(index1) - grwij(index))/dvtable
-               grwtij = (grwij(index) + dgrwdx*dxx)*hmean41
-               grpm = xyzmh(4,j)*grwtij
+               grwtij = (grwij(index) + dgrwdx*dxx)*hi41
+               grpm = xyzmh(4,j)*grwtij*gradhi
 
                dvx = vxyzu(1,ipart) - vxyzu(1,j)
                dvy = vxyzu(2,ipart) - vxyzu(2,j)
@@ -176,10 +179,12 @@ C$OMP& shared(alphaMMpass,alphamin,ddv,ddvxyz)
 C$OMP& shared(igrp,igphi,ifsvi,iexf)
 C$OMP& shared(ifcor,iexpan,iener,damp)
 C$OMP& shared(realtime,ekcle,encal,dedxyz)
+C$OMP& shared(Bxyz,dBxyz,Bextx,Bexty,Bextz)
 C$OMP& private(n,ipart,stepsi,numneigh)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(poteni,dphiti,gradxi,gradyi,gradzi,artxi,artyi,artzi)
 C$OMP& private(pdvi,dqi,rhoi,pro2i,vsoundi,k,j,hj,dx,dy,dz)
+C$OMP& private(rho1i,rho21i,sqrtrho1i,rho1j)
 C$OMP& private(rij2,rij,rij1,pmassj,runix,runiy,runiz,hmean,hmean21)
 C$OMP& private(hi1,hi21,hi41,v2i,vi)
 C$OMP& private(hj1,hj21,hj41,v2j,vj)
@@ -192,6 +197,10 @@ C$OMP& private(vlowcorrection,qi,qj)
 C$OMP& private(ii,iptcurv,xii,yii,zii,vpos)
 C$OMP& private(alphamean,projddv,termx,termy,termz,ddvscalar)
 C$OMP& private(gradhi,gradsofti,gradpi,gradpj)
+C$OMP& private(Bxi,Byi,Bzi,B2i,B2ext)
+C$OMP& private(Bxj,Byj,Bzj,B2j,projBi,projBj,dBx,dBy,dBz)
+C$OMP& private(dBxideali,dByideali,dBzideali,dBxdissi,dBydissi,dBzdissi)
+C$OMP& private(divBi,curlBxi,curlByi,curlBzi)
 C$OMP& reduction(+:ioutmin,ioutsup,ioutinf)
 C$OMP& reduction(MIN:inmin,inminsy)
 C$OMP& reduction(MAX:inmax,inmaxsy)
@@ -199,34 +208,27 @@ C$OMP& reduction(MAX:inmax,inmaxsy)
 C$OMP DO SCHEDULE(runtime)
       DO n = nlst_in, nlst_end
          ipart = list(n)
-         IF (iphase(ipart).EQ.-1) THEN
-            WRITE(iprint,*) 'Error: Force for non-existant particle'
-            CALL quit
-         ELSEIF (iphase(ipart).EQ.0) THEN
-c
-c--Derivative of smoothing length
-c       
-            IF (icall.EQ.3) THEN
-               numneigh = nneigh(ipart)
-               inmin = MIN(inmin,numneigh)
-               inmax = MAX(inmax,numneigh)
-               inminsy = MIN(inminsy,numneigh)
-               inmaxsy = MAX(inmaxsy,numneigh)
-               IF (xyzmh(5,ipart).LT.hmin .AND. numneigh.GT.neimin)
-     &              ioutmin = ioutmin + 1
-               IF (numneigh.GT.neimax) ioutsup = ioutsup + 1
-               IF (numneigh.LT.neimin) ioutinf = ioutinf + 1
-            ENDIF
-            stepsi = dt*isteps(ipart)/imaxstep
-            CALL hdot(npart, ipart, stepsi, xyzmh, dha)
-         ENDIF
+
       END DO
 C$OMP END DO
+
+      IF (imhd.EQ.idim) THEN
+         B2ext = Bextx**2 + Bexty**2 + Bextz**2
+      ELSE
+         B2ext = 0.
+         B2i = 0.
+         B2j = 0.
+      ENDIF
 
 C$OMP DO SCHEDULE(runtime)
       DO n = nlst_in, nlst_end
          ipart = list(n)
-         IF (iphase(ipart).GE.1) GOTO 80
+         IF (iphase(ipart).EQ.-1) THEN
+            WRITE(iprint,*) 'Error: Force for non-existant particle'
+            CALL quit
+         ELSEIF (iphase(ipart).GE.1) THEN
+            GOTO 80
+         ENDIF  
 c
 c--Compute forces on particle ipart
 c
@@ -243,6 +245,22 @@ c
          vzi = vxyzu(3,ipart)
          gradhi = gradhs(1,ipart)
          gradsofti = gradhs(2,ipart)
+         IF (imhd.EQ.idim) THEN
+            Bxi = Bxyz(1,ipart)
+            Byi = Bxyz(2,ipart)
+            Bzi = Bxyz(3,ipart)
+            B2i = Bxi**2 + Byi**2 + Bzi**2
+	    dBxideali = 0.
+	    dByideali = 0.
+	    dBzideali = 0.
+	    dBxdissi = 0.
+	    dBydissi = 0.
+	    dBzdissi = 0.
+            divBi = 0.
+            curlBxi = 0.
+            curlByi = 0.
+            curlBzi = 0.
+         ENDIF
 
          gravxi = 0.
          gravyi = 0.
@@ -262,17 +280,20 @@ c
 
          pdvi = 0.
          dqi = 0.
-
+         
          ddvxi = 0.
          ddvyi = 0.
          ddvzi = 0.
          ddvscalar = 0.
 
          rhoi = trho(ipart)
+         rho1i = 1./rhoi
+         sqrtrho1i = SQRT(rho1i)
+         rho21i = rho1i*rho1i
          IF (iphase(ipart).GE.1) THEN
             pro2i = 0.0
          ELSE
-            pro2i = (pr(ipart) - pext)/(rhoi*rhoi)
+            pro2i = (pr(ipart) - pext + 0.5*(B2i-B2ext))*rho21i
          ENDIF
          vsoundi = vsound(ipart)
 
@@ -326,7 +347,19 @@ c
             v2j = rij2*hj21
             vj = rij*hj1
             rhoj = trho(j)
-            robar = 0.5*(rhoi + rhoj)
+            rho1j = 1./rhoj
+            robar1 = 2./(rhoi + rhoj)
+            IF (imhd.EQ.idim) THEN
+               Bxj = Bxyz(1,j)
+               Byj = Bxyz(2,j)
+               Bzj = Bxyz(3,j)
+	       dBx = Bxi - Bxj
+	       dBy = Byi - Byj
+	       dBz = Bzi - Bzj
+               B2j = Bxj**2 + Byj**2 + Bzj**2
+               projBi = Bxi*runix + Byi*runiy + Bzi*runiz
+               projBj = Bxj*runix + Byj*runiy + Bzj*runiz
+            ENDIF
 c
 c--Using hi
 c
@@ -380,7 +413,26 @@ c
                   dsoftyi = dsoftyi - dsofttermi*runiy
                   dsoftzi = dsoftzi - dsofttermi*runiz
                ENDIF
-
+               
+               IF (imhd.EQ.idim) THEN
+c		  
+c--time derivative terms
+c
+	          dBxideali = dBxideali - grpmi*dvx*projBi
+	          dByideali = dByideali - grpmi*dvy*projBi
+	          dBzideali = dBzideali - grpmi*dvz*projBi
+c		  
+c--compute divB
+c
+		  projdB = dBx*runix + dBy*runiy + dBz*runiz
+	          divBi = divBi - grpmi*projdB
+c
+c--compute current
+c	          
+                  curlBxi = curlBxi + grpmi*(dBy*runiz - dBz*runiy)
+		  curlByi = curlByi + grpmi*(dBz*runix - dBx*runiz)
+		  curlBzi = curlBzi + grpmi*(dBx*runiy - dBy*runix)
+               ENDIF
             ELSE
                grkerni = 0.
                gradpi = 0.
@@ -402,7 +454,7 @@ c              (note that kernel gradient is multiplied by gradhj)
 c
 c--j contribution to pressure gradient
 c
-               poro2j = (pr(j) - pext)/(rhoj**2)
+               poro2j = (pr(j) - pext + 0.5*(B2j-B2ext))*rho1j*rho1j
                gradpj = grpmj*poro2j
 c
 c--j contribution to force softening (including pseudo-pressure term)
@@ -457,6 +509,59 @@ c--calculate average of kernel gradients
 c
 	       grwtij = 0.5*(grkerni + grkernj)
                grpm = pmassj*grwtij
+
+               IF (imhd.EQ.idim) THEN
+c
+c--anisotropic magnetic force (Morris formalism)
+c
+                  rhoij1 = rho1i*rho1j
+                  projBext = Bextx*runix + Bexty*runiy + Bextz*runiz
+		  fanisoxi = fanisoxi
+     &                     + grpm*((Bxj-Bextx)*(projBj-projBext)
+     &                           - (Bxi-Bextx)*(projBi-projBext))*rhoij1
+		  fanisoyi = fanisoyi 
+     &                     + grpm*((Byj-Bexty)*(projBj-projBext)
+     &                           - (Byi-Bexty)*(projBi-projBext))*rhoij1
+		  fanisozi = fanisozi
+     &                     + grpm*((Bzj-Bextz)*(projBj-projBext)
+     &                           - (Bzi-Bextz)*(projBi-projBext))*rhoij1
+c
+c--signal velocity (MHD)
+c
+                  vsoundj = vsound(j)
+		  vs2i = vsoundi**2 + B2i*rho1i
+		  vs2j = vsoundj**2 + B2j*rho1j
+		  vsproji = 2.*vsoundi*projBi*sqrtrho1i
+		  vsprojj = 2.*vsoundj*projBj*SQRT(rho1j)		     
+		  vsigi = 0.5*(SQRT(vs2i - vsproji)
+     &                        +SQRT(vs2i + vsproji))
+ 		  vsigj = 0.5*(SQRT(vs2j - vsprojj)
+     &                        +SQRT(vs2j + vsprojj))
+                  vsbar = 0.5*(vsigi + vsigj)
+c
+c--artificial resistivity
+c
+		  IF (j.LE.npart) THEN
+                     alphaB = 1.0
+                     termB = alphaB*grpm*(vsbar + abs(projv))*robar1
+c                    dBxdissi = dBxdissi + termB*(dBx - runix*projdB)*robar1
+c                    dBydissi = dBydissi + termB*(dBy - runiy*projdB)*robar1
+c                    dBzdissi = dBzdissi + termB*(dBz - runiz*projdB)*robar1
+		     dBxdissi = dBxdissi + termB*dBx*robar1
+		     dBydissi = dBydissi + termB*dBy*robar1
+		     dBzdissi = dBzdissi + termB*dBz*robar1
+
+		     !!--add contribution to thermal energy
+		     dB2 = dBx*dBx + dBy*dBy + dBz*dBz
+c                    dqi = dqi - termB*(dB2 - projdB**2)*robar1
+                     dqi = dqi - termB*dB2*robar1
+                  ENDIF
+               ELSE
+c
+c--signal velocity (hydro)
+c
+                  vsbar = 0.5*(vsoundi + vsound(j))
+               ENDIF
 c
 c--Artificial viscosity and energy dissipation
 c
@@ -465,65 +570,26 @@ c
 c--Calculate artificial viscosity:
 c     If ifsvi=1 then normal viscosity
 c     If ifsvi=2 then divv/curl weighted viscosity
-c     If ifsvi=3 then viscosity reduced linearly to zero below vsound/2
-c     If ifsvi=4 then Balsara viscosity (divv/curl weighted,but times pressure)
-c     If ifsvi=5 then viscosity in Hernquist and Katz, ApJS 70, 424
 c     If ifsvi=6 then viscosity switch in Morris and Monaghan, 1997, 
 c                  J. Comp. Phys. 136, 41-50.  This formulation does not use
 c                  beta - it sets beta to be 2*alpha automatically.
 c
-                  IF (ifsvi.NE.5) THEN
-                     vsbar = 0.5*(vsoundi + vsound(j))
-                     f = projv !!!*v/(v2 + epsil)
-                     IF (ifsvi.EQ.2 .OR. ifsvi.EQ.4) THEN
-                        adivi = ABS(divv(ipart)/rhoi)
-                        acurlvi = ABS(curlv(ipart)/rhoi)
-                        fi = adivi/(adivi+acurlvi+epsil2*vsoundi/hi)
-                        adivj = ABS(divv(j)/rhoj)
-                        acurlvj = ABS(curlv(j)/rhoj)
-                        fj = adivj/(adivj+acurlvj+epsil2*vsound(j)/hj)
-
-                        IF (ifsvi.EQ.2) THEN
-                           f = f*(fi+fj)/2.0
-
-                           t12j = grpm*f*(beta*f - alpha*vsbar)/robar
-                        ELSEIF (ifsvi.EQ.4) THEN
-                           f = f*(fi+fj)/(vsoundi+vsound(j))
-
-                           t12j = poro2j*f*(beta*f - alpha)
-                        ENDIF
-                     ELSEIF (ifsvi.EQ.6) THEN
-                        alphamean = (alphaMMpass(ipart) + 
+                  f = projv
+                  IF (ifsvi.EQ.2) THEN
+                     adivi = ABS(divv(ipart)*rho1i)
+                     acurlvi = ABS(curlv(ipart)*rho1i)
+                     fi = adivi/(adivi+acurlvi+epsil2*vsoundi/hi)
+                     adivj = ABS(divv(j)*rho1j)
+                     acurlvj = ABS(curlv(j)*rho1j)
+                     fj = adivj/(adivj+acurlvj+epsil2*vsound(j)/hj)
+                     f = f*(fi+fj)/2.0
+                     t12j = grpm*f*(beta*f - alpha*vsbar)*robar1
+                  ELSEIF (ifsvi.EQ.6) THEN
+                     alphamean = (alphaMMpass(ipart) + 
      &                       alphaMMpass(j))/2.0
-                        t12j = alphamean*grpm*f*(2.0*f - vsbar)/robar
-                     ELSE
-                        t12j = grpm*f*(beta*f - alpha*vsbar)/robar
-                     ENDIF
-                     IF (ifsvi.EQ.3) THEN
-                        vlowcorrection = ABS(projv/vsbar)
-                        IF (vlowcorrection.LT.0.5) 
-     &                       t12j = 2.0*vlowcorrection*t12j
-                     ENDIF
+                     t12j = alphamean*grpm*f*(2.0*f - vsbar)*robar1
                   ELSE
-c
-c--Hernquist and Katz
-c
-                     IF (divv(ipart).LT.0) THEN
-                        adivi = ABS(divv(ipart)/rhoi)
-                        qi = hi*rhoi*adivi*(alpha*vsoundi + 
-     &                       beta*hi*adivi)
-                     ELSE
-                        qi = 0.0
-                     ENDIF
-                     IF (divv(j).LT.0) THEN
-                        adivj = ABS(divv(j)/rhoj)
-                        hj = xyzmh(5,j)
-                        qj = hj*rhoj*adivj*(alpha*vsound(j) + 
-     &                       beta*hj*adivj)
-                     ELSE
-                        qj = 0.0
-                     ENDIF
-                     t12j = grpm*(qi/(rhoi**2) + qj/(rhoj**2))
+                     t12j = grpm*f*(beta*f - alpha*vsbar)*robar1
                   ENDIF
 
                   artxi = artxi + t12j*runix
@@ -563,6 +629,7 @@ c--Average softening lengths
                   ENDIF
                   hmean21 = 1./(hmean*hmean)
                   v2 = rij2*hmean21
+                  v = SQRT(v2)
                   IF (v2.GE.radkernel*radkernel) THEN
                      fm = 1.0
                      phi = -rij1
@@ -616,6 +683,21 @@ c
             fxyzu(1,ipart) = fxyzu(1,ipart) - gradxi*cnormk
             fxyzu(2,ipart) = fxyzu(2,ipart) - gradyi*cnormk
             fxyzu(3,ipart) = fxyzu(3,ipart) - gradzi*cnormk
+         ENDIF
+c
+c--Anisotropic magnetic force, time derivative of B/rho, div/curl B
+c
+         IF (imhd.EQ.idim) THEN
+            fxyzu(1,ipart) = fxyzu(1,ipart) + fanisoxi*cnormk
+            fxyzu(2,ipart) = fxyzu(2,ipart) + fanisoyi*cnormk
+            fxyzu(3,ipart) = fxyzu(3,ipart) + fanisozi*cnormk
+            dBxyz(1,ipart) = cnormk*(dBxideali*rho21i + dBxdissi)
+            dBxyz(2,ipart) = cnormk*(dByideali*rho21i + dBydissi)
+            dBxyz(3,ipart) = cnormk*(dBzideali*rho21i + dBzdissi)
+            divcurlB(1,ipart) = cnormk*divBi*rho1i
+            divcurlB(2,ipart) = cnormk*curlBxi*rho1i
+            divcurlB(3,ipart) = cnormk*curlByi*rho1i
+            divcurlB(4,ipart) = cnormk*curlBzi*rho1i
          ENDIF
 c
 c--Artificial viscosity

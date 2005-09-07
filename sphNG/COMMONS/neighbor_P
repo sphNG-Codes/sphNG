@@ -1,7 +1,7 @@
       INTEGER nlmax, neighb
-      PARAMETER (nlmax = 70)
-      PARAMETER (noverflow = 30000)
-      PARAMETER (nlovermax = 100*nlmax)
+      PARAMETER (nlmax = 100)
+      PARAMETER (noverflow = 2000)
+      PARAMETER (nlovermax = 10*nlmax)
 
       COMMON /neighbor/ neighb(nlmax,idim),
      &	                neighover(nlovermax,noverflow),numoverflow,

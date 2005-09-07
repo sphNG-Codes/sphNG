@@ -87,7 +87,7 @@ c--max/av magnitude of current
 c
          curlBxi= divcurlB(2,i)
          curlByi= divcurlB(3,i)
-         curlBzi= divcurlBz(4,i)
+         curlBzi= divcurlB(4,i)
          curlBmag2i= curlBxi*curlBxi + curlByi*curlByi + curlBzi*curlBzi
          curlBmagi= SQRT(curlBmag2i)
          curlBav= curlBav + curlBmagi

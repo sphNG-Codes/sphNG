@@ -1,3 +1,4 @@
       REAL*4 f2ha
 
-      COMMON /f2   / f2vxyzu(4,idim), f2ha(2,idim), dum2vxyz(3,idim)
+      COMMON /f2   / f2vxyzu(4,idim), f2ha(2,idim), dum2vxyz(3,idim),
+     &               f2Bxyz(3,imhd)

@@ -114,7 +114,7 @@ c--real*8
          IF (number.GT.3) THEN
             READ (idisk1, END=100) udisti, umassi, utimei, umagfdi
          ELSE
-            WRITE (iprint,*) 'WARNING: no mag field units in rdump'
+            WRITE (*,*) 'WARNING: no mag field units in rdump'
             READ (idisk1, END=100) udisti, umassi, utimei
             umagfdi = umagfd         
          ENDIF

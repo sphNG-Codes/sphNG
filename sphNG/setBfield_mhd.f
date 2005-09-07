@@ -106,7 +106,7 @@ c
         READ(*,*) Binit	
 	Binit5 = 0.5*Binit
 	DO i=1,npart
-	   Bevolxyz(1.i) = 2.0*(Binit*ran1(1) - Binit5)
+	   Bevolxyz(1,i) = 2.0*(Binit*ran1(1) - Binit5)
 	   Bevolxyz(2,i) = 2.0*(Binit*ran1(1) - Binit5)
 	   Bevolxyz(3,i) = 2.0*(Binit*ran1(1) - Binit5)
 	ENDDO

@@ -13,10 +13,8 @@
 
 .KEEP_STATE:
 
-FORTRAN = xlf_r -qnosave
-FC = xlf_r -qnosave
-#FORTRAN = ifc
-#FC = ifc
+FORTRAN = g95
+FC = g95
 #FC = xlf90_r -qfixed=72
 #RENAMES = -brename:.itime,.itime_ -brename:.idate,.idate_ \
 #          -brename:.etime,.etime_ -brename:.flush,.flush_
@@ -26,14 +24,15 @@ RENAMES =
 ### Prepare for debugging                                  ###
 ##############################################################
 
-ZFFLAGS= -O3 -q64  -qextname -qsmp=noauto
-ZZFFLAGS = ${ZFFLAGS} # -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap
--qfloat=nans 
-FFLAGS = ${ZZFFLAGS} -qrealsize=8
+#ZFFLAGS= -O3 -q64  -qextname -qsmp=noauto
+#ZZFFLAGS = ${ZFFLAGS} # -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap
+#-qfloat=nans 
+#FFLAGS = ${ZZFFLAGS} -qrealsize=8
 
-#ZFFLAGS= -O3 -w90 -w95 -Vaxlib -cm ##-q64  -qextname -qsmp=noauto
-#ZZFFLAGS = ${ZFFLAGS} # -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
-#FFLAGS = ${ZZFFLAGS} -r8 
+ZFFLAGS= -O3 -Wunset-vars -Wline-truncation
+#ZFFLAGS= -O3 -w90 -w95 -Vaxlib -cm -C ##-q64  -qextname -qsmp=noauto
+ZZFFLAGS = ${ZFFLAGS} # -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
+FFLAGS = ${ZZFFLAGS} -r8 
 
 SOURCES= sph.f accrete_P.f addump.f angmom.f boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f \
@@ -44,15 +43,15 @@ SOURCES= sph.f accrete_P.f addump.f angmom.f boundry.f \
 	getcv.f get1overmu.f getkappa.f \
 	gforsa_P.f gforsn_P.f gforspt_P.f \
 	ghostp1.f ghostp2.f ghostp3.f ghostp11.f ghostp100.f \
-	gptall.f hcalc_gradh.f hdot_P_gradh.f \
+	gptall.f hcalc_gradh.f \
 	header.f homexp.f indexx.f indexx2.f indexx3.f inform.f \
 	iteratedensity_gradh.f \
 	inopts.f insulate_TREE_P.f integs.f ktable.f labrun.f lunit_double.f \
-	mainop.f mesop.f modif.f mtree_P.f \
+	mainop.f mhdparams_mhd.f mesop.f modif.f mtree_P.f \
 	newrun.f options.f phoenix.f phoenix2.f \
 	place.f preset_gradh.f \
 	prout.f ran1.f rdump.f reduce.f revtree_P.f save.f \
-        scaling.f secmes.f setpart.f smoothd_P.f \
+        scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f step_P_lf_gradh.f timestep.f \
 	toten.f treef_P_gradh.f unifdis.f unit_bb97.f \
 	wdump_gradh.f wrinsph.f zzsun_f77_double1.f

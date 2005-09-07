@@ -494,9 +494,11 @@ c
          CALL error(where,1)
       ELSEIF (umassi.LT.0.99999*umass .OR.umassi.GT.1.00001*umass) THEN
          CALL error(where,2)
-      ELSEIF (imhd.EQ.idim .AND.
-     &   umagfdi.LT.0.9999*umagfd .OR.umagfdi.GT.1.00001*umagfd) THEN
-         CALL error(where,4)
+      ELSEIF (imhd.EQ.idim) THEN
+         IF (umagfdi.LT.0.9999*umagfd 
+     &      .OR.umagfdi.GT.1.00001*umagfd) THEN
+            CALL error(where,4)
+         ENDIF
       ENDIF
       IF (npart.GT.idim) THEN
          CALL error(where,3)

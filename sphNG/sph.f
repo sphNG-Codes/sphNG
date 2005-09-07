@@ -3,14 +3,15 @@ c************************************************************
 c************************************************************
 c************************************************************
 c******************                    **********************
-c******************    S    P    H     **********************
+c******************   S  P (M, R) H    **********************
 c******************                    **********************
 c************************************************************
 c************************************************************
 c************************************************************
 c                                                           *
-c  This is a three-dimensional hydro code based on the      *
-c  so-called smoothed particles hydrodynamics method.       *
+c  This is a three-dimensional hydro, MHD and radiation     *
+c  hydro code based on the Smoothed Particle Hydrodynamics  *
+c  method.                                                  *
 c                                                           *
 c************************************************************
 c                                                           *
@@ -21,6 +22,9 @@ c  I. A. Bonnell  University de Montreal         XX/XX/91   *
 c                 University of Cambridge, UK    01/10/92   *
 c                                                           *
 c  M. R. Bate     University of Cambridge, UK    01/10/92   *
+c                                                           *
+c  D. J. Price	  University of Cambridge, UK    XX/XX/03   *
+c                 University of Exeter, UK       XX/XX/05   *
 c                                                           *
 c************************************************************
 c                                                           *
@@ -44,6 +48,11 @@ c                                         MPIA  02/02/96    *
 c                                                           *
 c  (1) switchable between BINARY TREE and GRAPE board       *
 c         computation of gravity and neighbours lists       *
+c                                                           *
+c  Modifications by: D. J. Price       UofExeter 2003-2005  *
+c                                                           *
+c  (1) grad h terms, grad soft terms                        *
+c  (2) MHD                                                  *
 c                                                           *
 c************************************************************
 c  General Description                                      *
@@ -131,7 +140,7 @@ c     execution (see MESOP)                                 *
 c  4) The debug option IDEBUG should be used with care since*
 c     it produces a lont of output! ITRACE can be set to all*
 c     to trace the code through the various subroutines in  *
-c     case of misterious errors!                            *
+c     case of mysterious errors!                            *
 c  5) All forces can be turned off or on at will except for *
 c     pressure gradients than should always be on.          *
 c  6) The code in its present version assumes a perfect gas *
@@ -236,12 +245,6 @@ c  angto        (angm ) : total angular momentum            *
 c  angx         (angm ) : x componant of total angular mom. *
 c  angy         (angm ) : y componant of total angular mom. *
 c  angz         (angm ) : z componant of total angular mom. *
-c  artvix(idim) (artv1) : x componant of artif. viscosity   *
-c                         pressure gradient                 *
-c  artviy(idim) (artv1) : y componant of artif. viscosity   *
-c                         pressure gradient                 *
-c  artviz(idim) (artv1) : z componant of artif. viscosity   *
-c                         pressure gradient                 *
 c  beta         (shock) : coefficient for Neumann-Richtmeyer*
 c                         viscosity                         *
 c  cmx1         (out1 ) : x coord. of c.m. body 1           *
@@ -269,12 +272,6 @@ c  fx(idim)     (force) : x componant of total force        *
 c  fy(idim)     (force) : y componant of total force        *
 c  fz(idim)     (force) : z componant of total force        *
 c  gamma        (cgas ) : value of gamma                    *
-c  gradpx(idim) (gradp) : x componant of pressure gradients *
-c  gradpy(idim) (gradp) : y componant of pressure gradients *
-c  gradpz(idim) (gradp) : z componant of pressure gradients *
-c  gravx(idim)  (gravi) : x componant of body forces        *
-c  gravy(idim)  (gravi) : y componant of body forces        *
-c  gravz(idim)  (gravi) : z componant of body forces        *
 c  grwij(itable)(table) : gradient of kernel table          *
 c  gt           (gtime) : current global time in code units *
 c  h(idim)      (kerne) : smoothing length                  *
@@ -417,7 +414,12 @@ c************************************************************
 c
 c--Version - date is date last updated with other code version changes
 c
-      version = 'SPH3DTSPGO4P-OPT6-1.0-MRB-29-06-05'
+      version = 'SPRMHD-1.0-MRB-DJP-06-09-05'
+c
+c   Derived from version = 'SPH3DT-PTMAS-GRAPE-O4-1.0-MRB-17-04-98'
+c     but including MHD, gradh terms and radiative transfer.
+c
+c      version = 'SPH3DTSPGO4P-OPT6-1.0-MRB-29-06-05'
 c
 c   Derived from version = 'SPH3DT-PTMAS-GRAPE-O4-1.0-MRB-17-04-98'
 c     but has been rewritten to have arrays such as x,y,z,pmass,h combined

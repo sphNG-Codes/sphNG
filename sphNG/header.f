@@ -268,7 +268,7 @@ c
 c--Magnetic field details
 c
          IF (imhd.EQ.idim) THEN
-            WRITE(iprint,99114)
+            WRITE(iprint,99213)
 99213       FORMAT(' Magnetic fields are ON',//)
          ENDIF
 c

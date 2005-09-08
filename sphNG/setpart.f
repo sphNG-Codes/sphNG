@@ -1333,17 +1333,7 @@ c
       READ (*, 99004) iok
       IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim) CALL hcalc
 
-      IF (imhd.EQ.idim) THEN
-         WRITE(*,99145)
-99145    FORMAT(' Calculating B/rho from B for MHD evolution...')
-         DO i=1,npart
-            IF (rho(i).LE.0.) STOP 'ERROR!!! rho = 0 setting up B/rho!'
-            rho1i = 1./rho(i)
-            DO j=1,3
-               Bevolxyz(j,i) = Bevolxyz(j,i)*rho1i
-            ENDDO
-         ENDDO
-      
+      IF (imhd.EQ.idim) THEN      
          IF (ibound.EQ.7) THEN
             Bextx = Bxzero
             Bexty = Byzero

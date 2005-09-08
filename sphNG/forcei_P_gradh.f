@@ -260,6 +260,9 @@ c
             curlBxi = 0.
             curlByi = 0.
             curlBzi = 0.
+            fanisoxi = 0.
+            fanisoyi = 0.
+            fanisozi = 0.
          ENDIF
 
          gravxi = 0.

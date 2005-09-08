@@ -115,7 +115,7 @@ c
 c--Conserved Cross Helicity (int v.B dV)
 c
          crosshel = crosshel + pmassi*(vxyzu(1,i)*Bxi 
-     &                         + vxyzu(2,i)*Byi + vxyzu(4,i)*Bzi)*rho1i
+     &                         + vxyzu(2,i)*Byi + vxyzu(3,i)*Bzi)*rho1i
 
       ENDDO
       

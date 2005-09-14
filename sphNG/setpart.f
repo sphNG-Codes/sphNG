@@ -1340,6 +1340,10 @@ c
             Bextz = Bzzero
             WRITE(*,99055) Bextx,Bexty,Bextz
 99055       FORMAT(' Setting external B field = ',3(1PE12.4,2X)) 
+         ELSE
+            Bextx = 0.
+            Bexty = 0.
+            Bextz = 0.
          ENDIF
       ENDIF
        

@@ -212,7 +212,7 @@ C$OMP DO SCHEDULE(runtime)
       END DO
 C$OMP END DO
 
-      IF (imhd.EQ.idim) THEN
+      IF (imhd.EQ.idim .AND. ibound.EQ.7) THEN
          B2ext = Bextx**2 + Bexty**2 + Bextz**2
       ELSE
          B2ext = 0.

@@ -20,6 +20,7 @@ c************************************************************
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/nextmpt'
       INCLUDE 'COMMONS/logun'
+      INCLUDE 'COMMONS/perform'
 
       natom = nnatom
 
@@ -27,6 +28,8 @@ c
 c--REVISE ENTIRE TREE (STANDARD REVTREE)
 c
       IF (nlst.GT.nnatom/5000 .OR. (.NOT. ipartialrevtree)) THEN
+
+      IF (itiming) CALL getused(revtreeptemp1)
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(natom,npart,imfac)
@@ -202,73 +205,93 @@ c
 
          ENDIF
       END DO
+
+      IF (itiming) THEN
+         CALL getused(revtreeptemp2)
+         revtreep1 = revtreep1 + (revtreeptemp2 - revtreeptemp1)
+      ENDIF
 c
 c--ONLY REVISE PART OF THE TREE - CURRENT PARTICLES AND THEIR NEIGHBOURS
 c     AND ANY ACCRETED OR KILLED PARTICLES FROM THE LAST STEP
 c
       ELSE
 
-      IF (nlst.GT.50) THEN
+      IF (itiming) CALL getused(revtreeptemp1)
+
+      IF (nlst.GT.nptmass) THEN
+         IF (nlst.GT.50) THEN
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst,llist,iflagtree,nneigh,neighb,neighover)
 C$OMP& private(i,j,k,ipart,jpart,kpart)
 C$OMP DO SCHEDULE(static)
-         DO i = 1, nlst
-            ipart = llist(i)
+            DO i = 1, nlst
+               ipart = llist(i)
 C$OMP CRITICAL (flagtree)
-            iflagtree(ipart) = .TRUE.
+               iflagtree(ipart) = .TRUE.
 C$OMP END CRITICAL (flagtree)
-            DO j = 1, nneigh(ipart)
-               IF (j.GE.nlmax) THEN
+               DO j = 1, nneigh(ipart)
+                  IF (j.GE.nlmax) THEN
                   jpart = neighover(j-nlmax+1,ABS(neighb(nlmax,ipart)))
-               ELSE
-                  jpart = neighb(j,ipart)
-               ENDIF
-C$OMP CRITICAL (flagtree)
-               iflagtree(jpart) = .TRUE.
-C$OMP END CRITICAL (flagtree)
-               DO k = 1, nneigh(jpart)
-                  IF (k.GE.nlmax) THEN
-                  kpart = neighover(k-nlmax+1,ABS(neighb(nlmax,jpart)))
                   ELSE
-                     kpart = neighb(k,jpart)
+                     jpart = neighb(j,ipart)
                   ENDIF
 C$OMP CRITICAL (flagtree)
-                  iflagtree(kpart) = .TRUE.
+                  iflagtree(jpart) = .TRUE.
 C$OMP END CRITICAL (flagtree)
+                  DO k = 1, nneigh(jpart)
+                     IF (k.GE.nlmax) THEN
+                  kpart = neighover(k-nlmax+1,ABS(neighb(nlmax,jpart)))
+                     ELSE
+                        kpart = neighb(k,jpart)
+                     ENDIF
+C$OMP CRITICAL (flagtree)
+                     iflagtree(kpart) = .TRUE.
+C$OMP END CRITICAL (flagtree)
+                  END DO
                END DO
             END DO
-         END DO
 C$OMP END DO
 C$OMP END PARALLEL
 
-      ELSE
+         ELSE
 
-         DO i = 1, nlst
-            ipart = llist(i)
-            iflagtree(ipart) = .TRUE.
-            DO j = 1, nneigh(ipart)
-               IF (j.GE.nlmax) THEN
+            DO i = 1, nlst
+               ipart = llist(i)
+               iflagtree(ipart) = .TRUE.
+               DO j = 1, nneigh(ipart)
+                  IF (j.GE.nlmax) THEN
                   jpart = neighover(j-nlmax+1,ABS(neighb(nlmax,ipart)))
-               ELSE
-                  jpart = neighb(j,ipart)
-               ENDIF
-               iflagtree(jpart) = .TRUE.
+                  ELSE
+                     jpart = neighb(j,ipart)
+                  ENDIF
+                  iflagtree(jpart) = .TRUE.
 C$OMP PARALLEL DO SCHEDULE(static) default(none)
 C$OMP& shared(jpart,nneigh,neighb,neighover,iflagtree)
 C$OMP& private(k,kpart)
-               DO k = 1, nneigh(jpart)
-                  IF (k.GE.nlmax) THEN
+                  DO k = 1, nneigh(jpart)
+                     IF (k.GE.nlmax) THEN
                   kpart = neighover(k-nlmax+1,ABS(neighb(nlmax,jpart)))
-                  ELSE
-                     kpart = neighb(k,jpart)
-                  ENDIF
-                  iflagtree(kpart) = .TRUE.
-               END DO
+                     ELSE
+                        kpart = neighb(k,jpart)
+                     ENDIF
+                     iflagtree(kpart) = .TRUE.
+                  END DO
 C$OMP END PARALLEL DO
+               END DO
             END DO
-         END DO
+         ENDIF
+      ENDIF
+
+      IF (itiming) THEN
+         CALL getused(revtreeptemp2)
+         revtreep3 = revtreep3 + (revtreeptemp2 - revtreeptemp1)
+      ENDIF
+
+      IF (nlist.GT.nptmass) THEN
+         iupdatenode = 1
+      ELSE
+         iupdatenode = 0
       ENDIF
 
       IF (nptmass.GT.10) THEN
@@ -276,6 +299,7 @@ C$OMP END PARALLEL DO
 C$OMP PARALLEL default(none)
 C$OMP& shared(nptmass,nptlist,nearpt,iflagtree)
 C$OMP& private(i,j,jpart)
+C$OMP& reduction(+:iupdatenode)
 C$OMP DO SCHEDULE(static)
          DO i = 1, nptmass
             DO j = 1, nptlist(i)
@@ -283,6 +307,7 @@ C$OMP DO SCHEDULE(static)
 C$OMP CRITICAL (flagtree)
                iflagtree(jpart) = .TRUE.
 C$OMP END CRITICAL (flagtree)
+               iupdatenode = iupdatenode + 1
             END DO
          END DO
 C$OMP END DO
@@ -294,16 +319,24 @@ C$OMP END PARALLEL
 C$OMP PARALLEL default(none)
 C$OMP& shared(i,nneighipart,nearpt,iflagtree)
 C$OMP& private(j,jpart)
+C$OMP& reduction(+:iupdatenode)
 C$OMP DO SCHEDULE(static)
             DO j = 1, nneighipart
                jpart = nearpt(j,i)
                iflagtree(jpart) = .TRUE.
+               iupdatenode = iupdatenode + 1
             END DO
 C$OMP END DO
 C$OMP END PARALLEL
          END DO
       ENDIF
 
+      IF (itiming) THEN
+         CALL getused(revtreeptemp2)
+         revtreep4 = revtreep4 + (revtreeptemp2 - revtreeptemp1)
+      ENDIF
+
+      iupdatenode = iupdatenode + nlstacc
       DO i = 1, nlstacc
          ipart = listacc(i)
          IF (ipart.LT.1 .OR. ipart.GT.npart) THEN
@@ -312,6 +345,13 @@ C$OMP END PARALLEL
          ENDIF
          iflagtree(ipart) = .TRUE.
       END DO
+
+      IF (itiming) THEN
+         CALL getused(revtreeptemp2)
+         revtreep5 = revtreep5 + (revtreeptemp2 - revtreeptemp1)
+      ENDIF
+
+      IF (iupdatenode.GT.0) THEN
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(natom,npart,xyzmh,imfac,isibdaupar)
@@ -519,6 +559,13 @@ c
          ENDIF
 
       END DO
+
+      ENDIF
+
+      IF (itiming) THEN
+         CALL getused(revtreeptemp2)
+         revtreep2 = revtreep2 + (revtreeptemp2 - revtreeptemp1)
+      ENDIF
 
       ENDIF
 

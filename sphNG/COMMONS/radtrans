@@ -1,1 +1,1 @@
-      COMMON /radtrans/ ekcle(5,iradtrans), tolerance
+      COMMON /radtrans/ ekcle(5,iradtrans)

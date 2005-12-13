@@ -42,7 +42,7 @@ c************************************************************
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/physeos'
-      INCLUDE 'COMMONS/outmhd'
+c      INCLUDE 'COMMONS/outmhd'
 
       CHARACTER*24 sentenc
       CHARACTER*7 where
@@ -123,8 +123,8 @@ c
 c
 c--Accretion
 c
-         WRITE (iprint, 88002, ERR=100) nactive
-88002    FORMAT (' number of active particles    : ', I8)
+         WRITE (iprint, 88002, ERR=100) nactive, nptmass
+88002    FORMAT (' number of active particles    : ', I8, I8)
          IF (ibound.EQ.8 .OR. ibound/10.EQ.9 .OR. ibound.EQ.100) THEN
             WRITE (iprint, 88003, ERR=100) nreassign
 88003       FORMAT (' number of reassigned part.    : ', I8)

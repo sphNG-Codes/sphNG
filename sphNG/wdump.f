@@ -44,8 +44,8 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/divcurlB'
 
-      DIMENSION itempsort(idim), tempsort(idim)
-      EQUIVALENCE (itempsort, next1), (tempsort, key)
+      DIMENSION itempsort(idim)
+      EQUIVALENCE (itempsort, next1)
 
       CHARACTER*7 where
       CHARACTER*100 fileident
@@ -541,7 +541,8 @@ c     must be used to index *ANY* value from an array which is written
 c     to the outside.  This requires modification to almost every output
 c     line in the code.  Done 21 Nov 2000.
 c
-      IF (gt.EQ.0. .OR. iresort.LT.20) GOTO 777
+c      IF (gt.EQ.0. .OR. iresort.LT.20) GOTO 777
+      GOTO 777
 
       iresort = 0
 
@@ -792,6 +793,7 @@ c
       END DO
       DO i = 1, nptmass
          listpm(i) = itempsort(listpm(i))
+         listrealpm(listpm(i)) = i
       END DO
       DO i = 1, nlstacc
          listacc(i) = itempsort(listacc(i))

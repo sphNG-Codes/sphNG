@@ -38,7 +38,6 @@ c************************************************************
       INCLUDE 'COMMONS/crpart'
       INCLUDE 'COMMONS/ptbin'
       INCLUDE 'COMMONS/useles'
-      INCLUDE 'COMMONS/radtrans'
 c
 c--Allow for tracing flow
 c

@@ -14,7 +14,7 @@ c************************************************************
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/soft'
 
-      DIMENSION listgn(idim), xyzmh(5,idim)
+      DIMENSION listgn(idim), xyzmh(5,mmax)
 
       rrx = xyzmh(1,m)
       rry = xyzmh(2,m)

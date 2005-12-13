@@ -54,9 +54,6 @@ c
          angx = angx + spinx(i)
          angy = angy + spiny(i)
          angz = angz + spinz(i)
-         xmom = xmom + xyzmh(4,i)*vxyzu(1,i)
-         ymom = ymom + xyzmh(4,i)*vxyzu(2,i)
-         zmom = zmom + xyzmh(4,i)*vxyzu(3,i)
       END DO
 
       angto = SQRT(angx**2 + angy**2 + angz**2)

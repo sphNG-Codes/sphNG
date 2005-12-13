@@ -31,7 +31,7 @@ c************************************************************
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/polyk2'
-      INCLUDE 'COMMONS/treecom_P'
+      INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/maspres'
       INCLUDE 'COMMONS/flag'
       INCLUDE 'COMMONS/presb'

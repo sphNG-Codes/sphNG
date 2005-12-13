@@ -67,6 +67,8 @@ c
 
       realtime = dt*itime/imaxstep + gt
 
+      IF (nlst_end.GT.nptmass) THEN
+
       IF (ifsvi.EQ.6) THEN
 c
 c--Calculates ddvx, ddvy, ddvz only if viscosity=6
@@ -566,7 +568,26 @@ c     &           MIN(divv(ipart)/rhoi,0.0)
 c     &              1.0*SQRT(ABS(hi*ddv(ipart)*divv(ipart))
             ENDIF
          ENDIF
-
+c
+c--Radiation pressure force
+c
+         IF (encal.EQ.'r') THEN
+            DO j = 1, 3               
+               fxyzu(j,ipart) = fxyzu(j,ipart) - 
+     &              ekcle(4,ipart)/trho(ipart)*dedxyz(j,ipart)
+            END DO
+         ENDIF
+c
+c--Damp velocities if appropiate
+c
+         IF (damp.NE.0.) THEN
+            fxyzu(1,ipart) = fxyzu(1,ipart) - damp*vxyzu(1,ipart)
+            fxyzu(2,ipart) = fxyzu(2,ipart) - damp*vxyzu(2,ipart)
+            fxyzu(3,ipart) = fxyzu(3,ipart) - damp*vxyzu(3,ipart)
+         ENDIF
+c
+c--Sink particles jump in here
+c
  80      CONTINUE
 c
 c--Energy conservation
@@ -589,37 +610,41 @@ c
 c--Homologous expansion or contraction
 c
          IF (iexpan.GT.0) CALL homexp(ipart,realtime,vxyzu,fxyzu) 
-c
-c--Radiation pressure force
-c
-         IF (encal.EQ.'r') THEN
-            DO j = 1, 3               
-               fxyzu(j,ipart) = fxyzu(j,ipart) - 
-     &              ekcle(4,ipart)/trho(ipart)*dedxyz(j,ipart)
-            END DO
-         ENDIF
-c
-c--Damp velocities if appropiate
-c
-         IF (damp.NE.0.) THEN
-            fxyzu(1,ipart) = fxyzu(1,ipart) - damp*vxyzu(1,ipart)
-            fxyzu(2,ipart) = fxyzu(2,ipart) - damp*vxyzu(2,ipart)
-            fxyzu(3,ipart) = fxyzu(3,ipart) - damp*vxyzu(3,ipart)
-         ENDIF
-
-c      IF (ipart.EQ.1) THEN
-c         write(iprint,99203) vxyzu(4,ipart)
-c99203    FORMAT('pdv ',1F15.10)
-c         write(iprint,99204) dq(ipart)
-c99204    FORMAT('dq ',1F15.10)
-c         write(iprint,99207) fxyzu(1,ipart), fxyzu(2,ipart), 
-c     &           fxyzu(3,ipart)
-c99207    FORMAT('fx,fy,fz ',1F15.10,1F15.10,1F15.10)
-c      END IF
 
       END DO
 C$OMP END DO
 C$OMP END PARALLEL
+
+      ELSE
+c
+c--Only sink particles being moved
+c
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst_in,nlst_end,list,dha,fxyzu,xyzmh,iexf,ifcor)
+C$OMP& shared(iexpan,realtime,vxyzu)
+C$OMP& private(n,ipart)
+      DO n = nlst_in, nlst_end
+         ipart = list(n)
+c
+c--Set changes in h and energy to zero
+c
+         dha(1,ipart) = 0.0
+         fxyzu(4,ipart) = 0.0
+c
+c--External forces
+c
+         IF (iexf.GE.1) CALL externf(ipart,xyzmh,fxyzu,iexf)
+c
+c--Coriolis and centrifugal forces
+c
+         IF (ifcor.NE.0) CALL coriol(ipart,realtime,xyzmh,vxyzu,fxyzu) 
+c
+c--Homologous expansion or contraction
+c
+         IF (iexpan.GT.0) CALL homexp(ipart,realtime,vxyzu,fxyzu) 
+      END DO
+C$OMP END PARALLEL DO
+      ENDIF
 c
 c--Allow for tracing flow
 c

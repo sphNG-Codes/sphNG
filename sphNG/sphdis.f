@@ -15,7 +15,7 @@ c************************************************************
       INCLUDE 'COMMONS/diskbd'
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/logun'
-      INCLUDE 'COMMONS/treecom_P'
+      INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/maspres'
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/setlocal'

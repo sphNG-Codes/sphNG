@@ -48,12 +48,15 @@ c************************************************************
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/accrem'
       INCLUDE 'COMMONS/timeextra'
+      INCLUDE 'COMMONS/ptsoft'
 
       DIMENSION numberacc(iptdim)
       REAL*4 ptminner(iptdim)
       CHARACTER*7 where
       
       DATA where/'accrete'/
+
+      IF (nlst0.GT.nptmass) THEN
 c
 c--Only allow accretion of GAS particles evaluated at the CURRENT timestep
 c     iremove is initialised in evol.f to -1
@@ -503,6 +506,7 @@ c
          iphase(irhonex) = iptmass
          IF (initialptm.EQ.0) initialptm = iptmass
          listpm(nptmass) = irhonex
+         listrealpm(irhonex) = nptmass
          hasghost(irhonex) = .FALSE.
       ENDIF
 c
@@ -650,7 +654,7 @@ c
                      WRITE(iaccpr) iorig(j),realtime,
      &                    xyzmh(1,j),xyzmh(2,j),xyzmh(3,j),
      &                    vxyzu(1,j),vxyzu(2,j),vxyzu(3,j),
-     &                    poten(j),dgrav(j)
+     &                    poten(j),dgrav(j),iii
                      CALL FLUSH (iaccpr)
                   ELSEIF (iphase(i).EQ.3) THEN
                      hacc2  = hacc*hacc
@@ -757,129 +761,153 @@ c
 
          ENDIF
       END DO
+c--End if nlst0.GT.nptmass
+      ENDIF
 c
 c--MERGER OF TWO POINT MASSES
 c
       imerge = 0
 
-      GOTO 1000
+c      GOTO 1000
 
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nptmass,listpm,xyzmh,ptsoft,imerge,realtime,iorig)
+C$OMP& shared(iphase,nlstacc,listacc,numberacc,vxyzu,spinx,spiny,spinz)
+C$OMP& shared(spinadx,spinady,spinadz,f1vxyzu,ptminner,ptmsyn,ptmadd)
+C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,xmomadd,ymomadd,zmomadd,iprint)
+C$OMP& private(iii,jjj,iptm1,x1,y1,z1,iptm2,rx,ry,rz,r2)
+C$OMP& private(i1list,i2list,itemp,pmass1,pmass2,dvx,dvy,dvz)
+C$OMP& private(vx1,vy1,vz1,totalmass,spinm)
       DO iii = 1, nptmass
-         iptm1 = listpm(iii) 
-         x1 = xyzmh(1,iptm1)
-         y1 = xyzmh(2,iptm1)
-         z1 = xyzmh(3,iptm1)
-         DO jjj = iii + 1, nptmass
-            iptm2 = listpm(jjj)
-            rx = x1 - xyzmh(1,iptm2)
-            ry = y1 - xyzmh(2,iptm2)
-            rz = z1 - xyzmh(3,iptm2)
-            r2 = rx*rx + ry*ry + rz*rz
-            IF (r2.LT.(MAX(xyzmh(5,iptm1),xyzmh(5,iptm2))**2.0)) THEN
-               imerge = 1
-               WRITE(iprint,*) 'POINT MASSES MERGED, TIME=',realtime
-               WRITE(iprint,*) '   Radius**2 ',r2
-               WRITE(iprint,*) '   Point masses ',iii,jjj,
-     &              iorig(iptm1),iorig(iptm2)
-               i1list = iii
-               i2list = jjj
-               IF (xyzmh(4,iptm2).GT.xyzmh(4,iptm1)) THEN
-                  itemp = iptm1
-                  iptm1 = iptm2
-                  iptm2 = itemp
-                  itemp = i1list
-                  i1list = i2list
-                  i2list = itemp
-                  rx = -rx
-                  ry = -ry
-                  rz = -rz
-                  x1 = xyzmh(1,iptm1)
-                  y1 = xyzmh(2,iptm1)
-                  z1 = xyzmh(3,iptm1)
+         IF (imerge.EQ.0) THEN
+            iptm1 = listpm(iii) 
+            x1 = xyzmh(1,iptm1)
+            y1 = xyzmh(2,iptm1)
+            z1 = xyzmh(3,iptm1)
+            DO jjj = iii + 1, nptmass
+               IF (imerge.EQ.0) THEN
+               iptm2 = listpm(jjj)
+               rx = x1 - xyzmh(1,iptm2)
+               ry = y1 - xyzmh(2,iptm2)
+               rz = z1 - xyzmh(3,iptm2)
+               r2 = rx*rx + ry*ry + rz*rz
+c
+c--Merge if sink radii (as stored in h's of sinks) overlap
+c
+c            IF (r2.LT.(MAX(xyzmh(5,iptm1),xyzmh(5,iptm2))**2.0)) THEN
+c
+c--Merge if pass within some fraction of softening radius
+c
+               IF (r2.LT.(0.1*ptsoft)**2.0) THEN
+C$OMP CRITICAL(mergesinks)
+                  IF (imerge.EQ.0) THEN
+                     imerge = 1
+                  WRITE(iprint,*) 'POINT MASSES MERGED, TIME=',realtime
+                     WRITE(iprint,*) '   Radius**2 ',r2
+                     WRITE(iprint,*) '   Point masses ',iii,jjj,
+     &                    iorig(iptm1),iorig(iptm2)
+                     i1list = iii
+                     i2list = jjj
+                     IF (xyzmh(4,iptm2).GT.xyzmh(4,iptm1)) THEN
+                        itemp = iptm1
+                        iptm1 = iptm2
+                        iptm2 = itemp
+                        itemp = i1list
+                        i1list = i2list
+                        i2list = itemp
+                        rx = -rx
+                        ry = -ry
+                        rz = -rz
+                        x1 = xyzmh(1,iptm1)
+                        y1 = xyzmh(2,iptm1)
+                        z1 = xyzmh(3,iptm1)
+                     ENDIF
+                     iphase(iptm2) = -1
+                  
+                     nlstacc = nlstacc + 1
+                     IF (nlstacc.GT.nlstaccmax) THEN
+                        WRITE (iprint,*) 'ERROR nlstacc'
+                        CALL quit
+                     ENDIF
+                     listacc(nlstacc) = iptm2
+                     
+                     numberacc(i1list) = numberacc(i1list) + 1
+                     pmass1 = xyzmh(4,iptm1)
+                     pmass2 = xyzmh(4,iptm2)
+                     WRITE(iprint,*) '   Point masses ',iii,jjj,
+     &                    iorig(iptm1),iorig(iptm2)
+                     WRITE(iprint,*) '   Mases ',pmass1, pmass2
+                     dvx = xyzmh(1,iptm1) - xyzmh(1,iptm2)
+                     dvy = xyzmh(2,iptm1) - xyzmh(2,iptm2)
+                     dvz = xyzmh(3,iptm1) - xyzmh(3,iptm2)
+                     vx1 = vxyzu(1,iptm1)
+                     vy1 = vxyzu(2,iptm1)
+                     vz1 = vxyzu(3,iptm1)
+                  
+                     totalmass = pmass1 + pmass2
+                     spinx(i1list) = spinx(i1list) + spinx(i2list)
+                     spiny(i1list) = spiny(i1list) + spiny(i2list)
+                     spinz(i1list) = spinz(i1list) + spinz(i2list)
+                  spinadx(i1list) = spinadx(i1list) + spinadx(i2list)
+                  spinady(i1list) = spinady(i1list) + spinady(i2list)
+                  spinadz(i1list) = spinadz(i1list) + spinadz(i2list)
+                  spinm = pmass2*pmass1/totalmass
+                 spinx(i1list) = spinx(i1list) + spinm*(ry*dvz - dvy*rz)
+                 spiny(i1list) = spiny(i1list) + spinm*(dvx*rz - rx*dvz)
+                 spinz(i1list) = spinz(i1list) + spinm*(rx*dvy - dvx*ry)
+                     spinadx(i1list) = spinadx(i1list) + 
+     &                    spinm*(ry*dvz - dvy*rz)
+                     spinady(i1list) = spinady(i1list) + 
+     &                    spinm*(dvx*rz - rx*dvz)
+                     spinadz(i1list) = spinadz(i1list) + 
+     &                    spinm*(rx*dvy - dvx*ry)
+                     vxyzu(1,iptm1) = (pmass1*vxyzu(1,iptm1) + 
+     &                    pmass2*vxyzu(1,iptm2))/totalmass
+                     vxyzu(2,iptm1) = (pmass1*vxyzu(2,iptm1) + 
+     &                    pmass2*vxyzu(2,iptm2))/totalmass
+                     vxyzu(3,iptm1) = (pmass1*vxyzu(3,iptm1) + 
+     &                    pmass2*vxyzu(3,iptm2))/totalmass
+                     vxyzu(4,iptm1) = (pmass1*vxyzu(4,iptm1) + 
+     &                    pmass2*vxyzu(4,iptm2))/totalmass
+                     xyzmh(1,iptm1) = (pmass1*xyzmh(1,iptm1) +
+     &                    pmass2*xyzmh(1,iptm2))/totalmass
+                     xyzmh(2,iptm1) = (pmass1*xyzmh(2,iptm1) +
+     &                    pmass2*xyzmh(2,iptm2))/totalmass
+                     xyzmh(3,iptm1) = (pmass1*xyzmh(3,iptm1) +
+     &                    pmass2*xyzmh(3,iptm2))/totalmass
+                  
+                     f1vxyzu(1,iptm1) = (pmass1*f1vxyzu(1,iptm1) + 
+     &                    pmass2*f1vxyzu(1,iptm2))/totalmass
+                     f1vxyzu(2,iptm1) = (pmass1*f1vxyzu(2,iptm1) + 
+     &                    pmass2*f1vxyzu(2,iptm2))/totalmass
+                     f1vxyzu(3,iptm1) = (pmass1*f1vxyzu(3,iptm1) + 
+     &                    pmass2*f1vxyzu(3,iptm2))/totalmass
+                 numberacc(i1list) = numberacc(i1list)+numberacc(i2list)
+                  ptminner(i1list) = ptminner(i1list) + ptminner(i2list)
+                  
+                     ptmsyn(i1list) = ptmsyn(i1list) + ptmsyn(i2list)
+                     ptmadd(i1list) = ptmadd(i1list) + ptmadd(i2list)
+                     xyzmh(4,iptm1) = ptmsyn(i1list) + ptmadd(i1list)
+                     xyzmh(5,iptm1) = MAX(xyzmh(5,iptm1),xyzmh(5,iptm2))
+                  
+                     xmomsyn(i1list) = xyzmh(4,iptm1)*vxyzu(1,iptm1)
+                     ymomsyn(i1list) = xyzmh(4,iptm1)*vxyzu(2,iptm1)
+                     zmomsyn(i1list) = xyzmh(4,iptm1)*vxyzu(3,iptm1)
+                     xmomadd(i1list) = 0.0
+                     ymomadd(i1list) = 0.0
+                     zmomadd(i1list) = 0.0
+                  ENDIF
+C$OMP END CRITICAL(mergesinks)
                ENDIF
-               iphase(iptm2) = -1
-
-               nlstacc = nlstacc + 1
-               IF (nlstacc.GT.nlstaccmax) THEN
-                  WRITE (iprint,*) 'ERROR nlstacc'
-                  CALL quit
                ENDIF
-               listacc(nlstacc) = iptm2
-
-               numberacc(i1list) = numberacc(i1list) + 1
-               pmass1 = xyzmh(4,iptm1)
-               pmass2 = xyzmh(4,iptm2)
-               WRITE(iprint,*) '   Point masses ',iii,jjj,
-     &              iorig(iptm1),iorig(iptm2)
-               WRITE(iprint,*) '   Mases ',pmass1, pmass2
-               dvx = xyzmh(1,iptm1) - xyzmh(1,iptm2)
-               dvy = xyzmh(2,iptm1) - xyzmh(2,iptm2)
-               dvz = xyzmh(3,iptm1) - xyzmh(3,iptm2)
-               vx1 = vxyzu(1,iptm1)
-               vy1 = vxyzu(2,iptm1)
-               vz1 = vxyzu(3,iptm1)
-
-               totalmass = pmass1 + pmass2
-               spinx(i1list) = spinx(i1list) + spinx(i2list)
-               spiny(i1list) = spiny(i1list) + spiny(i2list)
-               spinz(i1list) = spinz(i1list) + spinz(i2list)
-               spinadx(i1list) = spinadx(i1list) + spinadx(i2list)
-               spinady(i1list) = spinady(i1list) + spinady(i2list)
-               spinadz(i1list) = spinadz(i1list) + spinadz(i2list)
-               spinm = pmass2*pmass1/totalmass
-               spinx(i1list) = spinx(i1list) + spinm*(ry*dvz - dvy*rz)
-               spiny(i1list) = spiny(i1list) + spinm*(dvx*rz - rx*dvz)
-               spinz(i1list) = spinz(i1list) + spinm*(rx*dvy - dvx*ry)
-               spinadx(i1list) = spinadx(i1list) + 
-     &              spinm*(ry*dvz - dvy*rz)
-               spinady(i1list) = spinady(i1list) + 
-     &              spinm*(dvx*rz - rx*dvz)
-               spinadz(i1list) = spinadz(i1list) + 
-     &              spinm*(rx*dvy - dvx*ry)
-               vxyzu(1,iptm1) = (pmass1*vxyzu(1,iptm1) + 
-     &              pmass2*vxyzu(1,iptm2))/totalmass
-               vxyzu(2,iptm1) = (pmass1*vxyzu(2,iptm1) + 
-     &              pmass2*vxyzu(2,iptm2))/totalmass
-               vxyzu(3,iptm1) = (pmass1*vxyzu(3,iptm1) + 
-     &              pmass2*vxyzu(3,iptm2))/totalmass
-               vxyzu(4,iptm1) = (pmass1*vxyzu(4,iptm1) + 
-     &              pmass2*vxyzu(4,iptm2))/totalmass
-               xyzmh(1,iptm1) = (pmass1*xyzmh(1,iptm1) +
-     &              pmass2*xyzmh(1,iptm2))/totalmass
-               xyzmh(2,iptm1) = (pmass1*xyzmh(2,iptm1) +
-     &              pmass2*xyzmh(2,iptm2))/totalmass
-               xyzmh(3,iptm1) = (pmass1*xyzmh(3,iptm1) +
-     &              pmass2*xyzmh(3,iptm2))/totalmass
-
-               f1vxyzu(1,iptm1) = (pmass1*f1vxyzu(1,iptm1) + 
-     &              pmass2*f1vxyzu(1,iptm2))/totalmass
-               f1vxyzu(2,iptm1) = (pmass1*f1vxyzu(2,iptm1) + 
-     &              pmass2*f1vxyzu(2,iptm2))/totalmass
-               f1vxyzu(3,iptm1) = (pmass1*f1vxyzu(3,iptm1) + 
-     &              pmass2*f1vxyzu(3,iptm2))/totalmass
-               numberacc(i1list) = numberacc(i1list)+numberacc(i2list)
-               ptminner(i1list) = ptminner(i1list) + ptminner(i2list)
-
-               ptmsyn(i1list) = ptmsyn(i1list) + ptmsyn(i2list)
-               ptmadd(i1list) = ptmadd(i1list) + ptmadd(i2list)
-               xyzmh(4,iptm1) = ptmsyn(i1list) + ptmadd(i1list)
-               xyzmh(5,iptm1) = MAX(xyzmh(5,iptm1),xyzmh(5,iptm2))
-
-               xmomsyn(i1list) = xyzmh(4,iptm1)*vxyzu(1,iptm1)
-               ymomsyn(i1list) = xyzmh(4,iptm1)*vxyzu(2,iptm1)
-               zmomsyn(i1list) = xyzmh(4,iptm1)*vxyzu(3,iptm1)
-               xmomadd(i1list) = 0.0
-               ymomadd(i1list) = 0.0
-               zmomadd(i1list) = 0.0
-
-               GOTO 900
-            ENDIF
-         END DO
+            END DO
+         ENDIF
       END DO
+C$OMP END PARALLEL DO
 c
 c--Compactify list of point masses if merger
 c
- 900  IF (imerge.EQ.1) THEN
+      IF (imerge.EQ.1) THEN
          icount = 0
          iaccr = 1
          DO iii = 1, nptmass
@@ -887,6 +915,7 @@ c
             IF (iphase(iptm).GE.1) THEN
                icount = icount + 1
                listpm(icount) = listpm(iii)
+               listrealpm(iptm) = icount
                nactotal(icount) = nactotal(iii)
                ptmassinner(icount) = ptmassinner(iii)
                spinx(icount) = spinx(iii)
@@ -918,7 +947,10 @@ c
 c
 c--Consider accreted particles' effect on ghosts
 c
- 1000 DO i = 1, nghost
+ 1000 CONTINUE
+      IF (iaccr.EQ.1) THEN
+
+      DO i = 1, nghost
          j = ireal(i + npart)
          IF (iremove(j).EQ.1 .OR. 
      &        (icreate.EQ.1 .AND. j.EQ.irhonex)) THEN
@@ -952,10 +984,12 @@ C$OMP DO SCHEDULE(runtime)
       END DO
 C$OMP END DO
 C$OMP END PARALLEL
+
+      ENDIF
 c
 c--Dump point mass details to ptprint file
 c
-      IF (isave.EQ.1 .OR. icreate.EQ.1) THEN
+      IF (nlst0.GE.nptmass .AND. (isave.EQ.1 .OR. icreate.EQ.1)) THEN
          tcomp = SQRT((3 * pi) / (32 * rhozero))
          WRITE (iptprint) realtime/tcomp, realtime, nptmass
 
@@ -988,5 +1022,3 @@ c
 
       RETURN
       END
-      
-

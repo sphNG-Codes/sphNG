@@ -62,18 +62,19 @@ c     i.e. at 2000K assuming trans to 1.4 at 10K
 c
 c-- gam = 1.4
 c
-      rhocrit2 = rhocrit * (200.**2.5)
+c      rhocrit2 = rhocrit * (200.**2.5)
 c
 c-- gam = 5/3
 c
 c      rhocrit2 = rhocrit * (200.**1.5)
 c
+      rhocrit2 = 1.0e-10
 c      rhocrit2 = 1.0e-11
 c      rhocrit2 = 1.0e-12
-      gamdh = 1.10
+c      gamdh = 1.10
 c      gamdh = 1.15
 c      gamdh = 1.05
-c      gamdh = 1.0
+      gamdh = 1.0
 c
 c--Critical density for changing gamma from 1.1 to 5/3 for variable e.o.s.
 c

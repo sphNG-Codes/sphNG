@@ -1,1 +1,1 @@
-      COMMON /integ / tol, e1, tolptm, tolh, nrep, ifail
+      COMMON /integ / tol, e1, tolptm, tolh, tolerance, nrep, ifail

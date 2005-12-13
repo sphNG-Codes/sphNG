@@ -71,16 +71,16 @@ c
 c
 c--Add forces
 c
+c--NOTE: Interactions between two sinks and force on gas due to sink are
+c     softened using iptsoft and ptsoft now (28/09/2005)
 c
 c--The force definition:
 c
-               IF (iphase(ipart).EQ.0 .OR. iptsoft.EQ.0) THEN 
+c               IF (iphase(ipart).EQ.0 .OR. iptsoft.EQ.0) THEN 
+               IF (iptsoft.EQ.0) THEN 
                   rr05 = SQRT(rr)
                   fff = pmassj/(rr*rr05)
                   potn = pmassj/rr05
-c
-c--Non-pointmass force between sinks
-c
 c
 c--Softened potential 1 (spline kernel softening)
 c

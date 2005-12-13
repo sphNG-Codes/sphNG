@@ -59,6 +59,7 @@ c
 
       DO i = 1, nptmass
          j = listpm(i)
+         listrealpm(j) = i
          pmasspt = xyzmh(4,j)
          ptmsyn(i) = pmasspt
          ptmadd(i) = 0.0

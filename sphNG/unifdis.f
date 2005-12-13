@@ -20,7 +20,7 @@ c************************************************************
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/flag'
-      INCLUDE 'COMMONS/treecom_P'
+      INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/maspres'
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/setbin'

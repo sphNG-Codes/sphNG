@@ -176,7 +176,7 @@ c
 c--Gravitational softening for ptmass-ptmass interactions
 c
       iptsoft = 1
-      ptsoft = 2.000E-05
+      ptsoft = 1.000E-05
 c
 c--Set psoft for softening the gravitational potential when the 1/(r+psoft)
 c     potential law is used (i.e. when igrape=1, or isoft=1).

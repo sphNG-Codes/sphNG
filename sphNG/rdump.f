@@ -36,8 +36,8 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/mhd'
 
-      DIMENSION itempsort(idim), tempsort(idim)
-      EQUIVALENCE (itempsort, next1), (tempsort, key)
+      DIMENSION itempsort(idim)
+      EQUIVALENCE (itempsort, next1)
 
       CHARACTER*7 where
       CHARACTER*100 fileident

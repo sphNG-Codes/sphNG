@@ -24,9 +24,11 @@ c************************************************************
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/typef'
       INCLUDE 'COMMONS/init'
+      INCLUDE 'COMMONS/ptsoft'
 
       xlog2 = 0.30103
       istepmin = imax
+      istepmingasnew = imax
       istepmax = -1
 
 C$OMP PARALLEL default(none)
@@ -38,13 +40,14 @@ C$OMP& shared(alpha,beta,vsound,xlog2)
 C$OMP& shared(idtsyn)
 C$OMP& shared(iprint,nneigh,iphase)
 C$OMP& shared(iorig)
-C$OMP& shared(ifsvi,alphaMM)
+C$OMP& shared(ifsvi,alphaMM,iptsoft,ptsoft)
 C$OMP& private(i,j)
 C$OMP& private(divvi,aux1,aux2,aux3,denom)
 C$OMP& private(crstepi,rmodcr,rmodvel,force2,rmod,vel2)
-C$OMP& private(stepi,ibin,istep2,irat)
+C$OMP& private(stepi,ibin,istep2,irat,softrad)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin)
+C$OMP& reduction(MIN:istepmingasnew)
 c
 c--Compute new time steps for particles which have been advanced
 c
@@ -56,7 +59,12 @@ c--Compute timestep from force condition
 c
          force2 = fxyzu(1,i)**2 + fxyzu(2,i)**2 + fxyzu(3,i)**2
          IF (force2.NE.0.0) THEN
-            rmod = 0.3*SQRT(xyzmh(5,i)/SQRT(force2))
+            IF (iphase(i).GT.0 .AND. iptsoft.EQ.1) THEN
+               softrad = ptsoft
+            ELSE
+               softrad = xyzmh(5,i)
+            ENDIF
+            rmod = 0.3*SQRT(softrad/SQRT(force2))
             IF (iphase(i).GT.0) rmod = rmod/1000.0
             rmod = rmod/(dt*isteps(i)/imaxstep)
          ELSE
@@ -70,7 +78,7 @@ c            vel2 = vxyzu(1,i)**2 + vxyzu(2,i)**2 + vxyzu(3,i)**2
 c            IF (vel2.NE.0.0) THEN
 c               rmodvel = 0.1*xyzmh(5,i)/SQRT(vel2)
 cc               write (*,*) 'h ',xyzmh(5,i),rmodvel
-c               rmodvel = rmod/(dt*isteps(i)/imaxstep)
+c               rmodvel = rmodvel/(dt*isteps(i)/imaxstep)
 c            ELSE
 c               rmodvel = 1.0E+30
 c            ENDIF
@@ -149,9 +157,12 @@ c--Update minimum time step
 c
          istepmax = MAX(istepmax, isteps(i))
          istepmin = MIN(istepmin, isteps(i))
+         IF(iphase(i).EQ.0) istepmingasnew=MIN(istepmingasnew,isteps(i))
       END DO
 C$OMP END DO
 C$OMP END PARALLEL
+
+      IF (istepmingasnew.NE.imax) istepmingas = istepmingasnew
 
       RETURN
 

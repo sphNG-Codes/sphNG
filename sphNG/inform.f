@@ -202,6 +202,8 @@ c
       dmax1 = 0.
       zmax1 = 0.
       rmin2 = 1.0E+30
+      imin = 0
+      rocen1 = 0.
       DO i = 1, npart
          IF (iorig(i).LE.n1 .AND. iphase(i).GE.0) THEN
             dz = xyzmh(3,i) - cmz1
@@ -215,7 +217,7 @@ c
          ENDIF
       END DO
       dmax1 = SQRT(dmax1)
-      rocen1 = rho(imin)
+      IF (imin.NE.0) rocen1 = rho(imin)
       IF (encal.EQ.'r') THEN
          tgcen1 = vxyzu(4,imin)/ekcle(3,imin)
          trcen1 = (ekcle(1,imin)*rocen1/uradconst)**0.25
@@ -224,6 +226,8 @@ c
       dmax2 = 0.
       zmax2 = 0.
       rmin2 = 1.0E+30
+      imin = 0
+      rocen2 = 0.
       DO i = 1, npart
          IF (iorig(i).GT.n1 .AND. iphase(i).GE.0) THEN
             dz = xyzmh(3,i) - cmz2
@@ -237,7 +241,7 @@ c
          ENDIF
       END DO
       dmax2 = SQRT(dmax2)
-      IF (npart.GT.n1) rocen2 = rho(imin)
+      IF (npart.GT.n1 .AND. imin.NE.0) rocen2 = rho(imin)
 c
 c--Compute energies
 c
@@ -272,7 +276,7 @@ c
 c--Update input file
 c
          IF (ifulldump.EQ.0) CALL wrinsph
-x
+
       ENDIF
 
       IF (idebug(1:6).EQ.'inform') THEN

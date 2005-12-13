@@ -51,7 +51,7 @@ c************************************************************
       IF (igrape.EQ.1) THEN
          searchfacmax = 0.
          searchfacmin = 1.0E+10
-         neighover = 0
+         neighovergrape = 0
          neighretry = 0
       ENDIF
 c
@@ -98,7 +98,7 @@ c
       IF (igrape.EQ.1) THEN
          WRITE (iprint, 99008) searchfacmax
          WRITE (iprint, 99009) searchfacmin
-         WRITE (iprint, 99010) neighover
+         WRITE (iprint, 99010) neighovergrape
          WRITE (iprint, 99011) neighretry
          WRITE (iprint, 99014) REAL(nneightot)/REAL(nactive-nptmass)
          WRITE (iprint, 99015) tkeep
@@ -247,6 +247,9 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
 98019       FORMAT ('  TRE revtree time: ', F8.3, ' min. ',F6.2,' %')
 98119       FORMAT ('  TRE revtree1time: ', F8.3, ' min. ',F6.2,' %')
 98120       FORMAT ('  TRE revtree2time: ', F8.3, ' min. ',F6.2,' %')
+98121       FORMAT ('  TRE revtree3time: ', F8.3, ' min. ',F6.2,' %')
+98122       FORMAT ('  TRE revtree4time: ', F8.3, ' min. ',F6.2,' %')
+98123       FORMAT ('  TRE revtree5time: ', F8.3, ' min. ',F6.2,' %')
 98021       FORMAT (' accrete      time: ', F8.3, ' min. ',F6.2,' %')
 98023       FORMAT (' step-1       time: ', F8.3, ' min. ',F6.2,' %')
 98024       FORMAT (' step-2       time: ', F8.3, ' min. ',F6.2,' %')
@@ -259,6 +262,13 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
 98031       FORMAT (' step-9       time: ', F8.3, ' min. ',F6.2,' %')
 98032       FORMAT (' derivi-1     time: ', F8.3, ' min. ',F6.2,' %')
 98033       FORMAT (' derivi-2     time: ', F8.3, ' min. ',F6.2,' %')
+98034       FORMAT (' derivi-tot   time: ', F8.3, ' min. ',F6.2,' %')
+98035       FORMAT (' step-kick1/2 time: ', F8.3, ' min. ',F6.2,' %')
+98036       FORMAT (' timestep     time: ', F8.3, ' min. ',F6.2,' %')
+98037       FORMAT (' step-13      time: ', F8.3, ' min. ',F6.2,' %')
+98038       FORMAT (' step-14      time: ', F8.3, ' min. ',F6.2,' %')
+98039       FORMAT (' step-15      time: ', F8.3, ' min. ',F6.2,' %')
+98040       FORMAT (' step-16      time: ', F8.3, ' min. ',F6.2,' %')
          ELSE
             WRITE (iprint, 98020)
             WRITE (iprint, 98022) tsteponly/60., tsteponly/tstep*100.
@@ -266,6 +276,7 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
             WRITE (iprint, 98009) tforce/60.,  tforce/tstep*100.
             WRITE (iprint, 98016) tgforpt/60., tgforpt/tstep*100.
             WRITE (iprint, 98021) taccrete/60., taccrete/tstep*100.
+            WRITE (iprint, 98034) ts10/60.,    ts10/tstep*100.
             WRITE (iprint, 98032) td1/60.,     td1/tstep*100.
             WRITE (iprint, 98033) td2/60.,     td2/tstep*100.
             WRITE (iprint, 98023) ts1/60.,     ts1/tstep*100.
@@ -277,6 +288,12 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
             WRITE (iprint, 98029) ts7/60.,     ts7/tstep*100.
             WRITE (iprint, 98030) ts8/60.,     ts8/tstep*100.
             WRITE (iprint, 98031) ts9/60.,     ts9/tstep*100.
+            WRITE (iprint, 98035) ts11/60.,    ts11/tstep*100.
+            WRITE (iprint, 98036) ts12/60.,    ts12/tstep*100.
+            WRITE (iprint, 98037) ts13/60.,    ts13/tstep*100.
+            WRITE (iprint, 98038) ts14/60.,    ts14/tstep*100.
+            WRITE (iprint, 98039) ts15/60.,    ts15/tstep*100.
+            WRITE (iprint, 98040) ts16/60.,    ts16/tstep*100.
             WRITE (iprint, 98003) tins/60.,    tins/tstep*100.
             WRITE (iprint, 98017) tmtree/60.,  tmtree/tins*100.
             WRITE (iprint, 98018) ttreef/60.,  ttreef/tins*100.
@@ -284,6 +301,12 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
             IF (trevt.NE.0.0) THEN
               WRITE (iprint, 98119) revtreep1/60., revtreep1/trevt*100.
               WRITE (iprint, 98120) revtreep2/60., revtreep2/trevt*100.
+              WRITE (iprint, 98121) revtreep3/60., revtreep3/
+     &             revtreep2*100.
+              WRITE (iprint, 98122) revtreep4/60., revtreep4/
+     &             revtreep2*100.
+              WRITE (iprint, 98123) revtreep5/60., revtreep5/
+     &             revtreep2*100.
             ENDIF
             tdens = 0.
             tforce = 0.
@@ -300,6 +323,16 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
             ts7 = 0.
             ts8 = 0.
             ts9 = 0.
+            ts10 = 0.
+            ts11 = 0.
+            ts12 = 0.
+            ts13 = 0.
+            ts14 = 0.
+            ts15 = 0.
+            ts16 = 0.
+            ts17 = 0.
+            ts18 = 0.
+            ts19 = 0.
             tins = 0.
             tins = 0.
             tmtree = 0.
@@ -307,6 +340,9 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
             trevt = 0.
             revtreep1 = 0.
             revtreep2 = 0.
+            revtreep3 = 0.
+            revtreep4 = 0.
+            revtreep5 = 0.
 
 98020       FORMAT (' TREE Timing:')
          ENDIF

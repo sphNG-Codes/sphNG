@@ -13,8 +13,8 @@
 
 .KEEP_STATE:
 
-FORTRAN = g95
-FC = g95
+FORTRAN = xlf_r -qnosave
+FC = xlf_r -qnosave
 #FC = xlf90_r -qfixed=72
 #RENAMES = -brename:.itime,.itime_ -brename:.idate,.idate_ \
 #          -brename:.etime,.etime_ -brename:.flush,.flush_
@@ -24,13 +24,10 @@ RENAMES =
 ### Prepare for debugging                                  ###
 ##############################################################
 
-#FFLAGS = -O5 -qalign=4k -qautodbl=dbl4 -q64 -qsmp
-#ZZFFLAGS = -O3 -q64 -qsmp=noauto -qextname
-ZFFLAGS= -O -Wunset-vars -Wline-truncation
-#ZFFLAGS= -w90 -w95 -Vaxlib -cm
-ZZFFLAGS = ${ZFFLAGS} # -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
-#ZZFFLAGS = -O3 -q64 -qextname # -C -qsigtrap -g
-FFLAGS = ${ZZFFLAGS} -r8 
+ZFFLAGS= -O3 -q64  -qextname -qsmp=noauto
+#ZFFLAGS= -O3 -q64  -qextname 
+ZZFFLAGS = ${ZFFLAGS}  # -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
+FFLAGS = ${ZZFFLAGS} -qrealsize=8 
 
 SOURCES= sph.f accrete_P.f addump.f angmom.f boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f \
@@ -50,7 +47,7 @@ SOURCES= sph.f accrete_P.f addump.f angmom.f boundry.f \
 	prout.f ran1.f rdump.f reduce.f revtree_P.f save.f \
         scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f step_P_lf.f timestep.f \
-	toten.f treef_P.f unifdis.f unit_bb97.f \
+	toten.f treef_P.f unifdis.f unit.f \
 	wdump.f wrinsph.f zzsun_f77_double1.f
 
 OBJECTS = $(SOURCES:.f=.o) zzsun_f77_double2.o

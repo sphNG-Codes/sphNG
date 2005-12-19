@@ -35,9 +35,9 @@ c      fnbtot = 0.2
 c
 c--Specify distance unit (cm)
 c
-c      udist = 1.e16
+      udist = 1.e16
 c      udist = 1.e15
-      udist = 0.1*pc
+c      udist = 0.1*pc
 c      udist = pc
 c      udist = 1.e14
 c      udist = 1.e13

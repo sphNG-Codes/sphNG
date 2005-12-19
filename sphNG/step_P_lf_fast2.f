@@ -3,7 +3,7 @@ c************************************************************
 c                                                           *
 c  This subroutine integrate the system of differential     *
 c     equations for one timestep using                      *
-c     a second-order Leapfrog scheme.                       *
+c     a second-order Runge-Kutta-Fehlberg method.           *
 c                                                           *
 c************************************************************
 
@@ -64,11 +64,13 @@ c************************************************************
       INCLUDE 'COMMONS/timeextra'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/mhd'
+      INCLUDE 'COMMONS/treecom_P'
 
 c      DIMENSION nsteplist(30)
 
       LOGICAL ifirst
       LOGICAL icenter
+      LOGICAL*1 irevise
       CHARACTER*7 where
       DATA ifirst/.true./
       DATA icenter/.false./
@@ -152,6 +154,7 @@ c
                ENDIF
 
                IF (ifsvi.EQ.6) dumalpha(i) = alphaMM(i)
+
 cccc               IF (ran1(1).LT.0.001) THEN
                nlst = nlst + 1
                llist(nlst) = i
@@ -219,7 +222,7 @@ c         ENDIF
 c      END DO
 
          CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
-     &        npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
+     &        npart,ntot,ireal,dumalpha,ekcle)
 
          IF (gt.EQ.0.0) THEN
 c
@@ -241,9 +244,12 @@ c                  vsound(i) = SQRT(2./3.*vxyzu(4,i))
             nlst0 = nlst
 
             CALL timestep(dt,itnext,nlst,llist,f1vxyzu,Bevolxyz)
-
+c
+c--Sinks ALL on smallest timestep OR NOT
+c
             DO i = 1, nptmass
                isteps(listpm(i)) = istepmin
+c               isteps(listpm(i)) = istepmingas
             END DO
          ENDIF
 c
@@ -330,13 +336,13 @@ c
 c--Find minimum time for force calculation
 c
  100  itime = imax
-      IF (itiming) CALL getused(ts11)
+      IF (itiming) CALL getused(ts1p1)
       DO i = 1, nbinmax
          IF (nlstbins(i).GT.0) itime = MIN(itime, it2bin(i))
       END DO
       IF (itiming) THEN
-         CALL getused(ts12)
-         ts1 = ts1 + (ts12 - ts11)
+         CALL getused(ts1p2)
+         ts1 = ts1 + (ts1p2 - ts1p1)
       ENDIF
 
 c      IF (itime1.NE.itime1new .OR. itime0.NE.itime0new) THEN
@@ -465,22 +471,25 @@ c
          ts3 = ts3 + (ts32 - ts31)
       ENDIF
 
-c      PRINT *,'h(1)1: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
-
       IF (itiming) CALL getused(ts71)
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst,llist,iscurrent,dt,isteps,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
 C$OMP& shared(it0,itime,imaxdens,cnormk,iener)
 C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
-C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass)
+C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,listrealpm)
 C$OMP& shared(ifsvi,alphaMM,alphamax,Bevolxyz,encal)
-C$OMP& private(i,j,k,dtfull,dthalf,delvx,delvy,delvz)
+C$OMP& private(i,j,dtfull,dthalf,delvx,delvy,delvz)
 C$OMP& private(iii,pmasspt)
 C$OMP& reduction(+:ioutmax)
       DO j = 1, nlst
          i = llist(j)
          iscurrent(i) = .TRUE.
+c
+c--Synchronize the advanced particle times with current time
+c
+         it0(i) = itime
+
          dtfull = dt*isteps(i)/imaxstep
          dthalf = 0.5*dtfull
 c
@@ -493,17 +502,6 @@ c
          vxyzu(1,i) = vxyzu(1,i) + delvx
          vxyzu(2,i) = vxyzu(2,i) + delvy
          vxyzu(3,i) = vxyzu(3,i) + delvz
-
-         IF (iphase(i).GE.1) THEN
-            DO iii = 1, nptmass
-               IF (listpm(iii).EQ.i) GOTO 444
-            END DO
- 444        CONTINUE
-            pmasspt = xyzmh(4,i)
-            xmomsyn(iii) = xmomsyn(iii) + delvx*pmasspt
-            ymomsyn(iii) = ymomsyn(iii) + delvy*pmasspt
-            zmomsyn(iii) = zmomsyn(iii) + delvz*pmasspt
-         ENDIF
 c
 c--Update positions (drift full dt)
 c
@@ -511,39 +509,52 @@ c
          xyzmh(2,i) = xyzmh(2,i) + dtfull*vxyzu(2,i)
          xyzmh(3,i) = xyzmh(3,i) + dtfull*vxyzu(3,i)
 c
+c--Update momentum of sink particles
+c
+         IF (iphase(i).GE.1) THEN
+c            DO iii = 1, nptmass
+c               IF (listpm(iii).EQ.i) GOTO 444
+c            END DO
+c 444        CONTINUE
+            iii = listrealpm(i)
+            pmasspt = xyzmh(4,i)
+            xmomsyn(iii) = xmomsyn(iii) + delvx*pmasspt
+            ymomsyn(iii) = ymomsyn(iii) + delvy*pmasspt
+            zmomsyn(iii) = zmomsyn(iii) + delvz*pmasspt
+         ELSE
+c
 c--Update u(i) and h(i)
 c
-         IF (encal.NE.'r') 
-     &        vxyzu(4,i) = vxyzu(4,i) + dtfull*f1vxyzu(4,i)
+            IF (encal.NE.'r') 
+     &           vxyzu(4,i) = vxyzu(4,i) + dtfull*f1vxyzu(4,i)
+            IF (iener.EQ.2 .AND. vxyzu(4,i).LT.0.0) vxyzu(4,i)=0.15
 
-         IF (iener.EQ.2 .AND. vxyzu(4,i).LT.0.0) vxyzu(4,i)=0.15
-
-c         xyzmh(5,i) = xyzmh(5,i) + dtfull*f1ha(1,i)
-c         IF (xyzmh(5,i).LT.0) WRITE(iprint,*) 'error in h ', 
-c     &        xyzmh(5,i), f1ha(1,i), dtfull, nneigh(i)
-c         IF (hmaximum.GT.0.0) THEN
-c            IF (xyzmh(5,i).GT.hmaximum) THEN
-c               xyzmh(5,i) = hmaximum
-c               ioutmax = ioutmax + 1
-c            ENDIF
-c         ENDIF
+            xyzmh(5,i) = xyzmh(5,i) + dtfull*f1ha(1,i)
+            IF (xyzmh(5,i).LT.0) WRITE(iprint,*) 'error in h ', 
+     &           xyzmh(5,i), f1ha(1,i), dtfull, nneigh(i)
+            IF (hmaximum.GT.0.0) THEN
+               IF (xyzmh(5,i).GT.hmaximum) THEN
+                  xyzmh(5,i) = hmaximum
+                  ioutmax = ioutmax + 1
+               ENDIF
+            ENDIF
 c
 c--Update viscosity switch
 c
-         IF (ifsvi.EQ.6) alphaMM(i) = MIN(alphamax, alphaMM(i) +
-     &        dtfull*f1ha(2,i))
+            IF (ifsvi.EQ.6) alphaMM(i) = MIN(alphamax, alphaMM(i) +
+     &           dtfull*f1ha(2,i))
 c
 c--Update MHD
 c
-         IF (imhd.EQ.idim) THEN
-            DO k = 1, 3
-               Bevolxyz(k,i) = Bevolxyz(k,i) + dtfull*f1Bxyz(k,i)
-            ENDDO
+            IF (imhd.EQ.idim) THEN
+               Bevolxyz(1,i) = Bevolxyz(1,i)
+c     &              + dtfull*f1vxyzu(1,i)
+               Bevolxyz(2,i) = Bevolxyz(2,i)
+c     &              + dtfull*f1vxyzu(2,i)
+               Bevolxyz(3,i) = Bevolxyz(3,i)
+c     &              + dtfull*f1vxyzu(3,i)
+            ENDIF
          ENDIF
-c
-c--Synchronize the advanced particle times with current time
-c
-         it0(i) = itime
       END DO
 C$OMP END PARALLEL DO
       IF (itiming) THEN
@@ -557,15 +568,16 @@ c
 c--Total check for particles that have moved outside boundary
 c
       idonebound = 0
-      IF (ibound.GT.0 .AND. ibound.LT.7 .OR. ibound.EQ.11) 
+      IF (ibound.GT.0) THEN
+         IF (ibound.LT.7 .OR. ibound.EQ.11) 
      &     CALL boundry(npart, llist, nlst, xyzmh, vxyzu, idonebound) 
 c
 c--Create ghost particles
 c
-      IF ((nlst.GT.ncrit .AND. imakeghost.EQ.1) 
+         IF ((nlst.GT.ncrit .AND. imakeghost.EQ.1) 
      &                                    .OR. idonebound.EQ.1) THEN
-c      IF (imakeghost.EQ.1 .OR. idonebound.EQ.1) THEN
-         nghost = 0
+c         IF (imakeghost.EQ.1 .OR. idonebound.EQ.1) THEN
+            nghost = 0
          IF (ibound.EQ.1) CALL ghostp1(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
          IF (ibound.EQ.2) CALL ghostp2(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
          IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound/10.EQ.9) 
@@ -574,68 +586,86 @@ c      IF (imakeghost.EQ.1 .OR. idonebound.EQ.1) THEN
      &        CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
          IF (ibound.EQ.11) 
      &        CALL ghostp11(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         ntot = npart + nghost
+            ntot = npart + nghost
+         ENDIF
       ENDIF
 c
 c--Predict variables at t=time
 c
       IF (itiming) CALL getused(ts81)
 
+      numberparents = 0
+
       IF (itbinupdate.GE.nbinmax-1 .OR. (.NOT. ipartialrevtree)) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
-C$OMP& private(j,k,deltat,deltat2)
+C$OMP& shared(isibdaupar,iflagtree,imfac,numberparents,listparents)
+C$OMP& private(j,k,deltat,deltat2,iparent)
       DO j = 1, npart
          IF (iphase(j).GE.0) THEN
+c
+c--Load predicted quantities into dummy arrays
+c
             deltat = dt*(itime - it0(j))/imaxstep
             deltat2 = 0.5*deltat
             DO k = 1, 3
                dumvxyzu(k,j) = vxyzu(k,j) + deltat2*f1vxyzu(k,j)
             END DO
-            IF (encal.NE.'r') THEN
-               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
-            ELSE
-               dumvxyzu(4,j) = vxyzu(4,j)
-            ENDIF
-            IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15 
             DO k = 1, 3
                dumxyzmh(k,j) = xyzmh(k,j) + deltat*dumvxyzu(k,j)
             END DO
             dumxyzmh(4,j) = xyzmh(4,j)
-            dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
-            IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,alphaMM(j)+
-     &           deltat*f1ha(2,j))
-            IF (imhd.EQ.idim) THEN
-               DO k = 1, 3
-                  dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
-               END DO
+            IF (iphase(j).EQ.0) THEN
+               IF (encal.NE.'r') THEN
+                  dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
+               ELSE
+                  dumvxyzu(4,j) = vxyzu(4,j)
+               ENDIF
+              IF(iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15 
+               dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
+               IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,alphaMM(j)+
+     &              deltat*f1ha(2,j))
+               IF (imhd.EQ.idim) THEN
+                  DO k = 1, 3
+                     dumBevolxyz(k,j) = Bevolxyz(k,j)
+                  END DO
+               ENDIF
             ENDIF
          ENDIF
       END DO
 C$OMP END PARALLEL DO
 
-      ELSE
-
-         IF (nlst.GT.nptmass) THEN
-            DO i = 1, itbinupdate
+      ELSEIF (nlst-nptmass.GT.10000) THEN
+         DO i = 1, itbinupdate
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
-C$OMP& private(j,k,ipart,deltat,deltat2)
-               DO j = 1, nlstbins(i)
-                  ipart = listbins(j,i)
-                  IF (iphase(ipart).GE.0) THEN
-                     deltat = dt*(itime - it0(ipart))/imaxstep
-                     deltat2 = 0.5*deltat
-                     DO k = 1, 3
-                        dumvxyzu(k,ipart) = vxyzu(k,ipart) + 
-     &                       deltat2*f1vxyzu(k,ipart)
-                     END DO
+C$OMP& shared(isibdaupar,iflagtree,imfac,npart)
+C$OMP& shared(numberparents,listparents)
+C$OMP& private(j,k,ipart,deltat,deltat2,iparent)
+            DO j = 1, nlstbins(i)
+               ipart = listbins(j,i)
+               IF (iphase(ipart).GE.0) THEN
+c
+c--Load predicted quantities into dummy arrays
+c
+                  deltat = dt*(itime - it0(ipart))/imaxstep
+                  deltat2 = 0.5*deltat
+                  DO k = 1, 3
+                     dumvxyzu(k,ipart) = vxyzu(k,ipart) + 
+     &                    deltat2*f1vxyzu(k,ipart)
+                  END DO
+                  DO k = 1, 3
+                     dumxyzmh(k,ipart) = xyzmh(k,ipart) + 
+     &                    deltat*dumvxyzu(k,ipart)
+                  END DO
+                  dumxyzmh(4,ipart) = xyzmh(4,ipart)
+                  IF (iphase(ipart).EQ.0) THEN
                      IF (encal.NE.'r') THEN
                         dumvxyzu(4,ipart) = vxyzu(4,ipart) +
      &                       deltat*f1vxyzu(4,ipart)
@@ -644,26 +674,95 @@ C$OMP& private(j,k,ipart,deltat,deltat2)
                      ENDIF
                      IF (iener.EQ.2 .AND. dumvxyzu(4,ipart).LT.0.0) 
      &                    dumvxyzu(4,ipart)=0.15
-                     DO k = 1, 3
-                        dumxyzmh(k,ipart) = xyzmh(k,ipart) + 
-     &                       deltat*dumvxyzu(k,ipart)
-                     END DO
-                     dumxyzmh(4,ipart) = xyzmh(4,ipart)
                      dumxyzmh(5,ipart) = xyzmh(5,ipart) + 
      &                    deltat*f1ha(1,ipart)
                      IF (ifsvi.EQ.6) dumalpha(ipart) = MIN(alphamax,
      &                    alphaMM(ipart) + deltat*f1ha(2,ipart))
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, 3
-                           dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) +
-     &                          deltat*f1Bxyz(k,ipart)
+                           dumBevolxyz(k,ipart) = Bevolxyz(k,ipart)
                         END DO
                      ENDIF
                   ENDIF
-               END DO
-C$OMP END PARALLEL DO
+               ENDIF
             END DO
-         ELSE
+C$OMP END PARALLEL DO
+         END DO
+c
+c--Sinks ALL on smallest timestep OR NOT
+c
+      ELSEIF (nlst.GT.nptmass) THEN
+c      ELSEIF (nlst.GT.0) THEN
+         DO i = 1, itbinupdate
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
+C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
+C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
+C$OMP& shared(isibdaupar,iflagtree,imfac,npart)
+C$OMP& shared(numberparents,listparents)
+C$OMP& private(j,k,ipart,deltat,deltat2,iparent)
+            DO j = 1, nlstbins(i)
+               ipart = listbins(j,i)
+               IF (iphase(ipart).GE.0) THEN
+c
+c--Set flag to state that parent node in tree needs to be recalculated
+c                  
+                  IF (igrape.EQ.0 .AND.
+     &         (.NOT.(iphase(ipart).GE.1 .AND. iptintree.EQ.0))) THEN
+                     iparent = isibdaupar(3,ipart)
+C$OMP CRITICAL (parentlist1)
+                     IF (.NOT.iflagtree(iparent)) THEN
+                        iflagtree(iparent) = .TRUE.
+                        numberparents = numberparents + 1
+                        listparents(numberparents) = iparent
+                     ENDIF
+C$OMP END CRITICAL (parentlist1)
+                     IF (ipart.GT.npart .OR.
+     &                  (iphase(ipart).GE.1 .AND. iptintree.EQ.1)) THEN
+                        imfac(ipart) = 0
+                     ELSE
+                        imfac(ipart) = 1
+                     ENDIF
+                  ENDIF
+c
+c--Load predicted quantities into dummy arrays
+c
+                  deltat = dt*(itime - it0(ipart))/imaxstep
+                  deltat2 = 0.5*deltat
+                  DO k = 1, 3
+                     dumvxyzu(k,ipart) = vxyzu(k,ipart) + 
+     &                    deltat2*f1vxyzu(k,ipart)
+                  END DO
+                  DO k = 1, 3
+                     dumxyzmh(k,ipart) = xyzmh(k,ipart) + 
+     &                    deltat*dumvxyzu(k,ipart)
+                  END DO
+                  dumxyzmh(4,ipart) = xyzmh(4,ipart)
+                  IF (iphase(ipart).EQ.0) THEN
+                     IF (encal.NE.'r') THEN
+                        dumvxyzu(4,ipart) = vxyzu(4,ipart) +
+     &                       deltat*f1vxyzu(4,ipart)
+                     ELSE
+                        dumvxyzu(4,ipart) = vxyzu(4,ipart)
+                     ENDIF
+                     IF (iener.EQ.2 .AND. dumvxyzu(4,ipart).LT.0.0) 
+     &                    dumvxyzu(4,ipart)=0.15
+                     dumxyzmh(5,ipart) = xyzmh(5,ipart) + 
+     &                    deltat*f1ha(1,ipart)
+                     IF (ifsvi.EQ.6) dumalpha(ipart) = MIN(alphamax,
+     &                    alphaMM(ipart) + deltat*f1ha(2,ipart))
+                     IF (imhd.EQ.idim) THEN
+                        DO k = 1, 3
+                           dumBevolxyz(k,ipart) = Bevolxyz(k,ipart)
+                        END DO
+                     ENDIF
+                  ENDIF
+               ENDIF
+            END DO
+C$OMP END PARALLEL DO
+         END DO
+      ELSE
 c
 c--Only update ptmasses, since nothing else is evolved
 c     These should already be at the correct time, so don't need to extrapolate
@@ -671,58 +770,102 @@ c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nptmass,listpm,itime,it0)
 C$OMP& shared(xyzmh,vxyzu,dumxyzmh,dumvxyzu)
-C$OMP& private(i,k,ipart)
-            DO i = 1, nptmass
-               ipart = listpm(i)
-               IF (itime.NE.it0(ipart)) THEN
-                  WRITE (*,*) 'ERROR - ptmass not updated'
-                  CALL quit
+C$OMP& shared(isibdaupar,iflagtree,imfac)
+C$OMP& shared(numberparents,listparents)
+C$OMP& private(i,k,ipart,iparent)
+         DO i = 1, nptmass
+            ipart = listpm(i)
+            IF (itime.NE.it0(ipart)) THEN
+               WRITE (*,*) 'ERROR - ptmass not updated'
+               CALL quit
+            ENDIF
+c
+c--Set flag to state that parent node in tree needs to be recalculated
+c     but only if point masses in the tree and all gravity done by tree
+c
+            IF (igrape.EQ.0 .AND. iptintree.EQ.2) THEN
+               iparent = isibdaupar(3,ipart)
+C$OMP CRITICAL (parentlist2)
+               IF (.NOT.iflagtree(iparent)) THEN
+                  iflagtree(iparent) = .TRUE.
+                  numberparents = numberparents + 1
+                  listparents(numberparents) = iparent
                ENDIF
-               DO k = 1, 3
-                  dumxyzmh(k,ipart) = xyzmh(k,ipart)
-               END DO
-               DO k = 1, 3
-                  dumvxyzu(k,ipart) = vxyzu(k,ipart)
-               END DO
+C$OMP END CRITICAL (parentlist2)
+               imfac(ipart) = 1
+            ELSE
+               imfac(ipart) = 0
+            ENDIF
+c
+c--Load dummy arrays
+c
+            DO k = 1, 3
+               dumxyzmh(k,ipart) = xyzmh(k,ipart)
             END DO
+            DO k = 1, 3
+               dumvxyzu(k,ipart) = vxyzu(k,ipart)
+            END DO
+         END DO
 C$OMP END PARALLEL DO
-         ENDIF
       ENDIF
 
       IF (nghost.GT.0) THEN
+         irevise = .FALSE.
+         IF (igrape.EQ.0 .AND. (nlst.GT.nptmass .OR. iptintree.GT.0)
+     &        .AND. (.NOT.(nlst.GT.ncrit.OR.imakeghost.EQ.1.OR.
+     &        idonebound.EQ.1))) irevise = .TRUE.
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,dumxyzmh,dumvxyzu,encal)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumxyzmh,dumvxyzu,encal)
 C$OMP& shared(iphase,iener,ifsvi,dumalpha,alphaMM,alphamax)
 C$OMP& shared(Bevolxyz,dumBevolxyz)
-C$OMP& private(j,k,l,deltat)
-      DO j = npart + 1, npart + nghost
-         IF (iphase(j).GE.0) THEN
-            k = ireal(j)
-            deltat = dt*(itime - it0(k))/imaxstep
-            DO l = 1, 3
-               dumvxyzu(l,j) = vxyzu(l,j)
-            END DO
-            IF (encal.NE.'r') THEN
-               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
-            ELSE
-               dumvxyzu(4,j) = vxyzu(4,j)
-            ENDIF
-            IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
-            DO l = 1, 3
-               dumxyzmh(l,j) = xyzmh(l,j) + deltat*dumvxyzu(l,j)
-            END DO
-            dumxyzmh(4,j) = xyzmh(4,j)
-            dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,k)
-            IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax, alphaMM(k) 
-     &           + deltat*f1ha(2,k))
-            IF (imhd.EQ.idim) THEN
+C$OMP& shared(isibdaupar,iflagtree,imfac,irevise)
+C$OMP& shared(numberparents,listparents)
+C$OMP& private(j,k,l,deltat,iparent)
+         DO j = npart + 1, npart + nghost
+            IF (iphase(j).GE.0) THEN
+c
+c--Set flag to state that parent node in tree needs to be recalculated
+c
+               IF (irevise) THEN
+                  iparent = isibdaupar(3,j)
+C$OMP CRITICAL (parentlist3)
+                  IF (.NOT.iflagtree(iparent)) THEN
+                     iflagtree(iparent) = .TRUE.
+                     numberparents = numberparents + 1
+                     listparents(numberparents) = iparent
+                  ENDIF
+C$OMP END CRITICAL (parentlist3)
+                  imfac(j) = 0
+               ENDIF
+c
+c--Load predicted quantities into dummy arrays
+c
+               k = ireal(j)
+               deltat = dt*(itime - it0(k))/imaxstep
                DO l = 1, 3
-                  dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,j)
+                  dumvxyzu(l,j) = vxyzu(l,j)
                END DO
+               IF (encal.NE.'r') THEN
+                  dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
+               ELSE
+                  dumvxyzu(4,j) = vxyzu(4,j)
+               ENDIF
+            IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
+               DO l = 1, 3
+                  dumxyzmh(l,j) = xyzmh(l,j) + deltat*dumvxyzu(l,j)
+               END DO
+               dumxyzmh(4,j) = xyzmh(4,j)
+               dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,k)
+               IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,alphaMM(k)
+     &              + deltat*f1ha(2,k))
+               IF (imhd.EQ.idim) THEN
+                  DO l = 1, 3
+                     dumBevolxyz(l,j) = Bevolxyz(l,j)
+                  END DO
+               ENDIF
             ENDIF
-         ENDIF
-      END DO
+         END DO
 C$OMP END PARALLEL DO
       ENDIF
       IF (itiming) THEN
@@ -733,15 +876,15 @@ C$OMP END PARALLEL DO
 
 c      PRINT *,'h(1)3: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
 
-c      IF (hmaximum.GT.0.0) THEN
-cC$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-cC$OMP& shared(npart,nghost,hmaximum,dumxyzmh)
-cC$OMP& private(j)
-c         DO j = 1, npart + nghost
-c            IF (dumxyzmh(5,j).GT.hmaximum) dumxyzmh(5,j) = hmaximum
-c         END DO
-cC$OMP END PARALLEL DO
-c      ENDIF
+      IF (hmaximum.GT.0.0) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(npart,nghost,hmaximum,dumxyzmh)
+C$OMP& private(j)
+         DO j = 1, npart + nghost
+            IF (dumxyzmh(5,j).GT.hmaximum) dumxyzmh(5,j) = hmaximum
+         END DO
+C$OMP END PARALLEL DO
+      ENDIF
 c
 c--Make or update the tree
 c
@@ -750,7 +893,8 @@ c
          IF (nlst.GT.ncrit.OR.imakeghost.EQ.1.OR.
      &        idonebound.EQ.1) THEN
             CALL insulate(1, ntot, npart, dumxyzmh, f1vxyzu)
-         ELSEIF (iptintree.GT.0 .OR. nlst.GT.nptmass) THEN
+         ELSEIF (.NOT.(iptintree.EQ.1 .AND. nlst.LE.nptmass .AND. 
+     &           nlstacc.EQ.0)) THEN
             CALL insulate(2, ntot, npart, dumxyzmh, f1vxyzu)
          ENDIF
          iaccr = 0
@@ -761,19 +905,24 @@ c
 c--Compute forces on list particles
 c
  200  icall = 3
+      IF (itiming) CALL getused(ts101)
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
-     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
+     &     ntot,ireal,dumalpha,ekcle)
+      IF (itiming) THEN
+         CALL getused(ts102)
+         ts10 = ts10 + (ts102 - ts101)
+      ENDIF
 
 c      PRINT *,'h(1)4: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
-
 
 c
 c--Update velocities (kick 1/2)
 c
+      IF (itiming) CALL getused(ts111)
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst,llist,iscurrent,dt,isteps,imaxstep)
 C$OMP& shared(vxyzu,f1vxyzu)
-C$OMP& shared(iphase,nptmass,listpm)
+C$OMP& shared(iphase,nptmass,listpm,listrealpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,xyzmh)
 C$OMP& private(i,j,dthalf,delvx,delvy,delvz,iii,pmasspt)
       DO j = 1, nlst
@@ -792,10 +941,11 @@ c
          vxyzu(3,i) = vxyzu(3,i) + delvz
 
          IF (iphase(i).GE.1) THEN
-            DO iii = 1, nptmass
-               IF (listpm(iii).EQ.i) GOTO 445
-            END DO
- 445        CONTINUE
+c            DO iii = 1, nptmass
+c               IF (listpm(iii).EQ.i) GOTO 445
+c            END DO
+c 445        CONTINUE
+            iii = listrealpm(i)
             pmasspt = xyzmh(4,i)
             xmomsyn(iii) = xmomsyn(iii) + delvx*pmasspt
             ymomsyn(iii) = ymomsyn(iii) + delvy*pmasspt
@@ -803,6 +953,10 @@ c
          ENDIF
       END DO
 C$OMP END PARALLEL DO
+      IF (itiming) THEN
+         CALL getused(ts112)
+         ts11 = ts11 + (ts112 - ts111)
+      ENDIF
 c
 c--Synchronization time
 c
@@ -817,35 +971,42 @@ c      PRINT *,'h(1)5: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
 c
 c--Set new timesteps
 c
+      IF (itiming) CALL getused(ts121)
       CALL timestep(dt,idtsyn,nlst,llist,f1vxyzu,Bevolxyz)
+      IF (itiming) THEN
+         CALL getused(ts122)
+         ts12 = ts12 + (ts122 - ts121)
+      ENDIF
 c
 c--Make point mass timesteps equal to the minimum time step used
 c
 c      PRINT *,'h(1)6: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
+      IF (itiming) CALL getused(ts131)
       DO i = 1, nptmass
          iptcur = listpm(i)
-         IF (istepmin.GT.isteps(iptcur)) THEN
-            WRITE (*,*) 'ERROR - isteps of ptmass is < istepmin'
-            CALL quit
-c            istep2 = 2*isteps(iptcur)
-c            irat = MOD(idtsyn, istep2)
-c            IF (irat.EQ.0) THEN
-c               isteps(iptcur) = istep2
-c               istepmin = isteps(iptcur)
-c            ENDIF
-         ELSEIF (istepmin.LT.isteps(iptcur)) THEN
+c
+c--Sinks ALL on smallest timestep OR NOT
+c
+         IF (istepmin.LT.isteps(iptcur)) THEN
+c         IF (istepmingas.LT.isteps(iptcur)) THEN
             isteps(iptcur) = istepmin  
+c            isteps(iptcur) = istepmingas
          ENDIF
       END DO
+      IF (itiming) THEN
+         CALL getused(ts132)
+         ts13 = ts13 + (ts132 - ts131)
+      ENDIF
 c      PRINT *,'h(1)7: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
 
 c
 c--Tidy up - kill particles, set u(i)=dumu(i), set new it2()
 c
+      IF (itiming) CALL getused(ts91)
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst,llist)
 C$OMP& shared(it2,isteps,igphi)
-C$OMP& shared(dgrav,dumvxyzu,vxyzu,dumxyzmh)
+C$OMP& shared(dgrav,dumvxyzu,vxyzu)
 C$OMP& shared(it0,ibound,deadbound)
 C$OMP& shared(iprint,xyzmh,poten,iphase,ikillpr)
 C$OMP& shared(ikilled,nactive,nkill,time,iorig,nlstacc,listacc)
@@ -904,10 +1065,6 @@ c       but the derivi call doesn't alter them, so putting them back
 c       into u(i) again changes nothing.
 c
          vxyzu(4,i) = dumvxyzu(4,i)
-c
-c--also set h to new value from DERIVI
-c
-         xyzmh(5,i) = dumxyzmh(5,i)
 c
 c--Set new timestep values
 c
@@ -968,6 +1125,7 @@ c
 c
 c--Update it2 for bins
 c
+      IF (itiming) CALL getused(ts141)
       DO i = 1, nbinmax
          IF (it2bin(i).EQ.itime) THEN
             nlstbins(i) = 0
@@ -1021,13 +1179,16 @@ c
             ENDIF
          ENDIF
       END DO
+      IF (itiming) THEN
+         CALL getused(ts142)
+         ts14 = ts14 + (ts142 - ts141)
+      ENDIF
 c
 c--Create NEW particles to keep number of particles within a shell
 c     constant.  
 c
       IF (nptmass.NE.0 .OR. icreate.EQ.1) THEN
          IF (ibound/10.EQ.9 .AND. nshell.GT.inshell) THEN
-            STOP 'THIS WEIRD MATTHEW BIT NOT VALID WITH GRAD H YET'
             iaccr = 0
             ikilled = 0
             nlstacc = 0
@@ -1075,7 +1236,7 @@ c
                      dumxyzmh(l,j) = xyzmh(l,j) + deltat*vxyzu(l,j)
                   END DO
                   dumxyzmh(4,j) = xyzmh(4,j)
-                  dumxyzmh(5,j) = xyzmh(5,j) !!+ deltat*f1ha(1,k)
+                  dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,k)
 
                   DO l = 1, 3
                      dumvxyzu(l,j) = vxyzu(l,j)
@@ -1135,7 +1296,7 @@ c
 
             icall = 4
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
-     &           npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
+     &           npart,ntot,ireal,dumalpha,ekcle)
 
             time = dt*itime/imaxstep + gt
             DO j = 1, nlst
@@ -1315,8 +1476,8 @@ c--Set accelerations on new particles using call to derivi
 c
             icall = 4
             PRINT *,"icall 4 triggered"
-            CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
-     &           ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
+            CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
+     &           f1ha,npart,ntot,ireal,dumalpha,ekcle)
 c
 c--Write new particles to file
 c
@@ -1393,6 +1554,7 @@ c
 c--If accreted mass and angular momentum is large enough, then add on to
 c     previous point mass's mass and momentum
 c
+      IF (itiming) CALL getused(ts151)
       DO ii = 1, nptmass
          i = listpm(ii)
          IF (ptmadd(ii)/ptmsyn(ii).GT.0.001 .OR. itime.GE.itnext) THEN
@@ -1404,6 +1566,10 @@ c
             vxyzu(3,i) = (zmomsyn(ii) + zmomadd(ii))/pmasspt
          ENDIF
       END DO
+      IF (itiming) THEN
+         CALL getused(ts152)
+         ts15 = ts15 + (ts152 - ts151)
+      ENDIF
 c
 c--If binary with mean-Roche-lobe sized accretion radii under massive
 c      accretion, then dynamically evolve the accretion radii.
@@ -1613,6 +1779,7 @@ c
             it2bin(i) = 2**i
          END DO
 
+         IF (itiming) CALL getused(ts161)
          DO i = 1, npart
             IF (iphase(i).NE.-1) THEN
                it0(i) = 0
@@ -1632,6 +1799,10 @@ c
                ENDIF
             ENDIF
          END DO
+         IF (itiming) THEN
+            CALL getused(ts162)
+            ts16 = ts16 + (ts162 - ts161)
+         ENDIF
 
          IF (igrape.EQ.0) THEN
             nneightot = 0

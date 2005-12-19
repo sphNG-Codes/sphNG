@@ -1,6 +1,6 @@
       SUBROUTINE forcei(nlst_in,nlst_end,list,dt,itime,
-     &      npart,xyzmh,vxyzu,fxyzu,dha,
-     &      trho,pr,vsound,alphaMMpass,ekcle,dedxyz,Bxyz,dBxyz)
+     &      npart,xyzmh,vxyzu,fxyzu,dha,trho,pr,vsound,alphaMMpass,
+     &      ekcle,dedxyz,Bxyz,dBxyz)
 c************************************************************
 c                                                           *
 c  This subroutine computes the forces on particle ipart    *
@@ -71,106 +71,24 @@ c
       realtime = dt*itime/imaxstep + gt
 
       IF (ifsvi.EQ.6) THEN
-c
-c--Calculates ddvx, ddvy, ddvz only if viscosity=6
-c
-C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(nlst_in,nlst_end,list,nneigh,iphase,neighover,neighb)
-C$OMP& shared(xyzmh,radkernel,trho,grwij,vxyzu,dvtable)
-C$OMP& shared(ddvxyz,cnormk)
-C$OMP& private(n,ipart,ddvxi,ddvyi,ddvzi,k,j,dx,dy,dz,rij2,rij,rij1)
-C$OMP& private(hi,hi21,hi41,vi,v2i,gradhi,index,dxx,index1,rhoj,grwtij)
-C$OMP& private(dgrwdx,grpm,dvx,dvy,dvz,edotv,termx,termy,termz)
-C$OMP& private(ddvscalar)
-      DO 180 n = nlst_in, nlst_end
-         ipart = list(n)
-         IF (iphase(ipart).GE.1) GOTO 180
+         WRITE (iprint,*) 'ERROR - cannot use ifsvi=6 with gradh'
+         CALL quit
+      ENDIF
 
-         ddvxi = 0.
-         ddvyi = 0.
-         ddvzi = 0.
-c
-c--Loop over neighbors
-c
-         DO 170 k = 1, nneigh(ipart)
-            IF (k.GE.nlmax) THEN
-               j = neighover(k-nlmax+1,ABS(neighb(nlmax,ipart)))
-            ELSE
-               j = neighb(k,ipart)
-            ENDIF
-
-            IF (iphase(j).GE.1) GOTO 170
-c
-c--Gravity and potential energy
-c
-            dx = xyzmh(1,ipart) - xyzmh(1,j)
-            dy = xyzmh(2,ipart) - xyzmh(2,j)
-            dz = xyzmh(3,ipart) - xyzmh(3,j)
-            rij2 = dx*dx + dy*dy + dz*dz + tiny
-            rij = SQRT(rij2)
-            rij1 = 1./rij
-c
-c--Use hi
-c
-            hi = xyzmh(5,ipart)
-            hi21 = 1./(hi*hi)
-            hi41 = hi21*hi21
-            gradhi = gradhs(1,ipart)
-
-            v2i = rij2*hi21
-            vi = rij/hi
-
-            index = v2i/dvtable
-            dxx = v2i - index*dvtable
-            index1 = index + 1
-            IF (index1.GT.itable) index1 = itable
-
-            IF (vi.LT.radkernel) THEN
-               rhoj = trho(j)
-c 
-c--Get kernel quantities from interpolation in table
-c
-               dgrwdx = (grwij(index1) - grwij(index))/dvtable
-               grwtij = (grwij(index) + dgrwdx*dxx)*hi41
-               grpm = xyzmh(4,j)*grwtij*gradhi
-
-               dvx = vxyzu(1,ipart) - vxyzu(1,j)
-               dvy = vxyzu(2,ipart) - vxyzu(2,j)
-               dvz = vxyzu(3,ipart) - vxyzu(3,j)
-c
-c--Calculates grad of div velocity (straigh, not times density)
-c
-               edotv = (dx*dvx + dy*dvy + dz*dvz)/rij
-               termx = - grpm/rhoj*(5.0*dx/rij*edotv - dvx)/rij
-               termy = - grpm/rhoj*(5.0*dy/rij*edotv - dvy)/rij
-               termz = - grpm/rhoj*(5.0*dz/rij*edotv - dvz)/rij
-               ddvxi = ddvxi + termx
-               ddvyi = ddvyi + termy
-               ddvzi = ddvzi + termz
-               ddvscalar = (termx*dvx + termy*dvy + termz*dvz)/
-     &              SQRT(dvx**2 + dvy**2 + dvz**2)
-c               print *,"edotv",edotv,ddvxi,ddvyi,ddvzi
-            ENDIF
- 170     CONTINUE
-c
-c--Store quantities
-c
-         ddvxyz(1,ipart)=cnormk*ddvxi
-         ddvxyz(2,ipart)=cnormk*ddvyi
-         ddvxyz(3,ipart)=cnormk*ddvzi
-
- 180   CONTINUE
-C$OMP END PARALLEL DO
-       ENDIF
+      IF (imhd.EQ.idim .AND. ibound.EQ.7) THEN
+         B2ext = Bextx**2 + Bexty**2 + Bextz**2
+      ELSE
+         B2ext = 0.
+      ENDIF
 c
 c--Initialize
 c
 C$OMP PARALLEL default(none)
-C$OMP& shared(nlst_in,nlst_end,npart,hmin,list,nneigh,neimin,neimax)
+C$OMP& shared(nlst_in,nlst_end,npart,list,nneigh,neimin,neimax)
 C$OMP& shared(icall,dt,imaxstep,isteps)
 C$OMP& shared(xyzmh,vxyzu,dha,fxyzu,trho,pr,vsound,dq,gradhs)
 C$OMP& shared(neighb,neighover,dvtable,psoft)
-C$OMP& shared(fmass,fpoten,dphidh,part2kernel,part1kernel,radkernel)
+C$OMP& shared(fmass,fpoten,part2kernel,part1kernel,radkernel)
 C$OMP& shared(part2potenkernel,part1potenkernel,grwij)
 C$OMP& shared(divv,curlv,beta,alpha,poten,dgrav,nlst0)
 C$OMP& shared(cnormk,epsil,epsil2,where,pext)
@@ -178,10 +96,12 @@ C$OMP& shared(iphase,listpm,iprint,nptmass,iorig)
 C$OMP& shared(alphaMMpass,alphamin,ddv,ddvxyz)
 C$OMP& shared(igrp,igphi,ifsvi,iexf)
 C$OMP& shared(ifcor,iexpan,iener,damp)
-C$OMP& shared(realtime,ekcle,encal,dedxyz)
-C$OMP& shared(Bxyz,dBxyz,Bextx,Bexty,Bextz)
-C$OMP& private(n,ipart,stepsi,numneigh)
+C$OMP& shared(realtime,ekcle,encal,dedxyz,acc)
+C$OMP& shared(Bxyz,dBxyz,Bextx,Bexty,Bextz,B2ext,divcurlB)
+C$OMP& shared(gravxyzstore,potenstore)
+C$OMP& private(n,ipart,stepsi)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
+C$OMP& private(fxi,fyi,fzi,numneigh,hmin)
 C$OMP& private(poteni,dphiti,gradxi,gradyi,gradzi,artxi,artyi,artzi)
 C$OMP& private(pdvi,dqi,rhoi,pro2i,vsoundi,k,j,hj,dx,dy,dz)
 C$OMP& private(rho1i,rho21i,sqrtrho1i,rho1j)
@@ -197,10 +117,14 @@ C$OMP& private(vlowcorrection,qi,qj)
 C$OMP& private(ii,iptcurv,xii,yii,zii,vpos)
 C$OMP& private(alphamean,projddv,termx,termy,termz,ddvscalar)
 C$OMP& private(gradhi,gradsofti,gradpi,gradpj)
-C$OMP& private(Bxi,Byi,Bzi,B2i,B2ext)
+C$OMP& private(Bxi,Byi,Bzi,B2i)
 C$OMP& private(Bxj,Byj,Bzj,B2j,projBi,projBj,dBx,dBy,dBz)
 C$OMP& private(dBxideali,dByideali,dBzideali,dBxdissi,dBydissi,dBzdissi)
-C$OMP& private(divBi,curlBxi,curlByi,curlBzi)
+C$OMP& private(divBi,curlBxi,curlByi,curlBzi,fanisoxi,fanisoyi,fanisozi)
+C$OMP& private(dsoftxi,dsoftyi,dsoftzi,vsigi,vsigj,alphaB)
+C$OMP& private(vsproji,vsprojj,termb,vs2i,vs2j,dB2,robar1,fmi)
+C$OMP& private(grkerni,grpmi,phii,dsofttermi,projdB,projbext)
+C$OMP& private(grkernj,grpmj,phij,dsofttermj,rhoij1,fmj,vsoundj)
 C$OMP& reduction(+:ioutmin,ioutsup,ioutinf)
 C$OMP& reduction(MIN:inmin,inminsy)
 C$OMP& reduction(MAX:inmax,inmaxsy)
@@ -208,27 +132,63 @@ C$OMP& reduction(MAX:inmax,inmaxsy)
 C$OMP DO SCHEDULE(runtime)
       DO n = nlst_in, nlst_end
          ipart = list(n)
+c
+c--Zero forces and change in thermal energy, and 
+c     rate of change of h (the latter so that integrating h in step does
+c     not matter).
+c
+         IF (nlst_end.GT.nptmass) THEN
+c
+c--Get neighbour lists and calculate gravity on the tree
+c     number of neighbours is returned in nneigh() as usual
+c     list of neighbours is returned in neighlist(nneigh())
+c     which is a threadprivate variable (one copy for each thread)
+c     NOTE: Assumes that nlmax=1 is set to save memory for grad-h code.
+c     If not, will still work but cache re-use will be VERY BAD !!!!
+c
+            CALL treef(ipart,npart,xyzmh,acc,igphi,fxi,fyi,fzi,poteni)
 
-      END DO
-C$OMP END DO
+            fxyzu(1,ipart) = fxi
+            fxyzu(2,ipart) = fyi
+            fxyzu(3,ipart) = fzi
+            poten(ipart) = poteni
 
-      IF (imhd.EQ.idim .AND. ibound.EQ.7) THEN
-         B2ext = Bextx**2 + Bexty**2 + Bextz**2
-      ELSE
-         B2ext = 0.
-         B2i = 0.
-         B2j = 0.
-      ENDIF
+            gravxyzstore(1,ipart) = fxi
+            gravxyzstore(2,ipart) = fyi
+            gravxyzstore(3,ipart) = fzi
+            potenstore(ipart) = poteni
+         ELSE
+c
+c--Don't bother to update gravity from gas particles acting on sinks
+c    Also means potential energy and neighbours of sinks are not updated
+c
+            fxyzu(1,ipart) = gravxyzstore(1,ipart)
+            fxyzu(2,ipart) = gravxyzstore(2,ipart)
+            fxyzu(3,ipart) = gravxyzstore(3,ipart)
+            poten(ipart) = potenstore(ipart)
+         ENDIF
+            
+         fxyzu(4,ipart) = 0.
+         dha(1,ipart) = 0.0
 
-C$OMP DO SCHEDULE(runtime)
-      DO n = nlst_in, nlst_end
-         ipart = list(n)
          IF (iphase(ipart).EQ.-1) THEN
             WRITE(iprint,*) 'Error: Force for non-existant particle'
             CALL quit
          ELSEIF (iphase(ipart).GE.1) THEN
             GOTO 80
-         ENDIF  
+         ENDIF
+
+         IF (icall.EQ.3) THEN
+            numneigh = nneigh(ipart)
+            inmin = MIN(inmin,numneigh)
+            inmax = MAX(inmax,numneigh)
+            inminsy = MIN(inminsy,numneigh)
+            inmaxsy = MAX(inmaxsy,numneigh)
+            IF (xyzmh(5,ipart).LT.hmin .AND. numneigh.GT.neimin)
+     &           ioutmin = ioutmin + 1
+            IF (numneigh.GT.neimax) ioutsup = ioutsup + 1
+            IF (numneigh.LT.neimin) ioutinf = ioutinf + 1
+         ENDIF
 c
 c--Compute forces on particle ipart
 c
@@ -263,6 +223,9 @@ c
             fanisoxi = 0.
             fanisoyi = 0.
             fanisozi = 0.
+         ELSE
+            B2i = 0.
+            B2j = 0.
          ENDIF
 
          gravxi = 0.
@@ -293,11 +256,7 @@ c
          rho1i = 1./rhoi
          sqrtrho1i = SQRT(rho1i)
          rho21i = rho1i*rho1i
-         IF (iphase(ipart).GE.1) THEN
-            pro2i = 0.0
-         ELSE
-            pro2i = (pr(ipart) - pext + 0.5*(B2i-B2ext))*rho21i
-         ENDIF
+         pro2i = (pr(ipart) - pext + 0.5*(B2i-B2ext))*rho21i
          vsoundi = vsound(ipart)
 
          stepsi = dt*isteps(ipart)/imaxstep
@@ -305,11 +264,7 @@ c
 c--Loop over neighbors
 c
          DO 70 k = 1, nneigh(ipart)
-            IF (k.GE.nlmax) THEN
-               j = neighover(k-nlmax+1,ABS(neighb(nlmax,ipart)))
-            ELSE
-               j = neighb(k,ipart)
-            ENDIF
+            j = neighlist(k)
 
             IF (iphase(j).GE.1) GOTO 70
 
@@ -401,7 +356,7 @@ ccc               ddvscalar = ddvscalar+hi*projv*rij/(rij**2+epsil2*hi*hi)
 c
 c--i contribution to force softening (including pseudo-pressure term)
 c
-               IF (isoft.EQ.0 .OR. isoft.EQ.2) THEN
+               IF (isoft.EQ.0) THEN
                   dfmassdx = (fmass(index1) - fmass(index))/dvtable
                   fmi = (fmass(index) + dfmassdx*dxx)
                   dfptdx = (fpoten(index1) - fpoten(index))/dvtable
@@ -483,22 +438,20 @@ c
                fmj = 1.
                phij = -rij1
             ENDIF
-
 c
-c--Artificial viscosity and pressure forces
+c--No artificial viscosity, resistivity, pressure, or MHD between particles 
+c     across a point mass
 c
-c--No artificial viscosity or pressure between particles across a point mass
-c
-c            DO ii = 1, nptmass
-c               iptcurv = listpm(ii)
-c               xii = xyzmh(1,iptcurv)
-c               yii = xyzmh(2,iptcurv)
-c               zii = xyzmh(3,iptcurv)
-c               vpos = (xii-xi)*(xii-xyzmh(1,j)) + 
-c     &              (yii-yi)*(yii-xyzmh(2,j)) +
-c     &              (zii-zi)*(zii-xyzmh(3,j))
-c               IF (vpos.LT.0.0) GOTO 60
-c            END DO 
+            DO ii = 1, nptmass
+               iptcurv = listpm(ii)
+               xii = xyzmh(1,iptcurv)
+               yii = xyzmh(2,iptcurv)
+               zii = xyzmh(3,iptcurv)
+               vpos = (xii-xi)*(xii-xyzmh(1,j)) + 
+     &              (yii-yi)*(yii-xyzmh(2,j)) +
+     &              (zii-zi)*(zii-xyzmh(3,j))
+               IF (vpos.LT.0.0) GOTO 60
+            END DO
 
             IF (vi.LT.radkernel .OR. vj.LT.radkernel) THEN
 c
@@ -619,40 +572,6 @@ c--Average softening kernel
                   rijgrav = rij
                   fm = 0.5*(fmi + fmj)
                   phi = 0.5*(phii + phij)
-c--Average softening lengths
-               ELSEIF (isoft.EQ.2) THEN
-                  rij2grav = rij2
-                  rijgrav = rij
-                  IF (iphase(ipart).GE.1) THEN
-                     hmean = hj/2.0
-                  ELSEIF (iphase(j).GE.1) THEN
-                     hmean = hi/2.0
-                  ELSE
-                     hmean = 0.5*(hi + hj)
-                  ENDIF
-                  hmean21 = 1./(hmean*hmean)
-                  v2 = rij2*hmean21
-                  v = SQRT(v2)
-                  IF (v2.GE.radkernel*radkernel) THEN
-                     fm = 1.0
-                     phi = -rij1
-                     dphi = 0.0
-                  ELSE
-                     index = v2/dvtable
-                     index1 = index + 1
-                     IF (index.GT.itable) index = itable
-                     IF (index1.GT.itable) index1 = itable
-                     dxx = v2 - index*dvtable
-                     dfmassdx = (fmass(index1) - fmass(index))/dvtable
-                     fm = (fmass(index) + dfmassdx*dxx)
-                     dfptdx = (fpoten(index1) - fpoten(index))/dvtable
-                     phi = (fpoten(index) + dfptdx*dxx)/hmean
-                     IF (v.GT.part2kernel) THEN
-                        phi = phi + rij1*part2potenkernel
-                     ELSEIF (v.GT.part1kernel) THEN
-                        phi = phi + rij1*part1potenkernel
-                     ENDIF
-                  ENDIF
                ELSE
                   CALL error(where,1)
                ENDIF
@@ -671,7 +590,7 @@ c
  70      CONTINUE
 c
 c--Store quantities
-c 
+c
          IF (igrape.EQ.0 .AND. igphi.NE.0) THEN
             fxyzu(1,ipart) = fxyzu(1,ipart) + gravxi + dsoftxi*cnormk
             fxyzu(2,ipart) = fxyzu(2,ipart) + gravyi + dsoftyi*cnormk
@@ -728,17 +647,32 @@ c     &           MIN(divv(ipart)/rhoi,0.0)
 c     &              1.0*SQRT(ABS(hi*ddv(ipart)*divv(ipart))
             ENDIF
          ENDIF
-
- 80      CONTINUE
+c
+c--Damp velocities if appropiate
+c
+         IF (damp.NE.0.) THEN
+            fxyzu(1,ipart) = fxyzu(1,ipart) - damp*vxyzu(1,ipart)
+            fxyzu(2,ipart) = fxyzu(2,ipart) - damp*vxyzu(2,ipart)
+            fxyzu(3,ipart) = fxyzu(3,ipart) - damp*vxyzu(3,ipart)
+         ENDIF
 c
 c--Energy conservation
-c  
-         IF (iphase(ipart).EQ.0) THEN
-            CALL energ(ipart,realtime,vxyzu, fxyzu)  
-         ELSE
-            dha(1,ipart) = 0.0
-            fxyzu(4,ipart) = 0.0
+c
+
+         CALL energ(ipart,realtime,vxyzu, fxyzu)  
+c
+c--Radiation pressure force
+c
+         IF (encal.EQ.'r') THEN
+            DO j = 1, 3
+               fxyzu(j,ipart) = fxyzu(j,ipart) -
+     &              ekcle(4,ipart)/trho(ipart)*dedxyz(j,ipart)
+            END DO
          ENDIF
+c
+c--Forces that operate on both sink particles and gas from here on:
+c
+ 80      CONTINUE
 c
 c--External forces
 c
@@ -751,37 +685,21 @@ c
 c--Homologous expansion or contraction
 c
          IF (iexpan.GT.0) CALL homexp(ipart,realtime,vxyzu,fxyzu) 
-c
-c--Radiation pressure force
-c
-         IF (encal.EQ.'r') THEN
-            DO j = 1, 3
-               fxyzu(j,ipart) = fxyzu(j,ipart) -
-     &              ekcle(4,ipart)/trho(ipart)*dedxyz(j,ipart)
-            END DO
-         ENDIF
-c
-c--Damp velocities if appropiate
-c
-         IF (damp.NE.0.) THEN
-            fxyzu(1,ipart) = fxyzu(1,ipart) - damp*vxyzu(1,ipart)
-            fxyzu(2,ipart) = fxyzu(2,ipart) - damp*vxyzu(2,ipart)
-            fxyzu(3,ipart) = fxyzu(3,ipart) - damp*vxyzu(3,ipart)
-         ENDIF
-
-c      IF (ipart.EQ.1) THEN
-c         write(iprint,99203) vxyzu(4,ipart)
-c99203    FORMAT('pdv ',1F15.10)
-c         write(iprint,99204) dq(ipart)
-c99204    FORMAT('dq ',1F15.10)
-c         write(iprint,99207) fxyzu(1,ipart), fxyzu(2,ipart), 
-c     &           fxyzu(3,ipart)
-c99207    FORMAT('fx,fy,fz ',1F15.10,1F15.10,1F15.10)
-c      END IF
 
       END DO
 C$OMP END DO
 C$OMP END PARALLEL
+c
+c--Calculate gravity on and from point masses (when sink particles done outside
+c     or partially outside the tree) - done separately for higher accuracy
+c
+      IF (nptmass.GT.0) THEN
+         IF (iptintree.EQ.0) THEN
+            CALL gptall(xyzmh,npart,fxyzu)
+         ELSEIF (iptintree.EQ.1) THEN
+            CALL gforspt(xyzmh,fxyzu)
+         ENDIF
+      ENDIF
 c
 c--Allow for tracing flow
 c
@@ -790,14 +708,3 @@ c
 
       RETURN
       END
-
-
-
-
-
-
-
-
-
-
-

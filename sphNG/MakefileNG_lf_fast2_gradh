@@ -13,8 +13,8 @@
 
 .KEEP_STATE:
 
-FORTRAN = g95
-FC = g95
+FORTRAN = xlf_r -qnosave
+FC = xlf_r -qnosave
 #FC = xlf90_r -qfixed=72
 #RENAMES = -brename:.itime,.itime_ -brename:.idate,.idate_ \
 #          -brename:.etime,.etime_ -brename:.flush,.flush_
@@ -24,47 +24,44 @@ RENAMES =
 ### Prepare for debugging                                  ###
 ##############################################################
 
-#ZFFLAGS= -O3 -q64  -qextname -qsmp=noauto
-#ZZFFLAGS = ${ZFFLAGS} # -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap
-#-qfloat=nans 
-#FFLAGS = ${ZZFFLAGS} -qrealsize=8
-
-ZFFLAGS= -O3 -Wunset-vars -Wline-truncation
-#ZFFLAGS= -O3 -w90 -w95 -Vaxlib -cm -C ##-q64  -qextname -qsmp=noauto
+#FFLAGS = -O5 -qalign=4k -qautodbl=dbl4 -q64 -qsmp
+#ZZFFLAGS = -O3 -q64 -qsmp=noauto -qextname
+ZFFLAGS= -O3 -q64  -qextname -qsmp=noauto
+#ZFFLAGS=  -q64  -qextname 
 ZZFFLAGS = ${ZFFLAGS} # -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
-FFLAGS = ${ZZFFLAGS} -r8 
+#ZZFFLAGS = -O3 -q64 -qextname # -C -qsigtrap -g
+FFLAGS = ${ZZFFLAGS} -qrealsize=8 
 
 SOURCES= sph.f accrete_P.f addump.f angmom.f boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f \
 	chekopt.f condense.f constan.f coriol.f cyldis.f cylmas.f cylpres.f \
-	cylvel.f densityi_P_gradh.f derivi_P_gradh.f endrun.f energ.f eospg.f \
-	error.f evol.f externf.f extract.f \
+	cylvel.f densityiterate_gradh.f derivi_P_gradh.f endrun.f energ.f \
+	eospg.f error.f evol.f externf.f extract.f \
         file.f forcei_P_gradh.f getneigh.f \
 	getcv.f get1overmu.f getkappa.f \
 	gforsa_P.f gforsn_P.f gforspt_P.f \
 	ghostp1.f ghostp2.f ghostp3.f ghostp11.f ghostp100.f \
-	gptall.f hcalc_gradh.f \
+        gptall.f hcalc_gradh.f hdot_P.f \
 	header.f homexp.f indexx.f indexx2.f indexx3.f inform.f \
-	iteratedensity_gradh.f \
 	inopts.f insulate_TREE_P.f integs.f ktable.f labrun.f lunit_double.f \
-	mainop.f mhdparams_mhd.f mesop.f modif.f mtree_P.f \
+	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
 	newrun.f options.f phoenix.f phoenix2.f \
-	place.f preset_gradh.f \
-	prout.f ran1.f rdump.f reduce.f revtree_P.f save.f \
+	place.f preset.f \
+	prout.f ran1.f rdump.f reduce.f revtree_P_fast2.f save.f \
         scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
-	sphdis.f sphmas.f sphpres.f sphvel.f step_P_lf_gradh.f timestep.f \
-	toten.f treef_P_gradh.f unifdis.f unit_bb97.f \
-	wdump_gradh.f wrinsph.f zzsun_f77_double1.f
+	sphdis.f sphmas.f sphpres.f sphvel.f step_P_lf_fast2_gradh.f \
+	timestep.f toten.f treef_P.f unifdis.f unit.f \
+	wdump.f wrinsph.f zzsun_f77_double1.f
 
 OBJECTS = $(SOURCES:.f=.o) zzsun_f77_double2.o
 
-build: sph_gradh
+build: sph_tree_lf_gradh
 
 zzsun_f77_double2.o: zzsun_f77_double2.f
 			     $(FC) -c $(ZZFFLAGS) zzsun_f77_double2.f -o zzsun_f77_double2.o
 
-sph_gradh: $(OBJECTS)
+sph_tree_lf_gradh: $(OBJECTS)
 	$(FC) $(FFLAGS) -o $@ $(OBJECTS)
 
 clean:
-	\rm -f *.o sph_gradh
+	\rm -f *.o sph_tree_lf_gradh

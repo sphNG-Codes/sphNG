@@ -46,13 +46,7 @@ c************************************************************
       INCLUDE 'COMMONS/active'
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/Bzero'
-c      INCLUDE 'COMMONS/setlocal'
-
-      PARAMETER (nvelmax=128)
-
-      REAL*4 velx(nvelmax,nvelmax,nvelmax),
-     &     vely(nvelmax,nvelmax,nvelmax),
-     &     velz(nvelmax,nvelmax,nvelmax)
+      INCLUDE 'COMMONS/setlocal'
 
       CHARACTER*20 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey

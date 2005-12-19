@@ -1,11 +1,15 @@
       INTEGER idim, iptdim, iptneigh
       REAL tiny
 
-      PARAMETER (idim=35001000)
+      PARAMETER (idim=1001000)
       PARAMETER (iptdim=1000)
       PARAMETER (iptneigh=10000)
-      PARAMETER (tiny=1.0E-16)
+      PARAMETER (tiny=1.0E-20)
       PARAMETER (mmax=2*idim + 2)
+
+c--Flag for using grad-h version of code is nlmax=1
+c      PARAMETER (nlmax = 70)
+      PARAMETER (nlmax = 1)
 
 c      PARAMETER (iradtrans=idim)
       PARAMETER (iradtrans=1)

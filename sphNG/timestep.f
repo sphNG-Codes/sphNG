@@ -9,6 +9,8 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
+      PARAMETER (Courant=0.30)
+
       DIMENSION llist(idim),fxyzu(4,idim)
       DIMENSION Bevolxyz(3,imhd)
 
@@ -64,7 +66,7 @@ c
             ELSE
                softrad = xyzmh(5,i)
             ENDIF
-            rmod = 0.3*SQRT(softrad/SQRT(force2))
+            rmod = Courant*SQRT(softrad/SQRT(force2))
             IF (iphase(i).GT.0) rmod = rmod/1000.0
             rmod = rmod/(dt*isteps(i)/imaxstep)
          ELSE
@@ -113,7 +115,7 @@ c
                ENDIF
             ENDIF
             denom = aux3 + vsound(i) + 1.2*(aux1 + aux2)
-            crstepi = 0.3*xyzmh(5,i)/denom
+            crstepi = Courant*xyzmh(5,i)/denom
             rmodcr = crstepi/(dt*isteps(i)/imaxstep)
             rmod = MIN(rmod, rmodcr)
          ENDIF

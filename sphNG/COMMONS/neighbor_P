@@ -1,6 +1,5 @@
       INTEGER nlmax, neighb
 
-      PARAMETER (nlmax = 70)
       PARAMETER (noverflow = 10000)
       PARAMETER (nlovermax = 150*nlmax)
 

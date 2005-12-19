@@ -35,6 +35,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/mhd'
+      INCLUDE 'COMMONS/gradhterms'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -199,10 +200,22 @@ c--skip unnecessary reals
       ENDIF    
 c--real*4
       READ (idisk1, END=100) (rho(i), i=1, npart)
-      READ (idisk1, END=100) (dgrav(i), i=1, npart)
+      IF (nlmax.EQ.1) THEN
+         iread = 3
+         READ (idisk1, END=100) (gradhs(1,i), i=1, npart)
+         READ (idisk1, END=100) (gradhs(2,i), i=1, npart)
+      ELSE
+         iread = 2
+         READ (idisk1, END=100) (dgrav(i), i=1, npart)
+         IF (gt.EQ.0.0) THEN
+            DO j = 1, npart
+               dgrav(j) = 0.
+            ENDDO
+         ENDIF
+      ENDIF
 c--skip unnecessary real*4's
-      IF (nums1(7).GT.2) THEN
-         DO j=1,nums1(7)-2
+      IF (nums1(7).GT.iread) THEN
+         DO j=1,nums1(7)-iread
             READ (idisk1, END=100)
          ENDDO
       ENDIF

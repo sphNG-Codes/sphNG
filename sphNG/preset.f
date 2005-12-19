@@ -109,6 +109,7 @@ c
 c      acc = 0.7
       acc = 0.5
 c      acc = 0.3
+c      acc = 0.0
 c
 c--Set stop flag
 c

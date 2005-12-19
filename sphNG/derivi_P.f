@@ -1,5 +1,5 @@
       SUBROUTINE derivi (dt,itime,xyzmh,vxyzu,
-     &     dvxyzu,dha,npart,ntot,ireal,alphaMM,ekcle)
+     &     dvxyzu,dha,npart,ntot,ireal,alphaMM,ekcle,Bxyz,dBxyz)
 c************************************************************
 c                                                           *
 c  This subroutine drives the computation of the forces on  *
@@ -14,6 +14,7 @@ c************************************************************
       REAL*4 dha(2,idim),alphaMM(idim)
       DIMENSION ireal(idim)
       DIMENSION ekcle(5,iradtrans)
+      DIMENSION Bxyz(3,imhd),dBxyz(3,imhd)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -98,7 +99,7 @@ c     higher accuracy
 c
       IF (nptmass.GT.0) THEN
          IF (iptintree.EQ.0) THEN
-            CALL gptall(xyzmh,npart)
+            CALL gptall(xyzmh,npart,dvxyzu)
          ELSEIF (iptintree.EQ.1) THEN
             CALL gforspt(xyzmh,dvxyzu)
          ENDIF
@@ -238,7 +239,7 @@ c
       IF(encal.EQ.'r') THEN
          WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
 c         CALL ASS(nlst_in,nlst_end,nlstall,llist,dt,itime,npart,
-c     &        xyzmh,vxyzu,ekcle,dumrho,vsound,dedxyz)
+c     &        xyzmh,vxyzu,ekcle,dumrho,dedxyz)
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstall,vxyzu,dumrho,pr,vsound,llist)

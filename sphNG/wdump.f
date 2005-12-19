@@ -42,7 +42,8 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/tming'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/mhd'
-      INCLUDE 'COMMONS/divcurlB'
+c      INCLUDE 'COMMONS/divcurlB'
+      INCLUDE 'COMMONS/gradhterms'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -100,9 +101,9 @@ c--real*4
       number = 0
       WRITE (idisk1, ERR=100) number
 c--real*8
-      number = 3
+      number = 4
       WRITE (idisk1, ERR=100) number
-      WRITE (idisk1, ERR=100) udist, umass, utime
+      WRITE (idisk1, ERR=100) udist, umass, utime, umagfd
 c
 c--Arrays
 c
@@ -122,7 +123,11 @@ c
       nums(4) = 0
       nums(5) = 0
       nums(6) = 9
-      nums(7) = 2
+      IF (nlmax.EQ.1) THEN
+         nums(7) = 3
+      ELSE
+         nums(7) = 2
+      ENDIF
       nums(8) = 0
       WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
 c
@@ -204,7 +209,12 @@ c--Default real
       END DO      
 c--real*4
       WRITE (idisk1, ERR=100) (rho(isort(i)), i=1, npart)
-      WRITE (idisk1, ERR=100) (dgrav(isort(i)), i=1, npart)      
+      IF (nlmax.EQ.1) THEN
+         WRITE (idisk1, ERR=100) (gradhs(1,isort(i)), i=1, npart)      
+         WRITE (idisk1, ERR=100) (gradhs(2,isort(i)), i=1, npart)
+      ELSE
+         WRITE (idisk1, ERR=100) (dgrav(isort(i)), i=1, npart)      
+      ENDIF
 c     WRITE (idisk1, ERR=100) (alphaMM(isort(i)), i=1, npart)
 c--real*8
 
@@ -283,7 +293,7 @@ c
          END DO
 c--real*4
          DO j = 1, 4
-            WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, npart)
+c            WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, npart)
          ENDDO
 c--real*8
 

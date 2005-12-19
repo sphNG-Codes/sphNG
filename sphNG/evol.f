@@ -26,6 +26,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/accrem'
       INCLUDE 'COMMONS/avail'
       INCLUDE 'COMMONS/rbnd'
+      INCLUDE 'COMMONS/current'
 
       CHARACTER*7 where
 
@@ -100,6 +101,7 @@ c         torqv(i) = 0.0
 c         torqc(i) = 0.0
          iremove(i) = -1
          iavail(i) = 0
+         iscurrent(i) = .FALSE.
       END DO
 
       DO i = 1, 1000000

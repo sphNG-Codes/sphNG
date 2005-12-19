@@ -1,5 +1,5 @@
       SUBROUTINE treef(m,npart,xyzmh,acc,igrav,fsx,fsy,fsz,epot)
-c      SUBROUTINE treef(m,npart,acc,igrav,fsx,fsy,fsz,epot)
+c
 c************************************************************
 c                                                           *
 c  Subroutine by W. Press (11/21/86). Given particle number *
@@ -16,7 +16,7 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,mmax)
+      DIMENSION xyzmh(5,mmax),neighbi(idim)
 
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/nlim'
@@ -32,16 +32,11 @@ c************************************************************
       INCLUDE 'COMMONS/gravi'
       INCLUDE 'COMMONS/call'
 
-c      INCLUDE 'COMMONS/timeextra'
-c      INCLUDE 'COMMONS/dum'
-
-c      EQUIVALENCE (h, dumh)
-
       INTEGER istack, nlistga, nlistgn
 
       DIMENSION nstack(100), listga(idim), listgn(idim)
-      SAVE listga, listgn
-C$OMP THREADPRIVATE(listga,listgn)
+      SAVE nstack, listga, listgn
+C$OMP THREADPRIVATE(nstack,listga,listgn)
 
       CHARACTER*7 where
 
@@ -111,7 +106,11 @@ c--Decide whether to open up the node:
 c     new if structure
 c
             IF (n.GT.natom) THEN
-               rcutmn = (hm + xyzmh(5,n))*radkernel/2.0
+               IF (nlmax.EQ.1) THEN
+                  rcutmn = MAX(hm,xyzmh(5,n))*radkernel
+               ELSE
+                  rcutmn = (hm + xyzmh(5,n))*radkernel/2.0
+               ENDIF
                qradn = qrad(1,n)
                qcut2 = (qradn + rcutmn)**2
                qrr = qradn**2
@@ -160,48 +159,60 @@ c
 c--This line was altered for individual timesteps
 c
                hn = xyzmh(5,n)
-               rcut2 = ((hm + xyzmh(5,n))*radkernel/2.0)**2
+               IF (nlmax.EQ.1) THEN
+                  rcut2 = (MAX(hm,hn)*radkernel)**2
+               ELSE
+                  rcut2 = ((hm + hn)*radkernel/2.0)**2
+               ENDIF
                IF (rr.LT.rcut2 .AND. iphase(n).EQ.0 .AND.
      &                                         iphase(m).EQ.0) THEN
                   nneigh(m) = nneigh(m) + 1
 
-                  IF (nneigh(m).LT.nlmax) THEN
-                     neighb(nneigh(m),m) = n
-                  ELSEIF (nneigh(m).GT.32700) THEN
-                     WRITE (iprint,*) 'nneigh exceeds INT*2'
-                     CALL quit
-                  ELSE
-                     IF (nneigh(m).EQ.nlmax) THEN
-c                        write (*,*) 'over ',m,n,neighb(nlmax,m),
-c     &                       numoverflow
-                        IF (neighb(nlmax,m).LT.0) THEN
-                           numoverflowlocal = -neighb(nlmax,m)
-                        neighover(nneigh(m)-nlmax+1,numoverflowlocal)=n
-                        ELSE
-C$OMP CRITICAL (neighlistoverflow)
-                           IF (numoverflow.LT.noverflow) THEN
-                              numoverflow = numoverflow + 1
-                              numoverflowlocal = numoverflow
-                              neighb(nneigh(m),m) = -numoverflowlocal
-                        neighover(nneigh(m)-nlmax+1,numoverflowlocal)=n
-                           ELSE
-                              WRITE (iprint,*) 'noverflow EXCEEDED',
-     &                             nneigh(m), nlmax, m, iorig(m),
-     &                             numoverflow
-                              CALL quit
-                           ENDIF
-C$OMP END CRITICAL (neighlistoverflow)
-                        ENDIF
-                     ELSEIF (nneigh(m)-nlmax+1.LE.nlovermax) THEN
-                        neighover(nneigh(m)-nlmax+1,numoverflowlocal)=n
+                  IF (nlmax.EQ.1) THEN
+                     IF (nneigh(m).LE.nneighmax) THEN
+                        neighlist(nneigh(m)) = n
                      ELSE
-                        WRITE (iprint,*) 'nlovermax EXCEEDED',
-     &                    nneigh(m), nlmax, m, iorig(m), 
-     &                    numoverflowlocal
+                        WRITE (iprint,*) 'nneigh exceeds INT*2'
                         CALL quit
                      ENDIF
+                  ELSE
+                     IF (nneigh(m).LT.nlmax) THEN
+                        neighb(nneigh(m),m) = n
+                     ELSEIF (nneigh(m).GT.nneighmax) THEN
+                        WRITE (iprint,*) 'nneigh exceeds INT*2'
+                        CALL quit
+                     ELSE
+                        IF (nneigh(m).EQ.nlmax) THEN
+c                        write (*,*) 'over ',m,n,neighb(nlmax,m),
+c     &                       numoverflow
+                           IF (neighb(nlmax,m).LT.0) THEN
+                              numoverflowlocal = -neighb(nlmax,m)
+                        neighover(nneigh(m)-nlmax+1,numoverflowlocal)=n
+                           ELSE
+C$OMP CRITICAL (neighlistoverflow)
+                              IF (numoverflow.LT.noverflow) THEN
+                                 numoverflow = numoverflow + 1
+                                 numoverflowlocal = numoverflow
+                                 neighb(nneigh(m),m)= -numoverflowlocal
+                        neighover(nneigh(m)-nlmax+1,numoverflowlocal)=n
+                              ELSE
+                                 WRITE (iprint,*) 'noverflow EXCEEDED',
+     &                                nneigh(m), nlmax, m, iorig(m),
+     &                                numoverflow
+                                 CALL quit
+                              ENDIF
+C$OMP END CRITICAL (neighlistoverflow)
+                           ENDIF
+                        ELSEIF (nneigh(m)-nlmax+1.LE.nlovermax) THEN
+                        neighover(nneigh(m)-nlmax+1,numoverflowlocal)=n
+                        ELSE
+                           WRITE (iprint,*) 'nlovermax EXCEEDED',
+     &                          nneigh(m), nlmax, m, iorig(m), 
+     &                          numoverflowlocal
+                           CALL quit
+                        ENDIF
+                     ENDIF
                   ENDIF
-CCCCCCCCCC                  ENDIF
 
                ELSE
                   nlistga = nlistga + 1
@@ -256,6 +267,91 @@ c            WRITE (*,*) 'listbins(i,29).NE.i+94296 , M3',m
 c            WRITE (iprint,*) 'listbins(i,29).NE.i+94296 , M3',m
 c         ENDIF
 c      END DO
+
+      RETURN
+      END
+
+
+      SUBROUTINE getneighi(m,rrx,rry,rrz,rcut,numneigh,neighb,xyzmh)
+c
+c*********************************************************************
+c                                                                    *
+c     Return list of neighbours for a single particle within         *
+c     fixed search radius rcut                                       *
+c     DJP:10.11.2005 and MRB:15.12.2005                              *
+c                                                                    *
+c*********************************************************************
+c
+      INCLUDE 'idim'
+
+      DIMENSION xyzmh(5,mmax),neighb(idim)
+
+      INCLUDE 'COMMONS/treecom_P'
+      INCLUDE 'COMMONS/nlim'
+      INCLUDE 'COMMONS/logun'
+      INCLUDE 'COMMONS/phase'
+      INCLUDE 'COMMONS/kerne'
+      INCLUDE 'COMMONS/sort'
+
+      DIMENSION nstack(100)
+      SAVE nstack
+C$OMP THREADPRIVATE(nstack)
+
+c*************************************
+c--find neighbours within rcut       *
+c*************************************
+      numneigh = 0
+
+      IF (iphase(m).EQ.-1 .OR. iphase(m).GE.1 .AND. iptintree.EQ.0) THEN
+         WRITE (iprint,*) 'ERROR: getneighi with iphase ',iphase(m)
+         CALL quit
+      ENDIF
+
+      istack = 0
+      mpar = m
+      rcut = rcut*radkernel
+      rcut2 = rcut*rcut
+ 100  node = isibdaupar(1,mpar)
+      IF (node.NE.0) THEN
+         istack = istack + 1
+         nstack(istack) = node
+ 150     IF (istack.NE.0) THEN
+            n = nstack(istack)
+            istack = istack - 1
+
+            dxi = xyzmh(1,n) - rrx
+            dyi = xyzmh(2,n) - rry
+            dzi = xyzmh(3,n) - rrz
+            rr = dxi*dxi + dyi*dyi + dzi*dzi
+c
+c--Decide whether to open up the node:
+c     new if structure
+c
+            IF (n.GT.natom) THEN
+               qcut2 = (qrad(1,n) + rcut)**2
+               IF (rr.LT.qcut2) THEN
+                  j = isibdaupar(2,n)
+                  istack = istack + 1
+                  nstack(istack) = j
+                  istack = istack + 1
+                  nstack(istack) = isibdaupar(1,j)
+               ENDIF
+            ELSE
+               IF (rr.LT.rcut2) THEN
+                  numneigh = numneigh + 1
+                  IF (numneigh.LE.nneighmax) THEN
+                     neighb(numneigh) = n
+                  ELSE
+                     WRITE (iprint,*) 'ERROR: nneighmax exceeded'
+                     STOP
+                  ENDIF
+               ENDIF
+            ENDIF
+            GOTO 150
+         ENDIF
+         mpar = isibdaupar(3,mpar)
+         GOTO 100
+      ENDIF
 
       RETURN
       END

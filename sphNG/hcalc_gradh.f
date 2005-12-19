@@ -1,3 +1,4 @@
+
       SUBROUTINE hcalc
 c************************************************************
 c                                                           *
@@ -89,19 +90,7 @@ c      neimax = 120
       ikount = ikount + 1
       WRITE(*,*) ' Calculating neighbour changes'
       icall = 1
-c
-c--Get neighbours
-c
-      IF (igrape.EQ.0) THEN
-         CALL insulate(5, ntot, npart, dumxyzmh, f1vxyzu)
-      ELSEIF (igrape.EQ.1) THEN
-         CALL insulate(4, ntot, npart, dumxyzmh, f1vxyzu)
-      ENDIF
-      WRITE(*,*) ' Got neighbours from tree'
-c
-c--calculate density
-c
-      WRITE(*,*) ' Calculating density and h... '
+
       nlst = 0
       DO i = 1, npart
          IF (iphase(i).NE.-1) THEN
@@ -111,22 +100,18 @@ c
          ENDIF
       END DO    
       itime = 0
+      dt = 0.
       nlst_in = 1
       nlst_end = nlst
-      hfact = 1.2
-      
-      DO ipart=1,npart
-         dumxyzmh(5,ipart) = hfact*(dumxyzmh(4,ipart)/rhozero)**third
-      ENDDO      
-      
+      nlst0 = nlst
       imaxstep = 1073741824/2
+
+      CALL densityiterate_gradh(dt,npart,ntot,dumxyzmh,vxyzu,
+     &     nlst_in,nlst_end,llist,itime,ekcle)
+
+      WRITE(*,*) ' Got neighbours from tree'
 c
-c--calculate density
-c
-      CALL iterate_density(npart,dumxyzmh,vxyzu,f1ha,
-     &                     nlst_in,nlst_end,llist,itime)
-c
-c--must already know B/rho to call derivi
+c--Must already know B/rho to call derivi
 c
       IF (imhd.EQ.idim) THEN
          WRITE(*,99145)
@@ -140,23 +125,23 @@ c
          ENDDO
       ENDIF
 c
-c--call derivi to get div B, curl B etc initially
+c--Call derivi to get div B, curl B etc initially
 c
 c      CALL derivi(dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,ntot,
 c     &            ireal,alphaMM,ekcle,Bevolxyz,f1Bxyz)
 
-      DO ipart=1,npart
+      DO ipart = 1,npart
          xyzmh(5,ipart) = dumxyzmh(5,ipart)
       ENDDO
 c
-c--get h max and min and print to screen
+c--Get h max and min and print to screen
 c
       hhmin = 1.e12
       hhmax = -1.e12
       hhav = 0.
       DO ipart=1,npart
-         IF (xyzmh(5,ipart).LT.hhmin) hhmin = dumxyzmh(5,ipart)
-         IF (xyzmh(5,ipart).GT.hhmax) hhmax = dumxyzmh(5,ipart)
+         IF (xyzmh(5,ipart).LT.hhmin) hhmin = xyzmh(5,ipart)
+         IF (xyzmh(5,ipart).GT.hhmax) hhmax = xyzmh(5,ipart)
          hhav = hhav + xyzmh(5,ipart)
       ENDDO
       hhav = hhav/real(npart)

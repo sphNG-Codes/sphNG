@@ -1,2 +1,6 @@
-      COMMON /outneigh/ ioutinf, ioutsup, ioutmin, ioutmax, 
-     &                  inmin, inmax, inminsy, inmaxsy
+      INTEGER*8 inumit, numparticlesdone, inumfixed, inumrecalc
+
+      COMMON /outneigh/ inumit,numparticlesdone,inumfixed,inumrecalc,
+     &			imaxit,
+     &	                ioutinf,ioutsup,ioutmin,ioutmax, 
+     &	                inmin,inmax,inminsy,inmaxsy

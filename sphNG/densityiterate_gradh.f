@@ -27,7 +27,7 @@ c--Neides=INT(4./3.*pi*8.*hfact**3))
 
       PARAMETER (rhomin = 0.0)
       PARAMETER (htol = 1.e-3)
-      PARAMETER (hstretch = 1.05)
+      PARAMETER (hstretch = 1.01)
       PARAMETER (maxiterations = 500)
 
       INCLUDE 'COMMONS/physcon'
@@ -60,6 +60,7 @@ c--Neides=INT(4./3.*pi*8.*hfact**3))
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/ghost'
+      INCLUDE 'COMMONS/outneigh'
 
       LOGICAL*1 iupdated(idim)
 
@@ -74,6 +75,7 @@ c
       icreate = 0
       radcrit2 = radcrit*radcrit
       ihasghostcount = 0
+      numparticlesdone = numparticlesdone + nlst_end
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end,list,divv,curlv,gradhs)
@@ -93,10 +95,9 @@ C$OMP& private(projv,procurlvx,procurlvy,procurlvz)
 C$OMP& private(l,iptcur,dphi,dwdhi,dpotdh,iteration,numneighi)
 C$OMP& private(numneighreal,rhohi,dhdrhoi,omegai,func,dfdh1)
 C$OMP& private(hnew,deltat,deltarho)
-C$OMP& reduction(MAX:rhonext)
-C$OMP& reduction(+:ihasghostcount)
+C$OMP& reduction(MAX:rhonext,imaxit)
+C$OMP& reduction(+:ihasghostcount,inumit,inumfixed,inumrecalc)
       DO n = nlst_in, nlst_end
-c         print *,n
          ipart = list(n)
 
          IF (iphase(ipart).GE.1) GOTO 50
@@ -109,10 +110,19 @@ c         print *,n
          hi_old = hi
          hneigh = 0.
 c
+c--Predict h
+c
+         dhdrhoi = - hi/(3.*(pmassi*(hfact/hi)**3 + rhomin))
+         IF (it1(ipart).EQ.imax) THEN
+            deltat = (dt*isteps(ipart)/2)/imaxstep
+         ELSE
+            deltat = (dt*isteps(ipart))/imaxstep
+         ENDIF
+         hi = hi - dhdrhoi*divv(ipart)*deltat
+c
 c--Iterate density calculation for particle ipart
 c
          DO iteration = 1, maxiterations
-c            print *,iteration
 
             hi1 = 1./hi
             hi21 = hi1*hi1
@@ -123,8 +133,8 @@ c            print *,iteration
                hneigh = hstretch*hi
                CALL getneighi(ipart,xi,yi,zi,hneigh,numneighi,
      &              neighlist,xyzmh)
+               inumrecalc = inumrecalc + 1
             ENDIF
-c            print *,'done getneigh'
 c
 c--Calculate density by looping over interacting neighbors
 c
@@ -133,7 +143,6 @@ c
             numneighreal = 0
             DO k = 1, numneighi
                j = neighlist(k)
-c               print *,'doing neigh ',k,j,numneighi
 
                dx = xi - xyzmh(1,j)
                dy = yi - xyzmh(2,j)
@@ -197,22 +206,25 @@ c
             IF (hnew.LE.0. .OR. (omegai.LE.tiny)) THEN
 c               WRITE (*,*) 'doing fixed point',gradhi,omegai
                hnew = hfact*(pmassi/rhoi)**third
-
+               inumfixed = inumfixed + 1
 c
 c--Don't allow sudden jumps to huge numbers of neighbours
 c
             ELSEIF (hnew.GT.1.2*hi .OR. hnew.LT.0.8*hi) THEN
-               WRITE (*,*) 'large h jump on particle ',iorig(ipart)
+c               WRITE (*,*) 'large h jump on particle ',iorig(ipart)
                hnew = hi - 0.5*func*dfdh1
             ENDIF
 
             IF (numneighreal.GT.500) THEN
-               WRITE(*,*) 'part: ',iorig(ipart),' has ',numneighi,
+               WRITE(iprint,*) 'part: ',iorig(ipart),' has ',numneighi,
      &              numneighreal,' neighbours '
             ENDIF
-c            print *,'error ',hnew,hi,rhoi
 
-            IF (ABS(hnew-hi)/hi_old.LT.htol .AND. omegai.GT.0) GOTO 30 
+            IF (ABS(hnew-hi)/hi_old.LT.htol .AND. omegai.GT.0) THEN
+               imaxit = MAX(imaxit, iteration)
+               inumit = inumit + iteration
+               GOTO 30 
+            ENDIF
 
             hi = hnew
          END DO

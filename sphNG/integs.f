@@ -48,6 +48,11 @@ c************************************************************
       inmax = -1
       inminsy = 10000
       inmaxsy = 0
+      imaxit = 0
+      inumit = 0
+      numparticlesdone = 0
+      inumfixed = 0
+      inumrecalc = 0
       IF (igrape.EQ.1) THEN
          searchfacmax = 0.
          searchfacmin = 1.0E+10
@@ -85,13 +90,24 @@ c
          WRITE (iprint, *) 'h too big  ', ioutsup, ' times'
          WRITE (iprint, *) 'maximum no. of neigh (not hmin) ', inmax
       ENDIF
-      WRITE (iprint, *) 'numoverflowmax ', numoverflowmax
-      numoverflowmax = 0
+      IF (numoverflowmax.NE.0) THEN
+         WRITE (iprint, *) 'numoverflowmax ', numoverflowmax
+         numoverflowmax = 0
+      ENDIF
       IF (ioutmin.NE.0)
      &     WRITE (iprint, *) 'h less than ', hmin, ioutmin,' times'
       IF (hmaximum.NE.0.0 .AND. ioutmax.NE.0)
      &     WRITE (iprint, *) 'h greater than ', hmaximum, ioutmax,
      &        ' times'
+      IF (numparticlesdone.GT.0) THEN
+         WRITE (iprint, 99200) REAL(inumit)/REAL(numparticlesdone)
+         WRITE (iprint, *) ' maximum no. density iterations ',imaxit
+         WRITE (iprint, 99201) REAL(inumrecalc)/REAL(numparticlesdone)
+         WRITE (iprint, 99202) REAL(inumfixed)/REAL(numparticlesdone)
+99200    FORMAT(' mean    no. density iterations ',F8.4)
+99201    FORMAT(' mean    no. neighbour finds    ',F8.4)
+99202    FORMAT(' mean    no. neighbour fixed pt ',1PE11.4)
+      ENDIF
 c
 c--If GRAPE, report number of neighbour lists overflows and retries
 c

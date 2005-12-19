@@ -32,6 +32,7 @@ c************************************************************
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/numpa'
       INCLUDE 'COMMONS/timei'
+      INCLUDE 'COMMONS/timeextra'
 c
 c--Allow for tracing flow
 c
@@ -58,6 +59,10 @@ c      neimax = 120
       DO i = 1, npart
          iscurrent(i) = .TRUE.
          llist(i) = i
+         isteps(i) = 0
+         it0(i) = 0
+         it1(i) = 0
+         it2(i) = 0
       END DO
 
       IF (ibound.EQ.1)
@@ -104,7 +109,8 @@ c      neimax = 120
       nlst_in = 1
       nlst_end = nlst
       nlst0 = nlst
-      imaxstep = 1073741824/2
+      imax = 1073741824
+      imaxstep = imax/2
 
       CALL densityiterate_gradh(dt,npart,ntot,dumxyzmh,vxyzu,
      &     nlst_in,nlst_end,llist,itime,ekcle)

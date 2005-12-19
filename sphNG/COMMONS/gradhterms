@@ -4,3 +4,4 @@ c     for both the smoothing length and the softening length
 c
       REAL*4 gradhs
       COMMON /gradhterms/ gradhs(2,idim)
+

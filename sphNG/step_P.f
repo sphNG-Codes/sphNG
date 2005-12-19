@@ -246,7 +246,7 @@ c      END DO
 c      WRITE (*,*) 'passed 2'
 
  432     CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
-     &        ntot,ireal,dumalpha,ekcle)
+     &        ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
 
 c         IF (icall.EQ.1) THEN
 c             icall = 3
@@ -673,7 +673,7 @@ c--Compute forces on list particles
 c
       icall = 2
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f2vxyzu,f2ha,npart,
-     &     ntot,ireal,dumalpha,ekcle)
+     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f2Bxyz)
 c
 c--Save velocities at half time step
 c
@@ -1287,7 +1287,7 @@ c     evaluations!!
 c
  200  icall = 3
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f2vxyzu,f2ha,npart,
-     &     ntot,ireal,dumalpha,ekcle)
+     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f2Bxyz)
 c
 c--Synchronization time
 c

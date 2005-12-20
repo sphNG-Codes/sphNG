@@ -1310,7 +1310,7 @@ c
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst0,nlst1,llist,iscurrent,dumvxyzu)
 C$OMP& shared(dum2vxyz,it1,it2,imax,igphi)
-C$OMP& shared(vxyzu,dgrav)
+C$OMP& shared(vxyzu,dgrav,dumxyzmh)
 C$OMP& shared(f1vxyzu,f1ha,f2vxyzu,f2ha)
 C$OMP& shared(tol,tolh,tolptm,dt,isteps,imaxstep,e1,small,divv,rho)
 C$OMP& shared(alpha,beta,vsound,xlog2,gravx,gravy,gravz,gradpx,gradpy)
@@ -1402,6 +1402,11 @@ c       but the derivi call doesn't alter them, so putting them back
 c       into u(i) again changes nothing.
 c
          vxyzu(4,i) = dumvxyzu(4,i)
+c
+c--nlmax=1 is the sign that code is running using 'grad-h' so that h is set
+c     inside derivi rather than being evolved.
+c
+         IF (nlmax.EQ.1) xyzmh(5,i) = dumxyzmh(5,i)
 c
 c--Estimate maximum error
 c
@@ -1887,7 +1892,7 @@ c
 
             icall = 4
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
-     &           f1ha,npart,ntot,ireal,dumalpha,ekcle)
+     &         f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
 
             time = dt*itime/imaxstep + gt
             DO j = 1, nlst0
@@ -2068,7 +2073,7 @@ c
             icall = 4
             PRINT *,"icall 4 triggered"
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
-     &           f1ha,npart,ntot,ireal,dumalpha,ekcle)
+     &         f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
 c
 c--Write new particles to file
 c

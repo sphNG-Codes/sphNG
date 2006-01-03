@@ -42,7 +42,7 @@ c************************************************************
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/physeos'
-c      INCLUDE 'COMMONS/outmhd'
+      INCLUDE 'COMMONS/outmhd'
 
       CHARACTER*24 sentenc
       CHARACTER*7 where

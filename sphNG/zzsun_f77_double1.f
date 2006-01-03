@@ -45,7 +45,8 @@ c--Check for file status
 c
       ENTRY statfile(file, ifsize)
 c      ifile = lstat(file, istatb)
-      ifsize = istatb(8)
+c      ifsize = istatb(8)
+      ifsize = 0
       RETURN
 c
 c--Get argument on command line

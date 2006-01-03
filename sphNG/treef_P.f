@@ -16,7 +16,7 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,mmax),neighbi(idim)
+      DIMENSION xyzmh(5,mmax)
 
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/nlim'
@@ -283,6 +283,7 @@ c                                                                    *
 c*********************************************************************
 c
       INCLUDE 'idim'
+      INCLUDE 'igrape'
 
       DIMENSION xyzmh(5,mmax),neighb(idim)
 

@@ -236,7 +236,8 @@ c      ENDIF
          DO i = 1, nlstacc
             ipart = listacc(i)
             IF (ipart.LT.1 .OR. ipart.GT.npart) THEN
-               WRITE (iprint, *) 'ERROR - revtree listacc',ipart,nlstacc,i
+               WRITE (iprint, *) 'ERROR - revtree listacc',
+     &                           ipart,nlstacc,i
                CALL quit
             ENDIF
             imfac(ipart) = 0

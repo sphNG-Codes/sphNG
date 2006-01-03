@@ -1,4 +1,4 @@
-      INTEGER idim, iptdim, iptneigh
+      INTEGER idim, iptdim, iptneigh, nlmax
       REAL tiny
 
       PARAMETER (idim=1001000)

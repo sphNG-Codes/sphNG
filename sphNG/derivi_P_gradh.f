@@ -129,20 +129,22 @@ c
 
          IF(encal.EQ.'r') THEN
             WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
+            WRITE(*,*) 'radiation/gradh not yet implemented'
+            STOP
 
-            WRITE (*,*) 'nlstall is ',nlstall
+c            WRITE (*,*) 'nlstall is ',nlstall
 
 c            CALL ASS(nlst_in,nlst_end,nlstall,llist,dt,itime,npart,
 c     &           xyzmh,vxyzu,ekcle,dumrho,vsound,dedxyz)
-
-C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(nlstall,vxyzu,dumrho,pr,vsound,llist,iphase)
-C$OMP& private(i,ipart)
-            DO i = 1, nlstall
-               ipart = llist(i)
-               IF (iphase(ipart).EQ.0) 
-     &              CALL eospg(ipart,vxyzu,dumrho,pr,vsound)
-            END DO
+c
+cC$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+cC$OMP& shared(nlstall,vxyzu,dumrho,pr,vsound,llist,iphase)
+cC$OMP& private(i,ipart)
+c            DO i = 1, nlstall
+c               ipart = llist(i)
+c               IF (iphase(ipart).EQ.0) 
+c     &              CALL eospg(ipart,vxyzu,dumrho,pr,vsound)
+c            END DO
 C$OMP END PARALLEL DO
          END IF
 

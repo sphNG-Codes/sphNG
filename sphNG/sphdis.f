@@ -175,7 +175,7 @@ c
 
       INCLUDE 'COMMONS/rbnd'
 
-      DIMENSION vel(64,64,64)
+      REAL*4 vel(64,64,64)
       
       deli = 1.0/REAL(nspace/2)
 

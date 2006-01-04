@@ -1,4 +1,4 @@
-      SUBROUTINE eospg(ipart,vxyzu,rho,pr,vsound)
+      SUBROUTINE eospg(ipart,vxyzu,rho,pr,vsound,ekcle)
 c************************************************************
 c                                                           *
 c  This routine computes the pressure and sound speed       *
@@ -10,6 +10,7 @@ c************************************************************
 
       REAL*4 rho,pr,vsound
       DIMENSION vxyzu(4,idim), rho(idim), pr(idim), vsound(idim)
+      DIMENSION ekcle(5,iradtrans)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/cgas'
@@ -20,7 +21,6 @@ c************************************************************
       INCLUDE 'COMMONS/typef'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/physeos'
-      INCLUDE 'COMMONS/radtrans'
 
       CHARACTER*7 where
 
@@ -100,7 +100,7 @@ c
 c--Radiative transfer equation of state
 c
       ELSEIF (encal.EQ.'r') THEN
-            pr(ipart) =  Rg*rho(ipart)*(vxyzu(4,ipart)/ekcle(3,ipart))*
+           pr(ipart)= Rg*rho(ipart)*(vxyzu(4,ipart)/ekcle(3,ipart))*
      &        get1overmu(rho(ipart),vxyzu(4,ipart))/uergg
             vsound(ipart) = SQRT(gamma*pr(ipart)/rho(ipart))
 c

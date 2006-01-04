@@ -32,6 +32,7 @@ c************************************************************
       INCLUDE 'COMMONS/secret'
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/neighbor_P'
+      INCLUDE 'COMMONS/cgas'
 
       DIMENSION nsteplist(30)
 
@@ -285,9 +286,12 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
 98038       FORMAT (' step-14      time: ', F8.3, ' min. ',F6.2,' %')
 98039       FORMAT (' step-15      time: ', F8.3, ' min. ',F6.2,' %')
 98040       FORMAT (' step-16      time: ', F8.3, ' min. ',F6.2,' %')
+98041       FORMAT (' ass rad tran time: ', F8.3, ' min. ',F6.2,' %')
          ELSE
             WRITE (iprint, 98020)
             WRITE (iprint, 98022) tsteponly/60., tsteponly/tstep*100.
+            IF (encal.EQ.'r') 
+     &           WRITE (iprint, 98041) tass/60.,   tass/tstep*100.
             WRITE (iprint, 98008) tdens/60.,   tdens/tstep*100.
             WRITE (iprint, 98009) tforce/60.,  tforce/tstep*100.
             WRITE (iprint, 98016) tgforpt/60., tgforpt/tstep*100.
@@ -349,6 +353,7 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
             ts17 = 0.
             ts18 = 0.
             ts19 = 0.
+            tass = 0.
             tins = 0.
             tins = 0.
             tmtree = 0.

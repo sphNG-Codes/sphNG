@@ -83,6 +83,10 @@ c
       IF (itrace.EQ.'all') WRITE(iprint,250)
   250 FORMAT(' entry subroutine step')
 c
+c--Set integrator to L-F
+c
+      integrator = 1
+c
 c--Compute next dump time and initialise variables
 c
       ikilled = 0
@@ -100,6 +104,14 @@ c---------- FIRST TIME AROUND ----------
 c
       IF (ifirst) THEN
          ifirst = .FALSE.
+
+         IF (integrator.EQ.1) THEN
+            WRITE (iprint,*) ' Integrator: Leap-Frog'
+            WRITE (iprint,*)
+         ELSE
+            WRITE (iprint,*) ' Integrator miss-match'
+            CALL quit
+         ENDIF
 
          IF (gt.EQ.0.0) THEN
 c
@@ -241,7 +253,7 @@ c
                   nlst = nlst + 1
                   llist(nlst) = i
                   isteps(i) = imaxstep
-                  CALL eospg(i,vxyzu,rho,pr,vsound)
+                  CALL eospg(i,vxyzu,rho,pr,vsound,ekcle)
 c
 c--if rho not defined it is a problem
 c

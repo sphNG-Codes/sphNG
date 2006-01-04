@@ -28,6 +28,7 @@ c************************************************************
       INCLUDE 'COMMONS/cgas'
 
       CHARACTER*7 where
+      REAL*4 rhoreal4
 
       DATA where/'ghostp3'/
 c
@@ -77,6 +78,7 @@ c
          IF (r2.GT.rshell*rshell) inshell = inshell + 1
 
          IF (r2.GT.drmin2 .AND. r2.LT.drmax2) THEN
+c            print *,i,r2,hi
             hasghost(i) = .TRUE.
             nghost = nghost + 1
             nptot = MIN0(npart + nghost, idim)
@@ -110,14 +112,15 @@ c
                   vxyzu(4,nptot) = boundtemp*ekcle(3,nptot)
                   ekcle(1,nptot) = uradconst*(vxyzu(4,nptot)/
      &                 ekcle(3,nptot))**4/(1.0/(4.0*pi/3.0*3.2**3))
+                  rhoreal4 = (1.0/(4.0*pi/3.0*3.2**3))
                   ekcle(2,nptot) = getkappa(vxyzu(4,nptot),
-     &                 ekcle(3,nptot),(1.0/(4.0*pi/3.0*3.2**3)))
+     &                 ekcle(3,nptot),rhoreal4)
                ELSE
                   ekcle(3,nptot) = 1.5*Rg/(gmw*uergg)
 c                  vxyzu(4,nptot) = boundtemp*ekcle(3,nptot)
                   ekcle(1,nptot) = uradconst*(boundtemp)**4/rhoi
                   ekcle(2,nptot) = getkappa(vxyzu(4,nptot),
-     &                 ekcle(3,nptot),rhoi)
+     &                 ekcle(3,nptot),rho(i))
                ENDIF
                ekcle(4,nptot) = ekcle(4,i)
                ekcle(5,nptot) = ekcle(5,i)

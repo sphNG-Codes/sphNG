@@ -1,4 +1,4 @@
-      SUBROUTINE densityi (npart,xyzmh,vxyzu,
+      SUBROUTINE densityi (npart,xyzmh,vxyzu,ekcle,
      &            nlst_in,nlst_end,list,itime)
 c************************************************************
 c                                                           *
@@ -13,6 +13,7 @@ c************************************************************
       INCLUDE 'igrape'
 
       DIMENSION xyzmh(5,idim), vxyzu(4,idim), list(idim)
+      DIMENSION ekcle(5,iradtrans)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -54,7 +55,7 @@ C$OMP& shared(nlst_in,nlst_end,list,divv,curlv)
 C$OMP& shared(hmax,xyzmh,vxyzu,pr,vsound,rho)
 C$OMP& shared(nneigh,neighb,neighover,selfnormkernel)
 C$OMP& shared(cnormk,radkernel,dvtable,wij,grwij)
-C$OMP& shared(listpm,iphase)
+C$OMP& shared(listpm,iphase,ekcle)
 C$OMP& shared(iprint,nptmass,iptmass,radcrit2,iorig)
 C$OMP& private(n,ipart,j,k,xi,yi,zi,vxi,vyi,vzi,pmassi,hi,hj,rhoi)
 C$OMP& private(divvi,curlvxi,curlvyi,curlvzi)
@@ -175,7 +176,7 @@ c
 c
 c--Pressure and sound velocity from ideal gas law...
 c
-         CALL eospg(ipart, vxyzu, rho, pr, vsound)
+         CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
 c
 c--Find particle with highest density outside radcrit of point mass
 c

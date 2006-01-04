@@ -10,7 +10,8 @@
 
       COMMON /getkap/ iflag
 
-      REAL lTg,lrho,getkappa,u2,u,cv,cv2,rho,rho2
+      REAL*4 rho2
+      REAL lTg,lrho,getkappa,u2,u,cv,cv2,rho
       REAL rkappa,y1,y2,y3,y4,w,v
       INTEGER nkrho1,nkrho2,nktg1,nktg2,iflag
       LOGICAL y1alex,y2alex,y3alex,y4alex,tryalex
@@ -26,9 +27,10 @@ c     SHOCK!!!!!!!!!
 
 c      write (*,*) 'Enter kap'
 
-      u=u2*uergg*umass
+      u=u2*uergg
       rho=rho2*umass/udist**3
-      cv=cv2*uergg*umass 
+      cv=cv2*uergg
+
       IF(u.EQ.0.0.OR.rho.EQ.0.0.OR.cv.EQ.0.0) CALL FAILED(7,ltg,lrho)
 
 !     Call for each particle

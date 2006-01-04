@@ -237,9 +237,10 @@ c
       IF (itiming) CALL getused(tass1)
 
       IF(encal.EQ.'r') THEN
-         WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
-c         CALL ASS(nlst_in,nlst_end,nlstall,llist,dt,itime,npart,
-c     &        xyzmh,vxyzu,ekcle,dumrho,dedxyz)
+c         WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt,
+c     &        ekcle(1,1),dumrho(1)
+         CALL ASS(nlst_in,nlst_end,nlstall,llist,dt,itime,npart,
+     &        xyzmh,vxyzu,ekcle,dumrho,dedxyz)
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstall,vxyzu,dumrho,pr,vsound,llist,ekcle)

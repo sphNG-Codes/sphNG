@@ -86,7 +86,10 @@ c--Allow for tracing flow
 c
       IF (itrace.EQ.'all') WRITE(iprint,250)
   250 FORMAT(' entry subroutine step')
-
+c
+c--Set integrator to R-K
+c
+      integrator = 0
 c
 c--Compute next dump time and initialise variables
 c
@@ -111,6 +114,14 @@ c---------- FIRST TIME AROUND ----------
 c
       IF (ifirst) THEN
          ifirst = .FALSE.
+
+         IF (integrator.EQ.0) THEN
+            WRITE (iprint,*) ' Integrator: Runga-Kutta-Fehlberg'
+            WRITE (iprint,*)
+         ELSE
+            WRITE (iprint,*) ' Integrator miss-match'
+            CALL quit
+         ENDIF
 
          IF (gt.EQ.0.0) THEN
             ibin = INT(LOG10(dt/dtini)/xlog2) + 1
@@ -169,6 +180,11 @@ ccc               isteps(i) = idtini
                DO k = 1, 4
                   dumvxyzu(k,i) = vxyzu(k,i) 
                END DO
+               IF (encal.EQ.'r') THEN
+                  DO k = 1, 5
+                     dumekcle(k,i) = ekcle(k,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO k = 1, 3
                      dumBevolxyz(k,i) = Bevolxyz(k,i)
@@ -202,6 +218,8 @@ c
      &        CALL ghostp11(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
          ntot = npart + nghost
 
+         print *,npart,nghost
+
          DO i = npart + 1, ntot
             DO k = 1, 5
                dumxyzmh(k,i) = xyzmh(k,i) 
@@ -209,6 +227,11 @@ c
             DO k = 1, 4
                dumvxyzu(k,i) = vxyzu(k,i)
             END DO
+            IF (encal.EQ.'r') THEN
+               DO k = 1, 5
+                  dumekcle(k,i) = ekcle(k,i)
+               END DO
+            ENDIF
             IF (imhd.EQ.idim) THEN
                DO k = 1, 3
                   dumBevolxyz(k,i) = Bevolxyz(k,i)
@@ -246,7 +269,7 @@ c      END DO
 c      WRITE (*,*) 'passed 2'
 
  432     CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
-     &        ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
+     &        ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz)
 
 c         IF (icall.EQ.1) THEN
 c             icall = 3
@@ -303,6 +326,12 @@ c
             iscurrent(i) = .FALSE.
             rhomaxsync = MAX(rhomaxsync, rho(i))
 
+            IF (encal.EQ.'r') THEN
+               DO k = 1, 5
+                  ekcle(k,i) = dumekcle(k,i)
+               END DO
+            ENDIF
+
 c            gravx1(i) = gravx(i)
 c            gravy1(i) = gravy(i)
 c            gradpx1(i) = gradpx(i)
@@ -339,7 +368,7 @@ c
       itime0 = imax
       itime1new = imax
       itime0new = imax
-      IF (itiming) CALL getused(ts11)
+      IF (itiming) CALL getused(ts1p1)
       DO i = 1, nbinmax
          IF (nlstbins(i).GT.0) THEN
 c            itime1new = MIN(itime1new, it1bin(i))
@@ -362,8 +391,8 @@ c         ENDIF
 c      END DO
 cC$OMP END PARALLEL DO
       IF (itiming) THEN
-         CALL getused(ts12)
-         ts1 = ts1 + (ts12 - ts11)
+         CALL getused(ts1p2)
+         ts1 = ts1 + (ts1p2 - ts1p1)
       ENDIF
 
 c      IF (itime1.NE.itime1new .OR. itime0.NE.itime0new) THEN
@@ -503,8 +532,8 @@ c
       IF (itbinupdate.GE.nbinmax-1 .OR. (.NOT. ipartialrevtree)) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
-C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,ekcle)
+C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& private(j,k,deltat)
       DO j = 1, npart
@@ -522,6 +551,9 @@ C$OMP& private(j,k,deltat)
                dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
             ELSE
                dumvxyzu(4,j) = vxyzu(4,j)
+               DO k = 1, 5
+                  dumekcle(k,j) = ekcle(k,j)
+               END DO
             ENDIF
             IF (iener.EQ.2 .AND. dumvxyzu(4,j).LT.0.0) 
      &           dumvxyzu(4,j)=0.15
@@ -542,8 +574,8 @@ C$OMP END PARALLEL DO
             DO i = 1, itbinupdate
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
-C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,ekcle)
+C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& private(j,k,ipart,deltat)
                DO j = 1, nlstbins(i)
@@ -562,6 +594,9 @@ C$OMP& private(j,k,ipart,deltat)
             dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                      ELSE
                         dumvxyzu(4,ipart) = vxyzu(4,ipart)
+                        DO k = 1, 5
+                           dumekcle(k,ipart) = ekcle(k,ipart)
+                        END DO
                      ENDIF
             IF (iener.EQ.2 .AND. dumvxyzu(4,ipart).LT.0.0) 
      &           dumvxyzu(4,ipart)=0.15
@@ -603,8 +638,8 @@ C$OMP END PARALLEL DO
       IF (nghost.GT.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
-C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,ekcle)
+C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& private(j,k,l,deltat)
       DO j = npart + 1, npart + nghost
@@ -623,6 +658,9 @@ C$OMP& private(j,k,l,deltat)
                dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
             ELSE
                dumvxyzu(4,j) = vxyzu(4,j)
+               DO l = 1, 5
+                  dumekcle(l,j) = ekcle(l,j)
+               END DO
             ENDIF
          IF (iener.EQ.2 .AND. dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
             IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,alphaMM(k) +
@@ -673,7 +711,7 @@ c--Compute forces on list particles
 c
       icall = 2
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f2vxyzu,f2ha,npart,
-     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f2Bxyz)
+     &     ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f2Bxyz)
 c
 c--Save velocities at half time step
 c
@@ -796,7 +834,7 @@ C$OMP& shared(gravx,gravy,gradpx,gradpy,artvix,artviy,gravx1,gravy1)
 C$OMP& shared(gradpx1,gradpy1,artvix1,artviy1,torqt,torqg,torqp)
 C$OMP& shared(torqv,torqc,it0,itime,imaxdens,cnormk,iener)
 C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
-C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass)
+C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,dumekcle)
 C$OMP& shared(ifsvi,alphaMM,alphamax,encal,dumBevolxyz,Bevolxyz)
 C$OMP& private(i,j,dtfull,dtf21,dtf22,xold,yold,delvx,delvy,delvz)
 C$OMP& private(vxstore,vystore,dx,dy,delgx,delgy,delpx,delpy)
@@ -1116,7 +1154,7 @@ c
       IF (itbinupdate.GE.nbinmax-1 .OR. (.NOT. ipartialrevtree)) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,deltat)
@@ -1135,6 +1173,9 @@ C$OMP& private(j,k,deltat)
                dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
             ELSE
                dumvxyzu(4,j) = vxyzu(4,j)
+               DO k = 1, 5
+                  dumekcle(k,j) = ekcle(k,j)
+               END DO
             ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
             IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,alphaMM(j)+
@@ -1154,7 +1195,7 @@ C$OMP END PARALLEL DO
             DO i = 1, itbinupdate
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,ipart,deltat)
@@ -1174,6 +1215,9 @@ C$OMP& private(j,k,ipart,deltat)
            dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                      ELSE
                         dumvxyzu(4,ipart) = vxyzu(4,ipart)
+                        DO k = 1, 5
+                           dumekcle(k,ipart) = ekcle(k,ipart)
+                        END DO
                      ENDIF
                      IF (iener.EQ.2 .AND. dumvxyzu(4,ipart).LT.0.0) 
      &                    dumvxyzu(4,ipart)=0.15
@@ -1215,7 +1259,7 @@ C$OMP END PARALLEL DO
       IF (nghost.GT.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,l,deltat)
@@ -1235,6 +1279,9 @@ C$OMP& private(j,k,l,deltat)
                dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
             ELSE
                dumvxyzu(4,j) = vxyzu(4,j)
+               DO l = 1, 5
+                  dumekcle(l,j) = ekcle(l,j)
+               END DO
             ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
             IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax, alphaMM(k) 
@@ -1287,7 +1334,7 @@ c     evaluations!!
 c
  200  icall = 3
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f2vxyzu,f2ha,npart,
-     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f2Bxyz)
+     &     ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f2Bxyz)
 c
 c--Synchronization time
 c
@@ -1309,7 +1356,7 @@ c
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst0,nlst1,llist,iscurrent,dumvxyzu)
-C$OMP& shared(dum2vxyz,it1,it2,imax,igphi)
+C$OMP& shared(dum2vxyz,it1,it2,imax,igphi,encal)
 C$OMP& shared(vxyzu,dgrav,dumxyzmh)
 C$OMP& shared(f1vxyzu,f1ha,f2vxyzu,f2ha)
 C$OMP& shared(tol,tolh,tolptm,dt,isteps,imaxstep,e1,small,divv,rho)
@@ -1319,8 +1366,8 @@ C$OMP& shared(artvix1,artviy1,it0,idtsyn,ibound,deadbound)
 C$OMP& shared(iprint,xyzmh,poten,nneigh,iphase,ikillpr)
 C$OMP& shared(pmass,ikilled,nactive,nkill,time,iorig,nlstacc,listacc)
 C$OMP& shared(anglostx,anglosty,anglostz,istminold)
-C$OMP& shared(ifsvi,alphaMM)
-C$OMP& private(i,j,tolpart)
+C$OMP& shared(ifsvi,alphaMM,dumekcle,ekcle)
+C$OMP& private(i,j,l,tolpart)
 C$OMP& private(errx,erry,errz,errvx,errvy,errvz,erru,errh,errm)
 C$OMP& private(errdivtol,rap,rmod1,divvi,aux1,aux2,aux3,denom)
 C$OMP& private(crstepi,rmodcr,force21,force22,force2,rmodcr2,rmod)
@@ -1395,6 +1442,8 @@ c--Set u to it's new value from DERIVI
 c     For polytropic equation of state, the du's are not used - u(i) 
 c       is calculated directly from the density, in each derivi call and
 c       put into dumu(i). Hence must be transferred from dumu(i) to u(i).
+c     For radiative transfer, both u(i) and e(i) are set in DERIVI, and
+c       hence u(i) and e(i) need to be copied back here.
 c     For adiabatic (or isothermal) u(i) is calculated via the du's
 c       but this setting of u(i)=dumu(i) doesn't matter as the u(i)
 c       updated at the full timestep above, then put into dumu(i)
@@ -1402,6 +1451,11 @@ c       but the derivi call doesn't alter them, so putting them back
 c       into u(i) again changes nothing.
 c
          vxyzu(4,i) = dumvxyzu(4,i)
+         IF (encal.EQ.'r') THEN
+            DO l = 1, 5
+               ekcle(l,i) = dumekcle(l,i)
+            END DO
+         ENDIF
 c
 c--nlmax=1 is the sign that code is running using 'grad-h' so that h is set
 c     inside derivi rather than being evolved.
@@ -1841,6 +1895,9 @@ c
                      dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                   ELSE
                      dumvxyzu(4,j) = vxyzu(4,j)
+                     DO l = 1, 5
+                        dumekcle(l,j) = ekcle(l,j)
+                     END DO
                   ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                   IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,
@@ -1892,7 +1949,7 @@ c
 
             icall = 4
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
-     &         f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
+     &      f1ha,npart,ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz)
 
             time = dt*itime/imaxstep + gt
             DO j = 1, nlst0
@@ -2006,6 +2063,9 @@ c
                      dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                   ELSE
                      dumvxyzu(4,j) = vxyzu(4,j)
+                     DO l = 1, 5
+                        dumekcle(l,j) = ekcle(l,j)
+                     END DO
                   ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                   IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,
@@ -2073,7 +2133,7 @@ c
             icall = 4
             PRINT *,"icall 4 triggered"
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
-     &         f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
+     &      f1ha,npart,ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz)
 c
 c--Write new particles to file
 c

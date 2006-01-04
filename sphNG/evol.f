@@ -27,6 +27,8 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/avail'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/current'
+      INCLUDE 'COMMONS/sync'
+      INCLUDE 'COMMONS/densi'
 
       CHARACTER*7 where
 
@@ -55,7 +57,10 @@ c--Set number of active particles
 c
       nactive = 0
       DO i = 1, npart
-         IF (iphase(i).NE.-1) nactive = nactive + 1
+         IF (iphase(i).NE.-1) THEN
+            nactive = nactive + 1
+            rhomaxsync = MAX(rhomaxsync,rho(i))
+         ENDIF
       END DO
 
       DO i = 1, nptmass
@@ -102,6 +107,7 @@ c         torqc(i) = 0.0
          iremove(i) = -1
          iavail(i) = 0
          iscurrent(i) = .FALSE.
+         it1(i) = 0
       END DO
 
       DO i = 1, 1000000

@@ -2,7 +2,8 @@
 
 !      IMPLICIT NONE
 
-      REAL rho2,rho,u2,u,lrho,lu,rhoval1,rhoval2,uval1,uval2
+      REAL*4 rho2
+      REAL rho,u2,u,lrho,lu,rhoval1,rhoval2,uval1,uval2
       REAL y1,y2,y3,y4,w,v,rmu,get1overmu
       INTEGER nkrho1,nkrho2,nku1,nku2
 
@@ -14,10 +15,16 @@
 
 
       lrho = log10(rho)
+c
+c--If goes to very high density, use last values in table
+c
+      IF (lrho.GT.3.0) lrho = 3.0
+
       lu=log10(u)
 
       nkrho1=INT(lrho/0.005)+4001
       IF(lrho.LT.0.0) nkrho1=nkrho1-1
+      IF(nkrho1.GE.mumxrh) nkrho1 = mumxrh - 1
       nku1=INT(lu/0.005)-1545
       IF(nkrho1.LT.1.0) nkrho1=1
       IF(nku1.LT.1.0) nku1=1
@@ -32,10 +39,11 @@
 
 
 
-      IF(nkrho1.LT.1.0.OR.nkrho1.GE.mumxrh.OR.nku1.LT.1)
+c      IF(nkrho1.LT.1.0.OR.nkrho1.GE.mumxrh.OR.nku1.LT.1)
+      IF(nkrho1.LT.1.0.OR.nku1.LT.1)
      $     CALL FAILED3(0,lu,lrho,nkrho1,nkrho2,nku1,nku2)
       
-      IF(nku1.GE.mumxu) THEN
+      IF(nku2.GE.mumxu) THEN
 				get1overmu = 1.61
 				RETURN
 		ENDIF

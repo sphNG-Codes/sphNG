@@ -31,6 +31,8 @@ c***********************************************************************
 
       PARAMETER (numinjectmax = 10001)
       COMMON /zeustab/ xinjecttable(6,numinjectmax), dtheta, numinject
+
+      REAL*4 rhoreal4
 c
 c--Assumes planet is at radius=1 and stellar mass is 1.  Also assumes disc
 c     rotating anticlockwise and calculation done in rotating reference 
@@ -143,12 +145,15 @@ c
 c--Assumes 75 g/cm^2 surface density at planet's radius, multiplied by signorm
 c
          profile = 0.5
-         rho = signorm*75.0/(SQRT(2.0*pi)*hoverr*radinject*udist)/
+         rhoreal4 = signorm*75.0/(SQRT(2.0*pi)*hoverr*radinject*udist)/
      &        (radinject**profile)*EXP(-xyzmh(3,i)**2/
      &        (2.0*(hoverr*radinject)**2))/umass*udist**3
-         ekcle(3,i) = getcv(rho,vxyzu(4,i))
-         ekcle(1,i) = uradconst*(vxyzu(4,i)/ekcle(3,i))**4/rho
-         ekcle(2,i) = getkappa(vxyzu(4,i),ekcle(3,i),rho)
+         ekcle(3,i) = getcv(rhoreal4,vxyzu(4,i))
+         ekcle(1,i) = uradconst*(vxyzu(4,i)/ekcle(3,i))**4/rhoreal4
+         ekcle(2,i) = getkappa(vxyzu(4,i),ekcle(3,i),rhoreal4)
+         dumekcle(1,i) = ekcle(1,i)
+         dumekcle(2,i) = ekcle(2,i)
+         dumekcle(3,i) = ekcle(3,i)
       ENDIF
 
       xyzmh(5,i) = (4.0*hoverr*phibound*variation/(FLOAT(npart)))**

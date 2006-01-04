@@ -32,7 +32,7 @@ c
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
 99001 FORMAT (' entry subroutine unifdis ')
 
-      hfact = 1.2
+      hfact = 1.0
       delz = 0.
 c
 c--Set uniform particle distribution

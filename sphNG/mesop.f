@@ -149,9 +149,11 @@ c
                   ENDIF
                   nlstbins(ibin) = nlstbins(ibin) + 1
                   listbins(nlstbins(ibin),ibin) = j
-                  IF (it1bin(ibin).NE.it1(j)) THEN
-                     WRITE (*,*) 'ERROR - it1bin mes'
-                     CALL quit
+                  IF (integrator.EQ.0) THEN
+                     IF (it1bin(ibin).NE.it1(j)) THEN
+                        WRITE (*,*) 'ERROR - it1bin mes'
+                        CALL quit
+                     ENDIF
                   ENDIF
                   IF (it2bin(ibin).NE.it2(j)) THEN
                      WRITE (*,*) 'ERROR - it2bin mes'
@@ -267,9 +269,11 @@ c
                   ENDIF
                   nlstbins(ibin) = nlstbins(ibin) + 1
                   listbins(nlstbins(ibin),ibin) = j
-                  IF (it1bin(ibin).NE.it1(j)) THEN
-                     WRITE (*,*) 'ERROR - it1bin mes'
-                     CALL quit
+                  IF (integrator.EQ.0) THEN
+                     IF (it1bin(ibin).NE.it1(j)) THEN
+                        WRITE (*,*) 'ERROR - it1bin mes'
+                        CALL quit
+                     ENDIF
                   ENDIF
                   IF (it2bin(ibin).NE.it2(j)) THEN
                      WRITE (*,*) 'ERROR - it2bin mes'
@@ -398,9 +402,11 @@ c
                   ENDIF
                   nlstbins(ibin) = nlstbins(ibin) + 1
                   listbins(nlstbins(ibin),ibin) = j
-                  IF (it1bin(ibin).NE.it1(j)) THEN
-                     WRITE (*,*) 'ERROR - it1bin mes'
-                     CALL quit
+                  IF (it1(j).NE.0) THEN
+                     IF (it1bin(ibin).NE.it1(j)) THEN
+                        WRITE (*,*) 'ERROR - it1bin mes'
+                        CALL quit
+                     ENDIF
                   ENDIF
                   IF (it2bin(ibin).NE.it2(j)) THEN
                      WRITE (*,*) 'ERROR - it2bin mes'

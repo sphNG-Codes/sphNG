@@ -20,7 +20,7 @@ c************************************************************
       INCLUDE 'igrape'
 
       DIMENSION xyzmh(5,idim), vxyzu(4,idim), list(idim)
-      DIMENSION ekcle(5,idim)
+      DIMENSION ekcle(5,iradtrans)
 
 c--Neides=INT(4./3.*pi*8.*hfact**3))
       PARAMETER (hfact = 1.2)
@@ -123,7 +123,6 @@ c
 c--Iterate density calculation for particle ipart
 c
          DO iteration = 1, maxiterations
-
             hi1 = 1./hi
             hi21 = hi1*hi1
             hi31 = hi21*hi1
@@ -204,7 +203,8 @@ c--Take fixed point if Newton-Raphson running into trouble
 c  (i.e. if gradients are very wrong)
 c
             IF (hnew.LE.0. .OR. (omegai.LE.tiny)) THEN
-c               WRITE (*,*) 'doing fixed point',gradhi,omegai
+c               WRITE (*,*) 'doing fixed point',gradhi,omegai,hfact,
+c     &              pmassi,rhoi,third
                hnew = hfact*(pmassi/rhoi)**third
                inumfixed = inumfixed + 1
 c
@@ -215,10 +215,10 @@ c               WRITE (*,*) 'large h jump on particle ',iorig(ipart)
                hnew = hi - 0.5*func*dfdh1
             ENDIF
 
-            IF (numneighreal.GT.500) THEN
-               WRITE(iprint,*) 'part: ',iorig(ipart),' has ',numneighi,
-     &              numneighreal,' neighbours '
-            ENDIF
+c            IF (numneighreal.GT.500) THEN
+c               WRITE(iprint,*) 'part: ',iorig(ipart),' has ',numneighi,
+c     &              numneighreal,' neighbours '
+c            ENDIF
 
             IF (ABS(hnew-hi)/hi_old.LT.htol .AND. omegai.GT.0) THEN
                imaxit = MAX(imaxit, iteration)
@@ -345,7 +345,7 @@ c
                      ENDIF
 C$OMP CRITICAL (dumrhoj)
                      dumrho(j) = rho(j) + deltarho
-                     CALL eospg(j, vxyzu, dumrho, pr, vsound)
+                     CALL eospg(j, vxyzu, dumrho, pr, vsound, ekcle)
 C$OMP END CRITICAL (dumrhoj)
                   ENDIF
                ENDIF
@@ -362,7 +362,7 @@ c
 c
 c--Pressure and sound velocity from ideal gas law...
 c
-         CALL eospg(ipart, vxyzu, rho, pr, vsound)
+         CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
 c
 c--Find particle with highest density outside radcrit of point mass
 c

@@ -331,13 +331,13 @@ c
 c--Find minimum time for force calculation
 c
  100  itime = imax
-      IF (itiming) CALL getused(ts11)
+      IF (itiming) CALL getused(ts1p1)
       DO i = 1, nbinmax
          IF (nlstbins(i).GT.0) itime = MIN(itime, it2bin(i))
       END DO
       IF (itiming) THEN
-         CALL getused(ts12)
-         ts1 = ts1 + (ts12 - ts11)
+         CALL getused(ts1p2)
+         ts1 = ts1 + (ts1p2 - ts1p1)
       ENDIF
 
 c      IF (itime1.NE.itime1new .OR. itime0.NE.itime0new) THEN

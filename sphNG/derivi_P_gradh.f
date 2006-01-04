@@ -136,16 +136,16 @@ c            WRITE (*,*) 'nlstall is ',nlstall
 
 c            CALL ASS(nlst_in,nlst_end,nlstall,llist,dt,itime,npart,
 c     &           xyzmh,vxyzu,ekcle,dumrho,vsound,dedxyz)
-c
+
 cC$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-cC$OMP& shared(nlstall,vxyzu,dumrho,pr,vsound,llist,iphase)
+cC$OMP& shared(nlstall,vxyzu,dumrho,pr,vsound,llist,iphase,ekcle)
 cC$OMP& private(i,ipart)
 c            DO i = 1, nlstall
 c               ipart = llist(i)
 c               IF (iphase(ipart).EQ.0) 
-c     &              CALL eospg(ipart,vxyzu,dumrho,pr,vsound)
+c     &              CALL eospg(ipart,vxyzu,dumrho,pr,vsound,ekcle)
 c            END DO
-C$OMP END PARALLEL DO
+cC$OMP END PARALLEL DO
          END IF
 
          IF (itiming) THEN

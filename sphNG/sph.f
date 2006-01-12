@@ -49,7 +49,7 @@ c                                                           *
 c  (1) switchable between BINARY TREE and GRAPE board       *
 c         computation of gravity and neighbours lists       *
 c                                                           *
-c  Modifications by: D. J. Price       UofExeter 2003-2005  *
+c  Modifications by: D. J. Price       UofExeter 2003-2006  *
 c                                                           *
 c  (1) grad h terms, grad soft terms                        *
 c  (2) MHD                                                  *
@@ -414,7 +414,12 @@ c************************************************************
 c
 c--Version - date is date last updated with other code version changes
 c
-      version = 'SPRMHD-1.0-MRB-DJP-06-09-05'
+      version = 'SPRMHD-1.1-MRB-DJP-12-01-06'
+c
+c   Derived from version = 'SPRMHD-1.0-MRB-DJP-06-09-05'
+c     but with MHD looking like it kind of, maybe, works.
+c
+c      version = 'SPRMHD-1.0-MRB-DJP-06-09-05'
 c
 c   Derived from version = 'SPH3DT-PTMAS-GRAPE-O4-1.0-MRB-17-04-98'
 c     but including MHD, gradh terms and radiative transfer.

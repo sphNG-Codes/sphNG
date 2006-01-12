@@ -40,6 +40,7 @@ c************************************************************
       INCLUDE 'COMMONS/ptbin'
       INCLUDE 'COMMONS/useles'
       INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/varmhd'
 c
 c--Allow for tracing flow
 c
@@ -62,6 +63,8 @@ c
       WRITE (iterm, 99003) file1
 99003 FORMAT (A7)
       WRITE (iterm, 99003) varsta
+      IF (imhd.EQ.idim) WRITE (iterm, 10001) varmhd
+10001 FORMAT(A4)
 c
 c--Write options
 c

@@ -38,6 +38,7 @@ c************************************************************
       INCLUDE 'COMMONS/crpart'
       INCLUDE 'COMMONS/ptbin'
       INCLUDE 'COMMONS/useles'
+      INCLUDE 'COMMONS/varmhd'
 c
 c--Allow for tracing flow
 c
@@ -92,6 +93,7 @@ c
       READ (iterm, 99003) file1
 99003 FORMAT (A7)
       READ (iterm, 99003) varsta
+      IF (imhd.EQ.idim) READ (iterm, *) varmhd
 c
 c--Read options
 c

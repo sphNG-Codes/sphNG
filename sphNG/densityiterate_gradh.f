@@ -62,8 +62,6 @@ c--Neides=INT(4./3.*pi*8.*hfact**3))
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/outneigh'
 
-      LOGICAL*1 iupdated(idim)
-
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
 99001 FORMAT ('entry subroutine densityiterate')
 c
@@ -74,7 +72,6 @@ c
       rhonext = 0.
       icreate = 0
       radcrit2 = radcrit*radcrit
-      ihasghostcount = 0
       numparticlesdone = numparticlesdone + nlst_end
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -84,8 +81,8 @@ C$OMP& shared(nneigh,neighb,neighover,selfnormkernel)
 C$OMP& shared(cnormk,radkernel,dvtable,wij,grwij)
 C$OMP& shared(listpm,iphase,dphidh,uradconst,icall,encal)
 C$OMP& shared(iprint,nptmass,iptmass,radcrit2,iorig,third)
-C$OMP& shared(dumrho,iscurrent,npart,hasghost)
-C$OMP& shared(isteps,it0,it1,imax,imaxstep,dt,itime,iupdated)
+C$OMP& shared(dumrho,iscurrent,npart)
+C$OMP& shared(isteps,it0,it1,imax,imaxstep,dt,itime)
 C$OMP& private(n,ipart,j,k,xi,yi,zi,vxi,vyi,vzi,pmassi,hi,hj,rhoi)
 C$OMP& private(divvi,curlvxi,curlvyi,curlvzi,gradhi,gradsofti)
 C$OMP& private(pmassj,hi_old,hi1,hi21,hi31,hi41,hneigh)
@@ -96,7 +93,7 @@ C$OMP& private(l,iptcur,dphi,dwdhi,dpotdh,iteration,numneighi)
 C$OMP& private(numneighreal,rhohi,dhdrhoi,omegai,func,dfdh1)
 C$OMP& private(hnew,deltat,deltarho)
 C$OMP& reduction(MAX:rhonext,imaxit)
-C$OMP& reduction(+:ihasghostcount,inumit,inumfixed,inumrecalc)
+C$OMP& reduction(+:inumit,inumfixed,inumrecalc)
       DO n = nlst_in, nlst_end
          ipart = list(n)
 
@@ -153,8 +150,6 @@ c
 
                IF (v2.LT.radkernel**2) THEN
                   numneighreal = numneighreal + 1
-                  iupdated(j) = .FALSE.
-                  IF (hasghost(j)) ihasghostcount = ihasghostcount + 1
                   rij1 = SQRT(rij2)
 c
 c--Get kernel quantities from interpolation in table
@@ -322,33 +317,6 @@ c
 c--Derivative of gravitational potential w.r.t. h
 c
                gradsofti = gradsofti - pmassj*dphi
-c
-c--Interpolate density, pressure and vsound of neighbour that is not 
-c     being evolved
-c
-               IF (.NOT.iscurrent(j) .AND. .NOT.iupdated(j)) THEN
-                  iupdated(j) = .TRUE.
-C$OMP FLUSH(iupdated)
-                  IF (j.LE.npart) THEN
-                     IF (it1(j).EQ.imax) THEN
-                    deltat = dt*(itime - it0(j) - isteps(j)/2)/imaxstep
-                     ELSE
-                        deltat = dt*(itime - it0(j))/imaxstep
-                     ENDIF
-c
-c--Update the density value at neighbor's locations
-c--Avoid, though, abrupt changes in density
-c
-                     deltarho = -deltat*divv(j)
-                     IF (ABS(deltarho).GT.rho(j)/2.) THEN
-                        deltarho = SIGN(1.0,deltarho)*rho(j)/2.0
-                     ENDIF
-C$OMP CRITICAL (dumrhoj)
-                     dumrho(j) = rho(j) + deltarho
-                     CALL eospg(j, vxyzu, dumrho, pr, vsound, ekcle)
-C$OMP END CRITICAL (dumrhoj)
-                  ENDIF
-               ENDIF
 
             ENDIF
          END DO
@@ -379,23 +347,6 @@ c
  50   CONTINUE
       END DO
 C$OMP END PARALLEL DO
-      IF (ihasghostcount.GT.0) THEN
-C$OMP PARALLEL DO SCHEDULE (static) default(none)
-C$OMP&shared(npart,ntot,ireal,dumrho,pr,vsound,divv,vxyzu,encal,ibound)
-C$OMP&shared(ekcle)
-C$OMP&private(i,j) 
-         DO i = npart + 1, ntot
-            j = ireal(i)
-            dumrho(i) = dumrho(j)
-            pr(i) = pr(j)
-            vsound(i) = vsound(j)
-            divv(i) = 0.
-            vxyzu(4,i) = vxyzu(4,j)
-            IF (encal.EQ.'r' .AND. ibound.EQ.100)
-     &           ekcle(1,i) = ekcle(1,j)
-         END DO
-C$OMP END PARALLEL DO
-      ENDIF
 c
 c--Possible to create a point mass
 c

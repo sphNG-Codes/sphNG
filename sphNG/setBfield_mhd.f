@@ -4,10 +4,10 @@ c                                                           *
 c  This subroutine sets up the initial magnetic field       *
 c                                                           *
 c  The distribution can be   uniform    (iBfield=1)         *
-c			     random     (iBfield=2)	    *      
+c                             random     (iBfield=2)            *      
 c                            uniform toroidal (not yet)     *
 c                            uniform poloidal (not yet)     *
-c							    *
+c                                                            *
 c Note that we always setup B even if evolving B/rho        *
 c B/rho is then constructed once we know the density by sum *
 c                                                           *
@@ -23,6 +23,7 @@ c************************************************************
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/polyk2'
       INCLUDE 'COMMONS/Bzero'
+      INCLUDE 'COMMONS/varmhd'
       
       INTEGER iBfield      
       CHARACTER*1 isetB
@@ -32,6 +33,23 @@ c
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
 99001 FORMAT (' entry subroutine setBfield')
 99002 FORMAT (A1)
+
+50    WRITE(*, 99102)
+99102 FORMAT (' Which MHD variable do you want to evolve?', /,
+     &   ' B     (flux density per unit volume)         : Bvol b)', /,
+     &   ' B/rho (flux density per unit mass)           : Brho r)', /,
+     &   ' Euler potentials (B = grad alpha x grad beta): eulr e)')
+      WRITE(*,*) ' (NB: a simulation can be restarted in B or B/rho'
+      WRITE(*,*) '  from any run, but an Euler potential run can only '
+      WRITE(*,*) '  restarted from an Euler potential run.)'
+      WRITE(*,*)
+      READ (*, 99024) varmhd
+99024 FORMAT (A4)
+      IF (varmhd.EQ.'b' .or. varmhd.EQ.'B') varmhd = 'Bvol'
+      IF (varmhd.EQ.'r') varmhd = 'Brho'
+      IF (varmhd.EQ.'e') varmhd = 'eulr'
+      IF (varmhd.NE.'Bvol' .and. varmhd.NE.'Brho'
+     &    .and. varmhd.NE.'eulr') GOTO 50
 
 100   WRITE(*, 99003)
 99003 FORMAT(//, ' INITIAL MAGNETIC FIELD GEOMETRY ', //,
@@ -45,71 +63,80 @@ c
 
 200     WRITE(*,99004)
 99004   FORMAT(' Do you want to enter the magnetic field strength (m)',
-     &         ' or the Alfven speed (a) ?')	
+     &         ' or the Alfven speed (a) ?')
         READ (*,99002) isetB
-	IF (isetB.NE.'m'.AND.isetB.NE.'a') GOTO 200
-	
+        IF (isetB.NE.'m'.AND.isetB.NE.'a') GOTO 200
+        
         IF (isetB.EQ.'m') THEN
            WRITE (*,99104) umagfd
 99104      FORMAT(' Code units of mag flux density = ',1pe14.6)
 
            WRITE (*,99005)
 99005      FORMAT(/,' Enter Mag flux density in Gauss')     
-	   WRITE (*,99006) 'Bx'
-	   READ (*,*) Bxzero
-	   WRITE (*,99006) 'By'
-	   READ (*,*) Byzero
-	   WRITE (*,99006) 'Bz'
-	   READ (*,*) Bzzero
-99006      FORMAT(' Enter ',A2,':')	
+           WRITE (*,99006) 'Bx'
+           READ (*,*) Bxzero
+           WRITE (*,99006) 'By'
+           READ (*,*) Byzero
+           WRITE (*,99006) 'Bz'
+           READ (*,*) Bzzero
+99006      FORMAT(' Enter ',A2,':')        
            Bxzero = Bxzero/umagfd
            Byzero = Byzero/umagfd
            Bzzero = Bzzero/umagfd
-	ELSEIF (isetB.eq.'a') THEN
-	   WRITE (*,99007)
+        ELSEIF (isetB.eq.'a') THEN
+           WRITE (*,99007)
 99007      FORMAT (' Enter Alfven speed in code units')
-	   READ (*,*) valfven
-	   WRITE (*,99008)
+           READ (*,*) valfven
+           WRITE (*,99008)
 99008      FORMAT (' Enter Bx:By:Bz ratio')
-	   READ (*,*) fracx,fracy,fracz
-	   fractot = SQRT(fracx**2. + fracy**2. + fracz**2.)
-	   Bxzero = fracx*SQRT(rhozero)*valfven/fractot
-	   Byzero = fracy*SQRT(rhozero)*valfven/fractot
-	   Bzzero = fracz*SQRT(rhozero)*valfven/fractot
-	   
-	ENDIF
+           READ (*,*) fracx,fracy,fracz
+           fractot = SQRT(fracx**2. + fracy**2. + fracz**2.)
+           Bxzero = fracx*SQRT(rhozero)*valfven/fractot
+           Byzero = fracy*SQRT(rhozero)*valfven/fractot
+           Bzzero = fracz*SQRT(rhozero)*valfven/fractot
+           
+        ENDIF
         
 
-	WRITE (*,99009) Bxzero,Byzero,Bzzero
+        WRITE (*,99009) Bxzero,Byzero,Bzzero
 99009   FORMAT (' Bx_0 = ',1PE14.5,/,
      &          ' By_0 = ',1PE14.5,/,
-     &          ' Bz_0 = ',1PE14.5)	   
+     &          ' Bz_0 = ',1PE14.5)           
 
-	Bzero2 = Bxzero**2 + Byzero**2 + Bzzero**2
+        Bzero2 = Bxzero**2 + Byzero**2 + Bzzero**2
         Bzero = SQRT(Bzero2)
 c
 c--calculate angle of uniform field to x axis
-c	
+c        
         angle = ACOS(Bxzero/Bzero)*180.0/pi
         WRITE (*,99010) angle
 99010   FORMAT (' Angle between field and x axis = ',f7.3,' degrees')
-		
-	DO i=1,npart
-	   Bevolxyz(1,i) = Bxzero
-           Bevolxyz(2,i) = Byzero
-	   Bevolxyz(3,i) = Bzzero
-	ENDDO
+                
+        IF (varmhd.EQ.'eulr') THEN
+           WRITE(*,*) 'WARNING: Bz ONLY IMPLEMENTED AT THE MOMENT'
+           DO i=1,npart
+              Bevolxyz(1,i) = -Bzzero*xyzmh(2,i)
+              Bevolxyz(2,i) = xyzmh(1,i)
+              Bevolxyz(3,i) = 0.
+           ENDDO
+        ELSE
+           DO i=1,npart
+              Bevolxyz(1,i) = Bxzero
+              Bevolxyz(2,i) = Byzero
+              Bevolxyz(3,i) = Bzzero
+           ENDDO        
+        ENDIF
 
-      ELSEIF(iBfield.EQ.2) THEN		! this is NOT divergence free
+      ELSEIF(iBfield.EQ.2) THEN ! this is NOT divergence free
         WRITE(*,99005) umagfd
         WRITE(*,99006) 'maximum B'
-        READ(*,*) Binit	
-	Binit5 = 0.5*Binit
-	DO i=1,npart
-	   Bevolxyz(1,i) = 2.0*(Binit*ran1(1) - Binit5)
-	   Bevolxyz(2,i) = 2.0*(Binit*ran1(1) - Binit5)
-	   Bevolxyz(3,i) = 2.0*(Binit*ran1(1) - Binit5)
-	ENDDO
+        READ(*,*) Binit        
+        Binit5 = 0.5*Binit
+        DO i=1,npart
+           Bevolxyz(1,i) = 2.0*(Binit*ran1(1) - Binit5)
+           Bevolxyz(2,i) = 2.0*(Binit*ran1(1) - Binit5)
+           Bevolxyz(3,i) = 2.0*(Binit*ran1(1) - Binit5)
+        ENDDO
       ENDIF          
       
       RETURN

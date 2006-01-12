@@ -33,6 +33,7 @@ c************************************************************
       INCLUDE 'COMMONS/numpa'
       INCLUDE 'COMMONS/timei'
       INCLUDE 'COMMONS/timeextra'
+      INCLUDE 'COMMONS/varmhd'
 c
 c--Allow for tracing flow
 c
@@ -120,21 +121,24 @@ c
 c--Must already know B/rho to call derivi
 c
       IF (imhd.EQ.idim) THEN
-         WRITE(*,99145)
-99145    FORMAT(' Calculating B/rho from B for MHD evolution...')
-         DO i=1,npart
-            IF (rho(i).LE.0.) STOP 'ERROR!!! rho = 0 setting up B/rho!'
-            rho1i = 1./rho(i)
-            DO j=1,3
-               Bevolxyz(j,i) = Bevolxyz(j,i)*rho1i
+         IF (varmhd.EQ.'Brho') THEN
+            WRITE(*,99145)
+99145       FORMAT(' Calculating B/rho from B for MHD evolution...')
+            DO i=1,npart
+               IF (rho(i).LE.0.) STOP 'ERROR: rho = 0 setting up B/rho'
+               rho1i = 1./rho(i)
+               DO j=1,3
+                  Bevolxyz(j,i) = Bevolxyz(j,i)*rho1i
+               ENDDO
             ENDDO
-         ENDDO
+         ENDIF
       ENDIF
 c
 c--Call derivi to get div B, curl B etc initially
+c  also to get B from Euler potentials
 c
-c      CALL derivi(dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,ntot,
-c     &            ireal,alphaMM,ekcle,Bevolxyz,f1Bxyz)
+      CALL derivi(dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,ntot,
+     &            ireal,alphaMM,ekcle,Bevolxyz,f1Bxyz)
 
       DO ipart = 1,npart
          xyzmh(5,ipart) = dumxyzmh(5,ipart)

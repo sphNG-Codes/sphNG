@@ -42,8 +42,10 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/tming'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/mhd'
-c      INCLUDE 'COMMONS/divcurlB'
+      INCLUDE 'COMMONS/divcurlB'
       INCLUDE 'COMMONS/gradhterms'
+      INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/varmhd'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -181,7 +183,11 @@ c
          nums(4) = 0
          nums(5) = 0
          IF (imhd.EQ.idim) THEN
-            nums(6) = 3
+            IF (varmhd.EQ.'eulr') THEN
+               nums(6) = 5
+            ELSE
+               nums(6) = 3
+            ENDIF
          ENDIF
          nums(7) = 4
          nums(8) = 0
@@ -285,15 +291,36 @@ c--int*8
 
 c--Default real
 c
-c--Dump B not B/rho
+c--Dump B (not whatever the evolved MHD variable is)
 c
-         DO j = 1, 3
-            WRITE (idisk1, ERR=100) 
-     &            (Bevolxyz(j,isort(i))*rho(i), i=1, npart)
-         END DO
+         IF (varmhd.EQ.'Brho') THEN
+            DO j = 1, 3
+               WRITE (idisk1, ERR=100) 
+     &            (Bevolxyz(j,isort(i))*rho(isort(i)), i=1, npart)
+            END DO
+         ELSEIF (varmhd.EQ.'Bvol') THEN
+            DO j = 1, 3
+               WRITE (idisk1, ERR=100) 
+     &            (Bevolxyz(j,isort(i)), i=1, npart)
+            END DO         
+         ELSE
+            DO j = 1, 3
+               WRITE (idisk1, ERR=100) 
+     &            (Bxyz(j,isort(i)), i=1, npart)
+            END DO         
+         ENDIF
+c
+c--Dump Euler potentials if necessary
+c
+         IF (varmhd.EQ.'eulr') THEN
+            DO j = 1, 2
+               WRITE (idisk1, ERR=100) 
+     &            (Bevolxyz(j,isort(i)), i=1, npart)
+            END DO
+         ENDIF
 c--real*4
          DO j = 1, 4
-c            WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, npart)
+            WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, npart)
          ENDDO
 c--real*8
 

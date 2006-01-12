@@ -1,5 +1,5 @@
       SUBROUTINE derivi (dt,itime,xyzmh,vxyzu,
-     &     dvxyzu,dha,npart,ntot,ireal,alphaMM,ekcle,Bxyz,dBxyz)
+     &     dvxyzu,dha,npart,ntot,ireal,alphaMM,ekcle,Bevolxyz,dBevolxyz)
 c************************************************************
 c                                                           *
 c  This subroutine drives the computation of the forces on  *
@@ -38,6 +38,14 @@ c     forces, including all gravity forces when it re-finds *
 c     the neighbours of each particle.  Thus, it combines   *
 c     the first part of derivi.f and forcei.f .             *
 c                                                           *
+c  MHD note: (DJP 6.1.06)                                   *
+c   The MHD quantities passed to this routine               *
+c     are the *evolved* MHD variables. These could be       *
+c     B, B/rho (usual option) or the Euler potentials.      *
+c     However, we send just the magnetic field into the     *
+c     force routines. The dBevolxyz returned by derivi      *
+c     is the derivative required for evolving the magnetic  *
+c     field.                                                *
 c************************************************************
 
       INCLUDE 'idim'
@@ -47,7 +55,7 @@ c************************************************************
       REAL*4 dha(2,idim),alphaMM(idim)
       DIMENSION ireal(idim)
       DIMENSION ekcle(5,iradtrans)
-      DIMENSION Bxyz(3,imhd),dBxyz(3,imhd)
+      DIMENSION Bevolxyz(3,imhd),dBevolxyz(3,imhd)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -82,6 +90,10 @@ c************************************************************
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/call'
       INCLUDE 'COMMONS/gtime'
+c     Bxyz is stored here for calculation of energy & writing to dump file
+      INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/updated'
 
       CHARACTER*7 where
       DIMENSION dedxyz(3,iradtrans)
@@ -100,6 +112,12 @@ c
          WRITE (iprint,*) 'ERROR: derivi_P_gradh must have nlmax.EQ.1'
          CALL quit
       ENDIF
+c
+c--set updated flag to false on *all* particles (ie. all possible neighbours)
+c
+      DO i=1,npart
+         iupdated(i) = .FALSE.
+      ENDDO
 c     
 c--Set constants first time around
 c
@@ -154,13 +172,37 @@ cC$OMP END PARALLEL DO
          ENDIF
       ENDIF
 c
+c--Calculate B from the evolved magnetic field variable
+c
+      IF (imhd.EQ.idim) THEN
+         IF (varmhd.eq.'Bvol') THEN
+            DO i=nlst_in,nlst_end
+               ipart = llist(i)
+               Bxyz(1,ipart) = Bevolxyz(1,ipart)
+               Bxyz(2,ipart) = Bevolxyz(2,ipart)
+               Bxyz(3,ipart) = Bevolxyz(3,ipart)
+            ENDDO
+         ELSEIF (varmhd.EQ.'Brho') THEN
+            DO i=nlst_in,nlst_end
+               ipart = llist(i)
+               Bxyz(1,ipart) = Bevolxyz(1,ipart)*dumrho(ipart)
+               Bxyz(2,ipart) = Bevolxyz(2,ipart)*dumrho(ipart)
+               Bxyz(3,ipart) = Bevolxyz(3,ipart)*dumrho(ipart)
+            ENDDO
+         ELSEIF (varmhd.EQ.'Eulr') THEN
+            STOP 'Euler potentials not implemented'
+         ELSE
+            STOP 'unknown MHD variable in derivi'
+         ENDIF
+      ENDIF
+c
 c--Compute forces on EACH particle
 c
       IF (itiming) CALL getused(tforce1)
 
       CALL forcei(nlst_in,nlst_end,llist,dt,itime,npart,
      &     xyzmh,vxyzu,dvxyzu,dha,dumrho,pr,vsound,alphaMM,ekcle,
-     &     dedxyz,Bxyz,dBxyz)
+     &     dedxyz,Bxyz,dBevolxyz,Bevolxyz)
 
       IF (itiming) THEN
          CALL getused(tforce2)

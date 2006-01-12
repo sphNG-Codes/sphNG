@@ -149,6 +149,16 @@ c
 c  d) ergs per cc
 c
       uergcc = DBLE(umass)/(DBLE(udist)*DBLE(utime)**2)
+c
+c  e) magnetic flux density
+c
+c     (specify charge unit in esu)
+c
+      ucharge = DSQRT(DBLE(umass)*DBLE(udist)/cgsmu0)
+c
+c     (set units for magnetic field)
+c
+      umagfd = DBLE(umass)/(DBLE(utime)*DBLE(ucharge))
 
       IF (idebug(1:4).EQ.'unit') THEN
          WRITE (iprint, 99002) umass, udist, udens, utime, uergg, uergcc

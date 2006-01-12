@@ -36,6 +36,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/gradhterms'
+      INCLUDE 'COMMONS/varmhd'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -45,7 +46,8 @@ c      INCLUDE 'COMMONS/torq'
       INTEGER*4 int1, int2, int1i, int2i, int3i
       INTEGER*8 number8
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
-
+      DIMENSION Bxyz(3,imhd)
+      
       DATA icall/2/
       DATA where/'rdump'/
 c
@@ -291,21 +293,41 @@ c--Default real
 c
 c--read B field from dump
 c
+         IF (nums4(6).LT.3) THEN
+            WRITE(*,*) 'ERROR: no MHD variables in dump file'
+            CALL quit
+         ENDIF
          DO j = 1, 3
-            READ (idisk1, END=100) (Bevolxyz(j,i), i=1, npart)
+            READ (idisk1, END=100) (Bxyz(j,i), i=1, npart)
          END DO
+c
+c--read Euler potentials from dump if necessary
+c
+         IF (varmhd.EQ.'eulr') THEN
+            IF (nums4(6).GE.5) THEN
+               DO j = 1, 2
+                  READ (idisk1, END=100) (Bevolxyz(j,i), i=1, npart)
+               END DO
+            ELSE
+               WRITE(*,*) 'ERROR: Cannot start Euler potentials run '
+               WRITE(*,*) '       from non-Euler potentials dump'
+               CALL quit
+            ENDIF
+         ENDIF
 c
 c--convert from B to B/rho for evolution
 c
-         DO i=1,npart
-            IF (rho(i).LE.0.) THEN
-               WRITE(*,*) 'ERROR: rho -ve in read dump, evolving B/rho'
-               CALL quit
-            ENDIF
-            DO j = 1,3
-               Bevolxyz(j,i) = Bevolxyz(j,i)/rho(i)
+         IF (varmhd.EQ.'Brho') THEN
+            DO i=1,npart
+               IF (rho(i).LE.0.) THEN
+                  WRITE(*,*) 'ERROR: rho -ve in rdump, evolving B/rho'
+                  CALL quit
+               ENDIF
+               DO j = 1,3
+                  Bevolxyz(j,i) = Bxyz(j,i)/rho(i)
+               ENDDO
             ENDDO
-         ENDDO
+         ENDIF
 c--real*4
 
 c--real*8

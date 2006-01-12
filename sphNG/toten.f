@@ -25,7 +25,7 @@ c************************************************************
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/radtrans'
-      INCLUDE 'COMMONS/mhd'
+      INCLUDE 'COMMONS/Bxyz'
 c
 c--Allow for tracing flow
 c
@@ -84,10 +84,11 @@ c
 c--Magnetic energy
 c
 	    IF (imhd.EQ.idim) THEN
-	       B2i = Bevolxyz(1,i)**2 + Bevolxyz(2,i)**2 
-     &                                + Bevolxyz(3,i)**2
-               tmagi = B2i*rho(i)
-               tmag = tmag + pmassi*tmagi
+	       B2i = Bxyz(1,i)**2 + Bxyz(2,i)**2 + Bxyz(3,i)**2
+               tmagi = pmassi*B2i/rho(i)
+               tmag = tmag + tmagi
+            ELSE
+               tmagi = 0.
             ENDIF
 c
 c--Escapors
@@ -105,7 +106,7 @@ c
             ELSE
                tradi = 0.
             ENDIF
-            total = tinout + tpot + ttherm + tradi
+            total = tinout + tpot + ttherm + tradi + tmagi
             IF (total.GT.0.) escap = escap + pmassi
          ENDIF
       END DO

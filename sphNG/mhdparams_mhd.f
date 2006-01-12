@@ -10,12 +10,14 @@ c************************************************************
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/densi'
       INCLUDE 'COMMONS/eosq'
-      INCLUDE 'COMMONS/mhd'
+      INCLUDE 'COMMONS/Bxyz'
       INCLUDE 'COMMONS/divcurlB'
       INCLUDE 'COMMONS/outmhd'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/typef'
+      INCLUDE 'COMMONS/mhd'
+      INCLUDE 'COMMONS/varmhd'
 
 c
 c--Allow for tracing flow
@@ -48,21 +50,32 @@ c
 c--Calculate quantities
 c
       DO i=1,npart
-	 rhoi = rho(i)
+         rhoi = rho(i)
          rho1i = 0.
-	 IF (rhoi.NE.0) rho1i = 1./rhoi
-c         IF (imhd.EQ.1) THEN
-            Bxi = Bevolxyz(1,i)*rhoi
-	    Byi = Bevolxyz(2,i)*rhoi
-	    Bzi = Bevolxyz(3,i)*rhoi
+         IF (rhoi.NE.0) rho1i = 1./rhoi
+c         IF (varmhd.EQ.'Bvol') THEN
+c            Bxi = Bevolxyz(1,i)
+c            Byi = Bevolxyz(2,i)
+c            Bzi = Bevolxyz(3,i)         
+c         ELSEIF (varmhd.EQ.'Brho') THEN
+c            Bxi = Bevolxyz(1,i)*rho(i)
+c            Byi = Bevolxyz(2,i)*rho(i)
+c            Bzi = Bevolxyz(3,i)*rho(i)
 c         ELSE
-c            Bxi = Bevolx(i)
-c	    Byi = Bevoly(i)
-c	    Bzi = Bevolz(i)         
+            Bxi = Bxyz(1,i)
+            Byi = Bxyz(2,i)
+            Bzi = Bxyz(3,i)
 c         ENDIF
 
          B2i = Bxi**2 + Byi**2 + Bzi**2
-	 Bi = SQRT(B2i)
+         Bi = SQRT(B2i)
+         IF (Bi.GT.0.) THEN
+            Bi1 = 1./Bi
+            betamhdi = pr(i)/(0.5*B2i)
+         ELSE
+            Bi1 = 0.
+            betamhdi = 0.
+         ENDIF
 c
 c--Max/min/ave B
 c         
@@ -71,16 +84,15 @@ c
          Bmean = Bmean + Bi
 c
 c--Plasma beta minimum/maximum/average
-c	 
-	 betamhdi = pr(i)/(0.5*B2i)
-	 betamhdav = betamhdav + betamhdi
+c         
+         betamhdav = betamhdav + betamhdi
          IF (betamhdi.GT.betamhdmax) betamhdmax = betamhdi
-	 IF (betamhdi.LT.betamhdmin) betamhdmin = betamhdi
+         IF (betamhdi.LT.betamhdmin) betamhdmin = betamhdi
 c
 c--Maximum/average divergence of B
-c	 
+c         
          divBi = abs(divcurlB(1,i))
-	 IF (divBi.GT.divBmax) divBmax = divBi
+         IF (divBi.GT.divBmax) divBmax = divBi
          divBav = divBav + divBi
 c
 c--max/av magnitude of current
@@ -95,17 +107,17 @@ c
 c
 c--ratio of divB to curlB
 c
-         div2curlBi= divBi/(curlBmagi + 1.e-30)
+         div2curlBi= divBi/(curlBmagi + tiny)
          div2curlBav= div2curlBav + div2curlBi
          IF (div2curlBi.GT.div2curlBmax) div2curlBmax= div2curlBi
 c
 c--|div B| x smoothing length / |B| (see e.g. Cerqueira and Gouveia del Pino 1999) 
 c  this quantity should be less than ~0.01.
 c
-	 omegamhdi = divBi*xyzmh(5,i)/Bi
-	 IF (omegamhdi.LT.omegtol) fracdivBok = fracdivBok + 1.
-	 IF (omegamhdi.GT.omegamhdmax) omegamhdmax = omegamhdi
-	 omegamhdav = omegamhdav + omegamhdi	  
+         omegamhdi = divBi*xyzmh(5,i)*Bi1
+         IF (omegamhdi.LT.omegtol) fracdivBok = fracdivBok + 1.
+         IF (omegamhdi.GT.omegamhdmax) omegamhdmax = omegamhdi
+         omegamhdav = omegamhdav + omegamhdi
 c
 c--Conserved magnetic flux (int B dV)
 c

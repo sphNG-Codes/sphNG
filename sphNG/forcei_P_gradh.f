@@ -1,6 +1,6 @@
       SUBROUTINE forcei(nlst_in,nlst_end,list,dt,itime,
      &      npart,xyzmh,vxyzu,fxyzu,dha,trho,pr,vsound,alphaMMpass,
-     &      ekcle,dedxyz,Bxyz,dBxyz)
+     &      ekcle,dedxyz,Bxyz,dBxyz,Bevolxyz)
 c************************************************************
 c                                                           *
 c  This subroutine computes the forces on particle ipart    *
@@ -18,6 +18,7 @@ c************************************************************
       DIMENSION ekcle(5,iradtrans)
       DIMENSION dedxyz(3,iradtrans)
       DIMENSION Bxyz(3,imhd),dBxyz(3,imhd)
+      DIMENSION Bevolxyz(3,imhd) ! needed for prediction only
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -54,8 +55,9 @@ c************************************************************
       INCLUDE 'COMMONS/curlist'
       INCLUDE 'COMMONS/divcurlB'
       INCLUDE 'COMMONS/gradhterms'
-
-      REAL*4 ddvxyz(3,idim)
+      INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/updated'
+      INCLUDE 'COMMONS/ghost'
 
       CHARACTER*7 where
 
@@ -93,12 +95,12 @@ C$OMP& shared(part2potenkernel,part1potenkernel,grwij)
 C$OMP& shared(divv,curlv,beta,alpha,poten,dgrav,nlst0)
 C$OMP& shared(cnormk,epsil,epsil2,where,pext)
 C$OMP& shared(iphase,listpm,iprint,nptmass,iorig)
-C$OMP& shared(alphaMMpass,alphamin,ddv,ddvxyz)
+C$OMP& shared(alphaMMpass,alphamin)
 C$OMP& shared(igrp,igphi,ifsvi,iexf)
 C$OMP& shared(ifcor,iexpan,iener,damp)
 C$OMP& shared(realtime,ekcle,encal,dedxyz,acc)
-C$OMP& shared(Bxyz,dBxyz,Bextx,Bexty,Bextz,B2ext,divcurlB)
-C$OMP& shared(gravxyzstore,potenstore)
+C$OMP& shared(Bxyz,dBxyz,Bextx,Bexty,Bextz,B2ext,divcurlB,Bevolxyz)
+C$OMP& shared(gravxyzstore,potenstore,varmhd,iupdated)
 C$OMP& private(n,ipart,stepsi)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(fxi,fyi,fzi,numneigh,hmin)
@@ -125,6 +127,7 @@ C$OMP& private(dsoftxi,dsoftyi,dsoftzi,vsigi,vsigj,alphaB)
 C$OMP& private(vsproji,vsprojj,termb,vs2i,vs2j,dB2,robar1,fmi)
 C$OMP& private(grkerni,grpmi,phii,dsofttermi,projdB,projbext)
 C$OMP& private(grkernj,grpmj,phij,dsofttermj,rhoij1,fmj,vsoundj)
+C$OMP& private(irealj)
 C$OMP& reduction(+:ioutmin,ioutsup,ioutinf)
 C$OMP& reduction(MIN:inmin,inminsy)
 C$OMP& reduction(MAX:inmax,inmaxsy)
@@ -255,7 +258,8 @@ c
          rhoi = trho(ipart)
          rho1i = 1./rhoi
          sqrtrho1i = SQRT(rho1i)
-         rho21i = rho1i*rho1i
+         rho21i = rho1i*rho1i         
+c--note that pressure term includes isotropic magnetic pressure         
          pro2i = (pr(ipart) - pext + 0.5*(B2i-B2ext))*rho21i
          vsoundi = vsound(ipart)
 
@@ -274,6 +278,58 @@ c
      &              xyzmh(3,j),vxyzu(1,j),vxyzu(2,j),vxyzu(3,j)
                WRITE(iprint,*) ipart,iorig(ipart),icall,xi,yi,zi
                CALL quit
+            ENDIF
+c
+c--Interpolate density, pressure, vsound and B of neighbour that is not 
+c    being evolved. This may have already been done in radiative 
+c    transfer routines (flag iupdated set if so).
+c
+            IF (.NOT.iscurrent(j) .AND. .NOT.iupdated(j)) THEN
+               iupdated(j) = .TRUE.
+C$OMP FLUSH(iupdated)
+               IF (j.LE.npart) THEN
+                  CALL extrapolate(j,dt,itime,trho,vxyzu,pr,vsound,
+     &                             ekcle,Bxyz,Bevolxyz)
+               ELSEIF (iupdated(ireal(j))) THEN
+                  iupdated(j) = .TRUE.
+C$OMP FLUSH(iupdated)
+                  irealj = ireal(j)
+                  trho(j) = trho(irealj)
+                  pr(j) = pr(irealj)
+                  vsound(j) = vsound(irealj)
+                  divv(j) = 0.
+                  IF (encal.EQ.'r' .AND. ibound.EQ.100)
+     &                ekcle(1,j) = ekcle(1,irealj)
+                  IF (imhd.EQ.idim) THEN
+                     IF (varmhd.EQ.'Brho') THEN
+                        Bxyz(1,j) = Bxyz(1,irealj)
+                        Bxyz(2,j) = Bxyz(2,irealj)
+                        Bxyz(3,j) = Bxyz(3,irealj)
+                     ENDIF
+                  ENDIF
+               ELSE
+                  irealj = ireal(j)
+                  iupdated(irealj) = .TRUE.
+                  iupdated(j) = .TRUE.
+C$OMP FLUSH(iupdated)
+                  CALL extrapolate(irealj,dt,itime,trho,vxyzu,pr,vsound,
+     &                             ekcle,Bxyz,Bevolxyz)
+                  
+                  trho(j) = trho(irealj)
+                  pr(j) = pr(irealj)
+                  vsound(j) = vsound(irealj)
+                  divv(j) = 0.
+                  IF (encal.EQ.'r' .AND. ibound.EQ.100)
+     &                ekcle(1,j) = ekcle(1,irealj)
+                  IF (imhd.EQ.idim) THEN
+                     IF (varmhd.EQ.'Brho') THEN
+                        Bxyz(1,j) = Bxyz(1,irealj)
+                        Bxyz(2,j) = Bxyz(2,irealj)
+                        Bxyz(3,j) = Bxyz(3,irealj)
+                     ENDIF
+                  ENDIF
+
+               ENDIF
             ENDIF
 c
 c--Gravity and potential energy
@@ -336,24 +392,6 @@ c
                gradpi = grpmi*pro2i
                pdvi = pdvi + grpmi*projv
 c
-c--Calculates grad of div velocity (straight, not times density)
-c
-               IF (ifsvi.EQ.6) THEN
-                  edotv = (dx*dvx + dy*dvy + dz*dvz)/rij
-                  termx = - grpmi/rhoj*(5.0*dx/rij*edotv - dvx)/rij
-                  termy = - grpmi/rhoj*(5.0*dy/rij*edotv - dvy)/rij
-                  termz = - grpmi/rhoj*(5.0*dz/rij*edotv - dvz)/rij
-                  ddvxi = ddvxi + termx
-                  ddvyi = ddvyi + termy
-                  ddvzi = ddvzi + termz
-c                    ddvscalar = (termx*dvx + termy*dvy + termz*dvz)/
-cc     &              SQRT(dvx**2 + dvy**2 + dvz**2)
-ccc               ddvscalar = ddvscalar+hi*projv*rij/(rij**2+epsil2*hi*hi)
-                 projddv=ddvxyz(1,ipart)*runix+ddvxyz(2,ipart)*runiy+
-     &                 ddvxyz(3,ipart)*runiz 
-             ddvscalar=ddvscalar+hi*projddv*rij/(rij**2+epsil2*hi*hi)
-               ENDIF
-c
 c--i contribution to force softening (including pseudo-pressure term)
 c
                IF (isoft.EQ.0) THEN
@@ -410,7 +448,7 @@ c              (note that kernel gradient is multiplied by gradhj)
 	       grkernj = (grwij(index)+ dgrwdx*dxx)*hj41*gradhs(1,j)
                grpmj = grkernj*pmassj
 c
-c--j contribution to pressure gradient
+c--j contribution to pressure gradient and isotropic mag force
 c
                poro2j = (pr(j) - pext + 0.5*(B2j-B2ext))*rho1j*rho1j
                gradpj = grpmj*poro2j
@@ -499,7 +537,7 @@ c--artificial resistivity
 c
 		  IF (j.LE.npart) THEN
                      alphaB = 1.0
-                     termB = alphaB*grpm*(vsbar + abs(projv))*robar1
+                     termB = alphaB*grpm*MAX(vsbar - projv,0.0)*robar1
 c                    dBxdissi = dBxdissi + termB*(dBx - runix*projdB)*robar1
 c                    dBydissi = dBydissi + termB*(dBy - runiy*projdB)*robar1
 c                    dBzdissi = dBzdissi + termB*(dBz - runiz*projdB)*robar1
@@ -607,19 +645,37 @@ c
             fxyzu(3,ipart) = fxyzu(3,ipart) - gradzi*cnormk
          ENDIF
 c
-c--Anisotropic magnetic force, time derivative of B/rho, div/curl B
+c--Anisotropic magnetic force, div/curl B
 c
          IF (imhd.EQ.idim) THEN
             fxyzu(1,ipart) = fxyzu(1,ipart) + fanisoxi*cnormk
             fxyzu(2,ipart) = fxyzu(2,ipart) + fanisoyi*cnormk
             fxyzu(3,ipart) = fxyzu(3,ipart) + fanisozi*cnormk
-            dBxyz(1,ipart) = cnormk*(dBxideali*rho21i + dBxdissi)
-            dBxyz(2,ipart) = cnormk*(dByideali*rho21i + dBydissi)
-            dBxyz(3,ipart) = cnormk*(dBzideali*rho21i + dBzdissi)
             divcurlB(1,ipart) = cnormk*divBi*rho1i
             divcurlB(2,ipart) = cnormk*curlBxi*rho1i
             divcurlB(3,ipart) = cnormk*curlByi*rho1i
             divcurlB(4,ipart) = cnormk*curlBzi*rho1i
+c
+c--time derivative of B/rho, B (constructed from B/rho and rho derivatives) 
+c  or the Euler potentials (zero)
+c
+            IF (varmhd(1:1).EQ.'B') THEN
+               dBxyz(1,ipart) = cnormk*(dBxideali*rho21i + dBxdissi)
+               dBxyz(2,ipart) = cnormk*(dByideali*rho21i + dBydissi)
+               dBxyz(3,ipart) = cnormk*(dBzideali*rho21i + dBzdissi)
+               IF (varmhd.EQ.'Bvol') THEN
+                  dBxyz(1,ipart) = rhoi*dBxyz(1,ipart) 
+     &                            + Bxyz(1,ipart)*rho1i*divv(ipart)
+                  dBxyz(2,ipart) = rhoi*dBxyz(2,ipart) 
+     &                            + Bxyz(2,ipart)*rho1i*divv(ipart)
+                  dBxyz(3,ipart) = rhoi*dBxyz(3,ipart) 
+     &                            + Bxyz(3,ipart)*rho1i*divv(ipart)
+               ENDIF
+            ELSE
+               dBxyz(1,ipart) = 0.
+               dBxyz(2,ipart) = 0.
+               dBxyz(3,ipart) = 0.
+            ENDIF
          ENDIF
 c
 c--Artificial viscosity
@@ -631,21 +687,15 @@ c
          ENDIF
          fxyzu(4,ipart) = pdvi
          dq(ipart) = dqi
-
+c
+c--Morris & Monaghan switch source and decay terms
+c
          IF (ifsvi.EQ.6) THEN
 cc         dha(2,ipart) = 0.2*vsoundi*(alphamin-alphaMMpass(ipart))/hi-
 cc     &           MIN(divv(ipart)/rhoi+0.5*vsoundi/hi,0.0)
-c          dha(2,ipart) = 0.2*vsoundi*(alphamin-alphaMMpass(ipart))/hi-
-c     &           MIN(divv(ipart)/rhoi,0.0)
-           dha(2,ipart) = 0.05*vsoundi*(alphamin-alphaMMpass(ipart))/hi
-            ddv(ipart) = cnormk*SQRT(ddvxi**2 + ddvyi**2 + ddvzi**2)
-            ddv(ipart) = ddvscalar
-        IF (divv(ipart).LT.0.0.AND.hi*ddv(ipart).LT.
-     &           -2.0*vsoundi/hi) THEN
-               dha(2,ipart) = dha(2,ipart) - 
-     &                  2.0*(hi*ddv(ipart)+2.0*vsoundi/hi)
-c     &              1.0*SQRT(ABS(hi*ddv(ipart)*divv(ipart))
-            ENDIF
+          dha(2,ipart) = 0.2*vsoundi*(alphamin-alphaMMpass(ipart))/hi-
+     &           MIN(divv(ipart)/rhoi,0.0)
+cc           dha(2,ipart) = 0.05*vsoundi*(alphamin-alphaMMpass(ipart))/hi
          ENDIF
 c
 c--Damp velocities if appropiate
@@ -707,4 +757,61 @@ c
  255  FORMAT(' exit subroutine forcei')
 
       RETURN
+      END
+
+
+      SUBROUTINE extrapolate(j,dt,itime,trho,vxyzu,pr,vsound,ekcle,
+     &                       Bxyz,Bevolxyz)
+c************************************************************
+c                                                           *
+c  This subroutine extrapolates the density and quantities  *
+c  which depend on the density for non-active particles     *
+c                                                           *
+c************************************************************
+      INCLUDE 'idim'
+      
+      INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/densi'
+      INCLUDE 'COMMONS/divve'
+      INCLUDE 'COMMONS/timei'
+      
+      DIMENSION vxyzu(4,idim)
+      REAL*4 trho(idim), pr(idim), vsound(idim)
+      DIMENSION ekcle(5,iradtrans)
+      DIMENSION Bxyz(3,imhd)
+      DIMENSION Bevolxyz(3,imhd)
+      
+      IF (it1(j).EQ.imax) THEN
+         deltat = dt*(itime - it0(j) - isteps(j)/2)/imaxstep
+      ELSE
+         deltat = dt*(itime - it0(j))/imaxstep
+      ENDIF
+c
+c--Update the density value at neighbor's locations
+c--Avoid, though, abrupt changes in density
+c
+      deltarho = -deltat*divv(j)
+      IF (ABS(deltarho).GT.rho(j)/2.) THEN
+         deltarho = SIGN(1.0,deltarho)*rho(j)/2.0
+      ENDIF
+C$OMP CRITICAL (dumrhoj)
+      trhoj = rho(j) + deltarho
+      CALL eospg(j, vxyzu, trho, pr, vsound, ekcle)
+      
+      IF (imhd.EQ.idim) THEN
+c
+c--use interpolated density to update B from B/rho if necessary
+c  (NB the equivalent is not done for the Euler potentials as this
+c   would involve too much work - so they are slightly wrong but
+c   hopefully not much)
+c
+         IF (varmhd.EQ.'Brho') THEN
+            Bxyz(1,j) = Bevolxyz(1,j)*trho(j)
+            Bxyz(2,j) = Bevolxyz(2,j)*trho(j)
+            Bxyz(3,j) = Bevolxyz(3,j)*trho(j)
+         ENDIF
+      ENDIF
+C$OMP END CRITICAL (dumrhoj)
+      RETURN
+      
       END

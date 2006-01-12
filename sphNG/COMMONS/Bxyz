@@ -1,0 +1,6 @@
+c
+c     this is the actual magnetic field (flux per unit volume)
+c     stored here after calculation in derivi so that it can
+c     be dumped.
+c
+      COMMON /Bxyzvar/      Bxyz(3,imhd)

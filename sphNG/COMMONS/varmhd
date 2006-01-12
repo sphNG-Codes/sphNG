@@ -1,0 +1,2 @@
+      CHARACTER*4 varmhd
+      COMMON /varmhd / varmhd

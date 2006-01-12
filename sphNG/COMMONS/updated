@@ -1,0 +1,3 @@
+      LOGICAL*1 iupdated
+
+      COMMON /updated/ iupdated(idim)

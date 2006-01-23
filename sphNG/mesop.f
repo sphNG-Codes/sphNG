@@ -402,7 +402,7 @@ c
                   ENDIF
                   nlstbins(ibin) = nlstbins(ibin) + 1
                   listbins(nlstbins(ibin),ibin) = j
-                  IF (it1(j).NE.0) THEN
+                  IF (integrator.EQ.0) THEN
                      IF (it1bin(ibin).NE.it1(j)) THEN
                         WRITE (*,*) 'ERROR - it1bin mes'
                         CALL quit

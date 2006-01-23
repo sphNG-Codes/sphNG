@@ -34,6 +34,7 @@ c************************************************************
       INCLUDE 'COMMONS/timei'
       INCLUDE 'COMMONS/timeextra'
       INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/Bxyz'
 c
 c--Allow for tracing flow
 c
@@ -114,7 +115,7 @@ c      neimax = 120
       imaxstep = imax/2
 
       CALL densityiterate_gradh(dt,npart,ntot,dumxyzmh,vxyzu,
-     &     nlst_in,nlst_end,llist,itime,ekcle)
+     &     nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz)
 
       WRITE(*,*) ' Got neighbours from tree'
 c
@@ -135,7 +136,6 @@ c
       ENDIF
 c
 c--Call derivi to get div B, curl B etc initially
-c  also to get B from Euler potentials
 c
       CALL derivi(dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,ntot,
      &            ireal,alphaMM,ekcle,Bevolxyz,f1Bxyz)

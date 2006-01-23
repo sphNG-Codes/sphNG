@@ -129,12 +129,13 @@ c
 c
 c--Find self-consistent density and smoothing length for all the particles
 c     in the list.  Only calculate density etc for non-sinks.
+c     for Euler potentials, this also means get B from grad alpha x grad beta
 c
       IF (nlst_end.GT.nptmass) THEN
          IF (itiming) CALL getused(tdens1)
 
          CALL densityiterate_gradh(dt,npart,ntot,xyzmh,vxyzu,
-     &        nlst_in,nlst_end,llist,itime,ekcle)
+     &        nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz)
 
          IF (itiming) THEN
             CALL getused(tdens2)
@@ -189,9 +190,7 @@ c
                Bxyz(2,ipart) = Bevolxyz(2,ipart)*dumrho(ipart)
                Bxyz(3,ipart) = Bevolxyz(3,ipart)*dumrho(ipart)
             ENDDO
-         ELSEIF (varmhd.EQ.'Eulr') THEN
-            STOP 'Euler potentials not implemented'
-         ELSE
+         ELSEIF (varmhd.NE.'eulr') THEN
             STOP 'unknown MHD variable in derivi'
          ENDIF
       ENDIF

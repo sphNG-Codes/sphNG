@@ -1,5 +1,5 @@
       SUBROUTINE densityiterate_gradh (dt,npart,ntot,xyzmh,vxyzu,
-     &            nlst_in,nlst_end,list,itime,ekcle)
+     &            nlst_in,nlst_end,list,itime,ekcle,Beuler,Bxyz)
 c************************************************************
 c                                                           *
 c  Subroutine to compute the density and smoothing lengths  *
@@ -21,6 +21,7 @@ c************************************************************
 
       DIMENSION xyzmh(5,idim), vxyzu(4,idim), list(idim)
       DIMENSION ekcle(5,iradtrans)
+      DIMENSION Beuler(3,imhd),Bxyz(3,imhd)
 
 c--Neides=INT(4./3.*pi*8.*hfact**3))
       PARAMETER (hfact = 1.2)
@@ -61,6 +62,7 @@ c--Neides=INT(4./3.*pi*8.*hfact**3))
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/outneigh'
+      INCLUDE 'COMMONS/varmhd'
 
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
 99001 FORMAT ('entry subroutine densityiterate')
@@ -83,6 +85,7 @@ C$OMP& shared(listpm,iphase,dphidh,uradconst,icall,encal)
 C$OMP& shared(iprint,nptmass,iptmass,radcrit2,iorig,third)
 C$OMP& shared(dumrho,iscurrent,npart)
 C$OMP& shared(isteps,it0,it1,imax,imaxstep,dt,itime)
+C$OMP& shared(varmhd,Beuler,Bxyz)
 C$OMP& private(n,ipart,j,k,xi,yi,zi,vxi,vyi,vzi,pmassi,hi,hj,rhoi)
 C$OMP& private(divvi,curlvxi,curlvyi,curlvzi,gradhi,gradsofti)
 C$OMP& private(pmassj,hi_old,hi1,hi21,hi31,hi41,hneigh)
@@ -92,6 +95,8 @@ C$OMP& private(projv,procurlvx,procurlvy,procurlvz)
 C$OMP& private(l,iptcur,dphi,dwdhi,dpotdh,iteration,numneighi)
 C$OMP& private(numneighreal,rhohi,dhdrhoi,omegai,func,dfdh1)
 C$OMP& private(hnew,deltat,deltarho)
+C$OMP& private(gradalphaxi,gradalphayi,gradalphazi)
+C$OMP& private(gradbetaxi,gradbetayi,gradbetazi,rho21i,term)
 C$OMP& reduction(MAX:rhonext,imaxit)
 C$OMP& reduction(+:inumit,inumfixed,inumrecalc)
       DO n = nlst_in, nlst_end
@@ -261,11 +266,23 @@ c
          curlvyi = 0.
          curlvzi = 0.
          gradsofti = 0.
+	 gradalphaxi= 0.
+         gradalphayi= 0.
+         gradalphazi= 0.
+         gradbetaxi= 0.
+         gradbetayi= 0.
+         gradbetazi= 0.
 
          vxi = vxyzu(1,ipart)
          vyi = vxyzu(2,ipart)
          vzi = vxyzu(3,ipart)
-
+         IF (imhd.EQ.idim) THEN
+            IF (varmhd.EQ.'eulr') THEN
+               alphai= Beuler(1,ipart)
+	       betai= Beuler(2,ipart)
+            ENDIF
+         ENDIF
+         
          DO k = 1, numneighi
             j = neighlist(k)
 
@@ -317,7 +334,28 @@ c
 c--Derivative of gravitational potential w.r.t. h
 c
                gradsofti = gradsofti - pmassj*dphi
+c
+c--get B from the evolved Euler potentials
+c
+c
+c--grad alpha and grad beta (Euler potentials)
+c
+               IF (imhd.EQ.idim) THEN
+                  IF (varmhd.EQ.'eulr') THEN
+                     dalpha= alphai - Beuler(1,j)
+                     dbeta= betai - Beuler(2,j)
 
+                     grpmi= pmassj*grwtij
+
+                     gradalphaxi= gradalphaxi - grpmi*dalpha*dx
+                     gradalphayi= gradalphayi - grpmi*dalpha*dy
+                     gradalphazi= gradalphazi - grpmi*dalpha*dz
+
+                     gradbetaxi= gradbetaxi - grpmi*dbeta*dx
+                     gradbetayi= gradbetayi - grpmi*dbeta*dy
+                     gradbetazi= gradbetazi - grpmi*dbeta*dz               
+                  ENDIF
+               ENDIF
             ENDIF
          END DO
 c
@@ -343,7 +381,23 @@ c
             END DO
             rhonext = MAX(rhonext, rho(ipart))
          ENDIF
-
+c
+c--calculate B from the evolved Euler potentials
+c
+         IF (imhd.EQ.idim) THEN
+            IF (varmhd.EQ.'eulr') THEN
+c
+c--grad alpha cross grad beta
+c
+               rho21i= (cnormk*gradhs(1,ipart)/rhoi)**2
+	       term= gradalphayi*gradbetazi - gradalphazi*gradbetayi
+	       Bxyz(1,ipart)= term*rho21i
+               term= gradalphazi*gradbetaxi - gradalphaxi*gradbetazi
+               Bxyz(2,ipart)= term*rho21i
+	       term= gradalphaxi*gradbetayi - gradalphayi*gradbetaxi
+               Bxyz(3,ipart)= term*rho21i
+            ENDIF
+         ENDIF
  50   CONTINUE
       END DO
 C$OMP END PARALLEL DO

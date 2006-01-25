@@ -102,12 +102,19 @@ c
             alph = tterm / ABS(tgrav)
             betl = trotz / ABS(tgrav)
             betr = trotx / ABS(tgrav)
+            rmag2grav = tmag / ABS(tgrav)
             ajeans = 1 / alph
          ELSE
             alph = 0.
             betl = 0.
             betr = 0.
             ajeans = 0.
+            rmag2grav = 0.
+         ENDIF
+         IF (ABS(tterm).GT.tiny) THEN
+            rmag2therm = tmag / ABS(tterm)
+         ELSE
+            rmag2therm = 0.
          ENDIF
          WRITE (iprint, 88001, ERR=100) alph, betl, betr, ajeans
 88001    FORMAT (' evolutionary energy parmeters : ', /,
@@ -115,6 +122,11 @@ c
      &           '       (z)       beta parallel : ', 1PE14.5, /,
      &           '       (x)       beta perpend  : ', 1PE14.5, /,
      &           '                 Jeans number  : ', 1PE14.5)
+         IF (imhd.EQ.idim) THEN
+            WRITE(iprint,89001,ERR=100) rmag2grav,rmag2therm
+89001       FORMAT ('         magnetic/grav energy  : ', 1PE14.5, /,
+     &              '             magnetic/thermal  : ', 1PE14.5)
+         ENDIF
 c
 c--Escapors
 c

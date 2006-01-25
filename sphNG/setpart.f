@@ -991,7 +991,7 @@ c--Velocity Distribution
 c
  765  WRITE(*, 99049)
 99049 FORMAT (' Coords for velocity variations: Cartesian    (1)', /,
-     &        '                                 Cylinderical (2)', /,
+     &        '                                 Cylindrical  (2)', /,
      &        '                                 Spherical    (3)')
       READ (*,*) icoord
       IF ((icoord.LT.1) .OR. (icoord.GT.3)) GOTO 765

@@ -16,7 +16,7 @@ main()
     while (getline(line,sizeof(line))>0) {
        if (sscanf(line, "             density    :%le time        :%le", &udens,&utime)==2)
           ;
-       else if (sscanf(line, "             ang. mom.  :%le mag field   :%le", &uang, &umagfd)==2)
+       else if (sscanf(line, " ang. mom. :%le mag field :%le", &uang, &umagfd)==2)
           ;
        else if (sscanf(line, " TIME  :%le", &time)==1)
           printf("\n%16.9e ",time);
@@ -57,7 +57,7 @@ main()
           printf("%e ",Jmean);}
        else if (sscanf(line, "  divB*h/B max : %le", &divBhmax)==1)
           printf("%e ",divBhmax);
-       else if (sscanf(line, " total magnetic flux  (int B dV)   :%le",&fluxtot)==1)
+       else if (sscanf(line, " total magnetic flux  (int nabla.B dV)   :%le",&fluxtot)==1)
           printf("%e ",fluxtot);
        else if (sscanf(line, " total cross helicity (int v.B dV) :%le",&crosshel)==1)
           printf("%e ",crosshel);  	  

@@ -26,8 +26,10 @@ c************************************************************
 
 c
 c--REVISE ENTIRE TREE (STANDARD REVTREE)
+c  (AT PRESENT WE ALWAYS DO THIS FOR THE GRAD H VERSION (nlmax=1))
 c
-      IF (nlst.GT.nnatom/5000 .OR. (.NOT. ipartialrevtree)) THEN
+      IF (nlst.GT.nnatom/5000 .OR. (.NOT. ipartialrevtree) 
+     &    .OR. nlmax.EQ.1) THEN
 
       IF (itiming) CALL getused(revtreeptemp1)
 

@@ -6,9 +6,9 @@
 double
 time,timeff,mean_density,max_density,cen_density,total,ke,pot,
 internal,mag,ang,jean,utime,udens,uang,umagfd,alpha,beta,maxtot,
-mintot,lin,divBmax,divBhmax,fdotBmax,max_beta,min_beta,mean_beta,fluxtot,crosshel,
-min_b,mean_b,max_b;
-char line[80];
+mintot,lin,divBmax,divBmean,Jmax,Jmean,divBhmax,max_beta,min_beta,
+mean_beta,fluxtot,crosshel,min_b,mean_b,max_b;
+char line[120];
 
 main()
  {  mintot = 1.0E+33;
@@ -49,10 +49,12 @@ main()
           printf("%e ",min_beta);
           printf("%e ",max_beta);
           printf("%e ",mean_beta);}
-       else if (sscanf(line, "  div B max : %le", &divBmax)==1)
+       else if (sscanf(line, "  div B max : %le mean: %le", &divBmax, &divBmean)==2) {
           printf("%e ",divBmax);
-       else if (sscanf(line, "  Fmag dot B max : %le", &fdotBmax)==1)
-          printf("%e ",fdotBmax);
+          printf("%e ",divBmean);}          
+       else if (sscanf(line, "  curl B max : %le mean: %le", &Jmax, &Jmean)==2) {
+          printf("%e ",Jmax);
+          printf("%e ",Jmean);}
        else if (sscanf(line, "  divB*h/B max : %le", &divBhmax)==1)
           printf("%e ",divBhmax);
        else if (sscanf(line, " total magnetic flux  (int B dV)   :%le",&fluxtot)==1)
@@ -64,14 +66,10 @@ main()
           printf("%e %e ",mean_density,mean_density*udens);
           printf("%e %e ",max_density,max_density*udens);
           printf("%e %e ",cen_density,cen_density*udens);}
-       else if (sscanf(line, " density mean :%le max:%le",
-            &mean_density, &max_density)==2) {
-          printf("%e %e ",mean_density,mean_density*udens);
-          printf("%e %e ",max_density,max_density*udens);}
        else if (sscanf(line, " mag field   min :%le mean :%le max: %le", &min_b, &mean_b, &max_b)==3) {
-          printf("%e ",min_b*umagfd);
-          printf("%e ",mean_b*umagfd);
-          printf("%e ",max_b*umagfd);};
+          printf("%e %e ",min_b,min_b*umagfd);
+          printf("%e %e ",mean_b,mean_b*umagfd);
+          printf("%e %e ",max_b,max_b*umagfd);};
      };
     printf("\n %e \n",mintot-maxtot);
  };

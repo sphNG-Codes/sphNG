@@ -43,6 +43,7 @@ c************************************************************
       INCLUDE 'COMMONS/useles'
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/varmhd'
 
       REAL*8 angmom
 
@@ -268,8 +269,20 @@ c
 c--Magnetic field details
 c
          IF (imhd.EQ.idim) THEN
-            WRITE(iprint,99213)
-99213       FORMAT(' Magnetic fields are ON',//)
+            IF (varmhd.EQ.'Brho') THEN
+               WRITE(iprint,99213)
+            ELSEIF (varmhd.EQ.'Bvol') THEN
+               WRITE(iprint,99214)            
+            ELSEIF (varmhd.EQ.'eulr') THEN
+               WRITE(iprint,99215)
+            ELSE
+               WRITE(iprint,99216)
+            ENDIF
+99213       FORMAT(' Magnetic fields are ON, evolving B/rho',//)
+99214       FORMAT(' Magnetic fields are ON, evolving B',//)
+99215       FORMAT(' Magnetic fields are ON, using Euler potentials',//)
+99216       FORMAT(' WARNING: Magnetic fields are ON',
+     &             ', but unknown variable',//)
          ENDIF
 c
 c--Print out massive point mass details

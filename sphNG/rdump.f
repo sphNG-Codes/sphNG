@@ -37,6 +37,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/gradhterms'
       INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/presb'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -87,8 +88,8 @@ c--Single values
 c
 c--Default int
       READ (idisk1, END=100) number
-      IF (number.NE.6) THEN
-         WRITE (*,*) 'ERROR 4 in rdump'
+      IF (number.LT.6) THEN
+         WRITE (*,*) 'ERROR 4 in rdump: not enough default ints'
          CALL quit
       ENDIF
       READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill
@@ -98,13 +99,26 @@ c--int*1, int*2, int*4, int*8
       END DO
 c--Default real
       READ (idisk1, END=100) number
-      IF (number.NE.14) THEN
-         WRITE (*,*) 'ERROR 5 in rdump'
+      IF (number.LT.14) THEN
+         WRITE (*,*) 'ERROR 5 in rdump: not enough default reals'
          CALL quit
       ENDIF
-      READ (idisk1, END=100) gt, dtmaxdp, gamma, rhozero, RK2,
-     &     escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
-     &     specang, ptmassin
+      IF (imhd.EQ.idim .AND. number.GE.18) THEN
+         READ (idisk1, END=100) gt, dtmaxdp, gamma, rhozero, RK2,
+     &        escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
+     &        specang, ptmassin, tmag, Bextx, Bexty, Bextz
+      ELSE
+         IF (imhd.EQ.idim) THEN
+            WRITE(*,*) 'WARNING: dump does not contain external field'
+            WRITE(*,*) '         (setting to zero)'
+            Bextx = 0.
+            Bexty = 0.
+            Bextz = 0.
+         ENDIF
+         READ (idisk1, END=100) gt, dtmaxdp, gamma, rhozero, RK2,
+     &        escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
+     &        specang, ptmassin
+      ENDIF
 c--real*4
       READ (idisk1, END=100) number
 c--real*8
@@ -313,20 +327,30 @@ c
                WRITE(*,*) '       from non-Euler potentials dump'
                CALL quit
             ENDIF
-         ENDIF
+         ELSEIF (varmhd.EQ.'Brho') THEN
 c
 c--convert from B to B/rho for evolution
 c
-         IF (varmhd.EQ.'Brho') THEN
             DO i=1,npart
                IF (rho(i).LE.0.) THEN
-                  WRITE(*,*) 'ERROR: rho -ve in rdump, evolving B/rho'
+                  WRITE(*,*) 'ERROR: rho <= 0 in rdump, evolving B/rho'
                   CALL quit
                ENDIF
                DO j = 1,3
                   Bevolxyz(j,i) = Bxyz(j,i)/rho(i)
                ENDDO
             ENDDO
+         ELSEIF (varmhd.EQ.'Bvol') THEN
+c
+c--Bevol = B if evolving B
+c
+            DO i=1,npart
+               DO j = 1,3
+                  Bevolxyz(j,i) = Bxyz(j,i)
+               ENDDO
+            ENDDO
+         ELSE
+            STOP 'unknown MHD variable in rdump'
          ENDIF
 c--real*4
 

@@ -46,6 +46,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/gradhterms'
       INCLUDE 'COMMONS/Bxyz'
       INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/presb'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -94,11 +95,11 @@ c--int*1, int*2, int*4, int*8
          WRITE (idisk1, ERR=100) number
       END DO
 c--Default real
-      number = 14
+      number = 18
       WRITE (idisk1, ERR=100) number
       WRITE (idisk1, ERR=100) gt, dtmax, gamma, rhozero, RK2,
      &     escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
-     &     specang, ptmassin
+     &     specang, ptmassin, tmag, Bextx, Bexty, Bextz
 c--real*4
       number = 0
       WRITE (idisk1, ERR=100) number

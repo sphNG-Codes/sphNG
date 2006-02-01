@@ -58,6 +58,7 @@ c************************************************************
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/updated'
       INCLUDE 'COMMONS/ghost'
+      INCLUDE 'COMMONS/vsmooth'
 
       CHARACTER*7 where
 
@@ -77,9 +78,17 @@ c
          CALL quit
       ENDIF
 
-      IF (imhd.EQ.idim .AND. ibound.EQ.7) THEN
+      IF (imhd.EQ.idim.AND. ibound.EQ.7) THEN
+c--external magnetic pressure boundaries -- use dummy variables 
+c  as can still have external fields even if ibound.ne.7
+         Bextxi = Bextx
+         Bextyi = Bexty
+         Bextzi = Bextz
          B2ext = Bextx**2 + Bexty**2 + Bextz**2
       ELSE
+         Bextxi = 0.
+         Bextyi = 0.
+         Bextzi = 0.
          B2ext = 0.
       ENDIF
 c
@@ -99,7 +108,7 @@ C$OMP& shared(alphaMMpass,alphamin)
 C$OMP& shared(igrp,igphi,ifsvi,iexf)
 C$OMP& shared(ifcor,iexpan,iener,damp)
 C$OMP& shared(realtime,ekcle,encal,dedxyz,acc)
-C$OMP& shared(Bxyz,dBxyz,Bextx,Bexty,Bextz,B2ext,divcurlB,Bevolxyz)
+C$OMP& shared(Bxyz,dBxyz,Bextxi,Bextyi,Bextzi,B2ext,divcurlB,Bevolxyz)
 C$OMP& shared(gravxyzstore,potenstore,varmhd,iupdated)
 C$OMP& private(n,ipart,stepsi)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
@@ -260,7 +269,8 @@ c
          sqrtrho1i = SQRT(rho1i)
          rho21i = rho1i*rho1i         
 c--note that pressure term includes isotropic magnetic pressure         
-         pro2i = (pr(ipart) - pext + 0.5*(B2i-B2ext))*rho21i
+         pro2i = (pr(ipart) - pext)*rho21i
+c         pro2i = (pr(ipart) - pext + 0.5*(B2i-B2ext))*rho21i
          vsoundi = vsound(ipart)
 
          stepsi = dt*isteps(ipart)/imaxstep
@@ -417,6 +427,12 @@ c
 	          dBxideali = dBxideali - grpmi*dvx*projBi
 	          dByideali = dByideali - grpmi*dvy*projBi
 	          dBzideali = dBzideali - grpmi*dvz*projBi
+c	          dBxideali = dBxideali 
+c     &                - grpmi*(vsmooth(1,ipart)-vsmooth(1,j))*projBi
+c	          dByideali = dByideali
+c     &                - grpmi*(vsmooth(2,ipart)-vsmooth(2,j))*projBi
+c	          dBzideali = dBzideali
+c     &                - grpmi*(vsmooth(3,ipart)-vsmooth(3,j))*projBi
 c		  
 c--compute divB
 c
@@ -450,7 +466,8 @@ c              (note that kernel gradient is multiplied by gradhj)
 c
 c--j contribution to pressure gradient and isotropic mag force
 c
-               poro2j = (pr(j) - pext + 0.5*(B2j-B2ext))*rho1j*rho1j
+               poro2j = (pr(j) - pext)*rho1j*rho1j
+c               poro2j = (pr(j) - pext + 0.5*(B2j-B2ext))*rho1j*rho1j
                gradpj = grpmj*poro2j
 c
 c--j contribution to force softening (including pseudo-pressure term)
@@ -509,16 +526,16 @@ c
 c--anisotropic magnetic force (Morris formalism)
 c
                   rhoij1 = rho1i*rho1j
-                  projBext = Bextx*runix + Bexty*runiy + Bextz*runiz
+                  projBext = Bextxi*runix + Bextyi*runiy + Bextzi*runiz
 		  fanisoxi = fanisoxi
-     &                     + grpm*((Bxj-Bextx)*(projBj-projBext)
-     &                           - (Bxi-Bextx)*(projBi-projBext))*rhoij1
+     &                   + grpm*((Bxj-Bextxi)*(projBj-projBext)
+     &                         - (Bxi-Bextxi)*(projBi-projBext))*rhoij1
 		  fanisoyi = fanisoyi 
-     &                     + grpm*((Byj-Bexty)*(projBj-projBext)
-     &                           - (Byi-Bexty)*(projBi-projBext))*rhoij1
+     &                   + grpm*((Byj-Bextyi)*(projBj-projBext)
+     &                         - (Byi-Bextyi)*(projBi-projBext))*rhoij1
 		  fanisozi = fanisozi
-     &                     + grpm*((Bzj-Bextz)*(projBj-projBext)
-     &                           - (Bzi-Bextz)*(projBi-projBext))*rhoij1
+     &                   + grpm*((Bzj-Bextzi)*(projBj-projBext)
+     &                         - (Bzi-Bextzi)*(projBi-projBext))*rhoij1
 c
 c--signal velocity (MHD)
 c
@@ -648,9 +665,9 @@ c
 c--Anisotropic magnetic force, div/curl B
 c
          IF (imhd.EQ.idim) THEN
-            fxyzu(1,ipart) = fxyzu(1,ipart) + fanisoxi*cnormk
-            fxyzu(2,ipart) = fxyzu(2,ipart) + fanisoyi*cnormk
-            fxyzu(3,ipart) = fxyzu(3,ipart) + fanisozi*cnormk
+c            fxyzu(1,ipart) = fxyzu(1,ipart) + fanisoxi*cnormk
+c            fxyzu(2,ipart) = fxyzu(2,ipart) + fanisoyi*cnormk
+c            fxyzu(3,ipart) = fxyzu(3,ipart) + fanisozi*cnormk
             divcurlB(1,ipart) = cnormk*divBi*rho1i
             divcurlB(2,ipart) = cnormk*curlBxi*rho1i
             divcurlB(3,ipart) = cnormk*curlByi*rho1i

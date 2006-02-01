@@ -30,6 +30,8 @@ c--Neides=INT(4./3.*pi*8.*hfact**3))
       PARAMETER (htol = 1.e-3)
       PARAMETER (hstretch = 1.01)
       PARAMETER (maxiterations = 500)
+c--this weight is equivalent to m/(rho*h^3) in the grad h version
+      PARAMETER (weight = 1./hfact**3)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -63,6 +65,7 @@ c--Neides=INT(4./3.*pi*8.*hfact**3))
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/outneigh'
       INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/vsmooth'
 
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
 99001 FORMAT ('entry subroutine densityiterate')
@@ -85,7 +88,7 @@ C$OMP& shared(listpm,iphase,dphidh,uradconst,icall,encal)
 C$OMP& shared(iprint,nptmass,iptmass,radcrit2,iorig,third)
 C$OMP& shared(dumrho,iscurrent,npart)
 C$OMP& shared(isteps,it0,it1,imax,imaxstep,dt,itime)
-C$OMP& shared(varmhd,Beuler,Bxyz)
+C$OMP& shared(varmhd,Beuler,Bxyz,vsmooth)
 C$OMP& private(n,ipart,j,k,xi,yi,zi,vxi,vyi,vzi,pmassi,hi,hj,rhoi)
 C$OMP& private(divvi,curlvxi,curlvyi,curlvzi,gradhi,gradsofti)
 C$OMP& private(pmassj,hi_old,hi1,hi21,hi31,hi41,hneigh)
@@ -97,6 +100,7 @@ C$OMP& private(numneighreal,rhohi,dhdrhoi,omegai,func,dfdh1)
 C$OMP& private(hnew,deltat,deltarho)
 C$OMP& private(gradalphaxi,gradalphayi,gradalphazi)
 C$OMP& private(gradbetaxi,gradbetayi,gradbetazi,rho21i,term)
+C$OMP& private(vbarxi,vbaryi,vbarzi)
 C$OMP& reduction(MAX:rhonext,imaxit)
 C$OMP& reduction(+:inumit,inumfixed,inumrecalc)
       DO n = nlst_in, nlst_end
@@ -272,6 +276,9 @@ c
          gradbetaxi= 0.
          gradbetayi= 0.
          gradbetazi= 0.
+         vbarxi = 0.
+         vbaryi = 0.
+         vbarzi = 0.
 
          vxi = vxyzu(1,ipart)
          vyi = vxyzu(2,ipart)
@@ -310,7 +317,8 @@ c
                   index1 = itable
                ENDIF
                dwdx = (wij(index1) - wij(index))/dvtable
-               wtij = (wij(index) + dwdx*dxx)*hi31
+               wkern = (wij(index) + dwdx*dxx)
+               wtij = wkern*hi31
                dgrwdx = (grwij(index1) - grwij(index))/dvtable
                grwtij = (grwij(index) + dgrwdx*dxx)*hi41/rij1
                dpotdh = (dphidh(index1) - dphidh(index))/dvtable
@@ -354,6 +362,13 @@ c
                      gradbetaxi= gradbetaxi - grpmi*dbeta*dx
                      gradbetayi= gradbetayi - grpmi*dbeta*dy
                      gradbetazi= gradbetazi - grpmi*dbeta*dz               
+                  ELSE
+c
+c--smoothed velocity for use in the B or B/rho evolution
+c
+                     vbarxi = vbarxi + weight*vxyzu(1,j)*wkern
+                     vbaryi = vbaryi + weight*vxyzu(2,j)*wkern
+                     vbarzi = vbarzi + weight*vxyzu(3,j)*wkern
                   ENDIF
                ENDIF
             ENDIF
@@ -396,6 +411,18 @@ c
                Bxyz(2,ipart)= term*rho21i
 	       term= gradalphaxi*gradbetayi - gradalphayi*gradbetaxi
                Bxyz(3,ipart)= term*rho21i
+            ELSE
+c
+c--add self contribution and store smoothed velocity
+c
+               vsmooth(1,ipart) = cnormk*(vbarxi 
+     &                                  + weight*vxyzu(1,ipart)*wij(0))
+               vsmooth(2,ipart) = cnormk*(vbaryi
+     &                                  + weight*vxyzu(2,ipart)*wij(0))
+               vsmooth(3,ipart) = cnormk*(vbarzi
+     &                                  + weight*vxyzu(3,ipart)*wij(0))
+c               print*,ipart,'v       = ',vxyzu(1:3,ipart)
+c               print*,ipart,'vsmooth = ',vsmooth(:,ipart)
             ENDIF
          ENDIF
  50   CONTINUE

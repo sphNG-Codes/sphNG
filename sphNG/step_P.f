@@ -532,7 +532,7 @@ c
       IF (itbinupdate.GE.nbinmax-1 .OR. (.NOT. ipartialrevtree)) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,ekcle)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& private(j,k,deltat)
@@ -561,7 +561,7 @@ C$OMP& private(j,k,deltat)
      &           deltat*f1ha(2,j))
             IF (imhd.EQ.idim) THEN
                DO k = 1, 3
-                  dumBevolxyz(k,j) = Bevolxyz(k,j)
+                  dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
                END DO
             ENDIF
          ENDIF
@@ -574,7 +574,7 @@ C$OMP END PARALLEL DO
             DO i = 1, itbinupdate
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,ekcle)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& private(j,k,ipart,deltat)
@@ -604,7 +604,8 @@ C$OMP& private(j,k,ipart,deltat)
      &               alphaMM(ipart)+deltat*f1ha(2,ipart))
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, 3
-                           dumBevolxyz(k,ipart) = Bevolxyz(k,ipart)
+                           dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) 
+     &                                          + deltat*f1Bxyz(k,ipart)
                         END DO
                      ENDIF
                   ENDIF
@@ -638,7 +639,7 @@ C$OMP END PARALLEL DO
       IF (nghost.GT.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,ekcle)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& private(j,k,l,deltat)
@@ -667,7 +668,7 @@ C$OMP& private(j,k,l,deltat)
      &                                    deltat*f1ha(2,k))
             IF (imhd.EQ.idim) THEN
                DO l = 1, 3
-                  dumBevolxyz(l,j) = Bevolxyz(l,j)
+                  dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,j)
                END DO
             ENDIF
          ENDIF
@@ -829,7 +830,7 @@ c      ENDIF
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst0,llist,iscurrent,dt,isteps,imaxstep,f21,f22)
 C$OMP& shared(xyzmh,vxyzu,dum2vxyz)
-C$OMP& shared(f1vxyzu,f1ha,f2vxyzu,f2ha)
+C$OMP& shared(f1vxyzu,f1ha,f2vxyzu,f2ha,f2Bxyz)
 C$OMP& shared(gravx,gravy,gradpx,gradpy,artvix,artviy,gravx1,gravy1)
 C$OMP& shared(gradpx1,gradpy1,artvix1,artviy1,torqt,torqg,torqp)
 C$OMP& shared(torqv,torqc,it0,itime,imaxdens,cnormk,iener)
@@ -972,11 +973,11 @@ c-MHD
 c
             IF (imhd.EQ.idim) THEN
                Bevolxyz(1,i) = Bevolxyz(1,i)
-c     &              + dtf21*f1vxyzu(1,i) + dtf22*f2vxyzu(1,i)
+     &              + dtf21*f1Bxyz(1,i) + dtf22*f2Bxyz(1,i)
                Bevolxyz(2,i) = Bevolxyz(2,i)
-c     &              + dtf21*f1vxyzu(2,i) + dtf22*f2vxyzu(2,i)
+     &              + dtf21*f1Bxyz(2,i) + dtf22*f2Bxyz(2,i)
                Bevolxyz(3,i) = Bevolxyz(3,i)
-c     &              + dtf21*f1vxyzu(3,i) + dtf22*f2vxyzu(3,i)
+     &              + dtf21*f1Bxyz(3,i) + dtf22*f2Bxyz(3,i)
             ENDIF
 c
 c--Synchronize the advanced particle times with current time
@@ -1154,7 +1155,7 @@ c
       IF (itbinupdate.GE.nbinmax-1 .OR. (.NOT. ipartialrevtree)) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,deltat)
@@ -1182,7 +1183,7 @@ C$OMP& private(j,k,deltat)
      &           deltat*f1ha(2,j))
             IF (imhd.EQ.idim) THEN
                DO k = 1, 3
-                  dumBevolxyz(k,j) = Bevolxyz(k,j)
+                  dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
                END DO
             ENDIF
          ENDIF
@@ -1195,7 +1196,7 @@ C$OMP END PARALLEL DO
             DO i = 1, itbinupdate
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,ipart,deltat)
@@ -1225,7 +1226,8 @@ C$OMP& private(j,k,ipart,deltat)
      &                    alphaMM(ipart) + deltat*f1ha(2,ipart))
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, 3
-                           dumBevolxyz(k,ipart) = Bevolxyz(k,ipart)
+                           dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) 
+     &                                          + deltat*f1Bxyz(k,ipart)
                         END DO
                      ENDIF
                   ENDIF
@@ -1259,7 +1261,7 @@ C$OMP END PARALLEL DO
       IF (nghost.GT.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,l,deltat)
@@ -1288,7 +1290,7 @@ C$OMP& private(j,k,l,deltat)
      &           + deltat*f1ha(2,k))
             IF (imhd.EQ.idim) THEN
                DO l = 1, 3
-                  dumBevolxyz(l,j) = Bevolxyz(l,j)
+                  dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,j)
                END DO
             ENDIF
          ENDIF
@@ -1475,7 +1477,15 @@ c
 c
 c--Find maximum error
 c    
-         errm = MAX(errx,erry,errz,errvx,errvy,errvz,erru)
+c         IF (imhd.EQ.idim) THEN
+c            errBx = ABS(f1Bxyz(1,i) - f2Bxyz(1,i))
+c            errBy = ABS(f1Bxyz(2,i) - f2Bxyz(2,i))
+c            errBz = ABS(f1Bxyz(3,i) - f2Bxyz(3,i))
+c            errm = MAX(errx,erry,errz,errvx,errvy,errvz,erru,
+c     &                 errBx,errBy,errBz)
+c         ELSE
+            errm = MAX(errx,erry,errz,errvx,errvy,errvz,erru)
+c         ENDIF
          errdivtol = MAX(errm/tolpart, errh/tolh)
 c
 c--Compute ratio of present to next timestep
@@ -1591,6 +1601,9 @@ C$OMP CRITICAL (writeiprint)
             WRITE (iprint,*)nneigh(i),rho(i)
             WRITE (iprint,*)errx,erry,errz
             WRITE (iprint,*)errvx,errvy,errvz,erru,errh
+            IF (imhd.EQ.idim) THEN
+               WRITE (iprint,*)errBx,errBy,errBz
+            ENDIF
 c            WRITE (iprint,*)gravx(i),gravy(i),gravz(i)
 c            WRITE (iprint,*)gradpx(i),gradpy(i),gradpz(i)
 c            WRITE (iprint,*)artvix(i),artviy(i),artviz(i)
@@ -2070,6 +2083,12 @@ c
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                   IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,
      &                 alphaMM(k) + deltat*f1ha(2,k))
+                  IF (imhd.EQ.idim) THEN
+                     DO l = 1, 3
+                        dumBevolxyz(l,j) = Bevolxyz(l,j) 
+     &                                   + deltat*f1Bxyz(l,j)
+                     ENDDO
+                  ENDIF
                ENDIF
             END DO
 c

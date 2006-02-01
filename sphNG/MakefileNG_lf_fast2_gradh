@@ -35,7 +35,9 @@ FFLAGS = ${ZZFFLAGS} -qrealsize=8
 SOURCES= sph.f accrete_P.f addump.f angmom.f boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f \
 	chekopt.f condense.f constan.f coriol.f cyldis.f cylmas.f cylpres.f \
-	cylvel.f densityiterate_gradh.f derivi_P_gradh.f endrun.f energ.f \
+	cylvel.f densityiterate_gradh.f derivi_P_gradh.f \
+        divBclean_mhd.f directsum_poisson_vec_mhd_clean.f \
+        endrun.f energ.f \
 	eospg.f error.f evol.f externf.f extract.f \
         file.f forcei_P_gradh.f getneigh.f \
 	getcv.f get1overmu.f getkappa.f \

@@ -65,6 +65,8 @@ c************************************************************
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/treecom_P'
+      INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/divcurlB'
 
 c      DIMENSION nsteplist(30)
 
@@ -351,9 +353,53 @@ c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
 c            CALL quit
 c         ENDIF
 c      END DO
+c
+c--DIVERGENCE CLEANING
+c
+         IF (imhd.EQ.idim) THEN
+            IF (varmhd.EQ.'Brho' .OR. varmhd.EQ.'Bvol') THEN
+               divBmax = 0.
+               DO i=1,npart
+                  divBmax = max(divcurlB(1,i),divBmax)
+               ENDDO
+               WRITE(iprint,*) 'div B max = ',divBmax
+               CALL divBclean(npart,ntot,xyzmh,rho,Bevolxyz)
+
+               DO i = 1, npart
+                  IF (iphase(i).NE.-1) THEN
+                     DO k = 1, 3
+                        dumBevolxyz(k,i) = Bevolxyz(k,i)
+                     END DO
+                  ENDIF
+               ENDDO
+            ENDIF
+         ENDIF
 
       ELSE
          ntot = npart + nghost
+
+c
+c--DIVERGENCE CLEANING
+c
+         IF (imhd.EQ.idim) THEN
+            IF (varmhd.EQ.'Brho' .OR. varmhd.EQ.'Bvol') THEN
+               divBmax = 0.
+               DO i=1,npart
+                  divBmax = max(divcurlB(1,i),divBmax)
+               ENDDO
+               WRITE(iprint,*) 'div B max = ',divBmax
+               CALL divBclean(npart,ntot,xyzmh,rho,Bevolxyz)
+
+               DO i = 1, npart
+                  IF (iphase(i).NE.-1) THEN
+                     DO k = 1, 3
+                        dumBevolxyz(k,i) = Bevolxyz(k,i)
+                     END DO
+                  ENDIF
+               ENDDO
+            ENDIF
+         ENDIF
+         
       END IF
 c
 c---------- END FIRST TIME AROUND ----------

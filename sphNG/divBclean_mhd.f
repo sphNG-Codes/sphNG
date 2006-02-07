@@ -98,10 +98,10 @@ c
 c--Compute the neighbour indexes & gravitational forces of the distant 
 c     particles for all the particles in the list
 c
-C$OMP PARALLEL default(none), shared(nlst,npart,accdivB)
-C$OMP& shared(h,Bx,By,Bz,poten,dphit,iphase)
-C$OMP& private(ipart,fsx,fsy,fsz,potx,poty,potz)
-C$OMP DO SCHEDULE(runtime)
+cC$OMP PARALLEL default(none), shared(nlst,npart,accdivB)
+cC$OMP& shared(h,Bx,By,Bz,poten,dphit,iphase)
+cC$OMP& private(ipart,fsx,fsy,fsz,potx,poty,potz)
+cC$OMP DO SCHEDULE(runtime)
 c         DO ipart = 1, npart
          !!print*,ipart,' Bprev = ',Bx(ipart),By(ipart),Bz(ipart)
 c
@@ -116,8 +116,8 @@ c            By(ipart) = Bcorryi + Bconsty
 c            Bz(ipart) = Bcorrzi + Bconstz
          !!print*,ipart,' Bnew = ',Bx(ipart),By(ipart),Bz(ipart) 
 c         ENDDO
-C$OMP END DO
-C$OMP END PARALLEL
+cC$OMP END DO
+cC$OMP END PARALLEL
 
        WRITE(iprint,*) 'getting corrected field by direct sum...'
        DO i=1,npart

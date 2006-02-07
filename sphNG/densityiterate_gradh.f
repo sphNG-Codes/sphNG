@@ -101,6 +101,7 @@ C$OMP& private(hnew,deltat,deltarho)
 C$OMP& private(gradalphaxi,gradalphayi,gradalphazi)
 C$OMP& private(gradbetaxi,gradbetayi,gradbetazi,rho21i,term)
 C$OMP& private(vbarxi,vbaryi,vbarzi)
+C$OMP& private(alphai,betai,wkern,dalpha,dbeta,grpmi)
 C$OMP& reduction(MAX:rhonext,imaxit)
 C$OMP& reduction(+:inumit,inumfixed,inumrecalc)
       DO n = nlst_in, nlst_end

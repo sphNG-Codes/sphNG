@@ -356,24 +356,24 @@ c      END DO
 c
 c--DIVERGENCE CLEANING
 c
-         IF (imhd.EQ.idim) THEN
-            IF (varmhd.EQ.'Brho' .OR. varmhd.EQ.'Bvol') THEN
-               divBmax = 0.
-               DO i=1,npart
-                  divBmax = max(divcurlB(1,i),divBmax)
-               ENDDO
-               WRITE(iprint,*) 'div B max = ',divBmax
-               CALL divBclean(npart,ntot,xyzmh,rho,Bevolxyz)
-
-               DO i = 1, npart
-                  IF (iphase(i).NE.-1) THEN
-                     DO k = 1, 3
-                        dumBevolxyz(k,i) = Bevolxyz(k,i)
-                     END DO
-                  ENDIF
-               ENDDO
-            ENDIF
-         ENDIF
+c         IF (imhd.EQ.idim) THEN
+c            IF (varmhd.EQ.'Brho' .OR. varmhd.EQ.'Bvol') THEN
+c               divBmax = 0.
+c               DO i=1,npart
+c                  divBmax = max(divcurlB(1,i),divBmax)
+c               ENDDO
+c               WRITE(iprint,*) 'div B max = ',divBmax
+c               CALL divBclean(npart,ntot,xyzmh,rho,Bevolxyz)
+c
+c               DO i = 1, npart
+c                  IF (iphase(i).NE.-1) THEN
+c                     DO k = 1, 3
+c                        dumBevolxyz(k,i) = Bevolxyz(k,i)
+c                     END DO
+c                  ENDIF
+c               ENDDO
+c            ENDIF
+c         ENDIF
 
       ELSE
          ntot = npart + nghost
@@ -381,24 +381,24 @@ c
 c
 c--DIVERGENCE CLEANING
 c
-         IF (imhd.EQ.idim) THEN
-            IF (varmhd.EQ.'Brho' .OR. varmhd.EQ.'Bvol') THEN
-               divBmax = 0.
-               DO i=1,npart
-                  divBmax = max(divcurlB(1,i),divBmax)
-               ENDDO
-               WRITE(iprint,*) 'div B max = ',divBmax
-               CALL divBclean(npart,ntot,xyzmh,rho,Bevolxyz)
+c         IF (imhd.EQ.idim) THEN
+c            IF (varmhd.EQ.'Brho' .OR. varmhd.EQ.'Bvol') THEN
+c               divBmax = 0.
+c               DO i=1,npart
+c                  divBmax = max(divcurlB(1,i),divBmax)
+c               ENDDO
+c               WRITE(iprint,*) 'div B max = ',divBmax
+c               CALL divBclean(npart,ntot,xyzmh,rho,Bevolxyz)
 
-               DO i = 1, npart
-                  IF (iphase(i).NE.-1) THEN
-                     DO k = 1, 3
-                        dumBevolxyz(k,i) = Bevolxyz(k,i)
-                     END DO
-                  ENDIF
-               ENDDO
-            ENDIF
-         ENDIF
+c               DO i = 1, npart
+c                  IF (iphase(i).NE.-1) THEN
+c                     DO k = 1, 3
+c                        dumBevolxyz(k,i) = Bevolxyz(k,i)
+c                     END DO
+c                  ENDIF
+c               ENDDO
+c            ENDIF
+c         ENDIF
          
       END IF
 c

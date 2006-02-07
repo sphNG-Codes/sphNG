@@ -179,11 +179,13 @@ c
          CALL quit
       ENDIF
       npart = number8
+      PRINT*,' npart = ',npart
 c
 c--Read array type 2 header
 c
       READ (8, END=100) number8, (nums2(i), i=1,8)
       nptmass = number8
+      PRINT*,' nptmasses = ',nptmass
 c
 c--Read array type 3 header
 c
@@ -239,9 +241,7 @@ c--skip unnecessary reals
 c--real*4
       READ (8, END=100) (rho(i), i=1, npart)
       IF (nlmax.EQ.1) THEN
-         iread = 3
-         READ (8, END=100) (gradhs(1,i), i=1, npart)
-         READ (8, END=100) (gradhs(2,i), i=1, npart)
+         iread = 1
       ELSE
          iread = 2
          READ (8, END=100) (dgrav(i), i=1, npart)

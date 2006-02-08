@@ -19,6 +19,7 @@ c************************************************************
       INCLUDE 'COMMONS/ener2'
       INCLUDE 'COMMONS/ener3'
       INCLUDE 'COMMONS/fracg'
+      INCLUDE 'COMMONS/polyk2'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/binary'
@@ -26,10 +27,12 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/timei'
       INCLUDE 'COMMONS/stepopt'
       INCLUDE 'COMMONS/tming'
+      INCLUDE 'COMMONS/numpa'
+      INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/gradhterms'
       INCLUDE 'COMMONS/varmhd'
-      INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/presb'
 
       CHARACTER*20 ifile(10), ofile
       CHARACTER*1 iok, iok2, iokm, iaddmhd

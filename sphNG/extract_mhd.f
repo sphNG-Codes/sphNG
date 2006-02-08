@@ -26,6 +26,7 @@ c************************************************************
 c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/timei'
       INCLUDE 'COMMONS/stepopt'
+      INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/tming'
       INCLUDE 'COMMONS/numpa'
       INCLUDE 'COMMONS/radtrans'
@@ -478,6 +479,10 @@ c
 c--Dump new file
 c
       ifulldump = 0
+      DO i = 1, npart
+         isort(i) = i
+         iorig(i) = i
+      END DO
       nfullstep = 1
       CALL wdump(7)
 c

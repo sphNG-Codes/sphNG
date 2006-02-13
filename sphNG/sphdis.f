@@ -64,7 +64,7 @@ c
                r2 = rxy2 + zi*zi
                theta1 = ATAN2(yi,xi)
                theta2 = ATAN2(zi,SQRT(rxy2))
-               r1 = r2**0.75
+               r1 = rmax*(r2/rmax2)**0.75
                xyzmh(1,i) = r1*COS(theta1)*COS(theta2)
                xyzmh(2,i) = r1*SIN(theta1)*COS(theta2)
                xyzmh(3,i) = r1*SIN(theta2)

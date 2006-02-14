@@ -3,7 +3,7 @@ c************************************************************
 c                                                           *
 c  This subroutine extracts one dump from a binary output   *
 c     file                                                  *
-c                                                           *
+c  This version converts from Dan's file format to sphNG    *
 c************************************************************
 
       INCLUDE 'idim'
@@ -19,23 +19,29 @@ c************************************************************
       INCLUDE 'COMMONS/ener2'
       INCLUDE 'COMMONS/ener3'
       INCLUDE 'COMMONS/fracg'
+      INCLUDE 'COMMONS/polyk2'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/binary'
 c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/timei'
       INCLUDE 'COMMONS/stepopt'
-
-      CHARACTER*20 ifile(10), ofile
+      INCLUDE 'COMMONS/sort'
+      INCLUDE 'COMMONS/tming'
+      INCLUDE 'COMMONS/numpa'
+      INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/mhd'
+      INCLUDE 'COMMONS/gradhterms'
+      INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/presb'
+      
+      CHARACTER*40 ifile(10), ofile
       CHARACTER*1 iok, iok2, iokm
-      CHARACTER*100 fileident
-      INTEGER*4 int1, int2, int1i, int2i, int3i
-      INTEGER*8 number8
-      DIMENSION nums(8)
-      REAL dummy(idim),crap
+      REAL dummy(idim)
       INTEGER nprint
 
-1000  FORMAT (A20)
+1000  FORMAT (A40)
 1001  FORMAT (A1)
 
       nfile = 1
@@ -84,19 +90,49 @@ c      INCLUDE 'COMMONS/torq'
          anglostz = 0.
          specang = 0.
          ptmassin = 0.
-         WRITE(*,*) 'Enter RK2'
-         READ(*,*) RK2
          
-         READ (8, END=100) (xyzmh(1:3,i),i=1,npart)
-         READ (8, END=100) (vxyzu(1:3,i),i=1,npart)
+         DO j=1,3
+            READ (8, END=100) (xyzmh(j,i),i=1,npart)
+         ENDDO
+         DO j=1,3
+            READ (8, END=100) (vxyzu(j,i),i=1,npart)
+         ENDDO
          READ (8, END=100) (xyzmh(5,i),i=1,npart)
          READ (8, END=100) (dummy(i),i=1,npart)
          DO i=1,npart
+            IF (i.le.5) WRITE(*,*) ' density ',i,' = ',dummy(i)
             rho(i) = dummy(i) ! type conversion
          ENDDO
          READ (8, END=100) (vxyzu(4,i),i=1,npart)
          READ (8, END=100) (xyzmh(4,i),i=1,npart)
-         WRITE(*,*) 'finished reading file'
+         IF (imhd.EQ.idim) THEN
+            WRITE(*,*) 'attempting to read MHD quantities'
+c--skip alpha (art visc. parameters)
+            DO j=1,3
+               READ(8, END=100)
+            ENDDO
+            DO j=1,3
+               READ(8, END=100) (Bxyz(j,i),i=1,npart)
+            ENDDO
+            varmhd = 'Bvol'
+c
+c--dump B directly
+c
+            DO i=1,npart
+               DO j = 1,3
+                  Bevolxyz(j,i) = Bxyz(j,i)
+               ENDDO
+            ENDDO
+         ELSE
+            WRITE(*,*) 'finished reading (hydro) file'
+         ENDIF
+
+         DO i=1,5
+            WRITE(*,*) 'particle ',i,': RK2 = ',
+     &                  vxyzu(4,i)/(rho(i)**(gamma-1.))
+         ENDDO
+         WRITE(*,*) 'Enter RK2 '
+         READ(*,*) RK2
        
          DO i=1,npart
             iphase(i) = 0
@@ -206,135 +242,18 @@ c                        vxyzu(4,ii) = vxyzu(4,ii) * howmuch
 c
 c--Dump new file
 c
-      int1 = 690706
-      int2 = 780806
-      i1 = int1
-      r1 = real(int2)
-c
-c--Write output file
-c
-      WRITE (7) int1,r1,int2,i1,int1
-      fileident = 'FHydro1'
-      WRITE (7) fileident
-c
-c--Single values
-c
-c--Default int
-      number = 6
-      WRITE (7) number
-      WRITE (7) npart,n1,n2,nreassign,naccrete,nkill
-c--int*1, int*2, int*4, int*8
-      number = 0
-      DO i = 1, 4
-         WRITE (7) number
+      ifulldump = 0
+      DO i = 1, npart
+         isort(i) = i
+         iorig(i) = i
       END DO
-c--Default real
-      number = 14
-      WRITE (7) number
-      WRITE (7) gt, dtmax, gamma, rhozero, RK2,
-     &     escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
-     &     specang, ptmassin
-c--real*4
-      number = 0
-      WRITE (7) number
-c--real*8
-      number = 3
-      WRITE (7) number
-      WRITE (7) udist, umass, utime
-c
-c--Arrays
-c
-c--Number of array lengths
-c
-      number = 2
-      WRITE (7) number
-c
-c--Array length 1 header
-c
-      number8 = npart
-      nums(1) = 1
-      nums(2) = 1
-      nums(3) = 0
-      nums(4) = 0
-      nums(5) = 0
-      nums(6) = 9
-      nums(7) = 2
-      nums(8) = 0
-      WRITE (7) number8, (nums(i), i=1,8)
-c
-c--Array length 2 header
-c
-      number8 = nptmass
-      nums(1) = 1
-      nums(2) = 0
-      nums(3) = 0
-      nums(4) = 0
-      nums(5) = 0
-      nums(6) = 9
-      nums(7) = 0
-      nums(8) = 0
-      WRITE (7) number8, (nums(i), i=1,8)      
-c
-c--Array length 1 arrays
-c      
-c--Default int
-      WRITE (7) (isteps(i), i=1, npart)
-c--int*1
-      WRITE (7) (iphase(i), i=1, npart)
-c--int*2
-
-c--int*4
-
-c--int*8
-
-c--Default real
-      DO j = 1, 5
-         WRITE (7) (xyzmh(j,i), i=1, npart)
-      END DO
-      DO j = 1, 4
-         WRITE (7) (vxyzu(j,i), i=1, npart)
-      END DO      
-c--real*4
-      WRITE (7) (rho(i), i=1, npart)
-      WRITE (7) (dgrav(i), i=1, npart)      
-c     WRITE (7) (alphaMM(i), i=1, npart)
-c--real*8
-
-c
-c--Array length 2 arrays
-c
-
-c--Default int
-      WRITE (7) (listpm(i), i=1,nptmass)
-c--int*1
-
-c--int*2
-
-c--int*4
-
-c--int*8
-
-c--Default real
-      WRITE (7) (spinx(i),i=1,nptmass)
-      WRITE (7) (spiny(i),i=1,nptmass)
-      WRITE (7) (spinz(i),i=1,nptmass)
-      WRITE (7) (angaddx(i),i=1,nptmass)
-      WRITE (7) (angaddy(i),i=1,nptmass)
-      WRITE (7) (angaddz(i),i=1,nptmass)
-      WRITE (7) (spinadx(i),i=1,nptmass)
-      WRITE (7) (spinady(i),i=1,nptmass)
-      WRITE (7) (spinadz(i),i=1,nptmass)
-c--real*4
-
-c--real*8
-
+      nfullstep = 1
+      CALL wdump(7)
 c
 c--End writing of full dump file
 c-------------------------------
 c
             ENDIF
-
- 10      CONTINUE
 
  100     CLOSE (8)
 

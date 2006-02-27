@@ -116,10 +116,10 @@ c
          ifirst = .FALSE.
 
          IF (integrator.EQ.0) THEN
-            WRITE (iprint,*) ' Integrator: Runga-Kutta-Fehlberg'
+            WRITE (iprint,*) 'Integrator: Runga-Kutta-Fehlberg'
             WRITE (iprint,*)
          ELSE
-            WRITE (iprint,*) ' Integrator miss-match'
+            WRITE (iprint,*) 'Integrator miss-match'
             CALL quit
          ENDIF
 

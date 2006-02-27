@@ -49,6 +49,9 @@ c************************************************************
       INCLUDE 'COMMONS/accrem'
       INCLUDE 'COMMONS/timeextra'
       INCLUDE 'COMMONS/ptsoft'
+      INCLUDE 'COMMONS/current'
+
+c      INCLUDE 'COMMONS/angm'
 
       DIMENSION numberacc(iptdim)
       REAL*4 ptminner(iptdim)
@@ -56,14 +59,32 @@ c************************************************************
       
       DATA where/'accrete'/
 
+
+c      CALL angmom
+c      angx1 = angx
+c      angy1 = angy
+c      angz1 = angz
+c      xmom1 = xmom
+c      ymom1 = ymom
+c      zmom1 = zmom
+
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nptmass,numberacc,ptminner)
+C$OMP& private(iii)
+      DO iii = 1, nptmass
+         numberacc(iii) = 0
+         ptminner(iii) = 0.
+      END DO
+C$OMP END PARALLEL DO
+
       IF (nlst0.GT.nptmass) THEN
 c
 c--Only allow accretion of GAS particles evaluated at the CURRENT timestep
 c     iremove is initialised in evol.f to -1
 c
 C$OMP PARALLEL default(none)
-C$OMP& shared(nlst0,llist,iphase,iremove,nptmass,numberacc,ptminner)
-C$OMP& private(i,j,iii)
+C$OMP& shared(nlst0,llist,iphase,iremove)
+C$OMP& private(i,j)
 
 C$OMP DO SCHEDULE(runtime)
       DO i = 1, nlst0
@@ -72,12 +93,6 @@ C$OMP DO SCHEDULE(runtime)
       END DO
 C$OMP END DO
 
-C$OMP DO SCHEDULE(runtime)
-      DO iii = 1, nptmass
-         numberacc(iii) = 0
-         ptminner(iii) = 0.
-      END DO
-C$OMP END DO
 C$OMP END PARALLEL
 
 c
@@ -770,27 +785,42 @@ c
 
 c      GOTO 1000
 
+c      CALL angmom
+c      angx2 = angx
+c      angy2 = angy
+c      angz2 = angz
+c      xmom2 = xmom
+c      ymom2 = ymom
+c      zmom2 = zmom
+
+
+      imerged1 = 0
+      imerged2 = 0
+
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nptmass,listpm,xyzmh,ptsoft,imerge,realtime,iorig)
 C$OMP& shared(iphase,nlstacc,listacc,numberacc,vxyzu,spinx,spiny,spinz)
 C$OMP& shared(spinadx,spinady,spinadz,f1vxyzu,ptminner,ptmsyn,ptmadd)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,xmomadd,ymomadd,zmomadd,iprint)
+C$OMP& shared(iscurrent,imerged1,imerged2)
 C$OMP& private(iii,jjj,iptm1,x1,y1,z1,iptm2,rx,ry,rz,r2)
 C$OMP& private(i1list,i2list,itemp,pmass1,pmass2,dvx,dvy,dvz)
-C$OMP& private(vx1,vy1,vz1,totalmass,spinm)
+C$OMP& private(totalmass,spinm)
       DO iii = 1, nptmass
          IF (imerge.EQ.0) THEN
             iptm1 = listpm(iii) 
-            x1 = xyzmh(1,iptm1)
-            y1 = xyzmh(2,iptm1)
-            z1 = xyzmh(3,iptm1)
-            DO jjj = iii + 1, nptmass
-               IF (imerge.EQ.0) THEN
-               iptm2 = listpm(jjj)
-               rx = x1 - xyzmh(1,iptm2)
-               ry = y1 - xyzmh(2,iptm2)
-               rz = z1 - xyzmh(3,iptm2)
-               r2 = rx*rx + ry*ry + rz*rz
+            IF (iscurrent(iptm1)) THEN
+               x1 = xyzmh(1,iptm1)
+               y1 = xyzmh(2,iptm1)
+               z1 = xyzmh(3,iptm1)
+               DO jjj = iii + 1, nptmass
+                  IF (imerge.EQ.0) THEN
+                     iptm2 = listpm(jjj)
+                     IF (iscurrent(iptm2)) THEN
+                        rx = x1 - xyzmh(1,iptm2)
+                        ry = y1 - xyzmh(2,iptm2)
+                        rz = z1 - xyzmh(3,iptm2)
+                        r2 = rx*rx + ry*ry + rz*rz
 c
 c--Merge if sink radii (as stored in h's of sinks) overlap
 c
@@ -798,83 +828,104 @@ c            IF (r2.LT.(MAX(xyzmh(5,iptm1),xyzmh(5,iptm2))**2.0)) THEN
 c
 c--Merge if pass within some fraction of softening radius
 c
-               IF (r2.LT.(0.1*ptsoft)**2.0) THEN
+                        IF (r2.LT.(0.1*ptsoft)**2.0) THEN
+c                        IF (r2.LT.(0.03)**2.0) THEN
 C$OMP CRITICAL(mergesinks)
-                  IF (imerge.EQ.0) THEN
-                     imerge = 1
+                           IF (imerge.EQ.0) THEN
+                              imerge = 1
                   WRITE(iprint,*) 'POINT MASSES MERGED, TIME=',realtime
-                     WRITE(iprint,*) '   Radius**2 ',r2
-                     WRITE(iprint,*) '   Point masses ',iii,jjj,
-     &                    iorig(iptm1),iorig(iptm2)
-                     i1list = iii
-                     i2list = jjj
-                     IF (xyzmh(4,iptm2).GT.xyzmh(4,iptm1)) THEN
-                        itemp = iptm1
-                        iptm1 = iptm2
-                        iptm2 = itemp
-                        itemp = i1list
-                        i1list = i2list
-                        i2list = itemp
-                        rx = -rx
-                        ry = -ry
-                        rz = -rz
-                        x1 = xyzmh(1,iptm1)
-                        y1 = xyzmh(2,iptm1)
-                        z1 = xyzmh(3,iptm1)
-                     ENDIF
-                     iphase(iptm2) = -1
+                              WRITE(iprint,*) '   Radius**2 ',r2
+                              WRITE(iprint,*) '   Point masses ',iii,
+     &                             jjj,iorig(iptm1),iorig(iptm2)
+c                  WRITE(iprint,*) 'Linear before ',
+c     &     xyzmh(4,iptm1)*vxyzu(1,iptm1)+xyzmh(4,iptm2)*vxyzu(1,iptm2),
+c     &     xyzmh(4,iptm1)*vxyzu(2,iptm1)+xyzmh(4,iptm2)*vxyzu(2,iptm2),
+c     &     xyzmh(4,iptm1)*vxyzu(3,iptm1)+xyzmh(4,iptm2)*vxyzu(3,iptm2)
+c                  WRITE(iprint,*) 'Linear before ',
+c     &     xmomsyn(iii)+xmomadd(iii)+xmomsyn(jjj)+xmomadd(jjj),
+c     &     ymomsyn(iii)+ymomadd(iii)+ymomsyn(jjj)+ymomadd(jjj),
+c     &     zmomsyn(iii)+zmomadd(iii)+zmomsyn(jjj)+zmomadd(jjj)
+                              i1list = iii
+                              i2list = jjj
+                              IF (xyzmh(4,iptm2).GT.xyzmh(4,iptm1)) THEN
+                                 itemp = iptm1
+                                 iptm1 = iptm2
+                                 iptm2 = itemp
+                                 itemp = i1list
+                                 i1list = i2list
+                                 i2list = itemp
+                                 rx = -rx
+                                 ry = -ry
+                                 rz = -rz
+                                 x1 = xyzmh(1,iptm1)
+                                 y1 = xyzmh(2,iptm1)
+                                 z1 = xyzmh(3,iptm1)
+                              ENDIF
+                              iphase(iptm2) = -1
+                              imerged1 = i1list
+                              imerged2 = i2list
                   
-                     nlstacc = nlstacc + 1
-                     IF (nlstacc.GT.nlstaccmax) THEN
-                        WRITE (iprint,*) 'ERROR nlstacc'
-                        CALL quit
-                     ENDIF
-                     listacc(nlstacc) = iptm2
+                              nlstacc = nlstacc + 1
+                              IF (nlstacc.GT.nlstaccmax) THEN
+                                 WRITE (iprint,*) 'ERROR nlstacc'
+                                 CALL quit
+                              ENDIF
+                              listacc(nlstacc) = iptm2
                      
-                     numberacc(i1list) = numberacc(i1list) + 1
-                     pmass1 = xyzmh(4,iptm1)
-                     pmass2 = xyzmh(4,iptm2)
-                     WRITE(iprint,*) '   Point masses ',iii,jjj,
-     &                    iorig(iptm1),iorig(iptm2)
-                     WRITE(iprint,*) '   Mases ',pmass1, pmass2
-                     dvx = xyzmh(1,iptm1) - xyzmh(1,iptm2)
-                     dvy = xyzmh(2,iptm1) - xyzmh(2,iptm2)
-                     dvz = xyzmh(3,iptm1) - xyzmh(3,iptm2)
-                     vx1 = vxyzu(1,iptm1)
-                     vy1 = vxyzu(2,iptm1)
-                     vz1 = vxyzu(3,iptm1)
+                              numberacc(i1list) = numberacc(i1list) + 1
+                              pmass1 = xyzmh(4,iptm1)
+                              pmass2 = xyzmh(4,iptm2)
+                              WRITE(iprint,*) '   Point masses ',iii,
+     &                             jjj,iorig(iptm1),iorig(iptm2)
+                              WRITE(iprint,*) '   Mases ',pmass1,pmass2
+                              dvx = vxyzu(1,iptm1) - vxyzu(1,iptm2)
+                              dvy = vxyzu(2,iptm1) - vxyzu(2,iptm2)
+                              dvz = vxyzu(3,iptm1) - vxyzu(3,iptm2)
+
+c         WRITE (iprint,*) 'Ang momx ',pmass1*(vxyzu(3,iptm1)*y1-
+c     &   vxyzu(2,iptm1)*z1),
+c     &   pmass2*(vxyzu(3,iptm2)*xyzmh(2,iptm2)-vxyzu(2,iptm2)*
+c     &   xyzmh(3,iptm2)),spinx(i1list),spinx(i2list),
+c     &   pmass1*(vxyzu(3,iptm1)*y1-vxyzu(2,iptm1)*z1)+
+c     &   pmass2*(vxyzu(3,iptm2)*xyzmh(2,iptm2)-vxyzu(2,iptm2)*
+c     &   xyzmh(3,iptm2))+spinx(i1list)+spinx(i2list)
+
                   
-                     totalmass = pmass1 + pmass2
-                     spinx(i1list) = spinx(i1list) + spinx(i2list)
-                     spiny(i1list) = spiny(i1list) + spiny(i2list)
-                     spinz(i1list) = spinz(i1list) + spinz(i2list)
-                  spinadx(i1list) = spinadx(i1list) + spinadx(i2list)
-                  spinady(i1list) = spinady(i1list) + spinady(i2list)
-                  spinadz(i1list) = spinadz(i1list) + spinadz(i2list)
-                  spinm = pmass2*pmass1/totalmass
+                              totalmass = pmass1 + pmass2
+                          spinx(i1list) = spinx(i1list) + spinx(i2list)
+                          spiny(i1list) = spiny(i1list) + spiny(i2list)
+                          spinz(i1list) = spinz(i1list) + spinz(i2list)
+                    spinadx(i1list) = spinadx(i1list) + spinadx(i2list)
+                    spinady(i1list) = spinady(i1list) + spinady(i2list)
+                    spinadz(i1list) = spinadz(i1list) + spinadz(i2list)
+                    spinm = pmass2*pmass1/totalmass
                  spinx(i1list) = spinx(i1list) + spinm*(ry*dvz - dvy*rz)
                  spiny(i1list) = spiny(i1list) + spinm*(dvx*rz - rx*dvz)
                  spinz(i1list) = spinz(i1list) + spinm*(rx*dvy - dvx*ry)
-                     spinadx(i1list) = spinadx(i1list) + 
-     &                    spinm*(ry*dvz - dvy*rz)
-                     spinady(i1list) = spinady(i1list) + 
-     &                    spinm*(dvx*rz - rx*dvz)
-                     spinadz(i1list) = spinadz(i1list) + 
-     &                    spinm*(rx*dvy - dvx*ry)
-                     vxyzu(1,iptm1) = (pmass1*vxyzu(1,iptm1) + 
-     &                    pmass2*vxyzu(1,iptm2))/totalmass
-                     vxyzu(2,iptm1) = (pmass1*vxyzu(2,iptm1) + 
-     &                    pmass2*vxyzu(2,iptm2))/totalmass
-                     vxyzu(3,iptm1) = (pmass1*vxyzu(3,iptm1) + 
-     &                    pmass2*vxyzu(3,iptm2))/totalmass
-                     vxyzu(4,iptm1) = (pmass1*vxyzu(4,iptm1) + 
-     &                    pmass2*vxyzu(4,iptm2))/totalmass
-                     xyzmh(1,iptm1) = (pmass1*xyzmh(1,iptm1) +
-     &                    pmass2*xyzmh(1,iptm2))/totalmass
-                     xyzmh(2,iptm1) = (pmass1*xyzmh(2,iptm1) +
-     &                    pmass2*xyzmh(2,iptm2))/totalmass
-                     xyzmh(3,iptm1) = (pmass1*xyzmh(3,iptm1) +
-     &                    pmass2*xyzmh(3,iptm2))/totalmass
+
+c        WRITE (iprint,*) 'more spinx ',spinm*(ry*dvz - dvy*rz),
+c     &  spinm,ry,dvz, dvy,rz
+
+                              spinadx(i1list) = spinadx(i1list) + 
+     &                             spinm*(ry*dvz - dvy*rz)
+                              spinady(i1list) = spinady(i1list) + 
+     &                             spinm*(dvx*rz - rx*dvz)
+                              spinadz(i1list) = spinadz(i1list) + 
+     &                             spinm*(rx*dvy - dvx*ry)
+                              vxyzu(1,iptm1) = (pmass1*vxyzu(1,iptm1) + 
+     &                             pmass2*vxyzu(1,iptm2))/totalmass
+                              vxyzu(2,iptm1) = (pmass1*vxyzu(2,iptm1) + 
+     &                             pmass2*vxyzu(2,iptm2))/totalmass
+                              vxyzu(3,iptm1) = (pmass1*vxyzu(3,iptm1) + 
+     &                             pmass2*vxyzu(3,iptm2))/totalmass
+                              vxyzu(4,iptm1) = (pmass1*vxyzu(4,iptm1) + 
+     &                             pmass2*vxyzu(4,iptm2))/totalmass
+                              xyzmh(1,iptm1) = (pmass1*xyzmh(1,iptm1) +
+     &                             pmass2*xyzmh(1,iptm2))/totalmass
+                              xyzmh(2,iptm1) = (pmass1*xyzmh(2,iptm1) +
+     &                             pmass2*xyzmh(2,iptm2))/totalmass
+                              xyzmh(3,iptm1) = (pmass1*xyzmh(3,iptm1) +
+     &                             pmass2*xyzmh(3,iptm2))/totalmass
                   
                      f1vxyzu(1,iptm1) = (pmass1*f1vxyzu(1,iptm1) + 
      &                    pmass2*f1vxyzu(1,iptm2))/totalmass
@@ -896,11 +947,29 @@ C$OMP CRITICAL(mergesinks)
                      xmomadd(i1list) = 0.0
                      ymomadd(i1list) = 0.0
                      zmomadd(i1list) = 0.0
+
+c                  WRITE(iprint,*) 'Linear after ',
+c     &                    xyzmh(4,iptm1)*vxyzu(1,iptm1),
+c     &                    xyzmh(4,iptm1)*vxyzu(2,iptm1),
+c     &                    xyzmh(4,iptm1)*vxyzu(3,iptm1)
+c                  WRITE(iprint,*) 'Linear after ',
+c     &                 xmomsyn(i1list),
+c     &                 ymomsyn(i1list),
+c     &                 zmomsyn(i1list)
+
+c                  WRITE(iprint,*) 'Ang mom x after ',
+c     & xyzmh(4,iptm1)*(vxyzu(3,iptm1)*xyzmh(2,iptm1)-
+c     & vxyzu(2,iptm1)*xyzmh(3,iptm1)),spinx(i1list),
+c     & xyzmh(4,iptm1)*(vxyzu(3,iptm1)*xyzmh(2,iptm1)-
+c     & vxyzu(2,iptm1)*xyzmh(3,iptm1))+spinx(i1list)
+                  
                   ENDIF
 C$OMP END CRITICAL(mergesinks)
-               ENDIF
-               ENDIF
-            END DO
+                        ENDIF
+                     ENDIF
+                  ENDIF
+               END DO
+            ENDIF
          ENDIF
       END DO
 C$OMP END PARALLEL DO
@@ -943,6 +1012,15 @@ c
             ENDIF
          END DO
          nptmass = icount
+         tcomp = SQRT((3 * pi) / (32 * rhozero))
+         WRITE (iptprint) realtime/tcomp, realtime, -nptmass
+         WRITE (iptprint) imerged1, imerged2
+
+c         write(iprint,*)'Old mom ',angx1,angy1,angz1,xmom1,ymom1,zmom1
+c         write(iprint,*)'Old2 mom ',angx2,angy2,angz2,xmom2,ymom2,zmom2
+c         CALL angmom
+c         write (iprint,*) 'New mom ',angx,angy,angz,xmom,ymom,zmom
+
       ENDIF
 c
 c--Consider accreted particles' effect on ghosts

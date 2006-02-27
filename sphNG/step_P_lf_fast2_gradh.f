@@ -108,10 +108,10 @@ c
          ifirst = .FALSE.
 
          IF (integrator.EQ.1) THEN
-            WRITE (iprint,*) ' Integrator: Leap-Frog'
+            WRITE (iprint,*) 'Integrator: Leap-Frog'
             WRITE (iprint,*)
          ELSE
-            WRITE (iprint,*) ' Integrator miss-match'
+            WRITE (iprint,*) 'Integrator miss-match'
             CALL quit
          ENDIF
 
@@ -269,8 +269,14 @@ c
 c--Sinks ALL on smallest timestep OR NOT
 c
             DO i = 1, nptmass
-               isteps(listpm(i)) = istepmin
-c               isteps(listpm(i)) = istepmingas
+               iptcur = listpm(i)
+
+c               isteps(iptcur) = istepmin
+
+               IF (istepmingas.LT.isteps(iptcur)) THEN
+                  isteps(iptcur) = istepmingas
+               ENDIF
+
             END DO
 c
 c--All particles on smallest timestep OR NOT
@@ -759,8 +765,8 @@ C$OMP END PARALLEL DO
 c
 c--Sinks ALL on smallest timestep OR NOT
 c
-      ELSEIF (nlst.GT.nptmass) THEN
-c      ELSEIF (nlst.GT.0) THEN
+c      ELSEIF (nlst.GT.nptmass) THEN
+      ELSEIF (nlst.GT.0) THEN
          DO i = 1, itbinupdate
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
@@ -987,14 +993,13 @@ c--Update velocities (kick 1/2)
 c
       IF (itiming) CALL getused(ts111)
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(nlst,llist,iscurrent,dt,isteps,imaxstep)
+C$OMP& shared(nlst,llist,dt,isteps,imaxstep)
 C$OMP& shared(vxyzu,f1vxyzu)
 C$OMP& shared(iphase,nptmass,listpm,listrealpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,xyzmh)
 C$OMP& private(i,j,dthalf,delvx,delvy,delvz,iii,pmasspt)
       DO j = 1, nlst
          i = llist(j)
-         iscurrent(i) = .FALSE.
          dthalf = 0.5*dt*isteps(i)/imaxstep
 c
 c--Update velocities (kick 1/2)
@@ -1054,10 +1059,10 @@ c      PRINT *,'h(1)6: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
 c
 c--Sinks ALL on smallest timestep OR NOT
 c
-         IF (istepmin.LT.isteps(iptcur)) THEN
-c         IF (istepmingas.LT.isteps(iptcur)) THEN
-            isteps(iptcur) = istepmin  
-c            isteps(iptcur) = istepmingas
+c         IF (istepmin.LT.isteps(iptcur)) THEN
+         IF (istepmingas.LT.isteps(iptcur)) THEN
+c            isteps(iptcur) = istepmin  
+            isteps(iptcur) = istepmingas
          ENDIF
       END DO
 c
@@ -1222,6 +1227,7 @@ c--Update the lists of particles in each bin
 c
       DO j = 1, nlst
          i = llist(j)
+         iscurrent(i) = .FALSE.
          IF (i.GT.idim) THEN
             WRITE (*,*) 'ERROR - i.GT.idim 4'
             WRITE (iprint,*) 'ERROR - i.GT.idim 4'

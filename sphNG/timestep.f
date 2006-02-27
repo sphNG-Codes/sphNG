@@ -164,7 +164,7 @@ c
 C$OMP END DO
 C$OMP END PARALLEL
 
-      IF (istepmingasnew.NE.imax) istepmingas = istepmingasnew
+      istepmingas = istepmingasnew
 
       RETURN
 

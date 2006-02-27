@@ -28,14 +28,14 @@ c************************************************************
 
       CHARACTER*7 where
 
-      DATA where/'gforspt'/
+      DATA where/'gptall'/
 
       CALL getused(tgforpt1)
 c
 c--Allow for tracing flow
 c
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
-99001 FORMAT(' entry subroutine gforspt')
+99001 FORMAT(' entry subroutine gptall')
 
       DO k = 1, nptmass
          iptcur = listpm(k)

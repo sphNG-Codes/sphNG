@@ -26,6 +26,7 @@
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/nlim'
       INCLUDE 'COMMONS/curlist'
+      INCLUDE 'COMMONS/typef'
 
       PARAMETER (nswmax = 200000)
 
@@ -115,7 +116,7 @@ c
 c      print *, 'done here'
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst_in,nlst_end,nlstall,list,EU0,uergg,ekcle)
-C$OMP& shared(vxyzu,lightspeed,uradconst,oneovermu)
+C$OMP& shared(vxyzu,lightspeed,uradconst,oneovermu,iprint)
 C$OMP& shared(icall,dtimax,dtmax,isteps,npart,hasghost,ireal,nghost)
 C$OMP& shared(rho,vari,ivar,ijvar,varij,ijvar2,varij2)
 C$OMP& shared(xyzmh,dvtable,grwij,cnormk,alpha,beta)
@@ -231,7 +232,8 @@ c         print *,'loop2 ',k,j
             IF(dvdotdr.GT.0.0) THEN
                vmu = 0.0
             ELSE
-               vmu = hmean*dvdotdr/(rij**2+0.01*hmean**2)
+ccc               vmu = hmean*dvdotdr/(rij**2+0.01*hmean**2)
+               vmu = dv
             END IF
 
             dvdWmj05 = 0.5*pmj*dv*dW
@@ -318,12 +320,12 @@ C$OMP& shared(dedxyz,ekcle,EU0,uradconst,lightspeed,rho)
 C$OMP& shared(oneovermu,nosweep,ipos,boundtemp)
 C$OMP& shared(npart,nghost,ihasghost,ireal,dvdx,nlst_in,nlst_end)
 C$OMP& shared(origEU,moresweep,xyzmh,gamma,alpha,beta,Rg,gmw)
-C$OMP& shared(udens,radconst,nlstall,iflag,icall)
+C$OMP& shared(udens,radconst,nlstall,iflag,icall,ifsvi)
 C$OMP& private(i,j,k,n,dedxi,dedyi,dedzi,pmi,rhoi,pmj,rhoj)
 C$OMP& private(icompact,dti,pres_denominator,diffusion_numerator)
 C$OMP& private(diffusion_denominator,pres_numerator,tfour)
 C$OMP& private(radpresdenom,rhomean,dvdWmj05,vmu,dWdrlightrhorhom)
-C$OMP& private(cs,vpi,bi,bj,b1,gradEi2,rpdiag,rpall,gradvPi)
+C$OMP& private(cs,vpi,bi,bj,b1,gradEi2,rpdiag,rpall,gradvPi,vsig)
 C$OMP& private(pmjdWrunix,pmjdWruniy,pmjdWruniz,Eij1)
 C$OMP& private(betaval,chival,gammaval,u4term,u1term,u0term)
 C$OMP& private(gradE1i,tsr1i,moresweep2,U1i,E1i,dUcomb,dEcomb)
@@ -380,10 +382,10 @@ c
 c
 c--NOTE: ***** Forcing lambda and eddington to be 1/3 *****
 c
-            IF (rhoi.GT.10000.0) THEN
-               ekcle(4,i) = 1.0/3.0
-               ekcle(5,i) = 1.0/3.0
-            ENDIF
+c            IF (rhoi.GT.10000.0) THEN
+c               ekcle(4,i) = 1.0/3.0
+c               ekcle(5,i) = 1.0/3.0
+c            ENDIF
 
          END DO
 C$OMP END DO
@@ -448,18 +450,30 @@ c
 c
 c--Work out numerator for pressure
 c
-               pres_numerator = pres_numerator+
-     &              dvdWmj05*(vpi+presjoverrhoj2)
-cc     &              + pmjdW*cs/rhomean*1.0*(EU0(2,i)-EU0(2,j))
-c
-               pres_denominator = pres_denominator+
-     &              dvdWmj05*presioverrhoi2/EU0(2,i)
-
 c               pres_numerator = pres_numerator+
-c     &              dvdWmj05*(vpi)
+c     &              dvdWmj05*(vpi+presjoverrhoj2)
+ccc     &              + pmjdW*cs/rhomean*1.0*(EU0(2,i)-EU0(2,j))
 c
 c               pres_denominator = pres_denominator+
-c     &              2.0 * dvdWmj05*presioverrhoi2/EU0(2,i)
+c     &              dvdWmj05*presioverrhoi2/EU0(2,i)
+
+               pres_numerator = pres_numerator+
+     &              dvdWmj05*(vpi)
+
+               pres_denominator = pres_denominator+
+     &              2.0 * dvdWmj05*presioverrhoi2/EU0(2,i)
+c
+c--Add thermal conductivity
+c
+               IF (ifsvi.EQ.7) THEN
+                  vsig = cs - 2.0*dvdWmj05/pmjdW
+                  IF (vsig.GT.0.0) THEN
+                     pres_numerator = pres_numerator -
+     &                    0.05*pmjdW*vsig/rhomean*EU0(2,j)
+                     pres_denominator = pres_denominator +
+     &                    0.05*pmjdW*vsig/rhomean
+                  ENDIF
+               ENDIF
 c
 c--Set c*lambda/kappa*rho term for current quantities
 c

@@ -177,7 +177,7 @@ C$OMP& shared(alphaMMpass,alphamin,ddv,ddvxyz)
 C$OMP& shared(igrp,igphi,ifsvi,iexf)
 C$OMP& shared(ifcor,iexpan,iener,damp)
 C$OMP& shared(realtime,ekcle,encal,dedxyz)
-C$OMP& private(n,ipart,stepsi,numneigh)
+C$OMP& private(n,ipart,stepsi,numneigh,vsig)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(poteni,dphiti,gradxi,gradyi,gradzi,artxi,artyi,artzi)
 C$OMP& private(pdvi,dqi,rhoi,pro2i,vsoundi,k,j,hj,dx,dy,dz)
@@ -442,6 +442,8 @@ ccc               ddvscalar = ddvscalar+hi*projv*rij/(rij**2+epsil2*hi*hi)
 c
 c--Artificial viscosity and energy dissipation
 c
+               vsbar = 0.5*(vsoundi + vsound(j))
+
 c             IF (ifsvi.NE.0 .AND. projv.LT.0.) THEN
                IF (ifsvi.NE.0 .AND. projv.LT.0. .AND. j.LE.npart) THEN
 c
@@ -454,10 +456,12 @@ c     If ifsvi=5 then viscosity in Hernquist and Katz, ApJS 70, 424
 c     If ifsvi=6 then viscosity switch in Morris and Monaghan, 1997, 
 c                  J. Comp. Phys. 136, 41-50.  This formulation does not use
 c                  beta - it sets beta to be 2*alpha automatically.
+c     If ifsvi=7 then use standard viscosity (type 1) but with thermal 
+c                 conductivity term as well
 c
                   IF (ifsvi.NE.5) THEN
-                     vsbar = 0.5*(vsoundi + vsound(j))
-                     f = projv*v/(v2 + epsil)
+ccc                     f = projv*v/(v2 + epsil)
+                     f = projv
                      IF (ifsvi.EQ.2 .OR. ifsvi.EQ.4) THEN
                         adivi = ABS(divv(ipart)/rhoi)
                         acurlvi = ABS(curlv(ipart)/rhoi)
@@ -513,6 +517,16 @@ c
                   artyi = artyi + t12j*runiy
                   artzi = artzi + t12j*runiz
                   dqi = dqi + t12j*projv
+               ENDIF
+c
+c--Add thermal conductivity
+c
+               IF (ifsvi.EQ.7) THEN
+                  vsig = vsbar - projv
+                  IF (vsig.GT.0.0) THEN
+                     dqi = dqi + 0.05*
+     &                    grpm*vsig/robar*(vxyzu(4,ipart)-vxyzu(4,j))
+                  ENDIF
                ENDIF
             ENDIF
  70      CONTINUE

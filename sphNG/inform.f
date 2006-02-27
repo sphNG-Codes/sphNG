@@ -62,6 +62,20 @@ c
       romean2 = 0.
       romax2 = 0.
       rocen2 = 0.
+
+      tgmean1 = 0.
+      tgmax1 = 0.
+      tgcen1 = 0.
+      tgmean2 = 0.
+      tgmax2 = 0.
+      tgcen2 = 0.
+
+      trmean1 = 0.
+      trmax1 = 0.
+      trcen1 = 0.
+      trmean2 = 0.
+      trmax2 = 0.
+      trcen2 = 0.
       valphamax1 = -1.0
       valphamin1 = 10.0
       valphamax2 = -1.0

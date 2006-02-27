@@ -93,6 +93,10 @@ c--Default int
          CALL quit
       ENDIF
       READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill
+      IF (npart.GT.idim) THEN
+         WRITE (*,*) 'ERROR in rdump: npart>idim'
+         CALL quit
+      ENDIF
 c--int*1, int*2, int*4, int*8
       DO i = 1, 4
          READ (idisk1, END=100) number

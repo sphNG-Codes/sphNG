@@ -82,7 +82,7 @@ c
          OPEN (UNIT = 8, FILE = ifile(k), FORM = 'unformatted')
          PRINT *, 'reading file ', ifile(k)
 
-         DO 10 image = 1, 9999
+         DO 10 image = 1, 1
 
             PRINT *, 'reading image number ', image
 c
@@ -170,7 +170,7 @@ c
 c--Number of array lengths
 c
       READ (8, END=100) number
-      IF (number.NE.2) THEN
+      IF (number.LT.2 .OR. number.GT.4) THEN
          WRITE (*,*) 'ERROR 7 in rdump'
          CALL quit
       ENDIF
@@ -484,6 +484,7 @@ c
          iorig(i) = i
       END DO
       nfullstep = 1
+      PRINT *,'writing dump file'
       CALL wdump(7)
 c
 c--End writing of full dump file

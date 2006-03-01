@@ -45,7 +45,6 @@ c************************************************************
       INCLUDE 'COMMONS/ptbin'
       INCLUDE 'COMMONS/active'
       INCLUDE 'COMMONS/mhd'
-      INCLUDE 'COMMONS/Bzero'
       INCLUDE 'COMMONS/setlocal'
 
       CHARACTER*20 filevelx, filevely, filevelz
@@ -1327,13 +1326,7 @@ c
       READ (*, 99004) iok
       IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim) CALL hcalc
 
-      IF (imhd.EQ.idim) THEN      
-         Bextx = Bxzero
-         Bexty = Byzero
-         Bextz = Bzzero
-         WRITE(*,99055) Bextx,Bexty,Bextz
-99055    FORMAT(' Setting external B field = ',3(1PE12.4,2X)) 
-      ELSE
+      IF (imhd.NE.idim) THEN      
          Bextx = 0.
          Bexty = 0.
          Bextz = 0.

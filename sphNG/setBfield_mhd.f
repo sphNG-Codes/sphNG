@@ -22,8 +22,8 @@ c************************************************************
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/polyk2'
-      INCLUDE 'COMMONS/Bzero'
       INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/presb'
       
       INTEGER iBfield      
       CHARACTER*1 isetB
@@ -50,6 +50,8 @@ c
       IF (varmhd.EQ.'e') varmhd = 'eulr'
       IF (varmhd.NE.'Bvol' .and. varmhd.NE.'Brho'
      &    .and. varmhd.NE.'eulr') GOTO 50
+      WRITE(*,99025) ' Magnetic field variable = ',varmhd
+99025 FORMAT(A,A4)
 
 100   WRITE(*, 99003)
 99003 FORMAT(//, ' INITIAL MAGNETIC FIELD GEOMETRY ', //,
@@ -128,16 +130,44 @@ c
         ENDIF
 
       ELSEIF(iBfield.EQ.2) THEN ! this is NOT divergence free
-        WRITE(*,99005) umagfd
-        WRITE(*,99006) 'maximum B'
-        READ(*,*) Binit        
-        Binit5 = 0.5*Binit
+        WRITE(*,99104) umagfd
+c        WRITE(*,99006) 'maximum B'
+c        READ(*,*) Binit        
+        rbump = 1./sqrt(8.)        ! radius of the initial bump
+        rbump2 = rbump*rbump
+
+c        Binit5 = 0.5*Binit
+c
+c  Setup for the Bx peak advection problem in Dedner et al JCP 175, 645  !!
+c  Bx = r(x^2 + y^2)/sqrt(4pi) (ie div B .ne. 0)                         !!
+c  Basically to see how an initially non-zero div B propagates           !!
+c
+        Bzzero = 1./sqrt(4.*pi)
         DO i=1,npart
-           Bevolxyz(1,i) = 2.0*(Binit*ran1(1) - Binit5)
-           Bevolxyz(2,i) = 2.0*(Binit*ran1(1) - Binit5)
-           Bevolxyz(3,i) = 2.0*(Binit*ran1(1) - Binit5)
+           rr = xyzmh(1,i)*xyzmh(1,i) + xyzmh(2,i)*xyzmh(2,i) +
+     &          xyzmh(3,i)*xyzmh(3,i)
+           IF (rr.le.rbump2) THEN
+              Bevolxyz(1,i) = ((rr/rbump2)**4 - 2.*(rr/rbump2)**2 
+     &                            + 1.)/sqrt(4.*pi)
+           ELSE
+              Bevolxyz(1,i) = 0.
+           ENDIF
+           Bevolxyz(2,i) = 0.
+           Bevolxyz(3,i) = Bzzero
+c           Bevolxyz(1,i) = 2.0*(Binit*ran1(1) - Binit5)
+c           Bevolxyz(2,i) = 2.0*(Binit*ran1(1) - Binit5)
+c           Bevolxyz(3,i) = 2.0*(Binit*ran1(1) - Binit5)
         ENDDO
       ENDIF          
-      
+c
+c--set external field components
+c (required for const. stress boundaries and current projection)
+c
+      Bextx = Bxzero
+      Bexty = Byzero
+      Bextz = Bzzero
+      WRITE(*,99055) Bextx,Bexty,Bextz
+99055 FORMAT(' Setting external B field = ',3(1PE12.4,2X)) 
+
       RETURN
       END

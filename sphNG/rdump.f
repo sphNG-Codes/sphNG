@@ -111,6 +111,7 @@ c--Default real
          READ (idisk1, END=100) gt, dtmaxdp, gamma, rhozero, RK2,
      &        escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
      &        specang, ptmassin, tmag, Bextx, Bexty, Bextz
+         WRITE(*,*) 'External field found, Bext = ',Bextx,Bexty,Bextz
       ELSE
          IF (imhd.EQ.idim) THEN
             WRITE(*,*) 'WARNING: dump does not contain external field'

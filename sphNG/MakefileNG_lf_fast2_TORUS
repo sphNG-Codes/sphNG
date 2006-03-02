@@ -1,0 +1,70 @@
+.SUFFIXES:
+.SUFFIXES: .f .o  .F
+
+F90COMP=g95 -r8
+
+
+TORUSLIB= -L/h/mbate/New/sphNG_TORUS/torus -ltorus -L/star/lib `ndf_link` -L/usr/lib/gcc/i586-mandrake-linux-gnu/3.4.1 -lg2c
+
+F77SOURCEA= 
+
+F77SOURCEB= sph.f accrete_P.f addump.f angmom.f boundry.f \
+	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f \
+	chekopt.f condense.f constan.f coriol.f cyldis.f cylmas.f cylpres.f \
+	cylvel.f densityi_P.f derivi_P.f endrun.f energ.f eospg.f \
+	error.f evol.f externf.f extract.f \
+	file.f forcei_P.f getneigh.f \
+	getcv.f get1overmu.f getkappa.f \
+	gforsa_P.f gforsn_P.f gforspt_P.f \
+	ghostp1.f ghostp2.f ghostp3.f ghostp11.f ghostp100.f \
+	gptall.f hcalc.f hdot_P.f \
+	header.f homexp.f indexx.f indexx2.f indexx3.f inform.f \
+	inopts.f insulate_TREE_P.f integs.f ktable.f labrun.f lunit_double.f \
+	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
+	newrun.f options.f phoenix.f phoenix2.f \
+	place.f preset.f \
+	prout.f ran1.f rdump.f reduce.f revtree_P_fast2.f save.f \
+	scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
+	sphdis.f sphmas.f sphpres.f sphvel.f step_P_lf_fast2_gradh.f \
+	timestep.f toten.f treef_P.f unifdis.f unit.f \
+	wdump.f wrinsph.f zzibm.f \
+	montecarloRT.f
+EXE= sphtorus
+F77OBJA= $(F77SOURCEA:.f=.o)
+F77OBJB= $(F77SOURCEB:.f=.o)
+
+ALLOBJ= $(F77OBJA) $(F77OBJB)
+
+F77A=    $(F90COMP)   $(DEBUGFLAG) $(FASTFLAG) $(MATHTRAP) -ignore_suffix
+F77B=    $(F90COMP)   $(DEBUGFLAG) $(FASTFLAG) $(MATHTRAP) 
+
+LIBDIR=
+LIBS=   
+
+.f90.o:
+	$(F90COMP) -c $<
+
+.f.o: 
+	$(F90COMP) -c $<
+
+
+all:    $(ALLOBJ)
+	$(F90COMP) -o $(EXE) \
+	$(F77OBJA) $(F77OBJB) $(TORUSLIB) $(STARLIBS) $(F2CLIB) 
+
+
+clean:
+	@/bin/rm -f *.o *~ *.mod *.il *.pc *.d 
+
+cleanf77:
+	@/bin/rm -f -v $(F77SOURCEB) *~ *.mod *.il *.pc *.d
+
+# DO NOT DELETE
+
+
+
+
+
+
+
+

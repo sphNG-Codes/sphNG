@@ -85,29 +85,21 @@ c
          radius2aaa = dxmax2 + dymax2 + dzmax2
 
          IF ((radius2iii.GT.delta2 .AND. dxmin.GT.delta .AND. 
-     &          dymin.GT.delta .AND. dzmin.GT.delta .AND.
-     &          radius2iii.LT.radk2) .OR.
+     &    dymin.GT.delta.AND.dzmin.GT.delta.AND.radius2iii.LT.radk2).OR.
      &      (radius2iia.GT.delta2 .AND. dxmin.GT.delta .AND. 
-     &          dymin.GT.delta .AND. dzmax.GT.delta .AND.
-     &          radius2iia.LT.radk2) .OR.
+     &    dymin.GT.delta.AND.dzmax.GT.delta.AND.radius2iia.LT.radk2).OR.
      &      (radius2iai.GT.delta2 .AND. dxmin.GT.delta .AND. 
-     &          dymax.GT.delta .AND. dzmin.GT.delta .AND.
-     &          radius2iai.LT.radk2) .OR.
+     &    dymax.GT.delta.AND.dzmin.GT.delta.AND.radius2iai.LT.radk2).OR.
      &      (radius2iaa.GT.delta2 .AND. dxmin.GT.delta .AND. 
-     &          dymax.GT.delta .AND. dzmax.GT.delta .AND.
-     &          radius2iaa.LT.radk2) .OR.
+     &    dymax.GT.delta.AND.dzmax.GT.delta.AND.radius2iaa.LT.radk2).OR.
      &      (radius2aii.GT.delta2 .AND. dxmax.GT.delta .AND. 
-     &          dymin.GT.delta .AND. dzmin.GT.delta .AND.
-     &          radius2aii.LT.radk2) .OR.
+     &    dymin.GT.delta.AND.dzmin.GT.delta.AND.radius2aii.LT.radk2).OR.
      &      (radius2aia.GT.delta2 .AND. dxmax.GT.delta .AND. 
-     &          dymin.GT.delta .AND. dzmax.GT.delta .AND.
-     &          radius2aia.LT.radk2) .OR.
+     &    dymin.GT.delta.AND.dzmax.GT.delta.AND.radius2aia.LT.radk2).OR.
      &      (radius2aai.GT.delta2 .AND. dxmax.GT.delta .AND. 
-     &          dymax.GT.delta .AND. dzmin.GT.delta .AND.
-     &          radius2aai.LT.radk2) .OR.
+     &    dymax.GT.delta.AND.dzmin.GT.delta.AND.radius2aai.LT.radk2).OR.
      &      (radius2aaa.GT.delta2 .AND. dxmax.GT.delta .AND. 
-     &          dymax.GT.delta .AND. dzmax.GT.delta .AND.
-     &          radius2aaa.LT.radk2)) THEN
+     &  dymax.GT.delta.AND.dzmax.GT.delta.AND.radius2aaa.LT.radk2)) THEN
             hasghost(i) = .TRUE.
             DO kk=1,7
                nghost = nghost + 1
@@ -166,22 +158,18 @@ c
          radius2oai = dzmin2 + dymax2
          radius2oia = dzmax2 + dymin2
          radius2oaa = dzmax2 + dymax2
-         IF ((radius2iio.GT.delta2 .AND. dxmin.GT.delta .AND. 
-     &           dymin.GT.delta .AND. radius2iio.LT.radk2) .OR.
-     &     (radius2iao.GT.delta2 .AND. dxmin.GT.delta .AND. 
-     &           dymax.GT.delta .AND. radius2iao.LT.radk2) .OR.
-     &     (radius2aio.GT.delta2 .AND. dxmax.GT.delta .AND. 
-     &           dymin.GT.delta .AND. radius2aio.LT.radk2) .OR.
-     &     (radius2aao.GT.delta2 .AND. dxmax.GT.delta .AND. 
-     &           dymax.GT.delta .AND. radius2aao.LT.radk2) .OR.
-     &     (radius2ioi.GT.delta2 .AND. dxmin.GT.delta .AND. 
-     &           dzmin.GT.delta .AND. radius2ioi.LT.radk2) .OR.
-     &     (radius2ioa.GT.delta2 .AND. dxmin.GT.delta .AND. 
-     &           dzmax.GT.delta .AND. radius2ioa.LT.radk2) .OR.
-     &     (radius2aoi.GT.delta2 .AND. dxmax.GT.delta .AND. 
-     &           dzmin.GT.delta .AND. radius2aoi.LT.radk2) .OR.
-     &     (radius2aoa.GT.delta2 .AND. dxmax.GT.delta .AND. 
-     &           dzmax.GT.delta .AND. radius2aoa.LT.radk2) .OR.
+         IF ((radius2iio.GT.delta2.AND.dxmin.GT.delta.AND.dymin.GT.delta
+     &    .AND.radius2iio.LT.radk2).OR.(radius2iao.GT.delta2.AND.dxmin
+     &    .GT.delta.AND.dymax.GT.delta .AND. radius2iao.LT.radk2) .OR.
+     &    (radius2aio.GT.delta2.AND.dxmax.GT.delta.AND.dymin.GT.delta
+     &    .AND.radius2aio.LT.radk2).OR.(radius2aao.GT.delta2.AND.dxmax
+     &    .GT.delta.AND.dymax.GT.delta .AND. radius2aao.LT.radk2) .OR.
+     &    (radius2ioi.GT.delta2.AND.dxmin.GT.delta.AND.dzmin.GT.delta 
+     &    .AND.radius2ioi.LT.radk2).OR.(radius2ioa.GT.delta2.AND.dxmin
+     &    .GT.delta.AND.dzmax.GT.delta .AND. radius2ioa.LT.radk2) .OR.
+     &    (radius2aoi.GT.delta2.AND.dxmax.GT.delta.AND.dzmin.GT.delta
+     &    .AND.radius2aoi.LT.radk2).OR.(radius2aoa.GT.delta2.AND.dxmax
+     &    .GT.delta.AND.dzmax.GT.delta .AND. radius2aoa.LT.radk2) .OR.
      &     (radius2oii.GT.delta2 .AND. dzmin.GT.delta .AND. 
      &           dymin.GT.delta .AND. radius2oii.LT.radk2) .OR.
      &     (radius2oia.GT.delta2 .AND. dzmin.GT.delta .AND. 

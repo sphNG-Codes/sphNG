@@ -242,9 +242,11 @@ c      ENDIF
             ENDIF
             imfac(ipart) = 0
             iparent = isibdaupar(3,ipart)
-            iflagtree(iparent) = .TRUE.
-            numberparents = numberparents + 1
-            listparents(numberparents) = iparent
+            IF (.NOT.iflagtree(iparent)) THEN
+               iflagtree(iparent) = .TRUE.
+               numberparents = numberparents + 1
+               listparents(numberparents) = iparent
+            ENDIF
          END DO
 c
 c--Note: could sort list of parents here!
@@ -276,7 +278,11 @@ C$OMP DO SCHEDULE(static)
                IF (.NOT.iflagtree(new)) THEN
                   WRITE (iprint, *) 'ERROR - revtreeX1',new,i
                   WRITE (iprint, *) nlst,nptmass,iptintree,itbinupdate,
-     &                 nbinmax,nlstacc,numberparents,numberstart
+     &             nbinmax,nlstacc,numberparents,numberstart
+                  
+                  DO j = MAX(1,i-10),numberparents
+               WRITE (*,*) j,listparents(j),iflagtree(listparents(j))
+                  END DO
                   CALL quit
                ENDIF
 

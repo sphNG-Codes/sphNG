@@ -11,13 +11,13 @@
       INCLUDE 'COMMONS/call'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/phase'
+      INCLUDE 'COMMONS/ptmass'
 
       DIMENSION temperature(idim)
       
       CHARACTER*7 where
 
       DATA where/'monte'/
-      WRITE (*,*) 'Monte Carlo, icall ',icall,nlstall,nlst_end
 c     
 c--Only perform radiative transfer if ptmass exist, otherwise don't modify u()
 c     
@@ -25,6 +25,7 @@ c
 c--Find mass of gas particle (assume all same mass at moment)
 c   
       IF (nptmass.GT.0) THEN
+        WRITE (*,*) 'Monte Carlo, icall ',icall,nlstall,nlst_end
          DO i = 1, npart
             IF (iphase(i).EQ.0) THEN
                gaspartmass = xyzmh(4,i)

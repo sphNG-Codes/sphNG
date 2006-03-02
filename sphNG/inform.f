@@ -119,6 +119,10 @@ c
                temprad = (ekcle(1,i)*rho(i)/uradconst)**0.25
                trmean1 = trmean1 + temprad
                trmax1 = MAX(trmax1, temprad)
+            ELSEIF (encal.EQ.'m') THEN
+               tempgas = vxyzu(4,i)/getcv(rho(i),vxyzu(4,i))
+               tgmean1 = tgmean1 + tempgas
+               tgmax1 = MAX(tgmax1, tempgas)
             ELSEIF (gamma.EQ.1.0) THEN
                tempgas = gmw*uergg/Rg*2.0/3.0*vxyzu(4,i)
                tgmean1 = tgmean1 + tempgas
@@ -231,10 +235,15 @@ c
          ENDIF
       END DO
       dmax1 = SQRT(dmax1)
-      IF (imin.NE.0) rocen1 = rho(imin)
-      IF (encal.EQ.'r') THEN
-         tgcen1 = vxyzu(4,imin)/ekcle(3,imin)
-         trcen1 = (ekcle(1,imin)*rocen1/uradconst)**0.25
+      IF (imin.NE.0) THEN
+         rocen1 = rho(imin)
+         IF (encal.EQ.'r') THEN
+            tgcen1 = vxyzu(4,imin)/ekcle(3,imin)
+            trcen1 = (ekcle(1,imin)*rocen1/uradconst)**0.25
+         ELSEIF (encal.EQ.'m') THEN
+            tgcen1 = vxyzu(4,imin)/getcv(rho(imin),vxyzu(4,imin))
+            trcen1 = (ekcle(1,imin)*rocen1/uradconst)**0.25
+         ENDIF
       ENDIF
 
       dmax2 = 0.

@@ -198,6 +198,7 @@ c
 c
 c--Load in tables of opacity and cv
 c
+c      IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
       IF (encal.EQ.'r') THEN
          OPEN(UNIT=8,FILE='/home/mbate/tables/opacitytbl')
          DO i=1, opmxtg

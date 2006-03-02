@@ -9,6 +9,10 @@
 
       INCLUDE 'COMMONS/tgtbl'
       INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/physcon'
+
+c      getcv = 1.5*Rg/uergg     
+c      RETURN
       
       rho=rho2*umass/udist**3!udens
       u=u2*uergg

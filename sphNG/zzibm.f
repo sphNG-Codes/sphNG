@@ -1,11 +1,12 @@
       SUBROUTINE zzibm
-
 c************************************************************
 c                                                           *
 c  This routine contains all machine dependant routines     *
 c                                                           *
 c************************************************************
 
+c      use f90_unix
+      
       INCLUDE 'COMMONS/ibmcom'
 
       DIMENSION ivalues(8), istatb(19)
@@ -79,8 +80,9 @@ c
 c--Check for file status
 c
       ENTRY statfile(file, ifsize)
-      ifile = lstat(file, istatb)
-      ifsize = istatb(8)
+c      ifile = lstat(file, istatb)
+c      ifsize = istatb(8)
+      ifsize = 0
       RETURN
 c
 c--Get argument on command line

@@ -9,6 +9,10 @@
 
       INCLUDE 'COMMONS/mutbl'
       INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/astrcon'
+      
+c      get1overmu = 1.0/gmw     
+c      RETURN
       
       rho=rho2*umass/udist**3!udens
       u=u2*uergg

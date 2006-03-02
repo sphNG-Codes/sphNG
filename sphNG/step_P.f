@@ -547,7 +547,7 @@ C$OMP& private(j,k,deltat)
             DO k = 1, 3
                dumvxyzu(k,j) = vxyzu(k,j) + deltat*f1vxyzu(k,j)
             END DO
-            IF (encal.NE.'r') THEN 
+            IF (encal.NE.'r' .AND. encal.NE.'m') THEN 
                dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
             ELSE
                dumvxyzu(4,j) = vxyzu(4,j)
@@ -590,7 +590,7 @@ C$OMP& private(j,k,ipart,deltat)
                      DO k = 1, 3
             dumvxyzu(k,ipart) = vxyzu(k,ipart) + deltat*f1vxyzu(k,ipart)
                      END DO
-                     IF (encal.NE.'r') THEN
+                     IF (encal.NE.'r' .AND. encal.NE.'m') THEN
             dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                      ELSE
                         dumvxyzu(4,ipart) = vxyzu(4,ipart)
@@ -655,7 +655,7 @@ C$OMP& private(j,k,l,deltat)
             DO l = 1, 3
                dumvxyzu(l,j) = vxyzu(l,j)
             END DO
-            IF (encal.NE.'r') THEN
+            IF (encal.NE.'r' .AND. encal.NE.'m') THEN
                dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
             ELSE
                dumvxyzu(4,j) = vxyzu(4,j)
@@ -950,7 +950,8 @@ c     &           vystore*dtf22dtfull*f2vxyzu(1,i))
 c
 c--Update u(i) and h(i)
 c
-            IF (encal.NE.'r') vxyzu(4,i) = vxyzu(4,i) + 
+            IF (encal.NE.'r' .AND. encal.NE.'m') 
+     &           vxyzu(4,i) = vxyzu(4,i) + 
      &           dtf21*f1vxyzu(4,i) + dtf22*f2vxyzu(4,i)
 
             IF (iener.EQ.2 .AND. vxyzu(4,i).LT.0.0) vxyzu(4,i)=0.15
@@ -1170,7 +1171,7 @@ C$OMP& private(j,k,deltat)
             DO k = 1, 3
                dumvxyzu(k,j) = vxyzu(k,j) + deltat*f1vxyzu(k,j)
             END DO
-            IF (encal.NE.'r') THEN
+            IF (encal.NE.'r' .AND. encal.NE.'m') THEN
                dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
             ELSE
                dumvxyzu(4,j) = vxyzu(4,j)
@@ -1212,7 +1213,7 @@ C$OMP& private(j,k,ipart,deltat)
                      DO k = 1, 3
            dumvxyzu(k,ipart) = vxyzu(k,ipart) + deltat*f1vxyzu(k,ipart)
                      END DO
-                     IF (encal.NE.'r') THEN
+                     IF (encal.NE.'r' .AND. encal.NE.'m') THEN
            dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                      ELSE
                         dumvxyzu(4,ipart) = vxyzu(4,ipart)
@@ -1277,7 +1278,7 @@ C$OMP& private(j,k,l,deltat)
             DO l = 1, 3
                dumvxyzu(l,j) = vxyzu(l,j)
             END DO
-            IF (encal.NE.'r') THEN
+            IF (encal.NE.'r' .AND. encal.NE.'m') THEN
                dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
             ELSE
                dumvxyzu(4,j) = vxyzu(4,j)
@@ -1904,7 +1905,7 @@ c
                   DO l = 1, 3
                      dumvxyzu(l,j) = vxyzu(l,j)
                   END DO
-                  IF (encal.NE.'r') THEN
+                  IF (encal.NE.'r' .AND. encal.NE.'m') THEN
                      dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                   ELSE
                      dumvxyzu(4,j) = vxyzu(4,j)
@@ -2072,7 +2073,7 @@ c
                   DO l = 1, 3
                      dumvxyzu(l,j) = vxyzu(l,j)
                   END DO
-                  IF (encal.NE.'r') THEN
+                  IF (encal.NE.'r' .AND. encal.NE.'m') THEN
                      dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                   ELSE
                      dumvxyzu(4,j) = vxyzu(4,j)

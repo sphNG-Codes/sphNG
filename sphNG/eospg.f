@@ -104,6 +104,14 @@ c
      &        get1overmu(rho(ipart),vxyzu(4,ipart))/uergg
             vsound(ipart) = SQRT(gamma*pr(ipart)/rho(ipart))
 c
+c--Radiative transfer equation of state using Monte Carlo code
+c
+      ELSEIF (encal.EQ.'m') THEN
+           pr(ipart)= Rg*rho(ipart)*(vxyzu(4,ipart)/
+     &        getcv(rho(ipart),vxyzu(4,ipart)))*
+     &        get1overmu(rho(ipart),vxyzu(4,ipart))/uergg
+            vsound(ipart) = SQRT(gamma*pr(ipart)/rho(ipart))
+c
 c--Polytropic equation of state
 c
       ELSEIF (encal.EQ.'p') THEN

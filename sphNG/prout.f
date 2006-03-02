@@ -201,7 +201,7 @@ c
 99206       FORMAT (' mag field    min  :', 1PE14.5, 'mean:', 1PE14.5,
      &              ' max:', 1PE14.5,/)         
          ENDIF
-         IF (encal.EQ.'r') THEN
+         IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
             WRITE (iprint, 99106, ERR=100) trmean1, trmax1, trcen1
 99106       FORMAT (' temper. rad. mean :', 1PE14.5, ' max:', 
      &           1PE14.5, ' cen:', 1PE14.5, /)

@@ -602,7 +602,7 @@ c 444        CONTINUE
 c
 c--Update u(i) and h(i)
 c
-            IF (encal.NE.'r') 
+            IF (encal.NE.'r' .AND. encal.NE.'m') 
      &           vxyzu(4,i) = vxyzu(4,i) + dtfull*f1vxyzu(4,i)
             IF (iener.EQ.2 .AND. vxyzu(4,i).LT.0.0) vxyzu(4,i)=0.15
 
@@ -693,7 +693,7 @@ c
             END DO
             dumxyzmh(4,j) = xyzmh(4,j)
             IF (iphase(j).EQ.0) THEN
-               IF (encal.NE.'r') THEN
+               IF (encal.NE.'r' .AND. encal.NE.'m') THEN
                   dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
                ELSE
                   dumvxyzu(4,j) = vxyzu(4,j)
@@ -740,7 +740,7 @@ c
                   END DO
                   dumxyzmh(4,ipart) = xyzmh(4,ipart)
                   IF (iphase(ipart).EQ.0) THEN
-                     IF (encal.NE.'r') THEN
+                     IF (encal.NE.'r' .AND. encal.NE.'m') THEN
                         dumvxyzu(4,ipart) = vxyzu(4,ipart) +
      &                       deltat*f1vxyzu(4,ipart)
                      ELSE
@@ -814,7 +814,7 @@ c
                   END DO
                   dumxyzmh(4,ipart) = xyzmh(4,ipart)
                   IF (iphase(ipart).EQ.0) THEN
-                     IF (encal.NE.'r') THEN
+                     IF (encal.NE.'r' .AND. encal.NE.'m') THEN
                         dumvxyzu(4,ipart) = vxyzu(4,ipart) +
      &                       deltat*f1vxyzu(4,ipart)
                      ELSE
@@ -920,7 +920,7 @@ c
                DO l = 1, 3
                   dumvxyzu(l,j) = vxyzu(l,j)
                END DO
-               IF (encal.NE.'r') THEN
+               IF (encal.NE.'r' .AND. encal.NE.'m') THEN
                   dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                ELSE
                   dumvxyzu(4,j) = vxyzu(4,j)
@@ -1329,7 +1329,7 @@ c
                   DO l = 1, 3
                      dumvxyzu(l,j) = vxyzu(l,j)
                   END DO
-                  IF (encal.NE.'r') THEN
+                  IF (encal.NE.'r' .AND. encal.NE.'m') THEN
                      dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                   ELSE
                      dumvxyzu(4,j) = vxyzu(4,j)
@@ -1498,7 +1498,7 @@ c
                   DO l = 1, 3
                      dumvxyzu(l,j) = vxyzu(l,j)
                   END DO
-                  IF (encal.NE.'r') THEN
+                  IF (encal.NE.'r' .AND. encal.NE.'m') THEN
                      dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                   ELSE
                      dumvxyzu(4,j) = vxyzu(4,j)

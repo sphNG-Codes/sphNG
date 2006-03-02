@@ -236,10 +236,15 @@ c--Compute implicit radiative transfer
 c
       IF (itiming) CALL getused(tass1)
 
-      IF(encal.EQ.'r') THEN
-         WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
-c         CALL ASS(nlst_in,nlst_end,nlstall,llist,dt,itime,npart,
+      IF(encal.EQ.'r' .OR. encal.EQ.'m') THEN
+         WRITE (*,*) 'Calling RT at realtime ',dt*itime/imaxstep+gt
+         IF (encal.EQ.'r') THEN
+c           CALL ASS(nlst_in,nlst_end,nlstall,llist,dt,itime,npart,
 c     &        xyzmh,vxyzu,ekcle,dumrho,dedxyz)
+         ELSE
+c            CALL montecarloRT(nlst_in,nlst_end,nlstall,llist,npart,
+c     &         xyzmh,vxyzu,dumrho)
+         ENDIF
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstall,vxyzu,dumrho,pr,vsound,llist,ekcle)

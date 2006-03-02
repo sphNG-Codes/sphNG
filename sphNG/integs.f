@@ -290,7 +290,7 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
          ELSE
             WRITE (iprint, 98020)
             WRITE (iprint, 98022) tsteponly/60., tsteponly/tstep*100.
-            IF (encal.EQ.'r') 
+            IF (encal.EQ.'r' .OR. encal.EQ.'m') 
      &           WRITE (iprint, 98041) tass/60.,   tass/tstep*100.
             WRITE (iprint, 98008) tdens/60.,   tdens/tstep*100.
             WRITE (iprint, 98009) tforce/60.,  tforce/tstep*100.

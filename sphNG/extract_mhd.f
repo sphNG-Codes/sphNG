@@ -35,7 +35,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/presb'
 
-      CHARACTER*20 ifile(10), ofile
+      CHARACTER*40 ifile(10), ofile
       CHARACTER*1 iok, iok2, iokm, iaddmhd
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
@@ -43,7 +43,7 @@ c      INCLUDE 'COMMONS/torq'
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
       DIMENSION Bxyz(3,imhd)
       
-1000  FORMAT (A20)
+1000  FORMAT (A40)
 1001  FORMAT (A1)
 
       nfile = 1

@@ -34,23 +34,18 @@ c          ,moresweep,nit,error)
 
       REAL Bxyznew(3,imhd)
       REAL dBxyz(3,imhd)
-      REAL maxerrE
 
-      INTEGER nosweep,lwst,hgst,stepa,sw
-      REAL dW,vpi,dv,b2,b3,b4,b1,dr,hmean,E0ij,E1ij,Rh,Q
-      REAL rhomean,cs,U0i,U0j,a,eta,vmu,dtsweeps
+      INTEGER nosweep
+      REAL dW,dr
       LOGICAL*1 moresweep
-      LOGICAL moresweep2,thirdsweepfail
-      REAL dx,dy,dz,dvz,dvx,dvy,lightspeed
-      LOGICAL qfailmoresw,trapez
+      REAL dx,dy,dz
 
       PARAMETER (icompactmax=100*idim)
       DIMENSION vari(7,idim),varij(4,icompactmax)
-      DIMENSION ivar(2,idim),ijvar(icompactmax)      
-      DIMENSION oneovermu(idim)
+      DIMENSION ivar(2,idim),ijvar(icompactmax)
 
       PARAMETER (ntests=10)
-      REAL xmaxerrold(ntests),xmaxerrcomp(ntests)
+      REAL xmaxerrold(ntests)
 
       REAL maxerrE2
 c
@@ -151,7 +146,7 @@ C$OMP DO SCHEDULE(static)
          ENDIF
 
          rxyi = 0.
-         ryzi = 0.
+         rxzi = 0.
          ryzi = 0.
          rxxi = 0.
          ryyi = 0.

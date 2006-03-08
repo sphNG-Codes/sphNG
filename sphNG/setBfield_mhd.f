@@ -133,7 +133,9 @@ c
         WRITE(*,99104) umagfd
 c        WRITE(*,99006) 'maximum B'
 c        READ(*,*) Binit        
-        rbump = 1./sqrt(8.)        ! radius of the initial bump
+        WRITE(*,99006) 'Enter Binit'
+        READ(*,*) Binit
+        rbump = 4./sqrt(2.)        ! radius of the initial bump
         rbump2 = rbump*rbump
 
 c        Binit5 = 0.5*Binit
@@ -142,13 +144,15 @@ c  Setup for the Bx peak advection problem in Dedner et al JCP 175, 645  !!
 c  Bx = r(x^2 + y^2)/sqrt(4pi) (ie div B .ne. 0)                         !!
 c  Basically to see how an initially non-zero div B propagates           !!
 c
-        Bzzero = 1./sqrt(4.*pi)
+        Bxzero = 0.
+        Byzero = 0.
+        Bzzero = Binit/sqrt(4.*pi)
         DO i=1,npart
            rr = xyzmh(1,i)*xyzmh(1,i) + xyzmh(2,i)*xyzmh(2,i) +
      &          xyzmh(3,i)*xyzmh(3,i)
            IF (rr.le.rbump2) THEN
               Bevolxyz(1,i) = ((rr/rbump2)**4 - 2.*(rr/rbump2)**2 
-     &                            + 1.)/sqrt(4.*pi)
+     &                            + 1.)/sqrt(4.*pi)*Binit
            ELSE
               Bevolxyz(1,i) = 0.
            ENDIF

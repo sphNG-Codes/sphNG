@@ -195,13 +195,54 @@ c
          ENDIF
       ENDIF
 c
-c--Compute forces on EACH particle
+c--Implicit hyperdiffusion of div B
 c
-      IF (itiming) CALL getused(tforce1)
+      IF (itiming) CALL getused(tass1)
 
       CALL forcei(nlst_in,nlst_end,llist,dt,itime,npart,
      &     xyzmh,vxyzu,dvxyzu,dha,dumrho,pr,vsound,alphaMM,ekcle,
      &     dedxyz,Bxyz,dBevolxyz,Bevolxyz)
+
+      IF(imhd.EQ.idim) THEN
+c      IF(.FALSE.) THEN
+         WRITE (*,*) 'Calling Hyper at realtime ',dt*itime/imaxstep+gt
+         CALL divBiterate(dt,nlst_in,nlst_end,npart,llist,
+     &        xyzmh,dumrho,Bxyz)
+
+         IF (varmhd.EQ.'Bvol') THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst_in,nlst_end,Bevolxyz,Bxyz,llist)
+C$OMP& private(i,ipart)
+            DO i = nlst_in,nlst_end
+               ipart = llist(i)
+               Bevolxyz(1,ipart) = Bxyz(1,ipart)
+               Bevolxyz(2,ipart) = Bxyz(2,ipart)
+               Bevolxyz(3,ipart) = Bxyz(3,ipart)
+            END DO
+C$OMP END PARALLEL DO
+         ELSEIF (varmhd.EQ.'Brho') THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst_in,nlst_end,Bevolxyz,Bxyz,llist,dumrho)
+C$OMP& private(i,ipart)
+            DO i = nlst_in,nlst_end
+               ipart = llist(i)
+               Bevolxyz(1,ipart) = Bxyz(1,ipart)/dumrho(ipart)
+               Bevolxyz(2,ipart) = Bxyz(2,ipart)/dumrho(ipart)
+               Bevolxyz(3,ipart) = Bxyz(3,ipart)/dumrho(ipart)
+            END DO
+C$OMP END PARALLEL DO
+         ENDIF
+      END IF
+
+      IF (itiming) THEN
+        CALL getused(tass2)
+        tass = tass + (tass2 - tass1)
+      ENDIF
+
+c
+c--Compute forces on EACH particle
+c
+      IF (itiming) CALL getused(tforce1)
 
       IF (itiming) THEN
          CALL getused(tforce2)

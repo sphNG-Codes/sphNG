@@ -1089,6 +1089,7 @@ C$OMP& shared(it0,ibound,deadbound)
 C$OMP& shared(iprint,xyzmh,dumxyzmh,poten,iphase,ikillpr)
 C$OMP& shared(ikilled,nactive,nkill,time,iorig,nlstacc,listacc)
 C$OMP& shared(anglostx,anglosty,anglostz)
+C$OMP& shared(dumBevolxyz,Bevolxyz)
 C$OMP& private(i,j)
 C$OMP& private(r2,pmassi)
 c
@@ -1143,6 +1144,9 @@ c       but the derivi call doesn't alter them, so putting them back
 c       into u(i) again changes nothing.
 c
          vxyzu(4,i) = dumvxyzu(4,i)
+         Bevolxyz(1,i) = dumBevolxyz(1,i)
+         Bevolxyz(2,i) = dumBevolxyz(2,i)
+         Bevolxyz(3,i) = dumBevolxyz(3,i)
 c
 c--nlmax=1 is the sign that code is running using 'grad-h' so that h is set
 c     inside derivi rather than being evolved.

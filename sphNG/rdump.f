@@ -179,6 +179,8 @@ c
             CALL quit
          ENDIF
          nradtrans = number8
+      ELSE
+         nradtrans = 0
       ENDIF
 c
 c--Read array type 4 header
@@ -192,6 +194,8 @@ c
             CALL quit
          ENDIF
          nmhd = number8
+      ELSE
+         nmhd = 0
       ENDIF
 c
 c--Read array type 1 arrays
@@ -597,7 +601,7 @@ ccc      GOTO 50
 c
 c--Change reference frame
 c
- 50   IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
+      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
 c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2)) THEN
          CALL chanref(icall)
       ELSEIF (ifcor.GT.2) THEN

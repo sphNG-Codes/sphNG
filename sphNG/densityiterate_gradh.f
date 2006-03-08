@@ -1,5 +1,5 @@
       SUBROUTINE densityiterate_gradh (dt,npart,ntot,xyzmh,vxyzu,
-     &            nlst_in,nlst_end,list,itime,ekcle,Beuler,Bxyz)
+     &            nlst_in,nlst_end,list,itime,ekcle,Bevol,Bxyz)
 c************************************************************
 c                                                           *
 c  Subroutine to compute the density and smoothing lengths  *
@@ -21,7 +21,7 @@ c************************************************************
 
       DIMENSION xyzmh(5,idim), vxyzu(4,idim), list(idim)
       DIMENSION ekcle(5,iradtrans)
-      DIMENSION Beuler(3,imhd),Bxyz(3,imhd)
+      DIMENSION Bevol(3,imhd),Bxyz(3,imhd)
 
 c--Neides=INT(4./3.*pi*8.*hfact**3))
       PARAMETER (hfact = 1.2)
@@ -88,7 +88,7 @@ C$OMP& shared(listpm,iphase,dphidh,uradconst,icall,encal)
 C$OMP& shared(iprint,nptmass,iptmass,radcrit2,iorig,third)
 C$OMP& shared(dumrho,iscurrent,npart)
 C$OMP& shared(isteps,it0,it1,imax,imaxstep,dt,itime)
-C$OMP& shared(varmhd,Beuler,Bxyz,vsmooth)
+C$OMP& shared(varmhd,Bevol,Bxyz,vsmooth,Bsmooth)
 C$OMP& private(n,ipart,j,k,xi,yi,zi,vxi,vyi,vzi,pmassi,hi,hj,rhoi)
 C$OMP& private(divvi,curlvxi,curlvyi,curlvzi,gradhi,gradsofti)
 C$OMP& private(pmassj,hi_old,hi1,hi21,hi31,hi41,hneigh)
@@ -280,14 +280,17 @@ c
          vbarxi = 0.
          vbaryi = 0.
          vbarzi = 0.
+         Bbarxi = 0.
+         Bbaryi = 0.
+         Bbarzi = 0.
 
          vxi = vxyzu(1,ipart)
          vyi = vxyzu(2,ipart)
          vzi = vxyzu(3,ipart)
          IF (imhd.EQ.idim) THEN
             IF (varmhd.EQ.'eulr') THEN
-               alphai= Beuler(1,ipart)
-	       betai= Beuler(2,ipart)
+               alphai= Bevol(1,ipart)
+	       betai= Bevol(2,ipart)
             ENDIF
          ENDIF
          
@@ -351,8 +354,8 @@ c--grad alpha and grad beta (Euler potentials)
 c
                IF (imhd.EQ.idim) THEN
                   IF (varmhd.EQ.'eulr') THEN
-                     dalpha= alphai - Beuler(1,j)
-                     dbeta= betai - Beuler(2,j)
+                     dalpha= alphai - Bevol(1,j)
+                     dbeta= betai - Bevol(2,j)
 
                      grpmi= pmassj*grwtij
 
@@ -362,7 +365,7 @@ c
 
                      gradbetaxi= gradbetaxi - grpmi*dbeta*dx
                      gradbetayi= gradbetayi - grpmi*dbeta*dy
-                     gradbetazi= gradbetazi - grpmi*dbeta*dz               
+                     gradbetazi= gradbetazi - grpmi*dbeta*dz
                   ELSE
 c
 c--smoothed velocity for use in the B or B/rho evolution
@@ -370,6 +373,12 @@ c
                      vbarxi = vbarxi + weight*vxyzu(1,j)*wkern
                      vbaryi = vbaryi + weight*vxyzu(2,j)*wkern
                      vbarzi = vbarzi + weight*vxyzu(3,j)*wkern
+c
+c--smoothed Bevol for div B reduction
+c
+                     Bbarxi = Bbarxi + weight*Bevol(1,j)*wkern
+                     Bbaryi = Bbaryi + weight*Bevol(2,j)*wkern
+                     Bbarzi = Bbarzi + weight*Bevol(3,j)*wkern
                   ENDIF
                ENDIF
             ENDIF
@@ -422,6 +431,12 @@ c
      &                                  + weight*vxyzu(2,ipart)*wij(0))
                vsmooth(3,ipart) = cnormk*(vbarzi
      &                                  + weight*vxyzu(3,ipart)*wij(0))
+               Bsmooth(1,ipart) = cnormk*(Bbarxi 
+     &                                  + weight*Bevol(1,ipart)*wij(0))
+               Bsmooth(2,ipart) = cnormk*(Bbaryi
+     &                                  + weight*Bevol(2,ipart)*wij(0))
+               Bsmooth(3,ipart) = cnormk*(Bbarzi
+     &                                  + weight*Bevol(3,ipart)*wij(0))
 c               print*,ipart,'v       = ',vxyzu(1:3,ipart)
 c               print*,ipart,'vsmooth = ',vsmooth(:,ipart)
             ENDIF

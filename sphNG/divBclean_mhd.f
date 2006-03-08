@@ -61,14 +61,14 @@ c      ENDIF
 c
 c--check that the current is non-zero (calculated in last force call)
 c
-      IF (divcurlB(2,1).LT.tiny) THEN
+      IF (abs(divcurlB(2,1)).LT.tiny) THEN
          WRITE(iprint,*) 'WARNING: current = 0 in call to divBclean'
          DO i=1,10
             WRITE(iprint,*) divcurlB(2,i),divcurlB(3,i),divcurlB(4,i)
          ENDDO
       ENDIF
      
-      WRITE(*,99005)
+      WRITE(iprint,99005)
 99005 FORMAT (' INVOKING VECTOR PROJECTION ON DIV B...')
 
 c

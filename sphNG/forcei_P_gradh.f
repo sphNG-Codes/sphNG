@@ -19,6 +19,9 @@ c************************************************************
       DIMENSION dedxyz(3,iradtrans)
       DIMENSION Bxyz(3,imhd),dBxyz(3,imhd)
       DIMENSION Bevolxyz(3,imhd) ! needed for prediction only
+c--this weight is equivalent to m/(rho*h^3) in the grad h version
+      PARAMETER (hfact = 1.2)
+      PARAMETER (weight = 1./hfact**3)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -158,18 +161,20 @@ c     list of neighbours is returned in neighlist(nneigh())
 c     which is a threadprivate variable (one copy for each thread)
 c     NOTE: Assumes that nlmax=1 is set to save memory for grad-h code.
 c     If not, will still work but cache re-use will be VERY BAD !!!!
-c
-            CALL treef(ipart,npart,xyzmh,acc,igphi,fxi,fyi,fzi,poteni)
+c     
+            IF (iphase(ipart).EQ.0 .OR. iptintree.GE.1) THEN
+              CALL treef(ipart,npart,xyzmh,acc,igphi,fxi,fyi,fzi,poteni)
 
-            fxyzu(1,ipart) = fxi
-            fxyzu(2,ipart) = fyi
-            fxyzu(3,ipart) = fzi
-            poten(ipart) = poteni
+               fxyzu(1,ipart) = fxi
+               fxyzu(2,ipart) = fyi
+               fxyzu(3,ipart) = fzi
+               poten(ipart) = poteni
 
-            gravxyzstore(1,ipart) = fxi
-            gravxyzstore(2,ipart) = fyi
-            gravxyzstore(3,ipart) = fzi
-            potenstore(ipart) = poteni
+               gravxyzstore(1,ipart) = fxi
+               gravxyzstore(2,ipart) = fyi
+               gravxyzstore(3,ipart) = fzi
+               potenstore(ipart) = poteni
+            ENDIF
          ELSE
 c
 c--Don't bother to update gravity from gas particles acting on sinks
@@ -382,8 +387,13 @@ c
 	       dBy = Byi - Byj
 	       dBz = Bzi - Bzj
                B2j = Bxj**2 + Byj**2 + Bzj**2
+c               projBsi = Bsmooth(1,ipart)*runix + Bsmooth(2,ipart)*runiy
+c     &                + Bsmooth(3,ipart)*runiz
+c               projBsj = Bsmooth(1,j)*runix + Bsmooth(2,j)*runiy
+c     &                + Bsmooth(3,j)*runiz
                projBi = Bxi*runix + Byi*runiy + Bzi*runiz
                projBj = Bxj*runix + Byj*runiy + Bzj*runiz
+	       projdB = dBx*runix + dBy*runiy + dBz*runiz
             ENDIF
 c
 c--Using hi
@@ -395,7 +405,8 @@ c
                dxx = v2i - index*dvtable	       
                dgrwdx = (grwij(index1)-grwij(index))/dvtable ! slope
 c              (note that kernel gradient is multiplied by gradhi)
-	       grkerni = (grwij(index)+ dgrwdx*dxx)*hi41*gradhi
+	       grkerntable = (grwij(index)+ dgrwdx*dxx)
+               grkerni = grkerntable*hi41*gradhi
                grpmi = grkerni*pmassj
 c
 c--i contribution to pressure gradient and pdv
@@ -429,22 +440,28 @@ c
 	          dByideali = dByideali - grpmi*dvy*projBi
 	          dBzideali = dBzideali - grpmi*dvz*projBi
 c	          dBxideali = dBxideali 
-c     &                - grpmi*(vsmooth(1,ipart)-vsmooth(1,j))*projBi
+c     &                - grpmi*(vsmooth(1,ipart)-vsmooth(1,j))*projBsi
 c	          dByideali = dByideali
-c     &                - grpmi*(vsmooth(2,ipart)-vsmooth(2,j))*projBi
+c     &                - grpmi*(vsmooth(2,ipart)-vsmooth(2,j))*projBsi
 c	          dBzideali = dBzideali
-c     &                - grpmi*(vsmooth(3,ipart)-vsmooth(3,j))*projBi
+c     &                - grpmi*(vsmooth(3,ipart)-vsmooth(3,j))*projBsi
 c		  
 c--compute divB
 c
-		  projdB = dBx*runix + dBy*runiy + dBz*runiz
 	          divBi = divBi - grpmi*projdB
+c	          divBi = divBi - weight*grkerntable*hi1*projdB
 c
 c--compute current
 c	          
                   curlBxi = curlBxi + grpmi*(dBy*runiz - dBz*runiy)
 		  curlByi = curlByi + grpmi*(dBz*runix - dBx*runiz)
 		  curlBzi = curlBzi + grpmi*(dBx*runiy - dBy*runix)
+c                  curlBxi = curlBxi + weight*grkerntable*hi1*
+c     &                               (dBy*runiz - dBz*runiy)
+c		  curlByi = curlByi + weight*grkerntable*hi1*
+c     &                               (dBz*runix - dBx*runiz)
+c		  curlBzi = curlBzi + weight*grkerntable*hi1*
+c     &                               (dBx*runiy - dBy*runix)
                ENDIF
             ELSE
                grkerni = 0.
@@ -544,7 +561,7 @@ c
 		  vs2i = vsoundi**2 + B2i*rho1i
 		  vs2j = vsoundj**2 + B2j*rho1j
 		  vsproji = 2.*vsoundi*projBi*sqrtrho1i
-		  vsprojj = 2.*vsoundj*projBj*SQRT(rho1j)		     
+		  vsprojj = 2.*vsoundj*projBj*SQRT(rho1j)
 		  vsigi = 0.5*(SQRT(vs2i - vsproji)
      &                        +SQRT(vs2i + vsproji))
  		  vsigj = 0.5*(SQRT(vs2j - vsprojj)
@@ -562,6 +579,15 @@ c                    dBzdissi = dBzdissi + termB*(dBz - runiz*projdB)*robar1
 		     dBxdissi = dBxdissi + termB*dBx*robar1
 		     dBydissi = dBydissi + termB*dBy*robar1
 		     dBzdissi = dBzdissi + termB*dBz*robar1
+c
+c--this is grad(div B) for diffusion of divergence errors
+c
+c                     dBxdissi = dBxdissi 
+c     &                  - 100.*termB*(0.2*dBx - runix*projdB)*robar1
+c                     dBydissi = dBydissi
+c     &                  - 100.*termB*(0.2*dBy - runiy*projdB)*robar1
+c                     dBzdissi = dBzdissi
+c     &                  - 100.*termB*(0.2*dBz - runiz*projdB)*robar1
 
 		     !!--add contribution to thermal energy
 		     dB2 = dBx*dBx + dBy*dBy + dBz*dBz

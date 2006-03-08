@@ -196,7 +196,7 @@ c
      &           ((igeom.EQ.4) .AND. (r2.LE.rcyl2) .AND.
      &           (r2.GE.rmind2)) .OR. ((igeom.EQ.5) .AND. 
      &           (r2/rcyl2 + zi*zi/zmax2.LE.1.0) .AND. 
-     &           (r2/rmind2 + z1*z1/(zmax2*(rmind2/rcyl2)).GE.
+     &           (r2/rmind2 + zi*zi/(zmax2*(rmind2/rcyl2)).GE.
      &           1.0)) .OR. (igeom.EQ.6) .OR. (igeom.EQ.7)) THEN
                IF (igeom.EQ.6) THEN
                   IF (d2.LE.rmax2 .AND. d2.GE.rmind2) THEN
@@ -207,7 +207,7 @@ c
                         angvelhere = angvel*(r2/d2)
                      ENDIF
                      accelcent = r1*(angvelhere/r2)**2
-                     accelpt = totptmass/d2*SIN(ATAN2(r1,ABS(z1)))
+                     accelpt = totptmass/d2*SIN(ATAN2(r1,ABS(zi)))
                      IF (accelcent.GT.accelpt) GOTO 150
                   ELSE
                      GOTO 150
@@ -272,7 +272,7 @@ c
      &           ((igeom.EQ.4) .AND. (r2.LE.rcyl2) .AND.
      &           (r2.GE.rmind2)) .OR. ((igeom.EQ.5) .AND.
      &           (r2/rcyl2 + zi*zi/zmax2.LE.1.0) .AND.
-     &           (r2/rmind2 + z1*z1/(zmax2*(rmind2/rcyl2)) .GE.
+     &           (r2/rmind2 + zi*zi/(zmax2*(rmind2/rcyl2)) .GE.
      &           1.0)) .OR. (igeom.EQ.6) .OR. (igeom.EQ.7)) THEN
                IF (igeom.EQ.6) THEN
                   IF (d2.LE.rmax2 .AND. d2.GE.rmind2) THEN
@@ -283,7 +283,7 @@ c
                         angvelhere = angvel*(r2/d2)
                      ENDIF
                      accelcent = r1*(angvelhere/r2)**2
-                     accelpt = totptmass/d2*SIN(ATAN2(r1,ABS(z1)))
+                     accelpt = totptmass/d2*SIN(ATAN2(r1,ABS(zi)))
                      IF (accelcent.GT.accelpt) GOTO 160
                   ELSE
                      GOTO 160
@@ -398,7 +398,7 @@ c           changes here may have stuffed up sphdis.f - D.Price
      &           ((igeom.EQ.4) .AND. (r2.LE.rcyl2) .AND.
      &           (r2.GE.rmind2)) .OR. ((igeom.EQ.5) .AND.
      &           (r2/rcyl2 + zi*zi/zmax2.LE.1.0) .AND.
-     &           (r2/rmind2 + z1*z1/(zmax2*(rmind2/rcyl2)) .GE.
+     &           (r2/rmind2 + zi*zi/(zmax2*(rmind2/rcyl2)) .GE.
      &           1.0)) .OR. (igeom.EQ.6) .OR. (igeom.EQ.7)) THEN
                IF (igeom.EQ.6) THEN
                   IF (d2.LE.rmax2 .AND. d2.GE.rmind2) THEN
@@ -409,7 +409,7 @@ c           changes here may have stuffed up sphdis.f - D.Price
                         angvelhere = angvel*(r2/d2)
                      ENDIF
                      accelcent = r1*(angvelhere/r2)**2
-                     accelpt = totptmass/d2*SIN(ATAN2(r1,ABS(z1)))
+                     accelpt = totptmass/d2*SIN(ATAN2(r1,ABS(zi)))
                      IF (accelcent.GT.accelpt) GOTO 180
                   ELSE
                      GOTO 180

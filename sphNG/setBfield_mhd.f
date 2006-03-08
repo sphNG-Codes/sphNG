@@ -131,9 +131,8 @@ c
 
       ELSEIF(iBfield.EQ.2) THEN ! this is NOT divergence free
         WRITE(*,99104) umagfd
-c        WRITE(*,99006) 'maximum B'
-c        READ(*,*) Binit        
-        WRITE(*,99006) 'Enter Binit'
+        WRITE(*,99106) 'Enter Binit'
+99106   FORMAT(A)
         READ(*,*) Binit
         rbump = 4./sqrt(2.)        ! radius of the initial bump
         rbump2 = rbump*rbump

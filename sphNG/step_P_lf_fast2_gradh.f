@@ -378,8 +378,11 @@ c                        dumBevolxyz(k,i) = Bevolxyz(k,i)
 c                     END DO
 c                  ENDIF
 c               ENDDO
+c               CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
+c     &              npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
 c            ENDIF
 c         ENDIF
+c         RETURN
 
       ELSE
          ntot = npart + nghost
@@ -698,7 +701,7 @@ c
                ELSE
                   dumvxyzu(4,j) = vxyzu(4,j)
                ENDIF
-              IF(iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15 
+              IF(iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
                IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,alphaMM(j)+
      &              deltat*f1ha(2,j))
@@ -1144,9 +1147,15 @@ c       but the derivi call doesn't alter them, so putting them back
 c       into u(i) again changes nothing.
 c
          vxyzu(4,i) = dumvxyzu(4,i)
-         Bevolxyz(1,i) = dumBevolxyz(1,i)
-         Bevolxyz(2,i) = dumBevolxyz(2,i)
-         Bevolxyz(3,i) = dumBevolxyz(3,i)
+c
+c--also set Bevol to (possibly changed) value from derivi
+c  (can be changed by divergence cleaning, B smoothing)
+c
+         IF (imhd.EQ.idim) THEN
+            DO k=1,3
+               Bevolxyz(k,i) = dumBevolxyz(k,i)
+            ENDDO
+         ENDIF
 c
 c--nlmax=1 is the sign that code is running using 'grad-h' so that h is set
 c     inside derivi rather than being evolved.

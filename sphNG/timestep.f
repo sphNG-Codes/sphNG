@@ -27,6 +27,7 @@ c************************************************************
       INCLUDE 'COMMONS/typef'
       INCLUDE 'COMMONS/init'
       INCLUDE 'COMMONS/ptsoft'
+      INCLUDE 'COMMONS/Bxyz'
 
       xlog2 = 0.30103
       istepmin = imax
@@ -36,7 +37,7 @@ c************************************************************
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst,llist)
 C$OMP& shared(xyzmh,vxyzu)
-C$OMP& shared(fxyzu)
+C$OMP& shared(fxyzu,Bxyz)
 C$OMP& shared(dt,isteps,imaxstep,divv,rho)
 C$OMP& shared(alpha,beta,vsound,xlog2)
 C$OMP& shared(idtsyn)
@@ -96,7 +97,13 @@ c
                divvi = 0.0
             ENDIF
             IF (ifsvi.EQ.6) THEN
-               aux1 = alphaMM(i)*vsound(i)
+               IF (imhd.EQ.idim) THEN
+                  valfven2 = (Bxyz(1,i)*Bxyz(1,i) +  Bxyz(2,i)*Bxyz(2,i)
+     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
+                  aux1 = alphaMM(i)*sqrt(vsound(i)**2 + valfven2)
+               ELSE
+                  aux1 = alphaMM(i)*vsound(i)
+               ENDIF
                aux2 = xyzmh(5,i)*ABS(divvi)
                aux3 = aux2
                IF (divvi.LT.0.0) THEN
@@ -105,7 +112,13 @@ c
                   aux2 = 0.0
                ENDIF
             ELSE
-               aux1 = alpha*vsound(i)
+               IF (imhd.EQ.idim) THEN
+                  valfven2 = (Bxyz(1,i)*Bxyz(1,i) +  Bxyz(2,i)*Bxyz(2,i)
+     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
+                  aux1 = alpha*sqrt(vsound(i)**2 + valfven2)
+               ELSE
+                  aux1 = alpha*vsound(i)
+               ENDIF
                aux2 = xyzmh(5,i)*ABS(divvi)
                aux3 = aux2
                IF (divvi.LT.0.0) THEN
@@ -149,6 +162,9 @@ C$OMP CRITICAL (writeiprint)
             WRITE (iprint,*)vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
      &           vxyzu(4,i),xyzmh(5,i)
             WRITE (iprint,*)fxyzu(1,i),fxyzu(2,i),fxyzu(3,i)
+            IF (imhd.EQ.idim) THEN
+               WRITE (iprint,*) Bxyz(1,i),Bxyz(2,i),Bxyz(3,i)
+            ENDIF
             WRITE (iprint,*)rmod,rmodcr
             WRITE (iprint,*)nneigh(i),rho(i)
             CALL quit

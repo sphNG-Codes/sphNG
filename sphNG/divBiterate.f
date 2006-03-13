@@ -72,8 +72,9 @@ c
       Bxyzmax = 0.0
       DO n = nlst_in, nlst_end
         i = list(n)
+        rneigh = radkernel*xyzmh(5,i)
 
-        CALL getneighi(i,xyzmh(1,i),xyzmh(2,i),xyzmh(3,i),xyzmh(5,i),
+        CALL getneighi(i,xyzmh(1,i),xyzmh(2,i),xyzmh(3,i),rneigh,
      &       numneighi,neighlist,xyzmh)
 
         ivar(1,n) = numneighi
@@ -156,6 +157,10 @@ C$OMP DO SCHEDULE(static)
          dByi = 0.
          dBzi = 0.
 
+         hi = xyzmh(5,i)
+         hi21 = 1./(hi*hi)
+         hi41 = hi21*hi21
+
          IF (icall.EQ.1) THEN
             IF (isteps(i).EQ.0) THEN
                dti = dtmax*1.0d-12
@@ -168,6 +173,7 @@ C$OMP DO SCHEDULE(static)
             dti = dtimax/2.0*isteps(i)
          ENDIF
          dtn = dti*eta
+         neireal = 0
 
          DO k = 1, ivar(1,n)
             icompact = ivar(2,n) + k
@@ -184,13 +190,8 @@ C$OMP DO SCHEDULE(static)
             pmj = xyzmh(4,j)
             rhoj = rho(j)
 
-            hi = xyzmh(5,i)
-            hi21 = 1./(hi*hi)
-            hi41 = hi21*hi21
-
             v2 = rij2*hi21
             v = rij/hi
-
             index = v2/dvtable
             dxx = v2 - index*dvtable
             index1 = index + 1
@@ -221,12 +222,13 @@ C$OMP DO SCHEDULE(static)
 
             dBxi = dBxi + pmjdWrij1rhoj*(5.0*projB*runix - 
      &           (Bxyz(1,i) - Bxyz(1,j)))
-c            dByi = dByi + pmjdWrij1rhoj*(5.0*projB*runiy - 
-c     &           (Bxyz(2,i) - Bxyz(2,j)))
-            dByi = dByi - pmj*dW/rhoj*projB
+            dByi = dByi + pmjdWrij1rhoj*(5.0*projB*runiy - 
+     &           (Bxyz(2,i) - Bxyz(2,j)))
+cc            dByi = dByi - pmj*dW/rhoj*projB
 cc            dByi = dByi - weight*projB*dW/hi41/hi
             dBzi = dBzi + pmjdWrij1rhoj*(5.0*projB*runiz - 
      &           (Bxyz(3,i) - Bxyz(3,j)))
+
          END DO
 
 c         dBxyz(1,i) = dtn*dBxi
@@ -450,7 +452,7 @@ c
 c
 c--And that done, return everything to ASS
 c
-      inum = 5500
+      inum = 6660
       print *,'Initial field ',Bxyz(1,inum),Bxyz(2,inum),Bxyz(3,inum)
       print *,'Euler field ',Bxyz(1,inum)+dBxyz(1,inum),
      &     Bxyz(2,inum)+dBxyz(2,inum),
@@ -476,6 +478,8 @@ c
          i = list(n)
          
          if (abs(xyzmh(2,i)).lt.0.1 .AND. abs(xyzmh(3,i)).lt.0.1) then
+            print*,i,' x = ',xyzmh(1,i),
+     &               ' divB = ',divcurlB(1,i),dBxyz(2,i)
             write (33,*) xyzmh(1,i),Bxyz(1,i),divcurlB(1,i),
      &           dBxyz(1,i),dBxyz(2,i),dBxyz(3,i)
          endif

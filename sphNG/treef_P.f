@@ -291,7 +291,6 @@ c
       INCLUDE 'COMMONS/nlim'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/phase'
-      INCLUDE 'COMMONS/kerne'
       INCLUDE 'COMMONS/sort'
 
       DIMENSION nstack(100)
@@ -310,7 +309,6 @@ c*************************************
 
       istack = 0
       mpar = m
-      rcut = rcut*radkernel
       rcut2 = rcut*rcut
  100  node = isibdaupar(1,mpar)
       IF (node.NE.0) THEN

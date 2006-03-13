@@ -136,7 +136,7 @@ c
             hi41 = hi21*hi21
 
             IF (hi.GT.hneigh) THEN
-               hneigh = hstretch*hi
+               hneigh = hstretch*hi*radkernel
                CALL getneighi(ipart,xi,yi,zi,hneigh,numneighi,
      &              neighlist,xyzmh)
                inumrecalc = inumrecalc + 1

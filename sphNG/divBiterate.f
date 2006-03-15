@@ -27,9 +27,11 @@ c          ,moresweep,nit,error)
       INCLUDE 'COMMONS/curlist'
       INCLUDE 'COMMONS/typef'
       INCLUDE 'COMMONS/divcurlB'
+      INCLUDE 'COMMONS/logun'
+      INCLUDE 'COMMONS/debug'
 
-      PARAMETER (nswmax = 200000)
-      PARAMETER (eta = - 1.0E-2)
+      PARAMETER (nswmax = 1000)
+      PARAMETER (eta = 0.1)
       PARAMETER (weight = 1.0/1.2**3)
 
       REAL Bxyznew(3,imhd)
@@ -48,6 +50,13 @@ c          ,moresweep,nit,error)
       REAL xmaxerrold(ntests)
 
       REAL maxerrE2
+c
+c--Allow for tracing flow
+c
+      IF (itrace.EQ.'all') WRITE (iprint, 250)
+  250 FORMAT(' entry subroutine divBiterate')
+
+      inum = 6660
 c
 c--Set up constants in Code units
 c
@@ -112,7 +121,7 @@ C$OMP& private(dti,dx,dy,dz,dtn)
 C$OMP& private(rij2,rij,rij1,dr,pmj,rhoj,hi,hi21,hi41)
 C$OMP& private(v2,v,index,dxx,index1,dgrwdx,grwtij,dW)
 C$OMP& private(pmjdWrij1rhoj,runix,runiy,runiz,denom1)
-C$OMP& private(dBxi,dByi,dBzi,projB)
+C$OMP& private(dBxi,dByi,dBzi,projdB)
 C$OMP& reduction(+:ihasghostcount)
 C$OMP& reduction(+:totalmagenergy)
 C$OMP& reduction(MAX:Bxyzmax)
@@ -216,27 +225,29 @@ C$OMP DO SCHEDULE(static)
             varij(2,icompact) = runix
             varij(3,icompact) = runiy
             varij(4,icompact) = runiz
-
-            projB = (Bxyz(1,i)-Bxyz(1,j))*runix + 
+c
+c--calculate the change of B that would result from taking an explicit step
+c
+            projdB = (Bxyz(1,i)-Bxyz(1,j))*runix + 
      &      (Bxyz(2,i)-Bxyz(2,j))*runiy + (Bxyz(3,i)-Bxyz(3,j))*runiz
 
-            dBxi = dBxi + pmjdWrij1rhoj*(5.0*projB*runix - 
+            dBxi = dBxi + pmjdWrij1rhoj*(5.0*projdB*runix - 
      &           (Bxyz(1,i) - Bxyz(1,j)))
-            dByi = dByi + pmjdWrij1rhoj*(5.0*projB*runiy - 
+            dByi = dByi + pmjdWrij1rhoj*(5.0*projdB*runiy - 
      &           (Bxyz(2,i) - Bxyz(2,j)))
-cc            dByi = dByi - pmj*dW/rhoj*projB
-cc            dByi = dByi - weight*projB*dW/hi41/hi
-            dBzi = dBzi + pmjdWrij1rhoj*(5.0*projB*runiz - 
+            dBzi = dBzi + pmjdWrij1rhoj*(5.0*projdB*runiz - 
      &           (Bxyz(3,i) - Bxyz(3,j)))
+cc            dByi = dByi - pmj*dW/rhoj*pyojdB
+cc            dByi = dByi - weight*projdB*dW/hi41/hi
 
          END DO
 
-c         dBxyz(1,i) = dtn*dBxi
-c         dBxyz(2,i) = dtn*dByi
-c         dBxyz(3,i) = dtn*dBzi
-         dBxyz(1,i) = dBxi
-         dBxyz(2,i) = dByi
-         dBxyz(3,i) = dBzi
+         dBxyz(1,i) = dtn*dBxi
+         dBxyz(2,i) = dtn*dByi
+         dBxyz(3,i) = dtn*dBzi
+c         dBxyz(1,i) = dBxi
+c         dBxyz(2,i) = dByi
+c         dBxyz(3,i) = dBzi
 
          rxyi = 5.0*dtn*rxyi
          ryzi = 5.0*dtn*ryzi
@@ -278,7 +289,6 @@ C$OMP END PARALLEL
 c
 c--Begin iterating
 c
-c      print *, 'begin iterations',ekcle(2,22)
       DO nosweep = 1, nswmax
 c      print *, 'it ',nosweep
 c
@@ -305,8 +315,6 @@ C$OMP DO SCHEDULE(static)
          DO n = nlst_in, nlst_end
             i = list(n)
 
-c            if (nlst_end.EQ.34 .AND. nlstall.EQ.71) write (*,*) i,n
-
             projBx = 0.
             projBy = 0.
             projBz = 0.
@@ -327,23 +335,26 @@ c
                projB = Bxyznew(1,j)*runix + Bxyznew(2,j)*runiy + 
      &              Bxyznew(3,j)*runiz
 
-               projBx = pmjdWrij1rhoj*Bxyznew(1,j) - 5.0*projB*runix
-               projBy = pmjdWrij1rhoj*Bxyznew(2,j) - 5.0*projB*runiy
-               projBz = pmjdWrij1rhoj*Bxyznew(3,j) - 5.0*projB*runiz
+               projBx = projBx 
+     &                + pmjdWrij1rhoj*(Bxyznew(1,j) - 5.0*projB*runix)
+               projBy = projBy 
+     &                + pmjdWrij1rhoj*(Bxyznew(2,j) - 5.0*projB*runiy)
+               projBz = projBz
+     &                + pmjdWrij1rhoj*(Bxyznew(3,j) - 5.0*projB*runiz)
 
             END DO              !J-loop
 c
 c--Calculate new B field
 c
             Bxnew = (Bxyz(1,i) + dtn*projBx)*vari(1,n) + 
-     &           (Bxyz(2,i) + dtn*projBy)*vari(2,n) +
-     &           (Bxyz(3,i) + dtn*projBz)*vari(3,n)
+     &              (Bxyz(2,i) + dtn*projBy)*vari(2,n) +
+     &              (Bxyz(3,i) + dtn*projBz)*vari(3,n)
             Bynew = (Bxyz(2,i) + dtn*projBy)*vari(4,n) + 
-     &           (Bxyz(1,i) + dtn*projBx)*vari(2,n) +
-     &           (Bxyz(3,i) + dtn*projBz)*vari(5,n)
+     &              (Bxyz(1,i) + dtn*projBx)*vari(2,n) +
+     &              (Bxyz(3,i) + dtn*projBz)*vari(5,n)
             Bznew = (Bxyz(3,i) + dtn*projBz)*vari(6,n) + 
-     &           (Bxyz(1,i) + dtn*projBx)*vari(3,n) +
-     &           (Bxyz(2,i) + dtn*projBy)*vari(5,n)
+     &              (Bxyz(1,i) + dtn*projBx)*vari(3,n) +
+     &              (Bxyz(2,i) + dtn*projBy)*vari(5,n)
 
 c            print *,n,Bxyz(1,i),Bxyz(2,i),Bxyz(3,i),Bxnew,Bynew,Bznew
 c
@@ -360,7 +371,7 @@ c
 c               maxerrE2 = MAX(maxerrE2,maxerrE2)
             ENDIF
 c 
-c--Copy values
+c--Copy values (this is Gauss-Seidel ie. use new values as soon as they are known)
 c
             Bxyznew(1,i) = Bxnew
             Bxyznew(2,i) = Bynew
@@ -440,9 +451,9 @@ c
 c--Maximum number of iterations reached
 c
       PRINT *,"divBiterate: Warning. Maximum iterations reached"
-      moresweep = .TRUE.
-      RETURN
-      STOP
+c      moresweep = .TRUE.
+c      RETURN
+c      STOP
 c
 c--Output success
 c
@@ -452,16 +463,18 @@ c
 c
 c--And that done, return everything to ASS
 c
-      inum = 6660
-      print *,'Initial field ',Bxyz(1,inum),Bxyz(2,inum),Bxyz(3,inum)
-      print *,'Euler field ',Bxyz(1,inum)+dBxyz(1,inum),
+      print *,'Initial field       :',Bxyz(1,inum),Bxyz(2,inum),
+     &                                Bxyz(3,inum)
+      print *,'New field (implicit):',Bxyznew(1,inum),Bxyznew(2,inum),
+     &                                Bxyznew(3,inum)
+      print *,'New field (Euler   ):',Bxyz(1,inum)+dBxyz(1,inum),
      &     Bxyz(2,inum)+dBxyz(2,inum),
      &     Bxyz(3,inum)+dBxyz(3,inum)
-      print *,'Delta field ',dBxyz(1,inum),
+      print *,'Delta (implicit):',Bxyznew(1,inum)-Bxyz(1,inum),
+     &     Bxyznew(2,inum)-Bxyz(2,inum),Bxyznew(3,inum)-Bxyz(3,inum)
+      print *,'Delta (euler   ):',dBxyz(1,inum),
      &     dBxyz(2,inum),
      &     dBxyz(3,inum)
-      print *,'Impl Delta ',Bxyznew(1,inum)-Bxyz(1,inum),
-     &     Bxyznew(2,inum)-Bxyz(2,inum),Bxyznew(3,inum)-Bxyz(3,inum)
 
       print *,'Initial magnetic energy = ',totalmagenergy
       totalmagenergy = 0.
@@ -477,30 +490,29 @@ c
       DO n = nlst_in, nlst_end
          i = list(n)
          
+         if (i.eq.inum) print*,i,' divB = ',divcurlB(1,i)
          if (abs(xyzmh(2,i)).lt.0.1 .AND. abs(xyzmh(3,i)).lt.0.1) then
-            print*,i,' x = ',xyzmh(1,i),
-     &               ' divB = ',divcurlB(1,i),dBxyz(2,i)
             write (33,*) xyzmh(1,i),Bxyz(1,i),divcurlB(1,i),
      &           dBxyz(1,i),dBxyz(2,i),dBxyz(3,i)
          endif
 
-c         Bxyz(1,i) = Bxyznew(1,i)
-c         Bxyz(2,i) = Bxyznew(2,i)
-c         Bxyz(3,i) = Bxyznew(3,i)
+         Bxyz(1,i) = Bxyznew(1,i)
+         Bxyz(2,i) = Bxyznew(2,i)
+         Bxyz(3,i) = Bxyznew(3,i)
 
-         Bxyz(1,i) = Bxyz(1,i) + dBxyz(1,i)
-         Bxyz(2,i) = Bxyz(2,i) + dBxyz(2,i)
-         Bxyz(3,i) = Bxyz(3,i) + dBxyz(3,i)
+c         Bxyz(1,i) = Bxyz(1,i) + dBxyz(1,i)
+c         Bxyz(2,i) = Bxyz(2,i) + dBxyz(2,i)
+c         Bxyz(3,i) = Bxyz(3,i) + dBxyz(3,i)
 
          totalmagenergy = totalmagenergy + xyzmh(4,i)*(Bxyz(1,i)**2 +
      &        Bxyz(2,i)**2 + Bxyz(3,i)**2)/rho(i)
       END DO
 cC$OMP END PARALLEL DO
 
-      print *,'Final magnetic energy = ',totalmagenergy
+      print *,'Final magnetic energy   = ',totalmagenergy
       print *,'New field ',Bxyz(1,inum),Bxyz(2,inum),Bxyz(3,inum)
 
-      stop
+c      stop
 
       RETURN
 

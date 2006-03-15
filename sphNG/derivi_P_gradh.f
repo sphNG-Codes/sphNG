@@ -94,6 +94,7 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
       INCLUDE 'COMMONS/Bxyz'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/updated'
+      INCLUDE 'COMMONS/vsmooth'
 
       CHARACTER*7 where
       DIMENSION dedxyz(3,iradtrans)
@@ -182,13 +183,32 @@ c
                Bxyz(1,ipart) = Bevolxyz(1,ipart)
                Bxyz(2,ipart) = Bevolxyz(2,ipart)
                Bxyz(3,ipart) = Bevolxyz(3,ipart)
+c
+c--smooth magnetic field variable
+c               
+c               Bevolxyz(1,ipart) = Bsmooth(1,ipart)
+c               Bevolxyz(2,ipart) = Bsmooth(2,ipart)
+c               Bevolxyz(3,ipart) = Bsmooth(3,ipart)
             ENDDO
          ELSEIF (varmhd.EQ.'Brho') THEN
             DO i=nlst_in,nlst_end
                ipart = llist(i)
+c
+c--smooth magnetic field variable
+c               
+c               Bevolxyz(1,ipart) = Bsmooth(1,ipart)
+c               Bevolxyz(2,ipart) = Bsmooth(2,ipart)
+c               Bevolxyz(3,ipart) = Bsmooth(3,ipart)
+c
+c--used smoothed B in dBevol/dt *and* in forces
+c
                Bxyz(1,ipart) = Bevolxyz(1,ipart)*dumrho(ipart)
                Bxyz(2,ipart) = Bevolxyz(2,ipart)*dumrho(ipart)
                Bxyz(3,ipart) = Bevolxyz(3,ipart)*dumrho(ipart)
+
+c               Bsmooth(1,ipart) = Bsmooth(1,ipart)*dumrho(ipart)
+c               Bsmooth(2,ipart) = Bsmooth(2,ipart)*dumrho(ipart)
+c               Bsmooth(3,ipart) = Bsmooth(3,ipart)*dumrho(ipart)
             ENDDO
          ELSEIF (varmhd.NE.'eulr') THEN
             STOP 'unknown MHD variable in derivi'
@@ -198,10 +218,6 @@ c
 c--Implicit hyperdiffusion of div B
 c
       IF (itiming) CALL getused(tass1)
-
-      CALL forcei(nlst_in,nlst_end,llist,dt,itime,npart,
-     &     xyzmh,vxyzu,dvxyzu,dha,dumrho,pr,vsound,alphaMM,ekcle,
-     &     dedxyz,Bxyz,dBevolxyz,Bevolxyz)
 
       IF(imhd.EQ.idim) THEN
 c      IF(.FALSE.) THEN
@@ -243,6 +259,10 @@ c
 c--Compute forces on EACH particle
 c
       IF (itiming) CALL getused(tforce1)
+
+      CALL forcei(nlst_in,nlst_end,llist,dt,itime,npart,
+     &     xyzmh,vxyzu,dvxyzu,dha,dumrho,pr,vsound,alphaMM,ekcle,
+     &     dedxyz,Bxyz,dBevolxyz,Bevolxyz)
 
       IF (itiming) THEN
          CALL getused(tforce2)

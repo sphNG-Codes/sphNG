@@ -1,6 +1,5 @@
       SUBROUTINE divBiterate(dtmax,nlst_in,nlst_end,npart,list,
-     &     xyzmh,rho,Bxyz)
-c          ,moresweep,nit,error)
+     &     xyzmh,rho,Bxyz,moresweep,nit,error)
   
       INCLUDE 'idim'
 
@@ -30,7 +29,7 @@ c          ,moresweep,nit,error)
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/debug'
 
-      PARAMETER (nswmax = 1000)
+      PARAMETER (nswmax = 10)
       PARAMETER (eta = 0.1)
       PARAMETER (weight = 1.0/1.2**3)
 
@@ -47,7 +46,7 @@ c          ,moresweep,nit,error)
       DIMENSION ivar(2,idim),ijvar(icompactmax)
 
       PARAMETER (ntests=10)
-      REAL xmaxerrold(ntests)
+      REAL xmaxerrold(ntests),xmaxerrcomp(ntests)
 
       REAL maxerrE2
 c
@@ -399,16 +398,16 @@ c            PRINT *,"Complete with ",nosweep," iterations"
 c
 c--Test for oscillations
 c
-c         xmaxerrtot = MAX(maxerrE2,maxerrU2)
-c         IF (xmaxerrtot.GT.xmaxerrold(1) .AND. nosweep.GT.10) THEN
-c            numoscillations = numoscillations + 1
-c            IF (numoscillations.GT.100) THEN
-c               PRINT *,"GSIMPL: Oscillating ",xmaxerrtot,
-c     &              (xmaxerrold(ii),ii=1,ntests)
-c               moresweep = .TRUE.
-c               RETURN
-c            ENDIF
-c         ENDIF
+         xmaxerrtot = maxerrE2
+         IF (xmaxerrtot.GT.xmaxerrold(1) .AND. nosweep.GT.1) THEN
+            numoscillations = numoscillations + 1
+            IF (numoscillations.GT.5) THEN
+               PRINT *,"GSIMPL: Oscillating ",xmaxerrtot,
+     &              (xmaxerrold(ii),ii=1,ntests)
+               moresweep = .TRUE.
+               RETURN
+            ENDIF
+         ENDIF
 c
 c--Test for convergence to non-zero value (incorrect minimum)
 c     Must have equal value at least twice to stop detecting up and down
@@ -416,43 +415,43 @@ c     as non-convergence
 c
 c         GOTO 333
 
-c         DO itest = ntests,1,-1
+         DO itest = ntests,1,-1
 c
 cc            GOTO 332
 c
-c            IF (nosweep.GT.10) THEN
-c               IF (xmaxerrtot.GT.0.99999*xmaxerrold(itest).AND.
-c    &              xmaxerrtot.LT.1.00001*xmaxerrold(itest)) THEN
-c                  DO iii = 1, numcomp
-c                     IF (xmaxerrtot.GT.0.99999*xmaxerrcomp(iii).AND.
-c     &                    xmaxerrtot.LT.1.00001*xmaxerrcomp(iii)) THEN
-c                        PRINT *,"GSIMPL: Non-convergence ",xmaxerrtot,
-c     &                    xmaxerrcomp(iii),(xmaxerrold(ii),ii=1,ntests)
-c                        moresweep = .TRUE.
-c                        RETURN
-c                     ENDIF
-c                  END DO
-c                  numcomp = MAX(1,MOD(numcomp + 1,ntests + 1))
-c                  xmaxerrcomp(numcomp) = xmaxerrtot
-c                  PRINT *,"GSIMPL: Almost Non-convergence ",
-c     &                 xmaxerrtot,(xmaxerrold(ii),ii=1,ntests)
-c               ENDIF
-c            ENDIF
-c 332        CONTINUE
-c            IF (itest.NE.1) THEN
-c               xmaxerrold(itest) = xmaxerrold(itest-1)
-c            ELSE
-c               xmaxerrold(itest) = xmaxerrtot
-c            ENDIF
-c         END DO
-c 333     CONTINUE
+            IF (nosweep.GT.10) THEN
+               IF (xmaxerrtot.GT.0.99999*xmaxerrold(itest).AND.
+     &              xmaxerrtot.LT.1.00001*xmaxerrold(itest)) THEN
+                  DO iii = 1, numcomp
+                     IF (xmaxerrtot.GT.0.99999*xmaxerrcomp(iii).AND.
+     &                    xmaxerrtot.LT.1.00001*xmaxerrcomp(iii)) THEN
+                        PRINT *,"GSIMPL: Non-convergence ",xmaxerrtot,
+     &                    xmaxerrcomp(iii),(xmaxerrold(ii),ii=1,ntests)
+                        moresweep = .TRUE.
+                        RETURN
+                     ENDIF
+                  END DO
+                  numcomp = MAX(1,MOD(numcomp + 1,ntests + 1))
+                  xmaxerrcomp(numcomp) = xmaxerrtot
+                  PRINT *,"GSIMPL: Almost Non-convergence ",
+     &                 xmaxerrtot,(xmaxerrold(ii),ii=1,ntests)
+               ENDIF
+            ENDIF
+ 332        CONTINUE
+            IF (itest.NE.1) THEN
+               xmaxerrold(itest) = xmaxerrold(itest-1)
+            ELSE
+               xmaxerrold(itest) = xmaxerrtot
+            ENDIF
+         END DO
+ 333     CONTINUE
       END DO ! Iterations loop
 c
 c--Maximum number of iterations reached
 c
       PRINT *,"divBiterate: Warning. Maximum iterations reached"
-c      moresweep = .TRUE.
-c      RETURN
+      moresweep = .TRUE.
+      RETURN
 c      STOP
 c
 c--Output success
@@ -463,18 +462,18 @@ c
 c
 c--And that done, return everything to ASS
 c
-      print *,'Initial field       :',Bxyz(1,inum),Bxyz(2,inum),
-     &                                Bxyz(3,inum)
-      print *,'New field (implicit):',Bxyznew(1,inum),Bxyznew(2,inum),
-     &                                Bxyznew(3,inum)
-      print *,'New field (Euler   ):',Bxyz(1,inum)+dBxyz(1,inum),
-     &     Bxyz(2,inum)+dBxyz(2,inum),
-     &     Bxyz(3,inum)+dBxyz(3,inum)
-      print *,'Delta (implicit):',Bxyznew(1,inum)-Bxyz(1,inum),
-     &     Bxyznew(2,inum)-Bxyz(2,inum),Bxyznew(3,inum)-Bxyz(3,inum)
-      print *,'Delta (euler   ):',dBxyz(1,inum),
-     &     dBxyz(2,inum),
-     &     dBxyz(3,inum)
+c      print *,'Initial field       :',Bxyz(1,inum),Bxyz(2,inum),
+c     &                                Bxyz(3,inum)
+c      print *,'New field (implicit):',Bxyznew(1,inum),Bxyznew(2,inum),
+c     &                                Bxyznew(3,inum)
+c      print *,'New field (Euler   ):',Bxyz(1,inum)+dBxyz(1,inum),
+c     &     Bxyz(2,inum)+dBxyz(2,inum),
+c     &     Bxyz(3,inum)+dBxyz(3,inum)
+c      print *,'Delta (implicit):',Bxyznew(1,inum)-Bxyz(1,inum),
+c     &     Bxyznew(2,inum)-Bxyz(2,inum),Bxyznew(3,inum)-Bxyz(3,inum)
+c      print *,'Delta (euler   ):',dBxyz(1,inum),
+c     &     dBxyz(2,inum),
+c     &     dBxyz(3,inum)
 
       print *,'Initial magnetic energy = ',totalmagenergy
       totalmagenergy = 0.

@@ -222,7 +222,7 @@ c
       IF(imhd.EQ.idim) THEN
 c      IF(.FALSE.) THEN
          WRITE (*,*) 'Calling Hyper at realtime ',dt*itime/imaxstep+gt
-         CALL divBiterate(dt,nlst_in,nlst_end,npart,llist,
+         CALL divBdiffuse(dt,nlst_in,nlst_end,npart,llist,
      &        xyzmh,dumrho,Bxyz)
 
          IF (varmhd.EQ.'Bvol') THEN

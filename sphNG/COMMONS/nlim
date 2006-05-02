@@ -1,9 +1,9 @@
-      PARAMETER (nneighmax = 32767)
-      INTEGER*2 nneigh
+      PARAMETER (nneighmax=300000)
+      INTEGER*4 nneigh
 
       INTEGER*8 nneightot
 
       COMMON /nlim  / nneigh(idim), nneightot, neimin, neimax, nrange
 
-      COMMON /neighi/ neighlist(nneighmax)
+      COMMON /neighi/ neighlist(idim)
 C$OMP THREADPRIVATE(/neighi/)

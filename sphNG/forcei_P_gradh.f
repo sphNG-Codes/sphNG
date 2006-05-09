@@ -227,6 +227,9 @@ c
             Bxi = Bxyz(1,ipart)
             Byi = Bxyz(2,ipart)
             Bzi = Bxyz(3,ipart)
+            Bevolxi = Bevolxyz(1,ipart)
+            Bevolyi = Bevolxyz(2,ipart)
+            Bevolzi = Bevolxyz(3,ipart)
             B2i = Bxi**2 + Byi**2 + Bzi**2
 	    dBxideali = 0.
 	    dByideali = 0.
@@ -275,8 +278,8 @@ c
          sqrtrho1i = SQRT(rho1i)
          rho21i = rho1i*rho1i         
 c--note that pressure term includes isotropic magnetic pressure         
-         pro2i = (pr(ipart) - pext)*rho21i
-c         pro2i = (pr(ipart) - pext + 0.5*(B2i-B2ext))*rho21i
+c         pro2i = (pr(ipart) - pext)*rho21i
+         pro2i = (pr(ipart) - pext + 0.5*(B2i-B2ext))*rho21i
          vsoundi = vsound(ipart)
 
          stepsi = dt*isteps(ipart)/imaxstep
@@ -448,8 +451,8 @@ c     &                - grpmi*(vsmooth(3,ipart)-vsmooth(3,j))*projBsi
 c		  
 c--compute divB
 c
-	          divBi = divBi - grpmi*projdB
-c	          divBi = divBi - weight*grkerntable*hi1*projdB
+c	          divBi = divBi - grpmi*projdB
+	          divBi = divBi - weight*grkerntable*hi1*projdB
 c
 c--compute current
 c	          
@@ -484,8 +487,8 @@ c              (note that kernel gradient is multiplied by gradhj)
 c
 c--j contribution to pressure gradient and isotropic mag force
 c
-               poro2j = (pr(j) - pext)*rho1j*rho1j
-c               poro2j = (pr(j) - pext + 0.5*(B2j-B2ext))*rho1j*rho1j
+c               poro2j = (pr(j) - pext)*rho1j*rho1j
+               poro2j = (pr(j) - pext + 0.5*(B2j-B2ext))*rho1j*rho1j
                gradpj = grpmj*poro2j
 c
 c--j contribution to force softening (including pseudo-pressure term)
@@ -576,18 +579,26 @@ c
 c                    dBxdissi = dBxdissi + termB*(dBx - runix*projdB)*robar1
 c                    dBydissi = dBydissi + termB*(dBy - runiy*projdB)*robar1
 c                    dBzdissi = dBzdissi + termB*(dBz - runiz*projdB)*robar1
-		     dBxdissi = dBxdissi + termB*dBx*robar1
+
+                     IF (varmhd.EQ.'eulr') THEN
+                     dBxdissi = dBxdissi + termB*(Bevolxi-Bevolxyz(1,j))
+                     dBydissi = dBydissi + termB*(Bevolxi-Bevolxyz(1,j))
+                     dBzdissi = dBzdissi + termB*(Bevolxi-Bevolxyz(1,j))
+		     ELSE
+                     dBxdissi = dBxdissi + termB*dBx*robar1
 		     dBydissi = dBydissi + termB*dBy*robar1
 		     dBzdissi = dBzdissi + termB*dBz*robar1
+                     ENDIF
+                     
 c
 c--this is grad(div B) for diffusion of divergence errors
 c
 c                     dBxdissi = dBxdissi 
-c     &                  - 100.*termB*(0.2*dBx - runix*projdB)*robar1
+c     &                  - 10.*termB*(0.2*dBx - runix*projdB)*robar1
 c                     dBydissi = dBydissi
-c     &                  - 100.*termB*(0.2*dBy - runiy*projdB)*robar1
+c     &                  - 10.*termB*(0.2*dBy - runiy*projdB)*robar1
 c                     dBzdissi = dBzdissi
-c     &                  - 100.*termB*(0.2*dBz - runiz*projdB)*robar1
+c     &                  - 10.*termB*(0.2*dBz - runiz*projdB)*robar1
 
 		     !!--add contribution to thermal energy
 		     dB2 = dBx*dBx + dBy*dBy + dBz*dBz
@@ -692,16 +703,16 @@ c
 c--Anisotropic magnetic force, div/curl B
 c
          IF (imhd.EQ.idim) THEN
-c            fxyzu(1,ipart) = fxyzu(1,ipart) + fanisoxi*cnormk
-c            fxyzu(2,ipart) = fxyzu(2,ipart) + fanisoyi*cnormk
-c            fxyzu(3,ipart) = fxyzu(3,ipart) + fanisozi*cnormk
-            divcurlB(1,ipart) = cnormk*divBi*rho1i
+            fxyzu(1,ipart) = fxyzu(1,ipart) + fanisoxi*cnormk
+            fxyzu(2,ipart) = fxyzu(2,ipart) + fanisoyi*cnormk
+            fxyzu(3,ipart) = fxyzu(3,ipart) + fanisozi*cnormk
+            divcurlB(1,ipart) = cnormk*divBi !!*rho1i
             divcurlB(2,ipart) = cnormk*curlBxi*rho1i
             divcurlB(3,ipart) = cnormk*curlByi*rho1i
             divcurlB(4,ipart) = cnormk*curlBzi*rho1i
 c
 c--time derivative of B/rho, B (constructed from B/rho and rho derivatives) 
-c  or the Euler potentials (zero)
+c  or the Euler potentials (dissipation only)
 c
             IF (varmhd(1:1).EQ.'B') THEN
                dBxyz(1,ipart) = cnormk*(dBxideali*rho21i + dBxdissi)
@@ -716,9 +727,9 @@ c
      &                            + Bxyz(3,ipart)*rho1i*divv(ipart)
                ENDIF
             ELSE
-               dBxyz(1,ipart) = 0.
-               dBxyz(2,ipart) = 0.
-               dBxyz(3,ipart) = 0.
+               dBxyz(1,ipart) = cnormk*dBxdissi
+               dBxyz(2,ipart) = cnormk*dBydissi
+               dBxyz(3,ipart) = cnormk*dBzdissi
             ENDIF
          ENDIF
 c

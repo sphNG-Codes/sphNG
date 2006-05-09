@@ -114,14 +114,14 @@ C$OMP& shared(icall,dtimax,dtmax,isteps,npart,hasghost,ireal,nghost)
 C$OMP& shared(rho,vari,ivar,ijvar,varij)
 C$OMP& shared(xyzmh,dvtable,grwij,cnormk)
 C$OMP& shared(nlst0,ihasghost)
-C$OMP& shared(Bxyznew,Bxyz,dBxyz)
+C$OMP& shared(Bxyznew,Bxyz,dBxyz,vsound)
 C$OMP& private(n,i,j,k,icompact)
 C$OMP& private(rxyi,ryzi,rxzi,rxxi,ryyi,rzzi)
 C$OMP& private(dti,dx,dy,dz,dtn)
 C$OMP& private(rij2,rij,rij1,dr,pmj,rhoj,hi,hi21,hi41)
 C$OMP& private(v2,v,index,dxx,index1,dgrwdx,grwtij,dW)
 C$OMP& private(pmjdWrij1rhoj,runix,runiy,runiz,denom1)
-C$OMP& private(dBxi,dByi,dBzi,projdB)
+C$OMP& private(dBxi,dByi,dBzi,projdB,B2i,vsigi)
 C$OMP& reduction(+:ihasghostcount)
 C$OMP& reduction(+:totalmagenergy)
 C$OMP& reduction(MAX:Bxyzmax)
@@ -184,7 +184,6 @@ C$OMP DO SCHEDULE(static)
             dti = dtimax/2.0*isteps(i)
          ENDIF
          dtn = dti*eta
-         neireal = 0
 
          DO k = 1, ivar(1,n)
             icompact = ivar(2,n) + k

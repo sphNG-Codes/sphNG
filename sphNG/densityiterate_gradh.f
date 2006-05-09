@@ -65,7 +65,7 @@ c--this weight is equivalent to m/(rho*h^3) in the grad h version
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/outneigh'
       INCLUDE 'COMMONS/varmhd'
-      INCLUDE 'COMMONS/vsmooth'
+c      INCLUDE 'COMMONS/vsmooth'
 
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
 99001 FORMAT ('entry subroutine densityiterate')
@@ -277,12 +277,12 @@ c
          gradbetaxi= 0.
          gradbetayi= 0.
          gradbetazi= 0.
-         vbarxi = 0.
-         vbaryi = 0.
-         vbarzi = 0.
-         Bbarxi = 0.
-         Bbaryi = 0.
-         Bbarzi = 0.
+c         vbarxi = 0.
+c         vbaryi = 0.
+c         vbarzi = 0.
+c         Bbarxi = 0.
+c         Bbaryi = 0.
+c         Bbarzi = 0.
 
          vxi = vxyzu(1,ipart)
          vyi = vxyzu(2,ipart)
@@ -366,19 +366,19 @@ c
                      gradbetaxi= gradbetaxi - grpmi*dbeta*dx
                      gradbetayi= gradbetayi - grpmi*dbeta*dy
                      gradbetazi= gradbetazi - grpmi*dbeta*dz
-                  ELSE
+c                  ELSE
 c
 c--smoothed velocity for use in the B or B/rho evolution
 c
-                     vbarxi = vbarxi + weight*vxyzu(1,j)*wkern
-                     vbaryi = vbaryi + weight*vxyzu(2,j)*wkern
-                     vbarzi = vbarzi + weight*vxyzu(3,j)*wkern
+c                     vbarxi = vbarxi + weight*vxyzu(1,j)*wkern
+c                     vbaryi = vbaryi + weight*vxyzu(2,j)*wkern
+c                     vbarzi = vbarzi + weight*vxyzu(3,j)*wkern
 c
 c--smoothed Bevol for div B reduction
 c
-                     Bbarxi = Bbarxi + weight*Bevol(1,j)*wkern
-                     Bbaryi = Bbaryi + weight*Bevol(2,j)*wkern
-                     Bbarzi = Bbarzi + weight*Bevol(3,j)*wkern
+c                     Bbarxi = Bbarxi + weight*Bevol(1,j)*wkern
+c                     Bbaryi = Bbaryi + weight*Bevol(2,j)*wkern
+c                     Bbarzi = Bbarzi + weight*Bevol(3,j)*wkern
                   ENDIF
                ENDIF
             ENDIF
@@ -421,22 +421,22 @@ c
                Bxyz(2,ipart)= term*rho21i
 	       term= gradalphaxi*gradbetayi - gradalphayi*gradbetaxi
                Bxyz(3,ipart)= term*rho21i
-            ELSE
+c            ELSE
 c
 c--add self contribution and store smoothed velocity
 c
-               vsmooth(1,ipart) = cnormk*(vbarxi 
-     &                                  + weight*vxyzu(1,ipart)*wij(0))
-               vsmooth(2,ipart) = cnormk*(vbaryi
-     &                                  + weight*vxyzu(2,ipart)*wij(0))
-               vsmooth(3,ipart) = cnormk*(vbarzi
-     &                                  + weight*vxyzu(3,ipart)*wij(0))
-               Bsmooth(1,ipart) = cnormk*(Bbarxi 
-     &                                  + weight*Bevol(1,ipart)*wij(0))
-               Bsmooth(2,ipart) = cnormk*(Bbaryi
-     &                                  + weight*Bevol(2,ipart)*wij(0))
-               Bsmooth(3,ipart) = cnormk*(Bbarzi
-     &                                  + weight*Bevol(3,ipart)*wij(0))
+c               vsmooth(1,ipart) = cnormk*(vbarxi 
+c     &                                  + weight*vxyzu(1,ipart)*wij(0))
+c               vsmooth(2,ipart) = cnormk*(vbaryi
+c     &                                  + weight*vxyzu(2,ipart)*wij(0))
+c               vsmooth(3,ipart) = cnormk*(vbarzi
+c     &                                  + weight*vxyzu(3,ipart)*wij(0))
+c               Bsmooth(1,ipart) = cnormk*(Bbarxi 
+c     &                                  + weight*Bevol(1,ipart)*wij(0))
+c               Bsmooth(2,ipart) = cnormk*(Bbaryi
+c     &                                  + weight*Bevol(2,ipart)*wij(0))
+c               Bsmooth(3,ipart) = cnormk*(Bbarzi
+c     &                                  + weight*Bevol(3,ipart)*wij(0))
 c               print*,ipart,'v       = ',vxyzu(1:3,ipart)
 c               print*,ipart,'vsmooth = ',vsmooth(:,ipart)
             ENDIF

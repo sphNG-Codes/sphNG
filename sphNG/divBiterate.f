@@ -28,6 +28,7 @@
       INCLUDE 'COMMONS/divcurlB'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/debug'
+      INCLUDE 'COMMONS/eosq'
 
       PARAMETER (nswmax = 10)
       PARAMETER (eta = 0.1)
@@ -168,6 +169,8 @@ C$OMP DO SCHEDULE(static)
          hi = xyzmh(5,i)
          hi21 = 1./(hi*hi)
          hi41 = hi21*hi21
+         B2i = Bxyz(1,i)**2 + Bxyz(2,i)**2 + Bxyz(3,i)**2
+         vsigi = sqrt(vsound(i)**2 + B2i/rho(i))
 
          IF (icall.EQ.1) THEN
             IF (isteps(i).EQ.0) THEN
@@ -208,10 +211,14 @@ C$OMP DO SCHEDULE(static)
             grwtij = (grwij(index) + dgrwdx*dxx)*hi41
             dW = grwtij * cnormk
 
-            pmjdWrij1rhoj = pmj*dW*rij1/rhoj
             runix = dx*rij1
             runiy = dy*rij1
             runiz = dz*rij1
+            pmjdWrij1rhoj = pmj*dW*rij1/rhoj
+c            B2j = Bxyz(1,j)**2 + Bxyz(2,j)**2 + Bxyz(3,j)**2
+c--rough signal velocity only (no div v term)
+c            vsigij = 0.5*(vsigi + sqrt(vsound(j)**2 + B2j/rhoj))
+c            pmjdWrij1rhoj = pmj*dW*vsigij/rhoj
 
             rxyi = rxyi + pmjdWrij1rhoj*runix*runiy
             ryzi = ryzi + pmjdWrij1rhoj*runiy*runiz
@@ -341,6 +348,16 @@ c
                projBz = projBz
      &                + pmjdWrij1rhoj*(Bxyznew(3,j) - 5.0*projB*runiz)
 
+c               projB = Bxyz(1,j)*runix + Bxyz(2,j)*runiy + 
+c     &              Bxyz(3,j)*runiz
+
+c               projBx = projBx 
+c     &                + pmjdWrij1rhoj*(Bxyz(1,j) - 5.0*projB*runix)
+c               projBy = projBy 
+c     &                + pmjdWrij1rhoj*(Bxyz(2,j) - 5.0*projB*runiy)
+c               projBz = projBz
+c     &                + pmjdWrij1rhoj*(Bxyz(3,j) - 5.0*projB*runiz)
+
             END DO              !J-loop
 c
 c--Calculate new B field
@@ -464,16 +481,16 @@ c--And that done, return everything to ASS
 c
 c      print *,'Initial field       :',Bxyz(1,inum),Bxyz(2,inum),
 c     &                                Bxyz(3,inum)
-c      print *,'New field (implicit):',Bxyznew(1,inum),Bxyznew(2,inum),
-c     &                                Bxyznew(3,inum)
-c      print *,'New field (Euler   ):',Bxyz(1,inum)+dBxyz(1,inum),
-c     &     Bxyz(2,inum)+dBxyz(2,inum),
-c     &     Bxyz(3,inum)+dBxyz(3,inum)
-c      print *,'Delta (implicit):',Bxyznew(1,inum)-Bxyz(1,inum),
-c     &     Bxyznew(2,inum)-Bxyz(2,inum),Bxyznew(3,inum)-Bxyz(3,inum)
-c      print *,'Delta (euler   ):',dBxyz(1,inum),
-c     &     dBxyz(2,inum),
-c     &     dBxyz(3,inum)
+      print *,'New field (implicit):',Bxyznew(1,inum),Bxyznew(2,inum),
+     &                                Bxyznew(3,inum)
+      print *,'New field (Euler   ):',Bxyz(1,inum)+dBxyz(1,inum),
+     &     Bxyz(2,inum)+dBxyz(2,inum),
+     &     Bxyz(3,inum)+dBxyz(3,inum)
+      print *,'Delta (implicit):',Bxyznew(1,inum)-Bxyz(1,inum),
+     &     Bxyznew(2,inum)-Bxyz(2,inum),Bxyznew(3,inum)-Bxyz(3,inum)
+      print *,'Delta (euler   ):',dBxyz(1,inum),
+     &     dBxyz(2,inum),
+     &     dBxyz(3,inum)
 
       print *,'Initial magnetic energy = ',totalmagenergy
       totalmagenergy = 0.
@@ -495,13 +512,13 @@ c
      &           dBxyz(1,i),dBxyz(2,i),dBxyz(3,i)
          endif
 
-         Bxyz(1,i) = Bxyznew(1,i)
-         Bxyz(2,i) = Bxyznew(2,i)
-         Bxyz(3,i) = Bxyznew(3,i)
+c         Bxyz(1,i) = Bxyznew(1,i)
+c         Bxyz(2,i) = Bxyznew(2,i)
+c         Bxyz(3,i) = Bxyznew(3,i)
 
-c         Bxyz(1,i) = Bxyz(1,i) + dBxyz(1,i)
-c         Bxyz(2,i) = Bxyz(2,i) + dBxyz(2,i)
-c         Bxyz(3,i) = Bxyz(3,i) + dBxyz(3,i)
+         Bxyz(1,i) = Bxyz(1,i) + dBxyz(1,i)
+         Bxyz(2,i) = Bxyz(2,i) + dBxyz(2,i)
+         Bxyz(3,i) = Bxyz(3,i) + dBxyz(3,i)
 
          totalmagenergy = totalmagenergy + xyzmh(4,i)*(Bxyz(1,i)**2 +
      &        Bxyz(2,i)**2 + Bxyz(3,i)**2)/rho(i)

@@ -95,6 +95,7 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/updated'
       INCLUDE 'COMMONS/vsmooth'
+      INCLUDE 'COMMONS/divcurlB'
 
       CHARACTER*7 where
       DIMENSION dedxyz(3,iradtrans)
@@ -219,8 +220,8 @@ c--Implicit hyperdiffusion of div B
 c
       IF (itiming) CALL getused(tass1)
 
-      IF(imhd.EQ.idim) THEN
-c      IF(.FALSE.) THEN
+c      IF(imhd.EQ.idim) THEN
+      IF(.FALSE.) THEN
          WRITE (*,*) 'Calling Hyper at realtime ',dt*itime/imaxstep+gt
          CALL divBdiffuse(dt,nlst_in,nlst_end,npart,llist,
      &        xyzmh,dumrho,Bxyz)
@@ -249,7 +250,21 @@ C$OMP& private(i,ipart)
 C$OMP END PARALLEL DO
          ENDIF
       END IF
-
+c
+c--div B projection
+c
+      IF (imhd.EQ.idim) THEN
+         IF (varmhd.EQ.'Brho' .OR. varmhd.EQ.'Bvol') THEN
+            divBmax = 0.
+            DO i=1,npart
+               divBmax = max(divcurlB(1,i),divBmax)
+            ENDDO
+            WRITE(iprint,*) 'div B max = ',divBmax
+            CALL divBclean(nlst_in,nlst_end,npart,llist,
+     &                     xyzmh,rho,Bevolxyz)
+         ENDIF
+      ENDIF
+      
       IF (itiming) THEN
         CALL getused(tass2)
         tass = tass + (tass2 - tass1)

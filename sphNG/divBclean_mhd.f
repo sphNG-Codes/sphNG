@@ -1,4 +1,4 @@
-      SUBROUTINE divBclean(npart,ntot,xyzmh,rho,
+      SUBROUTINE divBclean(nlst_in,nlst_end,npart,list,xyzmh,rho,
      &                     Bevolxyz)
 c************************************************************
 c                                                           *
@@ -62,10 +62,11 @@ c
 c--check that the current is non-zero (calculated in last force call)
 c
       IF (abs(divcurlB(2,1)).LT.tiny) THEN
-         WRITE(iprint,*) 'WARNING: current = 0 in call to divBclean'
+         WRITE(*,*) 'WARNING: current = 0 in call to divBclean'
          DO i=1,10
             WRITE(iprint,*) divcurlB(2,i),divcurlB(3,i),divcurlB(4,i)
          ENDDO
+         RETURN
       ENDIF
      
       WRITE(iprint,99005)
@@ -111,26 +112,41 @@ c
 c            CALL treef_vec(ipart,npart,h,accdivB,1,
 c     &           Bcorrxi,Bcorryi,Bcorrzi,potx,poty,potz)
 c
-c            Bx(ipart) = Bcorrxi + Bconstx
-c            By(ipart) = Bcorryi + Bconsty
-c            Bz(ipart) = Bcorrzi + Bconstz
-         !!print*,ipart,' Bnew = ',Bx(ipart),By(ipart),Bz(ipart) 
+c            Bevolxyz(1,i) = Bcorrxi + Bextx
+c            Bevolxyz(2,i) = Bcorryi + Bexty
+c            Bevolxyz(3,i) = Bcorrzi + Bextz
+c            IF (varmhd.EQ.'Brho') THEN
+c               Bevolxyz(1,i) = Bevolxyz(1,i)/rho(i)
+c               Bevolxyz(2,i) = Bevolxyz(2,i)/rho(i)
+c               Bevolxyz(3,i) = Bevolxyz(3,i)/rho(i)
+c            ENDIF
 c         ENDDO
 cC$OMP END DO
 cC$OMP END PARALLEL
 
-       WRITE(iprint,*) 'getting corrected field by direct sum...'
-       DO i=1,npart
-          CALL directsum_poisson_vec(i,npart,xyzmh,curlBmrhoxyz,
+       WRITE(iprint,*) 'getting corrected field by direct sum...',
+     &      nlst_end-nlst_in+1
+       DO i=nlst_in,nlst_end
+          ipart = list(i)
+          CALL directsum_poisson_vec(ipart,npart,xyzmh,curlBmrhoxyz,
      &	      Bcorrxi,Bcorryi,Bcorrzi)
-c             !print*,i,Bx(i),Bcorrxi,By(i),Bcorryi,Bz(i),Bcorrzi
-          Bevolxyz(1,i) = Bcorrxi + Bextx
-          Bevolxyz(2,i) = Bcorryi + Bexty
-          Bevolxyz(3,i) = Bcorrzi + Bextz
+c          if (ipart.le.10) then
+c          print*,ipart,'curlB=  ',divcurlB(:,ipart)
+c          IF (varmhd.EQ.'Brho') THEN
+c             print*,'old=  ',Bevolxyz(:,ipart)*rho(ipart)
+c          ELSE
+c             print*,'old = ',Bevolxyz(:,ipart)   
+c          ENDIF
+c          print*,'new = ',Bcorrxi + Bextx,Bcorryi+Bexty,Bcorrzi+Bextz
+c          read*
+c          endif
+          Bevolxyz(1,ipart) = Bcorrxi + Bextx
+          Bevolxyz(2,ipart) = Bcorryi + Bexty
+          Bevolxyz(3,ipart) = Bcorrzi + Bextz
           IF (varmhd.EQ.'Brho') THEN
-             Bevolxyz(1,i) = Bevolxyz(1,i)/rho(i)
-             Bevolxyz(2,i) = Bevolxyz(2,i)/rho(i)
-             Bevolxyz(3,i) = Bevolxyz(3,i)/rho(i)
+             Bevolxyz(1,ipart) = Bevolxyz(1,ipart)/rho(ipart)
+             Bevolxyz(2,ipart) = Bevolxyz(2,ipart)/rho(ipart)
+             Bevolxyz(3,ipart) = Bevolxyz(3,ipart)/rho(ipart)
           ENDIF
        ENDDO
        WRITE(iprint,*) '...done, Bext = ',Bextx,Bexty,Bextz

@@ -28,6 +28,7 @@ c************************************************************
       xi = xyzmh(1,i)
       yi = xyzmh(2,i)
       zi = xyzmh(3,i)
+      hi2 = 0.25*xyzmh(5,i)**2 ! use h/2
       curlAx = 0.
       curlAy = 0.
       curlAz = 0.
@@ -46,7 +47,7 @@ c
 c            IF (isoft.EQ.1) THEN
 c               rr = dx**2 + dy**2 + dz**2 + psoft**2
 c            ELSE 
-               rr = dx**2 + dy**2 + dz**2 + tiny
+               rr = dx**2 + dy**2 + dz**2 + hi2
 c            ENDIF
 c	    rr = dx**2. + dy**2. + dz**2.
 

@@ -35,6 +35,8 @@ c************************************************************
       INCLUDE 'COMMONS/timeextra'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/Bxyz'
+      
+      CHARACTER*4 varmhdtemp
 c
 c--Allow for tracing flow
 c
@@ -113,15 +115,29 @@ c      neimax = 120
       nlst0 = nlst
       imax = 1073741824
       imaxstep = imax/2
-
-      CALL densityiterate_gradh(dt,npart,ntot,dumxyzmh,vxyzu,
-     &     nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz)
-
-      WRITE(*,*) ' Got neighbours from tree'
 c
 c--Must already know B/rho to call derivi
+c  rather than do another density call here, temporarily use Bvol instead
+c  this also avoids slight changes in B from setup to first dump file
 c
       IF (imhd.EQ.idim) THEN
+         IF (varmhd.EQ.'Brho') THEN
+            varmhdtemp = varmhd
+            varmhd = 'Bvol'
+         ELSE
+            varmhdtemp = varmhd
+         ENDIF
+      ENDIF
+c
+c--Call derivi to get div B, curl B etc initially
+c
+      CALL derivi(dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,ntot,
+     &            ireal,alphaMM,ekcle,Bevolxyz,f1Bxyz)
+c
+c--Now set B/rho from B (ie. now that we know rho)
+c
+      IF (imhd.EQ.idim) THEN
+         varmhd = varmhdtemp
          IF (varmhd.EQ.'Brho') THEN
             WRITE(*,99145)
 99145       FORMAT(' Calculating B/rho from B for MHD evolution...')
@@ -135,11 +151,8 @@ c
          ENDIF
       ENDIF
 c
-c--Call derivi to get div B, curl B etc initially
-c
-      CALL derivi(dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,ntot,
-     &            ireal,alphaMM,ekcle,Bevolxyz,f1Bxyz)
-
+c--set h to new self-consistent value
+c      
       DO ipart = 1,npart
          xyzmh(5,ipart) = dumxyzmh(5,ipart)
       ENDDO

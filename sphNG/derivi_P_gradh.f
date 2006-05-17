@@ -253,17 +253,17 @@ C$OMP END PARALLEL DO
 c
 c--div B projection
 c
-      IF (imhd.EQ.idim) THEN
-         IF (varmhd.EQ.'Brho' .OR. varmhd.EQ.'Bvol') THEN
-            divBmax = 0.
-            DO i=1,npart
-               divBmax = max(divcurlB(1,i),divBmax)
-            ENDDO
-            WRITE(iprint,*) 'div B max = ',divBmax
-            CALL divBclean(nlst_in,nlst_end,npart,llist,
-     &                     xyzmh,rho,Bevolxyz)
-         ENDIF
-      ENDIF
+c      IF (imhd.EQ.idim) THEN
+c         IF (varmhd.EQ.'Brho' .OR. varmhd.EQ.'Bvol') THEN
+c            divBmax = 0.
+c            DO i=1,npart
+c               divBmax = max(divcurlB(1,i),divBmax)
+c            ENDDO
+c            WRITE(iprint,*) 'div B max = ',divBmax
+c            CALL divBclean(nlst_in,nlst_end,npart,ntot,llist,
+c     &                     xyzmh,rho,Bevolxyz)
+c         ENDIF
+c      ENDIF
       
       IF (itiming) THEN
         CALL getused(tass2)

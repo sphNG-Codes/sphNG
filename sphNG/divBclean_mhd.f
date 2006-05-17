@@ -1,4 +1,4 @@
-      SUBROUTINE divBclean(nlst_in,nlst_end,npart,list,xyzmh,rho,
+      SUBROUTINE divBclean(nlst_in,nlst_end,npart,ntot,list,xyzmh,rho,
      &                     Bevolxyz)
 c************************************************************
 c                                                           *

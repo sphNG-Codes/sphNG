@@ -510,6 +510,7 @@ cc            iscurrent(i) = .TRUE.
 c         END IF
 c      END DO
       nlst = jj
+      nlstnneigh = nlst
       nlst0 = 0
 
 c      IF (jj.NE.jjnew) THEN
@@ -1864,6 +1865,8 @@ c
             WRITE (iprint,*) 'Add ',nlst0
             DO i = 1, nlst0
                nnew = npart + i
+               isort(nnew) = nnew
+               iorig(nnew) = nnew
                llist(i) = nnew
                CALL phoenix(nnew, idtsyn, itime)
                nactive = nactive + 1
@@ -1976,6 +1979,50 @@ c
 
             nneightot = nneightotsave
 c
+c--Update the lists of particles in each bin
+c
+            DO j = 1, nlst0
+               i = llist(j)
+               ibin = INT(LOG10(REAL(isteps(i)))/xlog2+0.5)
+               IF (ibin.GT.nbinmax) THEN
+                  WRITE (*,*) 'ERROR - ibin.GT.nbinmax 5'
+                  WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax 5'
+                  CALL quit
+               ENDIF
+               nlstbins(ibin) = nlstbins(ibin) + 1
+               IF (nlstbins(ibin).GT.idim) THEN
+                  WRITE (*,*) 'ERROR - nlstbins(ibin).GT.idim 5'
+                  WRITE (iprint,*) 'ERROR - nlstbins(ibin).GT.idim 5'
+                  CALL quit
+               ENDIF
+               listbins(nlstbins(ibin),ibin) = i
+            
+               IF (it1bin(ibin).NE.it1(i)) THEN
+                  WRITE (*,*) 'ERROR - it1bin 5',it1bin(ibin),it1(i),i,
+     &                 it0(i),itime,isteps(i),it2(i)
+                  CALL quit
+               ENDIF
+               IF (it2bin(ibin).NE.it2(i)) THEN
+                  WRITE (*,*) 'ERROR - it2bin 5',it2bin(ibin),it2(i),i,
+     &                 it0(i),itime,isteps(i),it1(i)
+                  CALL quit
+               ENDIF
+c
+c--Check that particle is not in any other bin
+c     
+               DO k = 1, nbinmax
+                  IF (k.NE.ibin) THEN
+                     DO l = 1, nlstbins(k)
+                        IF (listbins(l,k).EQ.i) THEN
+                           WRITE (*,*) 'Particle ',i,' in two bins!'
+                           WRITE (*,*) 'Bins ',ibin,k,nlstbins(k)
+                           CALL quit
+                        ENDIF
+                     END DO
+                  ENDIF
+               END DO
+            END DO
+c
 c--End creation of NEW particles
 c
          ENDIF
@@ -2019,6 +2066,8 @@ c
                   IF (nnew.GT.idim) CALL error(where,3)
                ENDIF
                llist(i) = nnew
+               isort(nnew) = nnew
+               iorig(nnew) = nnew
                CALL phoenix2(nnew, idtsyn, itime)
                nactive = nactive + 1
             END DO
@@ -2481,7 +2530,7 @@ c         WRITE (iprint,*) 'itime.GE.itnext'
 
          IF (igrape.EQ.0) THEN
             nneightot = 0
-            DO i = 1, nlst
+            DO i = 1, nlstnneigh
                ipart = llist(i)
                nneightot = nneightot + nneigh(ipart)
             END DO

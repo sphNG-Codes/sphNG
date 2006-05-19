@@ -80,7 +80,26 @@ c
 c--Write output file
 c
       WRITE (idisk1, ERR=100) int1,r1,int2,i1,int1
-      fileident = 'FHydroRTMHD1'
+c
+c--contruct header string based on compile-time options
+c  these are for information only (ie. not important for restarting)
+c
+      fileident(1:7) = 'FsphNG:'
+      IF (nlmax.EQ.1) THEN
+         fileident(8:17) = 'gradh=on, '
+      ELSE
+         fileident(8:17) = 'gradh=off,'
+      ENDIF
+      IF (imhd.EQ.idim) THEN
+         fileident(18:25) = 'MHD=on ,'
+      ELSE
+         fileident(18:25) = 'MHD=off,'
+      ENDIF
+      IF (iradtrans.EQ.idim) THEN
+         fileident(26:31) = 'RT=on '
+      ELSE
+         fileident(26:31) = 'RT=off'
+      ENDIF
       WRITE (idisk1, ERR=100) fileident
 c
 c--Single values

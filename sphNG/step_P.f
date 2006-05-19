@@ -70,6 +70,7 @@ c      INCLUDE 'COMMONS/steplocal'
       INCLUDE 'COMMONS/mhd'
 
       DIMENSION nsteplist(30)
+      INTEGER*8 nneightotsave
 
       LOGICAL ifirst
       LOGICAL icenter
@@ -510,7 +511,6 @@ cc            iscurrent(i) = .TRUE.
 c         END IF
 c      END DO
       nlst = jj
-      nlstnneigh = nlst
       nlst0 = 0
 
 c      IF (jj.NE.jjnew) THEN
@@ -1145,6 +1145,7 @@ c
 c--Total number of particles to compute forces on
 c
       nlst = jj
+      nlstnneigh = nlst
 c
 c--Total number of particles on which forces are to be predicted
 c

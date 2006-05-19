@@ -321,12 +321,14 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
             IF (trevt.NE.0.0) THEN
               WRITE (iprint, 98119) revtreep1/60., revtreep1/trevt*100.
               WRITE (iprint, 98120) revtreep2/60., revtreep2/trevt*100.
-              WRITE (iprint, 98121) revtreep3/60., revtreep3/
-     &             revtreep2*100.
-              WRITE (iprint, 98122) revtreep4/60., revtreep4/
-     &             revtreep2*100.
-              WRITE (iprint, 98123) revtreep5/60., revtreep5/
-     &             revtreep2*100.
+              IF (revtreep2.GT.0.0) THEN
+                 WRITE (iprint, 98121) revtreep3/60., revtreep3/
+     &                 revtreep2*100.
+                 WRITE (iprint, 98122) revtreep4/60., revtreep4/
+     &                 revtreep2*100.
+                 WRITE (iprint, 98123) revtreep5/60., revtreep5/
+     &                 revtreep2*100.
+              ENDIF
             ENDIF
             tdens = 0.
             tforce = 0.

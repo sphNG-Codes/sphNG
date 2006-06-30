@@ -24,6 +24,7 @@ c************************************************************
       INCLUDE 'COMMONS/polyk2'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/presb'
+      INCLUDE 'COMMONS/new'
       
       INTEGER iBfield      
       CHARACTER*1 isetB
@@ -60,14 +61,15 @@ c
       READ (*, *) iBfield
       IF (iBfield.LT.1.OR.iBfield.GT.2) GOTO 100
 
+      przero = 2./3.*thermal*rhozero
 
       IF(iBfield.EQ.1) THEN
 
 200     WRITE(*,99004)
 99004   FORMAT(' Do you want to enter the magnetic field strength (m)',
-     &         ' or the Alfven speed (a) ?')
+     &         ' or the Alfven speed (a) or the plasma beta (b)?')
         READ (*,99002) isetB
-        IF (isetB.NE.'m'.AND.isetB.NE.'a') GOTO 200
+        IF (isetB.NE.'m'.AND.isetB.NE.'a'.AND.isetB.NE.'b') GOTO 200
         
         IF (isetB.EQ.'m') THEN
            WRITE (*,99104) umagfd
@@ -96,7 +98,18 @@ c
            Bxzero = fracx*SQRT(rhozero)*valfven/fractot
            Byzero = fracy*SQRT(rhozero)*valfven/fractot
            Bzzero = fracz*SQRT(rhozero)*valfven/fractot
-           
+        ELSEIF (isetB.eq.'b') THEN
+           WRITE (*,98007)
+98007      FORMAT (' Enter mean plasma beta (gas/mag pressure)',/,
+     &             ' (assuming uniform density and temperature)')
+           READ (*,*) betazero
+           IF (betazero.LE.0.) STOP 'beta must be > 0'
+           WRITE (*,99008)
+           READ (*,*) fracx,fracy,fracz
+           fractot = SQRT(fracx**2. + fracy**2. + fracz**2.)
+           Bxzero = fracx*SQRT(2.*przero/betazero)/fractot
+           Byzero = fracy*SQRT(2.*przero/betazero)/fractot
+           Bzzero = fracz*SQRT(2.*przero/betazero)/fractot
         ENDIF
         
 
@@ -107,6 +120,10 @@ c
 
         Bzero2 = Bxzero**2 + Byzero**2 + Bzzero**2
         Bzero = SQRT(Bzero2)
+        valfven = SQRT(Bzero2/rhozero)
+        betazero = przero/(0.5*Bzero2)
+        WRITE(*,98009) valfven,betazero
+98009   FORMAT (' Alfven speed = ',1pe10.4,/,' Plasma beta  = ',1pe10.4)
 c
 c--calculate angle of uniform field to x axis
 c        

@@ -157,11 +157,12 @@ c
 c--Read array type 1 header
 c
       READ (idisk1, END=100) number8, (nums1(i), i=1,8)
-      IF (number8.NE.npart) THEN
-         WRITE (*,*) 'ERROR 8 in rdump: npart wrong'
+      IF (number8.LT.npart) THEN
+         WRITE (*,*) 'ERROR 8 in rdump: npart wrong',number8,
+     &           npart
          CALL quit
       ENDIF
-      npart = number8
+      nhydro = number8
 c
 c--Read array type 2 header
 c
@@ -173,7 +174,7 @@ c
       IF (number.GE.3) THEN
          READ (idisk1, END=100) number8, (nums3(i), i=1,8)
          IF (number8.GT.iradtrans .OR. number8.NE.0 .AND. 
-     &        number8.NE.npart) THEN
+     &        number8.LT.npart) THEN
             WRITE (*,*) 'ERROR 9 in rdump: iradtrans wrong ',number8,
      &           iradtrans,npart
             CALL quit
@@ -188,7 +189,7 @@ c
       IF (number.GE.4) THEN
          READ (idisk1, END=100) number8, (nums4(i), i=1,8)
          IF (number8.GT.imhd .OR. number8.NE.1 .AND. 
-     &        number8.NE.npart) THEN
+     &        number8.LT.npart) THEN
             WRITE (*,*) 'ERROR 10 in rdump: imhd wrong ',number8,
      &           imhd,npart
             CALL quit
@@ -272,7 +273,7 @@ c--real*4
 
 c--real*8
 
-      IF (number.GE.3 .AND. nradtrans.EQ.npart 
+      IF (number.GE.3 .AND. nradtrans.EQ.nhydro 
      &    .AND. encal.EQ.'r') THEN
 c
 c--Array length 3 arrays
@@ -296,7 +297,7 @@ c--real*4
 c--real*8
 
       ENDIF
-      IF (number.GE.4 .AND. nmhd.EQ.npart .AND. imhd.EQ.idim) THEN
+      IF (number.GE.4 .AND. nmhd.EQ.nhydro .AND. imhd.EQ.idim) THEN
 c
 c--Array length 4 arrays
 c      
@@ -607,7 +608,13 @@ c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2)) THEN
       ELSEIF (ifcor.GT.2) THEN
          ifcor = ifcor - 2
       ENDIF
-
+c
+c--All particles on smallest timestep OR NOT
+c
+c      DO i = 1, npart
+c         isteps(i) = istepmin
+c      END DO
+      
       IF (itrace.EQ.'all') WRITE (*, 99002)
 99002 FORMAT (' exit subroutine rdump')
       RETURN

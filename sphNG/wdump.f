@@ -59,6 +59,18 @@ c      INCLUDE 'COMMONS/torq'
 
       DATA where/'wdump'/
 c
+c=-set nprint = npart by default
+c
+      nprint = npart
+c
+c--uncomment these lines to dump ghosts as well
+c  (useful for debugging)
+c
+c      nprint = npart + nghost
+c      DO i=npart+1,npart+nghost
+c         isort(i) = i
+c      ENDDO
+c
 c--Write
 c
       irec = irec + 1
@@ -129,6 +141,7 @@ c--real*8
 c
 c--Arrays
 c
+c
 c--Number of array lengths
 c
       number = 2
@@ -138,7 +151,7 @@ c
 c
 c--Array length 1 header
 c
-      number8 = npart
+      number8 = nprint
       nums(1) = 1
       nums(2) = 1
       nums(3) = 0
@@ -170,7 +183,7 @@ c--Array length 3 header
 c
       IF (number.GE.3) THEN
          IF (encal.EQ.'r') THEN
-            number8 = npart
+            number8 = nprint
          ELSE
             number8 = 0
          ENDIF
@@ -193,7 +206,7 @@ c--Array length 4 header
 c
       IF (number.GE.4) THEN
          IF (imhd.EQ.idim) THEN
-            number8 = npart
+            number8 = nprint
          ELSE
             number8 = 0
          ENDIF
@@ -217,9 +230,9 @@ c
 c--Array length 1 arrays
 c      
 c--Default int
-      WRITE (idisk1, ERR=100) (isteps(isort(i)), i=1, npart)
+      WRITE (idisk1, ERR=100) (isteps(isort(i)), i=1, nprint)
 c--int*1
-      WRITE (idisk1, ERR=100) (iphase(isort(i)), i=1, npart)
+      WRITE (idisk1, ERR=100) (iphase(isort(i)), i=1, nprint)
 c--int*2
 
 c--int*4
@@ -228,20 +241,20 @@ c--int*8
 
 c--Default real
       DO j = 1, 5
-         WRITE (idisk1, ERR=100) (xyzmh(j,isort(i)), i=1, npart)
+         WRITE (idisk1, ERR=100) (xyzmh(j,isort(i)), i=1, nprint)
       END DO
       DO j = 1, 4
-         WRITE (idisk1, ERR=100) (vxyzu(j,isort(i)), i=1, npart)
+         WRITE (idisk1, ERR=100) (vxyzu(j,isort(i)), i=1, nprint)
       END DO      
 c--real*4
-      WRITE (idisk1, ERR=100) (rho(isort(i)), i=1, npart)
+      WRITE (idisk1, ERR=100) (rho(isort(i)), i=1, nprint)
       IF (nlmax.EQ.1) THEN
-         WRITE (idisk1, ERR=100) (gradhs(1,isort(i)), i=1, npart)      
-         WRITE (idisk1, ERR=100) (gradhs(2,isort(i)), i=1, npart)
+         WRITE (idisk1, ERR=100) (gradhs(1,isort(i)), i=1, nprint)      
+         WRITE (idisk1, ERR=100) (gradhs(2,isort(i)), i=1, nprint)
       ELSE
-         WRITE (idisk1, ERR=100) (dgrav(isort(i)), i=1, npart)      
+         WRITE (idisk1, ERR=100) (dgrav(isort(i)), i=1, nprint)      
       ENDIF
-c     WRITE (idisk1, ERR=100) (alphaMM(isort(i)), i=1, npart)
+c     WRITE (idisk1, ERR=100) (alphaMM(isort(i)), i=1, nprint)
 c--real*8
 
 c
@@ -288,7 +301,7 @@ c--int*8
 
 c--Default real
          DO j = 1, 5
-            WRITE (idisk1, ERR=100) (ekcle(j,isort(i)), i=1, npart)
+            WRITE (idisk1, ERR=100) (ekcle(j,isort(i)), i=1, nprint)
          END DO
 c--real*4
 
@@ -316,17 +329,17 @@ c
          IF (varmhd.EQ.'Brho') THEN
             DO j = 1, 3
                WRITE (idisk1, ERR=100) 
-     &            (Bevolxyz(j,isort(i))*rho(isort(i)), i=1, npart)
+     &            (Bevolxyz(j,isort(i))*rho(isort(i)), i=1, nprint)
             END DO
          ELSEIF (varmhd.EQ.'Bvol') THEN
             DO j = 1, 3
                WRITE (idisk1, ERR=100) 
-     &            (Bevolxyz(j,isort(i)), i=1, npart)
+     &            (Bevolxyz(j,isort(i)), i=1, nprint)
             END DO         
          ELSE
             DO j = 1, 3
                WRITE (idisk1, ERR=100) 
-     &            (Bxyz(j,isort(i)), i=1, npart)
+     &            (Bxyz(j,isort(i)), i=1, nprint)
             END DO         
          ENDIF
 c
@@ -335,12 +348,12 @@ c
          IF (varmhd.EQ.'eulr') THEN
             DO j = 1, 2
                WRITE (idisk1, ERR=100) 
-     &            (Bevolxyz(j,isort(i)), i=1, npart)
+     &            (Bevolxyz(j,isort(i)), i=1, nprint)
             END DO
          ENDIF
 c--real*4
          DO j = 1, 4
-            WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, npart)
+            WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, nprint)
          ENDDO
 c--real*8
 

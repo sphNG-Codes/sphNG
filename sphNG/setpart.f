@@ -744,10 +744,6 @@ c
          IF (ichang.EQ.5) GOTO 210
       ENDIF
 c
-c--Magnetic field setup once we know rhozero
-c
-      IF (imhd.EQ.idim) call setBfield
-c
 c--Set e.o.s. related quantities
 c
       WRITE (*, 99022)
@@ -969,6 +965,10 @@ c
       READ (*, 99004) iok
       igphi = 0
       IF (iok.EQ.'y') igphi = 1
+c
+c--Magnetic field setup once we know rhozero and thermal
+c
+      IF (imhd.EQ.idim) call setBfield
 c
 c--Get input file options
 c

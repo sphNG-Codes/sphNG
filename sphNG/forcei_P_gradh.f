@@ -81,7 +81,7 @@ c
          CALL quit
       ENDIF
 
-      IF (imhd.EQ.idim.AND. ibound.EQ.7) THEN
+      IF (imhd.EQ.idim .AND. ibound.EQ.7) THEN
 c--external magnetic pressure boundaries -- use dummy variables 
 c  as can still have external fields even if ibound.ne.7
          Bextxi = Bextx
@@ -94,6 +94,21 @@ c  as can still have external fields even if ibound.ne.7
          Bextzi = 0.
          B2ext = 0.
       ENDIF
+c
+c--also subtract maximum stress
+c      
+c      stressmax = 0.
+c      IF (imhd.EQ.idim) THEN
+c         DO i=1,npart
+c            IF (iphase(i).EQ.0) THEN
+c               B2i = Bxyz(1,i)**2 + Bxyz(2,i)**2 + Bxyz(3,i)**2
+c               stressterm = max(0.5*B2i - pr(i),0.)
+c               stressmax = max(stressterm,stressmax)
+cc               print*,0.5*B2i-pr(i),stressterm,stressmax
+c            ENDIF
+c         ENDDO
+c         print*,'stressmax = ',stressmax
+c      ENDIF
 c
 c--Initialize
 c
@@ -398,6 +413,11 @@ c     &                + Bsmooth(3,j)*runiz
                projBi = Bxi*runix + Byi*runiy + Bzi*runiz
                projBj = Bxj*runix + Byj*runiy + Bzj*runiz
 	       projdB = dBx*runix + dBy*runiy + dBz*runiz
+               
+               projBext = Bextxi*runix + Bextyi*runiy + Bextzi*runiz
+c	       projBrho2i = (projBi - projBext)*rho21i
+c	       projBrho2j = (projBj - projBext)*rho1j*rho1j
+
             ENDIF
 c
 c--Using hi
@@ -488,9 +508,9 @@ c              (note that kernel gradient is multiplied by gradhj)
 c
 c--j contribution to pressure gradient and isotropic mag force
 c
-c               poro2j = (pr(j) - pext)*rho1j*rho1j
-               poro2j = (pr(j) - pext + 0.5*(B2j-B2ext))*rho1j*rho1j
-               gradpj = grpmj*poro2j
+c               pro2j = (pr(j) - pext)*rho1j*rho1j
+               pro2j = (pr(j) - pext + 0.5*(B2j-B2ext))*rho1j*rho1j
+               gradpj = grpmj*pro2j
 c
 c--j contribution to force softening (including pseudo-pressure term)
 c
@@ -559,6 +579,34 @@ c
      &                   + grpm*((Bzj-Bextzi)*(projBj-projBext)
      &                         - (Bzi-Bextzi)*(projBi-projBext))*rhoij1
 c
+c--exactly momentum-conserving form (no external boundaries yet)
+c
+c                  sxxi = -Bxi*Bxi + stressmax
+c                  sxyi = -Bxi*Byi + stressmax
+c                  sxzi = -Bxi*Bzi + stressmax
+c                  syyi = -Byi*Byi + stressmax
+c                  syzi = -Byi*Bzi + stressmax
+c                  szzi = -Bzi*Bzi + stressmax
+c                  
+c                  sxxj = -Bxj*Bxj + stressmax
+c                  sxyj = -Bxj*Byj + stressmax
+c                  sxzj = -Bxj*Bzj + stressmax
+c                  syyj = -Byj*Byj + stressmax
+c                  syzj = -Byj*Bzj + stressmax
+c                  szzj = -Bzj*Bzj + stressmax
+c
+c                  fanisoxi = pmassj*(
+c                  (sxxi*runix + sxyi*runiy + sxzi*runiz)*rho21i*grkerni
+c                  (sxxj*runix + sxyj*runiy + sxzj*runiz)*rho21j*grkernj)
+c                 
+c                  fanisoyi = pmassj*(
+c                  (sxyi*runix + syyi*runiy + syzi*runiz)*rho21i*grkerni
+c                  (sxyj*runix + syyj*runiy + syzj*runiz)*rho21j*grkernj)
+c
+c                  fanisozi = pmassj*(
+c                  (sxzi*runix + syzi*runiy + szzi*runiz)*rho21i*grkerni
+c                  (sxzj*runix + syzj*runiy + szzj*runiz)*rho21j*grkernj)
+c
 c--signal velocity (MHD)
 c
                   vsoundj = vsound(j)
@@ -574,7 +622,7 @@ c
 c
 c--artificial resistivity
 c
-		  IF (j.LE.npart) THEN
+		  IF (j.LE.npart .OR. ibound.EQ.11) THEN
                      alphaB = 1.0
                      termB = alphaB*grpm*MAX(vsbar - projv,0.0)*robar1
 c                    dBxdissi = dBxdissi + termB*(dBx - runix*projdB)*robar1
@@ -583,8 +631,8 @@ c                    dBzdissi = dBzdissi + termB*(dBz - runiz*projdB)*robar1
 
                      IF (varmhd.EQ.'eulr') THEN
                      dBxdissi = dBxdissi + termB*(Bevolxi-Bevolxyz(1,j))
-                     dBydissi = dBydissi + termB*(Bevolxi-Bevolxyz(1,j))
-                     dBzdissi = dBzdissi + termB*(Bevolxi-Bevolxyz(1,j))
+                     dBydissi = dBydissi + termB*(Bevolyi-Bevolxyz(2,j))
+                     dBzdissi = dBzdissi + termB*(Bevolzi-Bevolxyz(3,j))
 		     ELSE
                      dBxdissi = dBxdissi + termB*dBx*robar1
 		     dBydissi = dBydissi + termB*dBy*robar1
@@ -615,7 +663,8 @@ c
 c
 c--Artificial viscosity and energy dissipation
 c
-               IF (ifsvi.NE.0 .AND. projv.LT.0. .AND. j.LE.npart) THEN
+               IF (ifsvi.NE.0 .AND. projv.LT.0. .AND. 
+     &                        (j.LE.npart.OR.ibound.EQ.11)) THEN
 c
 c--Calculate artificial viscosity:
 c     If ifsvi=1 then normal viscosity

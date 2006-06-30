@@ -204,29 +204,29 @@ c
             i = list(j)
             IF (iphase(i).LT.0) GOTO 350
             ichan = 0
-            IF (xyzmh(1,i).LE.xmin) THEN
+            IF (xyzmh(1,i).LT.xmin) THEN
                ichan = ichan + 1
-               xyzmh(1,i) = xmax -(xmin-xyzmh(1,i))
+               xyzmh(1,i) = xyzmh(1,i) + (xmax - xmin)
             ENDIF
             IF (xyzmh(1,i).GE.xmax) THEN
                ichan = ichan + 1
-               xyzmh(1,i) = xmin -(xmax-xyzmh(1,i))
+               xyzmh(1,i) = xyzmh(1,i) - (xmax - xmin)
             ENDIF
-            IF (xyzmh(2,i).LE.ymin) THEN
+            IF (xyzmh(2,i).LT.ymin) THEN
                ichan = ichan + 1
-               xyzmh(2,i) = ymax -(ymin-xyzmh(2,i))
+               xyzmh(2,i) = xyzmh(2,i) + (ymax - ymin)
             ENDIF
             IF (xyzmh(2,i).GE.ymax) THEN
                ichan = ichan + 1
-               xyzmh(2,i) = ymin -(ymax-xyzmh(2,i))
+               xyzmh(2,i) = xyzmh(2,i) - (ymax - ymin)
             ENDIF
-            IF (xyzmh(3,i).LE.zmin) THEN
+            IF (xyzmh(3,i).LT.zmin) THEN
                ichan = ichan + 1
-               xyzmh(3,i) = zmax -(zmin-xyzmh(3,i))
+               xyzmh(3,i) = xyzmh(3,i) + (zmax - zmin)
             ENDIF
             IF (xyzmh(3,i).GE.zmax) THEN
                ichan = ichan + 1
-               xyzmh(3,i) = zmin -(zmax-xyzmh(3,i))
+               xyzmh(3,i) = xyzmh(3,i) - (zmax - zmin)
             ENDIF
             IF (ichan.NE.0) THEN
                iouter = iouter + 1

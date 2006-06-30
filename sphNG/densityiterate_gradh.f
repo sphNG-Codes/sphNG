@@ -78,6 +78,7 @@ c
       icreate = 0
       radcrit2 = radcrit*radcrit
       numparticlesdone = numparticlesdone + nlst_end
+      stressmax = 0.
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end,list,divv,curlv,gradhs)
@@ -136,9 +137,10 @@ c
             hi41 = hi21*hi21
 
             IF (hi.GT.hneigh) THEN
-               hneigh = hstretch*hi*radkernel
-               CALL getneighi(ipart,xi,yi,zi,hneigh,numneighi,
-     &              neighlist,xyzmh)
+               hneigh = hstretch*hi
+               rcut = hneigh*radkernel
+               CALL getneighi(ipart,xi,yi,zi,rcut,
+     &              numneighi,neighlist,xyzmh)
                inumrecalc = inumrecalc + 1
             ENDIF
 c
@@ -247,6 +249,7 @@ c
             WRITE (iprint,*) iorig(ipart),numneighreal,nneighmax
             CALL quit
          ENDIF
+
          nneigh(ipart) = numneighreal
          xyzmh(5,ipart) = hi
          gradhs(1,ipart) = 1./omegai
@@ -261,6 +264,10 @@ c
      &              ekcle(3,ipart))**4/rho(ipart)
             ENDIF
          ENDIF
+c
+c--Pressure and sound velocity from ideal gas law...
+c
+         CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
 c
 c--Calculate other quantities by looping over interacting neighbours.
 c     Simultaneously interpolate neighbours to current time for those
@@ -287,13 +294,16 @@ c         Bbarzi = 0.
          vxi = vxyzu(1,ipart)
          vyi = vxyzu(2,ipart)
          vzi = vxyzu(3,ipart)
+c
+c--Calculate B from the evolved magnetic field variable
+c
          IF (imhd.EQ.idim) THEN
             IF (varmhd.EQ.'eulr') THEN
                alphai= Bevol(1,ipart)
 	       betai= Bevol(2,ipart)
             ENDIF
          ENDIF
-         
+                  
          DO k = 1, numneighi
             j = neighlist(k)
 
@@ -366,7 +376,7 @@ c
                      gradbetaxi= gradbetaxi - grpmi*dbeta*dx
                      gradbetayi= gradbetayi - grpmi*dbeta*dy
                      gradbetazi= gradbetazi - grpmi*dbeta*dz
-c                  ELSE
+                  ELSE
 c
 c--smoothed velocity for use in the B or B/rho evolution
 c
@@ -390,10 +400,6 @@ c
          curlv(ipart) = cnormk*SQRT(curlvxi**2+curlvyi**2+curlvzi**2)*
      &        gradhs(1,ipart)
          gradhs(2,ipart) = dhdrhoi*(gradsofti - pmassi*dphidh(0)*hi21) 
-c
-c--Pressure and sound velocity from ideal gas law...
-c
-         CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
 c
 c--Find particle with highest density outside radcrit of point mass
 c
@@ -443,6 +449,32 @@ c               print*,ipart,'vsmooth = ',vsmooth(:,ipart)
          ENDIF
  50   CONTINUE
       END DO
+C$OMP END DO      
+c
+c--copy changed values onto ghost particles
+c
+C$OMP DO SCHEDULE (runtime)
+         DO i = npart + 1, ntot
+            j = ireal(i)
+            rho(i) = rho(j)
+            dumrho(i) = dumrho(j)
+            pr(i) = pr(j)
+            vsound(i) = vsound(j)
+            divv(i) = divv(j)
+            curlv(i) = curlv(j)
+            vxyzu(4,i) = vxyzu(4,j)
+            gradhs(1,i) = gradhs(1,j)
+            gradhs(2,i) = gradhs(2,j)
+            IF (imhd.EQ.idim) THEN
+               Bxyz(1,i) = Bxyz(1,j)
+               Bxyz(2,i) = Bxyz(2,j)
+               Bxyz(3,i) = Bxyz(3,j)
+            ENDIF
+            IF (encal.EQ.'r' .AND. ibound.EQ.100) 
+     &           ekcle(1,i) = ekcle(1,j)
+         END DO
+C$OMP END DO
+C$OMP END PARALLEL      
 C$OMP END PARALLEL DO
 c
 c--Possible to create a point mass

@@ -11,7 +11,7 @@ C==============================================================
       IMPLICIT REAL*8 (A-H,O-Z)
 
       PARAMETER(PI=3.1415927D0)
-      PARAMETER(NGRID=16)
+      PARAMETER(NGRID=64)
 
       REAL*8 MASSB,MASSDM,nindex,kmod,kdotq,LF,MASSTOT
       DIMENSION phix(2*NGRID,2*NGRID,2*NGRID)
@@ -37,7 +37,7 @@ c
       print*,'Enter 2 seeds (integers, e.g. 17,11)'
       read (*,*) iseed
       read (*,*) iseed2
-      print*,'Enter index (e.g. n=17/3 for Kolmogorov, 6 for Burgers)'
+      print*,'Enter index (e.g. n=-17/3 for Kolmogorov)'
       read (*,*) nindex
 c
 c--Gives P(k)=k^{nindex) power spectrum
@@ -203,7 +203,13 @@ C
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 CU    USES ran4
       REAL*8 ran4
-      rayldev=dsqrt(-LOG(ran4(idum)))
+      random = ran4(idum)
+ 10   IF (random.EQ.0.0) THEN
+         random = ran4(idum)
+         WRITE (*,*) 'Done ',random
+         GOTO 10
+      ENDIF
+      rayldev=dsqrt(-LOG(random))
       return
       END
 

@@ -39,6 +39,13 @@ c
 c
 c--Find ghost particles (for all particles within radkernel*h of boundary)
 c
+c  For periodic boundary conditions, safest is to use hmax
+c
+      hmax = 0.
+      DO i = 1, npart
+         hmax = max(1.1*xyzmh(5,i),hmax)
+      ENDDO
+
       DO i = 1, npart
          nghostold = nghost
          hasghost(i) = .FALSE.
@@ -60,12 +67,12 @@ c--Corners
 c
          radk2 = radkernel*radkernel
 
-         dxmin = (xi - xmin)/hi
-         dxmax = (xmax - xi)/hi
-         dymin = (yi - ymin)/hi
-         dymax = (ymax - yi)/hi
-         dzmin = (zi - zmin)/hi
-         dzmax = (zmax - zi)/hi
+         dxmin = (xi - xmin)/hmax
+         dxmax = (xmax - xi)/hmax
+         dymin = (yi - ymin)/hmax
+         dymax = (ymax - yi)/hmax
+         dzmin = (zi - zmin)/hmax
+         dzmax = (zmax - zi)/hmax
 
          dxmin2 = dxmin*dxmin
          dymin2 = dymin*dymin

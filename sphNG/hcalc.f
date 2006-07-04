@@ -154,6 +154,12 @@ c         print *, ipart, numneigh
 ccc      IF (iagain.GT.0 .AND. icount.GT.2) GOTO 5
 ccc      IF (iagain.GT.0) GOTO 10
       IF (iagain.GT.0) GOTO 5
+c
+c--get density
+c
+      CALL densityi(npart,xyzmh,vxyzu,ekcle,
+     &        1,npart,llist,itime)
+
 
  15   DO i = 1, npart
          iscurrent(i) = .FALSE.

@@ -19,6 +19,7 @@ c************************************************************
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/ptmass'
+      INCLUDE 'COMMONS/mhd'
 c
 c--Allow for tracing flow
 c
@@ -204,6 +205,9 @@ c
             i = list(j)
             IF (iphase(i).LT.0) GOTO 350
             ichan = 0
+            xi = xyzmh(1,i)
+            yi = xyzmh(2,i)
+            zi = xyzmh(3,i)
             IF (xyzmh(1,i).LT.xmin) THEN
                ichan = ichan + 1
                xyzmh(1,i) = xyzmh(1,i) + (xmax - xmin)
@@ -228,6 +232,9 @@ c
                ichan = ichan + 1
                xyzmh(3,i) = xyzmh(3,i) - (zmax - zmin)
             ENDIF
+            IF (imhd.EQ.idim) CALL copyBevol(i,i,Bevolxyz,
+     &         xyzmh(1,i)-xi,xyzmh(2,i)-yi,xyzmh(3,i)-zi)
+
             IF (ichan.NE.0) THEN
                iouter = iouter + 1
                idonebound = 1

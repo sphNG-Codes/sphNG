@@ -25,6 +25,7 @@ c************************************************************
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/varmhd'
 
       CHARACTER*7 where
 
@@ -85,6 +86,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
 
          dxmax = (xmax - xi)/hmax
@@ -104,6 +107,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
 c
 c--Y axis
@@ -125,6 +130,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
 
          dymax = (ymax - yi)/hmax
@@ -144,6 +151,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
 c
 c--Z axis
@@ -165,6 +174,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
 
          dzmax = (zmax - zi)/hmax
@@ -184,6 +195,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
 c
 c--Edges
@@ -215,6 +228,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dxmin2 + dymax2
          IF (radius2.GT.delta2 .AND. dxmin.GT.delta .AND. 
@@ -234,6 +249,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dxmax2 + dymin2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -253,6 +270,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dxmax2 + dymax2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -272,6 +291,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
 
          radius2 = dxmin2 + dzmin2
@@ -292,6 +313,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dxmin2 + dzmax2
          IF (radius2.GT.delta2 .AND. dxmin.GT.delta .AND. 
@@ -311,6 +334,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dxmax2 + dzmin2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -330,6 +355,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dxmax2 + dzmax2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -349,6 +376,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
  
          radius2 = dzmin2 + dymin2
@@ -369,6 +398,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dzmin2 + dymax2
          IF (radius2.GT.delta2 .AND. dzmin.GT.delta .AND. 
@@ -388,6 +419,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dzmax2 + dymin2
          IF (radius2.GT.delta2 .AND. dzmax.GT.delta .AND. 
@@ -407,6 +440,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dzmax2 + dymax2
          IF (radius2.GT.delta2 .AND. dzmax.GT.delta .AND. 
@@ -426,6 +461,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
 c
 c--Corners
@@ -449,6 +486,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dxmin2 + dymin2 + dzmax2
          IF (radius2.GT.delta2 .AND. dxmin.GT.delta .AND. 
@@ -469,6 +508,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dxmin2 + dymax2 + dzmin2
          IF (radius2.GT.delta2 .AND. dxmin.GT.delta .AND. 
@@ -489,6 +530,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dxmin2 + dymax2 + dzmax2
          IF (radius2.GT.delta2 .AND. dxmin.GT.delta .AND. 
@@ -509,6 +552,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dxmax2 + dymin2 + dzmin2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -529,6 +574,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dxmax2 + dymin2 + dzmax2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -549,6 +596,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dxmax2 + dymax2 + dzmin2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -569,6 +618,8 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
          radius2 = dxmax2 + dymax2 + dzmax2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -589,22 +640,21 @@ c
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
             iphase(nptot) = 0
+            IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
+     &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
 
          IF (nghostold.NE.nghost) THEN
-            IF (encal.EQ.'r') THEN
-               DO j=1,5
-                  ekcle(j,nptot) = ekcle(j,i)
-               END DO
-               vxyzu(4,nptot) = 0.704097133431896
-               ekcle(1,nptot) = uradconst*(vxyzu(4,nptot)/
-     &              ekcle(3,nptot))**4/50.226017
-            ENDIF
-            IF (imhd.EQ.idim) THEN
-               DO j=1,3
-                  Bevolxyz(j,nptot) = Bevolxyz(j,i)
-               END DO
-            ENDIF
+            DO k=nptot-(nghost-nghostold),nptot
+               IF (encal.EQ.'r') THEN
+                  DO j=1,5
+                     ekcle(j,k) = ekcle(j,i)
+                  END DO
+                  vxyzu(4,k) = 0.704097133431896
+                  ekcle(1,k) = uradconst*(vxyzu(4,nptot)/
+     &              ekcle(3,k))**4/50.226017
+               ENDIF
+            ENDDO
          ENDIF
 
  200  CONTINUE
@@ -614,5 +664,26 @@ c
       WRITE (iprint, *) 'npart, nghost', npart, nghost
       IF (ntot.GT.idim) CALL error(where, ntot)
 
+      RETURN
+      END
+      
+      SUBROUTINE copyBevol(inew,iold,Bevolxyz,deltax,deltay,deltaz)
+      INCLUDE 'idim'
+      INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/presb'
+
+      DIMENSION Bevolxyz(3,imhd)
+c
+c--for Euler potentials need gradient to be continuous across boundary
+c      
+      IF (varmhd.EQ.'eulr') THEN
+         Bevolxyz(1,inew) = Bevolxyz(1,iold) - Bextz*deltay
+         Bevolxyz(2,inew) = Bevolxyz(2,iold) + deltax
+      ELSE
+         DO j=1,3
+            Bevolxyz(j,inew) = Bevolxyz(j,iold)
+         END DO
+      ENDIF
+      
       RETURN
       END

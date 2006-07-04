@@ -153,7 +153,7 @@ c
 c
 c--set h to new self-consistent value
 c      
-      DO ipart = 1,npart
+      DO ipart = 1,ntot
          xyzmh(5,ipart) = dumxyzmh(5,ipart)
       ENDDO
 c

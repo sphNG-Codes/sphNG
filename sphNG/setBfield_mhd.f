@@ -125,12 +125,25 @@ c
         WRITE(*,98009) valfven,betazero
 98009   FORMAT (' Alfven speed = ',1pe10.4,/,' Plasma beta  = ',1pe10.4)
 c
+c--spit out mass to flux ratio
+c
+         fcrit = 3./sqrt(5.)*pi
+         WRITE(*,*) 'fcrit = ',fcrit
+         IF (Bxzero.GT.tiny) WRITE(*,98010) 'x',Bxzero/rhozero,
+     &      (Bxzero/rhozero)/fcrit
+         IF (Byzero.GT.tiny) WRITE(*,98010) 'y',Byzero/rhozero,
+     &      (Byzero/rhozero)/fcrit
+         IF (Bzzero.GT.tiny) WRITE(*,98010) 'z',Bzzero/rhozero,
+     &      (Bzzero/rhozero)/fcrit
+98010    FORMAT (' Flux to mass ratio (',a1,') = ',es10.4,
+     &           ' f/fcrit = ',f9.4)
+c
 c--calculate angle of uniform field to x axis
 c        
         angle = ACOS(Bxzero/Bzero)*180.0/pi
         WRITE (*,99010) angle
 99010   FORMAT (' Angle between field and x axis = ',f7.3,' degrees')
-                
+
         IF (varmhd.EQ.'eulr') THEN
            WRITE(*,*) 'WARNING: Bz ONLY IMPLEMENTED AT THE MOMENT'
            DO i=1,npart

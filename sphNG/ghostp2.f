@@ -163,16 +163,21 @@ c
          ENDIF
 
          IF (nghostold.NE.nghost) THEN
-            IF (encal.EQ.'r') THEN
-               DO j=1,5
-                  ekcle(j,nptot) = ekcle(j,i)
-               END DO
-            ENDIF
-            IF (imhd.EQ.idim) THEN
-               DO j=1,3
-                  Bevolxyz(j,nptot) = Bevolxyz(j,i)
-               END DO
-            ENDIF
+            DO k=nptot-(nghost-nghostold)+1,nptot
+               IF (encal.EQ.'r') THEN
+                  DO j=1,5
+                     ekcle(j,k) = ekcle(j,i)
+                  END DO
+                  vxyzu(4,k) = 0.704097133431896
+                  ekcle(1,k) = uradconst*(vxyzu(4,k)/
+     &              ekcle(3,k))**4/50.226017
+               ENDIF
+               IF (imhd.EQ.idim) THEN
+                  DO j=1,3
+                     Bevolxyz(j,k) = Bevolxyz(j,i)
+                  END DO
+               ENDIF
+            ENDDO
          ENDIF
 
  300  CONTINUE

@@ -1303,13 +1303,33 @@ c
       READ (*,99004) iok
       IF (iok.EQ.'y' .OR. iok.EQ.'Y') GOTO 778
 
-      WRITE (*,*) 'Enter multiplicative factor'
+      WRITE (*,*) 'Enter new RMS velocity'
       READ (*,*) factor
+      rootmeansquare = SQRT(rootmeansquare/(npart-nptmass))
       DO i = 1, npart
-         vxyzu(1,i) = vxyzu(1,i)*factor
-         vxyzu(2,i) = vxyzu(2,i)*factor
-         vxyzu(3,i) = vxyzu(3,i)*factor
+         vxyzu(1,i) = vxyzu(1,i)*factor/rootmeansquare
+         vxyzu(2,i) = vxyzu(2,i)*factor/rootmeansquare
+         vxyzu(3,i) = vxyzu(3,i)*factor/rootmeansquare
       END DO
+      ekinetic = 0.
+      rootmeansquare = 0.
+      DO i = nptmass + 1, npart
+         vel2 = vxyzu(1,i)**2+vxyzu(2,i)**2+vxyzu(3,i)**2
+         rootmeansquare = rootmeansquare + vel2
+         ekinetic = ekinetic + xyzmh(4,i)*vel2
+      END DO
+      ekinetic = ekinetic/2.0
+      WRITE (*,*) 'Root mean square velocity = ',
+     &     SQRT(rootmeansquare/(npart-nptmass)),rootmeansquare
+      WRITE (*,*) 'Sound speed = ',SQRT(2.0/3.0*gamma*thermal)
+
+c      WRITE (*,*) 'Enter multiplicative factor'
+c      READ (*,*) factor
+c      DO i = 1, npart
+c         vxyzu(1,i) = vxyzu(1,i)*factor
+c         vxyzu(2,i) = vxyzu(2,i)*factor
+c         vxyzu(3,i) = vxyzu(3,i)*factor
+c      END DO
 
 
 77771 FORMAT(A20)

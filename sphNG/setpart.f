@@ -47,7 +47,7 @@ c************************************************************
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/setlocal'
 
-      CHARACTER*20 filevelx, filevely, filevelz
+      CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
       CHARACTER*1 ien
 c
@@ -1332,7 +1332,7 @@ c         vxyzu(3,i) = vxyzu(3,i)*factor
 c      END DO
 
 
-77771 FORMAT(A20)
+77771 FORMAT(A)
  778  n1 = npart
       n2 = 0
 c

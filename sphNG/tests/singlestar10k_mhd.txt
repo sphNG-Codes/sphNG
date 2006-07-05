@@ -1,4 +1,4 @@
-msingstar01
+msing10k01
 s
 msin001
 n
@@ -16,12 +16,6 @@ n
 1
 1.0
 y
-Brho
-1
-m
-0.0
-0.0
-5.e-5
 i
 t
 10
@@ -30,6 +24,12 @@ n
 n
 y
 y
+eulr
+1
+m
+0.0
+0.0
+5.e-5
 r
 s
 5.4e-14

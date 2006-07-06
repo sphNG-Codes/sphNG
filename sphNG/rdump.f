@@ -6,6 +6,7 @@ c                                                           *
 c************************************************************
 
       INCLUDE 'idim'
+      INCLUDE 'igrape'
 
       REAL*8 umassi, udisti, utimei, umagfdi
 

@@ -1327,7 +1327,7 @@ c
          WRITE (*,*) 'Root mean square velocity = ',
      &        SQRT(rootmeansquare/(npart-nptmass)),rootmeansquare
          WRITE (*,*) 'Sound speed = ',SQRT(2.0/3.0*gamma*thermal)
-      ELSEIF ((iok.EQ.'F' .OR. iok.EQ.'f') THEN
+      ELSEIF (iok.EQ.'F' .OR. iok.EQ.'f') THEN
          WRITE (*,*) 'Enter multiplicative factor'
          READ (*,*) factor
          DO i = 1, npart

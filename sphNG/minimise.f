@@ -167,6 +167,12 @@ c--real*4
       READ (11, END=100) number
 c--real*8
       READ (11, END=100) number
+
+c      IF (number.NE.3) THEN
+c         WRITE (*,*) 'ERROR 6 in rdump'
+c         STOP
+c      ENDIF
+
       READ (11, END=100) udist, umass, utime
 c
 c--Arrays

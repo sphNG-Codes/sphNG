@@ -59,15 +59,6 @@ c      INCLUDE 'COMMONS/angm'
       
       DATA where/'accrete'/
 
-
-c      CALL angmom
-c      angx1 = angx
-c      angy1 = angy
-c      angz1 = angz
-c      xmom1 = xmom
-c      ymom1 = ymom
-c      zmom1 = zmom
-
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nptmass,numberacc,ptminner)
 C$OMP& private(iii)
@@ -77,7 +68,7 @@ C$OMP& private(iii)
       END DO
 C$OMP END PARALLEL DO
 
-      IF (nlst0.GT.nptmass) THEN
+c      IF (nlst0.GT.nptmass) THEN
 c
 c--Only allow accretion of GAS particles evaluated at the CURRENT timestep
 c     iremove is initialised in evol.f to -1
@@ -89,6 +80,10 @@ C$OMP& private(i,j)
 C$OMP DO SCHEDULE(runtime)
       DO i = 1, nlst0
          j = llist(i)
+         IF (iremove(j).NE.-1) THEN
+            WRITE (*,*) 'ERROR - accrete iremove ',iremove(j),j,nlst0
+            CALL quit
+         ENDIF
          IF (iphase(j).EQ.0) iremove(j) = 0
       END DO
 C$OMP END DO
@@ -391,6 +386,26 @@ c
 c--Make a dump next time save is called
 c
          iptcreat = 1
+
+
+
+c         xlinearx = 0.
+c         xlineary = 0.
+c         xlinearz = 0.
+c         DO kk = 1, npart
+c            IF (iphase(kk).GE.0) THEN
+c            xlinearx = xlinearx + xyzmh(4,kk)*vxyzu(1,kk)
+c            xlineary = xlineary + xyzmh(4,kk)*vxyzu(2,kk)
+c            xlinearz = xlinearz + xyzmh(4,kk)*vxyzu(3,kk)
+c            ENDIF
+c         END DO
+c         print *,'Creating ',kk,xlinearx,xlineary,xlinearz,
+c     &        SQRT(xlinearx**2+xlineary**2+xlinearz**2)
+
+
+
+
+
          nptmass = nptmass + 1
          IF (nptmass.GE.iptdim) CALL error(where,3)
 
@@ -441,9 +456,14 @@ c
                f1vyi = (pmassi*f1vyi + pmassj*f1vxyzu(2,j))/totalmass
                f1vzi = (pmassi*f1vzi + pmassj*f1vxyzu(3,j))/totalmass
                WRITE(iprint,*)'add = ', jj, r2, pmassi
+c               print *,'Accel ',j,f1vxyzu(1,j),f1vxi
                pmassi = totalmass
             ENDIF
          END DO
+
+c         print *,'Create ',xyzmh(4,irhonex),vxyzu(1,irhonex),
+c     &        f1vxyzu(1,irhonex),pmassi,vxi,f1vxi
+
          WRITE(iprint,77001) pmassi, realtime
 77001        FORMAT('PROTOSTAR CREATION, mass = ',1PE12.5,
      &        ' time = ',1PE14.7)
@@ -481,9 +501,17 @@ c
          ymomadd(nptmass) = 0.0
          zmomadd(nptmass) = 0.0
 
-         f1vxyzu(1,irhonex) = f1vxi
-         f1vxyzu(2,irhonex) = f1vyi
-         f1vxyzu(3,irhonex) = f1vzi
+c
+c--DON'T set acceleration because leapfrog integrator uses this for 1/2 kick
+c
+c         f1vxyzu(1,irhonex) = f1vxi
+c         f1vxyzu(2,irhonex) = f1vyi
+c         f1vxyzu(3,irhonex) = f1vzi
+         f1vxyzu(1,irhonex) = 0.
+         f1vxyzu(2,irhonex) = 0.
+         f1vxyzu(3,irhonex) = 0.
+
+
          f1vxyzu(4,irhonex) = f1ui
          f1ha(1,irhonex) = f1hi
          ptmsyn(nptmass) = pmassi
@@ -523,6 +551,24 @@ c
          listpm(nptmass) = irhonex
          listrealpm(irhonex) = nptmass
          hasghost(irhonex) = .FALSE.
+
+
+
+c         xlinearx = 0.
+c         xlineary = 0.
+c         xlinearz = 0.
+c         DO kk = 1, npart
+c            IF (iphase(kk).GE.0) THEN
+c            xlinearx = xlinearx + xyzmh(4,kk)*vxyzu(1,kk)
+c            xlineary = xlineary + xyzmh(4,kk)*vxyzu(2,kk)
+c            xlinearz = xlinearz + xyzmh(4,kk)*vxyzu(3,kk)
+c            ENDIF
+c         END DO
+c         print *,'Created ',kk,xlinearx,xlineary,xlinearz,
+c     &        SQRT(xlinearx**2+xlineary**2+xlinearz**2)
+
+c         print *,'Created ',irhonex,hacc,xyzmh(5,irhonex)
+
       ENDIF
 c
 c--ACCRETION OF PARTICLES NEAR AN EXISTING POINT MASS
@@ -543,11 +589,94 @@ c     haccall = radius at which all particles are accreted without test
 c
 c
  100  DO iii = 1, nptmass
-         IF (nptlist(iii).GT.0) THEN
 
          i = listpm(iii)
-         
          hacccur = xyzmh(5,i)
+c
+c--Use neighbours from TREE
+c
+c         GOTO 777
+
+c         CALL getneigh(i,npart,hacccur/2.0,xyzmh,nlist,iptneigh,nearl)
+
+c         nptlist(iii) = nlist
+
+c         DO k = 1, nlist
+c            nearpt(k,iii) = nearl(k)
+c         END DO
+
+c
+c--Check that list returned by tree and direct calculation agree (see below).
+c     This is a good check to find bugs (doesn't take much extra time).
+c
+         nptlistold = nptlist(iii)
+         ik = 0
+         DO ii = 1, nptlist(iii)
+            j = nearpt(ii,iii)
+            IF (iremove(j).EQ.0) ik = ik + 1
+         END DO
+c
+c--Keep old list
+c
+         DO k = 1, nptlistold
+            nearl(k) = nearpt(k,iii)
+         END DO
+c
+c--Calculate list directly
+c
+         nptlist(iii) = 0
+         DO ii = 1, nlst0
+            j = llist(ii)
+            IF (iphase(j).EQ.0) THEN
+               dx = xyzmh(1,j) - xyzmh(1,i)
+               dy = xyzmh(2,j) - xyzmh(2,i)
+               dz = xyzmh(3,j) - xyzmh(3,i)
+               IF (dx**2 + dy**2 + dz**2 .LT. hacccur**2) THEN
+                  nptlist(iii) = nptlist(iii) + 1
+                  IF (nptlist(iii).GT.iptneigh) THEN
+                     WRITE (iprint,*) 'ERROR - acc, iptneigh'
+                     CALL quit
+                  ELSE
+                     nearpt(nptlist(iii),iii) = j
+
+c                     DO kkkk = 1, nptlistold
+c                        IF (nearl(kkkk).EQ.j) GOTO 678
+c                     END DO
+c                     print *,'ERROR particle missing ',j,nptlistold
+c                     CALL quit
+c 678                 CONTINUE
+
+                  ENDIF
+               ENDIF
+            ENDIF
+         END DO
+c
+c--Compare two lists
+c
+         IF (nptlist(iii).NE.ik) THEN
+            WRITE (*,*) 'List error ',i,nptlist(iii),ik,nptlistold
+
+            IF (nptlist(iii).GT.ik) print *,'***GREAT***'
+            DO ii = 1, nptlistold
+            j = nearl(ii)
+               print *,'Old ',j,sqrt((xyzmh(1,j) - xyzmh(1,i))**2 + 
+     &              (xyzmh(2,j) - xyzmh(2,i))**2 + 
+     &              (xyzmh(3,j) - xyzmh(3,i))**2),xyzmh(1,i),
+     &              xyzmh(2,i),xyzmh(3,i),xyzmh(1,j),xyzmh(2,j),
+     &              xyzmh(3,j),iremove(j)
+            END DO
+            DO ii = 1, nptlist(iii)
+               print *,'New ',nearpt(ii,iii)
+            END DO
+
+            CALL quit
+         ENDIF
+c
+c--Perform accretion
+c
+ 777     IF (nptlist(iii).GT.0) THEN
+
+
          IF (iphase(i).EQ.3) THEN
             haccmin = haccall
          ELSE
@@ -748,6 +877,9 @@ c
                   utemp = utemp + pmassj*vxyzu(4,j)
                   xyzmh(4,j) = pmassjn
 
+c                  print *,'Acc ',j,f1vxyzu(1,j),f1vxtemp,
+c     &        (f1vxi*pmassi + f1vxtemp)/(ptmsyn(iii) + ptmadd(iii))
+
  888              CONTINUE
                ENDIF
             ENDIF
@@ -770,20 +902,54 @@ c
          xyzmh(2,i) = (yiold*pmassi + ytemp)/pmassnew
          xyzmh(3,i) = (ziold*pmassi + ztemp)/pmassnew
          xyzmh(5,i) = hi
-         f1vxyzu(1,i) = (f1vxi*pmassi + f1vxtemp)/pmassnew
-         f1vxyzu(2,i) = (f1vyi*pmassi + f1vytemp)/pmassnew
-         f1vxyzu(3,i) = (f1vzi*pmassi + f1vztemp)/pmassnew
+c
+c--Only treat new acceleration as valid if hasn't changed much (e.g. if only
+c     a few particles have been accreted, not likely to change much
+c
+         f1vxi = (f1vxi*pmassi + f1vxtemp)/pmassnew
+         f1vyi = (f1vyi*pmassi + f1vytemp)/pmassnew
+         f1vzi = (f1vzi*pmassi + f1vztemp)/pmassnew
+         newaccel2 = f1vxi**2 + f1vyi**2 + f1vzi**2
+         oldaccel2 = f1vxyzu(1,i)**2 + f1vxyzu(2,i)**2 +f1vxyzu(3,i)**2
+         IF (ABS(newaccel2-oldaccel2)/oldaccel2.LT.1.0E-4) THEN
+            f1vxyzu(1,i) = f1vxi
+            f1vxyzu(2,i) = f1vyi
+            f1vxyzu(3,i) = f1vzi
+         ELSE
+            f1vxyzu(1,i) = 0.
+            f1vxyzu(2,i) = 0.
+            f1vxyzu(3,i) = 0.
+         ENDIF
+
+c         print *,'Accrete ',i,xyzmh(4,i),vxyzu(1,i),
+c     &        f1vxyzu(1,i),nlstacc
 
          ENDIF
       END DO
 c--End if nlst0.GT.nptmass
-      ENDIF
+c      ENDIF
+
+c         xlinearx = 0.
+c         xlineary = 0.
+c         xlinearz = 0.
+c         DO kk = 1, npart
+c            IF (iphase(kk).GE.0) THEN
+c            xlinearx = xlinearx + xyzmh(4,kk)*vxyzu(1,kk)
+c            xlineary = xlineary + xyzmh(4,kk)*vxyzu(2,kk)
+c            xlinearz = xlinearz + xyzmh(4,kk)*vxyzu(3,kk)
+c            ENDIF
+c         END DO
+c         IF (iaccr.EQ.1) 
+c     &         print *,'Accreted1 ',kk,xlinearx,xlineary,xlinearz,
+c     &        SQRT(xlinearx**2+xlineary**2+xlinearz**2)
+
+
 c
 c--MERGER OF TWO POINT MASSES
 c
       imerge = 0
 
-c      GOTO 1000
+      GOTO 1000
 
 c      CALL angmom
 c      angx2 = angx
@@ -828,7 +994,7 @@ c            IF (r2.LT.(MAX(xyzmh(5,iptm1),xyzmh(5,iptm2))**2.0)) THEN
 c
 c--Merge if pass within some fraction of softening radius
 c
-                        IF (r2.LT.(0.1*ptsoft)**2.0) THEN
+                        IF (r2.LT.(1.0E-6)**2.0) THEN
 c                        IF (r2.LT.(0.03)**2.0) THEN
 C$OMP CRITICAL(mergesinks)
                            IF (imerge.EQ.0) THEN
@@ -902,10 +1068,6 @@ c     &   xyzmh(3,iptm2))+spinx(i1list)+spinx(i2list)
                  spinx(i1list) = spinx(i1list) + spinm*(ry*dvz - dvy*rz)
                  spiny(i1list) = spiny(i1list) + spinm*(dvx*rz - rx*dvz)
                  spinz(i1list) = spinz(i1list) + spinm*(rx*dvy - dvx*ry)
-
-c        WRITE (iprint,*) 'more spinx ',spinm*(ry*dvz - dvy*rz),
-c     &  spinm,ry,dvz, dvy,rz
-
                               spinadx(i1list) = spinadx(i1list) + 
      &                             spinm*(ry*dvz - dvy*rz)
                               spinady(i1list) = spinady(i1list) + 
@@ -926,13 +1088,20 @@ c     &  spinm,ry,dvz, dvy,rz
      &                             pmass2*xyzmh(2,iptm2))/totalmass
                               xyzmh(3,iptm1) = (pmass1*xyzmh(3,iptm1) +
      &                             pmass2*xyzmh(3,iptm2))/totalmass
-                  
-                     f1vxyzu(1,iptm1) = (pmass1*f1vxyzu(1,iptm1) + 
-     &                    pmass2*f1vxyzu(1,iptm2))/totalmass
-                     f1vxyzu(2,iptm1) = (pmass1*f1vxyzu(2,iptm1) + 
-     &                    pmass2*f1vxyzu(2,iptm2))/totalmass
-                     f1vxyzu(3,iptm1) = (pmass1*f1vxyzu(3,iptm1) + 
-     &                    pmass2*f1vxyzu(3,iptm2))/totalmass
+c
+c--Don't allow acceleration averaging (only important for leapfrog since
+c     it has a 1/2 kick before recalculating forces)
+c
+c                     f1vxyzu(1,iptm1) = (pmass1*f1vxyzu(1,iptm1) + 
+c     &                    pmass2*f1vxyzu(1,iptm2))/totalmass
+c                     f1vxyzu(2,iptm1) = (pmass1*f1vxyzu(2,iptm1) + 
+c     &                    pmass2*f1vxyzu(2,iptm2))/totalmass
+c                     f1vxyzu(3,iptm1) = (pmass1*f1vxyzu(3,iptm1) + 
+c     &                    pmass2*f1vxyzu(3,iptm2))/totalmass
+                      f1vxyzu(1,iptm1) = 0.0
+                      f1vxyzu(2,iptm1) = 0.0
+                      f1vxyzu(3,iptm1) = 0.0
+
                  numberacc(i1list) = numberacc(i1list)+numberacc(i2list)
                   ptminner(i1list) = ptminner(i1list) + ptminner(i2list)
                   
@@ -947,22 +1116,6 @@ c     &  spinm,ry,dvz, dvy,rz
                      xmomadd(i1list) = 0.0
                      ymomadd(i1list) = 0.0
                      zmomadd(i1list) = 0.0
-
-c                  WRITE(iprint,*) 'Linear after ',
-c     &                    xyzmh(4,iptm1)*vxyzu(1,iptm1),
-c     &                    xyzmh(4,iptm1)*vxyzu(2,iptm1),
-c     &                    xyzmh(4,iptm1)*vxyzu(3,iptm1)
-c                  WRITE(iprint,*) 'Linear after ',
-c     &                 xmomsyn(i1list),
-c     &                 ymomsyn(i1list),
-c     &                 zmomsyn(i1list)
-
-c                  WRITE(iprint,*) 'Ang mom x after ',
-c     & xyzmh(4,iptm1)*(vxyzu(3,iptm1)*xyzmh(2,iptm1)-
-c     & vxyzu(2,iptm1)*xyzmh(3,iptm1)),spinx(i1list),
-c     & xyzmh(4,iptm1)*(vxyzu(3,iptm1)*xyzmh(2,iptm1)-
-c     & vxyzu(2,iptm1)*xyzmh(3,iptm1))+spinx(i1list)
-                  
                   ENDIF
 C$OMP END CRITICAL(mergesinks)
                         ENDIF
@@ -1015,12 +1168,6 @@ c
          tcomp = SQRT((3 * pi) / (32 * rhozero))
          WRITE (iptprint) realtime/tcomp, realtime, -nptmass
          WRITE (iptprint) imerged1, imerged2
-
-c         write(iprint,*)'Old mom ',angx1,angy1,angz1,xmom1,ymom1,zmom1
-c         write(iprint,*)'Old2 mom ',angx2,angy2,angz2,xmom2,ymom2,zmom2
-c         CALL angmom
-c         write (iprint,*) 'New mom ',angx,angy,angz,xmom,ymom,zmom
-
       ENDIF
 c
 c--Consider accreted particles' effect on ghosts
@@ -1039,7 +1186,7 @@ c
 c--Reset each type of particle count
 c             
 C$OMP PARALLEL default(none)
-C$OMP& shared(nlst0,llist,iremove,nptmass,nactotal,numberacc)
+C$OMP& shared(nptmass,nactotal,numberacc)
 C$OMP& shared(ptmassinner,ptminner)
 C$OMP& private(i)
 C$OMP& reduction(+:naccrete)
@@ -1053,17 +1200,21 @@ C$OMP DO SCHEDULE(runtime)
          nactive = nactive - numberacc(i)
       END DO
 C$OMP END DO
+C$OMP END PARALLEL
+
+      ENDIF
 c
 c--Reset iremove to -1
 c
+C$OMP PARALLEL default(none)
+C$OMP& shared(nlst0,llist,iremove)
+C$OMP& private(i)
 C$OMP DO SCHEDULE(runtime)
       DO i = 1, nlst0
          iremove(llist(i)) = -1
       END DO
 C$OMP END DO
 C$OMP END PARALLEL
-
-      ENDIF
 c
 c--Dump point mass details to ptprint file
 c

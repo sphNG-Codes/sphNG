@@ -229,7 +229,12 @@ C$OMP END CRITICAL (neighlistoverflow)
 ccc                  hmean2 = rcut2
                   IF (rr.LT.hmean2) THEN
                      nptlist(iptn) = nptlist(iptn) + 1
-                     nearpt(nptlist(iptn),iptn) = n
+                     IF (nptlist(iptn).GT.iptneigh) THEN
+                        WRITE (iprint,*) 'ERROR - iptneigh '
+                        CALL quit
+                     ELSE
+                        nearpt(nptlist(iptn),iptn) = n
+                     ENDIF
                   ENDIF
                ENDIF
 

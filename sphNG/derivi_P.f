@@ -49,6 +49,7 @@ c************************************************************
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/call'
       INCLUDE 'COMMONS/gtime'
+      INCLUDE 'COMMONS/active'
 
 c      INCLUDE 'COMMONS/timeextra'
 
@@ -74,9 +75,15 @@ c--Compute the neighbor indexes & gravitational forces of the distant
 c     particles for all the particles in the list
 c
       IF (igrape.EQ.0) THEN
-         IF (nlst_end.GT.nptmass) THEN
+         IF (nlst_end.GT.nptmass .OR. itreeupdate) THEN
             CALL insulate(3, ntot, npart, xyzmh, dvxyzu)
+c
+c--Keep using tree until all sinks have been done after accretion event
+c     (important if sinks have individual timesteps)
+c
+            IF (nlst_end.GE.nptmass) itreeupdate = .FALSE.
          ELSE
+c
 c--Don't bother to update gravity from gas particles acting on sinks
 c    Also means potential energy and neighbours of sinks are not updated
             DO i = nlst_in, nlst_end

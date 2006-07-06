@@ -27,6 +27,8 @@ c************************************************************
       INCLUDE 'COMMONS/typef'
       INCLUDE 'COMMONS/init'
       INCLUDE 'COMMONS/ptsoft'
+      INCLUDE 'COMMONS/ptmass'
+      INCLUDE 'COMMONS/nearmpt'
       INCLUDE 'COMMONS/Bxyz'
 
       xlog2 = 0.30103
@@ -40,11 +42,12 @@ C$OMP& shared(xyzmh,vxyzu)
 C$OMP& shared(fxyzu,Bxyz)
 C$OMP& shared(dt,isteps,imaxstep,divv,rho)
 C$OMP& shared(alpha,beta,vsound,xlog2)
-C$OMP& shared(idtsyn)
+C$OMP& shared(idtsyn,nearpt,nptlist)
 C$OMP& shared(iprint,nneigh,iphase)
-C$OMP& shared(iorig)
+C$OMP& shared(iorig,nptmass,listpm)
 C$OMP& shared(ifsvi,alphaMM,iptsoft,ptsoft)
-C$OMP& private(i,j)
+C$OMP& shared(iptmass,hacc,haccall,ptmcrit,radcrit)
+C$OMP& private(i,j,l,ll,xmindist,iptcur,rad2)
 C$OMP& private(divvi,aux1,aux2,aux3,denom,valfven2)
 C$OMP& private(crstepi,rmodcr,rmodvel,force2,rmod,vel2)
 C$OMP& private(stepi,ibin,istep2,irat,softrad)
@@ -166,7 +169,25 @@ C$OMP CRITICAL (writeiprint)
                WRITE (iprint,*) Bxyz(1,i),Bxyz(2,i),Bxyz(3,i)
             ENDIF
             WRITE (iprint,*)rmod,rmodcr
-            WRITE (iprint,*)nneigh(i),rho(i)
+            WRITE (iprint,*)nneigh(i),rho(i),nlst
+
+            xmindist = 1.0e+30
+            DO l = 1, nptmass
+               iptcur = listpm(l)
+               rad2 = (xyzmh(1,i) - xyzmh(1,iptcur))**2 + 
+     &              (xyzmh(2,i) - xyzmh(2,iptcur))**2 + 
+     &              (xyzmh(3,i) - xyzmh(3,iptcur))**2
+               xmindist = MIN(xmindist,rad2)
+               WRITE (iprint,*)'sink ',l,listpm(l),nptlist(l),rad2
+               WRITE (iprint,*)iptmass,hacc,haccall,ptmcrit,radcrit,
+     &              xyzmh(5,iptcur)
+               DO ll = 1, nptlist(l)
+                  WRITE (iprint,*) '  ',ll,nearpt(ll,l)
+               END DO
+               WRITE (iprint,*)
+            END DO
+            WRITE (iprint,*)'rmin ',xmindist
+
             CALL quit
 C$OMP END CRITICAL (writeiprint)
          ENDIF

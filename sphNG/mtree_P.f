@@ -60,7 +60,7 @@ C$OMP& shared(nactatom,nactive,newend,where,iused)
 C$OMP& shared(nay,iphase)
 C$OMP& shared(ihash,nhash,key,nglob)
 C$OMP& private(l,new,n,ll,fl,fll,emred,difx,dify,difz,rr)
-C$OMP& shared(icbrt,icbrt1,xyzmap,level,imfac)
+C$OMP& shared(icbrt,icbrt1,xyzmap,level,imfac,levelnum)
 C$OMP& shared(next1,next2,next3,third,nactold,iprint,newold,nlevel)
 C$OMP& private(m,np,mm,iz,iy,ix,nc,ddd,xnp,ynp,znp)
 C$OMP& private(lllx,llux,llly,lluy,lllz,lluz,llx,lux,lly,luy,llz,luz)
@@ -228,6 +228,7 @@ c
                         d = (xyzmh(1,list(k)) -xnp)**2 +
      &                       (xyzmh(2,list(k)) -ynp)
      &                      **2 + (xyzmh(3,list(k)) - znp)**2
+
                         IF (d.LT.ddd) THEN
                            ddd = d
                            nc = k
@@ -370,6 +371,7 @@ C$OMP DO SCHEDULE(runtime)
          IF (new.GT.mmax) CALL error(where, 3)
          iused(j) = .FALSE.
          n = nay(j)
+
          IF (isibdaupar(1,l).EQ.0 .AND. n.GT.j) THEN
             IF (nay(n).EQ.j) THEN
                iused(j) = .TRUE.
@@ -388,6 +390,7 @@ C$OMP DO SCHEDULE(runtime)
                ELSE
                   pmassll = xyzmh(4,ll)
                ENDIF
+               levelnum(new) = nlevel + 1
                xyzmh(4,new) = pmassl + pmassll
                IF (xyzmh(4,new).NE.0) THEN
                   fl = pmassl/xyzmh(4,new)
@@ -451,6 +454,7 @@ C$OMP SINGLE
          IF (iused(j)) THEN
             new = newold + j
             newend = newend + 1
+            levelnum(newend) = levelnum(new)
             xyzmh(1,newend) = xyzmh(1,new)
             xyzmh(2,newend) = xyzmh(2,new)
             xyzmh(3,newend) = xyzmh(3,new)

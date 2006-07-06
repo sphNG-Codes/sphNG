@@ -43,6 +43,8 @@ c------------------------------------------------------------
 
          CALL mtree(ntot, npart, xyzmh)
 
+         itreeupdate = .TRUE.
+
          IF (itiming) THEN
             CALL getused(tmtree2)
             tmtree = tmtree + (tmtree2 - tmtree1)
@@ -57,6 +59,8 @@ c------------------------------------------------------------
          IF (itiming) CALL getused(trevt1)
 
          CALL revtree(ntot, npart, xyzmh)
+
+         itreeupdate = .TRUE.
 
          IF (itiming) THEN
             CALL getused(trevt2)

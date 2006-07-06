@@ -51,3 +51,13 @@ c
       LOGICAL ipartialrevtree
 c        PARAMETER (ipartialrevtree=.FALSE.)
        PARAMETER (ipartialrevtree=.TRUE.)
+c
+c--Allow controls individual timesteps
+c	 0 : all particles have single timestep
+c	 1 : gas particles have individual timesteps, sinks all on minimum
+c	 2 : all particles (sink and gas particles) have individual timesteps
+c
+      INTEGER individualtimesteps
+c        PARAMETER (individualtimesteps=0)
+c        PARAMETER (individualtimesteps=1)
+       PARAMETER (individualtimesteps=2)

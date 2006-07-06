@@ -204,8 +204,13 @@ c
             ipart = list(n)
             IF (rho(ipart).EQ.rhonext) THEN
                irhonex = ipart
+               GOTO 290
             ENDIF
          END DO
+
+         WRITE(iprint,*)'Failed to find densest particle ',rhonext
+
+ 290     CONTINUE
 c
 c--Make sure that all neighbours of point mass candidate are being
 c     done on this time step. Otherwise, not possible to accrete

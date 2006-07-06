@@ -13,6 +13,8 @@ c************************************************************
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/soft'
+      INCLUDE 'COMMONS/ptsoft'
+      INCLUDE 'COMMONS/phase'
 
       DIMENSION listgn(idim), xyzmh(5,mmax)
 
@@ -31,6 +33,12 @@ c************************************************************
          ELSE 
             rr = difx**2 + dify**2 + difz**2 + tiny
          ENDIF
+
+         IF (iphase(m).GE.1 .AND. rr.LT.ptsoft**2) THEN
+            WRITE (*,*) 'ptsoft gforsn ',m,rr,ptsoft
+            STOP
+         ENDIF
+
 c
 c--The force definition
 c         

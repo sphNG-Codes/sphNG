@@ -172,7 +172,7 @@ c
                      IF (nneigh(m).LE.nneighmax) THEN
                         neighlist(nneigh(m)) = n
                      ELSE
-                        WRITE (iprint,*) 'nneigh exceeds INT*2'
+                        WRITE (iprint,*) 'nneigh exceeds ',nneighmax
                         CALL quit
                      ENDIF
                   ELSE

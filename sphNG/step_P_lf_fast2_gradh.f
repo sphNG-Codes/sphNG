@@ -99,6 +99,7 @@ c
       ncrit = INT(nactive/10.0)
       ilocal = 0
       naddedplanet = 0
+      itreeupdate = .FALSE.
 c
 c--Integration
 c
@@ -265,25 +266,34 @@ c                  vsound(i) = SQRT(2./3.*vxyzu(4,i))
             nlst0 = nlst
 
             CALL timestep(dt,itnext,nlst,llist,f1vxyzu,Bevolxyz)
-c
-c--Sinks ALL on smallest timestep OR NOT
-c
-            DO i = 1, nptmass
-               iptcur = listpm(i)
 
-c               isteps(iptcur) = istepmin
-
-               IF (istepmingas.LT.isteps(iptcur)) THEN
-                  isteps(iptcur) = istepmingas
-               ENDIF
-
-            END DO
+            IF (individualtimesteps.EQ.0) THEN
 c
 c--All particles on smallest timestep OR NOT
 c
-c            DO i = 1, npart
-c               isteps(i) = istepmin
-c            END DO
+               DO i = 1, npart
+                  isteps(i) = istepmin
+               END DO
+            ELSEIF (individualtimesteps.EQ.1) THEN
+c
+c--Sinks ALL on smallest timestep OR NOT
+c
+               DO i = 1, nptmass
+                  iptcur = listpm(i)
+                  isteps(iptcur) = istepmin
+               END DO
+            ELSEIF (individualtimesteps.EQ.2) THEN
+               DO i = 1, nptmass
+                  iptcur = listpm(i)                  
+                  IF (istepmingas/2.LT.isteps(iptcur)) THEN
+                     isteps(iptcur) = MAX(istepmin,istepmingas/2)
+                  ENDIF
+               END DO
+            ELSE
+               WRITE (iprint,*) 'ERROR - individualtimesteps ',
+     &              individualtimesteps
+               CALL quit
+            ENDIF
          ENDIF
 c
 c--Set up particle timesteps and make dummy variables
@@ -559,7 +569,7 @@ C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
 C$OMP& shared(it0,itime,imaxdens,cnormk,iener)
 C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,listrealpm)
-C$OMP& shared(ifsvi,alphaMM,alphamax,Bevolxyz,encal)
+C$OMP& shared(ifsvi,alphaMM,alphamax,Bevolxyz,encal,gt)
 C$OMP& private(i,j,k,dtfull,dthalf,delvx,delvy,delvz)
 C$OMP& private(iii,pmasspt)
 C$OMP& reduction(+:ioutmax)
@@ -579,6 +589,9 @@ c
          delvx = dthalf*f1vxyzu(1,i)
          delvy = dthalf*f1vxyzu(2,i)
          delvz = dthalf*f1vxyzu(3,i)
+
+c         IF (iphase(i).GT.0 .AND. nptmass.GE.2) 
+c     &        print *,'f1 ',i,f1vxyzu(2,i),vxyzu(1,i),vxyzu(2,i)
 
          vxyzu(1,i) = vxyzu(1,i) + delvx
          vxyzu(2,i) = vxyzu(2,i) + delvy
@@ -711,6 +724,8 @@ c
                      dumBevolxyz(k,j) = Bevolxyz(k,j)+deltat*f1Bxyz(k,j)
                   END DO
                ENDIF
+            ELSEIF (iphase(j).GE.1) THEN
+               dumxyzmh(5,j) = xyzmh(5,j)
             ENDIF
          ENDIF
       END DO
@@ -761,6 +776,8 @@ c
             dumBevolxyz(k,ipart) = Bevolxyz(k,ipart)+deltat*f1Bxyz(k,j)
                         END DO
                      ENDIF
+                  ELSEIF (iphase(ipart).GE.1) THEN
+                     dumxyzmh(5,ipart) = xyzmh(5,ipart)
                   ENDIF
                ENDIF
             END DO
@@ -778,7 +795,7 @@ C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(isibdaupar,iflagtree,imfac,npart)
-C$OMP& shared(numberparents,listparents)
+C$OMP& shared(numberparents,listparents,iprint)
 C$OMP& private(j,k,ipart,deltat,deltat2,iparent)
             DO j = 1, nlstbins(i)
                ipart = listbins(j,i)
@@ -793,6 +810,10 @@ C$OMP CRITICAL (parentlist1)
                      IF (.NOT.iflagtree(iparent)) THEN
                         iflagtree(iparent) = .TRUE.
                         numberparents = numberparents + 1
+                        IF (numberparents.GT.idim) THEN
+                         WRITE (iprint,*) 'numberparents ',numberparents
+                           CALL quit
+                        ENDIF
                         listparents(numberparents) = iparent
                      ENDIF
 C$OMP END CRITICAL (parentlist1)
@@ -835,6 +856,8 @@ c
             dumBevolxyz(k,ipart) = Bevolxyz(k,ipart)+deltat*f1Bxyz(k,j)
                         END DO
                      ENDIF
+                  ELSEIF (iphase(ipart).GE.1) THEN
+                     dumxyzmh(5,ipart) = xyzmh(5,ipart)
                   ENDIF
                ENDIF
             END DO
@@ -877,7 +900,7 @@ C$OMP END CRITICAL (parentlist2)
 c
 c--Load dummy arrays
 c
-            DO k = 1, 3
+            DO k = 1, 5
                dumxyzmh(k,ipart) = xyzmh(k,ipart)
             END DO
             DO k = 1, 3
@@ -965,7 +988,7 @@ C$OMP END PARALLEL DO
 c
 c--Make or update the tree
 c
-      IF (igrape.EQ.0 .AND. (nlst.GT.nptmass .OR. 
+      IF (igrape.EQ.0 .AND. (nlst.GT.nptmass .OR. nlstacc.GT.0 .OR.
      &                                       iptintree.GT.0)) THEN
          IF (nlst.GT.ncrit.OR.imakeghost.EQ.1.OR.
      &        idonebound.EQ.1) THEN
@@ -982,6 +1005,7 @@ c
 c--Compute forces on list particles
 c
  200  icall = 3
+
       IF (itiming) CALL getused(ts101)
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
      &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
@@ -998,9 +1022,9 @@ c
       IF (itiming) CALL getused(ts111)
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst,llist,dt,isteps,imaxstep)
-C$OMP& shared(vxyzu,f1vxyzu)
+C$OMP& shared(vxyzu,f1vxyzu,itime)
 C$OMP& shared(iphase,nptmass,listpm,listrealpm)
-C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,xyzmh)
+C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,xyzmh,gt)
 C$OMP& private(i,j,dthalf,delvx,delvy,delvz,iii,pmasspt)
       DO j = 1, nlst
          i = llist(j)
@@ -1011,6 +1035,9 @@ c
          delvx = dthalf*f1vxyzu(1,i)
          delvy = dthalf*f1vxyzu(2,i)
          delvz = dthalf*f1vxyzu(3,i)
+
+c         IF (iphase(i).GT.0 .AND. nptmass.GE.2) 
+c    &        print *,'f2 ',i,f1vxyzu(2,i),vxyzu(1,i),vxyzu(2,i)
 
          vxyzu(1,i) = vxyzu(1,i) + delvx
          vxyzu(2,i) = vxyzu(2,i) + delvy
@@ -1058,23 +1085,35 @@ c--Make point mass timesteps equal to the minimum time step used
 c
 c      PRINT *,'h(1)6: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
       IF (itiming) CALL getused(ts131)
-      DO i = 1, nptmass
-         iptcur = listpm(i)
-c
-c--Sinks ALL on smallest timestep OR NOT
-c
-c         IF (istepmin.LT.isteps(iptcur)) THEN
-         IF (istepmingas.LT.isteps(iptcur)) THEN
-c            isteps(iptcur) = istepmin  
-            isteps(iptcur) = istepmingas
-         ENDIF
-      END DO
+
+      IF (individualtimesteps.EQ.0) THEN
 c
 c--All particles on smallest timestep OR NOT
 c
-c      DO i = 1, npart
-c         isteps(i) = istepmin
-c      END DO
+         DO i = 1, npart
+            isteps(i) = istepmin
+         END DO
+      ELSEIF (individualtimesteps.EQ.1) THEN
+c
+c--Sinks ALL on smallest timestep OR NOT
+c
+         DO i = 1, nptmass
+            iptcur = listpm(i)
+            isteps(iptcur) = istepmin
+         END DO
+      ELSEIF (individualtimesteps.EQ.2) THEN
+         DO i = 1, nptmass
+            iptcur = listpm(i)
+            IF (istepmingas/2.LT.isteps(iptcur)) THEN
+               isteps(iptcur) = MAX(istepmin,istepmingas/2)
+            ENDIF
+         END DO
+      ELSE
+         WRITE (iprint,*) 'ERROR - individualtimesteps',
+     &        individualtimesteps
+         CALL quit
+      ENDIF
+
       IF (itiming) THEN
          CALL getused(ts132)
          ts13 = ts13 + (ts132 - ts131)
@@ -1209,7 +1248,7 @@ c      IF (nlst.GT.nptmass .AND. (nptmass.NE.0 .OR. icreate.EQ.1)) THEN
          realtime = dt*itime/imaxstep + gt
 c
 c--Accrete particles near point mass, or create point mass
-c
+c 
          IF (itiming) CALL getused(taccrete1)
 
          CALL accrete(dt, realtime, isave)

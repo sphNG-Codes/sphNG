@@ -1,7 +1,7 @@
-      PARAMETER (nmaxlevel=127)
+      PARAMETER (nmaxlevel=1000)
 
       REAL*4 qrad
-      INTEGER*1 imfac,levelnum
+      INTEGER*2 imfac,levelnum
       LOGICAL*1 iflagtree
 
       COMMON /parms / natom, nlevel, nactatom, nroot

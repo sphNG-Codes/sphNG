@@ -25,9 +25,10 @@ doubleprecision= yes
 
 ifeq ($(SYSTEM), ukaff1a)
     FC= xlf_r -qnosave
-    FFLAGS= -q64  -qextname -qsmp=noauto
+    FFLAGS= -O3 -q64 -qextname -qsmp=noauto
     DBLFLAG= -qrealsize=8
-    DEBUGFLAG= -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
+#    DEBUGFLAG= -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
+    DEBUGFLAG= -C
     KNOWN_SYSTEM=yes
 endif
 
@@ -95,7 +96,7 @@ SOURCES= sph.f accrete_P.f addump.f angmom.f boundry.f \
 	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
 	newrun.f options.f phoenix.f phoenix2.f \
 	place.f preset.f \
-	prout.f ran1.f rdump.f reduce.f revtree_P_fast2.f save.f \
+	prout.f ran1.f rdump.f reduce.f save.f \
         scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f \
 	timestep.f toten.f treef_P.f unifdis.f unit.f \
@@ -114,7 +115,7 @@ SRCNONGRADH= densityi_P.f derivi_P.f forcei_P.f hcalc.f
 
 # these are the extra routines required for the radiative transfer code to compile
         
-SRCRT= ass.f newgsimpl_P5_sor.f quartic_gs1t.f
+SRCRT= ass.f newgsimpl_P5_sor.f quartic_gs1t.f derivi_P_RT.f
 
 # these are the extra routines required for Monte-Carlo radiative transfer
         
@@ -122,8 +123,8 @@ SRCTORUS= montecarloRT.f
 
 # timestepping routine
 
-SRCRK = step_P.f
-SRCLF = step_P_lf_fast2_gradh.f
+SRCRK = step_P.f revtree_P.f
+SRCLF = step_P_lf_fast2_gradh.f revtree_P_fast2.f
 
 # construct object files
 

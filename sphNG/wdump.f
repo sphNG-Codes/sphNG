@@ -96,21 +96,21 @@ c
 c--contruct header string based on compile-time options
 c  these are for information only (ie. not important for restarting)
 c
-      fileident(1:7) = 'FsphNG:'
+      fileident = 'FsphNG:'
       IF (nlmax.EQ.1) THEN
-         fileident(8:17) = 'gradh=on, '
+         fileident = fileident(1:7) // 'gradh=on, '
       ELSE
-         fileident(8:17) = 'gradh=off,'
+         fileident = fileident(1:7) // 'gradh=off,'
       ENDIF
       IF (imhd.EQ.idim) THEN
-         fileident(18:25) = 'MHD=on ,'
+         fileident = fileident(1:17) // 'MHD=on ,'
       ELSE
-         fileident(18:25) = 'MHD=off,'
+         fileident = fileident(1:17) // 'MHD=off,'
       ENDIF
       IF (iradtrans.EQ.idim) THEN
-         fileident(26:31) = 'RT=on '
+         fileident = fileident(1:25) // 'RT=on '
       ELSE
-         fileident(26:31) = 'RT=off'
+         fileident = fileident(1:25) // 'RT=off'
       ENDIF
       WRITE (idisk1, ERR=100) fileident
 c

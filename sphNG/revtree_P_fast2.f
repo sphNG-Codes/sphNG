@@ -401,8 +401,9 @@ c
                   iparent = isibdaupar(3,new)
 
                   IF (nlevelupdate.EQ.levelnum(iparent)) THEN
-     &                 WRITE (*,*) 'ERROR revtree level ',nlevelupdate,
-     &                 levelnum(iparent),new,iparent,levelnum(new)
+                     WRITE (*,*) 'ERROR revtree level ',nlevelupdate,
+     &                    levelnum(iparent),new,iparent,levelnum(new)
+                  ENDIF
 
 C$OMP CRITICAL(parentlist5)
                   IF (.NOT.iflagtree(iparent)) THEN

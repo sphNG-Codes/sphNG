@@ -72,7 +72,7 @@ c      DIMENSION nsteplist(30)
 
       LOGICAL ifirst
       LOGICAL icenter
-      LOGICAL*1 irevise
+      LOGICAL*1 irevise,iwillupdatetree,imaketree
       CHARACTER*7 where
       DATA ifirst/.true./
       DATA icenter/.false./
@@ -681,6 +681,16 @@ c         IF (imakeghost.EQ.1 .OR. idonebound.EQ.1) THEN
          ENDIF
       ENDIF
 c
+c--Get ready to make or update tree
+c
+      iwillupdatetree = igrape.EQ.0 .AND. (nlst.GT.nptmass .OR. 
+     &     nlstacc.GT.0 .OR. iptintree.GT.0)
+      imaketree = iwillupdatetree .AND. (nlst.GT.ncrit .OR. 
+     &     imakeghost.EQ.1 .OR. idonebound.EQ.1)
+      irevise = iwillupdatetree .AND. (.NOT. imaketree) .AND.
+     &     (.NOT.(iptintree.EQ.1 .AND. nlst.LE.nptmass .AND.
+     &           nlstacc.EQ.0))
+c
 c--Predict variables at t=time
 c
       IF (itiming) CALL getused(ts81)
@@ -795,7 +805,7 @@ C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(isibdaupar,iflagtree,imfac,npart)
-C$OMP& shared(numberparents,listparents,iprint)
+C$OMP& shared(numberparents,listparents,irevise,iprint)
 C$OMP& private(j,k,ipart,deltat,deltat2,iparent)
             DO j = 1, nlstbins(i)
                ipart = listbins(j,i)
@@ -804,8 +814,8 @@ C$OMP& private(j,k,ipart,deltat,deltat2,iparent)
 c
 c--Set flag to state that parent node in tree needs to be recalculated
 c                  
-                  IF (igrape.EQ.0 .AND.
-     &         (.NOT.(iphase(ipart).GE.1 .AND. iptintree.EQ.0))) THEN
+                  IF (irevise .AND.
+     &         (iphase(ipart).EQ.0 .OR. iptintree.GE.1)) THEN
                      iparent = isibdaupar(3,ipart)
 C$OMP CRITICAL (parentlist1)
                      IF (.NOT.iflagtree(iparent)) THEN
@@ -873,7 +883,7 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nptmass,listpm,itime,it0)
 C$OMP& shared(xyzmh,vxyzu,dumxyzmh,dumvxyzu)
 C$OMP& shared(isibdaupar,iflagtree,imfac)
-C$OMP& shared(numberparents,listparents)
+C$OMP& shared(numberparents,listparents,irevise)
 C$OMP& private(i,k,ipart,iparent)
          DO i = 1, nptmass
             ipart = listpm(i)
@@ -885,7 +895,7 @@ c
 c--Set flag to state that parent node in tree needs to be recalculated
 c     but only if point masses in the tree and all gravity done by tree
 c
-            IF (igrape.EQ.0 .AND. iptintree.EQ.2) THEN
+            IF (irevise .AND. iptintree.EQ.2) THEN
                iparent = isibdaupar(3,ipart)
 C$OMP CRITICAL (parentlist2)
                IF (.NOT.iflagtree(iparent)) THEN
@@ -912,10 +922,6 @@ C$OMP END PARALLEL DO
       ENDIF
 
       IF (nghost.GT.0) THEN
-         irevise = .FALSE.
-         IF (igrape.EQ.0 .AND. (nlst.GT.nptmass .OR. iptintree.GT.0)
-     &        .AND. (.NOT.(nlst.GT.ncrit.OR.imakeghost.EQ.1.OR.
-     &        idonebound.EQ.1))) irevise = .TRUE.
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,dumxyzmh,dumvxyzu,encal)
@@ -989,17 +995,14 @@ C$OMP END PARALLEL DO
 c
 c--Make or update the tree
 c
-      IF (igrape.EQ.0 .AND. (nlst.GT.nptmass .OR. nlstacc.GT.0 .OR.
-     &                                       iptintree.GT.0)) THEN
-         IF (nlst.GT.ncrit.OR.imakeghost.EQ.1.OR.
-     &        idonebound.EQ.1) THEN
+      IF (iwillupdatetree) THEN
+         IF (imaketree) THEN
             CALL insulate(1, ntot, npart, dumxyzmh, f1vxyzu)
-         ELSEIF (.NOT.(iptintree.EQ.1 .AND. nlst.LE.nptmass .AND. 
-     &           nlstacc.EQ.0)) THEN
+         ELSEIF (irevise) THEN
             CALL insulate(2, ntot, npart, dumxyzmh, f1vxyzu)
-         ELSE
-c            WRITE (*,*) 'ERROR: Setting iflagtree to ZERO'
-c            WRITE (iprint,*) 'ERROR: Setting iflagtree to ZERO'
+         ELSEIF (numberparents.NE.0) THEN
+            WRITE (*,*) 'ERROR: Setting iflagtree to ZERO'
+            WRITE (iprint,*) 'ERROR: Setting iflagtree to ZERO'
             DO i = 1, numberparents
                iflagtree(listparents(i)) = .FALSE.
             END DO

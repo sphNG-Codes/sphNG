@@ -799,6 +799,7 @@ C$OMP& shared(numberparents,listparents,iprint)
 C$OMP& private(j,k,ipart,deltat,deltat2,iparent)
             DO j = 1, nlstbins(i)
                ipart = listbins(j,i)
+
                IF (iphase(ipart).GE.0) THEN
 c
 c--Set flag to state that parent node in tree needs to be recalculated
@@ -996,6 +997,12 @@ c
          ELSEIF (.NOT.(iptintree.EQ.1 .AND. nlst.LE.nptmass .AND. 
      &           nlstacc.EQ.0)) THEN
             CALL insulate(2, ntot, npart, dumxyzmh, f1vxyzu)
+         ELSE
+            WRITE (*,*) 'ERROR: Setting iflagtree to ZERO'
+            WRITE (iprint,*) 'ERROR: Setting iflagtree to ZERO'
+            DO i = 1, numberparents
+               iflagtree(listparents(i)) = .FALSE.
+            END DO
          ENDIF
          iaccr = 0
          ikilled = 0

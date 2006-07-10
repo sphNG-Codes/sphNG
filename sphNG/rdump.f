@@ -253,10 +253,10 @@ c
 c--Default int
       READ (idisk1, END=100) (listpm(i), i=1,nptmass)
 
-c      DO i = 1, nptmass
-c         write (*,*) 'Setting ',i,listpm(i),xyzmh(5,listpm(i)),hacc
-c         xyzmh(5,listpm(i)) = hacc
-c      END DO
+      DO i = 1, nptmass
+         write (*,*) 'Setting ',i,listpm(i),xyzmh(5,listpm(i)),hacc
+         xyzmh(5,listpm(i)) = hacc
+      END DO
 
 
 c--int*1

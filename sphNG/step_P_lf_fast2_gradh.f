@@ -998,8 +998,8 @@ c
      &           nlstacc.EQ.0)) THEN
             CALL insulate(2, ntot, npart, dumxyzmh, f1vxyzu)
          ELSE
-            WRITE (*,*) 'ERROR: Setting iflagtree to ZERO'
-            WRITE (iprint,*) 'ERROR: Setting iflagtree to ZERO'
+c            WRITE (*,*) 'ERROR: Setting iflagtree to ZERO'
+c            WRITE (iprint,*) 'ERROR: Setting iflagtree to ZERO'
             DO i = 1, numberparents
                iflagtree(listparents(i)) = .FALSE.
             END DO

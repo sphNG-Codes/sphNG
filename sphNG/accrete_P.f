@@ -50,6 +50,7 @@ c************************************************************
       INCLUDE 'COMMONS/timeextra'
       INCLUDE 'COMMONS/ptsoft'
       INCLUDE 'COMMONS/current'
+      INCLUDE 'COMMONS/dum'
 
 c      INCLUDE 'COMMONS/angm'
 
@@ -537,7 +538,7 @@ c         f1vxyzu(3,irhonex) = f1vzi
             isteps(irhonex) = istepsi
          ENDIF
 
-         CALL getneigh(irhonex,npart,xyzmh(5,irhonex),xyzmh,nlist,
+         CALL getneigh(irhonex,npart,xyzmh(5,irhonex)/2.0,xyzmh,nlist,
      &        iptneigh,nearl)
 
          nptlist(nptmass) = nlist
@@ -638,25 +639,21 @@ c
                      CALL quit
                   ELSE
                      nearpt(nptlist(iii),iii) = j
-
-c                     DO kkkk = 1, nptlistold
-c                        IF (nearl(kkkk).EQ.j) GOTO 678
-c                     END DO
-c                     print *,'ERROR particle missing ',j,nptlistold
-c                     CALL quit
-c 678                 CONTINUE
-
                   ENDIF
                ENDIF
             ENDIF
          END DO
 c
-c--Compare two lists
+c--Compare two lists and write error message if fails
 c
          IF (nptlist(iii).NE.ik) THEN
             WRITE (*,*) 'List error ',i,nptlist(iii),ik,nptlistold
+            WRITE (iprint,*) 'List error ',i,nptlist(iii),ik,nptlistold
 
-            IF (nptlist(iii).GT.ik) print *,'***GREAT***'
+            IF (nptlist(iii).GT.ik) THEN
+               print *,'***GREAT***'
+               WRITE (iprint,*) '***GREAT***'
+            ENDIF
             DO ii = 1, nptlistold
             j = nearl(ii)
                print *,'Old ',j,sqrt((xyzmh(1,j) - xyzmh(1,i))**2 + 
@@ -664,12 +661,23 @@ c
      &              (xyzmh(3,j) - xyzmh(3,i))**2),xyzmh(1,i),
      &              xyzmh(2,i),xyzmh(3,i),xyzmh(1,j),xyzmh(2,j),
      &              xyzmh(3,j),iremove(j)
+               print *,'   ',dumxyzmh(1,i),dumxyzmh(2,i),dumxyzmh(3,i),
+     &              dumxyzmh(1,j),dumxyzmh(2,j),
+     &              dumxyzmh(3,j)
             END DO
             DO ii = 1, nptlist(iii)
-               print *,'New ',nearpt(ii,iii)
+               j = nearpt(ii,iii)
+               print *,'New ',j,sqrt((xyzmh(1,j) - xyzmh(1,i))**2 +
+     &              (xyzmh(2,j) - xyzmh(2,i))**2 +
+     &              (xyzmh(3,j) - xyzmh(3,i))**2),xyzmh(1,i),
+     &              xyzmh(2,i),xyzmh(3,i),xyzmh(1,j),xyzmh(2,j),
+     &              xyzmh(3,j),iremove(j)
+               print *,'   ',dumxyzmh(1,i),dumxyzmh(2,i),dumxyzmh(3,i),
+     &              dumxyzmh(1,j),dumxyzmh(2,j),
+     &              dumxyzmh(3,j)
             END DO
 
-            CALL quit
+c            CALL quit
          ENDIF
 c
 c--Perform accretion
@@ -949,7 +957,7 @@ c--MERGER OF TWO POINT MASSES
 c
       imerge = 0
 
-      GOTO 1000
+c      GOTO 1000
 
 c      CALL angmom
 c      angx2 = angx

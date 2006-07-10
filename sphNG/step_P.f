@@ -1253,6 +1253,7 @@ C$OMP& private(i,k,ipart,deltat)
             dumxyzmh(k,ipart) = xyzmh(k,ipart) + deltat*vxyzu(k,ipart)
                END DO
                dumxyzmh(4,ipart) = xyzmh(4,ipart)
+               dumxyzmh(5,ipart) = xyzmh(5,ipart)
                DO k = 1, 3
             dumvxyzu(k,ipart) = vxyzu(k,ipart) + deltat*f1vxyzu(k,ipart)
                END DO

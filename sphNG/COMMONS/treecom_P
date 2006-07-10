@@ -1,7 +1,12 @@
       PARAMETER (nmaxlevel=1000)
 
       REAL*4 qrad
-      INTEGER*2 imfac,levelnum
+      INTEGER*1 imfac
+c
+c--If type of levelnum is changed, indexxi2.f call also needs to be changed
+c     to reflect new INT type
+c
+      INTEGER*2 levelnum
       LOGICAL*1 iflagtree
 
       COMMON /parms / natom, nlevel, nactatom, nroot

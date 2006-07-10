@@ -269,24 +269,29 @@ c--Level zero are leaves, not nodes, so start from nodes (level 1)
 c
          nlevelupdate = 1
          numberstart = 1
+
  400     numnextlevel = numberparents
 c
 c--Need to sort by level in order to guarantee that a node's children are
 c     updated before the node is updated
 c
-         CALL indexxi1(numberparents,listparents,levelnum,list)
+         CALL indexxi2(numberparents,listparents,levelnum,list)
 
 c         print *,' Sorted ',numberparents
 c         DO i = 1, numberparents
 c      print *,levelnum(listparents(list(i))),i,levelnum(listparents(i)),
 c     &           listparents(list(i)),listparents(i)
 c         END DO
-c         print *,' Numbers ',nlevelupdate
+
+         numberend = numberstart + numparentslevel(nlevelupdate) - 1
+
+c         print *,' Numbers ',nlevelupdate,numberstart,numberend,
+c     &        numparentslevel(nlevelupdate) 
 c         DO i = 1, nmaxlevel
 c            IF (numparentslevel(i).NE.0) print *,i,numparentslevel(i)
 c         END DO
 
-         IF (numberparents-numberstart.GT.2) THEN
+         IF (numberend-numberstart.GT.2) THEN
 c         IF (.FALSE.) THEN
 
 C$OMP PARALLEL default(none)
@@ -295,13 +300,13 @@ C$OMP& shared(qrad,xyzmh,imfac)
 C$OMP& shared(iflagtree,ipar,numberstart,nroot,iprint)
 C$OMP& shared(numberparents,listparents,numnextlevel,list)
 C$OMP& shared(nlst,nptmass,itbinupdate,nlstacc)
-C$OMP& shared(levelnum,numparentslevel,nlevelupdate)
+C$OMP& shared(levelnum,numparentslevel,nlevelupdate,numberend)
 C$OMP& private(new,l,ll,fl,fll,emred,difx,dify,difz,rr,iparent,i)
 C$OMP& private(pmassl,pmassll)
 C$OMP& private(qrad1old,xold,yold,zold)
 
 C$OMP DO SCHEDULE(static)
-            DO i = numberstart, numparentslevel(nlevelupdate)
+            DO i = numberstart, numberend
                new = listparents(list(i))
 
                IF (.NOT.iflagtree(new)) THEN
@@ -394,6 +399,11 @@ c
                   IF ((xyzmh(1,new)-xold)**2 + (xyzmh(2,new)-yold)**2 + 
      &             (xyzmh(3,new)-zold)**2.GT.1.0E-6*qrad1old) THEN
                   iparent = isibdaupar(3,new)
+
+                  IF (nlevelupdate.EQ.levelnum(iparent)) THEN
+     &                 WRITE (*,*) 'ERROR revtree level ',nlevelupdate,
+     &                 levelnum(iparent),new,iparent,levelnum(new)
+
 C$OMP CRITICAL(parentlist5)
                   IF (.NOT.iflagtree(iparent)) THEN
                      iflagtree(iparent) = .TRUE.
@@ -404,7 +414,6 @@ C$OMP CRITICAL(parentlist5)
                         WRITE (*,*) 'parentlist5 ',numnextlevel
                         CALL quit
                      ENDIF
-c                     print *,new,numnextlevel,iparent
                      listparents(numnextlevel) = iparent
                   ENDIF
 C$OMP END CRITICAL(parentlist5)                     
@@ -417,7 +426,7 @@ c
 c--Else don't bother to start up parallel threads
 c
          ELSE
-            DO i = numberstart, numparentslevel(nlevelupdate)
+            DO i = numberstart, numberend
                new = listparents(list(i))
 
                IF (.NOT.iflagtree(new)) THEN

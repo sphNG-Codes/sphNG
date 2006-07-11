@@ -86,13 +86,42 @@ c
             GOTO 300
          ENDIF
 c
-c  3) change syncronisation time
+c  3) change syncronisation time, either once only (synct) 
+c     or continuously (logdt - gives logarithmically spaced dumps)
 c
-         IF (string(i)(1:5).EQ.'synct') THEN
+         IF (string(i)(1:5).EQ.'synct' .OR.
+     &       string(i)(1:5).EQ.'logdt') THEN
             READ (string(i), 99007) ipower
-99007       FORMAT (6X, I2)
+99007       FORMAT (6X, I3)
             WRITE (*, 99008) i, ipower
-99008       FORMAT (' message ', I2, ' read. synct changed by : ', I2)
+99008       FORMAT (' message ', I2, ' read. synct changed by : ', I3)
+
+            IF (string(i)(1:5).EQ.'logdt') THEN
+c  do not delete message file if doing logdt
+               iwait = 1
+               !--ipower here is number of dumps required
+               dtlog = log10(tstop/dtini)/real(ipower)
+c  dumpi a way of estimating what dump we are up to
+c  doing it this way produces slightly more dumps than ndumps
+c  than if we used the actual number of dumps done.
+               dumpi = log10(gt/dtini)/dtlog
+               idump = int(dumpi) + 1
+               ti = 10**((idump)*dtlog + log10(dtini))
+               tnext = 10**((idump+1)*dtlog + log10(dtini))
+c  first of these is our estimate of the next timestep
+c  second of these is the amount by which dtmax should increase every time
+c  (will work if only first one is used, just may decrease dt to start with)
+               dti = max(tnext - ti,dtmax*10**dtlog)
+               WRITE(*,*) 'time is ',gt,' should be ',ti
+               WRITE(*,*) 'dtlog = ',dtlog, ' dumpi = ',dumpi,
+     &                    ' dti = ',dti
+               WRITE(*,*) 'current dtmax = ',dtmax,
+     &                    ' dti/dtmax = ',dti/dtmax
+c              find nearest power of two to the change ratio required
+               ipower = INT(log10(dti/dtmax)/log10(2.))
+               WRITE(*,*) 'ipower = ',ipower
+            ENDIF
+
 
             ifactor = 2**ABS(ipower)
             imaxnew = imaxstep/ifactor
@@ -161,7 +190,7 @@ c
                   ENDIF
                ENDIF
             END DO
- 
+            
             GOTO 300
          ENDIF
 c
@@ -282,11 +311,10 @@ c
                ENDIF
             END DO
          ENDIF
-      ENDIF
 c
 c--Automatic change of syncronisation time using density change
 c
-      IF (string(i)(1:4).EQ.'dens') THEN
+      ELSEIF (string(i)(1:4).EQ.'dens') THEN
          READ (string(i)(6:20),*) contrast, dtmaxsync
 
          rhomaxsyncold = rhomaxsync

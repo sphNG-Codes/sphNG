@@ -91,7 +91,7 @@ SOURCES= sph.f accrete_P.f addump.f angmom.f boundry.f \
 	gforsa_P.f gforsn_P.f gforspt_P.f \
 	ghostp1.f ghostp2.f ghostp3.f ghostp11.f ghostp100.f \
         gptall.f hdot_P.f \
-	header.f homexp.f indexx.f indexx2.f indexx3.f indexxi1.f inform.f \
+	header.f homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
 	inopts.f insulate_TREE_P.f integs.f ktable.f labrun.f lunit_double.f \
 	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
 	newrun.f options.f phoenix.f phoenix2.f \

@@ -39,6 +39,7 @@ ifeq ($(SYSTEM), sunf95)
     DBLFLAG= -xtypemap=real:64,double:64
     DEBUGFLAG= -g -C -ftrap=common
     KNOWN_SYSTEM=yes
+    ENDIANFLAG= -xfilebyteorder=big16:45
     ZZFILE= zzsun_f77_double1.f zzsun_f77_double2.f
 endif
 
@@ -67,6 +68,8 @@ ifeq ($(SYSTEM), ifort)
     DBLFLAG= -r8
     DEBUGFLAG= -C
     KNOWN_SYSTEM=yes
+    ENDIANFLAG= -convert big_endian
+# or use setenv F_UFMTENDIAN=big:45 for unit 45 only
     ZZFILE= zzibm.f
 endif
 
@@ -82,7 +85,7 @@ endif
 ZZFFLAGS := ${FFLAGS}
 ifeq ($(doubleprecision), yes)
     FFLAGS += ${DBLFLAG}
-endif
+endif        
 
 # these are the sources common to all compilations
 
@@ -212,7 +215,7 @@ checksystem:
 	quit
    endif
 
-checkparams:
+checkparams: updatedepends
    ifeq ($(debug), yes)
 	@echo "Debugging flags are ON"
    endif
@@ -222,6 +225,19 @@ checkparams:
 	@echo "Flags set for SINGLE PRECISION"
    endif
 
+# this is a way of making all files depend on their INCLUDEd files
+# (creates a file called .depends which contain the appropriate dependency lines
+#  this file is then included in the Makefile)
+#
 
+.depends: updatedepends
+
+updatedepends:
+	@rm -f .depends
+	@for x in *.f; do echo $${x/.f/.o}: `grep INCLUDE $$x | cut -d\' -f 2` >> .depends; done
+
+include .depends
+        
 clean:
 	\rm -f *.o sph_tree_lf_gradh sph_tree_lf sph_tree_rk_gradh sph_tree_rk
+# DO NOT DELETE

@@ -30,6 +30,7 @@ ifeq ($(SYSTEM), ukaff1a)
 #    DEBUGFLAG= -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
     DEBUGFLAG= -C
     KNOWN_SYSTEM=yes
+    ZZFILE= zzibm.f
 endif
 
 ifeq ($(SYSTEM), sunf95)
@@ -38,6 +39,7 @@ ifeq ($(SYSTEM), sunf95)
     DBLFLAG= -xtypemap=real:64,double:64
     DEBUGFLAG= -g -C -ftrap=common
     KNOWN_SYSTEM=yes
+    ZZFILE= zzsun_f77_double1.f zzsun_f77_double2.f
 endif
 
 ifeq ($(SYSTEM), g95)
@@ -47,6 +49,7 @@ ifeq ($(SYSTEM), g95)
     DEBUGFLAG= -ftrace=full -fbounds-check
     KNOWN_SYSTEM=yes
     TORUSLIB= -L/h/mbate/New/sphNG_TORUS/torus -ltorus -L/star/lib `ndf_link` -L/usr/lib/gcc/i586-mandrake-linux-gnu/3.4.1 -lg2c
+    ZZFILE= zzibm.f
 endif
 
 ifeq ($(SYSTEM), myg95)
@@ -55,6 +58,7 @@ ifeq ($(SYSTEM), myg95)
     DBLFLAG= -r8
     DEBUGFLAG= -ftrace=full -fbounds-check
     KNOWN_SYSTEM=yes
+    ZZFILE= zzibm.f
 endif
 
 ifeq ($(SYSTEM), ifort)
@@ -63,6 +67,7 @@ ifeq ($(SYSTEM), ifort)
     DBLFLAG= -r8
     DEBUGFLAG= -C
     KNOWN_SYSTEM=yes
+    ZZFILE= zzibm.f
 endif
 
 
@@ -100,7 +105,7 @@ SOURCES= sph.f accrete_P.f addump.f angmom.f boundry.f \
         scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f \
 	timestep.f toten.f treef_P.f unifdis.f unit.f \
-	wdump.f wrinsph.f zzsun_f77_double1.f
+	wdump.f wrinsph.f
 
 # these are the sources required for the gradh code to compile
 
@@ -128,7 +133,7 @@ SRCLF = step_P_lf_fast2_gradh.f revtree_P_fast2.f
 
 # construct object files
 
-OBJECTS = $(SOURCES:.f=.o) zzsun_f77_double2.o
+OBJECTS = $(SOURCES:.f=.o) $(ZZFILE:.f=.o)
 OBJLF = $(OBJECTS) $(SRCNONGRADH:.f=.o) $(SRCLF:.f=.o)
 OBJRK = $(OBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o)
 OBJRT = $(OBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o)
@@ -187,6 +192,8 @@ sphtorus: $(OBJTORUS)
 	@echo "This is the TORUS code (Leapfrog by default)"
 	@echo ""
 	$(FC) $(FFLAGS) $(TORUSLIB) -o $@ $(OBJTORUS)
+
+# this routine needs to be compiled with single precision flags only
 
 zzsun_f77_double2.o: zzsun_f77_double2.f
 	$(FC) -c $(ZZFFLAGS) zzsun_f77_double2.f -o zzsun_f77_double2.o

@@ -30,7 +30,7 @@ ifeq ($(SYSTEM), ukaff1a)
 #    DEBUGFLAG= -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
     DEBUGFLAG= -C
     KNOWN_SYSTEM=yes
-    ZZFILE= zzibm.f
+    ZZFILE= zzsun_f77_double1.f zzsun_f77_double2.f
 endif
 
 ifeq ($(SYSTEM), sunf95)

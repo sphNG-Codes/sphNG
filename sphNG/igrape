@@ -59,5 +59,11 @@ c	 2 : all particles (sink and gas particles) have individual timesteps
 c
       INTEGER individualtimesteps
 c        PARAMETER (individualtimesteps=0)
-c        PARAMETER (individualtimesteps=1)
-       PARAMETER (individualtimesteps=2)
+        PARAMETER (individualtimesteps=1)
+c       PARAMETER (individualtimesteps=2)
+c
+c--Specify XSPH or standard SPH
+c
+      LOGICAL XSPH
+       PARAMETER (XSPH=.FALSE.)
+c      PARAMETER (XSPH=.TRUE.)

@@ -8,11 +8,15 @@
       PARAMETER (mmax=2*idim + 2)
 
 c--Flag for using grad-h version of code is nlmax=1
-c      PARAMETER (nlmax = 70)
-      PARAMETER (nlmax = 1)
+      PARAMETER (nlmax = 70)
+c      PARAMETER (nlmax = 1)
 
 c      PARAMETER (iradtrans=idim)
       PARAMETER (iradtrans=1)
 
 c      PARAMETER (imhd=idim)
       PARAMETER (imhd=1)
+
+c      PARAMETER (imhdxsph=idim)
+      PARAMETER (imhdxsph=1)
+

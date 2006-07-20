@@ -533,7 +533,7 @@ c
       IF (itbinupdate.GE.nbinmax-1 .OR. (.NOT. ipartialrevtree)) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle,vsmooth)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& private(j,k,deltat)
@@ -541,7 +541,11 @@ C$OMP& private(j,k,deltat)
          IF (iphase(j).GE.0) THEN
             deltat = dt*(itime - it0(j))/imaxstep
             DO k = 1, 3
-               dumxyzmh(k,j) = xyzmh(k,j) + deltat*vxyzu(k,j)
+               IF (XSPH) THEN
+                  dumxyzmh(k,j) = xyzmh(k,j) + deltat*vsmooth(k,j)
+               ELSE
+                  dumxyzmh(k,j) = xyzmh(k,j) + deltat*vxyzu(k,j)
+               ENDIF
             END DO
             dumxyzmh(4,j) = xyzmh(4,j)
             dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
@@ -575,7 +579,7 @@ C$OMP END PARALLEL DO
             DO i = 1, itbinupdate
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle,vsmooth)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& private(j,k,ipart,deltat)
@@ -584,7 +588,11 @@ C$OMP& private(j,k,ipart,deltat)
                   IF (iphase(ipart).GE.0) THEN
                      deltat = dt*(itime - it0(ipart))/imaxstep
                      DO k = 1, 3
+                        IF (XSPH) THEN
+          dumxyzmh(k,ipart) = xyzmh(k,ipart) + deltat*vsmooth(k,ipart)
+                        ELSE
             dumxyzmh(k,ipart) = xyzmh(k,ipart) + deltat*vxyzu(k,ipart)
+                        ENDIF
                      END DO
             dumxyzmh(4,ipart) = xyzmh(4,ipart)
             dumxyzmh(5,ipart) = xyzmh(5,ipart) + deltat*f1ha(1,ipart)
@@ -619,14 +627,18 @@ c--Only update ptmasses, since nothing else is evolved
 c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nptmass,listpm,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,vsmooth)
 C$OMP& shared(dumxyzmh,dumvxyzu)
 C$OMP& private(i,k,ipart,deltat)
             DO i = 1, nptmass
                ipart = listpm(i)
                deltat = dt*(itime - it0(ipart))/imaxstep
                DO k = 1, 3
-              dumxyzmh(k,ipart) = xyzmh(k,ipart) + deltat*vxyzu(k,ipart)
+                  IF (XSPH) THEN
+          dumxyzmh(k,ipart) = xyzmh(k,ipart) + deltat*vsmooth(k,ipart)
+                  ELSE
+            dumxyzmh(k,ipart) = xyzmh(k,ipart) + deltat*vxyzu(k,ipart)
+                  ENDIF
                END DO
                dumxyzmh(4,ipart) = xyzmh(4,ipart)
                DO k = 1, 3
@@ -640,7 +652,7 @@ C$OMP END PARALLEL DO
       IF (nghost.GT.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle,vsmooth)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& private(j,k,l,deltat)
@@ -649,7 +661,11 @@ C$OMP& private(j,k,l,deltat)
             k = ireal(j)
             deltat = dt*(itime - it0(k))/imaxstep
             DO l = 1, 3
-               dumxyzmh(l,j) = xyzmh(l,j) + deltat*vxyzu(l,j)
+               IF (XSPH) THEN
+                  dumxyzmh(l,j) = xyzmh(l,j) + deltat*vsmooth(l,j)
+               ELSE
+                  dumxyzmh(l,j) = xyzmh(l,j) + deltat*vxyzu(l,j)
+               ENDIF
             END DO
             dumxyzmh(4,j) = xyzmh(4,j)
             dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,k)
@@ -836,7 +852,7 @@ C$OMP& shared(gravx,gravy,gradpx,gradpy,artvix,artviy,gravx1,gravy1)
 C$OMP& shared(gradpx1,gradpy1,artvix1,artviy1,torqt,torqg,torqp)
 C$OMP& shared(torqv,torqc,it0,itime,imaxdens,cnormk,iener)
 C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
-C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,dumekcle)
+C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,dumekcle,vsmooth)
 C$OMP& shared(ifsvi,alphaMM,alphamax,encal,dumBevolxyz,Bevolxyz)
 C$OMP& private(i,j,dtfull,dtf21,dtf22,xold,yold,delvx,delvy,delvz)
 C$OMP& private(vxstore,vystore,dx,dy,delgx,delgy,delpx,delpy)
@@ -858,12 +874,21 @@ c
             xold = xyzmh(1,i)
             yold = xyzmh(2,i)
 
-            xyzmh(1,i) = xyzmh(1,i) + dtf21*vxyzu(1,i) + 
-     &           dtf22*dum2vxyz(1,i)
-            xyzmh(2,i) = xyzmh(2,i) + dtf21*vxyzu(2,i) + 
-     &           dtf22*dum2vxyz(2,i)
-            xyzmh(3,i) = xyzmh(3,i) + dtf21*vxyzu(3,i) + 
-     &           dtf22*dum2vxyz(3,i)
+            IF (XSPH) THEN
+               xyzmh(1,i) = xyzmh(1,i) + dtf21*vsmooth(1,i) +
+     &              dtf22*vsmooth(1,i)
+               xyzmh(2,i) = xyzmh(2,i) + dtf21*vsmooth(2,i) +
+     &              dtf22*vsmooth(2,i)
+               xyzmh(3,i) = xyzmh(3,i) + dtf21*vsmooth(3,i) +
+     &              dtf22*vsmooth(3,i)
+            ELSE
+               xyzmh(1,i) = xyzmh(1,i) + dtf21*vxyzu(1,i) + 
+     &              dtf22*dum2vxyz(1,i)
+               xyzmh(2,i) = xyzmh(2,i) + dtf21*vxyzu(2,i) + 
+     &              dtf22*dum2vxyz(2,i)
+               xyzmh(3,i) = xyzmh(3,i) + dtf21*vxyzu(3,i) + 
+     &              dtf22*dum2vxyz(3,i)
+            ENDIF
 c
 c--Keep old velocities for error calculation
 c
@@ -1159,14 +1184,18 @@ c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
-C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
+C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,deltat)
       DO j = 1, npart
          IF (iphase(j).GE.0) THEN
             deltat = dt*(itime - it0(j))/imaxstep
             DO k = 1, 3
-               dumxyzmh(k,j) = xyzmh(k,j) + deltat*vxyzu(k,j)
+               IF (XSPH) THEN
+                  dumxyzmh(k,j) = xyzmh(k,j) + deltat*vsmooth(k,j)
+               ELSE
+                  dumxyzmh(k,j) = xyzmh(k,j) + deltat*vxyzu(k,j)
+               ENDIF
             END DO
             dumxyzmh(4,j) = xyzmh(4,j)
             dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
@@ -1200,7 +1229,7 @@ C$OMP END PARALLEL DO
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
-C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
+C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,ipart,deltat)
                DO j = 1, nlstbins(i)
@@ -1208,7 +1237,11 @@ C$OMP& private(j,k,ipart,deltat)
                   IF (iphase(ipart).GE.0) THEN
                      deltat = dt*(itime - it0(ipart))/imaxstep
                      DO k = 1, 3
+                        IF (XSPH) THEN
+           dumxyzmh(k,ipart) = xyzmh(k,ipart) + deltat*vsmooth(k,ipart)
+                        ELSE
              dumxyzmh(k,ipart) = xyzmh(k,ipart) + deltat*vxyzu(k,ipart)
+                        ENDIF
                      END DO
                      dumxyzmh(4,ipart) = xyzmh(4,ipart)
               dumxyzmh(5,ipart) = xyzmh(5,ipart) + deltat*f1ha(1,ipart)
@@ -1244,13 +1277,17 @@ c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nptmass,listpm,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
-C$OMP& shared(dumxyzmh,dumvxyzu)
+C$OMP& shared(dumxyzmh,dumvxyzu,vsmooth)
 C$OMP& private(i,k,ipart,deltat)
             DO i = 1, nptmass
                ipart = listpm(i)
                deltat = dt*(itime - it0(ipart))/imaxstep
                DO k = 1, 3
+                  IF (XSPH) THEN
+          dumxyzmh(k,ipart) = xyzmh(k,ipart) + deltat*vsmooth(k,ipart)
+                  ELSE
             dumxyzmh(k,ipart) = xyzmh(k,ipart) + deltat*vxyzu(k,ipart)
+                  ENDIF
                END DO
                dumxyzmh(4,ipart) = xyzmh(4,ipart)
                dumxyzmh(5,ipart) = xyzmh(5,ipart)
@@ -1266,7 +1303,7 @@ C$OMP END PARALLEL DO
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
-C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
+C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& private(j,k,l,deltat)
       DO j = npart + 1, npart + nghost
@@ -1274,7 +1311,11 @@ C$OMP& private(j,k,l,deltat)
             k = ireal(j)
             deltat = dt*(itime - it0(k))/imaxstep
             DO l = 1, 3
-               dumxyzmh(l,j) = xyzmh(l,j) + deltat*vxyzu(l,j)
+               IF (XSPH) THEN
+                  dumxyzmh(l,j) = xyzmh(l,j) + deltat*vsmooth(l,j)
+               ELSE
+                  dumxyzmh(l,j) = xyzmh(l,j) + deltat*vxyzu(l,j)
+               ENDIF
             END DO
             dumxyzmh(4,j) = xyzmh(4,j)
             dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,k)

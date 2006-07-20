@@ -1,6 +1,6 @@
 c
-c     this is the smoothed velocity (similar to XSPH) used in the
+c     this is the smoothed velocity (also used by XSPH) used in the
 c     evolution of the magnetic field
 c     Bsmooth is the smoothed version of the magnetic field
 
-      COMMON /vbar/ vsmooth(3,imhd), Bsmooth(3,imhd)
+      COMMON /vbar/ vsmooth(3,imhdxsph), Bsmooth(3,imhd)

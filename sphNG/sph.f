@@ -408,6 +408,9 @@ c  Running time scales like NlogN.                          *
 c                                                           *
 c************************************************************
 
+      INCLUDE 'idim'
+      INCLUDE 'igrape'
+
       INCLUDE 'COMMONS/infor'
       INCLUDE 'COMMONS/actio'
       INCLUDE 'COMMONS/debug'
@@ -467,6 +470,14 @@ c      CALL floating
 c
 c--Read main main option for run
 c
+      IF (imhd.EQ.idim .AND. imhdxsph.NE.imhd) THEN
+         WRITE (*,*) 'ERROR - imhd, imhdxsph ',imhd, imhdxsph
+         CALL quit
+      ELSEIF (XSPH .AND. imhdxsph.NE.idim) THEN
+         WRITE (*,*) 'ERROR - XSPH, imhdxsph ',XSPH, imhdxsph
+         CALL quit
+      ENDIF
+
       CALL mainop
 c
 c--Initialize physical, mathematical and astronomical constants

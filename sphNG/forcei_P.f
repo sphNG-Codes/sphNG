@@ -51,6 +51,7 @@ c************************************************************
       INCLUDE 'COMMONS/outneigh'
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/curlist'
+      INCLUDE 'COMMONS/vsmooth'
 
       REAL*4 ddvxyz(3,idim)
 
@@ -59,6 +60,7 @@ c************************************************************
       DATA where/'forcei'/
       DATA epsil/1.E-2/
       DATA epsil2/1.E-4/
+      DATA epsilvbar/0.5/
 c
 c--Allow for tracing flow
 c
@@ -69,7 +71,7 @@ c
 
       IF (nlst_end.GT.nptmass) THEN
 
-      IF (ifsvi.EQ.6) THEN
+      IF (ifsvi.EQ.6 .OR. XSPH) THEN
 c
 c--Calculates ddvx, ddvy, ddvz only if viscosity=6
 c
@@ -77,17 +79,30 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end,list,nneigh,iphase,neighover,neighb)
 C$OMP& shared(xyzmh,radkernel,trho,grwij,vxyzu,dvtable)
 C$OMP& shared(ddvxyz,cnormk)
+C$OMP& shared(epsilvbar,vsmooth,wij)
 C$OMP& private(n,ipart,ddvxi,ddvyi,ddvzi,k,j,dx,dy,dz,rij2,rij,rij1)
 C$OMP& private(hmean,hmean21,hmean41,v,v2,index,dxx,index1,rhoj,grwtij)
 C$OMP& private(dgrwdx,grpm,dvx,dvy,dvz,edotv,termx,termy,termz)
-C$OMP& private(ddvscalar)
+C$OMP& private(ddvscalar,vsmoothxi,vsmoothyi,vsmoothzi,hmean1,hmean31)
+C$OMP& private(rhoi,dwdx,wtij,wtijmrho,temp)
       DO 180 n = nlst_in, nlst_end
          ipart = list(n)
+
+         vsmooth(1,ipart) = vxyzu(1,ipart)
+         vsmooth(2,ipart) = vxyzu(2,ipart)
+         vsmooth(3,ipart) = vxyzu(3,ipart)
+
          IF (iphase(ipart).GE.1) GOTO 180
+
+         rhoi = trho(ipart)
 
          ddvxi = 0.
          ddvyi = 0.
          ddvzi = 0.
+
+         vsmoothxi = 0.
+         vsmoothyi = 0.
+         vsmoothzi = 0.
 c
 c--Loop over neighbors
 c
@@ -112,7 +127,9 @@ c
 c--Define mean h
 c
             hmean = 0.5*(xyzmh(5,ipart) + xyzmh(5,j))
-            hmean21 = 1./(hmean*hmean)
+            hmean1 = 1.0/hmean
+            hmean21 = hmean1*hmean1
+            hmean31 = hmean21*hmean1
             hmean41 = hmean21*hmean21
 
             v2 = rij2*hmean21
@@ -128,13 +145,22 @@ c
 c 
 c--Get kernel quantities from interpolation in table
 c
+               dwdx = (wij(index1) - wij(index))/dvtable
+               wtij = (wij(index) + dwdx*dxx)*hmean31
                dgrwdx = (grwij(index1) - grwij(index))/dvtable
                grwtij = (grwij(index) + dgrwdx*dxx)*hmean41
+               wtijmrho = xyzmh(4,j)*wtij/(rhoi+rhoj)
                grpm = xyzmh(4,j)*grwtij
 
                dvx = vxyzu(1,ipart) - vxyzu(1,j)
                dvy = vxyzu(2,ipart) - vxyzu(2,j)
                dvz = vxyzu(3,ipart) - vxyzu(3,j)
+c
+c--Smoothed velocity
+c
+               vsmoothxi = vsmoothxi - dvx*wtijmrho
+               vsmoothyi = vsmoothyi - dvy*wtijmrho
+               vsmoothzi = vsmoothzi - dvz*wtijmrho
 c
 c--Calculates grad of div velocity (straigh, not times density)
 c
@@ -157,6 +183,12 @@ c
          ddvxyz(2,ipart)=cnormk*ddvyi
          ddvxyz(3,ipart)=cnormk*ddvzi
 
+         temp = 2.0*cnormk*epsilvbar
+
+         vsmooth(1,ipart) = vsmooth(1,ipart) + temp*vsmoothxi
+         vsmooth(2,ipart) = vsmooth(2,ipart) + temp*vsmoothyi
+         vsmooth(3,ipart) = vsmooth(3,ipart) + temp*vsmoothzi
+
  180   CONTINUE
 C$OMP END PARALLEL DO
        ENDIF
@@ -176,7 +208,7 @@ C$OMP& shared(iphase,listpm,iprint,nptmass,iorig)
 C$OMP& shared(alphaMMpass,alphamin,ddv,ddvxyz)
 C$OMP& shared(igrp,igphi,ifsvi,iexf)
 C$OMP& shared(ifcor,iexpan,iener,damp)
-C$OMP& shared(realtime,ekcle,encal,dedxyz)
+C$OMP& shared(realtime,ekcle,encal,dedxyz,vsmooth)
 C$OMP& private(n,ipart,stepsi,numneigh,vsig)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(poteni,dphiti,gradxi,gradyi,gradzi,artxi,artyi,artzi)
@@ -233,9 +265,15 @@ c
          zi = xyzmh(3,ipart)
          pmassi = xyzmh(4,ipart)
          hi = xyzmh(5,ipart)
-         vxi = vxyzu(1,ipart)
-         vyi = vxyzu(2,ipart)
-         vzi = vxyzu(3,ipart)
+         IF (XSPH) THEN
+            vxi = vsmooth(1,ipart)
+            vyi = vsmooth(2,ipart)
+            vzi = vsmooth(3,ipart)
+         ELSE
+            vxi = vxyzu(1,ipart)
+            vyi = vxyzu(2,ipart)
+            vzi = vxyzu(3,ipart)
+         ENDIF
          dhi = dha(1,ipart)
 
          gravxi = 0.
@@ -415,9 +453,15 @@ c
                gradyi = gradyi + poro2j*runiy
                gradzi = gradzi + poro2j*runiz
 
-               dvx = vxi - vxyzu(1,j)
-               dvy = vyi - vxyzu(2,j)
-               dvz = vzi - vxyzu(3,j)
+               IF (XSPH) THEN
+                  dvx = vxi - vsmooth(1,j)
+                  dvy = vyi - vsmooth(2,j)
+                  dvz = vzi - vsmooth(3,j)
+               ELSE
+                  dvx = vxi - vxyzu(1,j)
+                  dvy = vyi - vxyzu(2,j)
+                  dvz = vzi - vxyzu(3,j)
+               ENDIF
                projv = dvx*runix + dvy*runiy + dvz*runiz
 
                pdvi = pdvi + grpm*projv
@@ -607,7 +651,7 @@ c
 c--Energy conservation
 c  
          IF (iphase(ipart).EQ.0) THEN
-            CALL energ(ipart,realtime,vxyzu, fxyzu)  
+            CALL energ(ipart,realtime,vxyzu, fxyzu, xyzmh)  
          ELSE
             dha(1,ipart) = 0.0
             fxyzu(4,ipart) = 0.0

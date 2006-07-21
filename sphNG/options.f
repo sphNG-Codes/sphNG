@@ -99,7 +99,7 @@ c--Read options
 c
       READ (iterm, 99006) encal
 99006 FORMAT (A1)
-      IF (encal.EQ.'r') READ (iterm, *) tolerance
+      IF (encal.EQ.'r') READ (iterm, *) tolerance, boundtemp
 
       READ (iterm, *) initialptm
       READ (iterm, 99006) iaccevol

@@ -1,4 +1,5 @@
-      COMMON /rbnd  / rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl
+      COMMON /rbnd  / rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl,
+     &	     boundtemp
 c
 c--Note: flowrate is the number of particles (floating point) per code time
 c

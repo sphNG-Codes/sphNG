@@ -43,7 +43,7 @@ c
 c--Set boundary temperature for radiative transfer
 c
 c      boundtemp=11.9
-      boundtemp=12.037
+c      boundtemp=12.037
 c      boundtemp=10.115
 
       uradconst = radconst/uergcc

@@ -84,14 +84,13 @@ c      write (*,*) 'Enter kap'
 
          val1 = (1.0 - w) * val1l + w * val1h
          val2 = (1.0 - w) * val2l + w * val2h
-         IF(val2.GT.(1.2512E+22* rho * (10000.0)**(-3.5))) THEN
-            getkappa = 0.4*umass/udist**2
-c      write (*,*) 'Exit kap'
-            RETURN
-!     PRINT *,"GETKAPPA: Warning, low density-high temperature"
-!     PRINT *,"How to join tables together?"
-!     STOP
-         ENDIF
+c         IF(val2.GT.(1.2512E+22* rho * (10000.0)**(-3.5))) THEN
+c            getkappa = 0.4*umass/udist**2
+c            RETURN
+c!     PRINT *,"GETKAPPA: Warning, low density-high temperature"
+c!     PRINT *,"How to join tables together?"
+c!     STOP
+c         ENDIF
 
          grad = (val2 - val1)/0.05
          valup = (ltg - 4.0) * grad + val2

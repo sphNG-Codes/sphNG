@@ -33,12 +33,18 @@ c************************************************************
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/debug'
 
       DIMENSION nsteplist(30)
 
       CHARACTER*7 where
 
       DATA where/'integs'/
+c
+c--Allow for tracing flow
+c
+      IF (itrace.EQ.'all') WRITE(iprint,250)
+ 250  FORMAT(' entry subroutine integs')
 
       ifail = 0
       ioutinf = 0

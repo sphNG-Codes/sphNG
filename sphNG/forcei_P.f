@@ -679,7 +679,7 @@ c--Only sink particles being moved
 c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end,list,dha,fxyzu,xyzmh,iexf,ifcor)
-C$OMP& shared(iexpan,realtime,vxyzu)
+C$OMP& shared(iexpan,realtime,vxyzu,vsmooth)
 C$OMP& private(n,ipart)
       DO n = nlst_in, nlst_end
          ipart = list(n)
@@ -688,6 +688,12 @@ c--Set changes in h and energy to zero
 c
          dha(1,ipart) = 0.0
          fxyzu(4,ipart) = 0.0
+
+         IF (XSPH) THEN
+            vsmooth(1,ipart) = vxyzu(1,ipart)
+            vsmooth(2,ipart) = vxyzu(2,ipart)
+            vsmooth(3,ipart) = vxyzu(3,ipart)
+         ENDIF
 c
 c--External forces
 c

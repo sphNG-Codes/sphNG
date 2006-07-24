@@ -17,6 +17,7 @@
 .KEEP_STATE:
 
 KNOWN_SYSTEM=no
+SHELL = /bin/sh
 
 # can comment out the following lines and instead set
 # the parameters as environment variables
@@ -233,8 +234,12 @@ checkparams: updatedepends
 .depends: updatedepends
 
 updatedepends:
-	@rm -f .depends
-	@for x in *.f; do echo $${x/.f/.o}: `grep INCLUDE $$x | cut -d\' -f 2` >> .depends; done
+	@if test -e .depends; then mv .depends .dependsold; fi
+#       command below greps for INCLUDE in all .f files, uses sed to exclude comment lines, cut to extract text between quotes
+#       then writes a dependency line for each .o file in Makefile format to the .depends file
+	@for x in *.f; do echo $${x/.f/.o}: `grep INCLUDE $$x | sed '/^[c,C,\!]/d' | cut -d\' -f 2` >> .depends; done
+	@diff --brief .dependsold .depends || echo 'WARNING: dependencies have changed, make again to be sure'
+	@rm -f .dependsold
 
 include .depends
         

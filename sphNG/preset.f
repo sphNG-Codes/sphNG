@@ -98,10 +98,10 @@ c
 c
 c--Set constant for artificial viscosity
 c
-      IF (alpha.EQ.0. .AND. beta.EQ.0.) THEN
-         alpha = 1.0
-         beta = 2.0
-      ENDIF
+c      IF (alpha.EQ.0. .AND. beta.EQ.0.) THEN
+c         alpha = 1.0
+c         beta = 2.0
+c      ENDIF
 c
 c--Set accuracy parameter for tree force calculation
 c     theoretical limit for 3D tree is 0.57 = 1/SQRT(3)

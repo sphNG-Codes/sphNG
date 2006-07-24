@@ -69,6 +69,20 @@ c
       nlst_end = nlst
       IF (itrace.EQ.'all') WRITE (iprint, 99002) nlst_in, nlst_end
 99002 FORMAT(' derivi ',I8, I8)
+
+
+
+
+
+c         CALL densityiterate_gradh(dt,npart,ntot,xyzmh,vxyzu,
+c     &        nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz)
+
+
+
+
+
+
+
 c
 c--Compute the neighbor indexes & gravitational forces of the distant 
 c     particles for all the particles in the list
@@ -246,7 +260,7 @@ c
 c         WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt,
 c     &        ekcle(1,1),dumrho(1)
          CALL ASS(nlst_in,nlst_end,nlstall,llist,dt,itime,npart,
-     &        xyzmh,vxyzu,ekcle,dumrho,dedxyz)
+     &        xyzmh,vxyzu,ekcle,dumrho,dedxyz,alphaMM)
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstall,vxyzu,dumrho,pr,vsound,llist,ekcle)

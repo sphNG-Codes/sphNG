@@ -65,9 +65,9 @@ c************************************************************
       INCLUDE 'COMMONS/perform'
 c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/timeextra'
-c      INCLUDE 'COMMONS/steplocal'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/mhd'
+      INCLUDE 'COMMONS/vsmooth'
 
       DIMENSION nsteplist(30)
       INTEGER*8 nneightotsave
@@ -126,8 +126,9 @@ c
 
          IF (gt.EQ.0.0) THEN
             ibin = INT(LOG10(dt/dtini)/xlog2) + 1
-            IF (ibin.LT.0) THEN
+            IF (ibin.LT.0 .OR. ibin.GE.30) THEN
                WRITE(iprint,*) 'Error with initial timesteps'
+               WRITE(iprint,*) dt,dtini,ibin
                CALL quit
             ENDIF
             idtini = imaxstep/2**ibin
@@ -150,6 +151,7 @@ c
             it1bin(i) = 2**i/2
             it2bin(i) = 2**i
          END DO
+
          DO i = 1, npart
             IF (iphase(i).NE.-1) THEN
                it0(i) = 0
@@ -218,8 +220,6 @@ c
          IF (ibound.EQ.11) 
      &        CALL ghostp11(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
          ntot = npart + nghost
-
-         print *,npart,nghost
 
          DO i = npart + 1, ntot
             DO k = 1, 5

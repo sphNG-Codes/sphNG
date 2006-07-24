@@ -74,7 +74,8 @@ c--Compute the neighbor indexes & gravitational forces of the distant
 c     particles for all the particles in the list
 c
       IF (igrape.EQ.0) THEN
-         IF (nlst_end.GT.nptmass .OR. itreeupdate) THEN
+         IF (nlst_end.GT.nptmass .OR. itreeupdate .OR.
+     &        iptintree.EQ.2) THEN
             CALL insulate(3, ntot, npart, xyzmh, dvxyzu)
 c
 c--Keep using tree until all sinks have been done after accretion event

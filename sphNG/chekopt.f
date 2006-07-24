@@ -43,7 +43,7 @@ c
       IF (encal.EQ.'i' .AND. (iener.EQ.1 .OR. ichoc.EQ.1)) 
      &                                   CALL error(where,3)
 
-      IF ((encal.EQ.'a' .OR. encal.EQ.'r') .AND. 
+      IF ((encal.EQ.'a' .OR. encal.EQ.'r' .OR. encal.EQ.'c') .AND. 
      &     (iener.EQ.0 .OR. ichoc.EQ.0)) CALL error(where,4)
 
       IF ((encal.EQ.'p' .OR. encal.EQ.'v' .OR. encal.EQ.'x') .AND.  

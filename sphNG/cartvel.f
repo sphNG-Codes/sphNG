@@ -78,7 +78,7 @@ c
             total = total + sqrt((2./3.)*vxyzu(4,i))
          END DO
          vsound = total/FLOAT(npart)
-      ELSE IF (encal.EQ.'a') THEN
+      ELSE IF (encal.EQ.'a' .OR. encal.EQ.'c') THEN
          total = 0.
          DO i = 1, npart
             total = total + sqrt(gamma*(gamma-1.0)*vxyzu(4,i))

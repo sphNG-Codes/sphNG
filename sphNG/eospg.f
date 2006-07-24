@@ -93,7 +93,7 @@ c
 c
 c--Adiabatic equation of state
 c
-      ELSEIF (encal.EQ.'a') THEN
+      ELSEIF (encal.EQ.'a' .OR. encal.EQ.'c') THEN
             pr(ipart) =  gama1 * vxyzu(4,ipart) * rho(ipart)
             vsound(ipart) = SQRT(gamma*pr(ipart)/rho(ipart))
 c

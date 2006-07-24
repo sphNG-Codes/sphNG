@@ -814,7 +814,7 @@ c
 c--Energy conservation
 c
 
-         CALL energ(ipart,realtime,vxyzu, fxyzu)  
+         CALL energ(ipart,realtime,vxyzu, fxyzu, xyzmh)  
 c
 c--Radiation pressure force
 c

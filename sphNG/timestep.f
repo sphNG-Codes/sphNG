@@ -14,6 +14,8 @@ c************************************************************
       DIMENSION llist(idim),fxyzu(4,idim)
       DIMENSION Bevolxyz(3,imhd)
 
+      REAL omega, omega1
+
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/eosq'
       INCLUDE 'COMMONS/timei'
@@ -30,6 +32,7 @@ c************************************************************
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/nearmpt'
       INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/cgas'
 
       xlog2 = 0.30103
       istepmin = imax
@@ -44,13 +47,13 @@ C$OMP& shared(dt,isteps,imaxstep,divv,rho)
 C$OMP& shared(alpha,beta,vsound,xlog2)
 C$OMP& shared(idtsyn,nearpt,nptlist)
 C$OMP& shared(iprint,nneigh,iphase)
-C$OMP& shared(iorig,nptmass,listpm)
+C$OMP& shared(iorig,nptmass,listpm,encal)
 C$OMP& shared(ifsvi,alphaMM,iptsoft,ptsoft)
 C$OMP& shared(iptmass,hacc,haccall,ptmcrit,radcrit)
 C$OMP& private(i,j,l,ll,xmindist,iptcur,rad2)
-C$OMP& private(divvi,aux1,aux2,aux3,denom,valfven2)
-C$OMP& private(crstepi,rmodcr,rmodvel,force2,rmod,vel2)
-C$OMP& private(stepi,ibin,istep2,irat,softrad)
+C$OMP& private(divvi,aux1,aux2,aux3,denom,valfven2,rmodcool)
+C$OMP& private(crstepi,rmodcr,rmodvel,force2,rmod,vel2,coolstepi)
+C$OMP& private(stepi,ibin,istep2,irat,softrad,rad,omega,omega1,tcool)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin)
 C$OMP& reduction(MIN:istepmingasnew)
@@ -135,6 +138,20 @@ c
             rmodcr = crstepi/(dt*isteps(i)/imaxstep)
             rmod = MIN(rmod, rmodcr)
          ENDIF
+c
+c--New timestep for cooling equation of state
+c
+         IF(iphase(i).EQ.0 .AND. encal.EQ.'c') THEN
+             rad = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2 + 
+     &               xyzmh(3,i)**2 )
+             omega = sqrt(xyzmh(4,listpm(1))/ rad**3)
+             omega1 = 1./omega
+             tcool = 5.0 * omega1
+             coolstepi = 0.01 * tcool
+             rmodcool = coolstepi/(dt*isteps(i)/imaxstep)
+c             PRINT *,rmod,rmodcool
+             rmod = MIN(rmod,rmodcool)
+         END IF
 c
 c--Reduce time step (no synchronization needed)
 c

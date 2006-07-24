@@ -816,7 +816,7 @@ c
             ELSE            
                RK2 = thermal/(rhozero**gm1)
             ENDIF            
-         ELSE IF (encal.EQ.'a') THEN
+         ELSE IF (encal.EQ.'a' .OR. encal.EQ.'c') THEN
             gamma = 5.0/3.0
             gm1 = gamma - 1.0
 	    IF (ien.EQ.'s') thermal = vsound2/(gamma*gm1)

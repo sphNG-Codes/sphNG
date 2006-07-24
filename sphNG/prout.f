@@ -267,6 +267,8 @@ c
 99777       FORMAT (' Thermal instability equation of state')
             IF (encal.EQ.'a') WRITE (iprint, 99103)
 99103       FORMAT (' Adiabatic equation of state')
+            IF (encal.EQ.'c') WRITE (iprint, 99123)
+99123       FORMAT (' Adiabatic equation of state with cooling')
             IF (encal.EQ.'p') WRITE (iprint, 99101) gamma
 99101       FORMAT (' Polytropic equation of state gamma is ',1PE12.5)
             IF (encal.EQ.'v') WRITE (iprint, 99102)

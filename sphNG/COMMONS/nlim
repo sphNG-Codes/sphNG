@@ -5,5 +5,5 @@
 
       COMMON /nlim  / nneigh(idim), nneightot, neimin, neimax, nrange
 
-      COMMON /neighi/ neighlist(idim)
+      COMMON /neighi/ neighlist(nneighmax)
 C$OMP THREADPRIVATE(/neighi/)

@@ -23,6 +23,7 @@ SHELL = /bin/sh
 # the parameters as environment variables
 debug= no
 doubleprecision= yes
+changeendian= no
 
 ifeq ($(SYSTEM), ukaff1a)
     FC= xlf_r -qnosave
@@ -40,7 +41,7 @@ ifeq ($(SYSTEM), sunf95)
     DBLFLAG= -xtypemap=real:64,double:64
     DEBUGFLAG= -g -C -ftrap=common
     KNOWN_SYSTEM=yes
-    ENDIANFLAG= -xfilebyteorder=big16:45
+    ENDIANFLAG= -xfilebyteorder=big16:%all ##:45
     ZZFILE= zzsun_f77_double1.f zzsun_f77_double2.f
 endif
 
@@ -86,7 +87,11 @@ endif
 ZZFFLAGS := ${FFLAGS}
 ifeq ($(doubleprecision), yes)
     FFLAGS += ${DBLFLAG}
-endif        
+endif
+
+ifeq ($(changeendian), yes)
+    FFLAGS += ${ENDIANFLAG}
+endif
 
 # these are the sources common to all compilations
 
@@ -237,8 +242,9 @@ updatedepends:
 	@if test -e .depends; then mv .depends .dependsold; fi
 #       command below greps for INCLUDE in all .f files, uses sed to exclude comment lines, cut to extract text between quotes
 #       then writes a dependency line for each .o file in Makefile format to the .depends file
+	@echo updating .depends
 	@for x in *.f; do echo $${x/.f/.o}: `grep INCLUDE $$x | sed '/^[c,C,\!]/d' | cut -d\' -f 2` >> .depends; done
-	@diff --brief .dependsold .depends || echo 'WARNING: dependencies have changed, make again to be sure'
+	@diff --brief .dependsold .depends || ${MAKE} ${MAKECMDGOALS}
 	@rm -f .dependsold
 
 include .depends

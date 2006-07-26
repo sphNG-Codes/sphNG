@@ -69,7 +69,7 @@ C$OMP& private(iii)
       END DO
 C$OMP END PARALLEL DO
 
-c      IF (nlst0.GT.nptmass) THEN
+      IF (nlst0.GT.nptmass) THEN
 c
 c--Only allow accretion of GAS particles evaluated at the CURRENT timestep
 c     iremove is initialised in evol.f to -1
@@ -935,7 +935,7 @@ c     &        f1vxyzu(1,i),nlstacc
          ENDIF
       END DO
 c--End if nlst0.GT.nptmass
-c      ENDIF
+      ENDIF
 
 c         xlinearx = 0.
 c         xlineary = 0.
@@ -1214,15 +1214,17 @@ C$OMP END PARALLEL
 c
 c--Reset iremove to -1
 c
+      IF (nlst0.GT.nptmass) THEN
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst0,llist,iremove)
 C$OMP& private(i)
 C$OMP DO SCHEDULE(runtime)
-      DO i = 1, nlst0
-         iremove(llist(i)) = -1
-      END DO
+         DO i = 1, nlst0
+            iremove(llist(i)) = -1
+         END DO
 C$OMP END DO
 C$OMP END PARALLEL
+      ENDIF
 c
 c--Dump point mass details to ptprint file
 c

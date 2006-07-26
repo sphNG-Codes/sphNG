@@ -214,13 +214,13 @@ c
 c--Get kernel quantities from interpolation in table
 c
                IF (v.LT.radkernel) THEN
-                  index = v2/dvtable
+                  index = v2*ddvtable
                   dxx = v2 - index*dvtable
                   index1 = index + 1
                   IF (index1.GT.itable) index1 = itable
-                  dgrwdx = (grwij(index1) - grwij(index))/dvtable
+                  dgrwdx = (grwij(index1) - grwij(index))*ddvtable
                   grwtij = (grwij(index) + dgrwdx*dxx)*hmean41
-                  dfptdx = (fpoten(index1) - fpoten(index))/dvtable
+                  dfptdx = (fpoten(index1) - fpoten(index))*ddvtable
                   phi = (fpoten(index) + dfptdx*dxx)/hmean
                   IF (v2.GT.1.) phi = phi + rij1/15.0
                ELSE
@@ -311,11 +311,11 @@ c
                hmean21 = 1./(hmean*hmean)
                v2 = rij2*hmean21
                IF (v2.LT.radkernel*radkernel) THEN
-                  index = v2/dvtable
+                  index = v2*ddvtable
                   dxx = v2 - index*dvtable
                   index1 = index + 1
                   IF (index1.GT.itable) index1 = itable
-                  dfptdx = (fpoten(index1) - fpoten(index))/dvtable
+                  dfptdx = (fpoten(index1) - fpoten(index))*ddvtable
                   phi = (fpoten(index) + dfptdx*dxx)/hmean
                   IF (v2.GT.1.) phi = phi + rij1/15.0
                ELSE
@@ -831,11 +831,11 @@ c
 c
 c--Use smoothing kernel of point mass renormalised as accretion kernel
 c
-                     index = v2/dvtable
+                     index = v2*ddvtable
                      dxx = v2 - index*dvtable
                      index1 = index + 1
                      IF (index1.GT.itable) index1 = itable
-                     dwdx = (wij(index1) - wij(index))/dvtable
+                     dwdx = (wij(index1) - wij(index))*ddvtable
                      wptj = 0.333333*(wij(index) + dwdx*dxx)*
      &                                                hacc11*cnorm2
                      pmassj = -wptj*xyzmh(4,j)*vrad*hratio*dtaccj/hacc

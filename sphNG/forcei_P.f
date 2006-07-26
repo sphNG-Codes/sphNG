@@ -135,7 +135,7 @@ c
             v2 = rij2*hmean21
             v = rij/hmean
 
-            index = v2/dvtable
+            index = v2*ddvtable
             dxx = v2 - index*dvtable
             index1 = index + 1
             IF (index1.GT.itable) index1 = itable
@@ -145,9 +145,9 @@ c
 c 
 c--Get kernel quantities from interpolation in table
 c
-               dwdx = (wij(index1) - wij(index))/dvtable
+               dwdx = (wij(index1) - wij(index))*ddvtable
                wtij = (wij(index) + dwdx*dxx)*hmean31
-               dgrwdx = (grwij(index1) - grwij(index))/dvtable
+               dgrwdx = (grwij(index1) - grwij(index))*ddvtable
                grwtij = (grwij(index) + dgrwdx*dxx)*hmean41
                wtijmrho = xyzmh(4,j)*wtij/(rhoi+rhoj)
                grpm = xyzmh(4,j)*grwtij
@@ -368,7 +368,7 @@ c
             v2 = rij2*hmean21
             v = rij/hmean
 
-            index = v2/dvtable
+            index = v2*ddvtable
             dxx = v2 - index*dvtable
             index1 = index + 1
             IF (index1.GT.itable) index1 = itable
@@ -388,11 +388,11 @@ c
                      phi = -rij1
                      dphi = 0.0
                   ELSE
-                     dfmassdx = (fmass(index1) - fmass(index))/dvtable
+                     dfmassdx = (fmass(index1) - fmass(index))*ddvtable
                      fm = (fmass(index) + dfmassdx*dxx)
-                     dfptdx = (fpoten(index1) - fpoten(index))/dvtable
+                     dfptdx = (fpoten(index1) - fpoten(index))*ddvtable
                      phi = (fpoten(index) + dfptdx*dxx)/hmean
-                     dpotdh = (dphidh(index1) - dphidh(index))/dvtable
+                     dpotdh = (dphidh(index1) - dphidh(index))*ddvtable
                      dphi = (dphidh(index) + dpotdh*dxx)*hmean21*dhmean
                      IF (v.GT.part2kernel) THEN
                         phi = phi + rij1*part2potenkernel
@@ -442,7 +442,7 @@ c
 c 
 c--Get kernel quantities from interpolation in table
 c
-               dgrwdx = (grwij(index1) - grwij(index))/dvtable
+               dgrwdx = (grwij(index1) - grwij(index))*ddvtable
                grwtij = (grwij(index) + dgrwdx*dxx)*hmean41
                grpm = pmassj*grwtij
 c

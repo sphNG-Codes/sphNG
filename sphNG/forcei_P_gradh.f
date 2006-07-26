@@ -423,11 +423,11 @@ c
 c--Using hi
 c
             IF (vi.LT.radkernel) THEN
-               index = v2i/dvtable
+               index = v2i*ddvtable
                index1 = index + 1
                IF (index1.GT.itable) index1 = itable
                dxx = v2i - index*dvtable	       
-               dgrwdx = (grwij(index1)-grwij(index))/dvtable ! slope
+               dgrwdx = (grwij(index1)-grwij(index))*ddvtable ! slope
 c              (note that kernel gradient is multiplied by gradhi)
 	       grkerntable = (grwij(index)+ dgrwdx*dxx)
                grkerni = grkerntable*hi41*gradhi
@@ -441,9 +441,9 @@ c
 c--i contribution to force softening (including pseudo-pressure term)
 c
                IF (isoft.EQ.0) THEN
-                  dfmassdx = (fmass(index1) - fmass(index))/dvtable
+                  dfmassdx = (fmass(index1) - fmass(index))*ddvtable
                   fmi = (fmass(index) + dfmassdx*dxx)
-                  dfptdx = (fpoten(index1) - fpoten(index))/dvtable
+                  dfptdx = (fpoten(index1) - fpoten(index))*ddvtable
                   phii = (fpoten(index) + dfptdx*dxx)*hi1
                   IF (vi.GT.part2kernel) THEN
                      phii = phii + rij1*part2potenkernel
@@ -497,11 +497,11 @@ c
 c--Using hj
 c
             IF (vj.LT.radkernel) THEN
-               index = v2j/dvtable
+               index = v2j*ddvtable
                index1 = index + 1
                IF (index1.GT.itable) index1 = itable
                dxx = v2j - index*dvtable
-	       dgrwdx = (grwij(index1)-grwij(index))/dvtable ! slope
+	       dgrwdx = (grwij(index1)-grwij(index))*ddvtable ! slope
 c              (note that kernel gradient is multiplied by gradhj)
 	       grkernj = (grwij(index)+ dgrwdx*dxx)*hj41*gradhs(1,j)
                grpmj = grkernj*pmassj
@@ -515,9 +515,9 @@ c
 c--j contribution to force softening (including pseudo-pressure term)
 c
                IF (isoft.EQ.0 .OR. isoft.EQ.2) THEN
-                  dfmassdx = (fmass(index1) - fmass(index))/dvtable
+                  dfmassdx = (fmass(index1) - fmass(index))*ddvtable
                   fmj = (fmass(index) + dfmassdx*dxx)
-                  dfptdx = (fpoten(index1) - fpoten(index))/dvtable
+                  dfptdx = (fpoten(index1) - fpoten(index))*ddvtable
                   phij = (fpoten(index) + dfptdx*dxx)*hj1
                   IF (vj.GT.part2kernel) THEN
                      phij = phij + rij1*part2potenkernel

@@ -210,11 +210,11 @@ c         print *,'loop1b ',k,j
 
 c         print *,'loop1c ',k,j,v2
 
-            index = v2/dvtable
+            index = v2*ddvtable
             dxx = v2 - index*dvtable
             index1 = index + 1
             IF (index1.GT.itable) index1 = itable
-            dgrwdx = (grwij(index1) - grwij(index))/dvtable
+            dgrwdx = (grwij(index1) - grwij(index))*ddvtable
             grwtij = (grwij(index) + dgrwdx*dxx)*hmean41
             dW = grwtij * cnormk
 

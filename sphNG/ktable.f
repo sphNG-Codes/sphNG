@@ -30,7 +30,8 @@ c
       part2kernel = 2.0
       v2max = radkernel*radkernel
       dvtable = v2max/itable
-      i1 = part1kernel/dvtable
+      ddvtable = itable/v2max
+      i1 = part1kernel*ddvtable
 c
 c--Build tables
 c

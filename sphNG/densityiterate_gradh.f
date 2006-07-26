@@ -166,13 +166,13 @@ c
 c
 c--Get kernel quantities from interpolation in table
 c
-                  index = v2/dvtable
+                  index = v2*ddvtable
                   dxx = v2 - index*dvtable
                   index1 = index + 1
                   IF (index1.GT.itable) index1 = itable
-                  dwdx = (wij(index1) - wij(index))/dvtable
+                  dwdx = (wij(index1) - wij(index))*ddvtable
                   wtij = (wij(index) + dwdx*dxx)*hi31
-                  dgrwdx = (grwij(index1) - grwij(index))/dvtable
+                  dgrwdx = (grwij(index1) - grwij(index))*ddvtable
                   grwtij = (grwij(index) + dgrwdx*dxx)*hi41/rij1
 c
 c--Derivative w.r.t. h for grad h correction terms (and dhdrho)
@@ -323,19 +323,19 @@ c
 c
 c--Get kernel quantities from interpolation in table
 c
-               index = v2/dvtable
+               index = v2*ddvtable
                dxx = v2 - index*dvtable
                index1 = index + 1
                IF (index.GE.itable) THEN
                   index = itable
                   index1 = itable
                ENDIF
-               dwdx = (wij(index1) - wij(index))/dvtable
+               dwdx = (wij(index1) - wij(index))*ddvtable
                wkern = (wij(index) + dwdx*dxx)
                wtij = wkern*hi31
-               dgrwdx = (grwij(index1) - grwij(index))/dvtable
+               dgrwdx = (grwij(index1) - grwij(index))*ddvtable
                grwtij = (grwij(index) + dgrwdx*dxx)*hi41/rij1
-               dpotdh = (dphidh(index1) - dphidh(index))/dvtable
+               dpotdh = (dphidh(index1) - dphidh(index))*ddvtable
                dphi = (dphidh(index) + dpotdh*dxx)*hi21
 c
 c--Velocity divergence times density

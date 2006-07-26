@@ -164,11 +164,11 @@ c
 c
 c--Get kernel quantities from interpolation in table
 c
-               index = v2/dvtable
+               index = v2*ddvtable
                dxx = v2 - index*dvtable
                index1 = index + 1
                IF (index1.GT.itable) index1 = itable
-               dwdx = (wij(index1) - wij(index))/dvtable
+               dwdx = (wij(index1) - wij(index))*ddvtable
                wtij = (wij(index) + dwdx*dxx)*hmean31
 c
 c--Add contribution

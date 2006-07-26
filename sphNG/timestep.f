@@ -47,7 +47,7 @@ C$OMP& shared(dt,isteps,imaxstep,divv,rho)
 C$OMP& shared(alpha,beta,vsound,xlog2)
 C$OMP& shared(idtsyn,nearpt,nptlist)
 C$OMP& shared(iprint,nneigh,iphase)
-C$OMP& shared(iorig,nptmass,listpm,encal)
+C$OMP& shared(iorig,nptmass,listpm,listrealpm,encal)
 C$OMP& shared(ifsvi,alphaMM,iptsoft,ptsoft)
 C$OMP& shared(iptmass,hacc,haccall,ptmcrit,radcrit)
 C$OMP& private(i,j,l,ll,xmindist,iptcur,rad2)
@@ -174,39 +174,69 @@ c
 c--Report if time steps are too small
 c
          IF (isteps(i).LT.2) THEN
+            IF (iphase(i).GE.1) THEN
 C$OMP CRITICAL (writeiprint)
-            WRITE (iprint, 99300)
-99300       FORMAT ('STEP : Step too small ! Nothing can help!')
-            WRITE (iprint,*)i, iorig(i), iphase(i), xyzmh(1,i), 
-     &           xyzmh(2,i), xyzmh(3,i)
-            WRITE (iprint,*)vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
-     &           vxyzu(4,i),xyzmh(5,i)
-            WRITE (iprint,*)fxyzu(1,i),fxyzu(2,i),fxyzu(3,i)
-            IF (imhd.EQ.idim) THEN
-               WRITE (iprint,*) Bxyz(1,i),Bxyz(2,i),Bxyz(3,i)
-            ENDIF
-            WRITE (iprint,*)rmod,rmodcr
-            WRITE (iprint,*)nneigh(i),rho(i),nlst
+               WRITE (iprint, 99301)
+99301          FORMAT ('STEP : Sink allowed to break TIme step')
 
-            xmindist = 1.0e+30
-            DO l = 1, nptmass
-               iptcur = listpm(l)
-               rad2 = (xyzmh(1,i) - xyzmh(1,iptcur))**2 + 
-     &              (xyzmh(2,i) - xyzmh(2,iptcur))**2 + 
-     &              (xyzmh(3,i) - xyzmh(3,iptcur))**2
-               xmindist = MIN(xmindist,rad2)
-               WRITE (iprint,*)'sink ',l,listpm(l),nptlist(l),rad2
-               WRITE (iprint,*)iptmass,hacc,haccall,ptmcrit,radcrit,
-     &              xyzmh(5,iptcur)
-               DO ll = 1, nptlist(l)
-                  WRITE (iprint,*) '  ',ll,nearpt(ll,l)
+               isteps(i) = 2
+
+               WRITE (iprint,*)i, iorig(i), listrealpm(i), stepi, ibin
+               WRITE (iprint,*)rmod, nlst
+
+               xmindist = 1.0e+30
+               DO l = 1, nptmass
+                  iptcur = listpm(l)
+                  IF (iptcur.NE.i) THEN
+                     rad2 = (xyzmh(1,i) - xyzmh(1,iptcur))**2 + 
+     &                    (xyzmh(2,i) - xyzmh(2,iptcur))**2 + 
+     &                    (xyzmh(3,i) - xyzmh(3,iptcur))**2
+                     xmindist = MIN(xmindist,rad2)
+                  ENDIF
+c                  WRITE (iprint,*)'sink ',l,listpm(l),nptlist(l),rad2
+c                  WRITE (iprint,*)iptmass,hacc,haccall,ptmcrit,radcrit,
+c     &                 xyzmh(5,iptcur)
+c                  WRITE (iprint,*)
                END DO
-               WRITE (iprint,*)
-            END DO
-            WRITE (iprint,*)'rmin ',xmindist
-
-            CALL quit
+               WRITE (iprint,*)'rmin ',xmindist
 C$OMP END CRITICAL (writeiprint)
+            ELSE
+C$OMP CRITICAL (writeiprint)
+               WRITE (iprint, 99300)
+99300          FORMAT ('STEP : Step too small ! Nothing can help!')
+               WRITE (iprint,*)i, iorig(i), iphase(i), xyzmh(1,i), 
+     &              xyzmh(2,i), xyzmh(3,i)
+               WRITE (iprint,*)vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
+     &              vxyzu(4,i),xyzmh(5,i)
+               WRITE (iprint,*)fxyzu(1,i),fxyzu(2,i),fxyzu(3,i)
+               IF (imhd.EQ.idim) THEN
+                  WRITE (iprint,*) Bxyz(1,i),Bxyz(2,i),Bxyz(3,i)
+               ENDIF
+               WRITE (iprint,*)rmod,rmodcr
+               WRITE (iprint,*)nneigh(i),rho(i),nlst
+
+               xmindist = 1.0e+30
+               DO l = 1, nptmass
+                  iptcur = listpm(l)
+                  IF (iptcur.NE.i) THEN
+                     rad2 = (xyzmh(1,i) - xyzmh(1,iptcur))**2 + 
+     &                    (xyzmh(2,i) - xyzmh(2,iptcur))**2 + 
+     &                    (xyzmh(3,i) - xyzmh(3,iptcur))**2
+                     xmindist = MIN(xmindist,rad2)
+                  WRITE (iprint,*)'sink ',l,listpm(l),nptlist(l),rad2
+                  WRITE (iprint,*)iptmass,hacc,haccall,ptmcrit,radcrit,
+     &                    xyzmh(5,iptcur)
+                     DO ll = 1, nptlist(l)
+                        WRITE (iprint,*) '  ',ll,nearpt(ll,l)
+                     END DO
+                     WRITE (iprint,*)
+                  ENDIF
+               END DO
+               WRITE (iprint,*)'rmin ',xmindist
+
+               CALL quit
+C$OMP END CRITICAL (writeiprint)
+            ENDIF
          ENDIF
 c
 c--Update minimum time step
@@ -219,6 +249,10 @@ C$OMP END DO
 C$OMP END PARALLEL
 
       istepmingas = istepmingasnew
+      IF (istepmingas.LE.2) THEN
+         WRITE (iprint,*) 'ERROR - istepmingas.LE.2'
+         CALL quit
+      ENDIF
 
       RETURN
 

@@ -127,13 +127,16 @@ c
                   nstack(istack) = isibdaupar(1,j)
                ELSEIF (
      &                 icall.EQ.1 .AND. 
-     &                 igrav.NE.0 .AND. accpar*rr.LT.qrr) THEN
+     &         (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iptintree.EQ.1))
+     &                 .AND. accpar*rr.LT.qrr) THEN
                   j = isibdaupar(2,n)
                   istack = istack + 1
                   nstack(istack) = j
                   istack = istack + 1
                   nstack(istack) = isibdaupar(1,j)
-               ELSEIF (icall.NE.1 .AND. igrav.NE.0 .AND. 
+               ELSEIF (icall.NE.1 .AND. 
+     &         (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iptintree.EQ.1))
+     &                 .AND. 
 c--Quadrupole
 c     &                 0.005*gravmag*rr**3.LT.
      &                 0.0035*gravmag*rr**3.LT.
@@ -254,7 +257,7 @@ c      END DO
 c
 c--Calculate gravity forces if needed
 c
-      IF (igrav.NE.0) THEN
+      IF (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iptintree.EQ.1)) THEN
 c
 c--Get force from the atomic list
 c

@@ -112,7 +112,8 @@ c     and the potential due to outside 2h particles
 c
             CALL treef(ipart,npart,xyzmh,acc,igphi,fsx,fsy,fsz,epot)
 
-            IF (igphi.NE.0) THEN
+            IF (igphi.NE.0 .OR. (iphase(ipart).GE.1 .AND. 
+     &                                         iptintree.EQ.1)) THEN
                fxyzu(1,ipart) = fsx
                fxyzu(2,ipart) = fsy
                fxyzu(3,ipart) = fsz

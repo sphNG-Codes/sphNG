@@ -80,20 +80,20 @@ c
       numparticlesdone = numparticlesdone + nlst_end
       stressmax = 0.
 
-C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP PARALLEL default(none)
 C$OMP& shared(nlst_in,nlst_end,list,divv,curlv,gradhs)
 C$OMP& shared(hmax,xyzmh,vxyzu,pr,vsound,rho,ekcle)
 C$OMP& shared(nneigh,neighb,neighover,selfnormkernel)
-C$OMP& shared(cnormk,radkernel,dvtable,wij,grwij)
+C$OMP& shared(cnormk,radkernel,dvtable,ddvtable,wij,grwij)
 C$OMP& shared(listpm,iphase,dphidh,uradconst,icall,encal)
 C$OMP& shared(iprint,nptmass,iptmass,radcrit2,iorig,third)
-C$OMP& shared(dumrho,iscurrent,npart)
+C$OMP& shared(dumrho,iscurrent,npart,ibound,ntot,ireal)
 C$OMP& shared(isteps,it0,it1,imax,imaxstep,dt,itime)
 C$OMP& shared(varmhd,Bevol,Bxyz,vsmooth,Bsmooth)
 C$OMP& private(n,ipart,j,k,xi,yi,zi,vxi,vyi,vzi,pmassi,hi,hj,rhoi)
 C$OMP& private(divvi,curlvxi,curlvyi,curlvzi,gradhi,gradsofti)
 C$OMP& private(pmassj,hi_old,hi1,hi21,hi31,hi41,hneigh)
-C$OMP& private(dx,dy,dz,dvx,dvy,dvz,rij2,rij1,v2)
+C$OMP& private(dx,dy,dz,dvx,dvy,dvz,rij2,rij1,v2,rcut)
 C$OMP& private(index,dxx,index1,dwdx,wtij,dgrwdx,grwtij)
 C$OMP& private(projv,procurlvx,procurlvy,procurlvz)
 C$OMP& private(l,iptcur,dphi,dwdhi,dpotdh,iteration,numneighi)
@@ -105,6 +105,8 @@ C$OMP& private(vbarxi,vbaryi,vbarzi)
 C$OMP& private(alphai,betai,wkern,dalpha,dbeta,grpmi)
 C$OMP& reduction(MAX:rhonext,imaxit)
 C$OMP& reduction(+:inumit,inumfixed,inumrecalc)
+
+C$OMP DO SCHEDULE(runtime)
       DO n = nlst_in, nlst_end
          ipart = list(n)
 
@@ -449,7 +451,7 @@ c               print*,ipart,'vsmooth = ',vsmooth(:,ipart)
          ENDIF
  50   CONTINUE
       END DO
-C$OMP END DO      
+C$OMP END DO
 c
 c--copy changed values onto ghost particles
 c
@@ -475,8 +477,8 @@ C$OMP DO SCHEDULE (runtime)
      &           ekcle(1,i) = ekcle(1,j)
          END DO
 C$OMP END DO
-C$OMP END PARALLEL      
-C$OMP END PARALLEL DO
+C$OMP END PARALLEL
+ccC$OMP END PARALLEL DO
 c
 c--Possible to create a point mass
 c

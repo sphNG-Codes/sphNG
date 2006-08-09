@@ -108,10 +108,10 @@ c
       READ (iterm, *) igrp
       READ (iterm, *) igphi
       READ (iterm, *) ifsvi, alpha, beta
-      IF (ifsvi.EQ.6) THEN
+c      IF (ifsvi.EQ.6) THEN
          alphamin = alpha
          alphamax = beta
-      ENDIF
+c      ENDIF
       READ (iterm, *) ifcor
       READ (iterm, *) ichoc
       READ (iterm, *) iener

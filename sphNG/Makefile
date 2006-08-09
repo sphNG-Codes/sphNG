@@ -23,7 +23,8 @@ SHELL = /bin/sh
 # the parameters as environment variables
 debug= no
 doubleprecision= yes
-changeendian= no
+# endian can be "BIG", "LITTLE" or anything else which has no effect
+ENDIAN= default
 
 ifeq ($(SYSTEM), ukaff1a)
     FC= xlf_r -qnosave
@@ -41,16 +42,20 @@ ifeq ($(SYSTEM), sunf95)
     DBLFLAG= -xtypemap=real:64,double:64
     DEBUGFLAG= -g -C -ftrap=common
     KNOWN_SYSTEM=yes
-    ENDIANFLAG= -xfilebyteorder=big16:%all ##:45
+    ENDIANFLAGBIG= -xfilebyteorder=big16:%all ##:45
+    ENDIANFLAGLITTLE= -xfilebyteorder=little16:%all
     ZZFILE= zzsun_f77_double1.f zzsun_f77_double2.f
 endif
 
 ifeq ($(SYSTEM), g95)
     FC= g95
-    FFLAGS= -O3 -Wall -Wno=112,140 -Wextra -ffast-math 
+    FFLAGS= -O3 -Wall -Wno=112,140 -ffast-math 
     DBLFLAG= -r8
-    DEBUGFLAG= -ftrace=full -fbounds-check
+    DEBUGFLAG= -g -ftrace=full -fbounds-check
     KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -fendian='BIG'
+    ENDIANFLAGLITTLE= -fendian='LITTLE'
+# or use setenv G95_ENDIAN='BIG' or 'LITTLE' at runtime
     TORUSLIB= -L/h/mbate/New/sphNG_TORUS/torus -ltorus -L/star/lib `ndf_link` -L/usr/lib/gcc/i586-mandrake-linux-gnu/3.4.1 -lg2c
     ZZFILE= zzibm.f
 endif
@@ -61,6 +66,8 @@ ifeq ($(SYSTEM), myg95)
     DBLFLAG= -r8
     DEBUGFLAG= -ftrace=full -fbounds-check
     KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -fendian='BIG'
+    ENDIANFLAGLITTLE= -fendian='LITTLE'
     ZZFILE= zzibm.f
 endif
 
@@ -70,8 +77,9 @@ ifeq ($(SYSTEM), ifort)
     DBLFLAG= -r8
     DEBUGFLAG= -C
     KNOWN_SYSTEM=yes
-    ENDIANFLAG= -convert big_endian
-# or use setenv F_UFMTENDIAN=big:45 for unit 45 only
+    ENDIANFLAGBIG= -convert big_endian
+    ENDIANFLAGLITTLE= -convert little_endian
+# or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
     ZZFILE= zzibm.f
 endif
 
@@ -82,15 +90,19 @@ ifeq ($(debug), yes)
     FFLAGS += ${DEBUGFLAG}
 endif
 
+ifeq ($(ENDIAN), BIG)
+    FFLAGS += ${ENDIANFLAGBIG}
+endif
+
+ifeq ($(ENDIAN), LITTLE)
+    FFLAGS += ${ENDIANFLAGLITTLE}
+endif
+
 # do double precision flag last (append only to FFLAGS)
 
 ZZFFLAGS := ${FFLAGS}
 ifeq ($(doubleprecision), yes)
     FFLAGS += ${DBLFLAG}
-endif
-
-ifeq ($(changeendian), yes)
-    FFLAGS += ${ENDIANFLAG}
 endif
 
 # these are the sources common to all compilations
@@ -230,6 +242,12 @@ checkparams: updatedepends
    else
 	@echo "Flags set for SINGLE PRECISION"
    endif
+   ifeq ($(ENDIAN), BIG)
+	@echo "Flags set for conversion to BIG endian"
+   endif
+   ifeq ($(ENDIAN), LITTLE)
+	@echo "Flags set for conversion to LITTLE endian"
+   endif
 
 # this is a way of making all files depend on their INCLUDEd files
 # (creates a file called .depends which contain the appropriate dependency lines
@@ -242,7 +260,7 @@ updatedepends:
 	@if test -e .depends; then mv .depends .dependsold; fi
 #       command below greps for INCLUDE in all .f files, uses sed to exclude comment lines, cut to extract text between quotes
 #       then writes a dependency line for each .o file in Makefile format to the .depends file
-	@echo updating .depends
+#	@echo updating .depends
 	@for x in *.f; do echo $${x/.f/.o}: `grep INCLUDE $$x | sed '/^[c,C,\!]/d' | cut -d\' -f 2` >> .depends; done
 	@diff --brief .dependsold .depends || ${MAKE} ${MAKECMDGOALS}
 	@rm -f .dependsold

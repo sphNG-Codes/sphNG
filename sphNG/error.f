@@ -290,5 +290,10 @@ c
          CALL endrun
       ENDIF
 
+c
+c--quit by default on unknown errors
+c
+      CALL quit
+
       RETURN
       END

@@ -375,9 +375,7 @@ c--skip current/div B
                READ (idisk1, END=100)
             END DO
 c--read artificial resistivity parameter
-            DO j = 1, 3
-               READ (idisk1, END=100) (alphaMM(2,i), i=1, npart)
-            END DO
+            READ (idisk1, END=100) (alphaMM(2,i), i=1, npart)
          ELSE
            WRITE(*,*) 'WARNING: resistivity parameter not found in dump'
            WRITE(*,*) ' => setting alphaB = alphamin everywhere'
@@ -590,7 +588,9 @@ c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2)) THEN
 99002 FORMAT (' exit subroutine rdump')
       RETURN
 
- 100  ichkl = 1
+ 100  CONTINUE
+      WRITE(*,*) 'END OF FILE REACHED IN RDUMP'
+      ichkl = 1
 
       RETURN
       END

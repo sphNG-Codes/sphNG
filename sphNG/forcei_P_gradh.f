@@ -76,11 +76,6 @@ c
 
       realtime = dt*itime/imaxstep + gt
 
-      IF (ifsvi.EQ.6) THEN
-         WRITE (iprint,*) 'ERROR - cannot use ifsvi=6 with gradh'
-         CALL quit
-      ENDIF
-
       IF (imhd.EQ.idim .AND. ibound.EQ.7) THEN
 c--external magnetic pressure boundaries -- use dummy variables 
 c  as can still have external fields even if ibound.ne.7
@@ -626,7 +621,8 @@ c
                      alphaB = 0.5*(alphaMMpass(2,ipart)
      &                           + alphaMMpass(2,j))
 c                     alphaB = 1.0
-                     termB = alphaB*grpm*MAX(vsbar - projv,0.0)*robar1
+c                     termB = alphaB*grpm*MAX(vsbar - projv,0.0)*robar1
+                     termB = alphaB*grpm*(vsbar + 2.0*abs(projv))*robar1
 c                    dBxdissi = dBxdissi + termB*(dBx - runix*projdB)*robar1
 c                    dBydissi = dBydissi + termB*(dBy - runiy*projdB)*robar1
 c                    dBzdissi = dBzdissi + termB*(dBz - runiz*projdB)*robar1

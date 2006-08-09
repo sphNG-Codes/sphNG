@@ -222,7 +222,7 @@ c
                nums(6) = 3
             ENDIF
          ENDIF
-         nums(7) = 4
+         nums(7) = 5
          nums(8) = 0
          WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
       ENDIF
@@ -254,7 +254,7 @@ c--real*4
       ELSE
          WRITE (idisk1, ERR=100) (dgrav(isort(i)), i=1, nprint)      
       ENDIF
-c     WRITE (idisk1, ERR=100) (alphaMM(isort(i)), i=1, nprint)
+c     WRITE (idisk1, ERR=100) (alphaMM(1,isort(i)), i=1, nprint)
 c--real*8
 
 c
@@ -355,6 +355,7 @@ c--real*4
          DO j = 1, 4
             WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, nprint)
          ENDDO
+         WRITE(idisk1, ERR=100) (alphaMM(2,isort(i)),i=1,nprint)
 c--real*8
 
       ENDIF
@@ -516,7 +517,7 @@ c--real*4
       END DO
       WRITE (idisk1, ERR=100) (dq(isort(i)), i=1, npart)      
 c      WRITE (idisk1, ERR=100) (dgrav(isort(i)), i=1, npart)      
-c     WRITE (idisk1, ERR=100) (alphaMM(isort(i)), i=1, npart)
+c     WRITE (idisk1, ERR=100) (alphaMM(1,isort(i)), i=1, npart)
 c--real*8
 
 c
@@ -782,11 +783,13 @@ c
       DO i = 1, npart
          dumrho(i) = tempsort(i)
       END DO
-      DO i = 1, npart
-         tempsort(i) = alphaMM(llist(i))
-      END DO
-      DO i = 1, npart
-         alphaMM(i) = tempsort(i)
+      DO k = 1, isizealphaMM
+         DO i = 1, npart
+            tempsort(i) = alphaMM(k,llist(i))
+         END DO
+         DO i = 1, npart
+            alphaMM(k,i) = tempsort(i)
+         END DO
       END DO
       DO i = 1, npart
          tempsort(i) = ddv(llist(i))

@@ -106,14 +106,15 @@ c
                IF (imhd.EQ.idim) THEN
                   valfven2 = (Bxyz(1,i)*Bxyz(1,i) +  Bxyz(2,i)*Bxyz(2,i)
      &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
-                  aux1 = alphaMM(i)*sqrt(vsound(i)**2 + valfven2)
+                  aux1 = max(alphaMM(1,i),alphaMM(2,i))*
+     &                   sqrt(vsound(i)**2 + valfven2)
                ELSE
-                  aux1 = alphaMM(i)*vsound(i)
+                  aux1 = alphaMM(1,i)*vsound(i)
                ENDIF
                aux2 = xyzmh(5,i)*ABS(divvi)
                aux3 = aux2
                IF (divvi.LT.0.0) THEN
-                  aux2 = 2.0*alphaMM(i)*aux2
+                  aux2 = 2.0*alphaMM(1,i)*aux2
                ELSE
                   aux2 = 0.0
                ENDIF

@@ -244,7 +244,7 @@ c--skip unnecessary real*4's
             READ (idisk1, END=100)
          ENDDO
       ENDIF
-c     READ (idisk1, END=100) (alphaMM(i), i=1, npart)
+c     READ (idisk1, END=100) (alphaMM(1,i), i=1, npart)
 c--real*8
 
 c
@@ -369,7 +369,22 @@ c
             STOP 'unknown MHD variable in rdump'
          ENDIF
 c--real*4
-
+         IF (nums4(7).GT.4) THEN
+c--skip current/div B
+            DO j = 1, 4
+               READ (idisk1, END=100)
+            END DO
+c--read artificial resistivity parameter
+            DO j = 1, 3
+               READ (idisk1, END=100) (alphaMM(2,i), i=1, npart)
+            END DO
+         ELSE
+           WRITE(*,*) 'WARNING: resistivity parameter not found in dump'
+           WRITE(*,*) ' => setting alphaB = alphamin everywhere'
+           DO i=1,npart
+              alphaMM(2,i) = alphamin
+           ENDDO
+         ENDIF
 c--real*8
 
       ENDIF
@@ -432,59 +447,23 @@ c
 
       DO i = 1, npart
          isort(iorig(i)) = i
-         tempsort(i) = xyzmh(5,iorig(i))
-      END DO
-      DO i = 1, npart
-         xyzmh(5,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = xyzmh(1,iorig(i))
-      END DO
-      DO i = 1, npart
-         xyzmh(1,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = xyzmh(2,iorig(i))
-      END DO
-      DO i = 1, npart
-         xyzmh(2,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = xyzmh(3,iorig(i))
-      END DO
-      DO i = 1, npart
-         xyzmh(3,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = vxyzu(1,iorig(i))
-      END DO
-      DO i = 1, npart
-         vxyzu(1,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = vxyzu(2,iorig(i))
-      END DO
-      DO i = 1, npart
-         vxyzu(2,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = vxyzu(3,iorig(i))
-      END DO
-      DO i = 1, npart
-         vxyzu(3,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = vxyzu(4,iorig(i))
-      END DO
-      DO i = 1, npart
-         vxyzu(4,i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = xyzmh(4,iorig(i))
-      END DO
-      DO i = 1, npart
-         xyzmh(4,i) = tempsort(i)
-      END DO
+      ENDDO
+      DO k = 1, 5
+         DO i = 1, npart
+            tempsort(i) = xyzmh(k,iorig(i))
+         END DO
+         DO i = 1, npart
+            xyzmh(k,i) = tempsort(i)
+         END DO
+      ENDDO
+      DO k = 1, 4
+         DO i = 1, npart
+            tempsort(i) = vxyzu(k,iorig(i))
+         END DO
+         DO i = 1, npart
+            vxyzu(k,i) = tempsort(i)
+         END DO
+      ENDDO
       DO i = 1, npart
          tempsort(i) = rho(iorig(i))
       END DO
@@ -497,57 +476,34 @@ c
       DO i = 1, npart
          dgrav(i) = tempsort(i)
       END DO
+      DO k = 1, isizealphaMM
+         DO i = 1, npart
+            tempsort(i) = alphaMM(k,iorig(i))
+         END DO
+         DO i = 1, npart
+            alphaMM(k,i) = tempsort(i)
+         END DO
+      ENDDO
+      
       IF (encal.EQ.'r') THEN
-         DO i = 1, npart
-            tempsort(i) = ekcle(1,iorig(i))
-         END DO
-         DO i = 1, npart
-            ekcle(1,i) = tempsort(i)
-         END DO
-         DO i = 1, npart
-            tempsort(i) = ekcle(2,iorig(i))
-         END DO
-         DO i = 1, npart
-            ekcle(2,i) = tempsort(i)
-         END DO
-         DO i = 1, npart
-            tempsort(i) = ekcle(3,iorig(i))
-         END DO
-         DO i = 1, npart
-            ekcle(3,i) = tempsort(i)
-         END DO
-         DO i = 1, npart
-            tempsort(i) = ekcle(4,iorig(i))
-         END DO
-         DO i = 1, npart
-            ekcle(4,i) = tempsort(i)
-         END DO
-         DO i = 1, npart
-            tempsort(i) = ekcle(5,iorig(i))
-         END DO
-         DO i = 1, npart
-            ekcle(5,i) = tempsort(i)
-         END DO
+         DO k = 1, 5
+            DO i = 1, npart
+               tempsort(i) = ekcle(k,iorig(i))
+            END DO
+            DO i = 1, npart
+               ekcle(k,i) = tempsort(i)
+            END DO
+         ENDDO
       ENDIF
       IF (imhd.EQ.idim) THEN
-         DO i = 1, npart
-            tempsort(i) = Bevolxyz(1,iorig(i))
-         END DO
-         DO i = 1, npart
-            Bevolxyz(1,i) = tempsort(i)
-         END DO
-         DO i = 1, npart
-            tempsort(i) = Bevolxyz(2,iorig(i))
-         END DO
-         DO i = 1, npart
-            Bevolxyz(2,i) = tempsort(i)
-         END DO
-         DO i = 1, npart
-            tempsort(i) = Bevolxyz(3,iorig(i))
-         END DO
-         DO i = 1, npart
-            Bevolxyz(3,i) = tempsort(i)
-         END DO
+         DO k = 1, 3
+            DO i = 1, npart
+               tempsort(i) = Bevolxyz(k,iorig(i))
+            END DO
+            DO i = 1, npart
+               Bevolxyz(k,i) = tempsort(i)
+            END DO
+         ENDDO
       ENDIF
 
       DO i = 1, npart
@@ -629,12 +585,6 @@ c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2)) THEN
       ELSEIF (ifcor.GT.2) THEN
          ifcor = ifcor - 2
       ENDIF
-c
-c--All particles on smallest timestep OR NOT
-c
-c      DO i = 1, npart
-c         isteps(i) = istepmin
-c      END DO
       
       IF (itrace.EQ.'all') WRITE (*, 99002)
 99002 FORMAT (' exit subroutine rdump')

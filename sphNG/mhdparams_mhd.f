@@ -18,6 +18,7 @@ c************************************************************
       INCLUDE 'COMMONS/typef'
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/numpa'
 
 c
 c--Allow for tracing flow
@@ -45,6 +46,8 @@ c
       Bmin = 1.E30
       Bmean = 0.
       Bmax = 0.
+      valphaBmax = -1.
+      valphaBmin = 10.0
       
 c
 c--Calculate quantities
@@ -128,7 +131,11 @@ c--Conserved Cross Helicity (int v.B dV)
 c
          crosshel = crosshel + pmassi*(vxyzu(1,i)*Bxi 
      &                         + vxyzu(2,i)*Byi + vxyzu(3,i)*Bzi)*rho1i
-
+c
+c--magnetic resistivity parameter
+c
+         valphaBmax = MAX(valphaBmax, alphaMM(2,i))
+         valphaBmin = MIN(valphaBmin, alphaMM(2,i))
       ENDDO
       
       denom = 1./FLOAT(npart)

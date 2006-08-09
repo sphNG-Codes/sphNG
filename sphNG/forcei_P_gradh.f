@@ -11,8 +11,8 @@ c************************************************************
       INCLUDE 'igrape'
 
       DIMENSION xyzmh(5,idim), vxyzu(4,idim)
-      REAL*4 trho(idim), pr(idim), vsound(idim), dha(2,idim)
-      REAL*4 alphaMMpass(idim)
+      REAL*4 trho(idim),pr(idim),vsound(idim),dha(1+isizealphaMM,idim)
+      REAL*4 alphaMMpass(isizealphaMM,idim)
       DIMENSION list(idim)
       DIMENSION fxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
@@ -297,6 +297,7 @@ c--note that pressure term includes isotropic magnetic pressure
 c         pro2i = (pr(ipart) - pext)*rho21i
          pro2i = (pr(ipart) - pext + 0.5*(B2i-B2ext))*rho21i
          vsoundi = vsound(ipart)
+	 vs2i = vsoundi**2 + B2i*rho1i
 
          stepsi = dt*isteps(ipart)/imaxstep
 c
@@ -610,7 +611,6 @@ c
 c--signal velocity (MHD)
 c
                   vsoundj = vsound(j)
-		  vs2i = vsoundi**2 + B2i*rho1i
 		  vs2j = vsoundj**2 + B2j*rho1j
 		  vsproji = 2.*vsoundi*projBi*sqrtrho1i
 		  vsprojj = 2.*vsoundj*projBj*SQRT(rho1j)
@@ -623,7 +623,9 @@ c
 c--artificial resistivity
 c
 		  IF (j.LE.npart .OR. ibound.EQ.11) THEN
-                     alphaB = 1.0
+                     alphaB = 0.5*(alphaMMpass(2,ipart)
+     &                           + alphaMMpass(2,j))
+c                     alphaB = 1.0
                      termB = alphaB*grpm*MAX(vsbar - projv,0.0)*robar1
 c                    dBxdissi = dBxdissi + termB*(dBx - runix*projdB)*robar1
 c                    dBydissi = dBydissi + termB*(dBy - runiy*projdB)*robar1
@@ -684,8 +686,8 @@ c
                      f = f*(fi+fj)/2.0
                      t12j = grpm*f*(beta*f - alpha*vsbar)*robar1
                   ELSEIF (ifsvi.EQ.6) THEN
-                     alphamean = (alphaMMpass(ipart) + 
-     &                       alphaMMpass(j))/2.0
+                     alphamean = (alphaMMpass(1,ipart) + 
+     &                       alphaMMpass(1,j))/2.0
                      t12j = alphamean*grpm*f*(2.0*f - vsbar)*robar1
                   ELSE
                      t12j = grpm*f*(beta*f - alpha*vsbar)*robar1
@@ -793,14 +795,24 @@ c
          fxyzu(4,ipart) = pdvi
          dq(ipart) = dqi
 c
-c--Morris & Monaghan switch source and decay terms
+c--Morris & Monaghan switch source and decay terms for both artificial viscosity
+c  and artificial resistivity (see Price & Monaghan 2005)
 c
          IF (ifsvi.EQ.6) THEN
-cc         dha(2,ipart) = 0.2*vsoundi*(alphamin-alphaMMpass(ipart))/hi-
+            vsigi = SQRT(vs2i)
+            tdecay1 = 0.2*vsigi/hi
+cc         dha(2,ipart) = (alphamin-alphaMMpass(1,ipart))*tdecay1 -
 cc     &           MIN(divv(ipart)/rhoi+0.5*vsoundi/hi,0.0)
-          dha(2,ipart) = 0.2*vsoundi*(alphamin-alphaMMpass(ipart))/hi-
-     &           MIN(divv(ipart)/rhoi,0.0)
-cc           dha(2,ipart) = 0.05*vsoundi*(alphamin-alphaMMpass(ipart))/hi
+            dha(2,ipart) = (alphamin-alphaMMpass(1,ipart))*tdecay1 -
+     &             MIN(divv(ipart)/rhoi,0.0)
+            IF (imhd.NE.0) THEN
+               dB2 = divcurlB(1,ipart)**2 + divcurlB(2,ipart)**2
+     &             + divcurlB(3,ipart)**2 + divcurlB(4,ipart)**2
+               source = SQRT(MAX(dB2*rho1i,
+     &                           vs2i*divcurlB(1,ipart)**2/B2i))
+               dha(3,ipart) = (alphamin-alphaMMpass(2,ipart))*tdecay1
+     &                        + source
+            ENDIF
          ENDIF
 c
 c--Damp velocities if appropiate

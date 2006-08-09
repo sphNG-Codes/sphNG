@@ -173,7 +173,11 @@ c
                   END DO
                ENDIF
 
-               IF (ifsvi.EQ.6) dumalpha(i) = alphaMM(i)
+               IF (ifsvi.EQ.6) THEN
+                  DO k=1,isizealphaMM
+                     dumalpha(k,i) = alphaMM(k,i)
+                  ENDDO
+               ENDIF
 
 cccc               IF (ran1(1).LT.0.001) THEN
                nlst = nlst + 1
@@ -204,7 +208,11 @@ c
             DO k = 1, 4
                dumvxyzu(k,i) = vxyzu(k,i)
             END DO
-            IF (ifsvi.EQ.6) dumalpha(i) = alphaMM(ireal(i))
+            IF (ifsvi.EQ.6) THEN
+               DO k=1,isizealphaMM
+                  dumalpha(k,i) = alphaMM(k,ireal(i))
+               ENDDO
+            ENDIF
             IF (imhd.EQ.idim) THEN
                DO k = 1, 3
                   dumBevolxyz(k,i) = Bevolxyz(k,i)
@@ -640,8 +648,12 @@ c
 c
 c--Update viscosity switch
 c
-            IF (ifsvi.EQ.6) alphaMM(i) = MIN(alphamax, alphaMM(i) +
-     &           dtfull*f1ha(2,i))
+            IF (ifsvi.EQ.6) THEN
+               DO k=1,isizealphaMM
+                  alphaMM(k,i) = MIN(alphamax, alphaMM(k,i) +
+     &               dtfull*f1ha(k+1,i))
+               ENDDO
+            ENDIF
 c
 c--Update MHD
 c
@@ -732,8 +744,12 @@ c
                ENDIF
               IF(iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
-               IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,alphaMM(j)+
-     &              deltat*f1ha(2,j))
+               IF (ifsvi.EQ.6) THEN
+                  DO k=1,isizealphaMM
+                    dumalpha(k,j) = MIN(alphamax,alphaMM(k,j)+
+     &                 deltat*f1ha(1+k,j))
+                  ENDDO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO k = 1, 3
                      dumBevolxyz(k,j) = Bevolxyz(k,j)+deltat*f1Bxyz(k,j)
@@ -784,8 +800,12 @@ c
      &                    dumvxyzu(4,ipart)=0.15
                      dumxyzmh(5,ipart) = xyzmh(5,ipart) + 
      &                    deltat*f1ha(1,ipart)
-                     IF (ifsvi.EQ.6) dumalpha(ipart) = MIN(alphamax,
-     &                    alphaMM(ipart) + deltat*f1ha(2,ipart))
+                     IF (ifsvi.EQ.6) THEN
+                        DO k=1,isizealphaMM
+                           dumalpha(k,ipart) = MIN(alphamax,
+     &                        alphaMM(k,ipart) + deltat*f1ha(1+k,ipart))
+                        ENDDO
+                     ENDIF
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, 3
             dumBevolxyz(k,ipart) = Bevolxyz(k,ipart)+deltat*f1Bxyz(k,j)
@@ -865,8 +885,12 @@ c
      &                    dumvxyzu(4,ipart)=0.15
                      dumxyzmh(5,ipart) = xyzmh(5,ipart) + 
      &                    deltat*f1ha(1,ipart)
-                     IF (ifsvi.EQ.6) dumalpha(ipart) = MIN(alphamax,
-     &                    alphaMM(ipart) + deltat*f1ha(2,ipart))
+                     IF (ifsvi.EQ.6) THEN
+                        DO k=1,isizealphaMM
+                           dumalpha(k,ipart) = MIN(alphamax,
+     &                    alphaMM(k,ipart) + deltat*f1ha(k+1,ipart))
+                        ENDDO
+                     ENDIF
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, 3
             dumBevolxyz(k,ipart) = Bevolxyz(k,ipart)+deltat*f1Bxyz(k,j)
@@ -970,8 +994,12 @@ c
                END DO
                dumxyzmh(4,j) = xyzmh(4,j)
                dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,k)
-               IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,alphaMM(k)
-     &              + deltat*f1ha(2,k))
+               IF (ifsvi.EQ.6) THEN
+                  DO l=1,isizealphaMM
+                     dumalpha(l,j) = MIN(alphamax,alphaMM(l,k)
+     &              + deltat*f1ha(1+l,k))
+                  ENDDO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO l = 1, 3
                      dumBevolxyz(l,j) = Bevolxyz(l,j)+deltat*f1Bxyz(l,j)
@@ -1383,7 +1411,11 @@ c
                   DO k = 1, 4
                      dumvxyzu(k,j) = vxyzu(k,j)
                   END DO
-                  IF (ifsvi.EQ.6) dumalpha(j) = alphaMM(j)
+                  IF (ifsvi.EQ.6) THEN
+                     DO k=1,isizealphaMM
+                        dumalpha(k,j) = alphaMM(k,j)
+                     ENDDO
+                  ENDIF
                ENDIF
             END DO
             DO j = npart + 1, npart + nghost
@@ -1405,8 +1437,12 @@ c
                      dumvxyzu(4,j) = vxyzu(4,j)
                   ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
-                  IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,
-     &                 alphaMM(k) + deltat*f1ha(2,k))
+                  IF (ifsvi.EQ.6) THEN
+                     DO l=1,isizealphaMM
+                       dumalpha(l,j) = MIN(alphamax,
+     &                               alphaMM(l,k) + deltat*f1ha(1+l,k))
+                     ENDDO
+                   ENDIF
                ENDIF
             END DO
 
@@ -1597,7 +1633,11 @@ c
                   DO k = 1, 4
                      dumvxyzu(k,j) = vxyzu(k,j)
                   END DO
-                  IF (ifsvi.EQ.6) dumalpha(j) = alphaMM(j)
+                  IF (ifsvi.EQ.6) THEN
+                     DO k=1,isizealphaMM
+                        dumalpha(k,j) = alphaMM(k,j)
+                     ENDDO
+                  ENDIF
                ENDIF
             END DO
 c
@@ -1621,8 +1661,12 @@ c
                      dumvxyzu(4,j) = vxyzu(4,j)
                   ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
-                  IF (ifsvi.EQ.6) dumalpha(j) = MIN(alphamax,
-     &                 alphaMM(k) + deltat*f1ha(2,k))
+                  IF (ifsvi.EQ.6) THEN
+                     DO l=1,isizealphaMM
+                        dumalpha(l,j) = MIN(alphamax,
+     &                     alphaMM(l,k) + deltat*f1ha(1+l,k))
+                     ENDDO
+                  ENDIF
                ENDIF
             END DO
 c

@@ -18,5 +18,6 @@ c      PARAMETER (imhd=idim)
       PARAMETER (imhd=1)
 
 c      PARAMETER (imhdxsph=idim)
-      PARAMETER (imhdxsph=1)
+      PARAMETER (imhdxsph=imhd)
 
+      PARAMETER (isizealphaMM=imhd/idim+1)

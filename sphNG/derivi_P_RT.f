@@ -11,7 +11,7 @@ c************************************************************
       INCLUDE 'igrape'
 
       DIMENSION xyzmh(5,mmax),vxyzu(4,idim),dvxyzu(4,idim)
-      REAL*4 dha(2,idim),alphaMM(idim)
+      REAL*4 dha(1+isizealphaMM,idim),alphaMM(isizealphaMM,idim)
       DIMENSION ireal(idim)
       DIMENSION ekcle(5,iradtrans)
       DIMENSION Bxyz(3,imhd),dBxyz(3,imhd)

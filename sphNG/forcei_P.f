@@ -11,8 +11,8 @@ c************************************************************
       INCLUDE 'igrape'
 
       DIMENSION xyzmh(5,idim), vxyzu(4,idim)
-      REAL*4 trho(idim), pr(idim), vsound(idim), dha(2,idim)
-      REAL*4 alphaMMpass(idim)
+      REAL*4 trho(idim),pr(idim),vsound(idim),dha(1+isizealphaMM,idim)
+      REAL*4 alphaMMpass(isizealphaMM,idim)
       DIMENSION list(idim)
       DIMENSION fxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
@@ -524,8 +524,8 @@ ccc                     f = projv*v/(v2 + epsil)
                            t12j = poro2j*f*(beta*f - alpha)
                         ENDIF
                      ELSEIF (ifsvi.EQ.6) THEN
-                        alphamean = (alphaMMpass(ipart) + 
-     &                       alphaMMpass(j))/2.0
+                        alphamean = (alphaMMpass(1,ipart) + 
+     &                       alphaMMpass(1,j))/2.0
                         t12j = alphamean*grpm*f*(2.0*f - vsbar)/robar
                      ELSE
                         t12j = grpm*f*(beta*f - alpha*vsbar)/robar
@@ -612,11 +612,11 @@ c
          dq(ipart) = dqi
 
          IF (ifsvi.EQ.6) THEN
-cc         dha(2,ipart) = 0.2*vsoundi*(alphamin-alphaMMpass(ipart))/hi-
+cc         dha(2,ipart) = 0.2*vsoundi*(alphamin-alphaMMpass(1,ipart))/hi-
 cc     &           MIN(divv(ipart)/rhoi+0.5*vsoundi/hi,0.0)
-c          dha(2,ipart) = 0.2*vsoundi*(alphamin-alphaMMpass(ipart))/hi-
+c          dha(2,ipart) = 0.2*vsoundi*(alphamin-alphaMMpass(1,ipart))/hi-
 c     &           MIN(divv(ipart)/rhoi,0.0)
-           dha(2,ipart) = 0.05*vsoundi*(alphamin-alphaMMpass(ipart))/hi
+           dha(2,ipart)= 0.05*vsoundi*(alphamin-alphaMMpass(1,ipart))/hi
             ddv(ipart) = cnormk*SQRT(ddvxi**2 + ddvyi**2 + ddvzi**2)
             ddv(ipart) = ddvscalar
         IF (divv(ipart).LT.0.0.AND.hi*ddv(ipart).LT.

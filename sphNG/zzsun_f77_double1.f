@@ -10,6 +10,7 @@ c************************************************************
 
       INTEGER*4 iarray(3), istatb(13)
       INTEGER*4 ival1, ival2
+      INTEGER*4 Dtime(8)
 
 c      REAL*4 tarray(2)
 
@@ -19,19 +20,27 @@ c
 c--Get date
 c
       ENTRY getdat(id, im, iy)
-      CALL idate(iarray)
-      id = iarray(1)
-      im = iarray(2)
-      iy = iarray(3)
+c      CALL idate(iarray)
+c      id = iarray(1)
+c      im = iarray(2)
+c      iy = iarray(3)
+      CALL DATE_AND_TIME(VALUES=Dtime)
+      id = Dtime(3)
+      im = Dtime(2)
+      iy = Dtime(1)
       RETURN
 c
 c--Get time
 c
       ENTRY getime(ih, im, is, fhour)
-      CALL itime(iarray)
-      ih = iarray(1)
-      im = iarray(2)
-      is = iarray(3)
+c      CALL itime(iarray)
+c      ih = iarray(1)
+c      im = iarray(2)
+c      is = iarray(3)
+      CALL DATE_AND_TIME(VALUES=Dtime)
+      ih = Dtime(5)
+      im = Dtime(6)
+      is = Dtime(7)
       fhour = ih + im/60. + is/3600.
       RETURN
 c

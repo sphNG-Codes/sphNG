@@ -261,7 +261,7 @@ c--skip unnecessary real*4's
             READ (8, END=100)
          ENDDO
       ENDIF
-c     READ (8, END=100) (alphaMM(i), i=1, npart)
+c     READ (8, END=100) (alphaMM(1,i), i=1, npart)
 c--real*8
 
 c

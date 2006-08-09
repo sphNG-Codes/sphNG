@@ -192,7 +192,7 @@ c--Default real
 c--real*4
       READ (idisk1, END=300) (rho(i), i=1, np1)
       READ (idisk1, END=300)
-c     READ (idisk1, END=300) (alphaMM(i), i=1, np1)
+c     READ (idisk1, END=300) (alphaMM(1,i), i=1, np1)
 c--real*8
 
 c
@@ -407,7 +407,7 @@ c--Default real
 c--real*4
       READ (idisk1, END=300) (rho(i+np1), i=1, np2)
       READ (idisk1, END=300)
-c     READ (idisk1, END=300) (alphaMM(i+np1), i=1, np1)
+c     READ (idisk1, END=300) (alphaMM(1,i+np1), i=1, np1)
 c--real*8
 
 c

@@ -93,7 +93,17 @@ c
 c--Initialize viscosity switch
 c
       DO i = 1, npart
-         IF (ifsvi.EQ.6 .AND. gt.EQ.0.0) alphaMM(i) = alphamin
+         IF (ifsvi.EQ.6 .AND. abs(gt).LT.tiny) THEN
+            DO k = 1, isizealphaMM
+               alphaMM(k,i) = alphamin
+            ENDDO
+c
+c--always initialise resistivity (assumes constant value of alphamin
+c  if ifsvi.ne.6)
+c
+         ELSEIF (imhd.EQ.idim .and. abs(gt).LT.tiny) THEN
+            alphaMM(2,i) = alphamin
+         ENDIF
       END DO
 c
 c--Set constant for artificial viscosity

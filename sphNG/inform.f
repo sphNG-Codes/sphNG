@@ -109,8 +109,8 @@ c
             romean1 = romean1 + rho(i)
             romax1 = MAX(romax1, rho(i))
 
-            valphamax1 = MAX(valphamax1, alphaMM(i))
-            valphamin1 = MIN(valphamin1, alphaMM(i))
+            valphamax1 = MAX(valphamax1, alphaMM(1,i))
+            valphamin1 = MIN(valphamin1, alphaMM(1,i))
 
             IF (encal.EQ.'r') THEN
                tempgas = vxyzu(4,i)/ekcle(3,i)
@@ -199,8 +199,8 @@ c
                romean2 = romean2 + rho(i)
                romax2 = MAX(romax2, rho(i))
 
-               valphamax2 = MAX(valphamax2, alphaMM(i))
-               valphamin2 = MIN(valphamin2, alphaMM(i))
+               valphamax2 = MAX(valphamax2, alphaMM(1,i))
+               valphamin2 = MIN(valphamin2, alphaMM(1,i))
             ENDIF
          END DO
 

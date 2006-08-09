@@ -82,7 +82,7 @@ c
      &        nreassign, naccrete, nkill, specang, ptmassin,
      &        (spinadx(i),i=1,nptmass),(spinady(i),i=1,nptmass),
      &        (spinadz(i),i=1,nptmass)
-c     &     ,(alphaMM(i), i=1, npart)
+c     &     ,(alphaMM(1,i), i=1, npart)
 
       ELSEIF (ians1.EQ.'s') THEN
          IF (iskip.EQ.'y') THEN
@@ -113,7 +113,7 @@ c     &     ,(alphaMM(i), i=1, npart)
      &        nreassign, naccrete, nkill, specang, ptmassin,
      &        (spinadx(i),i=1,nptmass),(spinady(i),i=1,nptmass),
      &        (spinadz(i),i=1,nptmass)
-c     &     ,(alphaMM(i), i=1, npart)
+c     &     ,(alphaMM(1,i), i=1, npart)
       ELSE
 c
 c--Dump file
@@ -221,7 +221,7 @@ c--Default real
 c--real*4
       READ (11, END=100) (rho(i), i=1, npart)
       READ (11, END=100) (dgrav(i), i=1, npart)
-c     READ (11, END=100) (alphaMM(i), i=1, npart)
+c     READ (11, END=100) (alphaMM(1,i), i=1, npart)
 c--real*8
 
 c
@@ -358,7 +358,7 @@ c--Default real
 c--real*4
       WRITE (12, ERR=100) (rho(i), i=1, npart)
       WRITE (12, ERR=100) (dgrav(i), i=1, npart)      
-c     WRITE (12, ERR=100) (alphaMM(i), i=1, npart)
+c     WRITE (12, ERR=100) (alphaMM(1,i), i=1, npart)
 c--real*8
 
 c
@@ -500,7 +500,7 @@ c--real*4
       END DO
       WRITE (12, ERR=100) (dq(i), i=1, npart)      
 c      WRITE (12, ERR=100) (dgrav(i), i=1, npart)      
-c     WRITE (12, ERR=100) (alphaMM(i), i=1, npart)
+c     WRITE (12, ERR=100) (alphaMM(1,i), i=1, npart)
 c--real*8
 
 c

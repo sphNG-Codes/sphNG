@@ -26,7 +26,7 @@ c************************************************************
       INCLUDE 'COMMONS/soft'
 
       DIMENSION xyzmh(5,idim)
-      REAL*4 dha(2,idim)
+      REAL*4 dha(1+isizealphaMM,idim)
 c
 c--Compute derivative of h, try to enforce finite range
 c     of neighbors

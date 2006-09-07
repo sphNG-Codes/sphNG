@@ -214,6 +214,9 @@ sphtorus: $(OBJTORUS)
 	@echo ""
 	$(FC) $(FFLAGS) $(TORUSLIB) -o $@ $(OBJTORUS)
 
+binary: utils/binary.o
+	$(FC) $(FFLAGS) -o $@ utils/binary.o
+
 # this routine needs to be compiled with single precision flags only
 
 zzsun_f77_double2.o: zzsun_f77_double2.f

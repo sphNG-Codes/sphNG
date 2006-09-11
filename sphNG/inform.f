@@ -300,6 +300,12 @@ c--Update input file
 c
          IF (ifulldump.EQ.0) CALL wrinsph
 
+      ELSE
+c
+c--Write global results on listing
+c
+c         where = 'inform'
+         CALL prout('inform')         
       ENDIF
 
       IF (idebug(1:6).EQ.'inform') THEN

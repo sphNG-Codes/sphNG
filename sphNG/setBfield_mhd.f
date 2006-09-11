@@ -62,14 +62,17 @@ c
       IF (iBfield.LT.1.OR.iBfield.GT.2) GOTO 100
 
       przero = 2./3.*thermal*rhozero
-
+      
       IF(iBfield.EQ.1) THEN
+        fcrit = 3./sqrt(5.)*pi
+        WRITE(*,*) 'fcrit = ',fcrit
+
 
 200     WRITE(*,99004)
 99004   FORMAT(' Do you want to enter the magnetic field strength (m)',
-     &         ' or the Alfven speed (a) or the plasma beta (b)?')
+     &         ' or the Alfven speed (a) or the plasma beta (b) ', 
+     &         ' or the flux-to-mass ratio (f)?')
         READ (*,99002) isetB
-        IF (isetB.NE.'m'.AND.isetB.NE.'a'.AND.isetB.NE.'b') GOTO 200
         
         IF (isetB.EQ.'m') THEN
            WRITE (*,99104) umagfd
@@ -110,6 +113,22 @@ c
            Bxzero = fracx*SQRT(2.*przero/betazero)/fractot
            Byzero = fracy*SQRT(2.*przero/betazero)/fractot
            Bzzero = fracz*SQRT(2.*przero/betazero)/fractot
+        ELSEIF (isetB.eq.'f') THEN
+           WRITE (*,98107)
+98107      FORMAT (' Enter flux-to-mass ratio',/,
+     &             ' (where 0.0 = hydro, 1.0 = critical)')
+           READ (*,*) fluxtomass
+           IF (fluxtomass.LT.0.) STOP 'ratio must be >= 0'
+           Bzero = fluxtomass*fcrit*rhozero
+           
+           WRITE (*,99008)
+           READ (*,*) fracx,fracy,fracz
+           fractot = SQRT(fracx**2. + fracy**2. + fracz**2.)
+           Bxzero = fracx*Bzero/fractot
+           Byzero = fracy*Bzero/fractot
+           Bzzero = fracz*Bzero/fractot
+        ELSE
+           GOTO 200
         ENDIF
         
 
@@ -124,11 +143,10 @@ c
         betazero = przero/(0.5*Bzero2)
         WRITE(*,98009) valfven,betazero
 98009   FORMAT (' Alfven speed = ',1pe10.4,/,' Plasma beta  = ',1pe10.4)
+
 c
-c--spit out mass to flux ratio
+c--spit out flux to mass ratio
 c
-         fcrit = 3./sqrt(5.)*pi
-         WRITE(*,*) 'fcrit = ',fcrit
          IF (Bxzero.GT.tiny) WRITE(*,98010) 'x',Bxzero/rhozero,
      &      (Bxzero/rhozero)/fcrit
          IF (Byzero.GT.tiny) WRITE(*,98010) 'y',Byzero/rhozero,

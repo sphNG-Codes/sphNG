@@ -288,14 +288,16 @@ c
 c--Print out massive point mass details
 c
          IF (iptmass.NE.0) THEN
-            WRITE(iprint,99014) iptmass, radcrit, ptmcrit, rhocrea
+            WRITE(iprint,99014) iptmass, radcrit, ptmcrit, rhocrea,
+     &                          rhocrea*udens
          ELSE
             WRITE(iprint,99015)
          ENDIF
 99014    FORMAT (' Point mass creation ALLOWED, type ', I2, /,
      &           '  minimum creation radius      : ', 1PE12.3, /,
      &           '  creation density (in rhozero): ', 1PE12.3, /,
-     &           '                (in code units): ', 1PE12.3, /)
+     &           '                (in code units): ', 1PE12.3, /,
+     &           '            (in physical units): ', 1PE12.3, /)
 99015    FORMAT (' Point mass creation NOT ALLOWED')
 
          IF (iptmass.NE.0.OR.nptmass.NE.0) THEN

@@ -836,6 +836,8 @@ c
             gm1 = gamma - 1.0
 	    IF (ien.EQ.'s') thermal = vsound2*1.5  !!!/(gamma*gm1)
             RK2 = thermal/(rhozero**gm1)
+            tempiso = 2./3.*thermal/(Rg/gmw/uergg)
+            WRITE(*,*) 'isothermal temperature = ',tempiso
          ELSE IF (encal.EQ.'x') THEN
 c
 c--Value of gamma is irrelevant for definition of physical e.o.s.

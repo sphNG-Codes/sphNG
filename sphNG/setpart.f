@@ -46,6 +46,7 @@ c************************************************************
       INCLUDE 'COMMONS/active'
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/setlocal'
+      INCLUDE 'COMMONS/eosq'
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
@@ -253,6 +254,7 @@ c
       
       WRITE (*,*) 'Number of point masses created: ',nptmass
 
+      ptmcrit = 0.
       WRITE (*, 99061)
 99061 FORMAT (' Do you want dynamic point mass creation (y/n)')
       READ (*, 99004) iok
@@ -274,7 +276,8 @@ c
          READ (*, *) radcrit
          WRITE (*, 99064)
 99064    FORMAT (' Enter critical density for point mass creation',/
-     &           '    in units of the initial density rhozero')
+     &           '    in units of the initial density rhozero',/,
+     &           '    (or -ve in physical units) ')
          READ (*, *) ptmcrit
       ENDIF
 c
@@ -435,15 +438,20 @@ c
      &     ibound.NE.91)) GOTO 150
       IF (ibound.EQ.7) THEN
          WRITE(*,88111)
-88111    FORMAT(/,'   What is the external temperature (units K)?')
+88111    FORMAT(/,'   What is the external temperature (units K) ',/,
+     &            '   (-ve=use setup values)?')
          READ (*,*) exttemp
-         extu = 3.0/2.0*exttemp*Rg/gmw/uergg
-         WRITE(*,88112)
-88112    FORMAT(/,'   External density (gm/cc) (-ve=use rhozero)?')
-         READ (*,*) extdens
-         IF (extdens.GT.0.) THEN
-            extdens = extdens/udens
-            pext = 2.0/3.0*extu*extdens
+         IF (exttemp.GT.0.) THEN
+            extu = 3.0/2.0*exttemp*Rg/gmw/uergg
+            WRITE(*,88112)
+88112       FORMAT(/,'   External density (gm/cc) (-ve=use rhozero)?')
+            READ (*,*) extdens
+            IF (extdens.GT.0.) THEN
+               extdens = extdens/udens
+               pext = 2.0/3.0*extu*extdens
+            ENDIF
+         ELSE
+            extdens = 1.0 ! irrelevant, pext not set using this
          ENDIF
       ENDIF
       IF (ibound.EQ.8) THEN
@@ -711,10 +719,24 @@ c
          WRITE(*,*) 'ERROR igeom'
          CALL quit
       ENDIF
-      WRITE(*,*) ' rhozero = ',rhozero
+      WRITE(*,*) ' rhozero = ',rhozero,' rhozero(g/cc) = ',rhozero*udens
+c
+c--set quantities which depend on rhozero now that we know rhozero
+c
       IF (ibound.EQ.7) THEN
-         IF (extdens.LE.0.) pext = 2./3.*extu*rhozero
-         WRITE(*,*) ' setting external pressure = ',pext
+         IF (extdens.LT.0.) THEN
+            pext = 2./3.*extu*rhozero
+            WRITE(*,*) ' setting external pressure = ',pext
+         ENDIF
+      ENDIF
+      IF (ptmcrit.LT.0.) THEN
+         rhocrea = ptmcrit/udens
+         ptmcrit = rhocrea/rhozero
+         WRITE(*,99113) ptmcrit,rhocrea,rhocrea*udens
+99113    FORMAT (' Setting point mass creation density :',/,
+     &           '                   (in rhozero): ', 1PE12.3, /,
+     &           '                (in code units): ', 1PE12.3, /,
+     &           '            (in physical units): ', 1PE12.3, /)
       ENDIF
 c
 c--Set Particle Masses
@@ -779,8 +801,8 @@ c
 	    WRITE(*,99131) udist/utime
 99131       FORMAT (' Value of sound speed in units of ',1pe10.4,'cm/s')
 	    READ (*,*) thermal
-	    vsound = ABS(thermal)
-	    vsound2 = vsound*vsound
+	    vsoundin = ABS(thermal)
+	    vsoundin2 = vsoundin*vsoundin
 	 ELSE
             GOTO 99027
          ENDIF
@@ -819,12 +841,12 @@ c
          ELSE IF (encal.EQ.'a' .OR. encal.EQ.'c') THEN
             gamma = 5.0/3.0
             gm1 = gamma - 1.0
-	    IF (ien.EQ.'s') thermal = vsound2/(gamma*gm1)
+	    IF (ien.EQ.'s') thermal = vsoundin2/(gamma*gm1)
             RK2 = thermal/(rhozero**gm1)
          ELSE IF (encal.EQ.'i' .OR. encal.EQ.'t') THEN
             gamma = 1.0
             RK2 = thermal
-	    IF (ien.EQ.'s') thermal = 1.5*vsound2
+	    IF (ien.EQ.'s') thermal = 1.5*vsoundin2
             RK2 = thermal
             tempiso = 2./3.*thermal/(Rg/gmw/uergg)
             WRITE(*,*) 'isothermal temperature = ',tempiso
@@ -834,7 +856,7 @@ c--Value of gamma is irrelevant for definition of variable e.o.s.
 c
             gamma = 5.0/3.0
             gm1 = gamma - 1.0
-	    IF (ien.EQ.'s') thermal = vsound2*1.5  !!!/(gamma*gm1)
+	    IF (ien.EQ.'s') thermal = vsoundin2*1.5  !!!/(gamma*gm1)
             RK2 = thermal/(rhozero**gm1)
             tempiso = 2./3.*thermal/(Rg/gmw/uergg)
             WRITE(*,*) 'isothermal temperature = ',tempiso
@@ -844,7 +866,7 @@ c--Value of gamma is irrelevant for definition of physical e.o.s.
 c
             gamma = 5.0/3.0
             gm1 = gamma - 1.0
-	    IF (ien.EQ.'s') thermal = vsound2/(gamma*gm1)
+	    IF (ien.EQ.'s') thermal = vsoundin2/(gamma*gm1)
             RK2 = thermal/(rhozero**gm1)
          ELSE
             GOTO 616
@@ -890,6 +912,25 @@ c
          DO i = 1, npart
             vxyzu(4,i) = thermal
          END DO
+c
+c--check external pressure matches uniform pressure
+c  (or set so that it does so)
+c
+         IF (ibound.EQ.7) THEN
+            DO i = 1, npart
+               rho(i) = rhozero
+            END DO
+c  only robust way is to actually call eospg to make sure pext=p
+            CALL eospg(1,vxyzu,rho,pr,vsound,ekcle)
+            IF (exttemp.LT.0.) THEN
+               pext = pr(1)
+               WRITE(*,*) 'setting external pressure = ',pext
+            ELSE
+               IF (abs(pr(1) - pext)/pext.GT.1.e-5) THEN
+                  WRITE(*,*) ' WARNING!! P_EXT.NE.PR = ',pr(1),pext
+               ENDIF
+            ENDIF
+         ENDIF
       ENDIF
 c
 c--Set in Perturbations in Position

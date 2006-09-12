@@ -79,9 +79,9 @@ c
       IF (imhd.EQ.idim .AND. ibound.EQ.7) THEN
 c--external magnetic pressure boundaries -- use dummy variables 
 c  as can still have external fields even if ibound.ne.7
-         Bextxi = Bextx
-         Bextyi = Bexty
-         Bextzi = Bextz
+         Bextxi = 0 !Bextx
+         Bextyi = 0 !Bexty
+         Bextzi = 0 !Bextz
          B2ext = Bextx**2 + Bexty**2 + Bextz**2
       ELSE
          Bextxi = 0.
@@ -290,7 +290,7 @@ c
          rho21i = rho1i*rho1i         
 c--note that pressure term includes isotropic magnetic pressure         
 c         pro2i = (pr(ipart) - pext)*rho21i
-         pro2i = (pr(ipart) - pext + 0.5*(B2i-B2ext))*rho21i
+         pro2i = max((pr(ipart) - pext + 0.5*(B2i-B2ext)),0.0)*rho21i
          vsoundi = vsound(ipart)
 	 vs2i = vsoundi**2 + B2i*rho1i
 
@@ -505,7 +505,8 @@ c
 c--j contribution to pressure gradient and isotropic mag force
 c
 c               pro2j = (pr(j) - pext)*rho1j*rho1j
-               pro2j = (pr(j) - pext + 0.5*(B2j-B2ext))*rho1j*rho1j
+               pro2j = max((pr(j) - pext + 0.5*(B2j-B2ext)),0.0)
+     &                     *rho1j*rho1j
                gradpj = grpmj*pro2j
 c
 c--j contribution to force softening (including pseudo-pressure term)

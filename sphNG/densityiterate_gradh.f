@@ -26,7 +26,6 @@ c************************************************************
 c--Neides=INT(4./3.*pi*8.*hfact**3))
       PARAMETER (hfact = 1.2)
 
-      PARAMETER (rhomin = 0.0)
       PARAMETER (htol = 1.e-3)
       PARAMETER (hstretch = 1.01)
       PARAMETER (maxiterations = 500)
@@ -79,10 +78,20 @@ c
       radcrit2 = radcrit*radcrit
       numparticlesdone = numparticlesdone + nlst_end
       stressmax = 0.
+c
+c--for constant pressure boundaries, use a minimum density
+c  equal to the external density
+c
+      IF (ibound.EQ.7) THEN
+         rhomin = rhozero
+c         print*,'rhomin = ',rhomin
+      ELSE
+         rhomin = 0.      
+      ENDIF
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst_in,nlst_end,list,divv,curlv,gradhs)
-C$OMP& shared(hmax,xyzmh,vxyzu,pr,vsound,rho,ekcle)
+C$OMP& shared(hmax,xyzmh,vxyzu,pr,vsound,rho,ekcle,rhomin)
 C$OMP& shared(nneigh,neighb,neighover,selfnormkernel)
 C$OMP& shared(cnormk,radkernel,dvtable,ddvtable,wij,grwij)
 C$OMP& shared(listpm,iphase,dphidh,uradconst,icall,encal)
@@ -198,8 +207,8 @@ c--Iteration business
 c  These lines define the relationship between h and rho
 c     omega is the term in the denominator as in Monaghan(2001)
 c
-            rhohi = pmassi*(hfact*hi1)**3
-            dhdrhoi = -hi/(3.*(rhohi + rhomin))
+            rhohi = pmassi*(hfact*hi1)**3 - rhomin
+            dhdrhoi = -hi/(3.*(rhoi + rhomin))
             omegai = 1. - dhdrhoi*gradhi
 c
 c--Newton-Raphson iteration

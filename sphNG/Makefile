@@ -21,7 +21,7 @@ SHELL = /bin/sh
 
 # can comment out the following lines and instead set
 # the parameters as environment variables
-debug= no
+debug= yes
 doubleprecision= yes
 # endian can be "BIG", "LITTLE" or anything else which has no effect
 ENDIAN= default
@@ -65,6 +65,17 @@ ifeq ($(SYSTEM), myg95)
     FFLAGS= -O3 -Wall -Wno=112,140 -Wextra -ffast-math 
     DBLFLAG= -r8
     DEBUGFLAG= -ftrace=full -fbounds-check
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -fendian='BIG'
+    ENDIANFLAGLITTLE= -fendian='LITTLE'
+    ZZFILE= zzibm.f
+endif
+
+ifeq ($(SYSTEM), gfortran)
+    FC= gfortran
+    FFLAGS= -O3 -Wall -mcpu=powerpc -mpowerpc
+    DBLFLAG= -fdefault-real-8
+    DEBUGFLAG= -g ##-ftrace=full -fbounds-check
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -fendian='BIG'
     ENDIANFLAGLITTLE= -fendian='LITTLE'

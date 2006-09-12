@@ -730,7 +730,7 @@ c
          ENDIF
       ENDIF
       IF (ptmcrit.LT.0.) THEN
-         rhocrea = ptmcrit/udens
+         rhocrea = abs(ptmcrit)/udens
          ptmcrit = rhocrea/rhozero
          WRITE(*,99113) ptmcrit,rhocrea,rhocrea*udens
 99113    FORMAT (' Setting point mass creation density :',/,

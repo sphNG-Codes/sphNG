@@ -73,12 +73,12 @@ endif
 
 ifeq ($(SYSTEM), gfortran)
     FC= gfortran
-    FFLAGS= -O3 -Wall -mcpu=powerpc -mpowerpc
+    FFLAGS= -O3 -Wall
     DBLFLAG= -fdefault-real-8
     DEBUGFLAG= -g ##-ftrace=full -fbounds-check
     KNOWN_SYSTEM=yes
-    ENDIANFLAGBIG= -fendian='BIG'
-    ENDIANFLAGLITTLE= -fendian='LITTLE'
+    ENDIANFLAGBIG= -fconvert=big-endian
+    ENDIANFLAGLITTLE= -fconvert=little-endian
     ZZFILE= zzibm.f
 endif
 

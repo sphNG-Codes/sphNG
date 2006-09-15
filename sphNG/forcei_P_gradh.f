@@ -802,7 +802,7 @@ cc         dha(2,ipart) = (alphamin-alphaMMpass(1,ipart))*tdecay1 -
 cc     &           MIN(divv(ipart)/rhoi+0.5*vsoundi/hi,0.0)
             dha(2,ipart) = (alphamin-alphaMMpass(1,ipart))*tdecay1 -
      &             MIN(divv(ipart)/rhoi,0.0)
-            IF (imhd.NE.0) THEN
+            IF (imhd.EQ.idim) THEN
                dB2 = divcurlB(1,ipart)**2 + divcurlB(2,ipart)**2
      &             + divcurlB(3,ipart)**2 + divcurlB(4,ipart)**2
                source = SQRT(MAX(dB2*rho1i,

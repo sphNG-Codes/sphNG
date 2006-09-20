@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # script to run a sequence of runs via xgrid
 #
@@ -15,9 +15,14 @@ if [ $jobtype == 'initial' ]; then
 elif [ $jobtype == 'dummy' ]; then
    echo dummy run;
 fi
-rm cleanup
+if [ -f cleanup ]; then
+   source cleanup
+   rm cleanup
+fi
 rm getresults
-for x in `cat fluxtomass_values`; do 
+rm checkstatus
+##machines=( `cat machinelist` );
+for x in `cat radius_values`; do 
 newdir=mbossbod_f$x
 mkdir $newdir
 cd $newdir
@@ -31,12 +36,14 @@ make gradh
 #
 # set up the run for the first time
 #
-if [ $jobtype == 'initial' ]; then
+if [ $jobtype != 'restart' ]; then
 cat ../setup_part1.txt > setup$x.txt
-echo 40515 >> setup$x.txt
-cat ../setup_part2.txt >> setup$x.txt
 echo $x >> setup$x.txt
+cat ../setup_part2.txt >> setup$x.txt
+echo $x | awk '{print 1./($1/5.)*0.0315}' >> setup$x.txt
 cat ../setup_part3.txt >> setup$x.txt
+echo $x | awk '{print ($1/5.)**(-1.5)*7.2e-13}' >> setup$x.txt
+cat ../setup_part4.txt >> setup$x.txt
 cp ../inspho .
 ./sph_tree_lf_gradh initial imboss < setup$x.txt
 fi
@@ -45,9 +52,9 @@ fi
 #  retaining the job id
 #
 rm $newdir.sh
-echo '#!'/bin/sh > $newdir.sh;
-echo cd $PWD >> $newdir.sh;
-echo echo hello '>' hello.out >> $newdir.sh;
+echo '#!'/bin/tcsh > $newdir.sh;
+echo cd `pwd -P` >> $newdir.sh;
+echo echo hello '$HOST `date` >' hello.out >> $newdir.sh;
 echo ./sph_tree_lf_gradh evolution imboss '>&' $newdir.output >> $newdir.sh
 chmod a+x $newdir.sh
 #
@@ -58,15 +65,24 @@ jobid=`xgrid -hostname cytosine.ex.ac.uk -auth Kerberos -job submit ./$newdir.sh
 echo $jobid
 jobid=${jobid/\{jobIdentifier =/};
 jobid=${jobid/'; }'/};
-echo $jobid
+###echo $jobid \'
 #
 # the following part writes scripts to clean up xgrid doo-doos.
 #
+echo echo checking status of $newdir... >> ../checkstatus
+echo xgrid -hostname cytosine.ex.ac.uk -auth Kerberos -job attributes -id $jobid >> ../checkstatus
 echo echo getting results of $newdir... >> ../getresults
 echo xgrid -hostname cytosine.ex.ac.uk -auth Kerberos -out $PWD -se $PWD/$newdir.xgriderr -so $PWD/$newdir.xgridout -job results -id $jobid >> getresults$newdir
 echo source $newdir/getresults$newdir >> ../getresults
 echo echo deleting $newdir... >> ../cleanup
 echo xgrid -hostname cytosine.ex.ac.uk -auth Kerberos -job delete -id $jobid >> ../cleanup
+elif [ $jobtype == 'ssh' ]; then
+#   echo $#machines;
+#   for machine in ${machines[@]}; do
+#       loadav=`ssh $machine uptime | cut -f5 -d':' | cut -f1 -d','`;
+#       echo $machine load average = $loadav;
+#       ssh $machine 'cd $PWD/$newdir nice +19 ./$newdir.sh < /dev/null >& crap.out &';
+#   done
 fi
 cd ..
 done;

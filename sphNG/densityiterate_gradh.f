@@ -77,6 +77,8 @@ c
       icreate = 0
       radcrit2 = radcrit*radcrit
       numparticlesdone = numparticlesdone + nlst_end
+      nwarnup = 0
+      nwarndown = 0
       stressmax = 0.
 c
 c--for constant pressure boundaries, use a minimum density
@@ -113,7 +115,7 @@ C$OMP& private(gradbetaxi,gradbetayi,gradbetazi,rho21i,term)
 C$OMP& private(vbarxi,vbaryi,vbarzi)
 C$OMP& private(alphai,betai,wkern,dalpha,dbeta,grpmi)
 C$OMP& reduction(MAX:rhonext,imaxit)
-C$OMP& reduction(+:inumit,inumfixed,inumrecalc)
+C$OMP& reduction(+:inumit,inumfixed,inumrecalc,nwarnup,nwarndown)
 
 C$OMP DO SCHEDULE(runtime)
       DO n = nlst_in, nlst_end
@@ -225,12 +227,14 @@ c
 c--Don't allow sudden jumps to huge numbers of neighbours
 c
             IF (hnew.GT.1.2*hi) THEN
-               WRITE (*,*) 'restricting h jump (up) on particle ',
-     &               iorig(ipart),hi,hnew
+               nwarnup = nwarnup + 1
+c               WRITE (*,*) 'restricting h jump (up) on particle ',
+c     &               iorig(ipart),hi,hnew
                hnew = 1.2*hi !!hi - 0.5*func*dfdh1
             ELSEIF (hnew.LT.0.8*hi) THEN
-               WRITE (*,*) 'restricting h jump (down) on particle ',
-     &               iorig(ipart),hi,hnew
+               nwarndown = nwarndown + 1
+c               WRITE (*,*) 'restricting h jump (down) on particle ',
+c     &               iorig(ipart),hi,hnew
                hnew = 0.8*hi
             ELSEIF (hnew.LE.0. .OR. (omegai.LE.tiny)) THEN
 c
@@ -477,6 +481,15 @@ c               print*,ipart,'vsmooth = ',vsmooth(:,ipart)
  50   CONTINUE
       END DO
 C$OMP END DO
+      IF (nwarnup.GT.0) THEN
+         WRITE (iprint,*) 'WARNING: restricted h jump (up) ',
+     &        nwarnup,' times'
+      ENDIF
+      IF (nwarndown.GT.0) THEN
+         WRITE (iprint,*) 'WARNING: restricted h jump (down) ',
+     &        nwarndown,' times'
+      ENDIF
+
 c
 c--copy changed values onto ghost particles
 c

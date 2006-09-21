@@ -82,12 +82,12 @@ c
 c--for constant pressure boundaries, use a minimum density
 c  equal to the external density
 c
-      IF (ibound.EQ.7) THEN
-         rhomin = rhozero
+c      IF (ibound.EQ.7) THEN
+c         rhomin = 0.25*rhozero
 c         print*,'rhomin = ',rhomin
-      ELSE
+c      ELSE
          rhomin = 0.      
-      ENDIF
+c      ENDIF
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst_in,nlst_end,list,divv,curlv,gradhs)
@@ -127,6 +127,10 @@ C$OMP DO SCHEDULE(runtime)
          pmassi = xyzmh(4,ipart)
          hi = xyzmh(5,ipart)
          hi_old = hi
+         IF (isnan(hi_old)) THEN
+            WRITE(iprint,*) 'h NaN on input to densityiterate'
+            STOP
+         ENDIF
          hneigh = 0.
 c
 c--Predict h
@@ -153,6 +157,7 @@ c
                CALL getneighi(ipart,xi,yi,zi,rcut,
      &              numneighi,neighlist,xyzmh)
                inumrecalc = inumrecalc + 1
+               IF (numneighi.EQ.0) WRITE(*,*) 'ZERO NEIGHBOURS!'
             ENDIF
 c
 c--Calculate density by looping over interacting neighbors
@@ -217,28 +222,39 @@ c
             dfdh1 = dhdrhoi/omegai
             hnew = hi - func*dfdh1
 c
+c--Don't allow sudden jumps to huge numbers of neighbours
+c
+            IF (hnew.GT.1.2*hi) THEN
+               WRITE (*,*) 'restricting h jump (up) on particle ',
+     &               iorig(ipart),hi,hnew
+               hnew = 1.2*hi !!hi - 0.5*func*dfdh1
+            ELSEIF (hnew.LT.0.8*hi) THEN
+               WRITE (*,*) 'restricting h jump (down) on particle ',
+     &               iorig(ipart),hi,hnew
+               hnew = 0.8*hi
+            ELSEIF (hnew.LE.0. .OR. (omegai.LE.tiny)) THEN
+c
 c--Take fixed point if Newton-Raphson running into trouble
 c  (i.e. if gradients are very wrong)
 c
-            IF (hnew.LE.0. .OR. (omegai.LE.tiny)) THEN
-c               WRITE (*,*) 'doing fixed point',gradhi,omegai,hfact,
-c     &              pmassi,rhoi,third
-               hnew = hfact*(pmassi/rhoi)**third
-               inumfixed = inumfixed + 1
-c
-c--Don't allow sudden jumps to huge numbers of neighbours
-c
-            ELSEIF (hnew.GT.1.2*hi .OR. hnew.LT.0.8*hi) THEN
-c               WRITE (*,*) 'large h jump on particle ',iorig(ipart)
-               hnew = hi - 0.5*func*dfdh1
+               WRITE (*,*) 'doing fixed point',hnew,gradhi,omegai,hfact,
+     &              pmassi,rhoi,hi,hi31
+               hnew = hfact*(pmassi/rho(ipart))**third
+               inumfixed = inumfixed + 1           
             ENDIF
 
 c            IF (numneighreal.GT.500) THEN
 c               WRITE(iprint,*) 'part: ',iorig(ipart),' has ',numneighi,
 c     &              numneighreal,' neighbours '
 c            ENDIF
-
-            IF (ABS(hnew-hi)/hi_old.LT.htol .AND. omegai.GT.0) THEN
+            IF (numneighreal.LE.0) THEN
+               WRITE (iprint,*) 'WARNING: particle ',ipart,
+     &            ' has no neighbours h=',hi,hi_old,'setting h=',
+     &              hfact*(pmassi/rho(ipart))**third
+               hnew = hfact*(pmassi/rho(ipart))**third
+            ENDIF
+            
+            IF (ABS(hnew-hi)/hi_old.LT.htol .AND. omegai.GT.0.) THEN
                imaxit = MAX(imaxit, iteration)
                inumit = inumit + iteration
                GOTO 30 
@@ -248,7 +264,7 @@ c            ENDIF
          END DO
          WRITE (iprint,*) 'ERROR: density iteration failed'
          WRITE (iprint,*) iorig(ipart),numneighi,numneighreal,hnew,
-     &        hi,hi_old,omegai
+     &        hi,hi_old,omegai,dhdrhoi,rhoi
          CALL quit
 c
 c--Store quantities if converged

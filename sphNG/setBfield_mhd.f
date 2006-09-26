@@ -25,6 +25,8 @@ c************************************************************
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/presb'
       INCLUDE 'COMMONS/new'
+      INCLUDE 'COMMONS/rbnd'
+      INCLUDE 'COMMONS/setBfield'
       
       INTEGER iBfield      
       CHARACTER*1 isetB
@@ -64,14 +66,26 @@ c
       przero = 2./3.*thermal*rhozero
       
       IF(iBfield.EQ.1) THEN
-        fcrit = 3./sqrt(5.)*pi
-        WRITE(*,*) 'fcrit = ',fcrit
+c
+c--set critical mass-to-flux ratio in code units
+c  (code units are G=1, mu_0=1 -- see Price & Monaghan 2004a for details)
+c  c1 is a normalisation factor taken from Mouschovias & Spitzer 1976
+        c1 = 0.53
+        rmasstoflux_crit = 2./3.*c1*sqrt(5./pi)
+        WRITE(*,*) 'critical mass-to-flux ratio (code units) = ',
+     &             rmasstoflux_crit
+c
+c--set area for mass-to-flux calculation (assumed spherical at the moment)
+c
+        area = pi*rmax**2
 
-
+c
+c--set value for uniform B field a variety of ways
+c
 200     WRITE(*,99004)
 99004   FORMAT(' Do you want to enter the magnetic field strength (m)',
      &         ' or the Alfven speed (a) or the plasma beta (b) ', 
-     &         ' or the flux-to-mass ratio (f)?')
+     &         ' or the mass-to-flux ratio (f)?')
         READ (*,99002) isetB
         
         IF (isetB.EQ.'m') THEN
@@ -115,11 +129,19 @@ c
            Bzzero = fracz*SQRT(2.*przero/betazero)/fractot
         ELSEIF (isetB.eq.'f') THEN
            WRITE (*,98107)
-98107      FORMAT (' Enter flux-to-mass ratio',/,
-     &             ' (where 0.0 = hydro, 1.0 = critical)')
-           READ (*,*) fluxtomass
-           IF (fluxtomass.LT.0.) STOP 'ratio must be >= 0'
-           Bzero = fluxtomass*fcrit*rhozero
+98107      FORMAT (' Enter mass-to-flux ratio',/,
+     &             ' (where < 1 = subcritical,',/,
+     &             '          1 = critical,',/,
+     &             '        > 1 = supercritical, ',/,
+     &             '          0=inf=hydro )')
+           READ (*,*) rmasstoflux
+           IF (rmasstoflux.LT.0.) THEN
+              STOP 'ratio must be >= 0'
+           ELSEIF (rmasstoflux.LT.tiny) THEN
+              Bzero = 0.
+           ELSE
+              Bzero = totmas/(area*rmasstoflux*rmasstoflux_crit)
+           ENDIF
            
            WRITE (*,99008)
            READ (*,*) fracx,fracy,fracz
@@ -130,8 +152,9 @@ c
         ELSE
            GOTO 200
         ENDIF
-        
-
+c
+c--spit out actual settings
+c
         WRITE (*,99009) Bxzero,Byzero,Bzzero
 99009   FORMAT (' Bx_0 = ',1PE14.5,/,
      &          ' By_0 = ',1PE14.5,/,
@@ -145,16 +168,20 @@ c
 98009   FORMAT (' Alfven speed = ',1pe10.4,/,' Plasma beta  = ',1pe10.4)
 
 c
-c--spit out flux to mass ratio
+c--spit out flux to mass ratio (assumes spherical geometry at the moment)
 c
-         IF (Bxzero.GT.tiny) WRITE(*,98010) 'x',Bxzero/rhozero,
-     &      (Bxzero/rhozero)/fcrit
-         IF (Byzero.GT.tiny) WRITE(*,98010) 'y',Byzero/rhozero,
-     &      (Byzero/rhozero)/fcrit
-         IF (Bzzero.GT.tiny) WRITE(*,98010) 'z',Bzzero/rhozero,
-     &      (Bzzero/rhozero)/fcrit
-98010    FORMAT (' Flux to mass ratio (',a1,') = ',es10.4,
-     &           ' f/fcrit = ',f9.4)
+        IF (Bxzero.GT.tiny) WRITE(*,98010) 'x',
+     &      totmas/(area*Bxzero),
+     &      totmas/(area*Bxzero)/rmasstoflux_crit
+        IF (Byzero.GT.tiny) WRITE(*,98010) 'y',
+     &      totmas/(area*Byzero),
+     &      totmas/(area*Byzero)/rmasstoflux_crit
+        IF (Bzzero.GT.tiny) WRITE(*,98010) 'z',
+     &      totmas/(area*Bzzero),
+     &      totmas/(area*Bzzero)/rmasstoflux_crit
+
+98010    FORMAT (' Mass to flux ratio (',a1,') = ',es10.4,
+     &           ' r/rcrit = ',f9.4)
 c
 c--calculate angle of uniform field to x axis
 c        

@@ -47,6 +47,8 @@ c************************************************************
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/setlocal'
       INCLUDE 'COMMONS/eosq'
+      INCLUDE 'COMMONS/stepopt'
+      INCLUDE 'COMMONS/setBfield'
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
@@ -876,6 +878,7 @@ c
 99034    FORMAT (' Enter polytropic gamma')
          READ (*,*) gamma
       ENDIF
+      WRITE(*,*) 'specific internal energy in code units =',thermal
 c
 c--Set Pressure Distribution
 c
@@ -1387,6 +1390,21 @@ c
  778  n1 = npart
       n2 = 0
 c
+c--option to set dtmax as fraction of free-fall time
+c
+      tcomp = SQRT((3 * pi) / (32 * rhozero))
+      WRITE(*,*) 'The free-fall time in code units is ',tcomp
+      WRITE (*, 78045)
+78045 FORMAT(' Set dtmax as fraction of free-fall time? (y/n)')
+      READ (*, 99004) iok
+      IF (iok.EQ.'y' .OR. iok.EQ.'Y') THEN
+         WRITE (*,78046)
+78046    FORMAT(' Enter fraction:')
+         READ(*,*) dtfrac
+         dtmax = dtfrac*tcomp
+         WRITE(*,*) 'setting dtmax = ',dtmax
+      ENDIF
+c
 c--adjust smoothing lengths (also calculates initial density)
 c  MUST be done (to get density) if evolving B/rho
 c
@@ -1396,7 +1414,7 @@ c
      + ' to have similar number of neighbours ? (y/n) ')
       READ (*, 99004) iok
       IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim) CALL hcalc
-
+      
       IF (imhd.NE.idim) THEN      
          Bextx = 0.
          Bexty = 0.

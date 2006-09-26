@@ -129,10 +129,6 @@ C$OMP DO SCHEDULE(runtime)
          pmassi = xyzmh(4,ipart)
          hi = xyzmh(5,ipart)
          hi_old = hi
-         IF (isnan(hi_old)) THEN
-            WRITE(iprint,*) 'h NaN on input to densityiterate'
-            STOP
-         ENDIF
          hneigh = 0.
 c
 c--Predict h
@@ -255,7 +251,7 @@ c            ENDIF
                WRITE (iprint,*) 'WARNING: particle ',ipart,
      &            ' has no neighbours h=',hi,hi_old,'setting h=',
      &              hfact*(pmassi/rho(ipart))**third
-               hnew = hfact*(pmassi/rho(ipart))**third
+               hnew = max(hfact*(pmassi/rho(ipart))**third,1.1*hnew)
             ENDIF
             
             IF (ABS(hnew-hi)/hi_old.LT.htol .AND. omegai.GT.0.) THEN

@@ -76,11 +76,11 @@ c
          CALL quit
       ENDIF
       IF (int2i.NE.int2) THEN
-         WRITE (*,*) 'ERROR 2 in rdump: default integer size wrong'
+         WRITE (*,*) 'ERROR 2 in rdump: default real size wrong'
          CALL quit
       ENDIF
       IF (int3i.NE.int1) THEN
-         WRITE (*,*) 'ERROR 3 in rdump: default real size wrong'
+         WRITE (*,*) 'ERROR 3 in rdump: default integer size wrong'
          CALL quit
       ENDIF
       READ (idisk1, END=100) fileident

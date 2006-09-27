@@ -1,4 +1,5 @@
       INTEGER idim, iptdim, iptneigh, nlmax
+      INTEGER mmax, iradtrans, imhd, imhdxsph, isizealphaMM
       REAL tiny
 
       PARAMETER (idim=1001000)

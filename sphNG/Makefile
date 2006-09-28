@@ -225,8 +225,11 @@ sphtorus: $(OBJTORUS)
 	@echo ""
 	$(FC) $(FFLAGS) $(TORUSLIB) -o $@ $(OBJTORUS)
 
-binary: utils/binary.o
+binary: checksystem checkparams utils/binary.o
 	$(FC) $(FFLAGS) -o $@ utils/binary.o
+
+massvsangmom: checksystem checkparams utils/massvsangmom.o utils/readdump_sphNG.o indexx2.o idim
+	$(FC) $(FFLAGS) -o $@ utils/massvsangmom.o utils/readdump_sphNG.o indexx2.o
 
 # this routine needs to be compiled with single precision flags only
 

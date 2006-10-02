@@ -40,13 +40,14 @@ c
       rcyl2 = rcyl * rcyl
       rmind2 = rmind * rmind
       zmax2 = zmax*zmax
+      npartold = max(npart,nptmass)
 
       IF (idist.EQ.3) THEN
          xmax5 = 0.5*xmax
          ymax5 = 0.5*ymax
          zmax5 = 0.5*zmax
-         npart = np + nptmass
-         DO i = nptmass + 1, npart
+         npart = npartold + np
+         DO i = npartold + 1, npart
  100        xi = 2.0*(xmax*ran1(1) - xmax5)
             yi = 2.0*(ymax*ran1(1) - ymax5)
             zi = 2.0*(zmax*ran1(1) - zmax5)
@@ -65,7 +66,7 @@ c
 c--Rings - so that m-modes are all zero
 c
       ELSEIF (idist.EQ.6) THEN
-         npart = nptmass
+         npart = npartold
 
          ntheta1 = 11
          steptheta = 0.99999*2.0*pi/ntheta1
@@ -117,8 +118,8 @@ c
          k = 0
          l = 1
          m = 1
-         npart = nptmass
-         DO i = 1, np/2
+         npart = npartold
+         DO i = npartold+ 1, npartold+np/2
             k = k + 1
             IF (k.GT.nx/2) THEN
                k = 1
@@ -222,8 +223,8 @@ c
          k = 0
          l = 1
          m = 1
-         npart = nptmass
-         DO 200 i = 1, np
+         npart = npartold
+         DO 200 i = npartold + 1, npartold+np
             k = k + 1
             IF (k.GT.nx) THEN
                k = 1
@@ -324,7 +325,7 @@ c           changes here may have stuffed up sphdis.f - D.Price
  200     CONTINUE
       ENDIF
 
- 300  DO i = nptmass + 1, npart
+ 300  DO i = npartold + 1, npart
          disfrac(i) = 1.0
       END DO
 
@@ -346,8 +347,8 @@ c
         
       iexcludepart = 0      
       
-      IF ((igeom.EQ.1) .AND. (xi.LE.xmax + small) .OR.
-     &    (yi.LE.ymax + small) .OR. (zi.LE.zmax + small)) THEN
+      IF ((igeom.EQ.1) .AND. ((xi.GT.xmax + small) .OR.
+     &    (yi.GT.ymax + small) .OR. (zi.GT.zmax + small))) THEN
          iexcludepart = 1
       ELSEIF ((igeom.EQ.2) .AND. (r2.GT.rcyl2)) THEN
          iexcludepart = 1
@@ -375,6 +376,8 @@ c
             iexcludepart = 1
          ENDIF
       ELSEIF ((igeom.EQ.7) .AND. ((d2.GT.rmax2).OR.(d2.LT.rmind2))) THEN
+         iexcludepart = 1
+      ELSEIF ((igeom.EQ.8) .AND. (d2.LE.rmax2)) THEN
          iexcludepart = 1
       ENDIF
       

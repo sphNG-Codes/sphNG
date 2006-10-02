@@ -293,9 +293,10 @@ c
      &        '             accretion disk : 4 ',/,
      &        '                  ellipsoid : 5 ',/,
      &        '  constant angular momentum : 6 ',/,
-     &        '           sphere with hole : 7 ')
+     &        '           sphere with hole : 7 ',/,
+     &        '            sphere in a box : 8 ')
       READ (*, *) igeom
-      IF (igeom.LT.1 .OR. igeom.GT.7) GOTO 50
+      IF (igeom.LT.1 .OR. igeom.GT.8) GOTO 50
 c
 c--Specify Box Size
 c
@@ -304,6 +305,7 @@ c
       rmin = 0.
       rmind = 0.
       ichang = 1
+      igeomorig = igeom
 
  100  IF (igeom.EQ.1)  THEN 
          WRITE (*, 99002)udist
@@ -329,7 +331,7 @@ c
          ymin = - ymax
          rmax = SQRT(rcyl*rcyl + zmax*zmax)
 
-      ELSE IF (igeom.EQ.3 .OR. igeom.EQ.7) THEN
+      ELSE IF (igeom.EQ.3 .OR. igeom.EQ.7 .OR. igeom.EQ.8) THEN
          WRITE (*, 88002) udist
 88002    FORMAT (//, ' PARTICLE SET UP ', //,
      &   ' Bounds of particle distribution in units of ',1pe14.5,
@@ -337,9 +339,9 @@ c
          READ (*, *) rmax
 
          IF (igeom.EQ.7) THEN
-         WRITE (*, 88102)
-88102    FORMAT (' Inner hole radius:  rmind')
-         READ (*, *) rmind
+            WRITE (*, 88102)
+88102       FORMAT (' Inner hole radius:  rmind')
+            READ (*, *) rmind
          ENDIF
 
          xmax = rmax
@@ -349,7 +351,18 @@ c
          ymin = - ymax
          zmin = - zmax
          rcyl = rmax
-
+         IF (igeom.EQ.8) THEN
+            WRITE(*, 88103) udist
+88103       FORMAT (//, ' BOX SET UP ', //,
+     &   ' Bounds of particle distribution in units of ',1pe14.5,
+     &   ' (cm):  xmin, xmax, ymin, ymax, zmin, zmax')
+            READ (*, *) xminb, xmaxb, yminb, ymaxb, zminb, zmaxb
+            WRITE(*, 88104)
+88104       FORMAT (' Enter density contrast between sphere and box')
+            READ (*, *) rhocontrast
+            igeom = 3
+         ENDIF
+         
       ELSE IF (igeom.EQ.4) THEN
          WRITE (*, 89003) udist
 89003    FORMAT (//, ' PARTICLE SET UP ', //,
@@ -597,6 +610,11 @@ c
       IF (ichang.EQ.4) GOTO 300
       IF (ichang.EQ.5) GOTO 210
 c
+c--make sure npart is initialised to zero
+c  (unifdis can be called more than once)
+c
+      npart = 0
+c
 c--Set Density Distribution
 c
  450  WRITE(*, 99014)
@@ -721,6 +739,53 @@ c
          WRITE(*,*) 'ERROR igeom'
          CALL quit
       ENDIF
+c
+c--set box containing surrounding medium for igeom=8
+c
+      IF (igeomorig.EQ.8) THEN
+         n1 = npart
+         xmin = xminb
+         xmax = xmaxb
+         ymin = yminb
+         ymax = ymaxb
+         zmin = zminb
+         zmax = zmaxb
+         deltax = xmax - xmin
+         deltay = ymax - ymin
+         deltaz = zmax - zmin
+c        adjust particle spacing of medium to give density contrast
+         h1 = h1*(rhocontrast)**(1./3.)
+         rhozero_n2 = rhozero/rhocontrast
+         WRITE(*,*) 'particle spacing of surrounding medium = ',h1
+         IF (idist.EQ.2) THEN
+            delx = 0.5*h1
+            dely = h1*SQRT(3.)/6.
+         ENDIF
+         IF (idist.EQ.1 .OR. idist.EQ.2) THEN
+            nx = INT(deltax/(facx*h1)) + 1
+            ny = INT(deltay/(facy*h1)) + 2
+            nz = INT(deltaz/(facz*h1)) + 1
+            np = nx*ny*nz
+         ELSEIF (idist.EQ.4 .OR. idist.EQ.5) THEN
+            nx = INT(deltax/(facx*h1)) + 1
+            ny = INT(deltay/(facy*h1)) + 1 
+            nz = INT(deltaz/(facz*h1)) + 2
+            np = nx*ny*nz
+         ELSE
+            STOP 'incompatible idist with igeom=8'
+         ENDIF
+         CALL unifdis(igeomorig, idist, np, h1, facx, facy, facz,
+     &                   delx, dely, nx, ny, nz, ibound)
+         n2 = npart-n1
+         WRITE(*,78001) n1,n2
+78001    FORMAT(' Set ',i8,' particles in sphere; ',
+     &                 i8,' particles in box ')
+         IF (npart.GT.idim) STOP 'npart > idim'
+      ELSE
+         n1 = npart
+         n2 = 0
+      ENDIF
+
       WRITE(*,*) ' rhozero = ',rhozero,' rhozero(g/cc) = ',rhozero*udens
 c
 c--set quantities which depend on rhozero now that we know rhozero
@@ -752,11 +817,13 @@ c         ELSE
 c            xyzmh(4,i) = partm
 c         ENDIF
          dgrav(i) = 0.
+         iorig(i) = i
       END DO
 c
 c--Check if distribution is ok
 c
       WRITE (*, 99020) npart - nptmass
+      IF (npart-nptmass.LE.0) STOP ': ZERO PARTICLES SET'
 99020 FORMAT (1X, I8, ' particles have been set, is this ok? (y/n)')
       READ (*, 99004) iok
       IF (iok.EQ.'n') THEN
@@ -893,8 +960,8 @@ c--Set Non-Uniform Pressure Distribution
 c
  618     WRITE(*, 99038)
 99038    FORMAT (' Coords for pressure variations: Cartesian (1)', /,
-     &        '                                 Cylinderical (2)', /,
-     &        '                                 Spherical    (3)')
+     &        '                                  Cylindrical (2)', /,
+     &        '                                    Spherical (3)')
          READ (*,*) icoord
          IF ((icoord.LT.1) .OR. (icoord.GT.3)) GOTO 618
 
@@ -912,9 +979,29 @@ c
 c
 c--Set Uniform Pressure Distribution
 c
-         DO i = 1, npart
-            vxyzu(4,i) = thermal
-         END DO
+         IF (igeomorig.EQ.8) THEN
+c           for sphere in box, ensure pressure balance
+            DO i = 1, n1
+               vxyzu(4,i) = thermal
+            END DO
+            uzero_n2 = thermal*rhocontrast
+c            print*,'uzero = ',thermal,' uzero2 = ',uzero_n2
+            DO i = n1+1,npart
+               vxyzu(4,i) = uzero_n2
+            ENDDO
+c            print*,'rho(medium) = ',rhozero/rhocontrast,rhozero
+            rho(1) = rhozero
+            CALL eospg(1,vxyzu,rho,pr,vsound,ekcle)
+            rho(n1+1) = rhozero/rhocontrast
+            CALL eospg(n1+1,vxyzu,rho,pr,vsound,ekcle)
+            WRITE(*,*) 'pr(sphere) = ',pr(1),vsound(1),
+     &          'pr(box) =',pr(n1+1),vsound(n1+1)
+            WRITE(*,*) 'vsound**2/GM/R = ',vsound(n1+1)**2*rmax/totmass
+         ELSE
+            DO i = 1, npart
+               vxyzu(4,i) = thermal
+            END DO
+         ENDIF
 c
 c--check external pressure matches uniform pressure
 c  (or set so that it does so)
@@ -1387,8 +1474,7 @@ c
       ENDIF
 
 77771 FORMAT(A)
- 778  n1 = npart
-      n2 = 0
+ 778  CONTINUE
 c
 c--option to set dtmax as fraction of free-fall time
 c

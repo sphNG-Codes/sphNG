@@ -201,6 +201,26 @@ c
 
                valphamax2 = MAX(valphamax2, alphaMM(1,i))
                valphamin2 = MIN(valphamin2, alphaMM(1,i))
+               IF (encal.EQ.'r') THEN
+                  tempgas = vxyzu(4,i)/ekcle(3,i)
+                  tgmean2 = tgmean2 + tempgas
+                  tgmax2 = MAX(tgmax2, tempgas)
+                  temprad = (ekcle(1,i)*rho(i)/uradconst)**0.25
+                  trmean2 = trmean2 + temprad
+                  trmax2 = MAX(trmax2, temprad)
+               ELSEIF (encal.EQ.'m') THEN
+                  tempgas = vxyzu(4,i)/getcv(rho(i),vxyzu(4,i))
+                  tgmean2 = tgmean2 + tempgas
+                  tgmax2 = MAX(tgmax2, tempgas)
+               ELSEIF (gamma.EQ.1.0) THEN
+                  tempgas = gmw*uergg/Rg*2.0/3.0*vxyzu(4,i)
+                  tgmean2 = tgmean2 + tempgas
+                  tgmax2 = MAX(tgmax2, tempgas)
+               ELSE
+                  tempgas = gmw*uergg/Rg*(gamma-1.0)*vxyzu(4,i)
+                  tgmean2 = tgmean2 + tempgas
+                  tgmax2 = MAX(tgmax2, tempgas)
+               ENDIF
             ENDIF
          END DO
 
@@ -213,6 +233,8 @@ c
          vcmz2 = vcmz2/fmas2
 
          romean2 = romean2/n2new
+         tgmean2 = tgmean2/n2new
+         trmean2 = trmean2/n2new
       ENDIF
 c
 c--Compute maximum distance

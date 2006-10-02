@@ -195,8 +195,7 @@ c
      &           ' cen:', 1PE14.5, /,
      &           ' visc. switch  min :', 1PE14.5, ' max:', 1PE14.5, /,
      &           ' temperature  mean :', 1PE14.5, ' max:', 1PE14.5,
-     &           ' cen:', 1PE14.5, /
-     &           )
+     &           ' cen:', 1PE14.5, /)
          IF (imhd.EQ.idim) THEN
             WRITE (iprint, 99206) Bmin, Bmean, Bmax
 99206       FORMAT (' mag field    min  :', 1PE14.5, 'mean:', 1PE14.5,
@@ -213,17 +212,23 @@ c--Object no 2
 c
          IF (n2.NE.0) THEN
             WRITE (iprint, 99007, ERR=100) n2, cmx2, cmy2, cmz2, vcmx2,
-     &             vcmy2, vcmz2, hmi2, hma2, dmax2, zmax2, romean2,
-     &             romax2, rocen2, valphamin2, valphamax2
+     &             vcmy2, vcmz2, hmi2, hma2, dmax2,
+     &             zmax2, romean2, romax2, rocen2,
+     &             valphamin2, valphamax2, tgmean2, tgmax2, tgcen2
 99007       FORMAT (/, ' Object number 2 (', I8, ' particles ) : ', /,
-     &              ' center of mass  x :', 1PE14.5, '  y :', 1PE14.5,
-     &              '  z :', 1PE14.5, /, ' velocity cm    vx :',
-     &              1PE14.5, ' vy :', 1PE14.5, ' vz :', 1PE14.5, /,
-     &              ' smoothing l.  min :', 1PE14.5, ' max:', 1PE14.5,
-     &              /, ' max. dist. cm   r :', 1PE14.5, '  z :',
-     &              1PE14.5, /, ' density      mean :', 1PE14.5,
-     &              ' max:', 1PE14.5,' cen:', 1PE14.5, /,
-     &           ' visc. switch  min :', 1PE14.5, ' max:', 1PE14.5, /)
+     &           ' center of mass  x :', 1PE14.5, '  y :', 1PE14.5,
+     &           '  z :', 1PE14.5, /, ' velocity cm    vx :', 1PE14.5,
+     &           ' vy :', 1PE14.5, ' vz :', 1PE14.5, /,
+     &           ' smoothing l.  min :', 1PE14.5, ' max:', 1PE14.5, /,
+     &           ' max. dist. cm   r :', 1PE14.5, '  z :', 1PE14.5, /,
+     &           ' density      mean :', 1PE14.5, ' max:', 1PE14.5, 
+     &           ' cen:', 1PE14.5, /,
+     &           ' visc. switch  min :', 1PE14.5, ' max:', 1PE14.5, /,
+     &           ' temperature  mean :', 1PE14.5, ' max:', 1PE14.5,
+     &           ' cen:', 1PE14.5, /)
+            IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
+               WRITE (iprint, 99106, ERR=100) trmean2, trmax2, trcen2
+            ENDIF
          ENDIF
 c
 c--Write transfer output

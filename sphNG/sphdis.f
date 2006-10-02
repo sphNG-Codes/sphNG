@@ -45,13 +45,15 @@ c
      &           '                  r^-1 : 1',/,
      &           '                  r^-2 : 2',/,
      &           '           exponential : e',/,
-     &           '             velocity  : v')   
+     &           '             velocity  : v',/,  
+     &           ' cos(mtheta) perturbn. : m')
          READ (*, 99004) prof
+         iprofr = 0
          IF (prof.NE.'e') THEN
             IF (prof.EQ.'1') iprofr = 1
             IF (prof.EQ.'2') iprofr = 2
-            profr = iprofr/2.
          ENDIF
+         profr = iprofr/2.
 c
 c--Deform particle grid 
 c
@@ -69,6 +71,27 @@ c
                xyzmh(2,i) = r1*SIN(theta1)*COS(theta2)
                xyzmh(3,i) = r1*SIN(theta2)
             END DO
+         ELSEIF (prof.EQ.'m') THEN
+c
+c--linear cos(mtheta) perturbation by deforming grid
+c
+            WRITE (*,*) 'Warning: perturbation correct only for linear'
+            WRITE (*,99034)
+99034       FORMAT(' Enter m, and density contrast ')
+            READ(*,*) m, densc
+            IF (m .LE. 0) STOP 'ERROR: m must be > 0'
+            WRITE (*,*) 'Setting perturbation m = ',m,' ampl = ',densc
+            DO i = nptmass+1, npart
+               xi = xyzmh(1,i)
+               yi = xyzmh(2,i)
+               zi = xyzmh(3,i)
+               rxy = sqrt(xi*xi + yi*yi)
+               theta1 = ATAN2(yi,xi)
+               dtheta = -densc*SIN(m*theta1)/m
+               theta1 = theta1 + dtheta
+               xyzmh(1,i) = rxy*COS(theta1)
+               xyzmh(2,i) = rxy*SIN(theta1)
+            END DO
          ELSEIF (iprofr.EQ.2 .OR. prof.EQ.'e' .OR. prof.EQ.'v') THEN
             WRITE (*,99002)
 99002       FORMAT ('NOT IMPLEMENTED')
@@ -81,11 +104,12 @@ c
          rmax2 = rmax * rmax
          WRITE (*, 88001)
          READ (*, 99004) prof
+         iprofr = 0
          IF (prof.NE.'e' .AND. prof.NE.'v') THEN
             IF (prof.EQ.'1') iprofr = 1
             IF (prof.EQ.'2') iprofr = 2
-            profr = iprofr/2.
          ENDIF
+         profr = iprofr/2.
 
          IF (prof.EQ.'v') THEN
             WRITE (*, 88401)

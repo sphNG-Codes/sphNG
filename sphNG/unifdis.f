@@ -8,6 +8,7 @@ c                                                           *
 c  Changes by D.Price: added hfact so that the smoothing    *
 c  length is hfact * particle spacing (previous was unity)  *
 c  This determines the number of neighbours                 *
+c  Also added iexcludepart function to neaten things up     *
 c                                                           *
 c************************************************************
 
@@ -23,9 +24,6 @@ c************************************************************
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/maspres'
       INCLUDE 'COMMONS/ptmass'
-      INCLUDE 'COMMONS/setbin'
-
-      DATA small/0.0001/
 c
 c--Allow for tracing flow
 c
@@ -49,38 +47,18 @@ c
          zmax5 = 0.5*zmax
          npart = np + nptmass
          DO i = nptmass + 1, npart
- 100        x1 = 2.0*(xmax*ran1(1) - xmax5)
-            y1 = 2.0*(ymax*ran1(1) - ymax5)
-            z1 = 2.0*(zmax*ran1(1) - zmax5)
-            d2 = x1**2 + y1**2 + z1**2
-            r2 = d2 - z1*z1
-            IF ((igeom.EQ.2) .AND. (r2.GT.rcyl2)) GOTO 100
-            IF ((igeom.EQ.3) .AND. (d2.GT.rmax2)) GOTO 100
-            IF ((igeom.EQ.4) .AND. ((r2.LT.rmind2) .OR. (r2.GT.rcyl2)))
-     &             GOTO 100
-            IF ((igeom.EQ.5) .AND. ((r2/rcyl2 + z1*z1/zmax2.GT.1.0)
-     &            .OR. (r2/rmind2 + z1*z1/(zmax2*(rmind2/rcyl2)).LT.
-     &           1.0))) GOTO 100
-            IF (igeom.EQ.6) THEN
-               IF (d2.LE.rmax2 .AND. d2.GE.rmind2) THEN
-                  r1 = SQRT(r2)
-                  IF (ibound.EQ.90) THEN
-                     angvelhere = angvel
-                  ELSEIF (ibound.EQ.91) THEN
-                     angvelhere = angvel*(r2/d2)
-                  ENDIF
-                  accelcent = r1*(angvelhere/r2)**2
-                  accelpt = totptmass/d2*SIN(ATAN2(r1,ABS(z1)))
-                  IF (accelcent.GT.accelpt) GOTO 100
-               ELSE
-                  GOTO 100
-               ENDIF
-            ENDIF
-            IF ((igeom.EQ.7) .AND. ((d2.GT.rmax2) 
-     &            .OR. (d2.LT.rmind2))) GOTO 100
-            xyzmh(1,i) = x1
-            xyzmh(2,i) = y1
-            xyzmh(3,i) = z1
+ 100        xi = 2.0*(xmax*ran1(1) - xmax5)
+            yi = 2.0*(ymax*ran1(1) - ymax5)
+            zi = 2.0*(zmax*ran1(1) - zmax5)
+            d2 = xi**2 + yi**2 + zi**2
+            r2 = d2 - zi*zi
+            
+            IF (iexcludepart(igeom,ibound,xi,yi,zi,r2,d2,xmax,ymax,zmax,
+     &          rcyl2,rmax2,zmax2,rmind2).NE.0) GOTO 100
+
+            xyzmh(1,i) = xi
+            xyzmh(2,i) = yi
+            xyzmh(3,i) = zi
             xyzmh(5,i) = hfact*h1
          END DO
 c
@@ -108,48 +86,24 @@ c            radius = (ir - 0.5)*stepr
             WRITE (*,*) 'ntheta = ',ntheta
 
             DO iz = 1, nz
-               z1 = (iz - 0.5)*stepz - rmax
+               zi = (iz - 0.5)*stepz - rmax
 
                DO itheta = 1, ntheta
 c                  theta = (itheta - 1./3.*MOD(iz,3))*steptheta
                   theta = (itheta - 0.5)*(steptheta/ir)
-                  x1 = radius*COS(theta)
-                  y1 = radius*SIN(theta)
-                  d2 = x1**2 + y1**2 + z1**2
-                  r2 = d2 - z1*z1
-
-                  IF ((igeom.EQ.2) .AND. (r2.GT.rcyl2)) GOTO 120
-                  IF ((igeom.EQ.3) .AND. (d2.GT.rmax2)) GOTO 120
-                  IF ((igeom.EQ.4) .AND. ((r2.LT.rmind2) .OR.
-     &                 (r2.GT.rcyl2))) GOTO 120
-                  IF ((igeom.EQ.5) .AND. ((r2/rcyl2+z1*z1/zmax2.GT.1.0)
-     &                 .OR. (r2/rmind2+z1*z1/(zmax2*(rmind2/rcyl2)).LT.
-     &                 1.0))) GOTO 120
-                  IF (igeom.EQ.6) THEN
-                     IF (d2.LE.rmax2 .AND. d2.GE.rmind2) THEN
-                        r1 = SQRT(r2)
-                        IF (ibound.EQ.90) THEN
-                           angvelhere = angvel
-                        ELSEIF (ibound.EQ.91) THEN
-                           angvelhere = angvel*(r2/d2)
-                        ENDIF
-                        accelcent = r1*(angvelhere/r2)**2
-                        accelpt = totptmass/d2*SIN(ATAN2(r1,ABS(z1)))
-                        IF (accelcent.GT.accelpt) GOTO 120
-                     ELSE
-                        GOTO 120
-                     ENDIF
+                  xi = radius*COS(theta)
+                  yi = radius*SIN(theta)
+                  d2 = xi**2 + yi**2 + zi**2
+                  r2 = d2 - zi*zi
+                  
+                  IF (iexcludepart(igeom,ibound,xi,yi,zi,r2,d2,xmax,
+     &               ymax,zmax,rcyl2,rmax2,zmax2,rmind2).EQ.0) THEN
+                     npart = npart + 1
+                     xyzmh(1,npart) = xi
+                     xyzmh(2,npart) = yi
+                     xyzmh(3,npart) = zi
+                     xyzmh(5,npart) = hfact*stepr
                   ENDIF
-                  IF ((igeom.EQ.7) .AND. ((d2.GT.rmax2) 
-     &                 .OR. (d2.LT.rmind2))) GOTO 120
-
-                  npart = npart + 1
-                  xyzmh(1,npart) = x1
-                  xyzmh(2,npart) = y1
-                  xyzmh(3,npart) = z1
-                  xyzmh(5,npart) = hfact*stepr
-
- 120              CONTINUE
                END DO
             END DO
          END DO
@@ -189,33 +143,9 @@ c
             zi = zstart + (m - 1)*stepz 
             r2 = xi*xi + yi*yi
             d2 = r2 + zi*zi
-            IF (((igeom.EQ.1) .AND. (xi.LE.xmax + small) .AND.
-     &           (yi.LE.ymax + small) .AND. (zi.LE.zmax + small)) .OR.
-     &           ((igeom.EQ.2) .AND. (r2.LE.rcyl2)) .OR.
-     &           ((igeom.EQ.3) .AND. (d2.LE.rmax2)) .OR.
-     &           ((igeom.EQ.4) .AND. (r2.LE.rcyl2) .AND.
-     &           (r2.GE.rmind2)) .OR. ((igeom.EQ.5) .AND. 
-     &           (r2/rcyl2 + zi*zi/zmax2.LE.1.0) .AND. 
-     &           (r2/rmind2 + zi*zi/(zmax2*(rmind2/rcyl2)).GE.
-     &           1.0)) .OR. (igeom.EQ.6) .OR. (igeom.EQ.7)) THEN
-               IF (igeom.EQ.6) THEN
-                  IF (d2.LE.rmax2 .AND. d2.GE.rmind2) THEN
-                     r1 = SQRT(r2)
-                     IF (ibound.EQ.90) THEN
-                        angvelhere = angvel
-                     ELSEIF (ibound.EQ.91) THEN
-                        angvelhere = angvel*(r2/d2)
-                     ENDIF
-                     accelcent = r1*(angvelhere/r2)**2
-                     accelpt = totptmass/d2*SIN(ATAN2(r1,ABS(zi)))
-                     IF (accelcent.GT.accelpt) GOTO 150
-                  ELSE
-                     GOTO 150
-                  ENDIF
-               ENDIF
-               IF ((igeom.EQ.7) .AND. ((d2.GT.rmax2) 
-     &            .OR. (d2.LT.rmind2))) GOTO 150
-
+            
+            IF (iexcludepart(igeom,ibound,xi,yi,zi,r2,d2,xmax,ymax,
+     &          zmax,rcyl2,rmax2,zmax2,rmind2).EQ.0) THEN
                npart = npart + 1
                IF (npart.GT.idim) THEN
                   WRITE (*, 99002)
@@ -234,7 +164,7 @@ c
                IF (zi.GT.zmax) zi = zmax
                xyzmh(3,npart) = zi
                xyzmh(5,npart) = hfact*h1
- 150        ENDIF
+            ENDIF
          END DO
 
          k = 0
@@ -265,33 +195,8 @@ c
             zi = zstart + (m - 1)*stepz 
             r2 = xi*xi + yi*yi
             d2 = r2 + zi*zi
-            IF (((igeom.EQ.1) .AND. (xi.LE.xmax + small) .AND.
-     &           (yi.LE.ymax + small) .AND. (zi.LE.zmax + small)) .OR.
-     &           ((igeom.EQ.2) .AND. (r2.LE.rcyl2)) .OR.
-     &           ((igeom.EQ.3) .AND. (d2.LE.rmax2)) .OR.
-     &           ((igeom.EQ.4) .AND. (r2.LE.rcyl2) .AND.
-     &           (r2.GE.rmind2)) .OR. ((igeom.EQ.5) .AND.
-     &           (r2/rcyl2 + zi*zi/zmax2.LE.1.0) .AND.
-     &           (r2/rmind2 + zi*zi/(zmax2*(rmind2/rcyl2)) .GE.
-     &           1.0)) .OR. (igeom.EQ.6) .OR. (igeom.EQ.7)) THEN
-               IF (igeom.EQ.6) THEN
-                  IF (d2.LE.rmax2 .AND. d2.GE.rmind2) THEN
-                     r1 = SQRT(r2)
-                     IF (ibound.EQ.90) THEN
-                        angvelhere = angvel
-                     ELSEIF (ibound.EQ.91) THEN
-                        angvelhere = angvel*(r2/d2)
-                     ENDIF
-                     accelcent = r1*(angvelhere/r2)**2
-                     accelpt = totptmass/d2*SIN(ATAN2(r1,ABS(zi)))
-                     IF (accelcent.GT.accelpt) GOTO 160
-                  ELSE
-                     GOTO 160
-                  ENDIF
-               ENDIF
-               IF ((igeom.EQ.7) .AND. ((d2.GT.rmax2) 
-     &            .OR. (d2.LT.rmind2))) GOTO 160
-
+            IF (iexcludepart(igeom,ibound,xi,yi,zi,r2,d2,xmax,ymax,
+     &          zmax,rcyl2,rmax2,zmax2,rmind2).EQ.0) THEN
                npart = npart + 1
                IF (npart.GT.idim) THEN
                   WRITE (*, 99002)
@@ -307,7 +212,7 @@ c
                IF (zi.GT.zmax) zi = zmax
                xyzmh(3,npart) = zi
                xyzmh(5,npart) = hfact*h1
- 160        ENDIF
+            ENDIF
          END DO
 
       ELSE
@@ -385,39 +290,21 @@ c           changes here may have stuffed up sphdis.f - D.Price
                   ystart = ymin + 0.5*stepy + dely
                   zstart = zmin + 0.5*stepz + delz
                ENDIF
+            ELSE
+               WRITE(*,*) 'weird choice of idist in unifdis'
+               WRITE(*,*) 'means xstart is used uninitialised'
+               xstart = 0. ! to stop compiler warnings
+               ystart = 0.
+               zstart = 0.
+               CALL quit
             ENDIF
             xi = xstart + FLOAT(k - 1)*stepx
             yi = ystart + FLOAT(l - 1)*stepy
             zi = zstart + FLOAT(m - 1)*stepz 
             r2 = xi*xi + yi*yi
             d2 = r2 + zi*zi
-            IF (((igeom.EQ.1) .AND. (xi.LE.xmax + small) .AND.
-     &           (yi.LE.ymax + small) .AND. (zi.LE.zmax + small)) .OR.
-     &           ((igeom.EQ.2) .AND. (r2.LE.rcyl2)) .OR.
-     &           ((igeom.EQ.3) .AND. (d2.LE.rmax2)) .OR.
-     &           ((igeom.EQ.4) .AND. (r2.LE.rcyl2) .AND.
-     &           (r2.GE.rmind2)) .OR. ((igeom.EQ.5) .AND.
-     &           (r2/rcyl2 + zi*zi/zmax2.LE.1.0) .AND.
-     &           (r2/rmind2 + zi*zi/(zmax2*(rmind2/rcyl2)) .GE.
-     &           1.0)) .OR. (igeom.EQ.6) .OR. (igeom.EQ.7)) THEN
-               IF (igeom.EQ.6) THEN
-                  IF (d2.LE.rmax2 .AND. d2.GE.rmind2) THEN
-                     r1 = SQRT(r2)
-                     IF (ibound.EQ.90) THEN
-                        angvelhere = angvel
-                     ELSEIF (ibound.EQ.91) THEN
-                        angvelhere = angvel*(r2/d2)
-                     ENDIF
-                     accelcent = r1*(angvelhere/r2)**2
-                     accelpt = totptmass/d2*SIN(ATAN2(r1,ABS(zi)))
-                     IF (accelcent.GT.accelpt) GOTO 180
-                  ELSE
-                     GOTO 180
-                  ENDIF
-               ENDIF
-               IF ((igeom.EQ.7) .AND. ((d2.GT.rmax2) 
-     &            .OR. (d2.LT.rmind2))) GOTO 180
-
+            IF (iexcludepart(igeom,ibound,xi,yi,zi,r2,d2,xmax,ymax,
+     &          zmax,rcyl2,rmax2,zmax2,rmind2).EQ.0) THEN
                npart = npart + 1
                IF (npart.GT.idim) THEN
                   WRITE (*, 99002)
@@ -433,7 +320,7 @@ c           changes here may have stuffed up sphdis.f - D.Price
                IF (zi.GT.zmax) zi = zmax
                xyzmh(3,npart) = zi
                xyzmh(5,npart) = hfact*h1
- 180        ENDIF
+            ENDIF
  200     CONTINUE
       ENDIF
 
@@ -441,5 +328,55 @@ c           changes here may have stuffed up sphdis.f - D.Price
          disfrac(i) = 1.0
       END DO
 
+      RETURN
+      END
+c
+c--this function is to neaten up unifdis
+c  determines whether or not particle is within prescribed boundaries
+c  for the given geometry
+c  DJP 02.10.06
+c     
+      FUNCTION iexcludepart(igeom,ibound,xi,yi,zi,r2,d2,xmax,ymax,zmax,
+     &                      rcyl2,rmax2,zmax2,rmind2)
+
+      INCLUDE 'COMMONS/setbin'
+      INTEGER iexcludepart
+
+      DATA small/0.0001/
+        
+      iexcludepart = 0      
+      
+      IF ((igeom.EQ.1) .AND. (xi.LE.xmax + small) .OR.
+     &    (yi.LE.ymax + small) .OR. (zi.LE.zmax + small)) THEN
+         iexcludepart = 1
+      ELSEIF ((igeom.EQ.2) .AND. (r2.GT.rcyl2)) THEN
+         iexcludepart = 1
+      ELSEIF ((igeom.EQ.3) .AND. (d2.GT.rmax2)) THEN
+         iexcludepart = 1
+      ELSEIF ((igeom.EQ.4) .AND. ((r2.LT.rmind2).OR.(r2.GT.rcyl2))) THEN
+         iexcludepart = 1
+      ELSEIF ((igeom.EQ.5) .AND. ((r2/rcyl2 + zi*zi/zmax2.GT.1.0)
+     &   .OR. (r2/rmind2 + zi*zi/(zmax2*(rmind2/rcyl2)).LT. 1.0))) THEN
+         iexcludepart = 1
+      ELSEIF (igeom.EQ.6) THEN
+         IF (d2.LE.rmax2 .AND. d2.GE.rmind2) THEN
+            r1 = SQRT(r2)
+            IF (ibound.EQ.90) THEN
+               angvelhere = angvel
+            ELSEIF (ibound.EQ.91) THEN
+               angvelhere = angvel*(r2/d2)
+            ELSE
+               angvelhere = 0.
+            ENDIF
+            accelcent = r1*(angvelhere/r2)**2
+            accelpt = totptmass/d2*SIN(ATAN2(r1,ABS(zi)))
+            IF (accelcent.GT.accelpt) iexcludepart = 1
+         ELSE
+            iexcludepart = 1
+         ENDIF
+      ELSEIF ((igeom.EQ.7) .AND. ((d2.GT.rmax2).OR.(d2.LT.rmind2))) THEN
+         iexcludepart = 1
+      ENDIF
+      
       RETURN
       END

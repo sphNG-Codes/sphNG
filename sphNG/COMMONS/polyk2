@@ -1,1 +1,2 @@
-      COMMON /polyk2/ rhozero, RK2, rhocrit, rhocrit2, rhocrit3
+      COMMON /polyk2/ rhozero, RK2, rhocrit, rhocrit2, rhocrit3,
+     &                uzero_n2

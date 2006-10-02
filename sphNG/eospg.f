@@ -21,6 +21,8 @@ c************************************************************
       INCLUDE 'COMMONS/typef'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/physeos'
+      INCLUDE 'COMMONS/sort'
+      INCLUDE 'COMMONS/bodys'
 
       CHARACTER*7 where
 
@@ -36,7 +38,11 @@ c
           gam1 = gam - 1.
           gamdh1 = gamdh - 1.
           gamah1 = gamah - 1.
-          uzero = RK2 * (rhozero ** gama1)
+          IF (iorig(ipart).GT.n1 .AND. iorig(ipart).LE.n1+n2) THEN
+             uzero = uzero_n2
+          ELSE
+             uzero = RK2 * (rhozero ** gama1)
+          ENDIF
           RK3 = uzero / (rhocrit ** gam1)
           RK4 = RK3 * (rhocrit2 ** gam1) / (rhocrit2 ** gamdh1)
           RK5 = RK4 * (rhocrit3 ** gamdh1) / (rhocrit3 ** gamah1)
@@ -64,7 +70,11 @@ c
           gam1 = gamphys1 - 1.
           gam2 = gamphys2 - 1.
           gam3 = gamphys3 - 1.
-          uzero = RK2 * (rhozero ** gama1)
+          IF (iorig(ipart).GT.n1+1 .AND. iorig(ipart).LE.n1+n2) THEN
+             uzero = uzero_n2
+          ELSE
+             uzero = RK2 * (rhozero ** gama1)
+          ENDIF
           IF (rho(ipart).LT.rhochange1) THEN
              vxyzu(4,ipart) = uzero*(1.0 + (rho(ipart)/rhoref1)**gam1)
              pr(ipart) = 2./3. * vxyzu(4,ipart) * rho(ipart)

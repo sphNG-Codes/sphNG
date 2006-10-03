@@ -21,18 +21,18 @@ SHELL = /bin/sh
 
 # can comment out the following lines and instead set
 # the parameters as environment variables
-debug= yes
+#debug= no
 doubleprecision= yes
 mpi = yes
 # endian can be "BIG", "LITTLE" or anything else which has no effect
-ENDIAN= default
+#ENDIAN= default
 
 ifeq ($(SYSTEM), ukaff1a)
-ifeq ($(mpi), yes)
-    FC= mpif77 -qnosave
-else
-    FC= xlf_r -qnosave
-endif
+    ifeq ($(mpi), yes)
+        FC= mpif77 -qnosave
+    else
+        FC= xlf_r -qnosave
+    endif
 #    FFLAGS= -O3 -q64 -qextname -qsmp=noauto 
     FFLAGS= -O3 -q64 -qsmp=noauto 
     DBLFLAG= -qrealsize=8

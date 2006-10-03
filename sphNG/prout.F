@@ -404,7 +404,7 @@ c
             WRITE (iprint, 99007, ERR=100) n2tot,cmx2tot,cmy2tot,
      &           cmz2tot,vcmx2tot,vcmy2tot,vcmz2tot,hmi2tot,hma2tot,
      &           dmax2tot,zmax2tot,romean2tot,
-     &           romax2tot,rocen2tot,valphamin2tot,valphamax2tot
+     &           romax2tot,rocen2tot,valphamin2tot,valphamax2tot,
      &           tgmean2, tgmax2, tgcen2
 99007       FORMAT (/, ' Object number 2 (', I8, ' particles ) : ', /,
      &           ' center of mass  x :', 1PE14.5, '  y :', 1PE14.5,

@@ -46,7 +46,7 @@ c
      &           '                  r^-2 : 2',/,
      &           '           exponential : e',/,
      &           '             velocity  : v',/,  
-     &           ' cos(mtheta) perturbn. : m')
+     &           ' cos(mtheta) perturbn. : c')
          READ (*, 99004) prof
          iprofr = 0
          IF (prof.NE.'e') THEN
@@ -71,7 +71,7 @@ c
                xyzmh(2,i) = r1*SIN(theta1)*COS(theta2)
                xyzmh(3,i) = r1*SIN(theta2)
             END DO
-         ELSEIF (prof.EQ.'m') THEN
+         ELSEIF (prof.EQ.'c') THEN
 c
 c--linear cos(mtheta) perturbation by deforming grid
 c

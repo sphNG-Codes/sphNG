@@ -110,8 +110,10 @@ C$OMP& private(projv,procurlvx,procurlvy,procurlvz)
 C$OMP& private(l,iptcur,dphi,dwdhi,dpotdh,iteration,numneighi)
 C$OMP& private(numneighreal,rhohi,dhdrhoi,omegai,func,dfdh1)
 C$OMP& private(hnew,deltat,deltarho)
+C$OMP& private(dalphaxi,dalphayi,dalphazi,dbetaxi,dbetayi,dbetazi)
+C$OMP& private(rxxi,rxyi,rxzi,ryyi,ryzi,rzzi)
 C$OMP& private(gradalphaxi,gradalphayi,gradalphazi)
-C$OMP& private(gradbetaxi,gradbetayi,gradbetazi,rho21i,term)
+C$OMP& private(gradbetaxi,gradbetayi,gradbetazi,term)
 C$OMP& private(vbarxi,vbaryi,vbarzi)
 C$OMP& private(alphai,betai,wkern,dalpha,dbeta,grpmi)
 C$OMP& reduction(MAX:rhonext,imaxit)
@@ -305,12 +307,19 @@ c
          curlvyi = 0.
          curlvzi = 0.
          gradsofti = 0.
-	 gradalphaxi= 0.
-         gradalphayi= 0.
-         gradalphazi= 0.
-         gradbetaxi= 0.
-         gradbetayi= 0.
-         gradbetazi= 0.
+         dalphaxi= 0.
+         dalphayi= 0.
+         dalphazi= 0.
+         dbetaxi= 0.
+         dbetayi= 0.
+         dbetazi= 0.
+         rxxi = 0.
+         rxyi = 0.
+         rxzi = 0.
+         ryyi = 0.
+         ryzi = 0.
+         rzzi = 0.
+         
 c         vbarxi = 0.
 c         vbaryi = 0.
 c         vbarzi = 0.
@@ -327,7 +336,7 @@ c
          IF (imhd.EQ.idim) THEN
             IF (varmhd.EQ.'eulr') THEN
                alphai= Bevol(1,ipart)
-	       betai= Bevol(2,ipart)
+               betai= Bevol(2,ipart)
             ENDIF
          ENDIF
                   
@@ -391,19 +400,25 @@ c--grad alpha and grad beta (Euler potentials)
 c
                IF (imhd.EQ.idim) THEN
                   IF (varmhd.EQ.'eulr') THEN
+                     grpmi= pmassj*grwtij
+
+                     rxxi = rxxi - grpmi*dx*dx
+                     rxyi = rxyi - grpmi*dx*dy
+                     rxzi = rxzi - grpmi*dx*dz
+                     ryyi = ryyi - grpmi*dy*dy
+                     ryzi = ryzi - grpmi*dy*dz
+                     rzzi = rzzi - grpmi*dz*dz
                      dalpha= alphai - Bevol(1,j)
                      dbeta= betai - Bevol(2,j)
 
-                     grpmi= pmassj*grwtij
+                     dalphaxi= dalphaxi - grpmi*dalpha*dx
+                     dalphayi= dalphayi - grpmi*dalpha*dy
+                     dalphazi= dalphazi - grpmi*dalpha*dz
 
-                     gradalphaxi= gradalphaxi - grpmi*dalpha*dx
-                     gradalphayi= gradalphayi - grpmi*dalpha*dy
-                     gradalphazi= gradalphazi - grpmi*dalpha*dz
-
-                     gradbetaxi= gradbetaxi - grpmi*dbeta*dx
-                     gradbetayi= gradbetayi - grpmi*dbeta*dy
-                     gradbetazi= gradbetazi - grpmi*dbeta*dz
-                  ELSE
+                     dbetaxi= dbetaxi - grpmi*dbeta*dx
+                     dbetayi= dbetayi - grpmi*dbeta*dy
+                     dbetazi= dbetazi - grpmi*dbeta*dz
+c                  ELSE
 c
 c--smoothed velocity for use in the B or B/rho evolution
 c
@@ -445,15 +460,49 @@ c
          IF (imhd.EQ.idim) THEN
             IF (varmhd.EQ.'eulr') THEN
 c
+c--compute grad alpha and grad beta using exact linear interpolation
+c  (see Price 2004)
+c
+               ddenom = 1./(rxxi*ryyi*rzzi + 2.*rxyi*rxzi*ryzi
+     &                    - rxxi*ryzi**2 - ryyi*rxzi**2 - rzzi*rxyi**2)
+     
+               gradalphaxi = (dalphaxi*(ryyi*rzzi - ryzi**2)
+     &                     +  dalphayi*(rxzi*ryzi - rzzi*rxyi)
+     &                     +  dalphazi*(rxyi*ryzi - rxzi*ryyi))*ddenom
+               gradalphayi = (dalphaxi*(ryzi*rxzi - rxyi*rzzi)
+     &                     +  dalphayi*(rzzi*rxxi - rxzi**2)
+     &                     +  dalphazi*(rxyi*rxzi - rxxi*ryzi))*ddenom
+               gradalphazi = (dalphaxi*(rxyi*ryzi - rxzi*ryyi)
+     &                     +  dalphayi*(rxyi*rxzi - rxxi*ryzi)
+     &                     +  dalphazi*(rxxi*ryyi - rxyi**2))*ddenom
+               gradbetaxi = (dbetaxi*(ryyi*rzzi - ryzi**2)
+     &                    +  dbetayi*(rxzi*ryzi - rzzi*rxyi)
+     &                    +  dbetazi*(rxyi*ryzi - rxzi*ryyi))*ddenom
+               gradbetayi = (dbetaxi*(ryzi*rxzi - rxyi*rzzi)
+     &                    +  dbetayi*(rzzi*rxxi - rxzi**2)
+     &                    +  dbetazi*(rxyi*rxzi - rxxi*ryzi))*ddenom
+               gradbetazi = (dbetaxi*(rxyi*ryzi - rxzi*ryyi)
+     &                    +  dbetayi*(rxyi*rxzi - rxxi*ryzi)
+     &                    +  dbetazi*(rxxi*ryyi - rxyi**2))*ddenom
+c
+c--uncomment the following lines for the standard first derivative
+c
+c               term = cnormk*gradhs(1,ipart)/rhoi
+c               gradalphaxi = dalphaxi*term
+c               gradalphayi = dalphayi*term
+c               gradalphazi = dalphazi*term
+c               gradbetaxi = dbetaxi*term
+c               gradbetayi = dbetayi*term
+c               gradbetazi = dbetazi*term
+c
 c--grad alpha cross grad beta
 c
-               rho21i= (cnormk*gradhs(1,ipart)/rhoi)**2
-	       term= gradalphayi*gradbetazi - gradalphazi*gradbetayi
-	       Bxyz(1,ipart)= term*rho21i
+               term= gradalphayi*gradbetazi - gradalphazi*gradbetayi
+               Bxyz(1,ipart)= term
                term= gradalphazi*gradbetaxi - gradalphaxi*gradbetazi
-               Bxyz(2,ipart)= term*rho21i
-	       term= gradalphaxi*gradbetayi - gradalphayi*gradbetaxi
-               Bxyz(3,ipart)= term*rho21i
+               Bxyz(2,ipart)= term
+               term= gradalphaxi*gradbetayi - gradalphayi*gradbetaxi
+               Bxyz(3,ipart)= term
 c            ELSE
 c
 c--add self contribution and store smoothed velocity

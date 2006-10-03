@@ -20,27 +20,19 @@ c
 c--Get date
 c
       ENTRY getdat(id, im, iy)
-c      CALL idate(iarray)
-c      id = iarray(1)
-c      im = iarray(2)
-c      iy = iarray(3)
-      CALL DATE_AND_TIME(VALUES=Dtime)
-      id = Dtime(3)
-      im = Dtime(2)
-      iy = Dtime(1)
+      CALL idate(iarray)
+      id = iarray(1)
+      im = iarray(2)
+      iy = iarray(3)
       RETURN
 c
 c--Get time
 c
       ENTRY getime(ih, im, is, fhour)
-c      CALL itime(iarray)
-c      ih = iarray(1)
-c      im = iarray(2)
-c      is = iarray(3)
-      CALL DATE_AND_TIME(VALUES=Dtime)
-      ih = Dtime(5)
-      im = Dtime(6)
-      is = Dtime(7)
+      CALL itime(iarray)
+      ih = iarray(1)
+      im = iarray(2)
+      is = iarray(3)
       fhour = ih + im/60. + is/3600.
       RETURN
 c

@@ -233,23 +233,31 @@ c
                   l = 1
                   m = m + 1
                   IF (m.GT.nz) THEN
-                     k = 1
-                     l = 1
+c                     k = 1
+c                     l = 1
                      nz = nz + 1
+                     print*,'nz =',nz
                   ENDIF
                ENDIF
             ENDIF
             
             IF (idist.EQ.2) THEN
-c           changes here may have stuffed up sphdis.f - D.Price	    
-
-!               xstart = FLOAT(INT(xmin/stepx))*stepx + 0.5*delx
-!               ystart = FLOAT(INT(ymin/stepy))*stepy + 0.5*dely
-!     &              + stepy/2.0 
-!     &              - dely/2.0
-!               zstart = FLOAT(INT(zmin/stepz))*stepz + 0.5*stepz
-               xstart = xmin + 0.5*delx
-	       ystart = ymin + 0.5*dely
+c	          xstart = (xmin+xmax)/2.0
+c     &               -(INT(ABS(0.5*(xmax-xmin)/delx)+0.5))*delx
+c     &               + 0.5*delx	
+c                  ystart = (ymin+ymax)/2.0
+c     &              -(INT(ABS(0.5*(ymax-ymin)/dely)+0.5))*dely
+c     &               + 0.5*dely
+c                  zstart = (zmin+zmax)/2.0
+c     &              -(INT(ABS(0.5*(zmax-zmin)/stepz)+0.5))*stepz
+c     &               + 0.5*stepz
+c               xstart = FLOAT(INT(xmin/stepx))*stepx + 0.5*delx
+c               ystart = FLOAT(INT(ymin/stepy))*stepy + 0.5*dely
+c     &              + stepy/2.0 
+c     &              - dely/2.0
+c               zstart = FLOAT(INT(zmin/stepz))*stepz + 0.5*stepz
+               xstart = xmin + 0.125*delx
+	       ystart = ymin + 0.25*dely
 	       zstart = zmin + 0.5*stepz
                jy = MOD(l, 2)
                jz = MOD(m, 3)
@@ -377,7 +385,9 @@ c
          ENDIF
       ELSEIF ((igeom.EQ.7) .AND. ((d2.GT.rmax2).OR.(d2.LT.rmind2))) THEN
          iexcludepart = 1
-      ELSEIF ((igeom.EQ.8) .AND. (d2.LE.rmax2)) THEN
+      ELSEIF ((igeom.EQ.8) .AND. ((d2.LE.rmax2) .OR. 
+     &    ((xi.GT.xmax + small) .OR. (yi.GT.ymax + small) 
+     &     .OR. (zi.GT.zmax + small)))) THEN
          iexcludepart = 1
       ENDIF
       

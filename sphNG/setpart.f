@@ -586,7 +586,7 @@ c
          np = nx*ny*nz
       ENDIF
 
-  350 IF (np.LE.idim) THEN
+      IF (np.LE.idim) THEN
          WRITE (*, 99008) np
 99008    FORMAT (' Total number of particles needed :', I8, /,
      &           ' is that ok? (y/n)')
@@ -669,7 +669,7 @@ c
          CALL unifdis(igeom, idist, np, h1, facx, facy, facz, 
      &                   delx, dely, nx, ny, nz, ibound)
          IF (notdone.EQ.1) GOTO 400
- 575     WRITE(*, 99105)
+         WRITE(*, 99105)
 99105    FORMAT (' Do you want to centrally condense the particles?')
          READ (*, 99004) icentral
 
@@ -763,9 +763,26 @@ c        adjust particle spacing of medium to give density contrast
          ENDIF
          IF (idist.EQ.1 .OR. idist.EQ.2) THEN
             nx = INT(deltax/(facx*h1)) + 1
-            ny = INT(deltay/(facy*h1)) + 2
-            nz = INT(deltaz/(facz*h1)) + 1
-            np = nx*ny*nz
+            ny = INT(deltay/(facy*h1)) + 1
+            nz = INT(deltaz/(facz*h1)) + 2
+            IF (ibound.EQ.11 .AND. idist.EQ.2) THEN
+c              move the outer boundaries to ensure periodicity of the lattice
+               nx = 2*(INT(0.5*deltax/(facx*h1)) + 1)
+               ny = 2*(INT(0.5*deltay/(facy*h1)) + 1)
+               nz = 3*(INT(0.333333333*deltaz/(facz*h1)) + 1)
+               np = nx*ny*nz
+               deltax = nx*facx*h1
+               deltay = ny*facy*h1
+               deltaz = nz*facz*h1
+               xmax = 0.5*deltax
+               xmin = -xmax
+               ymax = 0.5*deltay
+               ymin = -ymax
+               zmax = 0.5*deltaz
+               zmin = -zmax
+               WRITE(*,*) nx,ny,nz,np
+               WRITE(*,*) 'adjusted ',xmin,xmax,ymin,ymax,zmin,zmax
+            ENDIF
          ELSEIF (idist.EQ.4 .OR. idist.EQ.5) THEN
             nx = INT(deltax/(facx*h1)) + 1
             ny = INT(deltay/(facy*h1)) + 1 
@@ -996,7 +1013,7 @@ c            print*,'rho(medium) = ',rhozero/rhocontrast,rhozero
             CALL eospg(n1+1,vxyzu,rho,pr,vsound,ekcle)
             WRITE(*,*) 'pr(sphere) = ',pr(1),vsound(1),
      &          'pr(box) =',pr(n1+1),vsound(n1+1)
-            WRITE(*,*) 'vsound**2/GM/R = ',vsound(n1+1)**2*rmax/totmass
+            WRITE(*,*) 'vsound**2/GM/R = ',vsound(n1+1)**2*rmax/totmas
          ELSE
             DO i = 1, npart
                vxyzu(4,i) = thermal
@@ -1191,7 +1208,7 @@ c
          READ (*,*) fracrotoffset
       ENDIF
 
-      DO i = nptmass + 1, npart
+      DO i = nptmass + 1, n1
          IF (iok.EQ.'k') THEN
             gg2 = 1.  
             radius = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2)
@@ -1270,7 +1287,7 @@ ccc            rad2 = rad2 / rmax2
          READ (*,*) amplitude
 
          ekinetic = 0.
-         DO i = nptmass + 1, npart
+         DO i = nptmass + 1, n1
 66544       vxyzu(1,i) = ran1(1)
             vxyzu(2,i) = ran1(1)
             vxyzu(3,i) = ran1(1)
@@ -1316,7 +1333,7 @@ c      deli = 1.0/REAL(nspace/2)
       radnorm = rmax
       IF (igeom.EQ.1) radnorm = xmax
       deli = radnorm/REAL(nspace/2)
-      DO i = nptmass + 1, npart
+      DO i = nptmass + 1, n1
          iposx = INT(xyzmh(1,i)/radnorm*(nspace/2)+(nspace/2)+0.5)
          iposx = MIN(MAX(iposx, 1),nspace-1)
          iposy = INT(xyzmh(2,i)/radnorm*(nspace/2)+(nspace/2)+0.5)
@@ -1398,7 +1415,7 @@ c
 66545 cmx = 0. 
       cmy = 0.
       cmz = 0.
-      DO i = 1,npart
+      DO i = 1,n1
          cmx = cmx + xyzmh(4,i)*vxyzu(1,i)
          cmy = cmy + xyzmh(4,i)*vxyzu(2,i)
          cmz = cmz + xyzmh(4,i)*vxyzu(3,i)
@@ -1422,7 +1439,7 @@ c
 c
       ekinetic = 0.
       rootmeansquare = 0.
-      DO i = nptmass + 1, npart
+      DO i = nptmass + 1, n1
          vel2 = vxyzu(1,i)**2+vxyzu(2,i)**2+vxyzu(3,i)**2
          rootmeansquare = rootmeansquare + vel2
          ekinetic = ekinetic + xyzmh(4,i)*vel2
@@ -1444,14 +1461,14 @@ c
          WRITE (*,*) 'Enter new RMS velocity'
          READ (*,*) factor
          rootmeansquare = SQRT(rootmeansquare/(npart-nptmass))
-         DO i = 1, npart
+         DO i = nptmass + 1, n1
             vxyzu(1,i) = vxyzu(1,i)*factor/rootmeansquare
             vxyzu(2,i) = vxyzu(2,i)*factor/rootmeansquare
             vxyzu(3,i) = vxyzu(3,i)*factor/rootmeansquare
          END DO
          ekinetic = 0.
          rootmeansquare = 0.
-         DO i = nptmass + 1, npart
+         DO i = nptmass + 1, n1
             vel2 = vxyzu(1,i)**2+vxyzu(2,i)**2+vxyzu(3,i)**2
             rootmeansquare = rootmeansquare + vel2
             ekinetic = ekinetic + xyzmh(4,i)*vel2
@@ -1463,7 +1480,7 @@ c
       ELSEIF (iok.EQ.'F' .OR. iok.EQ.'f') THEN
          WRITE (*,*) 'Enter multiplicative factor'
          READ (*,*) factor
-         DO i = 1, npart
+         DO i = nptmass + 1, n1
             vxyzu(1,i) = vxyzu(1,i)*factor
             vxyzu(2,i) = vxyzu(2,i)*factor
             vxyzu(3,i) = vxyzu(3,i)*factor

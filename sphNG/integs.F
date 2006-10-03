@@ -5,6 +5,10 @@ c  This subroutine integrates the systeme of differential   *
 c     equations over one timestep and measures time neded.  *
 c                                                           *
 c************************************************************
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
 
       INCLUDE 'idim'
       INCLUDE 'igrape'
@@ -35,7 +39,7 @@ c************************************************************
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/debug'
 
-      DIMENSION nsteplist(30)
+      DIMENSION nsteplist(30),nsteplisttot(30)
 
       CHARACTER*7 where
 
@@ -87,6 +91,9 @@ c
       gtdouble = gtdouble + DBLE(dtmax)
       gt = REAL(gtdouble)
 
+#ifdef MPI
+      IF (iproc.EQ.0) THEN
+#endif
       IF (ioutinf.NE.0) THEN
          WRITE (iprint, *) 'h too small', ioutinf, ' times'
          WRITE (iprint, *) 'minimum no. of neigh ', inmin
@@ -137,6 +144,9 @@ c
 
 99018    FORMAT('Mean number of nneigh(i) = ',F8.4)
       ENDIF
+#ifdef MPI
+      ENDIF
+#endif
 c
 c--Report number of particles with each timestep
 c
@@ -156,13 +166,27 @@ c
          ENDIF
       END DO
 
-      WRITE (iprint,99100) npart, nactive
+      DO j = 1, 30
+         nsteplisttot(j) = nsteplist(j)
+      END DO
+
+#ifdef MPI
+      CALL MPI_REDUCE(nsteplist,nsteplisttot,30,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      IF (iproc.EQ.0) THEN
+#endif
+
+      WRITE (iprint,99100) nparttot, nactivetot
 99100 FORMAT ('Timestep distribution ',I8,' number active ',I8)
 
       DO j = 0, 29
-         WRITE (iprint,99101) j, dtmax/2**j, nsteplist(j+1)
+         WRITE (iprint,99101) j, dtmax/2**j, nsteplisttot(j+1)
       END DO
 99101 FORMAT (I2,1PE12.4,I8)
+
+#ifdef MPI
+      ENDIF
+#endif
 c
 c--Get time and compute time needed for this timestep
 c
@@ -171,15 +195,18 @@ c
 c
 c--Check for messages
 c
-      CALL mesop
-c
-c--Check for errors during integration
-c
-      IF (ifail.NE.0) CALL error(where, ifail)
+c      CALL mesop
 c
 c--Write time, and number of ghosts
 c
-      WRITE (iprint, 98001) tstep/60., nghost
+      nghosttot = nghost
+#ifdef MPI
+      CALL MPI_REDUCE(nghost,nghosttot,1,MPI_INTEGER,MPI_SUM,0,
+     &   MPI_COMM_WORLD,ierr)
+      IF (iproc.EQ.0) THEN
+#endif
+
+      WRITE (iprint, 98001) tstep/60., nghosttot
 98001 FORMAT (' time used  : ', F8.3, ' min. , ghosts : ', I8)
 
       IF (itiming) THEN
@@ -376,6 +403,10 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
 98020       FORMAT (' TREE Timing:')
          ENDIF
       ENDIF
+
+#ifdef MPI
+      ENDIF
+#endif
 
       RETURN
       END

@@ -92,5 +92,11 @@ c
       CALL getarg(2, inname)
       WRITE (*,*) 'Job: ', job, inname
       RETURN
+c
+c--Get argument on command line
+c
+      ENTRY flush(iunit)
+      CALL FLUSH_(iunit)
+      RETURN
 
       END

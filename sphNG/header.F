@@ -5,6 +5,10 @@ c  This routine writes on first page of listing the value   *
 c     of all variable defined at the start of the run.      *
 c                                                           *
 c************************************************************
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
 
       INCLUDE 'idim'
       INCLUDE 'igrape'
@@ -51,6 +55,31 @@ c************************************************************
       CHARACTER*7 where, where2
 
       DATA where2/'header'/
+
+      nparttot = npart
+      nactivetot = nactive
+      fmas1tot = fmas1
+      fmas2tot = fmas2
+      n1tot = n1
+      n2tot = n2
+      nptmasstot = nptmass
+#ifdef MPI
+      CALL MPI_REDUCE(npart,nparttot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(nactive,nactivetot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(n1,n1tot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(n2,n2tot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(fmas1,fmas1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(fmas2,fmas2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(nptmass,nptmasstot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      IF (iproc.EQ.0) THEN
+#endif
 c
 c--Scaling factors
 c
@@ -83,8 +112,8 @@ c
 c
 c--Mass fractions
 c
-      WRITE (iprint, 99003) npart, nactive, (fmas1 + fmas2), n1, 
-     &        fmas1, n2, fmas2
+      WRITE (iprint, 99003) nparttot, nactivetot, (fmas1tot + fmas2tot),
+     &        n1tot, fmas1tot, n2tot, fmas2tot
 99003 FORMAT (/, ' Total number of particles used : ', I8, /,
      &        ' Number of active particles     : ', I8, /,
      &        ' Total mass                     :', 1PE12.4, /,
@@ -316,7 +345,7 @@ c
                CALL quit
             ENDIF
 
-            WRITE(iprint,99016) nptmass
+            WRITE(iprint,99016) nptmasstot
 99016       FORMAT (' Number of point masses        : ', I4)
 
             IF (iaccevol.EQ.'v') THEN
@@ -349,14 +378,14 @@ c
 99019       FORMAT ('  Gravity ptmass softening     : ', I2)
 99020       FORMAT ('  Softening ptmass parameter   : ', 1PE12.3)
 
-            IF (nptmass.NE.0) THEN
-               DO i = 1, nptmass
-                  WRITE (iprint,99021) i,iphase(listpm(i)),
-     &                 xyzmh(5,listpm(i))
-99021             FORMAT (' Point mass: ',I4, ' type: ',I1,
-     &                 ' hacc: ',1PE12.3)
-               END DO
-            ENDIF
+c            IF (nptmass.NE.0) THEN
+c               DO i = 1, nptmass
+c                  WRITE (iprint,99021) i,iphase(listpm(i)),
+c     &                 xyzmh(5,listpm(i))
+c99021             FORMAT (' Point mass: ',I4, ' type: ',I1,
+c     &                 ' hacc: ',1PE12.3)
+c               END DO
+c            ENDIF
          ENDIF
 
       ENDIF
@@ -378,6 +407,10 @@ c
 99025 FORMAT (//,' Name of input file : ', A7, //)
 
       CALL FLUSH (iprint)
+
+#ifdef MPI
+      ENDIF
+#endif
 
       RETURN
       END

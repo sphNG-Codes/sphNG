@@ -5,6 +5,10 @@ c  This routine prints out all interesting quantities at    *
 c     the present time                                      *
 c                                                           *
 c************************************************************
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
 
       INCLUDE 'idim'
 
@@ -55,6 +59,193 @@ c
 c--Check for output type
 c
       IF (where(1:6).EQ.'inform') THEN
+
+         tkintot = tkin
+         tgravtot = tgrav
+         ttermtot = tterm
+         tmagtot = tmag
+         tradtot = trad
+         trotztot = trotz
+         trotxtot = trotx
+         angtotot = angto
+         totmomtot = totmom
+         nactivetot = nactive
+         nptmasstot = nptmass
+
+         nreassigntot = nreassign
+         naccretetot = naccrete
+         nkilltot = nkill
+
+         n1tot = n1
+         cmx1tot = cmx1
+         cmy1tot = cmy1
+         cmz1tot = cmz1
+         vcmx1tot = vcmx1
+         vcmy1tot = vcmy1
+         vcmz1tot = vcmz1
+         hmi1tot = hmi1
+         hma1tot = hma1
+         dmax1tot = dmax1
+         zmax1tot = zmax1
+         romean1tot = romean1
+         romax1tot = romax1
+         rocen1tot = rocen1
+         valphamin1tot = valphamin1
+         valphamax1tot = valphamax1
+         tgmean1tot = tgmean1
+         tgmax1tot = tgmax1
+         tgcen1tot = tgcen1
+         trmean1tot = trmean1
+         trmax1tot = trmax1
+         trcen1tot = trcen1
+
+         n2tot = n2
+         cmx2tot = cmx2
+         cmy2tot = cmy2
+         cmz2tot = cmz2
+         vcmx2tot = vcmx2
+         vcmy2tot = vcmy2
+         vcmz2tot = vcmz2
+         hmi2tot = hmi2
+         hma2tot = hma2
+         dmax2tot = dmax2
+         zmax2tot = zmax2
+         romean2tot = romean2
+         romax2tot = romax2
+         rocen2tot = rocen2
+         valphamin2tot = valphamin2
+         valphamax2tot = valphamax2
+         tgmean2tot = tgmean2
+         tgmax2tot = tgmax2
+         tgcen2tot = tgcen2
+         trmean2tot = trmean2
+         trmax2tot = trmax2
+         trcen2tot = trcen2
+
+#ifdef MPI
+      CALL MPI_REDUCE(tkin,tkintot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(tgrav,tgravtot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(tterm,ttermtot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(tmag,tmagtot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(trad,tradtot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(trotz,trotztot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(trotx,trotxtot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(angto,angtotot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(totmom,totmomtot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(escap,escaptot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(nactive,nactivetot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(nptmass,nptmasstot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(nreassign,nreassigntot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(naccrete,naccretetot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(nkill,nkilltot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+
+      CALL MPI_REDUCE(n1,n1tot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(cmx1,cmx1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(cmy1,cmy1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(cmz1,cmz1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(vcmx1,vcmx1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(vcmy1,vcmy1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(vcmz1,vcmz1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(hmi1,hmi1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(hma1,hma1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(dmax1,dmax1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(zmax1,zmax1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(romean1,romean1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(romax1,romax1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(rocen1,rocen1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(valphamin1,valphamin1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(valphamax1,valphamax1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(tgmean1,tgmean1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(tgmax1,tgmax1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(tgcen1,tgcen1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(trmean1,trmean1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(trmax1,trmax1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(trcen1,trcen1tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+
+      CALL MPI_REDUCE(n2,n2tot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(cmx2,cmx2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(cmy2,cmy2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(cmz2,cmz2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(vcmx2,vcmx2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(vcmy2,vcmy2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(vcmz2,vcmz2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(hmi2,hmi2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(hma2,hma2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(dmax2,dmax2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(zmax2,zmax2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(romean2,romean2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(romax2,romax2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(rocen2,rocen2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(valphamin2,valphamin2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(valphamax2,valphamax2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(tgmean2,tgmean2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(tgmax2,tgmax2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(tgcen2,tgcen2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(trmean2,trmean2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(trmax2,trmax2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(trcen2,trcen2tot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+
+      IF (iproc.EQ.0) THEN
+#endif
 c
 c--Write integration output :
 c
@@ -82,10 +273,10 @@ c
 c
 c--Energies + total angular momentum
 c
-         total = tkin + tgrav
-         IF (igrp.NE.0) total = total + tterm + tmag + trad
-         WRITE (iprint, 99004, ERR=100) total,tkin,trotz,trotx,tgrav,
-     &                               tterm,tmag,trad,angto,totmom
+         total = tkintot + tgravtot
+         IF (igrp.NE.0) total = totaltot + ttermtot + tmagtot + tradtot
+         WRITE (iprint, 99004, ERR=100) total,tkintot,trotztot,trotxtot,
+     &        tgravtot,ttermtot,tmagtot,tradtot,angtotot,totmomtot
 99004    FORMAT (' General properties of system : ', /,
      &           ' total energy                       : ', 1PE14.5, /,
      &           ' kinetic energy                     : ', 1PE14.5, /,
@@ -98,11 +289,11 @@ c
      &           ' total angular momentum             : ', 1PE14.5, /,
      &           ' total linear momentum              : ', 1PE14.5)
          
-         IF (ABS(tgrav).GT.tiny) THEN
-            alph = tterm / ABS(tgrav)
-            betl = trotz / ABS(tgrav)
-            betr = trotx / ABS(tgrav)
-            rmag2grav = tmag / ABS(tgrav)
+         IF (ABS(tgravtot).GT.tiny) THEN
+            alph = ttermtot / ABS(tgravtot)
+            betl = trotztot / ABS(tgravtot)
+            betr = trotxtot / ABS(tgravtot)
+            rmag2grav = tmagtot / ABS(tgravtot)
             ajeans = 1 / alph
          ELSE
             alph = 0.
@@ -112,7 +303,7 @@ c
             rmag2grav = 0.
          ENDIF
          IF (ABS(tterm).GT.tiny) THEN
-            rmag2therm = tmag / ABS(tterm)
+            rmag2therm = tmagtot / ABS(ttermtot)
          ELSE
             rmag2therm = 0.
          ENDIF
@@ -130,34 +321,34 @@ c
 c
 c--Escapors
 c
-         WRITE (iprint, 99005, ERR=100) escap
+         WRITE (iprint, 99005, ERR=100) escaptot
 99005    FORMAT (' escapors (total mass)         : ', 1PE14.5)
 c
 c--Accretion
 c
-         WRITE (iprint, 88002, ERR=100) nactive, nptmass
+         WRITE (iprint, 88002, ERR=100) nactivetot, nptmasstot
 88002    FORMAT (' number of active particles    : ', I8, I8)
          IF (ibound.EQ.8 .OR. ibound/10.EQ.9 .OR. ibound.EQ.100) THEN
-            WRITE (iprint, 88003, ERR=100) nreassign
+            WRITE (iprint, 88003, ERR=100) nreassigntot
 88003       FORMAT (' number of reassigned part.    : ', I8)
-            WRITE (iprint, 88004, ERR=100) naccrete
+            WRITE (iprint, 88004, ERR=100) naccretetot
 88004       FORMAT (' number of accreted part.      : ', I8)
-            WRITE (iprint, 88005, ERR=100) nkill
+            WRITE (iprint, 88005, ERR=100) nkilltot
 88005       FORMAT (' number of killed particles    : ', I8)
          ENDIF
-         IF (iaccevol.EQ.'v' .OR. iaccevol.EQ.'s') THEN
-            WRITE (iprint, 88006, ERR=100)
-88006       FORMAT (' point mass data:')
-            DO i = 1, nptmass
-               ipt = listpm(i)
-               WRITE (iprint, 88007, ERR=100) i, iphase(ipt), 
-     &              xyzmh(5,ipt)
-88007          FORMAT ('  point mass: ',I2,' type: ',I1,
-     &                 ' hacc: ',1PE12.3)
-            END DO
-            WRITE (iprint,88008) rmax
-88008       FORMAT (' new boundary radius: ',1PE12.5)
-         ENDIF
+c         IF (iaccevol.EQ.'v' .OR. iaccevol.EQ.'s') THEN
+c            WRITE (iprint, 88006, ERR=100)
+c88006       FORMAT (' point mass data:')
+c            DO i = 1, nptmass
+c               ipt = listpm(i)
+c               WRITE (iprint, 88007, ERR=100) i, iphase(ipt), 
+c     &              xyzmh(5,ipt)
+c88007          FORMAT ('  point mass: ',I2,' type: ',I1,
+c     &                 ' hacc: ',1PE12.3)
+c            END DO
+c            WRITE (iprint,88008) rmax
+c88008       FORMAT (' new boundary radius: ',1PE12.5)
+c         ENDIF
 c
 c--Magnetic field parameters	(computed in mhdparams)
 c
@@ -181,10 +372,10 @@ c
 c
 c--Object no 1
 c
-         WRITE (iprint, 99006, ERR=100) n1, cmx1, cmy1, cmz1, vcmx1,
-     &        vcmy1, vcmz1, hmi1, hma1, dmax1,
-     &        zmax1, romean1, romax1, rocen1,
-     &        valphamin1, valphamax1, tgmean1, tgmax1, tgcen1
+         WRITE (iprint, 99006, ERR=100) n1tot,cmx1tot,cmy1tot,cmz1tot,
+     &        vcmx1tot,vcmy1tot, vcmz1tot, hmi1tot, hma1tot, dmax1tot,
+     &        zmax1tot, romean1tot, romax1tot, rocen1tot,
+     &        valphamin1tot,valphamax1tot,tgmean1tot,tgmax1tot,tgcen1tot
 99006    FORMAT (/, ' Object number 1 (', I8, ' particles ) : ', /,
      &           ' center of mass  x :', 1PE14.5, '  y :', 1PE14.5,
      &           '  z :', 1PE14.5, /, ' velocity cm    vx :', 1PE14.5,
@@ -202,19 +393,19 @@ c
      &              ' max:', 1PE14.5,/)         
          ENDIF
          IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
-            WRITE (iprint, 99106, ERR=100) trmean1, trmax1, trcen1
+            WRITE (iprint, 99106, ERR=100)trmean1tot,trmax1tot,trcen1tot
 99106       FORMAT (' temper. rad. mean :', 1PE14.5, ' max:', 
      &           1PE14.5, ' cen:', 1PE14.5, /)
          ENDIF
-
 c
 c--Object no 2
 c
          IF (n2.NE.0) THEN
-            WRITE (iprint, 99007, ERR=100) n2, cmx2, cmy2, cmz2, vcmx2,
-     &             vcmy2, vcmz2, hmi2, hma2, dmax2,
-     &             zmax2, romean2, romax2, rocen2,
-     &             valphamin2, valphamax2, tgmean2, tgmax2, tgcen2
+            WRITE (iprint, 99007, ERR=100) n2tot,cmx2tot,cmy2tot,
+     &           cmz2tot,vcmx2tot,vcmy2tot,vcmz2tot,hmi2tot,hma2tot,
+     &           dmax2tot,zmax2tot,romean2tot,
+     &           romax2tot,rocen2tot,valphamin2tot,valphamax2tot
+     &           tgmean2, tgmax2, tgcen2
 99007       FORMAT (/, ' Object number 2 (', I8, ' particles ) : ', /,
      &           ' center of mass  x :', 1PE14.5, '  y :', 1PE14.5,
      &           '  z :', 1PE14.5, /, ' velocity cm    vx :', 1PE14.5,
@@ -230,6 +421,9 @@ c
                WRITE (iprint, 99106, ERR=100) trmean2, trmax2, trcen2
             ENDIF
          ENDIF
+#ifdef MPI
+      ENDIF
+#endif
 c
 c--Write transfer output
 c

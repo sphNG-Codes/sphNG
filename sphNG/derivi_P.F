@@ -6,6 +6,10 @@ c  This subroutine drives the computation of the forces on  *
 c     every particle on the list.                           *
 c                                                           *
 c************************************************************
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
 
       INCLUDE 'idim'
       INCLUDE 'igrape'
@@ -52,6 +56,11 @@ c************************************************************
       INCLUDE 'COMMONS/active'
 
 c      INCLUDE 'COMMONS/timeextra'
+
+#ifdef MPI
+      DIMENSION xyzmhpassed(5,idim), fxyzpext(4,idim),
+     &     fxyzprec(4,idim), llistsend(idim)
+#endif
 
       CHARACTER*7 where
       DIMENSION dedxyz(3,iradtrans)
@@ -169,6 +178,172 @@ c
             CALL getused(td12)
             td1 = td1 + (td12 - td11)
          ENDIF
+
+#ifdef MPI
+      CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
+      DO i = 1, nlst
+         llistsend(i) = llist(i) - 1
+      END DO
+      CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nlst, 1, llistsend, i5REAL8,
+     &     indexMPI5, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI5,ierr)
+
+      CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nlst, 1, llistsend, i4REAL8,
+     &     indexMPI4, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
+
+      CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nlst, 1, llistsend, MPI_REAL4,
+     &     indexMPI1, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI1,ierr)
+
+      CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nlst, 1, llistsend,MPI_INTEGER,
+     &     indexMPI_I1, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI_I1,ierr)
+
+      DO i = 1, numproc - 1
+         iahead = MOD(iproc+i,numproc)
+         ibehind = MOD(numproc+iproc-i,numproc)
+c
+c--Send to node ahead, receive from node behind
+c
+c         print *,iproc,': Sending xyzmh to ',iahead,' rec from ',ibehind
+c         DO j = 1, 10
+c            print *,iproc,': S   ',j,xyzmh(1,llist(j)),xyzmh(3,llist(j))
+c         END DO
+
+         CALL MPI_SENDRECV(xyzmh,1,indexMPI5,iahead,0,
+     &        xyzmhpassed, idim, i5REAL8, ibehind,
+     &        MPI_ANY_TAG, MPI_COMM_WORLD, istatus, ierr)
+         CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
+
+         CALL MPI_SENDRECV(vxyzu,1,indexMPI4,iahead,0,
+     &        vxyzupassed, idim, i4REAL8, ibehind,
+     &        MPI_ANY_TAG, MPI_COMM_WORLD, istatus, ierr)
+
+         CALL MPI_SENDRECV(rho,1,indexMPI1,iahead,0,
+     &        rhopassed, idim, MPI_REAL4, ibehind,
+     &        MPI_ANY_TAG, MPI_COMM_WORLD, istatus, ierr)
+
+         CALL MPI_SENDRECV(divv,1,indexMPI1,iahead,0,
+     &        divvpassed, idim, MPI_REAL4, ibehind,
+     &        MPI_ANY_TAG, MPI_COMM_WORLD, istatus, ierr)
+
+         CALL MPI_SENDRECV(nneigh,1,indexMPI_I1,iahead,0,
+     &        nneighpassed, idim, MPI_INTEGER, ibehind,
+     &        MPI_ANY_TAG, MPI_COMM_WORLD, istatus, ierr)
+
+c         print *,iproc,': Done Sendrecv'
+c         DO j = 1, 10
+c            print *,iproc,': R   ',j,xyzmhpassed(1,j),xyzmhpassed(3,j)
+c         END DO
+c         print *,iproc,': Received ',inumber
+c
+c--Loop over particles from other node to calculate forces on them
+c     and to get neighbours of particles.
+c     Then needs to calculate contributions to rho, divv, curlv,
+c     nneigh.  From this and partial rho passed from other node, can
+c     determine full rho, pressure, divv, curlv and then determines
+c     contributions to gas forces and gravity from neighbours.
+c     The returned dataset then consists of contributions to
+c     fxyzp, rho, divv, curlv, nneigh.
+c     NOTE: fxyzp also needs to include forces from sink particles.
+c     Question: What happens with accretion!!
+c
+         DO j = 1, inumber
+            DO k = 1, 4
+               fxyzpext(k,j) = 0.0
+            END DO
+c
+c--This should return neighbours lists for the particles as well as node
+c     and leaf forces in fxyzpext, and the contribution to nneigh(ext)
+c
+c            CALL treefext(j,xyzmhpassed,xyzmh,acc,igphi,fxyzpext)
+c
+c--The neighbours lists should then be used to calculate contributions to
+c     rho and divv (and curlv if required) and add them onto (rho,divv)passed
+c
+c            CALL densityext()
+c
+c--Then calculate additional forces
+c
+c            CALL forceiext(fxyzpext)
+         END DO
+c
+c--Send quantities back to node behind, receive forces from node ahead
+c
+c         print *,'Sending forces to ',ibehind,' rec from ',iahead
+c         DO j = 1, 10
+c            print *,iproc,': S   ',j,fxyzpext(1,j)
+c         END DO
+
+         CALL MPI_SENDRECV(fxyzpext,4*inumber,MPI_REAL8,ibehind,1,
+     &        fxyzprec,4*nlst,MPI_REAL8,iahead,
+     &        MPI_ANY_TAG, MPI_COMM_WORLD, istatus, ierr)
+         CALL MPI_GET_COUNT(istatus, MPI_REAL8, ireturned, ierr)
+         IF (ireturned.NE.4*nlst) THEN
+            WRITE (*,*) 'ERROR - ireturned.NE.4*nlst'
+            CALL quit
+         ENDIF
+c
+c--CANNOT read totals directly back into rho() because multiple nodes may be
+c     contributing to the same particle's values (need to add contributions
+c     together).
+c
+         CALL MPI_SENDRECV(rhoext,inumber,MPI_REAL4,ibehind,1,
+     &        rhorec,nlst,MPI_REAL4,iahead,
+     &        MPI_ANY_TAG, MPI_COMM_WORLD, istatus, ierr)
+         CALL MPI_GET_COUNT(istatus, MPI_REAL4, ireturned, ierr)
+         IF (ireturned.NE.4*nlst) THEN
+            WRITE (*,*) 'ERROR - ireturned.NE.4*nlst'
+            CALL quit
+         ENDIF
+
+         CALL MPI_SENDRECV(divvext,inumber,MPI_REAL4,ibehind,1,
+     &        divvrec,nlst,MPI_REAL4,iahead,
+     &        MPI_ANY_TAG, MPI_COMM_WORLD, istatus, ierr)
+         CALL MPI_GET_COUNT(istatus, MPI_REAL4, ireturned, ierr)
+         IF (ireturned.NE.4*nlst) THEN
+            WRITE (*,*) 'ERROR - ireturned.NE.4*nlst'
+            CALL quit
+         ENDIF
+
+         CALL MPI_SENDRECV(rhoext,inumber,MPI_REAL4,ibehind,1,
+     &        rhorec,nlst,MPI_REAL4,iahead,
+     &        MPI_ANY_TAG, MPI_COMM_WORLD, istatus, ierr)
+         CALL MPI_GET_COUNT(istatus, MPI_REAL8, ireturned, ierr)
+         IF (ireturned.NE.4*nlst) THEN
+            WRITE (*,*) 'ERROR - ireturned.NE.4*nlst'
+            CALL quit
+         ENDIF
+
+c         DO j = 1, 10
+c            print *,iproc,': R   ',j,fxyzprec(1,j)
+c         END DO
+
+
+         DO j = 1, nlst
+            DO k = 1, 3
+               fxyzu(k,llist(j)) = fxyzu(k,llist(j)) + fxyzprec(k,j)
+               
+            END DO
+            poten(llist(j)) = poten(llist(j)) + fxyzprec(4,j)
+         END DO
+      END DO
+
+c      print *,iproc,': Received all forces'
+c
+c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+      CALL MPI_TYPE_FREE(indexMPI1,ierr)
+      CALL MPI_TYPE_FREE(indexMPI4,ierr)
+      CALL MPI_TYPE_FREE(indexMPI5,ierr)
+      CALL MPI_TYPE_FREE(i4REAL8,ierr)
+      CALL MPI_TYPE_FREE(i5REAL8,ierr)
+
+      print *,iproc,': FINISHED'
+      print *,' '
+#endif
+
 
          IF (itiming) CALL getused(td21)
 C$OMP PARALLEL default(none)

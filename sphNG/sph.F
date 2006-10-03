@@ -408,16 +408,36 @@ c  Running time scales like NlogN.                          *
 c                                                           *
 c************************************************************
 
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
+
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
       INCLUDE 'COMMONS/infor'
       INCLUDE 'COMMONS/actio'
       INCLUDE 'COMMONS/debug'
+
+#ifdef MPI
+      CALL MPI_INIT(ierr)
+      CALL MPI_COMM_RANK(MPI_COMM_WORLD, iproc, ierr)
+      CALL MPI_COMM_SIZE(MPI_COMM_WORLD, numproc, ierr)
+      IF (numproc.GT.nummaxproc) THEN
+         WRITE (*,*) 'ERROR - numproc.GT.nummaxproc'
+         CALL quit
+      ENDIF
+#endif
 c
 c--Version - date is date last updated with other code version changes
 c
-      version = 'SPRMHD-1.1-MRB-DJP-12-01-06'
+      version = 'SPRMHD-MPI-1.0-MRB-DJP-16-05-06'
+c
+c   Derived from version = 'SPRMHD-1.1-MRB-DJP-12-01-06'
+c     but with MPI/OpenMP hybrid capability.
+c
+c      version = 'SPRMHD-1.1-MRB-DJP-12-01-06'
 c
 c   Derived from version = 'SPRMHD-1.0-MRB-DJP-06-09-05'
 c     but with MHD looking like it kind of, maybe, works.

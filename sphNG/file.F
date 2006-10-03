@@ -6,6 +6,10 @@ c     created if the size of the current file gets too      *
 c     large.                                                *
 c                                                           *
 c************************************************************
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
 
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/files'
@@ -25,7 +29,7 @@ c         GOTO 100
 c
 c--Check for file status
 c
-      CALL statfile(file1, ifsize)
+c      CALL statfile(file1, ifsize)
 c
 c--If smaller than maxsize return
 c
@@ -61,10 +65,17 @@ c
          ENDIF
       ENDIF
 
+#ifdef MPI
+      CALL appendiproc(7,file1,iproc)
+#endif
+
       OPEN (idisk1, FILE=file1, FORM='unformatted', RECL=imaxrec)
 c
 c--Write witness on listing
 c
+#ifdef MPI
+      IF (iproc.EQ.0) THEN      
+#endif
       WRITE (iprint, 99003)
 99003 FORMAT (/)
       WRITE (iprint, 99004)
@@ -73,6 +84,9 @@ c
 99005 FORMAT (' ------------ file ', A7, ' created --------------')
       WRITE (iprint, 99004)
       WRITE (iprint, 99003)
+#ifdef MPI
+      ENDIF
+#endif
 c
 c--Reset dump counter
 c

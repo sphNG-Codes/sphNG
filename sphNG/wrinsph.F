@@ -5,6 +5,10 @@ c  This subroutine writes a new file inname from parameters *
 c     taken from setpart                                    *
 c                                                           *
 c************************************************************
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
 
       INCLUDE 'idim'
 
@@ -49,6 +53,9 @@ c
 c
 c--Open input file
 c
+#ifdef MPI
+      IF (iproc.EQ.0) THEN
+#endif
       OPEN (iterm, FILE=inname)
 c
 c--Determine options for evolution run
@@ -223,6 +230,10 @@ c
       ENDIF
 
       CLOSE (iterm)
+
+#ifdef MPI
+      ENDIF
+#endif
 
       RETURN
       END

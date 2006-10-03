@@ -23,17 +23,24 @@ SHELL = /bin/sh
 # the parameters as environment variables
 debug= yes
 doubleprecision= yes
+mpi = yes
 # endian can be "BIG", "LITTLE" or anything else which has no effect
 ENDIAN= default
 
 ifeq ($(SYSTEM), ukaff1a)
+ifeq ($(mpi), yes)
+    FC= mpif77 -qnosave
+else
     FC= xlf_r -qnosave
-    FFLAGS= -O3 -q64 -qextname -qsmp=noauto
+endif
+#    FFLAGS= -O3 -q64 -qextname -qsmp=noauto 
+    FFLAGS= -O3 -q64 -qsmp=noauto 
     DBLFLAG= -qrealsize=8
 #    DEBUGFLAG= -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
     DEBUGFLAG= -C
     KNOWN_SYSTEM=yes
-    ZZFILE= zzsun_f77_double1.f zzsun_f77_double2.f
+#    ZZFILE= zzsun_f77_double1.f zzsun_f77_double2.f
+    ZZFILE= zzibm.f
 endif
 
 ifeq ($(SYSTEM), sunf95)
@@ -116,9 +123,13 @@ ifeq ($(doubleprecision), yes)
     FFLAGS += ${DBLFLAG}
 endif
 
+ifeq ($(mpi), yes)
+    FFLAGS += -d -WF,-DMPI
+endif
+
 # these are the sources common to all compilations
 
-SOURCES= sph.f accrete_P.f addump.f angmom.f boundry.f \
+SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f \
 	chekopt.f condense.f constan.f coriol.f cyldis.f cylmas.f cylpres.f \
 	cylvel.f endrun.f energ.f \
@@ -128,16 +139,16 @@ SOURCES= sph.f accrete_P.f addump.f angmom.f boundry.f \
 	gforsa_P.f gforsn_P.f gforspt_P.f \
 	ghostp1.f ghostp2.f ghostp3.f ghostp11.f ghostp100.f \
         gptall.f hdot_P.f \
-	header.f homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
-	inopts.f insulate_TREE_P.f integs.f ktable.f labrun.f lunit_double.f \
+	header.F homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
+	inopts.f insulate_TREE_P.F integs.F ktable.f labrun.f lunit_double.f \
 	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
 	newrun.f options.f phoenix.f phoenix2.f \
-	place.f preset.f \
-	prout.f ran1.f rdump.f reduce.f save.f \
+	place.f preset.F \
+	prout.F ran1.f rdump.f reduce.f save.f \
         scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f \
 	timestep.f toten.f treef_P.f unifdis.f unit.f \
-	wdump.f wrinsph.f
+	wdump.f wrinsph.F
 
 # these are the sources required for the gradh code to compile
 
@@ -161,17 +172,43 @@ SRCTORUS= montecarloRT.f
 # timestepping routine
 
 SRCRK = step_P.f revtree_P.f
-SRCLF = step_P_lf_fast2_gradh.f revtree_P_fast2.f
+SRCLF = step_P_lf_fast2_gradh.F revtree_P_fast2.f
 
 # construct object files
 
-OBJECTS = $(SOURCES:.f=.o) $(ZZFILE:.f=.o)
-OBJLF = $(OBJECTS) $(SRCNONGRADH:.f=.o) $(SRCLF:.f=.o)
-OBJRK = $(OBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o)
-OBJRT = $(OBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o)
-OBJGRADHLF = $(OBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o)
-OBJGRADHRK = $(OBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o)
-OBJTORUS = $(OBJECTS) $(SRCNONGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCTORUS:.f=.o)
+TOBJECTS = $(SOURCES:.f=.o) $(ZZFILE:.f=.o)
+TOBJLF = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCLF:.f=.o)
+TOBJRK = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o)
+TOBJRT = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o)
+TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o)
+TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o)
+TOBJTORUS = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCTORUS:.f=.o)
+
+OBJECTS = $(TOBJECTS:.F=.o) 
+OBJLF = $(TOBJLF:.F=.o) 
+OBJRK = $(TOBJRK:.F=.o) 
+OBJRT = $(TOBJRT:.F=.o) 
+OBJGRADHLF = $(TOBJGRADHLF:.F=.o) 
+OBJGRADHRK = $(TOBJGRADHRK:.F=.o) 
+OBJTORUS = $(TOBJTORUS:.F=.o) 
+
+# specific rules to make MPI object files
+
+#mpif.h :
+#	@echo " "
+#	@echo "Including mpif.h in the following file............."
+#	@echo " "
+
+#%.o: %.f
+#	$(FC) $(FFLAGS) -c $<
+
+#sph.o : sph.f.raw
+#	ifeq ($(MK_MPI_SRC),yes)
+#	   sed 's/C$MPI/     /g' sph.f.raw   > sph.f
+#	else
+#	   sed '/C$MPI/d' sph.f.raw   > sph.f
+#	endif
+#	$(FC) $(FFLAGS) -c sph.f
 
 lf: checksystem checkparams sph_tree_lf
 

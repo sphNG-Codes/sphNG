@@ -6,6 +6,10 @@ c     equations for one timestep using                      *
 c     a second-order Leap-Frog method.                      *
 c                                                           *
 c************************************************************
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
 
       INCLUDE 'idim'
       INCLUDE 'igrape'
@@ -113,6 +117,9 @@ c
       IF (ifirst) THEN
          ifirst = .FALSE.
 
+#ifdef MPI
+      IF (iproc.EQ.0) THEN
+#endif
          IF (integrator.EQ.1) THEN
             WRITE (iprint,*) 'Integrator: Leap-Frog'
             WRITE (iprint,*)
@@ -120,6 +127,9 @@ c
             WRITE (iprint,*) 'Integrator miss-match'
             CALL quit
          ENDIF
+#ifdef MPI
+      ENDIF
+#endif
 
          IF (gt.EQ.0.0) THEN
 c
@@ -1269,6 +1279,9 @@ c
 c--Update time
 c
       IF (itime.GE.iteighth) THEN
+#ifdef MPI
+      IF (iproc.EQ.0) THEN
+#endif
          WRITE(iprint,253) dt*itime/imaxstep + gt,
      &        dt*itime/imaxstep, nlst
  253     FORMAT ('Dynamic time = ', 1PE17.10,
@@ -1276,6 +1289,9 @@ c
 
          CALL FLUSH (iprint)
          CALL FLUSH (iptprint)
+#ifdef MPI
+      ENDIF
+#endif
          iteighth = itime + imaxstep/8
       ENDIF
 c
@@ -2071,7 +2087,7 @@ c
       ilocal = ilocal + 1
       IF (MOD(ilocal,50).EQ.0) THEN
          ilocal = 0
-         CALL secmes
+c         CALL secmes
       ENDIF
 
       GOTO  100

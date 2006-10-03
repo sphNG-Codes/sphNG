@@ -5,6 +5,10 @@ c  This routine makes sure that everything not entered as   *
 c     option is defined before integration begins.          *
 c                                                           *
 c************************************************************
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
 
       INCLUDE 'idim'
       INCLUDE 'igrape'
@@ -42,12 +46,17 @@ c************************************************************
       INCLUDE 'COMMONS/cgas'
 
       CHARACTER*7 where
-      CHARACTER*21 ptfile, accfile, killfile, reassfile
+      CHARACTER*25 ptfile, accfile, killfile, reassfile
 
       DATA where/'preset'/
 c
 c--Open file1
 c
+#ifdef MPI
+      CALL appendiproc(7,file1,iproc)
+      write (*,*) 'About to open ',file1
+#endif
+
       OPEN (idisk1, FILE=file1, STATUS='unknown', FORM='unformatted',
      &        RECL=imaxrec)
 c
@@ -66,6 +75,10 @@ c
 99990 FORMAT ('P', A20)
       WRITE (accfile,99991) namerun
 99991 FORMAT ('A', A20)
+#ifdef MPI
+      CALL appendiproc(21,ptfile,iproc)
+      CALL appendiproc(21,accfile,iproc)
+#endif
       IF (nptmass.NE.0 .OR. iptmass.NE.0) THEN
          OPEN (iptprint, FILE=ptfile,STATUS='unknown',
      &        FORM='unformatted')
@@ -79,6 +92,10 @@ c
 99992 FORMAT ('K', A20)
       WRITE (reassfile,99993) namerun
 99993 FORMAT ('R', A20)
+#ifdef MPI
+      CALL appendiproc(21,killfile,iproc)
+      CALL appendiproc(21,reassfile,iproc)
+#endif
       IF (ibound.EQ.8 .OR. ibound/10.EQ.9 .OR. ibound.EQ.100) THEN
          OPEN (ikillpr, FILE=killfile, STATUS='unknown',
      &        FORM='unformatted')
@@ -88,7 +105,13 @@ c
 c
 c--Open notify file
 c
+#ifdef MPI
+      IF (iproc.EQ.0) THEN
+#endif
       OPEN (inotify,FILE='notify')
+#ifdef MPI
+      ENDIF
+#endif
 c
 c--Initialize viscosity switch
 c
@@ -242,6 +265,28 @@ c
  
       IF (itrace.EQ.'all') WRITE(iprint,250)
  250  FORMAT(' exit subroutine preset')
+
+      RETURN
+      END
+
+      SUBROUTINE appendiproc(numchar,string,iproc)
+
+      CHARACTER*25 string
+      CHARACTER*3 iprocstring
+
+      IF (iproc.LT.10) THEN
+         WRITE (string,99001) string(1:numchar),iproc
+99001    FORMAT(A7,'.00',I1)
+      ELSEIF (iproc.LT.100) THEN
+         WRITE (string,99001) string(1:numchar),iproc
+99002    FORMAT(A7,'.0',I2)
+      ELSEIF (iproc.LT.1000) THEN
+         WRITE (string,99001) string(1:numchar),iproc
+99003    FORMAT(A7,'.',I3)
+      ELSE
+         WRITE (*,*) 'ERROR: string ',iproc
+         CALL quit
+      ENDIF
 
       RETURN
       END

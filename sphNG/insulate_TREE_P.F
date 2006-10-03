@@ -222,6 +222,11 @@ c                                                           *
 c  This subroutine should be used instead of 'STOP'         *
 c                                                           *
 c************************************************************
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
 
+      CALL MPI_FINALIZE(ierr)
+#endif
       STOP
       END

@@ -79,6 +79,7 @@ c
       numparticlesdone = numparticlesdone + nlst_end
       nwarnup = 0
       nwarndown = 0
+      nwarnroundoff = 0
       stressmax = 0.
 c
 c--for constant pressure boundaries, use a minimum density
@@ -118,6 +119,7 @@ C$OMP& private(vbarxi,vbaryi,vbarzi)
 C$OMP& private(alphai,betai,wkern,dalpha,dbeta,grpmi)
 C$OMP& reduction(MAX:rhonext,imaxit)
 C$OMP& reduction(+:inumit,inumfixed,inumrecalc,nwarnup,nwarndown)
+C$OMP& reduction(+:nwarnroundoff)
 
 C$OMP DO SCHEDULE(runtime)
       DO n = nlst_in, nlst_end
@@ -157,7 +159,9 @@ c
                CALL getneighi(ipart,xi,yi,zi,rcut,
      &              numneighi,neighlist,xyzmh)
                inumrecalc = inumrecalc + 1
-               IF (numneighi.EQ.0) WRITE(*,*) 'ZERO NEIGHBOURS!'
+               IF (numneighi.EQ.0) THEN
+                  WRITE(*,*) 'ZERO NEIGHBOURS!, h=',hi,ipart
+               ENDIF
             ENDIF
 c
 c--Calculate density by looping over interacting neighbors
@@ -463,37 +467,43 @@ c
 c--compute grad alpha and grad beta using exact linear interpolation
 c  (see Price 2004)
 c
-               ddenom = 1./(rxxi*ryyi*rzzi + 2.*rxyi*rxzi*ryzi
-     &                    - rxxi*ryzi**2 - ryyi*rxzi**2 - rzzi*rxyi**2)
+               denom = rxxi*ryyi*rzzi + 2.*rxyi*rxzi*ryzi
+     &               - rxxi*ryzi**2 - ryyi*rxzi**2 - rzzi*rxyi**2
+
+               IF (abs(denom).GT.tiny) THEN
+                  ddenom = 1./denom
      
-               gradalphaxi = (dalphaxi*(ryyi*rzzi - ryzi**2)
-     &                     +  dalphayi*(rxzi*ryzi - rzzi*rxyi)
-     &                     +  dalphazi*(rxyi*ryzi - rxzi*ryyi))*ddenom
-               gradalphayi = (dalphaxi*(ryzi*rxzi - rxyi*rzzi)
-     &                     +  dalphayi*(rzzi*rxxi - rxzi**2)
-     &                     +  dalphazi*(rxyi*rxzi - rxxi*ryzi))*ddenom
-               gradalphazi = (dalphaxi*(rxyi*ryzi - rxzi*ryyi)
-     &                     +  dalphayi*(rxyi*rxzi - rxxi*ryzi)
-     &                     +  dalphazi*(rxxi*ryyi - rxyi**2))*ddenom
-               gradbetaxi = (dbetaxi*(ryyi*rzzi - ryzi**2)
-     &                    +  dbetayi*(rxzi*ryzi - rzzi*rxyi)
-     &                    +  dbetazi*(rxyi*ryzi - rxzi*ryyi))*ddenom
-               gradbetayi = (dbetaxi*(ryzi*rxzi - rxyi*rzzi)
-     &                    +  dbetayi*(rzzi*rxxi - rxzi**2)
-     &                    +  dbetazi*(rxyi*rxzi - rxxi*ryzi))*ddenom
-               gradbetazi = (dbetaxi*(rxyi*ryzi - rxzi*ryyi)
-     &                    +  dbetayi*(rxyi*rxzi - rxxi*ryzi)
-     &                    +  dbetazi*(rxxi*ryyi - rxyi**2))*ddenom
+                  gradalphaxi =(dalphaxi*(ryyi*rzzi - ryzi**2)
+     &                        + dalphayi*(rxzi*ryzi - rzzi*rxyi)
+     &                        + dalphazi*(rxyi*ryzi - rxzi*ryyi))*ddenom
+                  gradalphayi =(dalphaxi*(ryzi*rxzi - rxyi*rzzi)
+     &                        + dalphayi*(rzzi*rxxi - rxzi**2)
+     &                        + dalphazi*(rxyi*rxzi - rxxi*ryzi))*ddenom
+                  gradalphazi = (dalphaxi*(rxyi*ryzi - rxzi*ryyi)
+     &                         + dalphayi*(rxyi*rxzi - rxxi*ryzi)
+     &                         + dalphazi*(rxxi*ryyi - rxyi**2))*ddenom
+                  gradbetaxi = (dbetaxi*(ryyi*rzzi - ryzi**2)
+     &                        + dbetayi*(rxzi*ryzi - rzzi*rxyi)
+     &                        + dbetazi*(rxyi*ryzi - rxzi*ryyi))*ddenom
+                  gradbetayi = (dbetaxi*(ryzi*rxzi - rxyi*rzzi)
+     &                        + dbetayi*(rzzi*rxxi - rxzi**2)
+     &                        + dbetazi*(rxyi*rxzi - rxxi*ryzi))*ddenom
+                  gradbetazi = (dbetaxi*(rxyi*ryzi - rxzi*ryyi)
+     &                        + dbetayi*(rxyi*rxzi - rxxi*ryzi)
+     &                        + dbetazi*(rxxi*ryyi - rxyi**2))*ddenom
+               ELSE
 c
-c--uncomment the following lines for the standard first derivative
+c--standard first derivative (use in case of round-off error problems)
 c
-c               term = cnormk*gradhs(1,ipart)/rhoi
-c               gradalphaxi = dalphaxi*term
-c               gradalphayi = dalphayi*term
-c               gradalphazi = dalphazi*term
-c               gradbetaxi = dbetaxi*term
-c               gradbetayi = dbetayi*term
-c               gradbetazi = dbetazi*term
+                  nwarnroundoff = nwarnroundoff + 1
+                  term = cnormk*gradhs(1,ipart)/rhoi
+                  gradalphaxi = dalphaxi*term
+                  gradalphayi = dalphayi*term
+                  gradalphazi = dalphazi*term
+                  gradbetaxi = dbetaxi*term
+                  gradbetayi = dbetayi*term
+                  gradbetazi = dbetazi*term
+               ENDIF
 c
 c--grad alpha cross grad beta
 c
@@ -534,7 +544,10 @@ C$OMP END DO
          WRITE (iprint,*) 'WARNING: restricted h jump (down) ',
      &        nwarndown,' times'
       ENDIF
-
+      IF (nwarnroundoff.GT.0) THEN
+         WRITE (iprint,*) 'WARNING: denom in euler gradients zero on ',
+     &        nwarnroundoff,' particles'
+      ENDIF
 c
 c--copy changed values onto ghost particles
 c
@@ -570,12 +583,17 @@ c
 c
 c--Find particle with highest density outside radcrit of point mass
 c
+         irhonex = 0
          DO n = nlst_in, nlst_end
             ipart = list(n)
             IF (rho(ipart).EQ.rhonext) THEN
                irhonex = ipart
             ENDIF
          END DO
+         IF (irhonex.EQ.0) THEN
+            WRITE(iprint,*)'Failed to find densest particle ',rhonext
+            CALL quit
+         ENDIF
 c
 c--Make sure that all neighbours of point mass candidate are being
 c     done on this time step. Otherwise, not possible to accrete

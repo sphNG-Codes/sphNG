@@ -468,29 +468,29 @@ c--compute grad alpha and grad beta using exact linear interpolation
 c  (see Price 2004)
 c
                denom = rxxi*ryyi*rzzi + 2.*rxyi*rxzi*ryzi
-     &               - rxxi*ryzi**2 - ryyi*rxzi**2 - rzzi*rxyi**2
+     &               - rxxi*ryzi*ryzi - ryyi*rxzi*rxzi - rzzi*rxyi*rxyi
 
                IF (abs(denom).GT.tiny) THEN
                   ddenom = 1./denom
      
-                  gradalphaxi =(dalphaxi*(ryyi*rzzi - ryzi**2)
+                  gradalphaxi =(dalphaxi*(ryyi*rzzi - ryzi*ryzi)
      &                        + dalphayi*(rxzi*ryzi - rzzi*rxyi)
      &                        + dalphazi*(rxyi*ryzi - rxzi*ryyi))*ddenom
                   gradalphayi =(dalphaxi*(ryzi*rxzi - rxyi*rzzi)
-     &                        + dalphayi*(rzzi*rxxi - rxzi**2)
+     &                        + dalphayi*(rzzi*rxxi - rxzi*rxzi)
      &                        + dalphazi*(rxyi*rxzi - rxxi*ryzi))*ddenom
                   gradalphazi = (dalphaxi*(rxyi*ryzi - rxzi*ryyi)
      &                         + dalphayi*(rxyi*rxzi - rxxi*ryzi)
-     &                         + dalphazi*(rxxi*ryyi - rxyi**2))*ddenom
-                  gradbetaxi = (dbetaxi*(ryyi*rzzi - ryzi**2)
+     &                         + dalphazi*(rxxi*ryyi - rxyi*rxyi))*ddenom
+                  gradbetaxi = (dbetaxi*(ryyi*rzzi - ryzi*ryzi)
      &                        + dbetayi*(rxzi*ryzi - rzzi*rxyi)
      &                        + dbetazi*(rxyi*ryzi - rxzi*ryyi))*ddenom
                   gradbetayi = (dbetaxi*(ryzi*rxzi - rxyi*rzzi)
-     &                        + dbetayi*(rzzi*rxxi - rxzi**2)
+     &                        + dbetayi*(rzzi*rxxi - rxzi*rxzi)
      &                        + dbetazi*(rxyi*rxzi - rxxi*ryzi))*ddenom
                   gradbetazi = (dbetaxi*(rxyi*ryzi - rxzi*ryyi)
      &                        + dbetayi*(rxyi*rxzi - rxxi*ryzi)
-     &                        + dbetazi*(rxxi*ryyi - rxyi**2))*ddenom
+     &                        + dbetazi*(rxxi*ryyi - rxyi*rxyi))*ddenom
                ELSE
 c
 c--standard first derivative (use in case of round-off error problems)

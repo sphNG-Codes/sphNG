@@ -94,7 +94,8 @@ C$OMP END PARALLEL
 c
 c--CREATION OF NEW POINT MASS, by accretion of particles to form it
 c
-      IF (icreate.EQ.1 .AND. iremove(irhonex).EQ.0) THEN
+      IF (icreate.EQ.1) THEN
+         IF (iremove(irhonex).EQ.0) THEN
 c
 c--Test before creating a new point mass:
 c
@@ -570,6 +571,7 @@ c     &        SQRT(xlinearx**2+xlineary**2+xlinearz**2)
 
 c         print *,'Created ',irhonex,hacc,xyzmh(5,irhonex)
 
+         ENDIF
       ENDIF
 c
 c--ACCRETION OF PARTICLES NEAR AN EXISTING POINT MASS

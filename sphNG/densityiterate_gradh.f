@@ -479,9 +479,9 @@ c
                   gradalphayi =(dalphaxi*(ryzi*rxzi - rxyi*rzzi)
      &                        + dalphayi*(rzzi*rxxi - rxzi*rxzi)
      &                        + dalphazi*(rxyi*rxzi - rxxi*ryzi))*ddenom
-                  gradalphazi = (dalphaxi*(rxyi*ryzi - rxzi*ryyi)
-     &                         + dalphayi*(rxyi*rxzi - rxxi*ryzi)
-     &                         + dalphazi*(rxxi*ryyi - rxyi*rxyi))*ddenom
+                  gradalphazi =(dalphaxi*(rxyi*ryzi - rxzi*ryyi)
+     &                        + dalphayi*(rxyi*rxzi - rxxi*ryzi)
+     &                        + dalphazi*(rxxi*ryyi - rxyi*rxyi))*ddenom
                   gradbetaxi = (dbetaxi*(ryyi*rzzi - ryzi*ryzi)
      &                        + dbetayi*(rxzi*ryzi - rzzi*rxyi)
      &                        + dbetazi*(rxyi*ryzi - rxzi*ryyi))*ddenom

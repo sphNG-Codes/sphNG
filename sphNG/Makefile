@@ -47,7 +47,7 @@ ifeq ($(SYSTEM), sunf95)
     FC= sunf95
     FFLAGS= -fast
     DBLFLAG= -xtypemap=real:64,double:64
-    DEBUGFLAG= -g -C -ftrap=common
+    DEBUGFLAG= -g -C -w4 -errtags -erroff=COMMENT_1582,COMMENT_1744 -ftrap=%all
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -xfilebyteorder=big16:%all ##:45
     ENDIANFLAGLITTLE= -xfilebyteorder=little16:%all
@@ -89,11 +89,11 @@ ifeq ($(SYSTEM), gfortran)
     ZZFILE= zzibm.f
 endif
 
-ifeq ($(SYSTEM), ifort)
-    FC= ifort
-    FFLAGS= -O3 -Vaxlib -w90 -w95 -cm
+ifeq ($(SYSTEM), ifc)
+    FC= ifc
+    FFLAGS= -O3 -WB -Vaxlib -w90 -w95 -cm
     DBLFLAG= -r8
-    DEBUGFLAG= -C
+    DEBUGFLAG= -C -g
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -convert big_endian
     ENDIANFLAGLITTLE= -convert little_endian
@@ -101,6 +101,17 @@ ifeq ($(SYSTEM), ifort)
     ZZFILE= zzibm.f
 endif
 
+ifeq ($(SYSTEM), ifort)
+    FC= ifort
+    FFLAGS= -O3 -WB -Vaxlib -w90 -w95 -cm
+    DBLFLAG= -r8
+    DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -convert big_endian
+    ENDIANFLAGLITTLE= -convert little_endian
+# or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
+    ZZFILE= zzibm.f
+endif
 
 # Set other optional flags depending on settings
 
@@ -265,6 +276,9 @@ sphtorus: $(OBJTORUS)
 binary: checksystem checkparams utils/binary.o
 	$(FC) $(FFLAGS) -o $@ utils/binary.o
 
+ptmass: utils/ptmassmerge.o
+	$(FC) $(FFLAGS) -o $@ utils/ptmassmerge.o
+
 massvsangmom: checksystem checkparams utils/massvsangmom.o utils/readdump_sphNG.o indexx2.o idim
 	$(FC) $(FFLAGS) -o $@ utils/massvsangmom.o utils/readdump_sphNG.o indexx2.o
 
@@ -315,7 +329,7 @@ updatedepends:
 #       command below greps for INCLUDE in all .f files, uses sed to exclude comment lines, cut to extract text between quotes
 #       then writes a dependency line for each .o file in Makefile format to the .depends file
 #	@echo updating .depends
-	@for x in *.f; do echo $${x/.f/.o}: `grep INCLUDE $$x | sed '/^[c,C,\!]/d' | cut -d\' -f 2` >> .depends; done
+	@for x in *.[f,F]; do echo $${x/.[f,F]/.o}: `grep INCLUDE $$x | sed '/^[c,C,\!]/d' | cut -d\' -f 2` >> .depends; done
 	@diff --brief .dependsold .depends || ${MAKE} ${MAKECMDGOALS}
 	@rm -f .dependsold
 

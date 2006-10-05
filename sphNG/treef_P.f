@@ -344,13 +344,15 @@ c
                   nstack(istack) = isibdaupar(1,j)
                ENDIF
             ELSE
-               IF (rr.LT.rcut2) THEN
-                  numneigh = numneigh + 1
-                  IF (numneigh.LE.nneighmax) THEN
-                     neighb(numneigh) = n
-                  ELSE
-                     WRITE (iprint,*) 'ERROR: nneighmax exceeded'
-                     STOP
+               IF (iphase(n).EQ.0) THEN
+                  IF (rr.LT.rcut2) THEN
+                     numneigh = numneigh + 1
+                     IF (numneigh.LE.nneighmax) THEN
+                        neighb(numneigh) = n
+                     ELSE
+                        WRITE (iprint,*) 'ERROR: nneighmax exceeded'
+                        STOP
+                     ENDIF
                   ENDIF
                ENDIF
             ENDIF

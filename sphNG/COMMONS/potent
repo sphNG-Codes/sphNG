@@ -1,0 +1,4 @@
+      REAL r0,NN,alpha,rS,p0,phir,Hz,Co,Rc,Ro,Cz,z0,rc2,p1
+      COMMON /trunits / r0,NN,alpha,rS,p0,phir,Hz,Co,Rc,Ro,
+     &  Cz(3),z0,rc2,p1
+

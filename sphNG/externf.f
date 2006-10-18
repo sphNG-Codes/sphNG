@@ -1,4 +1,4 @@
-      SUBROUTINE externf(ipart, xyzmh, fxyzu, iexf)
+      SUBROUTINE externf(ipart, ti, xyzmh, fxyzu, iexf)
 c************************************************************
 c                                                           *
 c  This subroutine computes the effect of an external       *
@@ -23,10 +23,15 @@ c************************************************************
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/rbnd'
+      INCLUDE 'COMMONS/potent'
 c
 c--Unit angular momentum
 c
       uang = udist**2/utime
+
+c   z potential constant
+       zq=0.7
+
 c
 c--Gravitational field
 c
@@ -153,6 +158,38 @@ c
          fxyzu(2,ipart) = fxyzu(2,ipart) - planetmass*runiy/d2
          fxyzu(3,ipart) = fxyzu(3,ipart) - planetmass*runiz/d2
          poten(ipart) = poten(ipart) - planetmass/d
+      ELSEIF (iexf.EQ.8) THEN
+        xi = xyzmh(1,ipart)
+        yi = xyzmh(2,ipart)
+        zi = xyzmh(3,ipart)
+        hi = xyzmh(5,ipart)
+        dhi = hi/1000.
+        d2 = (xi*xi + yi*yi)
+        r=SQRT(d2+zi*zi)
+
+c contribution of logarithmic potential and halo
+
+        fxyzu(1,ipart)=fxyzu(1,ipart)-2.*Co*xi/(Rc**2.+d2+(zi/zq)**2.)
+     &          -p1*(rc2/r)**2.*(r-rc2*atan(r/rc2))*xi/r
+
+        fxyzu(2,ipart)=fxyzu(2,ipart)-2.*Co*yi/(Rc**2.+d2+(zi/zq)**2.)
+     &          -p1*(rc2/r)**2.*(r-rc2*atan(r/rc2))*yi/r
+
+        fxyzu(3,ipart)=fxyzu(3,ipart)-2.*Co*zi/((Rc**2.+d2+(zi/zq)**2.)
+     &             *zq**2.)
+
+c spiral perturbation
+
+            call potential(xi,yi,zi,ti,potent1)
+
+            call potential(xi+dhi,yi,zi,ti,potent2)
+            fxyzu(1,ipart) = fxyzu(1,ipart) - (potent2-potent1)/dhi
+
+            call potential(xi,yi+dhi,zi,ti,potent2)
+            fxyzu(2,ipart) = fxyzu(2,ipart) - (potent2-potent1)/dhi
+
+            call potential(xi,yi,zi+dhi,ti,potent2)
+            fxyzu(3,ipart) = fxyzu(3,ipart) - (potent2-potent1)/dhi
       ENDIF
 
       RETURN

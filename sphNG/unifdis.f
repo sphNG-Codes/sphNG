@@ -24,6 +24,8 @@ c************************************************************
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/maspres'
       INCLUDE 'COMMONS/ptmass'
+
+      CHARACTER*1 ians
 c
 c--Allow for tracing flow
 c
@@ -42,6 +44,18 @@ c
       zmax2 = zmax*zmax
       npartold = max(npart,nptmass)
 
+      IF ((idist.EQ.3).AND.(igeom.EQ.2)) THEN
+         WRITE (*,99003)
+99003    FORMAT ('Do you want the centre of the disk to be empty?')
+         READ (*,*) ians
+         IF (ians.EQ.'y') THEN
+             WRITE (*,99004)
+99004        FORMAT ('What radius for inner boundary (in code units)?')
+             READ (*,*) rcylin      
+          ENDIF
+      ENDIF
+      rcylin2=rcylin*rcylin
+     
       IF (idist.EQ.3) THEN
          xmax5 = 0.5*xmax
          ymax5 = 0.5*ymax
@@ -55,7 +69,12 @@ c
             r2 = d2 - zi*zi
             
             IF (iexcludepart(igeom,ibound,xi,yi,zi,r2,d2,xmax,ymax,zmax,
-     &          rcyl2,rmax2,zmax2,rmind2).NE.0) GOTO 100
+     &          rcyl2,rmax2,zmax2,rmind2).NE.0) GOTO 100            
+            
+            IF (ians.EQ.'y') THEN
+            IF (iexcludepart(igeom,ibound,xi,yi,zi,r2,d2,xmax,ymax,zmax,
+     &          rcylin2,rmax2,zmax2,rmind2).EQ.0) GOTO 100
+             ENDIF
 
             xyzmh(1,i) = xi
             xyzmh(2,i) = yi
@@ -360,6 +379,7 @@ c
          iexcludepart = 1
       ELSEIF ((igeom.EQ.2) .AND. (r2.GT.rcyl2)) THEN
          iexcludepart = 1
+         
       ELSEIF ((igeom.EQ.3) .AND. (d2.GT.rmax2)) THEN
          iexcludepart = 1
       ELSEIF ((igeom.EQ.4) .AND. ((r2.LT.rmind2).OR.(r2.GT.rcyl2))) THEN

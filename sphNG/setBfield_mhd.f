@@ -30,6 +30,7 @@ c************************************************************
       
       INTEGER iBfield      
       CHARACTER*1 isetB
+      CHARACTER*1 fieldorient
 c
 c--Allow for tracing flow
 c
@@ -190,12 +191,25 @@ c
 99010   FORMAT (' Angle between field and x axis = ',f7.3,' degrees')
 
         IF (varmhd.EQ.'eulr') THEN
-           WRITE(*,*) 'WARNING: Bz ONLY IMPLEMENTED AT THE MOMENT'
+           WRITE (*,99011)
+99011      FORMAT ('Do you want Bz or toroidal field (z or t)')     
+           READ (*,*) fieldorient
+        IF (fieldorient.EQ.'z') THEN
            DO i=1,npart
               Bevolxyz(1,i) = -Bzzero*xyzmh(2,i)
               Bevolxyz(2,i) = xyzmh(1,i)
               Bevolxyz(3,i) = 0.
            ENDDO
+         ELSEIF(fieldorient.EQ.'t') THEN
+            DO i=1,npart
+               rsph2 = xyzmh(1,i)**2+xyzmh(2,i)**2+xyzmh(3,i)**2
+               rsph = sqrt(rsph2)
+               theta = acos(xyzmh(3,i)/rsph)
+               Bevolxyz(1,i)= -Bzzero*theta
+               Bevolxyz(2,i)= 0.5*(rsph2)
+               Bevolxyz(3,i)= 0.
+            ENDDO
+        ENDIF
         ELSE
            DO i=1,npart
               Bevolxyz(1,i) = Bxzero

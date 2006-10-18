@@ -139,6 +139,7 @@ C$OMP& private(dgrwdx,grwtij,grpm,dvx,dvy,dvz,projv,vsbar)
 C$OMP& private(f,adivi,acurlvi,fi,adivj,acurlvj,fj,t12j)
 C$OMP& private(ddvxi,ddvyi,ddvzi,edotv)
 C$OMP& private(vlowcorrection,qi,qj)
+C$OMP& private(tdecay1,source)
 C$OMP& private(ii,iptcurv,xii,yii,zii,vpos)
 C$OMP& private(alphamean,projddv,termx,termy,termz,ddvscalar)
 C$OMP& private(gradhi,gradsofti,gradpi,gradpj)
@@ -798,10 +799,15 @@ c
          IF (ifsvi.EQ.6) THEN
             vsigi = SQRT(vs2i)
             tdecay1 = 0.2*vsigi/hi
+c--balsara factor
+c            adivi = ABS(divv(ipart)*rho1i)
+c            acurlvi = ABS(curlv(ipart)*rho1i)
+c            fi = adivi/(adivi+acurlvi+epsil2*vsigi/hi)
+
 cc         dha(2,ipart) = (alphamin-alphaMMpass(1,ipart))*tdecay1 -
 cc     &           MIN(divv(ipart)/rhoi+0.5*vsoundi/hi,0.0)
             dha(2,ipart) = (alphamin-alphaMMpass(1,ipart))*tdecay1 -
-     &             MIN(divv(ipart)/rhoi,0.0)
+     &             MIN(divv(ipart)/rhoi,0.0) !!*fi
             IF (imhd.EQ.idim) THEN
                dB2 = divcurlB(1,ipart)**2 + divcurlB(2,ipart)**2
      &             + divcurlB(3,ipart)**2 + divcurlB(4,ipart)**2

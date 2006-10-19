@@ -23,7 +23,7 @@ SHELL = /bin/sh
 # the parameters as environment variables
 #debug= no
 doubleprecision= yes
-mpi = yes
+#mpi = yes
 # endian can be "BIG", "LITTLE" or anything else which has no effect
 #ENDIAN= default
 
@@ -154,7 +154,7 @@ SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
 	inopts.f insulate_TREE_P.F integs.F ktable.f labrun.f lunit_double.f \
 	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
 	newrun.f options.f phoenix.f phoenix2.f \
-	place.f preset.F \
+	place.f potential.f preset.F \
 	prout.F ran1.f rdump.f reduce.f save.f \
         scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f \

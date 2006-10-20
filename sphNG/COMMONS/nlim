@@ -1,4 +1,4 @@
-      PARAMETER (nneighmax=300000)
+      PARAMETER (nneighmax=idim)
       INTEGER*4 nneigh
 
       INTEGER*8 nneightot

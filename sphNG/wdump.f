@@ -56,6 +56,10 @@ c      INCLUDE 'COMMONS/torq'
       INTEGER*4 int1, int2
       INTEGER*8 number8
       DIMENSION nums(8)
+c
+c--Standard numbers
+c
+      PARAMETER (int1=690706,int2=780806)
 
       DATA where/'wdump'/
 c
@@ -81,11 +85,6 @@ c
 c
 c--Write full dump file
 c----------------------
-c
-c--Standard numbers
-c
-      int1 = 690706
-      int2 = 780806
       i1 = int1
       r1 = real(int2)
 c
@@ -367,11 +366,7 @@ c
 c
 c--Write small dump file
 c----------------------------
-c
-c--Standard numbers
-c
-      int1 = 690706
-      int2 = 780806
+
       i1 = int1
       r1 = real(int2)
 c
@@ -394,10 +389,25 @@ c--int*1, int*2, int*4, int*8
       END DO
 c--Default real
       number = 15
-      DO i = 1, npart
+c
+c     dump mass array ONLY if the particle masses are not equal
+c     for equal mass particles, pmassinitial = particle mass
+c     for non-equal mass particles, pmassinitial = 0 and the mass array is dumped
+c
+      DO i = 1,npart
          IF (iphase(i).EQ.0) THEN
             pmassinitial = xyzmh(4,i)
-            GOTO 40
+            GOTO 35
+         ENDIF
+      ENDDO
+ 35   jlen = 3
+      DO i = 1, npart
+         IF (iphase(i).EQ.0) THEN
+            IF (xyzmh(4,i).NE.pmassinitial) THEN
+               pmassinitial = 0.
+               jlen = 4
+               GOTO 40
+            ENDIF
          ENDIF
       END DO
  40   WRITE (idisk1, ERR=100) number
@@ -429,7 +439,7 @@ c
       nums(3) = 0
       nums(4) = 0
       nums(5) = 0
-      nums(6) = 5
+      nums(6) = jlen
       nums(7) = 2
       nums(8) = 0
       WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
@@ -485,6 +495,8 @@ c
          nums(5) = 0
          IF (imhd.EQ.idim) THEN
             nums(6) = 3
+         ELSE
+            nums(6) = 0
          ENDIF
          nums(7) = 0
          nums(8) = 0
@@ -504,14 +516,15 @@ c--int*4
 c--int*8
 
 c--Default real
-      DO j = 1, 3
+      DO j = 1, jlen
          WRITE (idisk1, ERR=100) (xyzmh(j,isort(i)), i=1, npart)
       END DO
 c      DO j = 1, 4
 c         WRITE (idisk1, ERR=100) (vxyzu(j,isort(i)), i=1, npart)
-c      END DO      
+c      END DO
 c--real*4
       WRITE (idisk1, ERR=100) (rho(isort(i)), i=1, npart)
+c     dump smoothing length as a real*4 to save space
       DO i = 1, npart
          dq(i) = xyzmh(5,i)
       END DO
@@ -590,8 +603,7 @@ c
 c  Dump B not B/rho
 c
          DO j = 1, 3
-            WRITE (idisk1, ERR=100) 
-     &            (Bevolxyz(j,isort(i))*rho(i), i=1, npart)
+            WRITE (idisk1, ERR=100) (Bxyz(j,isort(i)), i=1, npart)
          END DO
 c--real*4
 

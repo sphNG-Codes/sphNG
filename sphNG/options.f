@@ -107,11 +107,15 @@ c
       READ (iterm, *) iptmass
       READ (iterm, *) igrp
       READ (iterm, *) igphi
-      READ (iterm, *) ifsvi, alpha, beta
+      IF (imhd.EQ.idim) THEN
+         READ (iterm, *) ifsvi, alpha, beta, alphamin(2), alphamax(2)      
+      ELSE
+         READ (iterm, *) ifsvi, alpha, beta
 c      IF (ifsvi.EQ.6) THEN
-         alphamin = alpha
-         alphamax = beta
+         alphamin(1) = alpha
+         alphamax(1) = beta
 c      ENDIF
+      ENDIF
       READ (iterm, *) ifcor
       READ (iterm, *) ichoc
       READ (iterm, *) iener

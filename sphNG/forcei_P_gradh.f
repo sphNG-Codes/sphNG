@@ -804,16 +804,16 @@ c            adivi = ABS(divv(ipart)*rho1i)
 c            acurlvi = ABS(curlv(ipart)*rho1i)
 c            fi = adivi/(adivi+acurlvi+epsil2*vsigi/hi)
 
-cc         dha(2,ipart) = (alphamin-alphaMMpass(1,ipart))*tdecay1 -
+cc         dha(2,ipart) = (alphamin(1)-alphaMMpass(1,ipart))*tdecay1 -
 cc     &           MIN(divv(ipart)/rhoi+0.5*vsoundi/hi,0.0)
-            dha(2,ipart) = (alphamin-alphaMMpass(1,ipart))*tdecay1 -
+            dha(2,ipart) = (alphamin(1)-alphaMMpass(1,ipart))*tdecay1 -
      &             MIN(divv(ipart)/rhoi,0.0) !!*fi
             IF (imhd.EQ.idim) THEN
                dB2 = divcurlB(1,ipart)**2 + divcurlB(2,ipart)**2
      &             + divcurlB(3,ipart)**2 + divcurlB(4,ipart)**2
                source = SQRT(MAX(dB2*rho1i,
      &                           vs2i*divcurlB(1,ipart)**2/B2i))
-               dha(3,ipart) = (alphamin-alphaMMpass(2,ipart))*tdecay1
+               dha(3,ipart) = (alphamin(2)-alphaMMpass(2,ipart))*tdecay1
      &                        + source
             ENDIF
          ENDIF

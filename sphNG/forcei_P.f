@@ -612,11 +612,12 @@ c
          dq(ipart) = dqi
 
          IF (ifsvi.EQ.6) THEN
-cc         dha(2,ipart) = 0.2*vsoundi*(alphamin-alphaMMpass(1,ipart))/hi-
+cc         dha(2,ipart) = 0.2*vsoundi*(alphamin(1)-alphaMMpass(1,ipart))/hi-
 cc     &           MIN(divv(ipart)/rhoi+0.5*vsoundi/hi,0.0)
-c          dha(2,ipart) = 0.2*vsoundi*(alphamin-alphaMMpass(1,ipart))/hi-
+c          dha(2,ipart) = 0.2*vsoundi*(alphamin(1)-alphaMMpass(1,ipart))/hi-
 c     &           MIN(divv(ipart)/rhoi,0.0)
-           dha(2,ipart)= 0.05*vsoundi*(alphamin-alphaMMpass(1,ipart))/hi
+           dha(2,ipart)= 0.05*vsoundi*
+     &                   (alphamin(1)-alphaMMpass(1,ipart))/hi
             ddv(ipart) = cnormk*SQRT(ddvxi**2 + ddvyi**2 + ddvzi**2)
             ddv(ipart) = ddvscalar
         IF (divv(ipart).LT.0.0.AND.hi*ddv(ipart).LT.

@@ -378,9 +378,9 @@ c--read artificial resistivity parameter
             READ (idisk1, END=100) (alphaMM(2,i), i=1, npart)
          ELSE
            WRITE(*,*) 'WARNING: resistivity parameter not found in dump'
-           WRITE(*,*) ' => setting alphaB = alphamin everywhere'
+           WRITE(*,*) ' => setting alphaB = alphaBmin everywhere'
            DO i=1,npart
-              alphaMM(2,i) = alphamin
+              alphaMM(2,i) = alphamin(2)
            ENDDO
          ENDIF
 c--real*8

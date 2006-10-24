@@ -96,8 +96,13 @@ c
 88000 FORMAT(2X,I2,'  Pressure')
       WRITE (iterm, 88001) igphi
 88001 FORMAT(2X,I2,'  Gravity')
-      WRITE (iterm, 88002) ifsvi,alpha,beta
-88002 FORMAT(2X,I2,1X,1F6.3,1X,1F6.3,'  Artificial Viscosity')
+      IF (imhd.EQ.idim) THEN
+         WRITE (iterm, 87002) ifsvi,alpha,beta,alphamin(2),alphamax(2)
+87002    FORMAT(2X,I2,4(1X,1F6.3),' Artificial Viscosity & Resistivity')
+      ELSE
+         WRITE (iterm, 88002) ifsvi,alpha,beta
+88002    FORMAT(2X,I2,1X,1F6.3,1X,1F6.3,'  Artificial Viscosity')
+      ENDIF
       WRITE (iterm, 88003) ifcor
 88003 FORMAT(2X,I2,'  Coriolis Forces')
       WRITE (iterm, 88004) ichoc

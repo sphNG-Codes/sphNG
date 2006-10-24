@@ -572,7 +572,7 @@ C$OMP& private(j,k,deltat)
      &           dumvxyzu(4,j)=0.15
             IF (ifsvi.EQ.6) THEN
                DO k = 1, isizealphaMM
-                  dumalpha(k,j) = MIN(alphamax,alphaMM(k,j)+
+                  dumalpha(k,j) = MIN(alphamax(k),alphaMM(k,j)+
      &           deltat*f1ha(k+1,j))
                ENDDO
             ENDIF
@@ -623,7 +623,7 @@ C$OMP& private(j,k,ipart,deltat)
      &           dumvxyzu(4,ipart)=0.15
                     IF (ifsvi.EQ.6) THEN
                        DO k = 1, isizealphaMM
-                          dumalpha(k,ipart) = MIN(alphamax,
+                          dumalpha(k,ipart) = MIN(alphamax(k),
      &                       alphaMM(k,ipart)+deltat*f1ha(k+1,ipart))
                        ENDDO
                     ENDIF
@@ -699,7 +699,7 @@ C$OMP& private(j,k,l,deltat)
          IF (iener.EQ.2 .AND. dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
             IF (ifsvi.EQ.6) THEN
                DO l = 1, isizealphaMM
-                  dumalpha(l,j) = MIN(alphamax,alphaMM(l,k) +
+                  dumalpha(l,j) = MIN(alphamax(l),alphaMM(l,k) +
      &                                    deltat*f1ha(l+1,k))
                ENDDO
             ENDIF
@@ -1015,7 +1015,7 @@ c--Update viscosity switch
 c
             IF (ifsvi.EQ.6) THEN
                DO k = 1, isizealphaMM
-                  alphaMM(k,i) = MIN(alphamax, alphaMM(k,i) +
+                  alphaMM(k,i) = MIN(alphamax(k), alphaMM(k,i) +
      &              dtf21*f1ha(k+1,i) + dtf22*f2ha(k+1,i))
                ENDDO
             ENDIF
@@ -1235,7 +1235,7 @@ C$OMP& private(j,k,deltat)
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
             IF (ifsvi.EQ.6) THEN
                DO k = 1, isizealphaMM
-                  dumalpha(k,j) = MIN(alphamax,alphaMM(k,j)+
+                  dumalpha(k,j) = MIN(alphamax(k),alphaMM(k,j)+
      &              deltat*f1ha(k+1,j))
                ENDDO
             ENDIF
@@ -1286,7 +1286,7 @@ C$OMP& private(j,k,ipart,deltat)
      &                    dumvxyzu(4,ipart)=0.15
                      IF (ifsvi.EQ.6) THEN
                         DO k = 1, isizealphaMM
-                           dumalpha(k,ipart) = MIN(alphamax,
+                           dumalpha(k,ipart) = MIN(alphamax(k),
      &                       alphaMM(k,ipart) + deltat*f1ha(k+1,ipart))
                         ENDDO
                      ENDIF
@@ -1363,7 +1363,7 @@ C$OMP& private(j,k,l,deltat)
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
             IF (ifsvi.EQ.6) THEN
                DO l = 1, isizealphaMM
-                  dumalpha(l,j) = MIN(alphamax, alphaMM(l,k) 
+                  dumalpha(l,j) = MIN(alphamax(l), alphaMM(l,k) 
      &               + deltat*f1ha(l+1,k))
                ENDDO
             ENDIF
@@ -2000,7 +2000,7 @@ c
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                   IF (ifsvi.EQ.6) THEN
                      DO l=1,isizealphaMM
-                        dumalpha(l,j) = MIN(alphamax,
+                        dumalpha(l,j) = MIN(alphamax(l),
      &                    alphaMM(l,k) + deltat*f1ha(1+l,k))
                      ENDDO
                   ENDIF
@@ -2222,7 +2222,7 @@ c
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                   IF (ifsvi.EQ.6) THEN
                      DO l=1,isizealphaMM
-                        dumalpha(l,j) = MIN(alphamax,
+                        dumalpha(l,j) = MIN(alphamax(l),
      &                     alphaMM(l,k) + deltat*f1ha(l+1,k))
                      ENDDO
                   ENDIF

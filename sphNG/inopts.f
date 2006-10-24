@@ -45,7 +45,11 @@ c
 c--Read options
 c
       READ (iterm, *) igrp
-      READ (iterm, *) ifsvi,alpha,beta
+      IF (imhd.EQ.idim) THEN
+         READ (iterm, *) ifsvi,alpha,beta,alphamin(2),alphamax(2)
+      ELSE
+         READ (iterm, *) ifsvi,alpha,beta
+      ENDIF
       READ (iterm, *) ifcor
       READ (iterm, *) ichoc
       READ (iterm, *) iener

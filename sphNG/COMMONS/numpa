@@ -1,4 +1,5 @@
       REAL*4 alphaMM
 
       COMMON /numpa / alphaMM(isizealphaMM,idim),
-     &                alphamin, alphamax, alpha, beta
+     &                alphamin(isizealphaMM), alphamax(isizealphaMM),
+     &                alpha, beta

@@ -118,14 +118,14 @@ c
       DO i = 1, npart
          IF (ifsvi.EQ.6 .AND. abs(gt).LT.tiny) THEN
             DO k = 1, isizealphaMM
-               alphaMM(k,i) = alphamin
+               alphaMM(k,i) = alphamin(k)
             ENDDO
 c
 c--always initialise resistivity (assumes constant value of alphamin
 c  if ifsvi.ne.6)
 c
          ELSEIF (imhd.EQ.idim .and. abs(gt).LT.tiny) THEN
-            alphaMM(2,i) = alphamin
+            alphaMM(2,i) = alphamin(2)
          ENDIF
       END DO
 c

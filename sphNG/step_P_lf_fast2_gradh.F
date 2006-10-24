@@ -660,7 +660,7 @@ c--Update viscosity switch
 c
             IF (ifsvi.EQ.6) THEN
                DO k=1,isizealphaMM
-                  alphaMM(k,i) = MIN(alphamax, alphaMM(k,i) +
+                  alphaMM(k,i) = MIN(alphamax(k), alphaMM(k,i) +
      &               dtfull*f1ha(k+1,i))
                ENDDO
             ENDIF
@@ -756,7 +756,7 @@ c
                dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
                IF (ifsvi.EQ.6) THEN
                   DO k=1,isizealphaMM
-                    dumalpha(k,j) = MIN(alphamax,alphaMM(k,j)+
+                    dumalpha(k,j) = MIN(alphamax(k),alphaMM(k,j)+
      &                 deltat*f1ha(1+k,j))
                   ENDDO
                ENDIF
@@ -812,7 +812,7 @@ c
      &                    deltat*f1ha(1,ipart)
                      IF (ifsvi.EQ.6) THEN
                         DO k=1,isizealphaMM
-                           dumalpha(k,ipart) = MIN(alphamax,
+                           dumalpha(k,ipart) = MIN(alphamax(k),
      &                        alphaMM(k,ipart) + deltat*f1ha(1+k,ipart))
                         ENDDO
                      ENDIF
@@ -897,7 +897,7 @@ c
      &                    deltat*f1ha(1,ipart)
                      IF (ifsvi.EQ.6) THEN
                         DO k=1,isizealphaMM
-                           dumalpha(k,ipart) = MIN(alphamax,
+                           dumalpha(k,ipart) = MIN(alphamax(k),
      &                    alphaMM(k,ipart) + deltat*f1ha(k+1,ipart))
                         ENDDO
                      ENDIF
@@ -1006,7 +1006,7 @@ c
                dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,k)
                IF (ifsvi.EQ.6) THEN
                   DO l=1,isizealphaMM
-                     dumalpha(l,j) = MIN(alphamax,alphaMM(l,k)
+                     dumalpha(l,j) = MIN(alphamax(l),alphaMM(l,k)
      &              + deltat*f1ha(1+l,k))
                   ENDDO
                ENDIF
@@ -1455,7 +1455,7 @@ c
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                   IF (ifsvi.EQ.6) THEN
                      DO l=1,isizealphaMM
-                       dumalpha(l,j) = MIN(alphamax,
+                       dumalpha(l,j) = MIN(alphamax(l),
      &                               alphaMM(l,k) + deltat*f1ha(1+l,k))
                      ENDDO
                    ENDIF
@@ -1679,7 +1679,7 @@ c
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                   IF (ifsvi.EQ.6) THEN
                      DO l=1,isizealphaMM
-                        dumalpha(l,j) = MIN(alphamax,
+                        dumalpha(l,j) = MIN(alphamax(l),
      &                     alphaMM(l,k) + deltat*f1ha(1+l,k))
                      ENDDO
                   ENDIF

@@ -1069,22 +1069,24 @@ c
       cmx = 0. 
       cmy = 0.
       cmz = 0.
-      DO i = 1,npart
+      totmasn1 = 0.
+      DO i = 1,n1
          cmx = cmx + xyzmh(4,i)*xyzmh(1,i)
          cmy = cmy + xyzmh(4,i)*xyzmh(2,i)
          cmz = cmz + xyzmh(4,i)*xyzmh(3,i)
+         totmasn1 = totmasn1 + xyzmh(4,i)
       END DO
-      cmx = cmx/totmas
-      cmy = cmy/totmas
-      cmz = cmz/totmas
-      WRITE (*,*) 'Centre of mass is at: ',cmx,cmy,cmz
+      cmx = cmx/totmasn1
+      cmy = cmy/totmasn1
+      cmz = cmz/totmasn1
+      WRITE (*,*) 'Centre of mass (obj 1) is at: ',cmx,cmy,cmz
 
       WRITE (*, 99045)
 99045 FORMAT(' Do you want to set the centre of mass',/,
      & ' at zero ? (y/n) ')
       READ (*, 99004) iok
       IF (iok.EQ.'y' .OR. iok.EQ.'Y') THEN
-         DO i = 1, npart
+         DO i = 1, n1
             xyzmh(1,i) = xyzmh(1,i) - cmx
             xyzmh(2,i) = xyzmh(2,i) - cmy
             xyzmh(3,i) = xyzmh(3,i) - cmz
@@ -1482,9 +1484,9 @@ c
          cmy = cmy + xyzmh(4,i)*vxyzu(2,i)
          cmz = cmz + xyzmh(4,i)*vxyzu(3,i)
       END DO
-      cmx = cmx/totmas
-      cmy = cmy/totmas
-      cmz = cmz/totmas
+      cmx = cmx/totmasn1
+      cmy = cmy/totmasn1
+      cmz = cmz/totmasn1
       WRITE (*,*) 'Vel of centre of mass is: ',cmx,cmy,cmz
 
       WRITE (*, 99886)
@@ -1492,7 +1494,7 @@ c
      & ' velocity to zero ? (y/n) ')
       READ (*, 99004) iok
       IF (iok.EQ.'y' .OR. iok.EQ.'Y') THEN
-         DO i = 1, npart
+         DO i = 1, n1
             vxyzu(1,i) = vxyzu(1,i) - cmx
             vxyzu(2,i) = vxyzu(2,i) - cmy
             vxyzu(3,i) = vxyzu(3,i) - cmz

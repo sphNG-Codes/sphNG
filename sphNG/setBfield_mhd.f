@@ -198,7 +198,7 @@ c
                rsph2 = xyzmh(1,i)**2+xyzmh(2,i)**2+xyzmh(3,i)**2
                rsph = sqrt(rsph2)
                theta = acos(xyzmh(3,i)/rsph)
-               Bevolxyz(1,i)= -Bzzero*theta
+               Bevolxyz(1,i)= -Bzero*theta
                Bevolxyz(2,i)= 0.5*(rsph2)
                Bevolxyz(3,i)= 0.
             ENDDO
@@ -215,19 +215,19 @@ c
          WRITE(*,99104) umagfd
          WRITE(*,99106) 'Enter Binit'
 99106    FORMAT(A)
-         READ(*,*) Binit
+         READ(*,*) Bzero
          rbump = 4./sqrt(2.)        ! radius of the initial bump
          rbump2 = rbump*rbump
 
          Bxzero = 0.
          Byzero = 0.
-         Bzzero = Binit/sqrt(4.*pi)
+         Bzzero = Bzero/sqrt(4.*pi)
          DO i=1,npart
             rr = xyzmh(1,i)*xyzmh(1,i) + xyzmh(2,i)*xyzmh(2,i) +
      &          xyzmh(3,i)*xyzmh(3,i)
             IF (rr.le.rbump2) THEN
                Bevolxyz(1,i) = ((rr/rbump2)**4 - 2.*(rr/rbump2)**2 
-     &                            + 1.)/sqrt(4.*pi)*Binit
+     &                            + 1.)/sqrt(4.*pi)*Bzero
             ELSE
                Bevolxyz(1,i) = 0.
             ENDIF
@@ -265,6 +265,11 @@ c
       angle = ACOS(Bxzero/Bzero)*180.0/pi
       WRITE (*,99010) angle
 99010 FORMAT (' Angle between field and x axis = ',f7.3,' degrees')
+c
+c--spit out field strength in CGS units
+c        
+      WRITE(*,99011) Bzero*umagfd
+99011 FORMAT(' Initial field strength (Bzero) = ',1pe10.4,' G')
 
 c
 c--set external field components

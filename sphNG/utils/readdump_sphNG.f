@@ -1,6 +1,7 @@
       SUBROUTINE readdump_sphNG(filename,idim,iptdim,
      &   npart,n1,n2,gt,gamma,rhozero,RK2,
-     &   escap,tkin,tgrav,tterm,xyzmh,vxyzu,iphase,isteps,nptmass,
+     &   escap,tkin,tgrav,tterm,xyzmh,vxyzu,rho,
+     &   iphase,isteps,nptmass,
      &   listpm,spinx,spiny,spinz,angaddx,angaddy,angaddz,
      &   spinadx,spinady,spinadz,ierr)
 c************************************************************

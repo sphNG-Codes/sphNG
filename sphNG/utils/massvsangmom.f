@@ -1,7 +1,7 @@
       PROGRAM massvsangmom
 c************************************************************
 c                                                           *
-c  This subroutine gets 
+c  This program gets 
 c  cumulative mass vs specific angular momentum             *
 c  from a series of dump files
 c************************************************************
@@ -64,7 +64,7 @@ c
          PRINT*,'opening ',filename
          CALL readdump_sphNG(filename,idim,iptdim,
      &   npart,n1,n2,gt,gamma,rhozero,RK2,
-     &   escap,tkin,tgrav,tterm,xyzmh,vxyzu,iphase,isteps,nptmass,
+     &   escap,tkin,tgrav,tterm,xyzmh,vxyzu,rho,iphase,isteps,nptmass,
      &   listpm,spinx,spiny,spinz,angaddx,angaddy,angaddz,
      &   spinadx,spinady,spinadz,ierr)
          IF (ierr.GT.0) STOP 'aborting...'

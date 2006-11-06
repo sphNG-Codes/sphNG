@@ -115,6 +115,11 @@ c
 c
 c--Initialize viscosity switch
 c
+      IF (ifsvi.EQ.6) THEN
+         alphamin(1) = alpha
+         alphamax(1) = beta
+      ENDIF
+      
       DO i = 1, npart
          IF (ifsvi.EQ.6 .AND. abs(gt).LT.tiny) THEN
             DO k = 1, isizealphaMM
@@ -272,16 +277,16 @@ c
       SUBROUTINE appendiproc(numchar,string,iproc)
 
       CHARACTER*25 string
-      CHARACTER*3 iprocstring
+c      CHARACTER*3 iprocstring
 
       IF (iproc.LT.10) THEN
          WRITE (string,99001) string(1:numchar),iproc
 99001    FORMAT(A7,'.00',I1)
       ELSEIF (iproc.LT.100) THEN
-         WRITE (string,99001) string(1:numchar),iproc
+         WRITE (string,99002) string(1:numchar),iproc
 99002    FORMAT(A7,'.0',I2)
       ELSEIF (iproc.LT.1000) THEN
-         WRITE (string,99001) string(1:numchar),iproc
+         WRITE (string,99003) string(1:numchar),iproc
 99003    FORMAT(A7,'.',I3)
       ELSE
          WRITE (*,*) 'ERROR: string ',iproc

@@ -738,7 +738,9 @@ c
             fxyzu(1,ipart) = fxyzu(1,ipart) + gravxi + dsoftxi*cnormk
             fxyzu(2,ipart) = fxyzu(2,ipart) + gravyi + dsoftyi*cnormk
             fxyzu(3,ipart) = fxyzu(3,ipart) + gravzi + dsoftzi*cnormk
-            poten(ipart) = poten(ipart) + poteni
+c           add self contribution to potential
+            poten(ipart) = poten(ipart) + poteni 
+     &                                  + pmass(ipart)*fpoten(0)*hi1
             dgrav(ipart) = 0.
          ENDIF
 c

@@ -189,8 +189,8 @@ c--Read array type 4 header
 c
       IF (number.GE.4) THEN
          READ (idisk1, END=100) number8, (nums4(i), i=1,8)
-         IF (number8.GT.imhd .OR. number8.NE.1 .AND. 
-     &        number8.LT.npart) THEN
+         IF (imhd.EQ.idim.AND.(number8.GT.imhd .OR. number8.NE.1 .AND. 
+     &        number8.LT.npart)) THEN
             WRITE (*,*) 'ERROR 10 in rdump: imhd wrong ',number8,
      &           imhd,npart
             CALL quit

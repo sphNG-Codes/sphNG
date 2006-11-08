@@ -1510,37 +1510,44 @@ c
       END DO
       ekinetic = ekinetic/2.0
       WRITE (*,*) 'Root mean square velocity = ',
-     &     SQRT(rootmeansquare/(npart-nptmass)),rootmeansquare
-      WRITE (*,*) 'Sound speed = ',SQRT(2.0/3.0*gamma*thermal)
+     &     SQRT(rootmeansquare/(n1-nptmass)),rootmeansquare
+      vsoundin = SQRT(2.0/3.0*gamma*thermal)
+      WRITE (*,*) 'Sound speed = ',vsoundin
       WRITE (*,*) 'Kinetic energy = ',ekinetic
       WRITE (*,*) 'Is this okay?'
       READ (*,99004) iok
       IF (iok.EQ.'y' .OR. iok.EQ.'Y') GOTO 778
 
-      WRITE (*,*) 'Do you want to enter RMS velocity or',
-     &     ' multiplicative factor (r/f)?'
+      WRITE (*,*) 'Do you want to enter RMS velocity, mach number or',
+     &     ' multiplicative factor or ekin (r/m/f/e)?'
       READ (*,99004) iok
 
       IF (iok.EQ.'r' .OR. iok.EQ.'R') THEN
          WRITE (*,*) 'Enter new RMS velocity'
          READ (*,*) factor
-         rootmeansquare = SQRT(rootmeansquare/(npart-nptmass))
+         rootmeansquare = SQRT(rootmeansquare/(n1-nptmass))
          DO i = nptmass + 1, n1
             vxyzu(1,i) = vxyzu(1,i)*factor/rootmeansquare
             vxyzu(2,i) = vxyzu(2,i)*factor/rootmeansquare
             vxyzu(3,i) = vxyzu(3,i)*factor/rootmeansquare
          END DO
-         ekinetic = 0.
-         rootmeansquare = 0.
+      ELSEIF (iok.EQ.'m' .OR. iok.EQ.'M') THEN
+         WRITE (*,*) 'Enter new RMS mach number'
+         READ (*,*) factor
+         rootmeansquare = SQRT(rootmeansquare/(n1-nptmass))
          DO i = nptmass + 1, n1
-            vel2 = vxyzu(1,i)**2+vxyzu(2,i)**2+vxyzu(3,i)**2
-            rootmeansquare = rootmeansquare + vel2
-            ekinetic = ekinetic + xyzmh(4,i)*vel2
+            vxyzu(1,i) = vxyzu(1,i)*factor/rootmeansquare*vsoundin
+            vxyzu(2,i) = vxyzu(2,i)*factor/rootmeansquare*vsoundin
+            vxyzu(3,i) = vxyzu(3,i)*factor/rootmeansquare*vsoundin
          END DO
-         ekinetic = ekinetic/2.0
-         WRITE (*,*) 'Root mean square velocity = ',
-     &        SQRT(rootmeansquare/(npart-nptmass)),rootmeansquare
-         WRITE (*,*) 'Sound speed = ',SQRT(2.0/3.0*gamma*thermal)
+      ELSEIF (iok.EQ.'e' .OR. iok.EQ.'E') THEN
+         WRITE (*,*) 'Enter new kinetic energy in code units'
+         READ (*,*) factor
+         DO i = nptmass + 1, n1
+            vxyzu(1,i) = vxyzu(1,i)*SQRT(factor/ekinetic)
+            vxyzu(2,i) = vxyzu(2,i)*SQRT(factor/ekinetic)
+            vxyzu(3,i) = vxyzu(3,i)*SQRT(factor/ekinetic)
+         ENDDO
       ELSEIF (iok.EQ.'F' .OR. iok.EQ.'f') THEN
          WRITE (*,*) 'Enter multiplicative factor'
          READ (*,*) factor
@@ -1553,6 +1560,22 @@ c
          WRITE (*,*) 'Invalid input ',iok
          STOP
       ENDIF
+c
+c     write output for information only
+c
+      ekinetic = 0.
+      rootmeansquare = 0.
+      DO i = nptmass + 1, n1
+         vel2 = vxyzu(1,i)**2+vxyzu(2,i)**2+vxyzu(3,i)**2
+         rootmeansquare = rootmeansquare + vel2
+         ekinetic = ekinetic + xyzmh(4,i)*vel2
+      END DO
+      ekinetic = ekinetic/2.0
+      vrms = SQRT(rootmeansquare/(n1-nptmass))
+      WRITE (*,*) 'Kinetic energy = ',ekinetic
+      WRITE (*,*) 'Root mean square velocity = ',vrms,' mach # = ',
+     &             vrms/vsoundin
+      WRITE (*,*) 'Sound speed = ',vsoundin
 
 77771 FORMAT(A)
  778  CONTINUE

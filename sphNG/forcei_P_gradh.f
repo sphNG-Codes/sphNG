@@ -113,7 +113,7 @@ c
 c--Initialize
 c
 C$OMP PARALLEL default(none)
-C$OMP& shared(nlst_in,nlst_end,npart,list,nneigh,neimin,neimax)
+C$OMP& shared(nlst_in,nlst_end,npart,listp,nneigh,neimin,neimax)
 C$OMP& shared(icall,dt,itime,imaxstep,isteps)
 C$OMP& shared(xyzmh,vxyzu,dha,fxyzu,trho,pr,vsound,dq,gradhs)
 C$OMP& shared(neighb,neighover,dvtable,ddvtable,psoft)

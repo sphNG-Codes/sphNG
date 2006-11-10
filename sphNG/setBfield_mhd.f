@@ -175,12 +175,27 @@ c
      &           ' Bz_0 = ',1PE14.5)
 
          IF (varmhd.EQ.'eulr') THEN
-            WRITE(*,*) 'WARNING: ONLY Bz FIELD FOR EULER POTENTIALS'
-            DO i=1,npart
-               Bevolxyz(1,i) = -Bzero*xyzmh(2,i)
-               Bevolxyz(2,i) = xyzmh(1,i)
-               Bevolxyz(3,i) = 0.
-            ENDDO
+            IF (abs(fracz-1.0).LT.tiny) THEN
+	       DO i=1,npart
+                  Bevolxyz(1,i) = -Bzero*xyzmh(2,i)
+                  Bevolxyz(2,i) = xyzmh(1,i)
+                  Bevolxyz(3,i) = 0.
+               ENDDO
+            ELSEIF (abs(fracy-1.0).LT.tiny) THEN
+	       DO i=1,npart
+                  Bevolxyz(1,i) = -Bzero*xyzmh(1,i)
+                  Bevolxyz(2,i) = xyzmh(3,i)
+                  Bevolxyz(3,i) = 0.
+               ENDDO
+            ELSEIF (abs(fracx-1.0).LT.tiny) THEN
+	       DO i=1,npart
+                  Bevolxyz(1,i) = -Bzero*xyzmh(3,i)
+                  Bevolxyz(2,i) = xyzmh(2,i)
+                  Bevolxyz(3,i) = 0.
+               ENDDO
+            ELSE
+             STOP 'mixed cartesian field NOT IMPLEMENTED for EULER POTS'
+            ENDIF
          ELSE
             DO i=1,npart
                Bevolxyz(1,i) = Bxzero

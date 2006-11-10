@@ -183,7 +183,7 @@ SRCTORUS= montecarloRT.f
 # timestepping routine
 
 SRCRK = step_P.f revtree_P.f
-SRCLF = step_P_lf_fast2_gradh.F revtree_P_fast2.f
+SRCLF = step_P_lf_fast2_gradh.F revtree_P_fast3.f
 
 # construct object files
 

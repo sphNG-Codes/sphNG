@@ -38,6 +38,7 @@ c************************************************************
       INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/debug'
+      INCLUDE 'COMMONS/updated'
 
       DIMENSION nsteplist(30),nsteplisttot(30)
 
@@ -155,6 +156,9 @@ c
       END DO
 
       DO j = 1, npart
+         IF (iupdated(j)) THEN
+            WRITE (iprint,*) 'ERROR - iupdated true on full step ',j
+         ENDIF
          IF (iphase(j).GE.0) THEN
             dttime = dtmax*isteps(j)/imaxstep
             ipos = INT((LOG10(dtmax/dttime) * 3.3219281) + 1.01)

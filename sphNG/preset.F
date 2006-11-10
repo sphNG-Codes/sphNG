@@ -44,6 +44,7 @@ c************************************************************
       INCLUDE 'COMMONS/mutbl'
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/updated'
 
       CHARACTER*7 where
       CHARACTER*25 ptfile, accfile, killfile, reassfile
@@ -202,6 +203,7 @@ c     for certain particles - exclude these:
 c
       DO i = 1, idim
          notacc(i) = .FALSE.
+         iupdated(i) = .FALSE.
       END DO
       nnotacc = 0
 c      WRITE (iprint,*) '********* IDELAYACC = 1 *********'

@@ -1,4 +1,4 @@
-      SUBROUTINE forcei(nlst_in,nlst_end,list,dt,itime,
+      SUBROUTINE forcei(nlst_in,nlst_end,listp,dt,itime,
      &      npart,xyzmh,vxyzu,fxyzu,dha,trho,pr,vsound,alphaMMpass,
      &      ekcle,dedxyz,Bxyz,dBxyz,Bevolxyz)
 c************************************************************
@@ -13,7 +13,7 @@ c************************************************************
       DIMENSION xyzmh(5,idim), vxyzu(4,idim)
       REAL*4 trho(idim),pr(idim),vsound(idim),dha(1+isizealphaMM,idim)
       REAL*4 alphaMMpass(isizealphaMM,idim)
-      DIMENSION list(idim)
+      DIMENSION listp(idim)
       DIMENSION fxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
       DIMENSION dedxyz(3,iradtrans)
@@ -62,6 +62,10 @@ c--this weight is equivalent to m/(rho*h^3) in the grad h version
       INCLUDE 'COMMONS/updated'
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/vsmooth'
+c
+c--Used for listparents list to keep a list of iupdated
+c
+      INCLUDE 'COMMONS/treecom_P'
 
       CHARACTER*7 where
 
@@ -74,6 +78,7 @@ c
       IF (itrace.EQ.'all') WRITE (iprint, 250)
   250 FORMAT(' entry subroutine forcei')
 
+      nlistupdated = 0
       realtime = dt*itime/imaxstep + gt
 
       IF (imhd.EQ.idim .AND. ibound.EQ.7) THEN
@@ -122,8 +127,8 @@ C$OMP& shared(igrp,igphi,ifsvi,iexf)
 C$OMP& shared(ifcor,iexpan,iener,damp)
 C$OMP& shared(realtime,ekcle,encal,dedxyz,acc)
 C$OMP& shared(Bxyz,dBxyz,Bextxi,Bextyi,Bextzi,B2ext,divcurlB,Bevolxyz)
-C$OMP& shared(gravxyzstore,potenstore,varmhd,iupdated)
-C$OMP& shared(iscurrent,ireal,ibound)
+C$OMP& shared(gravxyzstore,potenstore,varmhd,iupdated,listparents)
+C$OMP& shared(iscurrent,ireal,ibound,nlistupdated)
 C$OMP& private(n,ipart,stepsi)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(fxi,fyi,fzi,numneigh,hmin)
@@ -159,7 +164,7 @@ C$OMP& reduction(MAX:inmax,inmaxsy)
 
 C$OMP DO SCHEDULE(runtime)
       DO n = nlst_in, nlst_end
-         ipart = list(n)
+         ipart = listp(n)
 c
 c--Zero forces and change in thermal energy, and 
 c     rate of change of h (the latter so that integrating h in step does
@@ -319,12 +324,28 @@ c
             IF (.NOT.iscurrent(j) .AND. .NOT.iupdated(j)) THEN
                iupdated(j) = .TRUE.
 C$OMP FLUSH(iupdated)
+C$OMP CRITICAL (listupdated)
+               nlistupdated = nlistupdated + 1
+               IF (nlistupdated.GT.idim) THEN
+                  WRITE (iprint,*) 'ERROR - nlistupdate.GT.idim'
+                  CALL quit
+               ENDIF
+               listparents(nlistupdated) = j
+C$OMP END CRITICAL (listupdated)
                IF (j.LE.npart) THEN
                   CALL extrapolate(j,dt,itime,trho,vxyzu,pr,vsound,
      &                             ekcle,Bxyz,Bevolxyz)
                ELSEIF (iupdated(ireal(j))) THEN
                   iupdated(j) = .TRUE.
 C$OMP FLUSH(iupdated)
+C$OMP CRITICAL (listupdated)
+                  nlistupdated = nlistupdated + 1
+                  IF (nlistupdated.GT.idim) THEN
+                     WRITE (iprint,*) 'ERROR - nlistupdate.GT.idim'
+                     CALL quit
+                  ENDIF
+                  listparents(nlistupdated) = j
+C$OMP END CRITICAL (listupdated)
                   irealj = ireal(j)
                   trho(j) = trho(irealj)
                   pr(j) = pr(irealj)
@@ -344,6 +365,15 @@ C$OMP FLUSH(iupdated)
                   iupdated(irealj) = .TRUE.
                   iupdated(j) = .TRUE.
 C$OMP FLUSH(iupdated)
+C$OMP CRITICAL (listupdated)
+                  nlistupdated = nlistupdated + 2
+                  IF (nlistupdated.GT.idim) THEN
+                     WRITE (iprint,*) 'ERROR - nlistupdate.GT.idim'
+                     CALL quit
+                  ENDIF
+                  listparents(nlistupdated-1) = j
+                  listparents(nlistupdated) = ireal(j)
+C$OMP END CRITICAL (listupdated)
                   CALL extrapolate(irealj,dt,itime,trho,vxyzu,pr,vsound,
      &                             ekcle,Bxyz,Bevolxyz)
                   
@@ -860,6 +890,14 @@ c
 
       END DO
 C$OMP END DO
+c
+c--Set flag for whether a particle has been updated or not back to false
+c
+C$OMP DO SCHEDULE(runtime)
+      DO i = 1, nlistupdated
+         iupdated(listparents(i)) = .FALSE.
+      END DO
+C$OMP END DO 
 C$OMP END PARALLEL
 c
 c--Calculate gravity on and from point masses (when sink particles done outside

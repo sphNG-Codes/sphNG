@@ -114,12 +114,6 @@ c
          WRITE (iprint,*) 'ERROR: derivi_P_gradh must have nlmax.EQ.1'
          CALL quit
       ENDIF
-c
-c--set updated flag to false on *all* particles (ie. all possible neighbours)
-c
-      DO i=1,npart
-         iupdated(i) = .FALSE.
-      ENDDO
 c     
 c--Set constants first time around
 c

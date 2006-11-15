@@ -29,6 +29,7 @@ c--Neides=INT(4./3.*pi*8.*hfact**3))
       PARAMETER (htol = 1.e-3)
       PARAMETER (hstretch = 1.01)
       PARAMETER (maxiterations = 500)
+      PARAMETER (maxitsnr = 30)
 c--this weight is equivalent to m/(rho*h^3) in the grad h version
       PARAMETER (weight = 1./hfact**3)
 
@@ -65,6 +66,7 @@ c--this weight is equivalent to m/(rho*h^3) in the grad h version
       INCLUDE 'COMMONS/outneigh'
       INCLUDE 'COMMONS/varmhd'
 c      INCLUDE 'COMMONS/vsmooth'
+      LOGICAL*1 Bisection
 
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
 99001 FORMAT ('entry subroutine densityiterate')
@@ -81,6 +83,10 @@ c
       nwarndown = 0
       nwarnroundoff = 0
       stressmax = 0.
+      bisection = .false.
+      nbisection = 0
+      hminbisec = 0.
+      hmaxbisec = 1.e6
 c
 c--for constant pressure boundaries, use a minimum density
 c  equal to the external density
@@ -120,7 +126,7 @@ C$OMP& private(vbarxi,vbaryi,vbarzi)
 C$OMP& private(alphai,betai,wkern,dalpha,dbeta,grpmi)
 C$OMP& reduction(MAX:rhonext,imaxit)
 C$OMP& reduction(+:inumit,inumfixed,inumrecalc,nwarnup,nwarndown)
-C$OMP& reduction(+:nwarnroundoff)
+C$OMP& reduction(+:nwarnroundoff,nbisection)
 
 C$OMP DO SCHEDULE(runtime)
       DO n = nlst_in, nlst_end
@@ -220,52 +226,71 @@ c
             rhohi = pmassi*(hfact*hi1)**3 - rhomin
             dhdrhoi = -hi/(3.*(rhoi + rhomin))
             omegai = 1. - dhdrhoi*gradhi
+            func = rhohi - rhoi
+
+            IF (.not. bisection) THEN
 c
 c--Newton-Raphson iteration
 c
-            func = rhohi - rhoi
-            dfdh1 = dhdrhoi/omegai
-            hnew = hi - func*dfdh1
+               dfdh1 = dhdrhoi/omegai
+               hnew = hi - func*dfdh1
+!               print*,'newton raphson (',iteration,'): hnew = ',hnew
+            ELSE
+c
+c--Bisection iteration
+c
+               IF (func.lt. 0.) THEN
+                  hmaxbisec = hi
+               ELSE
+                  hminbisec = hi
+               ENDIF
+               hnew = 0.5*(hminbisec + hmaxbisec)
+!               print*,'bisection (',iteration,'): hnew = ',hnew
+            ENDIF
 c
 c--Don't allow sudden jumps to huge numbers of neighbours
 c
             IF (hnew.GT.1.2*hi) THEN
                nwarnup = nwarnup + 1
-c               WRITE (*,*) 'restricting h jump (up) on particle ',
-c     &               iorig(ipart),hi,hnew
-               hnew = 1.2*hi !!hi - 0.5*func*dfdh1
+               hnew = 1.2*hi
             ELSEIF (hnew.LT.0.8*hi) THEN
                nwarndown = nwarndown + 1
-c               WRITE (*,*) 'restricting h jump (down) on particle ',
-c     &               iorig(ipart),hi,hnew
                hnew = 0.8*hi
-            ELSEIF (hnew.LE.0. .OR. (omegai.LE.tiny)) THEN
-c
-c--Take fixed point if Newton-Raphson running into trouble
-c  (i.e. if gradients are very wrong)
-c
-               WRITE (*,*) 'doing fixed point',hnew,gradhi,omegai,hfact,
-     &              pmassi,rhoi,hi,hi31
-               hnew = hfact*(pmassi/rho(ipart))**third
-               inumfixed = inumfixed + 1           
             ENDIF
-
-c            IF (numneighreal.GT.500) THEN
-c               WRITE(iprint,*) 'part: ',iorig(ipart),' has ',numneighi,
-c     &              numneighreal,' neighbours '
-c            ENDIF
-            IF (numneighreal.LE.0) THEN
-               WRITE (iprint,*) 'WARNING: particle ',ipart,
-     &            ' has no neighbours h=',hi,hi_old,'setting h=',
-     &              hfact*(pmassi/rho(ipart))**third
-               hnew = max(hfact*(pmassi/rho(ipart))**third,
-     &                1.1*hi,1.1*hnew)
+            
+            IF ((hnew.LE.0. .OR. omegai.LE.tiny .OR. 
+     &         iteration.EQ.maxitsnr .OR. numneighreal.LE.0) 
+     &         .AND. .not.bisection) THEN
+c
+c--switch to Bisection if not converging or running into trouble
+c
+               WRITE(iprint,*) 'WARNING: switching to bisection on'//
+     &            ' particle ',ipart,' hi = ',hi,' hnew = ',hnew
+               IF (numneighreal.LE.0) THEN
+                  WRITE(iprint,*) '(particle has no neighbours)'
+               ENDIF
+               IF (omegai.LE.tiny) THEN
+                  WRITE(iprint,*) '(omega < tiny)'
+               ENDIF
+               IF (iteration.EQ.maxitsnr) THEN
+                  WRITE(iprint,*) '(more than ',maxitsnr,' iterations)'
+               ENDIF
+               
+               nbisection = nbisection + 1
+               BiSection = .true.
+               hminbisec = 0.
+               hmaxbisec = 1.e6
+!               hnew = 0.5*(hminbisec + hmaxbisec)
             ENDIF
             
             IF (ABS(hnew-hi)/hi_old.LT.htol .AND. omegai.GT.0.) THEN
                imaxit = MAX(imaxit, iteration)
                inumit = inumit + iteration
-               GOTO 30 
+               IF (BiSection) THEN
+                  BiSection = .false. ! switch back to N-R
+               ELSE
+                  GOTO 30
+               ENDIF
             ENDIF
 
             hi = hnew
@@ -538,18 +563,7 @@ c               print*,ipart,'vsmooth = ',vsmooth(:,ipart)
  50   CONTINUE
       END DO
 C$OMP END DO
-      IF (nwarnup.GT.0) THEN
-         WRITE (iprint,*) 'WARNING: restricted h jump (up) ',
-     &        nwarnup,' times'
-      ENDIF
-      IF (nwarndown.GT.0) THEN
-         WRITE (iprint,*) 'WARNING: restricted h jump (down) ',
-     &        nwarndown,' times'
-      ENDIF
-      IF (nwarnroundoff.GT.0) THEN
-         WRITE (iprint,*) 'WARNING: denom in euler gradients zero on ',
-     &        nwarnroundoff,' particles'
-      ENDIF
+
 c
 c--copy changed values onto ghost particles
 c
@@ -577,6 +591,23 @@ C$OMP DO SCHEDULE (runtime)
 C$OMP END DO
 C$OMP END PARALLEL
 ccC$OMP END PARALLEL DO
+      IF (nwarnup.GT.0) THEN
+         WRITE (iprint,*) 'WARNING: restricted h jump (up) ',
+     &        nwarnup,' times'
+      ENDIF
+      IF (nwarndown.GT.0) THEN
+         WRITE (iprint,*) 'WARNING: restricted h jump (down) ',
+     &        nwarndown,' times'
+      ENDIF
+      IF (nwarnroundoff.GT.0) THEN
+         WRITE (iprint,*) 'WARNING: denom in euler gradients zero on ',
+     &        nwarnroundoff,' particles'
+      ENDIF
+      IF (nbisection.GT.0) THEN
+         WRITE(iprint,*) 'WARNING: used bisection on ',nbisection,
+     &       ' particles'
+      ENDIF
+
 c
 c--Possible to create a point mass
 c

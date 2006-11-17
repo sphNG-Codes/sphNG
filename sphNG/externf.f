@@ -1,4 +1,4 @@
-      SUBROUTINE externf(ipart, ti, xyzmh, fxyzu, iexf)
+      SUBROUTINE externf(ipart, ti, xyzmh, fxyzu, rho, iexf)
 c************************************************************
 c                                                           *
 c  This subroutine computes the effect of an external       *
@@ -11,12 +11,15 @@ c        (4) Rotating cylinder                              *
 c        (5) Central point mass                             *
 c        (6) Distant point mass                             *
 c        (7) Central point mass and planet                  *
+c        (8) Galactic spiral potential (C. Dobbs)           *
+c        (9) Tokamak potential (D. Price)                   *
 c                                                           *
 c************************************************************
 
       INCLUDE 'idim'
 
       DIMENSION xyzmh(5,idim), fxyzu(4,idim)
+      REAL*4 rho(idim)
 
       INCLUDE 'COMMONS/kerne'
       INCLUDE 'COMMONS/ener1'
@@ -24,6 +27,7 @@ c************************************************************
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/potent'
+      INCLUDE 'COMMONS/tokamak'
 c
 c--Unit angular momentum
 c
@@ -159,37 +163,76 @@ c
          fxyzu(3,ipart) = fxyzu(3,ipart) - planetmass*runiz/d2
          poten(ipart) = poten(ipart) - planetmass/d
       ELSEIF (iexf.EQ.8) THEN
-        xi = xyzmh(1,ipart)
-        yi = xyzmh(2,ipart)
-        zi = xyzmh(3,ipart)
-        hi = xyzmh(5,ipart)
-        dhi = hi/1000.
-        d2 = (xi*xi + yi*yi)
-        r=SQRT(d2+zi*zi)
+         xi = xyzmh(1,ipart)
+         yi = xyzmh(2,ipart)
+         zi = xyzmh(3,ipart)
+         hi = xyzmh(5,ipart)
+         dhi = hi/1000.
+         d2 = (xi*xi + yi*yi)
+         r=SQRT(d2+zi*zi)
 
 c contribution of logarithmic potential and halo
 
-        fxyzu(1,ipart)=fxyzu(1,ipart)-2.*Co*xi/(Rc**2.+d2+(zi/zq)**2.)
+         fxyzu(1,ipart)=fxyzu(1,ipart)-2.*Co*xi/(Rc**2.+d2+(zi/zq)**2.)
      &          -p1*(rc2/r)**2.*(r-rc2*atan(r/rc2))*xi/r
 
-        fxyzu(2,ipart)=fxyzu(2,ipart)-2.*Co*yi/(Rc**2.+d2+(zi/zq)**2.)
+         fxyzu(2,ipart)=fxyzu(2,ipart)-2.*Co*yi/(Rc**2.+d2+(zi/zq)**2.)
      &          -p1*(rc2/r)**2.*(r-rc2*atan(r/rc2))*yi/r
 
-        fxyzu(3,ipart)=fxyzu(3,ipart)-2.*Co*zi/((Rc**2.+d2+(zi/zq)**2.)
+         fxyzu(3,ipart)=fxyzu(3,ipart)-2.*Co*zi/((Rc**2.+d2+(zi/zq)**2.)
      &             *zq**2.)
 
 c spiral perturbation
 
-            call potential(xi,yi,zi,ti,potent1)
+         call potential(xi,yi,zi,ti,potent1)
 
-            call potential(xi+dhi,yi,zi,ti,potent2)
-            fxyzu(1,ipart) = fxyzu(1,ipart) - (potent2-potent1)/dhi
+         call potential(xi+dhi,yi,zi,ti,potent2)
+         fxyzu(1,ipart) = fxyzu(1,ipart) - (potent2-potent1)/dhi
 
-            call potential(xi,yi+dhi,zi,ti,potent2)
-            fxyzu(2,ipart) = fxyzu(2,ipart) - (potent2-potent1)/dhi
+         call potential(xi,yi+dhi,zi,ti,potent2)
+         fxyzu(2,ipart) = fxyzu(2,ipart) - (potent2-potent1)/dhi
 
-            call potential(xi,yi,zi+dhi,ti,potent2)
-            fxyzu(3,ipart) = fxyzu(3,ipart) - (potent2-potent1)/dhi
+         call potential(xi,yi,zi+dhi,ti,potent2)
+         fxyzu(3,ipart) = fxyzu(3,ipart) - (potent2-potent1)/dhi
+      ELSEIF (iexf.EQ.9) THEN
+         xi = xyzmh(1,ipart)
+         yi = xyzmh(2,ipart)
+         zi = xyzmh(3,ipart)
+c get cylindrical r
+         rcyl = sqrt(xi**2 + yi**2)
+         IF (rcyl.GT.tiny) THEN
+            drcyl = 1./rcyl
+         ELSE
+            drcyl = 0.
+         ENDIF
+c rintorus is radius from centre of torus
+         rintorus2 = (rcyl - Rtorus)**2 + zi**2
+         rintorus = SQRT(rintorus2)
+         IF (rintorus.GT.tiny) THEN
+            drintorus = 1./rintorus
+         ELSE
+            drintorus = 0.
+         ENDIF
+cc         IF (rintorus2.LT.atorus**2) THEN
+c current in torus "z" direction
+            term = 1. - rintorus2*da2
+            currjz = currj0*term**nutorus
+c Bfield in torus "theta" direction
+            Btheta = currj0*atorus**2/(2.*(nutorus+1))*
+     &           (1. - term**(nutorus+1))*drintorus
+c force is in torus "r" direction  (J X B)
+            frtorus = -Btheta*currjz
+cc         ELSE
+ccc outside torus, use a f proportional to distance
+cc            frtorus = -(rintorus - atorus)
+cc         ENDIF
+c get force in cylindrical co-ordinates
+         frcyl = frtorus*(rcyl - Rtorus)*drintorus
+         fz = frtorus*zi*drintorus
+c translate to cartesians
+         fxyzu(1,ipart) = fxyzu(1,ipart) + frcyl*xi*drcyl/rho(ipart)
+         fxyzu(2,ipart) = fxyzu(2,ipart) + frcyl*yi*drcyl/rho(ipart)
+         fxyzu(3,ipart) = fxyzu(3,ipart) + fz/rho(ipart)
       ENDIF
 
       RETURN

@@ -1,5 +1,5 @@
 1       Pressure gradient (0: off, 1: on)
-1 1.0 2.0   Artificial viscosity (0: off, 1: on) and alpha and beta
+1 1.0 2.0 0.0 2.0 Artificial viscosity and resistivity (0: off, 1: on) and alpha and beta for each
 0       Coriolis and centrifugal force (0: off, 1: on)
 0       Kinetic energy: radiated: (0), dissipated (1)
 0       P dV: radiated (0), dissipated (1)

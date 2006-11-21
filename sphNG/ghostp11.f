@@ -677,8 +677,17 @@ c
 c--for Euler potentials need gradient to be continuous across boundary
 c      
       IF (varmhd.EQ.'eulr') THEN
-         Bevolxyz(1,inew) = Bevolxyz(1,iold) - Bextz*deltay
-         Bevolxyz(2,inew) = Bevolxyz(2,iold) + deltax
+c--   WARNING! DOES NOT DO MIXED CARTESIAN FIELDS YET
+         IF (abs(Bextz).GT.0.) THEN
+            Bevolxyz(1,inew) = Bevolxyz(1,iold) - Bextz*deltay
+            Bevolxyz(2,inew) = Bevolxyz(2,iold) + deltax
+         ELSEIF (abs(Bexty).GT.0) THEN
+            Bevolxyz(1,inew) = Bevolxyz(1,iold) - Bexty*deltax
+            Bevolxyz(2,inew) = Bevolxyz(2,iold) + deltaz         
+         ELSEIF (abs(Bextx).GT.0) THEN
+            Bevolxyz(1,inew) = Bevolxyz(1,iold) - Bextx*deltaz
+            Bevolxyz(2,inew) = Bevolxyz(2,iold) + deltay         
+         ENDIF
       ELSE
          DO j=1,3
             Bevolxyz(j,inew) = Bevolxyz(j,iold)

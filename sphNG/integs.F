@@ -199,7 +199,7 @@ c
 c
 c--Check for messages
 c
-c      CALL mesop
+      CALL mesop
 c
 c--Write time, and number of ghosts
 c

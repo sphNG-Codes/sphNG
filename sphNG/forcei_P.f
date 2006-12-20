@@ -681,7 +681,7 @@ c--Only sink particles being moved
 c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end,list,dha,fxyzu,xyzmh,iexf,ifcor)
-C$OMP& shared(iexpan,realtime,vxyzu,vsmooth)
+C$OMP& shared(iexpan,realtime,vxyzu,vsmooth,trho)
 C$OMP& private(n,ipart)
       DO n = nlst_in, nlst_end
          ipart = list(n)

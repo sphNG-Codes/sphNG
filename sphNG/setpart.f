@@ -52,7 +52,7 @@ c************************************************************
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
-      CHARACTER*1 ien
+      CHARACTER*1 ien, irotref
 c
 c--Initialise time
 c
@@ -294,9 +294,10 @@ c
      &        '                  ellipsoid : 5 ',/,
      &        '  constant angular momentum : 6 ',/,
      &        '           sphere with hole : 7 ',/,
-     &        '            sphere in a box : 8 ')
+     &        '            sphere in a box : 8 ',/,
+     &        '             planet in disc : 9 ')
       READ (*, *) igeom
-      IF (igeom.LT.1 .OR. igeom.GT.8) GOTO 50
+      IF (igeom.LT.1 .OR. igeom.GT.9) GOTO 50
 c
 c--Specify Box Size
 c
@@ -421,6 +422,22 @@ c
          ymin = - ymax
          zmin = - zmax
          rcyl = rmax
+      ELSE IF (igeom.EQ.8) THEN
+         WRITE (*, 89010) udist
+89010      FORMAT (//, ' PARTICLE SET UP ', //,
+     &   ' Variation of radius of disk',/,' in units of ',
+     &   1PE14.5,'(cm): variation,',/,
+     &   ' and the disk height to radius ratio, h/r, and the phirange')
+         READ (*, *) variation, hoverr, phibound
+         radiusmax = 1.0+variation
+         radiusmin = 1.0-variation
+         zmax = radiusmax * 10.0 * hoverr
+         zmin = - zmax
+         xmax = radiusmax
+         ymax = radiusmax
+         xmin = - xmax
+         ymin = - ymax
+         rmax = SQRT(radiusmax*radiusmax + zmax*zmax)
       ENDIF
 
       deltax = xmax - xmin
@@ -447,10 +464,11 @@ c
      &  '                              90 : constant N infall,',
      &     ' constant angular momentum',/,
      &  '                              91 : constant N infall,',
-     &     ' constant omega')
+     &     ' constant omega',/,
+     &  '                             100 : planet in disc')
       READ (*, *) ibound
       IF (ibound.LT.0 .OR. (ibound.GT.11 .AND. ibound.NE.90 .AND. 
-     &     ibound.NE.91)) GOTO 150
+     &     ibound.NE.91 .AND. ibound.NE.100)) GOTO 150
       IF (ibound.EQ.7) THEN
          WRITE(*,88111)
 88111    FORMAT(/,'   What is the external temperature (units K) ',/,
@@ -697,25 +715,40 @@ c
 c--Set Total Mass
 c
       umassr = umass/solarm
-      WRITE (*, 99011)
-99011 FORMAT (' Do you want to enter: Total mass of the system (1)', /,
-     &        '                       Particle mass            (2)')
-      READ (*, *) ichmass
-      IF (ichmass.EQ.1) THEN
-         WRITE (*, 99012) umassr
-99012    FORMAT (' Enter total mass of system in units of ',1pe14.5,
-     &        ' solar masses')
-         READ (*, *) totmas
-         partm = totmas/(npart - nptmass)
-      ELSEIF (ichmass.EQ.2) THEN
-         WRITE (*, 99013) umassr
-99013    FORMAT (' Enter particle masses in units of ',1pe14.5,
-     &        ' solar masses')
-         READ (*, *) partm
-         totmas = partm*FLOAT(npart - nptmass)
+      IF (igeom.NE.9) THEN
+         WRITE (*, 99011)
+99011    FORMAT (' Do you want to enter: Total mass of the system (1)',
+     &        /,'                       Particle mass            (2)')
+         READ (*, *) ichmass
+         IF (ichmass.EQ.1) THEN
+            WRITE (*, 99012) umassr
+99012       FORMAT (' Enter total mass of system in units of ',1pe14.5,
+     &           ' solar masses')
+            READ (*, *) totmas
+            partm = totmas/(npart - nptmass)
+         ELSEIF (ichmass.EQ.2) THEN
+            WRITE (*, 99013) umassr
+99013       FORMAT (' Enter particle masses in units of ',1pe14.5,
+     &           ' solar masses')
+            READ (*, *) partm
+            totmas = partm*FLOAT(npart - nptmass)
+         ELSE
+            GOTO 500
+         ENDIF
       ELSE
-         GOTO 500
+         WRITE (*,99114)
+99114    FORMAT(' Enter signorm (units of 75 g/cm^2) ')
+         READ (*, *) signorm
+         rmindisc = 1.0-variation
+         rmaxdisc = 1.0+variation
+         totmas = 4.0/3.0*pi*75.0*signorm*(5.2*au)**2*
+     &        (rmaxdisc**1.5-rmindisc**1.5)/(pi/phibound)/umass
+         partm = totmas/(npart - nptmass)
+         flowrate = 75.0*SQRT(gg*solarm*5.2*au)*(2.0*SQRT(rmindisc)+
+     &        2.0*SQRT(rmaxdisc)-LOG(rmindisc)-LOG(rmaxdisc)-4.0)/
+     &        umass*utime*signorm/partm
       ENDIF
+
 
       IF (igeom.EQ.1) THEN
          rhozero = totmas / (deltax * deltay * deltaz)
@@ -735,6 +768,8 @@ c
          rhozero = totmas / (4.0*pi*(rmax2*rmax - hacc*hacc*hacc)/3.0)
       ELSEIF (igeom.EQ.7) THEN
          rhozero = totmas / (4.0*pi/3.0 * (rmax2*rmax - rmind2*rmind)) 
+      ELSEIF (igeom.EQ.9) THEN
+         rhozero = totmas / (pi*2.0*hoverr*(radiusmax**2-radiusmin**2))
       ELSE
          WRITE(*,*) 'ERROR igeom'
          CALL quit
@@ -1017,6 +1052,10 @@ c            print*,'rho(medium) = ',rhozero/rhocontrast,rhozero
          ELSE
             DO i = 1, npart
                vxyzu(4,i) = thermal
+               IF (igeom.EQ.9) THEN
+                  vxyzu(4,i)=hoverr**2/
+     &            (SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2)*gamma*(gamma-1.0))
+               ENDIF
             END DO
          ENDIF
 c
@@ -1193,12 +1232,24 @@ c
          ENDIF
       ENDIF
 
-      IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iok.EQ.'k') THEN
+      IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7. .OR. iok.EQ.'k') THEN
          WRITE (*,55504)
 55504    FORMAT (' Enter mass for external forces')
          READ (*,*) xmass
+         IF (iexf.EQ.7) THEN
+            WRITE (*,55505)
+55505       FORMAT (' Is the calculation in rotating reference frame?')
+            READ (*,99004) irotref
+            WRITE (*,55533)
+55533              FORMAT (' Enter planet mass for external forces')
+            READ (*,*) planetmass
+         ELSE
+            irotref = 'n'
+            planetmass = 0.
+         ENDIF
       ELSE
          xmass = 0.
+         planetmass = 0.
       ENDIF 
 
       IF (iok.EQ.'s') THEN
@@ -1230,9 +1281,13 @@ c Set velocity dispersion parameter
             radius = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2)
             xtild = xyzmh(1,i)/radius
             ytild = xyzmh(2,i)/radius
+            velsub = 0.0
+            IF (irotref.EQ.'y' .OR. irotref.EQ.'Y') THEN
+               velsub = 1.0
+            ENDIF
             alpha = SQRT(gg2 * xmass/radius)
-            vxyzu(1,i) = -alpha * ytild 
-            vxyzu(2,i) =  alpha * xtild
+            vxyzu(1,i) = -alpha * ytild + xyzmh(2,i)*velsub
+            vxyzu(2,i) =  alpha * xtild - xyzmh(1,i)*velsub
             vxyzu(3,i) = 0.
          ELSEIF (iok.EQ.'s') THEN
             vxyzu(1,i) = -angvel * xyzmh(2,i) * (fracrotoffset + 

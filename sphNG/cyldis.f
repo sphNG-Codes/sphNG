@@ -19,7 +19,7 @@ c************************************************************
       INCLUDE 'COMMONS/ptmass'
 
       npart = np + nptmass
-      IF (igeom.EQ.8) THEN
+      IF (igeom.EQ.9) THEN
          DO i = nptmass + 1, npart
             radius=(((1.0+variation)**1.5-(1.0-variation)**1.5)*
      &        ran1(1) + (1.0-variation)**1.5)**(2.0/3.0)

@@ -422,7 +422,7 @@ c
          ymin = - ymax
          zmin = - zmax
          rcyl = rmax
-      ELSE IF (igeom.EQ.8) THEN
+      ELSE IF (igeom.EQ.9) THEN
          WRITE (*, 89010) udist
 89010      FORMAT (//, ' PARTICLE SET UP ', //,
      &   ' Variation of radius of disk',/,' in units of ',

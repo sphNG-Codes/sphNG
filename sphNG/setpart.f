@@ -959,6 +959,9 @@ c
             ELSE            
                RK2 = thermal/(rhozero**gm1)
             ENDIF            
+
+            IF (igeom.EQ.9) encal = 'i'
+
          ELSE IF (encal.EQ.'a' .OR. encal.EQ.'c') THEN
             gamma = 5.0/3.0
             gm1 = gamma - 1.0

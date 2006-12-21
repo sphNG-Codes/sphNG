@@ -1186,8 +1186,9 @@ C$OMP& shared(iprint,xyzmh,dumxyzmh,poten,iphase,ikillpr)
 C$OMP& shared(ikilled,nactive,nkill,time,iorig,nlstacc,listacc)
 C$OMP& shared(anglostx,anglosty,anglostz)
 C$OMP& shared(dumBevolxyz,Bevolxyz)
+C$OMP& shared(variation,phibound,nlistinactive,listinactive)
 C$OMP& private(i,j)
-C$OMP& private(r2,pmassi)
+C$OMP& private(r2,pmassi,phiparticle)
 c
 c--Compute new time steps for particles which have been advanced
 c
@@ -1224,6 +1225,42 @@ C$OMP CRITICAL (killparticle)
      &              xyzmh(1,i)*vxyzu(3,i))
                anglostz = anglostz + pmassi*(xyzmh(1,i)*vxyzu(2,i) - 
      &              vxyzu(1,i)*xyzmh(2,i))
+C$OMP END CRITICAL (killparticle)
+               GOTO 855
+            ENDIF
+         ENDIF
+c
+c--Dead particle boundaries - planet embedded in disc
+c
+         IF (ibound.EQ.100) THEN
+            phiparticle = ATAN2(xyzmh(2,i),xyzmh(1,i))
+            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2
+            IF (r2.LT.(1.0-variation)**2 .OR. r2.GT.(1.0+variation)**2
+     &                         .OR. ABS(phiparticle).GT.phibound) THEN
+               iphase(i) = -1
+C$OMP CRITICAL (killparticle)
+               ikilled = 1
+
+               nlstacc = nlstacc + 1
+               IF (nlstacc.GT.nlstaccmax) THEN
+                  WRITE (iprint,*) 'ERROR step nlstacc'
+                  CALL quit
+               ENDIF
+               listacc(nlstacc) = i
+
+               nlistinactive = nlistinactive + 1
+               IF (nlistinactive.GT.idim) THEN
+                  WRITE (iprint,*) 'ERROR step nlistinactive'
+                  CALL quit
+               ENDIF
+               listinactive(nlistinactive) = i
+
+               nactive = nactive - 1
+               nkill = nkill + 1
+               WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
+     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
+     &              poten(i),dgrav(i)
+               CALL FLUSH_(ikillpr)
 C$OMP END CRITICAL (killparticle)
                GOTO 855
             ENDIF
@@ -1538,11 +1575,11 @@ c
                ENDIF
                listbins(nlstbins(ibin),ibin) = i
 
-               IF (it1bin(ibin).NE.it1(i)) THEN
-                  WRITE (*,*) 'ERROR - it1bin 5',it1bin(ibin),it1(i),i,
-     &                 it0(i),itime,isteps(i),it2(i)
-                  CALL quit
-               ENDIF
+c               IF (it1bin(ibin).NE.it1(i)) THEN
+c                  WRITE (*,*) 'ERROR - it1bin 5',it1bin(ibin),it1(i),i,
+c     &                 it0(i),itime,isteps(i),it2(i)
+c                  CALL quit
+c               ENDIF
                IF (it2bin(ibin).NE.it2(i)) THEN
                   WRITE (*,*) 'ERROR - it2bin 5',it2bin(ibin),it2(i),i,
      &                 it0(i),itime,isteps(i),it1(i)
@@ -1787,11 +1824,11 @@ c
                ENDIF
                listbins(nlstbins(ibin),ibin) = i
 
-               IF (it1bin(ibin).NE.it1(i)) THEN
-                  WRITE (*,*) 'ERROR - it1bin 5',it1bin(ibin),it1(i),i,
-     &                 it0(i),itime,isteps(i),it2(i)
-                  CALL quit
-               ENDIF
+c               IF (it1bin(ibin).NE.it1(i)) THEN
+c                  WRITE (*,*) 'ERROR - it1bin 5',it1bin(ibin),it1(i),i,
+c     &                 it0(i),itime,isteps(i),it2(i)
+c                  CALL quit
+c               ENDIF
                IF (it2bin(ibin).NE.it2(i)) THEN
                   WRITE (*,*) 'ERROR - it2bin 5',it2bin(ibin),it2(i),i,
      &                 it0(i),itime,isteps(i),it1(i)

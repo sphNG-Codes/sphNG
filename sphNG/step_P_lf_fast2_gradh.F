@@ -453,6 +453,7 @@ c
       DO i = 1, nbinmax
          IF (nlstbins(i).GT.0) itime = MIN(itime, it2bin(i))
       END DO
+      print *,itime,imaxstep
       IF (itiming) THEN
          CALL getused(ts1p2)
          ts1 = ts1 + (ts1p2 - ts1p1)
@@ -1260,7 +1261,7 @@ C$OMP CRITICAL (killparticle)
                WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
      &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
      &              poten(i),dgrav(i)
-               CALL FLUSH_(ikillpr)
+               CALL FLUSH(ikillpr)
 C$OMP END CRITICAL (killparticle)
                GOTO 855
             ENDIF

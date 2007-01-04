@@ -92,8 +92,9 @@ c            dvz = vxyzu(3,i1) - vxyzu(3,i2)
             WRITE(55,*) gt,r1,r2,dr,angle
          ELSE
             PRINT*,'Binary not found -- must look at density maxima'
-            rhomax1 = 0.5*rhomax1
+            rhomax1 = 0. !!0.5*rhomax1
 
+            i1 = 0
             DO i=1,npart
                IF (iphase(i).GE.0) THEN
                   IF (rho(i).GT.rhomax1) THEN
@@ -101,14 +102,12 @@ c
 c--only accept a density maximum that is within a certain radius of previous maximum
 c  (relies on using all dumps at once in the correct order)
 c
-                     dr = SQRT((xyzmh(1,i)-x1)**2 + (xyzmh(2,i)-y1)**2
-     &                        +(xyzmh(3,i)-z1)**2)
-                     IF (dr/r1 .LT. 0.01 .or. j.eq.1) THEN
+                     dr = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2
+     &                        +xyzmh(3,i)**2)
+                     IF (abs(dr-r1)/r1 .LT. 0.05 .or. j.eq.1 .or.
+     &                   gt.gt.11.) THEN
                         rhomax1 = rho(i)
                         i1 = i
-c                     ELSE
-c                        PRINT*,'rejecting ',i,
-c     &                         'rho=',rho(i),(ri-r1)/r1
                      ENDIF
                   ENDIF
                ENDIF
@@ -136,10 +135,10 @@ c
                         y2 = xyzmh(2,i)
                         z2 = xyzmh(3,i)
                         r2 = SQRT(x2**2 + y2**2 + z2**2)
-c                        IF (abs(r2 - r1)/r1.LT.0.2) THEN
+                        IF (abs(r2 - r1)/r1.LT.0.2) THEN
                            rhomax2 = rho(i)
                            i2 = i
-c                        ENDIF
+                        ENDIF
                      ENDIF
                   ENDIF
                ENDIF

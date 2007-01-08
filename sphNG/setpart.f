@@ -974,6 +974,10 @@ c
             RK2 = thermal
             tempiso = 2./3.*thermal/(Rg/gmw/uergg)
             WRITE(*,*) 'isothermal temperature = ',tempiso
+c           spit out sound speed as used in eospg
+            vsoundin2 = 2./3.*thermal
+            WRITE(*,*) 'sound speed = ',SQRT(vsoundin2),
+     &        ' (physical units=',SQRT(vsoundin2)*udist/utime,')'
          ELSE IF (encal.EQ.'v') THEN
 c
 c--Value of gamma is irrelevant for definition of variable e.o.s.
@@ -984,6 +988,10 @@ c
             RK2 = thermal/(rhozero**gm1)
             tempiso = 2./3.*thermal/(Rg/gmw/uergg)
             WRITE(*,*) 'isothermal temperature = ',tempiso
+c           spit out sound speed as used in eospg
+            vsoundin2 = (2./3.*RK2*rhozero**gm1)
+            WRITE(*,*) 'sound speed = ',SQRT(vsoundin2),
+     &        ' (physical units=',SQRT(vsoundin2)*udist/utime,')'
          ELSE IF (encal.EQ.'x') THEN
 c
 c--Value of gamma is irrelevant for definition of physical e.o.s.
@@ -1052,6 +1060,8 @@ c            print*,'rho(medium) = ',rhozero/rhocontrast,rhozero
             WRITE(*,*) 'pr(sphere) = ',pr(1),vsound(1),
      &          'pr(box) =',pr(n1+1),vsound(n1+1)
             WRITE(*,*) 'vsound**2/GM/R = ',vsound(n1+1)**2*rmax/totmas
+            WRITE(*,*) 'sound speed in medium = ',vsound(n1+1),
+     &            '(in physical units = ',vsound(n1+1)*udist/utime,')'
          ELSE
             DO i = 1, npart
                vxyzu(4,i) = thermal

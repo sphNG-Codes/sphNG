@@ -168,6 +168,11 @@ c
 c--Read array type 2 header
 c
       READ (idisk1, END=100) number8, (nums2(i), i=1,8)
+      IF (number8.GT.iptdim) THEN
+         WRITE(*,*) 'ERROR 8.5 in rdump: nptmass exceeds dimensions!!',
+     &            nptmass,iptdim
+         CALL quit
+      ENDIF
       nptmass = number8
 c
 c--Read array type 3 header

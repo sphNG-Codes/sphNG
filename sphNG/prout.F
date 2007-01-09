@@ -364,8 +364,8 @@ c
      &   '                curl B max : ', 1PE14.5,'  mean: ', 1PE14.5,/,
      &   '      (div B)/(curl B) max : ', 1PE14.5,'  mean: ', 1PE14.5,/,
      &   '              divB*h/B max : ', 1PE14.5,
-     &   ' mean : ', 1PE14.5,' frac < ',1PE9.2,' : ',0PF6.2,'%',/,
-     &   '         visc. switch  min : ', 1PE14.5, ' max : ',1PE14.5,//,
+     &   '  mean: ', 1PE14.5,' frac < ',1PE9.2,' : ',0PF6.2,'%',/,
+     &   '   resistivity switch  min : ', 1PE14.5, '  max : ',1PE14.5,//,
      &   ' total magnetic flux  (int div B dV)   : ', 1PE14.5,/,
      &   ' total cross helicity (int v.B dV)     : ', 1PE14.5)
          ENDIF

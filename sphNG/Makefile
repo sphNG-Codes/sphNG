@@ -80,7 +80,7 @@ endif
 
 ifeq ($(SYSTEM), gfortran)
     FC= gfortran
-    FFLAGS= -O3 -Wall
+    FFLAGS= -O3 -Wall -fopenmp
     DBLFLAG= -fdefault-real-8
     DEBUGFLAG= -g ##-ftrace=full -fbounds-check
     KNOWN_SYSTEM=yes
@@ -155,7 +155,7 @@ SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
 	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
 	newrun.f options.f phoenix.f phoenix2.f \
 	place.f potential.f preset.F \
-	prout.F ran1.f rdump.f reduce.f save.f \
+	prout.F ran1.f rdump.f reduce.f save.f setup_torus.f \
         scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f \
 	timestep.f toten.f treef_P.f unifdis.f unit.f \
@@ -273,8 +273,13 @@ sphtorus: $(OBJTORUS)
 	@echo ""
 	$(FC) $(FFLAGS) $(TORUSLIB) -o $@ $(OBJTORUS)
 
+util: binary convert ptmass massvsangmom
+
 binary: checksystem checkparams utils/binary.o
 	$(FC) $(FFLAGS) -o $@ utils/binary.o
+
+convert: checksystem checkparams utils/convert.o utils/readdump_sphNG.o utils/writedump_ascii.o
+	$(FC) $(FFLAGS) -o $@ utils/convert.o utils/writedump_ascii.o utils/readdump_sphNG.o
 
 ptmass: utils/ptmassmerge.o
 	$(FC) $(FFLAGS) -o $@ utils/ptmassmerge.o

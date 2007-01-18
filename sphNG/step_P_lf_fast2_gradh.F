@@ -453,7 +453,6 @@ c
       DO i = 1, nbinmax
          IF (nlstbins(i).GT.0) itime = MIN(itime, it2bin(i))
       END DO
-      print *,itime,imaxstep
       IF (itiming) THEN
          CALL getused(ts1p2)
          ts1 = ts1 + (ts1p2 - ts1p1)

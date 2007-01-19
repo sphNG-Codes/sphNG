@@ -79,9 +79,19 @@ c
       nlistga = 0
       nlistgn = 0
       istack = 0
-      mpar = m
-      hm = xyzmh(5,m)
 
+#ifdef PERIODIC_NO_GHOSTS
+c     for periodic with no ghosts we need to start the search
+c     from the (two daughters of the) root node.
+      mpar = isibdaupar(2,nroot)
+      istack = istack + 1
+      nstack(istack) = mpar
+#else
+c     otherwise we start the search from the current node
+      mpar = m
+#endif
+      hm = xyzmh(5,mpar)
+      
 c      DO i = 1, nlstbins(29)-1
 c         IF (listbins(i,29).NE.i+94296) THEN
 c            WRITE (*,*) 'listbins(i,29).NE.i+94296 , M1',m
@@ -100,6 +110,9 @@ c      END DO
             dxi = xyzmh(1,n) - rrx
             dyi = xyzmh(2,n) - rry
             dzi = xyzmh(3,n) - rrz
+#ifdef PERIODIC_NO_GHOSTS
+            CALL modbound(dxi,dyi,dzi)
+#endif
             rr = dxi*dxi + dyi*dyi + dzi*dzi
 c
 c--Decide whether to open up the node:
@@ -316,7 +329,18 @@ c*************************************
       ENDIF
 
       istack = 0
+#ifdef PERIODIC_NO_GHOSTS
+c     for periodic with no ghosts we need to start the search
+c     from the (two daughters of the) root node. Thus we place
+c     the daughter of root on the stack and line 100 puts the
+c     sibling of the daughter and we are away
+      mpar = isibdaupar(2,nroot)
+      istack = istack + 1
+      nstack(istack) = mpar
+#else
+c     otherwise we start the search from the current node
       mpar = m
+#endif
       rcut2 = rcut*rcut
  100  node = isibdaupar(1,mpar)
       IF (node.NE.0) THEN
@@ -329,6 +353,9 @@ c*************************************
             dxi = xyzmh(1,n) - rrx
             dyi = xyzmh(2,n) - rry
             dzi = xyzmh(3,n) - rrz
+#ifdef PERIODIC_NO_GHOSTS
+            CALL modbound(dxi,dyi,dzi)
+#endif
             rr = dxi*dxi + dyi*dyi + dzi*dzi
 c
 c--Decide whether to open up the node:
@@ -344,7 +371,11 @@ c
                   nstack(istack) = isibdaupar(1,j)
                ENDIF
             ELSE
+#ifdef PERIODIC_NO_GHOSTS
+               IF (iphase(n).EQ.0 .AND. n.NE.m) THEN
+#else
                IF (iphase(n).EQ.0) THEN
+#endif
                   IF (rr.LT.rcut2) THEN
                      numneigh = numneigh + 1
                      IF (numneigh.LE.nneighmax) THEN

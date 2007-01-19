@@ -114,6 +114,13 @@ c
       ENDIF
 #endif
 c
+c--check ibound = 11 for periodic no ghosts
+c
+#ifdef PERIODIC_NO_GHOSTS
+      IF (ibound.NE.11) STOP 'PERIODIC_NO_GHOSTS REQUIRES ibound=11'
+#endif
+
+c
 c--Initialize viscosity switch
 c
       IF (ifsvi.EQ.6) THEN

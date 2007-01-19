@@ -27,6 +27,21 @@ doubleprecision= yes
 # endian can be "BIG", "LITTLE" or anything else which has no effect
 #ENDIAN= default
 
+##############################################################
+# preprocessor options 
+# (uncomment as necessary)
+#
+FPPFLAGS=
+#
+# This one is for periodic boundary conditions without using
+# ghost particles
+#
+FPPFLAGS+= -DPERIODIC_NO_GHOSTS 
+#
+# Add yours here...
+#
+##############################################################
+
 ifeq ($(SYSTEM), ukaff1a)
     ifeq ($(mpi), yes)
         FC= mpif77 -qnosave
@@ -39,6 +54,7 @@ ifeq ($(SYSTEM), ukaff1a)
 #    DEBUGFLAG= -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
     DEBUGFLAG= -C
     KNOWN_SYSTEM=yes
+    FPP_PREFIX=-d -WF,
 #    ZZFILE= zzsun_f77_double1.f zzsun_f77_double2.f
     ZZFILE= zzibm.f
 endif
@@ -135,8 +151,11 @@ ifeq ($(doubleprecision), yes)
 endif
 
 ifeq ($(mpi), yes)
-    FFLAGS += -d -WF,-DMPI
+    FPPFLAGS += -DMPI
 endif
+
+# add preprocessor flags (and prefix required for some compilers)
+FFLAGS += ${FPP_PREFIX} ${FPPFLAGS}
 
 # these are the sources common to all compilations
 
@@ -163,9 +182,9 @@ SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
 
 # these are the sources required for the gradh code to compile
 
-SRCGRADH= densityiterate_gradh.f derivi_P_gradh.f \
+SRCGRADH= densityiterate_gradh.F derivi_P_gradh.f \
 	divBclean_mhd.f divBdiffuse.f divBiterate.f \
-	directsum_poisson_vec_mhd_clean.f forcei_P_gradh.f \
+	directsum_poisson_vec_mhd_clean.f forcei_P_gradh.F \
         hcalc_gradh.f 
 
 # these are the sources required for the non-gradh code to compile

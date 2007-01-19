@@ -250,3 +250,39 @@ c
 
       RETURN
       END
+
+c************************************************************
+c                                                           *
+c   This subroutine is for periodic boundaries without      *
+c   ghost particles                                         *
+c                                                           *
+c   Given the separation of a particle pair, returns the    *
+c   less of the separation and the separation across the    *
+c   boundary.                                               *
+c                                                           *
+c   DJP 18.01.07                                            *
+c                                                           *
+c************************************************************
+      SUBROUTINE modbound(dx,dy,dz)
+      INCLUDE 'idim'
+      INCLUDE 'COMMONS/rbnd'
+      
+c      print*,'xmin,max = ',xmin,xmax
+c      print*,dx,dx - (xmax - xmin)*dx/abs(dx),
+c     &       dy,dy - (ymax - ymin)*dy/abs(dy),
+c     &       dz,dz - (zmax - zmin)*dz/abs(dz)
+      IF (abs(dx).GT.tiny) THEN
+         term = dx - (xmax - xmin)*dx/abs(dx)
+         IF (abs(term).lt.abs(dx)) dx = term
+      ENDIF
+      IF (abs(dy).GT.tiny) THEN
+         term = dy - (ymax - ymin)*dy/abs(dy)
+         IF (abs(term).lt.abs(dy)) dy = term
+      ENDIF
+      IF (abs(dz).GT.tiny) THEN
+         term = dz - (zmax - zmin)*dz/abs(dz)
+         IF (abs(term).lt.abs(dz)) dz = term
+      ENDIF
+c      print*,'using ',dx,dy,dz,abs(term).lt.abs(dx)
+      RETURN
+      END SUBROUTINE modbound

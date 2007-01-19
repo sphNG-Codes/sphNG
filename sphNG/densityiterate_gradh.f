@@ -182,6 +182,9 @@ c
                dx = xi - xyzmh(1,j)
                dy = yi - xyzmh(2,j)
                dz = zi - xyzmh(3,j)
+#ifdef PERIODIC_NO_GHOSTS
+               CALL modbound(dx,dy,dz)
+#endif
                pmassj = xyzmh(4,j)
 
                rij2 = dx*dx + dy*dy + dz*dz + tiny
@@ -377,6 +380,9 @@ c
             dx = xi - xyzmh(1,j)
             dy = yi - xyzmh(2,j)
             dz = zi - xyzmh(3,j)
+#ifdef PERIODIC_NO_GHOSTS
+            CALL modbound(dx,dy,dz)
+#endif
             pmassj = xyzmh(4,j)
             rij2 = dx*dx + dy*dy + dz*dz + tiny
             v2 = rij2*hi21

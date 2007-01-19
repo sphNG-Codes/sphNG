@@ -126,10 +126,15 @@ c--mean plasma beta
 c
          WRITE (*,98007)
 98007    FORMAT (' Enter mean plasma beta (gas/mag pressure)',/,
-     &           ' (assuming uniform density and temperature)')
+     &           ' (assuming uniform density and temperature, 0=hydro)')
          READ (*,*) betazero
-         IF (betazero.LE.0.) STOP 'beta must be > 0'
-         Bzero = SQRT(2.*przero/betazero)
+         IF (betazero.LT.0.) THEN
+            STOP 'beta must be > 0'
+         ELSEIF (betazero.EQ.0) THEN
+            Bzero = 0.
+         ELSE
+            Bzero = SQRT(2.*przero/betazero)
+         ENDIF
 
       ELSEIF (isetB.eq.'f') THEN
 c

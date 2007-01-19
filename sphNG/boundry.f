@@ -267,10 +267,6 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'COMMONS/rbnd'
       
-c      print*,'xmin,max = ',xmin,xmax
-c      print*,dx,dx - (xmax - xmin)*dx/abs(dx),
-c     &       dy,dy - (ymax - ymin)*dy/abs(dy),
-c     &       dz,dz - (zmax - zmin)*dz/abs(dz)
       IF (abs(dx).GT.tiny) THEN
          term = dx - (xmax - xmin)*dx/abs(dx)
          IF (abs(term).lt.abs(dx)) dx = term
@@ -283,6 +279,6 @@ c     &       dz,dz - (zmax - zmin)*dz/abs(dz)
          term = dz - (zmax - zmin)*dz/abs(dz)
          IF (abs(term).lt.abs(dz)) dz = term
       ENDIF
-c      print*,'using ',dx,dy,dz,abs(term).lt.abs(dx)
+
       RETURN
       END SUBROUTINE modbound

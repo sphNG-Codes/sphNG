@@ -418,9 +418,9 @@ c--real*4
       number = 0
       WRITE (idisk1, ERR=100) number
 c--real*8
-      number = 3
+      number = 4
       WRITE (idisk1, ERR=100) number
-      WRITE (idisk1, ERR=100) udist, umass, utime
+      WRITE (idisk1, ERR=100) udist, umass, utime, umagfd
 c
 c--Arrays
 c

@@ -36,7 +36,7 @@ FPPFLAGS=
 # This one is for periodic boundary conditions without using
 # ghost particles
 #
-FPPFLAGS+= -DPERIODIC_NO_GHOSTS 
+#FPPFLAGS+= -DPERIODIC_NO_GHOSTS 
 #
 # Add yours here...
 #

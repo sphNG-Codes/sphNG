@@ -37,6 +37,9 @@ c
 99001 FORMAT (' entry subroutine ghostp11')
 
       nghost = 0
+#ifdef PERIODIC_NO_GHOSTS
+      RETURN
+#endif
       uradconst = radconst/uergcc
 c
 c--Find ghost particles (for all particles within radkernel*h of boundary)

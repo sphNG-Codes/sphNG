@@ -282,3 +282,60 @@ c************************************************************
 
       RETURN
       END SUBROUTINE modbound
+
+c************************************************************
+c                                                           *
+c  same as modbound but also adjusts the difference in      *
+c  euler potentials across the boundary                     *
+c                                                           *
+c************************************************************
+      SUBROUTINE modboundeulr(dx,dy,dz,dalpha,dbeta)
+      INCLUDE 'idim'
+      INCLUDE 'COMMONS/rbnd'
+      INCLUDE 'COMMONS/presb'
+      
+      deltax = 0.
+      deltay = 0.
+      deltaz = 0.
+      IF (abs(dx).GT.tiny) THEN
+         deltax = -(xmax - xmin)*dx/abs(dx)
+         term = dx + deltax
+         IF (abs(term).lt.abs(dx)) THEN
+            dx = term
+         ELSE
+            deltax = 0.
+         ENDIF
+      ENDIF
+      IF (abs(dy).GT.tiny) THEN
+         deltay = -(ymax - ymin)*dy/abs(dy)
+         term = dy + deltay
+         IF (abs(term).lt.abs(dy)) THEN
+            dy = term
+         ELSE
+            deltay = 0.
+         ENDIF
+      ENDIF
+      IF (abs(dz).GT.tiny) THEN
+         deltaz = -(zmax - zmin)*dz/abs(dz)
+         term = dz + deltaz
+         IF (abs(term).lt.abs(dz)) THEN
+            dz = term
+         ELSE
+            deltaz = 0.
+         ENDIF
+      ENDIF
+
+c--   WARNING! DOES NOT DO MIXED CARTESIAN FIELDS!
+      IF (abs(Bextz).GT.0.) THEN
+         dalpha = dalpha - Bextz*deltay
+         dbeta = dbeta + deltax
+      ELSEIF (abs(Bexty).GT.0) THEN
+         dalpha = dalpha - Bexty*deltax
+         dbeta = dbeta + deltaz         
+      ELSEIF (abs(Bextx).GT.0) THEN
+         dalpha = dalpha - Bextx*deltaz
+         dbeta = dbeta + deltay         
+      ENDIF
+
+      RETURN
+      END SUBROUTINE modboundeulr

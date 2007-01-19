@@ -381,7 +381,13 @@ c
             dy = yi - xyzmh(2,j)
             dz = zi - xyzmh(3,j)
 #ifdef PERIODIC_NO_GHOSTS
-            CALL modbound(dx,dy,dz)
+            IF (varmhd.EQ.'eulr') THEN
+               dalpha= alphai - Bevol(1,j)
+               dbeta= betai - Bevol(2,j)
+               CALL modboundeulr(dx,dy,dz,dalpha,dbeta)
+            ELSE
+               CALL modbound(dx,dy,dz)
+            ENDIF
 #endif
             pmassj = xyzmh(4,j)
             rij2 = dx*dx + dy*dy + dz*dz + tiny
@@ -445,9 +451,10 @@ c
                      ryyi = ryyi - grpmi*dy*dy
                      ryzi = ryzi - grpmi*dy*dz
                      rzzi = rzzi - grpmi*dz*dz
+#ifndef PERIODIC_NO_GHOSTS
                      dalpha= alphai - Bevol(1,j)
                      dbeta= betai - Bevol(2,j)
-
+#endif
                      dalphaxi= dalphaxi - grpmi*dalpha*dx
                      dalphayi= dalphayi - grpmi*dalpha*dy
                      dalphazi= dalphazi - grpmi*dalpha*dz

@@ -72,9 +72,9 @@ c      INCLUDE 'COMMONS/torq'
          OPEN (UNIT = 8, FILE = ifile(k), FORM = 'unformatted')
          PRINT *, 'reading file ', ifile(k)
 
-         READ (8, END=100) gt, nprint, nprint, gamma
+         READ (8, END=100) gt, npart, nprint, gamma
          WRITE(*,*) 't = ',gt,' nprint = ',nprint,' gamma = ',gamma
-         npart = nprint
+c         npart = nprint
          n1 = npart
          n2 = 0
          nreassign = 0

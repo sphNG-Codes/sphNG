@@ -41,7 +41,6 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/tming'
       INCLUDE 'COMMONS/gradhterms'
-      INCLUDE 'COMMONS/crap'
 
       CHARACTER*7 where
       CHARACTER*100 fileident
@@ -66,15 +65,20 @@ c-----------------------------------
          dummy(j) = 0.
       ENDDO
       hfact = 1.2
-      WRITE (idisk1, ERR=100) gt,npart,npart,gamma,hfact,3,3,10,1,0,
-     &                        0,0,0,dummy(1:3),dummy(1:3)
+      WRITE (idisk1, ERR=100) gt,npart,npart,gamma,hfact,3,3,11,1,0,
+     &                        0,0,dummy(1:3),dummy(1:3)
 c--Default real
-      WRITE (idisk1, ERR=100) ((xyzmh(j,isort(i)),j=1,3), i=1,npart)
-      WRITE (idisk1, ERR=100) ((vxyzu(j,isort(i)),j=1,3), i=1,npart)
+      DO j=1,3
+         WRITE (idisk1, ERR=100) (xyzmh(j,isort(i)), i=1,npart)
+      ENDDO
+      DO j=1,3
+         WRITE (idisk1, ERR=100) (vxyzu(j,isort(i)), i=1,npart)
+      ENDDO
       WRITE (idisk1, ERR=100) (xyzmh(5,isort(i)), i=1,npart)
       WRITE (idisk1, ERR=100) (real(rho(isort(i))), i=1, npart)
       WRITE (idisk1, ERR=100) (vxyzu(4,isort(i)), i=1,npart)
       WRITE (idisk1, ERR=100) (xyzmh(4,isort(i)), i=1,npart)
+      WRITE (idisk1, ERR=100) (real(alphaMM(1,isort(i))), i=1,npart)
 
       ENDFILE idisk1
       BACKSPACE idisk1

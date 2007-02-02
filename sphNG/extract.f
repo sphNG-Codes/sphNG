@@ -34,6 +34,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/gradhterms'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/presb'
+      INCLUDE 'COMMONS/Bxyz'
 
       CHARACTER*40 ifile(10), ofile
       CHARACTER*1 iok, iok2, iokm, iaddmhd
@@ -41,7 +42,6 @@ c      INCLUDE 'COMMONS/torq'
       INTEGER*4 int1, int2, int1i, int2i, int3i
       INTEGER*8 number8
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
-      DIMENSION Bxyz(3,imhd)
       
 1000  FORMAT (A40)
 1001  FORMAT (A1)
@@ -483,7 +483,7 @@ c
          isort(i) = i
          iorig(i) = i
       END DO
-      nfullstep = 1
+      nfullstep = 10
       PRINT *,'writing dump file'
       CALL wdump(7)
 c

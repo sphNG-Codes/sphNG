@@ -1,8 +1,11 @@
       COMMON /rbnd  / rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl,
      &	     boundtemp
 c
+c--these are used in the modbound subroutine for periodic without ghosts
+c
+      COMMON /mdbound/ dxbound,dybound,dzbound
+c
 c--Note: flowrate is the number of particles (floating point) per code time
 c
       COMMON /planet1/ listinactive(idim),nlistinactive
       COMMON /planet2/ variation,phibound,flowrate,signorm,hoverr,partm
-

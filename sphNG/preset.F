@@ -45,6 +45,7 @@ c************************************************************
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/updated'
+      INCLUDE 'COMMONS/rbnd' ! for periodic_no_ghosts
 
       CHARACTER*7 where
       CHARACTER*25 ptfile, accfile, killfile, reassfile
@@ -118,6 +119,9 @@ c--check ibound = 11 for periodic no ghosts
 c
 #ifdef PERIODIC_NO_GHOSTS
       IF (ibound.NE.11) STOP 'PERIODIC_NO_GHOSTS REQUIRES ibound=11'
+      dxbound = xmax - xmin
+      dybound = ymax - ymin
+      dzbound = zmax - zmin
 #endif
 
 c

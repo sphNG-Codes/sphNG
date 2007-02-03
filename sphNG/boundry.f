@@ -267,18 +267,9 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'COMMONS/rbnd'
       
-      IF (abs(dx).GT.tiny) THEN
-         term = dx - (xmax - xmin)*dx/abs(dx)
-         IF (abs(term).lt.abs(dx)) dx = term
-      ENDIF
-      IF (abs(dy).GT.tiny) THEN
-         term = dy - (ymax - ymin)*dy/abs(dy)
-         IF (abs(term).lt.abs(dy)) dy = term
-      ENDIF
-      IF (abs(dz).GT.tiny) THEN
-         term = dz - (zmax - zmin)*dz/abs(dz)
-         IF (abs(term).lt.abs(dz)) dz = term
-      ENDIF
+      IF (abs(dx).GT.0.5*dxbound) dx = dx - dxbound*SIGN(1.0,dx)
+      IF (abs(dy).GT.0.5*dybound) dy = dy - dybound*SIGN(1.0,dy)
+      IF (abs(dz).GT.0.5*dzbound) dz = dz - dzbound*SIGN(1.0,dz)
 
       RETURN
       END SUBROUTINE modbound
@@ -297,32 +288,17 @@ c************************************************************
       deltax = 0.
       deltay = 0.
       deltaz = 0.
-      IF (abs(dx).GT.tiny) THEN
-         deltax = -(xmax - xmin)*dx/abs(dx)
-         term = dx + deltax
-         IF (abs(term).lt.abs(dx)) THEN
-            dx = term
-         ELSE
-            deltax = 0.
-         ENDIF
+      IF (abs(dx).GT.0.5*dxbound) THEN
+         deltax = -dxbound*SIGN(1.0,dx)
+         dx = dx + deltax
       ENDIF
-      IF (abs(dy).GT.tiny) THEN
-         deltay = -(ymax - ymin)*dy/abs(dy)
-         term = dy + deltay
-         IF (abs(term).lt.abs(dy)) THEN
-            dy = term
-         ELSE
-            deltay = 0.
-         ENDIF
+      IF (abs(dy).GT.0.5*dybound) THEN
+         deltay = -dybound*SIGN(1.0,dy)
+         dy = dy + deltay
       ENDIF
-      IF (abs(dz).GT.tiny) THEN
-         deltaz = -(zmax - zmin)*dz/abs(dz)
-         term = dz + deltaz
-         IF (abs(term).lt.abs(dz)) THEN
-            dz = term
-         ELSE
-            deltaz = 0.
-         ENDIF
+      IF (abs(dz).GT.0.5*dzbound) THEN
+         deltaz = -dzbound*SIGN(1.0,dz)
+         dz = dz + deltaz
       ENDIF
 
 c--   WARNING! DOES NOT DO MIXED CARTESIAN FIELDS!

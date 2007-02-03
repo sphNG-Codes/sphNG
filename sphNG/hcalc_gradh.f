@@ -49,6 +49,9 @@ c
 c      neimin = 80
 c      neimax = 120
       acc = 0.9
+      dxbound = xmax - xmin
+      dybound = ymax - ymin
+      dzbound = zmax - zmin
 
       neimean = (neimax + neimin) / 2
       neirange = (neimax - neimin) / 4

@@ -107,6 +107,10 @@ c      END DO
  150     IF (istack.NE.0) THEN
             n = nstack(istack)
             istack = istack - 1
+#ifdef PERIODIC_NO_GHOSTS
+c           do not get self in neighbour list
+            IF (n.EQ.m) GOTO 150
+#endif
             dxi = xyzmh(1,n) - rrx
             dyi = xyzmh(2,n) - rry
             dzi = xyzmh(3,n) - rrz
@@ -349,7 +353,10 @@ c     otherwise we start the search from the current node
  150     IF (istack.NE.0) THEN
             n = nstack(istack)
             istack = istack - 1
-
+#ifdef PERIODIC_NO_GHOSTS
+c           do not get self in neighbour list
+            IF (n.EQ.m) GOTO 150
+#endif
             dxi = xyzmh(1,n) - rrx
             dyi = xyzmh(2,n) - rry
             dzi = xyzmh(3,n) - rrz
@@ -371,11 +378,7 @@ c
                   nstack(istack) = isibdaupar(1,j)
                ENDIF
             ELSE
-#ifdef PERIODIC_NO_GHOSTS
-               IF (iphase(n).EQ.0 .AND. n.NE.m) THEN
-#else
                IF (iphase(n).EQ.0) THEN
-#endif
                   IF (rr.LT.rcut2) THEN
                      numneigh = numneigh + 1
                      IF (numneigh.LE.nneighmax) THEN

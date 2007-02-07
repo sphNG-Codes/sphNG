@@ -374,7 +374,7 @@ c
             STOP 'unknown MHD variable in rdump'
          ENDIF
 c--real*4
-         IF (nums4(7).GT.4) THEN
+         IF (nums4(7).GT.4.AND.ifsvi.EQ.6) THEN
 c--skip current/div B
             DO j = 1, 4
                READ (idisk1, END=100)
@@ -382,7 +382,9 @@ c--skip current/div B
 c--read artificial resistivity parameter
             READ (idisk1, END=100) (alphaMM(2,i), i=1, npart)
          ELSE
+           IF (ifsvi.EQ.6) THEN
            WRITE(*,*) 'WARNING: resistivity parameter not found in dump'
+           ENDIF
            WRITE(*,*) ' => setting alphaB = alphaBmin everywhere'
            DO i=1,npart
               alphaMM(2,i) = alphamin(2)

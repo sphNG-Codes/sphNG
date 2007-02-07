@@ -390,86 +390,90 @@ c
 c--End reading of dump file
 c--------------------------
 c
-            IF (image.EQ.ireduct) THEN
+      IF (image.EQ.ireduct) THEN
 
-               IF (iokm.EQ.'y' .OR. iokm.EQ.'Y') THEN
-                  cmx = 0. 
-                  cmy = 0.
-                  cmz = 0.
-                  vcmx = 0. 
-                  vcmy = 0.
-                  vcmz = 0.
-                  pmtot = 0.
-                  DO i =1, npart
-                     pmassi = xyzmh(4,i)
-                     cmx = cmx + pmassi*xyzmh(1,i)
-                     cmy = cmy + pmassi*xyzmh(2,i)
-                     cmz = cmz + pmassi*xyzmh(3,i)
-                     vcmx = vcmx + pmassi*vxyzu(1,i)
-                     vcmy = vcmy + pmassi*vxyzu(2,i)
-                     vcmz = vcmz + pmassi*vxyzu(3,i)
-                     pmtot = pmtot + pmassi
-                  END DO
-                  cmx = cmx/pmtot
-                  cmy = cmy/pmtot
-                  cmz = cmz/pmtot
-                  vcmx = vcmx/pmtot
-                  vcmy = vcmy/pmtot
-                  vcmz = vcmz/pmtot
-                  DO i = 1, npart
-                     xyzmh(1,i) = xyzmh(1,i) - cmx
-                     xyzmh(2,i) = xyzmh(2,i) - cmy
-                     xyzmh(3,i) = xyzmh(3,i) - cmz
-                     vxyzu(1,i) = vxyzu(1,i) - vcmx
-                     vxyzu(2,i) = vxyzu(2,i) - vcmy
-                     vxyzu(3,i) = vxyzu(3,i) - vcmz
-                  END DO
-               END IF
+         IF (iokm.EQ.'y' .OR. iokm.EQ.'Y') THEN
+            cmx = 0. 
+            cmy = 0.
+            cmz = 0.
+            vcmx = 0. 
+            vcmy = 0.
+            vcmz = 0.
+            pmtot = 0.
+            DO i =1, npart
+               pmassi = xyzmh(4,i)
+               cmx = cmx + pmassi*xyzmh(1,i)
+               cmy = cmy + pmassi*xyzmh(2,i)
+               cmz = cmz + pmassi*xyzmh(3,i)
+               vcmx = vcmx + pmassi*vxyzu(1,i)
+               vcmy = vcmy + pmassi*vxyzu(2,i)
+               vcmz = vcmz + pmassi*vxyzu(3,i)
+               pmtot = pmtot + pmassi
+            END DO
+            cmx = cmx/pmtot
+            cmy = cmy/pmtot
+            cmz = cmz/pmtot
+            vcmx = vcmx/pmtot
+            vcmy = vcmy/pmtot
+            vcmz = vcmz/pmtot
+            DO i = 1, npart
+               xyzmh(1,i) = xyzmh(1,i) - cmx
+               xyzmh(2,i) = xyzmh(2,i) - cmy
+               xyzmh(3,i) = xyzmh(3,i) - cmz
+               vxyzu(1,i) = vxyzu(1,i) - vcmx
+               vxyzu(2,i) = vxyzu(2,i) - vcmy
+               vxyzu(3,i) = vxyzu(3,i) - vcmz
+            END DO
+         END IF
 
-               PRINT *, 'writing image just read on output file'
-               imo = imo + 1
-               IF (iok.EQ.'y') gt = 0.0
+         PRINT *, 'writing image just read on output file'
+         imo = imo + 1
+         IF (iok.EQ.'y') gt = 0.0
+         
+         IF (imhd.EQ.idim) THEN
+            IF (iaddmhd.EQ.'y') CALL setBfield
+         ENDIF
 
-               PRINT *, ' do you want to add point masses ? '
-               READ (*,1001) iok2
+         PRINT *, ' do you want to add point masses ? '
+         READ (*,1001) iok2
 
-               IF (iok2.EQ.'y') THEN
-                  PRINT *, ' reading from file externcluster '
-                  OPEN (UNIT=13, FILE='externcluster')
-                  READ (13,*) nptmassnew
-                  DO in = 1, nptmassnew
-                     inew = in + npart
-                     READ(13,*) xyzmh(1,inew), xyzmh(2,inew), 
+         IF (iok2.EQ.'y') THEN
+            PRINT *, ' reading from file externcluster '
+            OPEN (UNIT=13, FILE='externcluster')
+            READ (13,*) nptmassnew
+            DO in = 1, nptmassnew
+               inew = in + npart
+               READ(13,*) xyzmh(1,inew), xyzmh(2,inew), 
      &                    xyzmh(3,inew), xyzmh(4,inew),
      &                    vxyzu(1,inew), vxyzu(2,inew), vxyzu(3,inew), 
      &                    xyzmh(5,inew)
-                     iphase(inew) = 1
-                     listpm(nptmass+in) = inew
-                     spinx(nptmass+in) = 0.
-                     spiny(nptmass+in) = 0.
-                     spinz(nptmass+in) = 0.
-                     vxyzu(4,inew) = tiny
-                     rho(inew) = tiny
-                     dgrav(inew) = 0.
-                  END DO
-                  n2 = nptmassnew
-                  hacc = xyzmh(5,inew)
-                  haccall = 0.2*hacc
-                  npart = npart + nptmassnew
-                  nptmass = nptmass + nptmassnew
-               ENDIF
-               PRINT *, ' do you want to change masses and temps ? '
-               READ (*,1001) iok2
-               IF (iok2.EQ.'y') THEN
-                  PRINT *, ' by how much ?'
-                  READ *, howmuch
-                  DO ii = 1, npart
-                     IF (iphase(ii).EQ.0) THEN
-                        xyzmh(4,ii) = xyzmh(4,ii) * howmuch
+               iphase(inew) = 1
+               listpm(nptmass+in) = inew
+               spinx(nptmass+in) = 0.
+               spiny(nptmass+in) = 0.
+               spinz(nptmass+in) = 0.
+               vxyzu(4,inew) = tiny
+               rho(inew) = tiny
+               dgrav(inew) = 0.
+            END DO
+            n2 = nptmassnew
+            hacc = xyzmh(5,inew)
+            haccall = 0.2*hacc
+            npart = npart + nptmassnew
+            nptmass = nptmass + nptmassnew
+         ENDIF
+         PRINT *, ' do you want to change masses and temps ? '
+         READ (*,1001) iok2
+         IF (iok2.EQ.'y') THEN
+            PRINT *, ' by how much ?'
+            READ *, howmuch
+            DO ii = 1, npart
+               IF (iphase(ii).EQ.0) THEN
+                  xyzmh(4,ii) = xyzmh(4,ii) * howmuch
 c                        vxyzu(4,ii) = vxyzu(4,ii) * howmuch
-                     ENDIF
-                  END DO
                ENDIF
+            END DO
+         ENDIF
                
 c
 c--Dump new file
@@ -486,11 +490,11 @@ c
 c--End writing of full dump file
 c-------------------------------
 c
-            ENDIF
+      ENDIF
 
- 10      CONTINUE
+ 10   CONTINUE
 
- 100     CLOSE (8)
+ 100  CLOSE (8)
 
  15   CONTINUE      
 

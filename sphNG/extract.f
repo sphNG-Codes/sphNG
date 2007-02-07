@@ -35,6 +35,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/presb'
       INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/cylinder'
 
       CHARACTER*40 ifile(10), ofile
       CHARACTER*1 iok, iok2, iokm, iaddmhd
@@ -178,12 +179,11 @@ c
 c--Read array type 1 header
 c
       READ (8, END=100) number8, (nums1(i), i=1,8)
-      IF (number8.NE.npart) THEN
+      IF (number8.LT.npart) THEN
          WRITE (*,*) 'ERROR 8 in rdump: npart wrong'
          CALL quit
       ENDIF
-      npart = number8
-      PRINT*,' npart = ',npart
+      nhydro = number8
 c
 c--Read array type 2 header
 c
@@ -196,7 +196,7 @@ c
       IF (number.GE.3) THEN
          READ (8, END=100) number8, (nums3(i), i=1,8)
          IF (number8.GT.iradtrans .OR. number8.NE.0 .AND. 
-     &        number8.NE.npart) THEN
+     &        number8.LT.npart) THEN
             WRITE (*,*) 'ERROR 9 in rdump: iradtrans wrong ',number8,
      &           iradtrans,npart
             CALL quit
@@ -209,7 +209,7 @@ c
       IF (number.GE.4) THEN
          READ (8, END=100) number8, (nums4(i), i=1,8)
          IF (number8.GT.imhd .OR. number8.NE.1 .AND. 
-     &        number8.NE.npart) THEN
+     &        number8.LT.npart) THEN
             WRITE (*,*) 'ERROR 10 in rdump: imhd wrong ',number8,
      &           imhd,npart
             CALL quit
@@ -291,7 +291,7 @@ c--real*4
 
 c--real*8
 
-      IF (number.GE.3 .AND. nradtrans.EQ.npart 
+      IF (number.GE.3 .AND. nradtrans.EQ.nhydro 
      &    .AND. encal.EQ.'r') THEN
 c
 c--Array length 3 arrays
@@ -315,7 +315,7 @@ c--real*4
 c--real*8
 
       ENDIF
-      IF (number.GE.4 .AND. nmhd.EQ.npart .AND. imhd.EQ.idim) THEN
+      IF (number.GE.4 .AND. nmhd.EQ.nhydro .AND. imhd.EQ.idim) THEN
           PRINT *,' dump file contains magnetic fields...' 
 c
 c--Array length 4 arrays
@@ -472,9 +472,6 @@ c                        vxyzu(4,ii) = vxyzu(4,ii) * howmuch
                   END DO
                ENDIF
                
-               IF (iaddmhd.EQ.'y') THEN
-                  CALL setBfield
-               ENDIF
 c
 c--Dump new file
 c
@@ -483,7 +480,7 @@ c
          isort(i) = i
          iorig(i) = i
       END DO
-      nfullstep = 10
+      nfullstep = 1
       PRINT *,'writing dump file'
       CALL wdump(7)
 c

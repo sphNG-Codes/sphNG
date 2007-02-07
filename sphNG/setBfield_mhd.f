@@ -27,6 +27,7 @@ c************************************************************
       INCLUDE 'COMMONS/new'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/setBfield'
+      INCLUDE 'COMMONS/tokamak'
       
       INTEGER iBfield      
       CHARACTER*1 isetB
@@ -37,8 +38,13 @@ c
 99001 FORMAT (' entry subroutine setBfield')
 99002 FORMAT (A1)
 
+      Bzero = 0.
+      Bxzero = 0.
+      Byzero = 0.
+      Bzzero = 0.
+
 50    WRITE(*, 99102)
-99102 FORMAT (' Which MHD variable do you want to evolve?', /,
+99102 FORMAT (/,' Which MHD variable do you want to evolve?', /,
      &   ' B     (flux density per unit volume)         : Bvol b)', /,
      &   ' B/rho (flux density per unit mass)           : Brho r)', /,
      &   ' Euler potentials (B = grad alpha x grad beta): eulr e)')
@@ -61,9 +67,10 @@ c
 99003 FORMAT(//, ' INITIAL MAGNETIC FIELD GEOMETRY ', //,
      &        '       uniform cartesian field : 1 ',/,
      &        '        uniform toroidal field : 2 ',/,
-     &        '          non-zero div B field : 3 ')
+     &        '          non-zero div B field : 3 ',/,
+     &        '          tokamak Btheta field : 4 ')
       READ (*, *) iBfield
-      IF (iBfield.LT.1.OR.iBfield.GT.2) GOTO 100
+      IF (iBfield.LT.1.OR.iBfield.GT.4) GOTO 100
 c
 c--set initial mean pressure for use in beta calculations
 c
@@ -75,10 +82,11 @@ c  c1 is a normalisation factor taken from Mouschovias & Spitzer 1976
 c
       c1 = 0.53
       rmasstoflux_crit = 2./3.*c1*sqrt(5./pi)
-      WRITE(*,*) 'critical mass-to-flux ratio (code units) = ',
-     &            rmasstoflux_crit
 c     set area for mass-to-flux calculation (assumed spherical at the moment)
       area = pi*rmax**2
+
+      IF (iBfield.EQ.4) GOTO 300 ! field strength is fixed for torus
+
 c
 c--set magnitude of B field a variety of ways
 c
@@ -140,8 +148,10 @@ c
 c
 c--mass-to-flux ratio for a spherical cloud
 c
+         WRITE(*,*) 'critical mass-to-flux ratio (code units) = ',
+     &            rmasstoflux_crit
          WRITE (*,98107)
-98107    FORMAT (' Enter mass-to-flux ratio',/,
+98107    FORMAT (' Enter spherical mass-to-flux ratio',/,
      &           ' (where < 1 = subcritical,',/,
      &           '          1 = critical,',/,
      &           '        > 1 = supercritical, ',/,
@@ -159,6 +169,7 @@ c
          GOTO 200
       ENDIF
 
+300   CONTINUE
 
       IF (iBfield.EQ.1) THEN
 c
@@ -254,6 +265,49 @@ c
             Bevolxyz(2,i) = 0.
             Bevolxyz(3,i) = Bzzero
          ENDDO
+      ELSEIF (iBfield.EQ.4) THEN
+c
+c  Setup for the tokamak confining field (Btheta)
+c  corresponding to the external force iexf=9
+c  taken from Wesson, J., Tokamaks, 3rd Ed, Oxford 2004, page 123
+c
+         WRITE(*,*) 'SETUP FOR TOKAMAK BTHETA FIELD'
+         WRITE(*,*) ' J0 = ',currj0,' a = ',atorus,'nu = ',nutorus
+         IF (varmhd.EQ.'eulr') STOP 'not implemented for euler pots'
+
+         DO i=1,npart
+c
+c        get position in torus r coordinate
+c
+            xi = xyzmh(1,i)
+            yi = xyzmh(2,i)
+            zi = xyzmh(3,i)
+            rcyl = sqrt(xi**2 + yi**2)
+            rintorus = sqrt((rcyl - Rtorus)**2 + zi**2)
+
+            IF (rintorus.GT.tiny) THEN
+c
+c        set Btheta in torus co-ordinates
+c
+               Btheta = (0.5*currj0*atorus**2)/(nutorus+1)*
+     &                  (1.- (1.-rintorus**2*da2)**(nutorus+1))
+c
+c        transform to get Bx, By and Bz
+c            
+               sintheta = zi/rintorus
+               theta = ATAN2(zi,rcyl-Rtorus)
+               phi = ATAN2(yi,xi)
+               
+               Bevolxyz(1,i) = -Btheta*sintheta*COS(phi)
+               Bevolxyz(2,i) = -Btheta*sintheta*SIN(phi)
+               Bevolxyz(3,i) = Btheta*COS(theta)
+               Bzero = MAX(Bzero,Btheta)
+            ELSE
+               Bevolxyz(1,i) = 0.
+               Bevolxyz(2,i) = 0.
+               Bevolxyz(3,i) = 0.
+            ENDIF
+         ENDDO
       ENDIF
 c
 c--spit out various information about the magnetic field we have set up
@@ -288,8 +342,9 @@ c
 c
 c--spit out field strength in CGS units
 c        
-      WRITE(*,99011) Bzero*umagfd
-99011 FORMAT(' Initial field strength (Bzero) = ',1pe10.4,' G')
+      WRITE(*,99011) Bzero*umagfd,Bzero
+99011 FORMAT(' Initial field strength (Bzero) = ',1pe10.4,' G',
+     &       ' (',1pe10.4,' in code units)')
 
 c
 c--set external field components
@@ -299,7 +354,7 @@ c
       Bexty = Byzero
       Bextz = Bzzero
       WRITE(*,99055) Bextx,Bexty,Bextz
-99055 FORMAT(' Setting external B field = ',3(1PE12.4,2X)) 
+99055 FORMAT(' Setting external B field = ',3(1PE12.4,2X),//) 
 
       RETURN
       END

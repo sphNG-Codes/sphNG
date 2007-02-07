@@ -35,7 +35,6 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/presb'
       INCLUDE 'COMMONS/Bxyz'
-      INCLUDE 'COMMONS/cylinder'
 
       CHARACTER*40 ifile(10), ofile
       CHARACTER*1 iok, iok2, iokm, iaddmhd

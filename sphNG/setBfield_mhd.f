@@ -273,7 +273,6 @@ c  taken from Wesson, J., Tokamaks, 3rd Ed, Oxford 2004, page 123
 c
          WRITE(*,*) 'SETUP FOR TOKAMAK BTHETA FIELD'
          WRITE(*,*) ' J0 = ',currj0,' a = ',atorus,'nu = ',nutorus
-         IF (varmhd.EQ.'eulr') STOP 'not implemented for euler pots'
 
          DO i=1,npart
 c
@@ -289,18 +288,34 @@ c
 c
 c        set Btheta in torus co-ordinates
 c
+               ra2 = rintorus**2*da2
                Btheta = (0.5*currj0*atorus**2)/(nutorus+1)*
-     &                  (1.- (1.-rintorus**2*da2)**(nutorus+1))
-c
-c        transform to get Bx, By and Bz
-c            
+     &                  (1.- (1.-ra2)**(nutorus+1))/rintorus
+
                sintheta = zi/rintorus
                theta = ATAN2(zi,rcyl-Rtorus)
                phi = ATAN2(yi,xi)
-               
-               Bevolxyz(1,i) = -Btheta*sintheta*COS(phi)
-               Bevolxyz(2,i) = -Btheta*sintheta*SIN(phi)
-               Bevolxyz(3,i) = Btheta*COS(theta)
+
+               IF (varmhd.EQ.'eulr') THEN
+c
+c        set Euler potentials directly in torus co-ordinates
+c
+                  IF (nutorus.EQ.2) THEN
+                     Bevolxyz(1,i) = currj0*atorus**2*rintorus*
+     &               ((ra2**3)/6. - 0.75*ra2**2 + 1.5*ra2)*phi/6.
+                  ELSE 
+                     STOP 'not implemented for nutorus.ne.2'
+                  ENDIF
+                  Bevolxyz(2,i) = 0.5*rintorus**2
+                  Bevolxyz(3,i) = 0.
+               ELSE
+c
+c        otherwise transform to get Bx, By and Bz
+c            
+                  Bevolxyz(1,i) = -Btheta*sintheta*COS(phi)
+                  Bevolxyz(2,i) = -Btheta*sintheta*SIN(phi)
+                  Bevolxyz(3,i) = Btheta*COS(theta)
+               ENDIF
                Bzero = MAX(Bzero,Btheta)
             ELSE
                Bevolxyz(1,i) = 0.

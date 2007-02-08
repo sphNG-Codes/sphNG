@@ -16,6 +16,8 @@ c************************************************************
       REAL rhozero
       REAL deltaz,deltax,deltaphi,rcyl,rintorus2,phi
       REAL xtorus,ztorus,massp,totmass,totvol
+      REAL phitorus, thetator, r1, rho_c
+      REAL rintorus, xi, yi, zi, rfactor, kappa
       INTEGER ipart,nx,nz,nphi,k,j,i
 
       nx = 10
@@ -25,20 +27,20 @@ c************************************************************
       ipart = 0
 
       DO k=1,nz
-         ztorus = (k-1)*deltaz - atorus
+         ztorus = (k-0.5)*deltaz - atorus
          DO j=1,nx        
-            xtorus = (j-1)*deltax - atorus
+            xtorus = (j-0.5)*deltax - atorus
             
             rintorus2 = xtorus**2 + ztorus**2
+            
             IF (rintorus2.LT.atorus**2) THEN
                rcyl = xtorus + Rtorus
 
                deltaphi = deltaz*Rtorus/rcyl
                nphi = int(2.*pi/deltaphi)
                deltaphi = 2.*pi/nphi
-
             !--make ring of particles at r=rcyl
-               DO i=1,nphi
+               DO i=1,nphi                   
                   ipart = ipart + 1
                   IF (ipart.GT.idim) STOP 'setup_torus: dims too small'
                   phi = (i-1)*deltaphi
@@ -58,16 +60,39 @@ c                 zero velocities
       npart = ipart
       ntot = ipart
 !     choose an initial density
-      rhozero = 0.001
       totvol = (pi*atorus**2)*2.*pi*Rtorus
-      totmass = rhozero*totvol
+      totmass = (pi*currj0*atorus**2)**2*Rtorus/36.
       massp = totmass/npart
+      rhozero = totmass/totvol
       
       DO i=1,npart
          xyzmh(4,i) = massp
          xyzmh(5,i) = 1.2*deltax
       ENDDO
-      
+
+c
+c--Stretching the spatial distribution to have exponential density distribution
+c
+      kappa = 4.
+      rho_c = rhozero*kappa/(1.- EXP(-kappa))
+      DO i = 1, npart
+         xi = xyzmh(1,i)
+         yi = xyzmh(2,i)
+         zi = xyzmh(3,i)
+         rcyl = SQRT(xi*xi+yi*yi)
+         rintorus2 = (rcyl - Rtorus)**2 + zi*zi
+         rintorus = sqrt(rintorus2)
+         IF (rintorus.gt.tiny) THEN
+            phitorus = ATAN2(yi,xi)
+            thetator = ATAN2(zi,rcyl-Rtorus)
+            rfactor = 1.- kappa*rhozero/rho_c*(rintorus/atorus)**2
+            r1 = atorus*SQRT(-LOG(rfactor)/kappa)
+            xyzmh(1,i) = (Rtorus+r1*COS(thetator))*COS(phitorus)
+            xyzmh(2,i) = (Rtorus+r1*COS(thetator))*SIN(phitorus)
+	        xyzmh(3,i) = r1*SIN(thetator)
+	     ENDIF   
+	  END DO        
+	  
       WRITE(*,*) 'npart = ',npart,' particle mass = ',massp,
      &           ' denszero = ',rhozero
       

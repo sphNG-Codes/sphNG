@@ -248,12 +248,12 @@ c
             Bevolyi = Bevolxyz(2,ipart)
             Bevolzi = Bevolxyz(3,ipart)
             B2i = Bxi**2 + Byi**2 + Bzi**2
-	    dBxideali = 0.
-	    dByideali = 0.
-	    dBzideali = 0.
-	    dBxdissi = 0.
-	    dBydissi = 0.
-	    dBzdissi = 0.
+            dBxideali = 0.
+            dByideali = 0.
+            dBzideali = 0.
+            dBxdissi = 0.
+            dBydissi = 0.
+            dBzdissi = 0.
             divBi = 0.
             curlBxi = 0.
             curlByi = 0.
@@ -298,7 +298,7 @@ c--note that pressure term includes isotropic magnetic pressure
 c         pro2i = (pr(ipart) - pext)*rho21i
          pro2i = max((pr(ipart) - pext + 0.5*(B2i-B2ext)),0.0)*rho21i
          vsoundi = vsound(ipart)
-	 vs2i = vsoundi**2 + B2i*rho1i
+         vs2i = vsoundi**2 + B2i*rho1i
 
          stepsi = dt*isteps(ipart)/imaxstep
 c
@@ -432,9 +432,9 @@ c
                Bxj = Bxyz(1,j)
                Byj = Bxyz(2,j)
                Bzj = Bxyz(3,j)
-	       dBx = Bxi - Bxj
-	       dBy = Byi - Byj
-	       dBz = Bzi - Bzj
+			   dBx = Bxi - Bxj
+			   dBy = Byi - Byj
+			   dBz = Bzi - Bzj
                B2j = Bxj**2 + Byj**2 + Bzj**2
 c               projBsi = Bsmooth(1,ipart)*runix + Bsmooth(2,ipart)*runiy
 c     &                + Bsmooth(3,ipart)*runiz
@@ -442,7 +442,7 @@ c               projBsj = Bsmooth(1,j)*runix + Bsmooth(2,j)*runiy
 c     &                + Bsmooth(3,j)*runiz
                projBi = Bxi*runix + Byi*runiy + Bzi*runiz
                projBj = Bxj*runix + Byj*runiy + Bzj*runiz
-	       projdB = dBx*runix + dBy*runiy + dBz*runiz
+	           projdB = dBx*runix + dBy*runiy + dBz*runiz
                
                projBext = Bextxi*runix + Bextyi*runiy + Bextzi*runiz
 c	       projBrho2i = (projBi - projBext)*rho21i
@@ -459,7 +459,7 @@ c
                dxx = v2i - index*dvtable	       
                dgrwdx = (grwij(index1)-grwij(index))*ddvtable ! slope
 c              (note that kernel gradient is multiplied by gradhi)
-	       grkerntable = (grwij(index)+ dgrwdx*dxx)
+	           grkerntable = (grwij(index)+ dgrwdx*dxx)
                grkerni = grkerntable*hi41*gradhi
                grpmi = grkerni*pmassj
 c
@@ -507,9 +507,9 @@ c	          divBi = divBi - grpmi*projdB
 c
 c--compute current
 c	          
-                  curlBxi = curlBxi + grpmi*(dBy*runiz - dBz*runiy)
-		  curlByi = curlByi + grpmi*(dBz*runix - dBx*runiz)
-		  curlBzi = curlBzi + grpmi*(dBx*runiy - dBy*runix)
+             curlBxi = curlBxi + grpmi*(dBy*runiz - dBz*runiy)
+             curlByi = curlByi + grpmi*(dBz*runix - dBx*runiz)
+             curlBzi = curlBzi + grpmi*(dBx*runiy - dBy*runix)
 c                  curlBxi = curlBxi + weight*grkerntable*hi1*
 c     &                               (dBy*runiz - dBz*runiy)
 c		  curlByi = curlByi + weight*grkerntable*hi1*
@@ -531,9 +531,9 @@ c
                index1 = index + 1
                IF (index1.GT.itable) index1 = itable
                dxx = v2j - index*dvtable
-	       dgrwdx = (grwij(index1)-grwij(index))*ddvtable ! slope
+               dgrwdx = (grwij(index1)-grwij(index))*ddvtable ! slope
 c              (note that kernel gradient is multiplied by gradhj)
-	       grkernj = (grwij(index)+ dgrwdx*dxx)*hj41*gradhs(1,j)
+               grkernj = (grwij(index)+ dgrwdx*dxx)*hj41*gradhs(1,j)
                grpmj = grkernj*pmassj
 c
 c--j contribution to pressure gradient and isotropic mag force
@@ -591,7 +591,7 @@ c
 c
 c--calculate average of kernel gradients
 c
-	       grwtij = 0.5*(grkerni + grkernj)
+               grwtij = 0.5*(grkerni + grkernj)
                grpm = pmassj*grwtij
 
                IF (imhd.EQ.idim) THEN
@@ -627,20 +627,20 @@ c                  syzj = -Byj*Bzj + stressmax
 c                  szzj = -Bzj*Bzj + stressmax
 c
 c                  fanisoxi = pmassj*(
-c                  (sxxi*runix + sxyi*runiy + sxzi*runiz)*rho21i*grkerni
-c                  (sxxj*runix + sxyj*runiy + sxzj*runiz)*rho21j*grkernj)
+c     &         (sxxi*runix + sxyi*runiy + sxzi*runiz)*rho21i*grkerni+
+c     &         (sxxj*runix + sxyj*runiy + sxzj*runiz)*rho21j*grkernj)
 c                 
 c                  fanisoyi = pmassj*(
-c                  (sxyi*runix + syyi*runiy + syzi*runiz)*rho21i*grkerni
-c                  (sxyj*runix + syyj*runiy + syzj*runiz)*rho21j*grkernj)
-c
+c     &         (sxyi*runix + syyi*runiy + syzi*runiz)*rho21i*grkerni+
+c     &         (sxyj*runix + syyj*runiy + syzj*runiz)*rho21j*grkernj)
+c     
 c                  fanisozi = pmassj*(
-c                  (sxzi*runix + syzi*runiy + szzi*runiz)*rho21i*grkerni
-c                  (sxzj*runix + syzj*runiy + szzj*runiz)*rho21j*grkernj)
+c     &         (sxzi*runix + syzi*runiy + szzi*runiz)*rho21i*grkerni+
+c     &         (sxzj*runix + syzj*runiy + szzj*runiz)*rho21j*grkernj)
 c
 c--signal velocity (MHD)
 c
-                  vsoundj = vsound(j)
+          vsoundj = vsound(j)
 		  vs2j = vsoundj**2 + B2j*rho1j
 		  vsproji = 2.*vsoundi*projBi*sqrtrho1i
 		  vsprojj = 2.*vsoundj*projBj*SQRT(rho1j)
@@ -652,7 +652,7 @@ c
 c
 c--artificial resistivity
 c
-		  IF (j.LE.npart .OR. ibound.EQ.11) THEN
+		  IF (j.LE.npart .OR. ibound.EQ.11.OR.ibound.EQ.12) THEN    
                      alphaB = 0.5*(alphaMMpass(2,ipart)
      &                           + alphaMMpass(2,j))
 c                     alphaB = 1.0
@@ -660,16 +660,16 @@ c                     termB = alphaB*grpm*MAX(vsbar - projv,0.0)*robar1
                      termB = alphaB*grpm*(vsbar + 2.0*abs(projv))*robar1
 c                    dBxdissi = dBxdissi + termB*(dBx - runix*projdB)*robar1
 c                    dBydissi = dBydissi + termB*(dBy - runiy*projdB)*robar1
-c                    dBzdissi = dBzdissi + termB*(dBz - runiz*projdB)*robar1
+c                   dBzdissi = dBzdissi + termB*(dBz - runiz*projdB)*robar1
 
                      IF (varmhd.EQ.'eulr') THEN
                      dBxdissi = dBxdissi + termB*(Bevolxi-Bevolxyz(1,j))
                      dBydissi = dBydissi + termB*(Bevolyi-Bevolxyz(2,j))
                      dBzdissi = dBzdissi + termB*(Bevolzi-Bevolxyz(3,j))
-		     ELSE
+		              ELSE
                      dBxdissi = dBxdissi + termB*dBx*robar1
-		     dBydissi = dBydissi + termB*dBy*robar1
-		     dBzdissi = dBzdissi + termB*dBz*robar1
+		             dBydissi = dBydissi + termB*dBy*robar1
+	         	     dBzdissi = dBzdissi + termB*dBz*robar1
                      ENDIF
                      
 c
@@ -683,7 +683,7 @@ c                     dBzdissi = dBzdissi
 c     &                  - 10.*termB*(0.2*dBz - runiz*projdB)*robar1
 
 		     !!--add contribution to thermal energy
-		     dB2 = dBx*dBx + dBy*dBy + dBz*dBz
+		             dB2 = dBx*dBx + dBy*dBy + dBz*dBz
 c                    dqi = dqi - termB*(dB2 - projdB**2)*robar1
                      dqi = dqi - termB*dB2*robar1
                   ENDIF
@@ -697,7 +697,7 @@ c
 c--Artificial viscosity and energy dissipation
 c
                IF (ifsvi.NE.0 .AND. projv.LT.0. .AND. 
-     &                        (j.LE.npart.OR.ibound.EQ.11)) THEN
+     &                (j.LE.npart.OR.ibound.EQ.11.OR.ibound.EQ.12)) THEN
 c
 c--Calculate artificial viscosity:
 c     If ifsvi=1 then normal viscosity
@@ -880,9 +880,10 @@ c
  80      CONTINUE
 c
 c--External forces
-c
-         IF (iexf.GE.1) CALL externf(ipart,realtime,xyzmh,fxyzu,
-     &      trho,iexf)
+c       
+         IF (iexf.GE.1) 
+     &  CALL externf(ipart,realtime,xyzmh,fxyzu,trho,Bxyz,divcurlB,
+     &               Beqx,Beqy,Beqz,iexf)
 c
 c--Coriolis and centrifugal forces
 c

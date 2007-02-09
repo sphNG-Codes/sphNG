@@ -1,4 +1,5 @@
-      SUBROUTINE externf(ipart, ti, xyzmh, fxyzu, rho, iexf)
+      SUBROUTINE externf(ipart,ti,xyzmh,fxyzu,rho,Bxyz,divcurlB,
+     &                   Bext_x, Bext_y, Bext_z, iexf)
 c************************************************************
 c                                                           *
 c  This subroutine computes the effect of an external       *
@@ -19,7 +20,11 @@ c************************************************************
       INCLUDE 'idim'
 
       DIMENSION xyzmh(5,idim), fxyzu(4,idim)
-      REAL*4 rho(idim)
+      REAL*4 divcurlB(4,imhd)
+      DIMENSION Bxyz(3,imhd)
+      REAL   Bext_x, Bext_y, Bext_z
+      REAL*4 rho(idim), kappa, rxyplane, drxyplane
+      INTEGER icountext
 
       INCLUDE 'COMMONS/kerne'
       INCLUDE 'COMMONS/ener1'
@@ -28,6 +33,11 @@ c************************************************************
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/potent'
       INCLUDE 'COMMONS/tokamak'
+      INCLUDE 'COMMONS/cylinder'
+      
+      icountext = 0
+c elastic constant K
+      kappa = 1.
 c
 c--Unit angular momentum
 c
@@ -213,26 +223,89 @@ c rintorus is radius from centre of torus
          ELSE
             drintorus = 0.
          ENDIF
-cc         IF (rintorus2.LT.atorus**2) THEN
-c current in torus "z" direction
+c         IF (rintorus2.LT.atorus**2) THEN
+c current in torus "phi" direction
             term = 1. - rintorus2*da2
-            currjz = currj0*term**nutorus
+            currjphi = currj0*term**nutorus
 c Bfield in torus "theta" direction
             Btheta = currj0*atorus**2/(2.*(nutorus+1))*
      &           (1. - term**(nutorus+1))*drintorus
 c force is in torus "r" direction  (J X B)
-            frtorus = -Btheta*currjz
-cc         ELSE
+            frtorus = -Btheta*currjphi
+c         ELSE
 ccc outside torus, use a f proportional to distance
-cc            frtorus = -(rintorus - atorus)
-cc         ENDIF
+c            frtorus = -(rintorus - atorus)
+c         ENDIF
 c get force in cylindrical co-ordinates
-         frcyl = frtorus*(rcyl - Rtorus)*drintorus
-         fz = frtorus*zi*drintorus
+         sintheta = zi*drintorus
+         costheta = (rcyl-Rtorus)*drintorus
+         cosphi = xi*drcyl
+         sinphi = yi*drcyl
+         frcyl = frtorus*costheta
+         fz = frtorus*sintheta
 c translate to cartesians
-         fxyzu(1,ipart) = fxyzu(1,ipart) + frcyl*xi*drcyl/rho(ipart)
-         fxyzu(2,ipart) = fxyzu(2,ipart) + frcyl*yi*drcyl/rho(ipart)
+         fxyzu(1,ipart) = fxyzu(1,ipart) + frcyl*cosphi/rho(ipart)
+         fxyzu(2,ipart) = fxyzu(2,ipart) + frcyl*sinphi/rho(ipart)
          fxyzu(3,ipart) = fxyzu(3,ipart) + fz/rho(ipart)
+         
+         IF (imhd.EQ.idim) THEN 
+c translate to cartesian coordinates B_ext, 
+			 Bext_x = -Btheta*sintheta*cosphi
+			 Bext_y = -Btheta*sintheta*sinphi
+			 Bext_z = Btheta*costheta
+			 currJext_x = -currjphi*sinphi
+			 currJext_y = currjphi*cosphi
+			 currJext_z = 0.
+			 Bint_x = Bxyz(1,ipart)
+			 Bint_y = Bxyz(2,ipart)
+			 Bint_z = Bxyz(3,ipart)
+			 currJint_x = divcurlB(2,ipart)
+			 currJint_y = divcurlB(3,ipart)
+			 currJint_z = divcurlB(4,ipart)
+	c
+	c--Add  J_int x B_ext
+	c
+			 currjintbext_x = currJint_y*Bext_z - currJint_z*Bext_y
+			 currjintbext_y = currJint_z*Bext_x - currJint_x*Bext_z         
+			 currjintbext_z = currJint_x*Bext_y - currJint_y*Bext_x
+	c
+	c--Add  J_ext x B_int
+	c
+			 currjextbint_x = currJext_y*Bint_z - currJext_z*Bint_y
+			 currjextbint_y = currJext_z*Bint_x - currJext_x*Bint_z         
+			 currjextbint_z = currJext_x*Bint_y - currJext_y*Bint_x 
+c--
+			 fxyzu(1,ipart) = fxyzu(1,ipart) + 
+     &          			 (currjintbext_x+currjextbint_x)/rho(ipart)
+			 fxyzu(2,ipart) = fxyzu(2,ipart) + 
+     &          			 (currjintbext_y+currjextbint_y)/rho(ipart)			 
+			 fxyzu(3,ipart) = fxyzu(3,ipart) + 
+     &          			 (currjintbext_z+currjextbint_z)/rho(ipart)	
+             
+         ENDIF
+c
+c External force to re-inject particles that try to escape from the cylinder
+c considered as a solid boundary
+      ELSEIF (iexf.EQ.10) THEN
+         xi = xyzmh(1,ipart)
+         yi = xyzmh(2,ipart)
+         zi = xyzmh(3,ipart)
+c get cylindrical r
+         rxyplane = sqrt(xi**2 + yi**2)
+         IF (rxyplane.GT.tiny) THEN
+            drxyplane = 1./rxyplane
+         ELSE
+            drxyplane = 0.
+         ENDIF         
+         deltar = rxyplane - radius
+c outside torus, use a f proportional to distance         
+         IF (deltar.GT.0.) THEN
+            icountext = icountext+1
+            frcyl = -kappa*deltar
+c get force in cartesian co-ordinates
+         fxyzu(1,ipart) = fxyzu(1,ipart)+frcyl*xi*drxyplane/rho(ipart)
+         fxyzu(2,ipart) = fxyzu(2,ipart)+frcyl*yi*drxyplane/rho(ipart)        
+         ENDIF
       ENDIF
 
       RETURN

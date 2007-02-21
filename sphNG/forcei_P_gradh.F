@@ -156,7 +156,7 @@ C$OMP& private(dsoftxi,dsoftyi,dsoftzi,vsigi,vsigj,alphaB)
 C$OMP& private(vsproji,vsprojj,termb,vs2i,vs2j,dB2,robar1,fmi)
 C$OMP& private(grkerni,grpmi,phii,dsofttermi,projdB,projbext)
 C$OMP& private(grkernj,grpmj,phij,dsofttermj,rhoij1,fmj,vsoundj)
-C$OMP& private(grkerntable)
+C$OMP& private(grkerntable,deulalpha,deulbeta)
 C$OMP& private(irealj)
 C$OMP& reduction(+:ioutmin,ioutsup,ioutinf)
 C$OMP& reduction(MIN:inmin,inminsy)
@@ -400,7 +400,13 @@ c
             dy = yi - xyzmh(2,j)
             dz = zi - xyzmh(3,j)
 #ifdef PERIODIC_NO_GHOSTS
-            CALL modbound(dx,dy,dz)
+            IF (imhd.EQ.idim .AND. varmhd.EQ.'eulr') THEN
+               deulalpha = Bevolxi - Bevolxyz(1,j)
+               deulbeta = Bevolyi - Bevolxyz(2,j)
+               CALL modboundeulr(dx,dy,dz,deulalpha,deulbeta)
+            ELSE
+               CALL modbound(dx,dy,dz)
+            ENDIF
 #endif
             rij2 = dx*dx + dy*dy + dz*dz + tiny
             rij = SQRT(rij2)
@@ -640,7 +646,7 @@ c     &         (sxzj*runix + syzj*runiy + szzj*runiz)*rho21j*grkernj)
 c
 c--signal velocity (MHD)
 c
-          vsoundj = vsound(j)
+                  vsoundj = vsound(j)
 		  vs2j = vsoundj**2 + B2j*rho1j
 		  vsproji = 2.*vsoundi*projBi*sqrtrho1i
 		  vsprojj = 2.*vsoundj*projBj*SQRT(rho1j)
@@ -658,18 +664,18 @@ c
 c                     alphaB = 1.0
 c                     termB = alphaB*grpm*MAX(vsbar - projv,0.0)*robar1
                      termB = alphaB*grpm*(vsbar + 2.0*abs(projv))*robar1
-c                    dBxdissi = dBxdissi + termB*(dBx - runix*projdB)*robar1
-c                    dBydissi = dBydissi + termB*(dBy - runiy*projdB)*robar1
-c                   dBzdissi = dBzdissi + termB*(dBz - runiz*projdB)*robar1
 
                      IF (varmhd.EQ.'eulr') THEN
-                     dBxdissi = dBxdissi + termB*(Bevolxi-Bevolxyz(1,j))
-                     dBydissi = dBydissi + termB*(Bevolyi-Bevolxyz(2,j))
-                     dBzdissi = dBzdissi + termB*(Bevolzi-Bevolxyz(3,j))
-		              ELSE
-                     dBxdissi = dBxdissi + termB*dBx*robar1
-		             dBydissi = dBydissi + termB*dBy*robar1
-	         	     dBzdissi = dBzdissi + termB*dBz*robar1
+                        dBxdissi = dBxdissi + termB*deulalpha
+                        dBydissi = dBydissi + termB*deulbeta
+c                       dBzdissi = dBzdissi + termB*(Bevolzi-Bevolxyz(3,j))
+		     ELSE
+                        dBxdissi = dBxdissi + termB*dBx*robar1
+                        dBydissi = dBydissi + termB*dBy*robar1
+                        dBzdissi = dBzdissi + termB*dBz*robar1
+c                       dBxdissi = dBxdissi + termB*(dBx - runix*projdB)*robar1
+c                       dBydissi = dBydissi + termB*(dBy - runiy*projdB)*robar1
+c                      dBzdissi = dBzdissi + termB*(dBz - runiz*projdB)*robar1
                      ENDIF
                      
 c
@@ -683,7 +689,7 @@ c                     dBzdissi = dBzdissi
 c     &                  - 10.*termB*(0.2*dBz - runiz*projdB)*robar1
 
 		     !!--add contribution to thermal energy
-		             dB2 = dBx*dBx + dBy*dBy + dBz*dBz
+		     dB2 = dBx*dBx + dBy*dBy + dBz*dBz
 c                    dqi = dqi - termB*(dB2 - projdB**2)*robar1
                      dqi = dqi - termB*dB2*robar1
                   ENDIF

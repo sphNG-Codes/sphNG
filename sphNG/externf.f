@@ -33,7 +33,7 @@ c************************************************************
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/potent'
       INCLUDE 'COMMONS/tokamak'
-      INCLUDE 'COMMONS/cylinder'
+c      INCLUDE 'COMMONS/cylinder'
       
       icountext = 0
 c elastic constant K
@@ -250,38 +250,38 @@ c translate to cartesians
          
          IF (imhd.EQ.idim) THEN 
 c translate to cartesian coordinates B_ext, 
-			 Bext_x = -Btheta*sintheta*cosphi
-			 Bext_y = -Btheta*sintheta*sinphi
-			 Bext_z = Btheta*costheta
-			 currJext_x = -currjphi*sinphi
-			 currJext_y = currjphi*cosphi
-			 currJext_z = 0.
-			 Bint_x = Bxyz(1,ipart)
-			 Bint_y = Bxyz(2,ipart)
-			 Bint_z = Bxyz(3,ipart)
-			 currJint_x = divcurlB(2,ipart)
-			 currJint_y = divcurlB(3,ipart)
-			 currJint_z = divcurlB(4,ipart)
-	c
-	c--Add  J_int x B_ext
-	c
-			 currjintbext_x = currJint_y*Bext_z - currJint_z*Bext_y
-			 currjintbext_y = currJint_z*Bext_x - currJint_x*Bext_z         
-			 currjintbext_z = currJint_x*Bext_y - currJint_y*Bext_x
-	c
-	c--Add  J_ext x B_int
-	c
-			 currjextbint_x = currJext_y*Bint_z - currJext_z*Bint_y
-			 currjextbint_y = currJext_z*Bint_x - currJext_x*Bint_z         
-			 currjextbint_z = currJext_x*Bint_y - currJext_y*Bint_x 
+	    Bext_x = -Btheta*sintheta*cosphi
+	    Bext_y = -Btheta*sintheta*sinphi
+	    Bext_z = Btheta*costheta
+	    currJext_x = -currjphi*sinphi
+	    currJext_y = currjphi*cosphi
+	    currJext_z = 0.
+	    Bint_x = Bxyz(1,ipart)
+	    Bint_y = Bxyz(2,ipart)
+	    Bint_z = Bxyz(3,ipart)
+	    currJint_x = divcurlB(2,ipart)
+	    currJint_y = divcurlB(3,ipart)
+	    currJint_z = divcurlB(4,ipart)
+c
+c--Add  J_int x B_ext
+c
+	    currjintbext_x = currJint_y*Bext_z - currJint_z*Bext_y
+	    currjintbext_y = currJint_z*Bext_x - currJint_x*Bext_z         
+	    currjintbext_z = currJint_x*Bext_y - currJint_y*Bext_x
+c
+c--Add  J_ext x B_int
+c
+	    currjextbint_x = currJext_y*Bint_z - currJext_z*Bint_y
+	    currjextbint_y = currJext_z*Bint_x - currJext_x*Bint_z         
+	    currjextbint_z = currJext_x*Bint_y - currJext_y*Bint_x 
 c--
-			 fxyzu(1,ipart) = fxyzu(1,ipart) + 
-     &          			 (currjintbext_x+currjextbint_x)/rho(ipart)
-			 fxyzu(2,ipart) = fxyzu(2,ipart) + 
-     &          			 (currjintbext_y+currjextbint_y)/rho(ipart)			 
-			 fxyzu(3,ipart) = fxyzu(3,ipart) + 
-     &          			 (currjintbext_z+currjextbint_z)/rho(ipart)	
-             
+	    fxyzu(1,ipart) = fxyzu(1,ipart) + 
+     &                       (currjintbext_x+currjextbint_x)/rho(ipart)
+	    fxyzu(2,ipart) = fxyzu(2,ipart) + 
+     &                       (currjintbext_y+currjextbint_y)/rho(ipart)			 
+	    fxyzu(3,ipart) = fxyzu(3,ipart) + 
+     &                       (currjintbext_z+currjextbint_z)/rho(ipart)	
+
          ENDIF
 c
 c External force to re-inject particles that try to escape from the cylinder

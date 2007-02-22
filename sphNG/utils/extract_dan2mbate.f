@@ -114,10 +114,32 @@ c--skip alpha (art visc. parameters)
             DO j=1,3
                READ(8, END=100) (Bxyz(j,i),i=1,npart)
             ENDDO
+            WRITE(*,*) 'attempting to read euler potentials...'
+            varmhd = 'eulr'
+            READ(8, END=90) ! psi
+            READ(8, END=90) ! pr
+            READ(8, END=90) ! divv
+            READ(8, END=90) ! divB
+            READ(8, END=90) ! curlBx
+            READ(8, END=90) ! curlBy
+            READ(8, END=90) ! curlBz
+            READ(8, END=90) ! gradh
+            READ(8, END=90) ! fx
+            READ(8, END=90) ! fy
+            READ(8, END=90) ! fz
+            DO j=1,3
+               READ(8, END=90) (Bevolxyz(j,i),i=1,npart)
+            ENDDO
+            READ(8, END=90) Bextx,Bexty,Bextz
+            WRITE(*,*) 'SUCCESSFULLY read euler potentials'
+            WRITE(*,*) ' Bext = ',Bextx,Bexty,Bextz
+            GOTO 95
+c
+c--get B from dump
+c
+90          CONTINUE
+            WRITE(*,*) 'FAILED to read euler potentials from file'
             varmhd = 'Bvol'
-c
-c--dump B directly
-c
             DO i=1,npart
                DO j = 1,3
                   Bevolxyz(j,i) = Bxyz(j,i)
@@ -126,7 +148,7 @@ c
          ELSE
             WRITE(*,*) 'finished reading (hydro) file'
          ENDIF
-
+95       CONTINUE
          DO i=1,5
             WRITE(*,*) 'particle ',i,': RK2 = ',
      &                  vxyzu(4,i)/(rho(i)**(gamma-1.))

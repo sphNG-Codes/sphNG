@@ -343,6 +343,8 @@ c
 c
 c--read Euler potentials from dump if necessary
 c
+         IF (nums4(6).GE.5) varmhd = 'eulr'
+
          IF (varmhd.EQ.'eulr') THEN
             IF (nums4(6).GE.5) THEN
                DO j = 1, 2
@@ -351,7 +353,12 @@ c
             ELSE
                WRITE(*,*) 'ERROR: Cannot start Euler potentials run '
                WRITE(*,*) '       from non-Euler potentials dump'
-               CALL quit
+c              reset Bevol to B
+               DO i=1,npart
+                  DO j = 1,3
+                     Bevolxyz(j,i) = Bxyz(j,i)
+                  ENDDO
+               ENDDO
             ENDIF
          ELSEIF (varmhd.EQ.'Brho') THEN
 c
@@ -430,10 +437,6 @@ c
          imo = imo + 1
          IF (iok.EQ.'y') gt = 0.0
          
-         IF (imhd.EQ.idim) THEN
-            IF (iaddmhd.EQ.'y') CALL setBfield
-         ENDIF
-
          PRINT *, ' do you want to add point masses ? '
          READ (*,1001) iok2
 
@@ -474,7 +477,10 @@ c                        vxyzu(4,ii) = vxyzu(4,ii) * howmuch
                ENDIF
             END DO
          ENDIF
-               
+
+         IF (imhd.EQ.idim) THEN
+            IF (iaddmhd.EQ.'y') CALL setBfield
+         ENDIF               
 c
 c--Dump new file
 c

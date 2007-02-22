@@ -21,8 +21,8 @@ SHELL = /bin/sh
 
 # can comment out the following lines and instead set
 # the parameters as environment variables
-#debug= no
-doubleprecision= yes
+#DEBUG= no
+DOUBLEPRECISION= yes
 #mpi = yes
 # endian can be "BIG", "LITTLE" or anything else which has no effect
 #ENDIAN= default
@@ -36,7 +36,7 @@ FPPFLAGS=
 # This one is for periodic boundary conditions without using
 # ghost particles
 #
-#FPPFLAGS+= -DPERIODIC_NO_GHOSTS 
+FPPFLAGS+= -DPERIODIC_NO_GHOSTS 
 #
 # Add yours here...
 #
@@ -61,9 +61,9 @@ endif
 
 ifeq ($(SYSTEM), sunf95)
     FC= sunf95
-    FFLAGS= -fast
+    FFLAGS= -fast -w4 -errtags -erroff=COMMENT_1582,COMMENT_1744
     DBLFLAG= -xtypemap=real:64,double:64
-    DEBUGFLAG= -g -C -w4 -errtags -erroff=COMMENT_1582,COMMENT_1744 -ftrap=%all
+    DEBUGFLAG= -g -C -ftrap=%all
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -xfilebyteorder=big16:%all ##:45
     ENDIANFLAGLITTLE= -xfilebyteorder=little16:%all
@@ -119,7 +119,7 @@ endif
 
 ifeq ($(SYSTEM), ifort)
     FC= ifort
-    FFLAGS= -O3 -WB -Vaxlib -w90 -w95 -cm
+    FFLAGS= -O3 -WB -Vaxlib -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source 
     DBLFLAG= -r8
     DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
     KNOWN_SYSTEM=yes
@@ -131,7 +131,7 @@ endif
 
 # Set other optional flags depending on settings
 
-ifeq ($(debug), yes)
+ifeq ($(DEBUG), yes)
     FFLAGS += ${DEBUGFLAG}
 endif
 
@@ -146,7 +146,7 @@ endif
 # do double precision flag last (append only to FFLAGS)
 
 ZZFFLAGS := ${FFLAGS}
-ifeq ($(doubleprecision), yes)
+ifeq ($(DOUBLEPRECISION), yes)
     FFLAGS += ${DBLFLAG}
 endif
 
@@ -177,15 +177,15 @@ SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
 	prout.F ran1.f rdump.f reduce.f save.f setup_torus.f \
         scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f \
-	timestep.f toten.f treef_P.f unifdis.f unit.f \
+	timestep.f toten.f treef_P.F unifdis.f unit.f \
 	wdump.f wrinsph.F
 
 # these are the sources required for the gradh code to compile
 
-SRCGRADH= densityiterate_gradh.F derivi_P_gradh.f \
-	divBclean_mhd.f divBdiffuse.f divBiterate.f \
-	directsum_poisson_vec_mhd_clean.f forcei_P_gradh.F \
-        hcalc_gradh.f 
+SRCGRADH= densityiterate_gradh_fast.F derivi_P_gradh.f \
+        forcei_P_gradh.F hcalc_gradh.f 
+	#divBclean_mhd.f divBdiffuse.f divBiterate.f \
+	#directsum_poisson_vec_mhd_clean.f 
 
 # these are the sources required for the non-gradh code to compile
         
@@ -326,10 +326,10 @@ checksystem:
    endif
 
 checkparams: updatedepends
-   ifeq ($(debug), yes)
+   ifeq ($(DEBUG), yes)
 	@echo "Debugging flags are ON"
    endif
-   ifeq ($(doubleprecision), yes)
+   ifeq ($(DOUBLEPRECISION), yes)
 	@echo "Flags set for DOUBLE PRECISION"
    else
 	@echo "Flags set for SINGLE PRECISION"

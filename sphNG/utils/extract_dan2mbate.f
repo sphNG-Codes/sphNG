@@ -73,7 +73,7 @@ c      INCLUDE 'COMMONS/torq'
          PRINT *, 'reading file ', ifile(k)
 
          READ (8, END=100) gt, npart, nprint, gamma
-         WRITE(*,*) 't = ',gt,' nprint = ',nprint,' gamma = ',gamma
+         WRITE(*,*) 't = ',gt,' nprint= ',npart,nprint,' gamma= ',gamma
 c         npart = nprint
          n1 = npart
          n2 = 0

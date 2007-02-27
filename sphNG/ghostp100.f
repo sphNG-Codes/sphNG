@@ -63,7 +63,7 @@ c
 
          delta = 0.001*hi
          hi2 = hi*hi
-         r2 = xi**2 + yi**2
+         r2 = xi**2 + yi**2 + zi**2
          r = SQRT(r2)
          r2centre = (xi-1.0)**2 + yi**2 + zi**2
          IF (r2centre.LT.xcentre) THEN

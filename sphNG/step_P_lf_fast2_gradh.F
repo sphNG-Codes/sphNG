@@ -1234,7 +1234,7 @@ c--Dead particle boundaries - planet embedded in disc
 c
          IF (ibound.EQ.100) THEN
             phiparticle = ATAN2(xyzmh(2,i),xyzmh(1,i))
-            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2
+            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
             IF (r2.LT.(1.0-variation)**2 .OR. r2.GT.(1.0+variation)**2
      &                         .OR. ABS(phiparticle).GT.phibound) THEN
                iphase(i) = -1

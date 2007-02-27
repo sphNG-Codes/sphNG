@@ -491,7 +491,8 @@ c
                vsbar = 0.5*(vsoundi + vsound(j))
 
 c             IF (ifsvi.NE.0 .AND. projv.LT.0.) THEN
-               IF (ifsvi.NE.0 .AND. projv.LT.0. .AND. j.LE.npart) THEN
+               IF (ifsvi.NE.0 .AND. projv.LT.0. .AND. (j.LE.npart
+     &              .OR. ibound.EQ.100)) THEN
 c
 c--Calculate artificial viscosity:
 c     If ifsvi=1 then normal viscosity

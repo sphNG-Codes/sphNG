@@ -55,7 +55,7 @@ c
 c
 c--Pick r and z from ZEUS tables of r and theta
 c
-         rand = ran1(1)
+ 77      rand = ran1(1)
          ipos = numinject/2
          imove = ipos/2
 c         write (*,*) rand
@@ -83,14 +83,22 @@ c               write (*,*) 'Corr ',ipos,xinjecttable(1,ipos)
          ENDIF
 c         WRITE (*,*) 'rand ',rand,xinjecttable(1,MAX(1,ipos-1)),
 c     &        xinjecttable(1,ipos)
-         dradius = ABS(ABS(xinjecttable(2,ipos+1))-
-     &        ABS(xinjecttable(2,ipos)))
-         IF (dradius.GT.0.1) dradius = ABS(ABS(xinjecttable(2,ipos))-
-     &        ABS(xinjecttable(2,MAX(1,ipos-1))))
+         IF (ipos.EQ.numinject) THEN
+            dradius = ABS(ABS(xinjecttable(2,ipos))-
+     &           ABS(xinjecttable(2,MAX(1,ipos-1))))
+         ELSE
+            dradius = ABS(ABS(xinjecttable(2,ipos+1))-
+     &           ABS(xinjecttable(2,ipos)))
+         ENDIF
          IF (dradius.GT.0.1) dradius = 0.0
          
          radinject = ABS(xinjecttable(2,ipos)) + (ran1(1)-0.5)*dradius
          zinject = xinjecttable(3,ipos)+(ran1(1)-0.5)*radinject*dtheta
+
+         if(radinject**2+zinject**2.lt.(1.0-variation)**2) THEN
+            GOTO 77
+         endif
+
 c     
 c--Tables only occupy half of disc - need to populate above and below midplane
 c
@@ -311,7 +319,7 @@ c
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/physcon'
 
-      PARAMETER (nradiusmax=100)
+      PARAMETER (nradiusmax=125)
       PARAMETER (nthetamax=36)
       DIMENSION radii(nradiusmax),thetas(nthetamax),drad(nradiusmax)
       DIMENSION density(nradiusmax,nthetamax,2),vr(nradiusmax,
@@ -345,6 +353,8 @@ c
          radii(i) = (radii(i+1)+radii(i))/2.0
 c         write (44,*) radii(i),vp(i,36,1),vp(i,36,2)
       END DO
+c      call flush(44)
+
       nradius = nradius - 1 
       dtheta = thetas(2)-thetas(1)
       DO j=1,ntheta

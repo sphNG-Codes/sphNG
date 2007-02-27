@@ -10,7 +10,7 @@ c************************************************************
 
       DIMENSION xyzmh(5,idim)
       DIMENSION vxyzu(4,idim)
-      DIMENSION ekcle(4,iradtrans)
+      DIMENSION ekcle(5,iradtrans)
       DIMENSION Bevolxyz(3,imhd)
 
       INCLUDE 'COMMONS/ghost'
@@ -26,6 +26,8 @@ c************************************************************
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/cgas'
 
+      REAL*4 rhoreal4
+
       CHARACTER*7 where
 
       DATA where/'ghos100'/
@@ -37,6 +39,7 @@ c
 
       nghost = 0
       iinner = 0
+      uradconst = radconst/uergcc
 
       rmind = (1.0-variation)
       rmaxd = (1.0+variation)
@@ -181,9 +184,19 @@ c
                   DO j=1,5
                      ekcle(j,k) = ekcle(j,i)
                   END DO
-                  vxyzu(4,k) = 0.704097133431896
-                  ekcle(1,k) = uradconst*(vxyzu(4,k)/
-     &              ekcle(3,k))**4/50.226017
+                  rad = SQRT(xyzmh(1,k)**2 + xyzmh(2,k)**2 +
+     &                 xyzmh(3,k)**2)
+                  vxyzu(4,k) = hoverr**2/(rad*gamma*(gamma-1.0))
+c
+c--Assumes 75 g/cm^2 surface density at planet's radius, multiplied by signorm
+c
+                  profile = 0.5
+      rhoreal4 = signorm*75.0/(SQRT(2.0*pi)*hoverr*rad*udist)/
+     &        (rad**profile)*EXP(-xyzmh(3,i)**2/
+     &        (2.0*(hoverr*rad)**2))/umass*udist**3
+c         ekcle(3,i) = getcv(rhoreal4,vxyzu(4,i))
+c         ekcle(1,i) = uradconst*(vxyzu(4,i)/ekcle(3,i))**4/rhoreal4
+c         ekcle(2,i) = getkappa(vxyzu(4,i),ekcle(3,i),rhoreal4)
                ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j=1,3

@@ -10,7 +10,7 @@ c************************************************************
 
       DIMENSION xyzmh(5,idim)
       DIMENSION vxyzu(4,idim)
-      DIMENSION ekcle(4,iradtrans)
+      DIMENSION ekcle(5,iradtrans)
       DIMENSION Bevolxyz(3,imhd)
 
       INCLUDE 'COMMONS/ghost'

@@ -180,7 +180,7 @@ c
       IF (iproc.EQ.0) THEN
 #endif
 
-      WRITE (iprint,99100) nparttot, nactivetot
+      WRITE (iprint,99100) npart, nactive
 99100 FORMAT ('Timestep distribution ',I8,' number active ',I8)
 
       DO j = 0, 29

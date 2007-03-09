@@ -45,6 +45,7 @@ c************************************************************
       INCLUDE 'COMMONS/useles'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/varmhd'
+
 c
 c--Allow for tracing flow
 c
@@ -78,9 +79,10 @@ c
       WRITE (iterm, 99006) encal
 99006 FORMAT (A1)
       IF (encal.EQ.'r') THEN
-         WRITE (iterm, 99008) tolerance, boundtemp
-99008    FORMAT(2X,1F6.4,1X,1PE12.5,'  Implicit radiative transfer',
-     &        ' tolerance boundtemp')
+         WRITE (iterm, 99008) tolerance, boundtemp, bounddens
+99008    FORMAT(2X,3(1PE12.5, 1X),
+     &    ' Implicit radiative transfer',
+     &    ' tolerance boundtemp')
       ENDIF
 
       WRITE (iterm, 89000) initialptm

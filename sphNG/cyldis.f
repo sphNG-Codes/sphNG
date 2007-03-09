@@ -30,6 +30,7 @@ c************************************************************
             xyzmh(5,i) = (pi*2.0*hoverr*((1.0+variation)**2-
      &           (1.0-variation)**2)/(pi/phibound)/
      &           ((npart-nptmass)/50.0))**(1.0/3.0)
+            xyzmh(5,i) = xyzmh(5,i)/2.
          END DO
       ELSE
          

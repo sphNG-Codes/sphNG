@@ -34,7 +34,8 @@ c************************************************************
 
       INTEGER istack, nlistga, nlistgn
 
-      DIMENSION nstack(100), listga(idim), listgn(idim)
+      PARAMETER (istacksize=200)
+      DIMENSION nstack(istacksize), listga(idim), listgn(idim)
       SAVE nstack, listga, listgn
 C$OMP THREADPRIVATE(nstack,listga,listgn)
 
@@ -136,6 +137,12 @@ c
                ELSE
                   pmassn = xyzmh(4,n)
                ENDIF
+               IF (istack+2.GT.istacksize) THEN
+                  WRITE(iprint,*)'ERROR: stack too small in treef!',
+     &                           istack+2,istacksize
+                  CALL quit
+               ENDIF
+               
                IF (rr.LT.qcut2) THEN
                   j = isibdaupar(2,n)
                   istack = istack + 1
@@ -318,7 +325,7 @@ c
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/sort'
 
-      PARAMETER (istacksize=100)
+      PARAMETER (istacksize=200)
       DIMENSION nstack(istacksize)
       SAVE nstack
 C$OMP THREADPRIVATE(nstack)

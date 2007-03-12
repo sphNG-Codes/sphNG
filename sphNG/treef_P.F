@@ -374,7 +374,8 @@ c
                IF (rr.LT.qcut2) THEN
                   j = isibdaupar(2,n)
                   IF (istack+2.GT.istacksize) THEN
-                     WRITE(iprint,*)' ERROR: stack overflow in getneighi',istack+2,istacksize
+                     WRITE(iprint,*)'ERROR: stack overflow in getneighi'
+     &                               ,istack+2,istacksize
                      CALL quit
                   ENDIF
                   istack = istack + 1

@@ -83,22 +83,30 @@ c               write (*,*) 'Corr ',ipos,xinjecttable(1,ipos)
          ENDIF
 c         WRITE (*,*) 'rand ',rand,xinjecttable(1,MAX(1,ipos-1)),
 c     &        xinjecttable(1,ipos)
-         IF (ipos.EQ.numinject) THEN
-            dradius = ABS(ABS(xinjecttable(2,ipos))-
-     &           ABS(xinjecttable(2,MAX(1,ipos-1))))
-         ELSE
-            dradius = ABS(ABS(xinjecttable(2,ipos+1))-
+
+         IF (ipos.NE.numinject) THEN
+            iposother = ipos+1
+            dradius = ABS(ABS(xinjecttable(2,iposother))-
      &           ABS(xinjecttable(2,ipos)))
+            IF (dradius.GT.0.1) THEN
+               iposother = MAX(1,ipos-1)
+               dradius = ABS(ABS(xinjecttable(2,ipos))-
+     &              ABS(xinjecttable(2,iposother)))
+            ENDIF
+         ELSE
+            iposother = MAX(1,ipos-1)
+            dradius = ABS(ABS(xinjecttable(2,ipos))-
+     &           ABS(xinjecttable(2,iposother)))
          ENDIF
-         IF (dradius.GT.0.1) dradius = 0.0
-         
-         radinject = ABS(xinjecttable(2,ipos)) + (ran1(1)-0.5)*dradius
+
+         radinject = (ABS(xinjecttable(2,ipos))+
+     &      ABS(xinjecttable(2,iposother)))/2.0 + (ran1(1)-0.5)*dradius
          zinject = xinjecttable(3,ipos)+(ran1(1)-0.5)*radinject*dtheta
+
 
          if(radinject**2+zinject**2.lt.(1.0-variation)**2) THEN
             GOTO 77
          endif
-
 c     
 c--Tables only occupy half of disc - need to populate above and below midplane
 c
@@ -156,6 +164,7 @@ c
          rhoreal4 = signorm*75.0/(SQRT(2.0*pi)*hoverr*radinject*udist)/
      &        (radinject**profile)*EXP(-xyzmh(3,i)**2/
      &        (2.0*(hoverr*radinject)**2))/umass*udist**3
+
          ekcle(3,i) = getcv(rhoreal4,vxyzu(4,i))
          ekcle(1,i) = uradconst*(vxyzu(4,i)/ekcle(3,i))**4/rhoreal4
          ekcle(2,i) = getkappa(vxyzu(4,i),ekcle(3,i),rhoreal4)
@@ -345,6 +354,7 @@ c
       READ (44,*) ((vt(i,j,2), j=1, ntheta), i=1, nradius)
       READ (44,*) ((vp(i,j,2), j=1, ntheta), i=1, nradius)
       CLOSE (44)
+
 c
 c--Modify so that radii and thetas are zone-centred
 c
@@ -388,6 +398,7 @@ c
 c--xinjecttable(2,*) is negative for k=1 (inner radius)
 c
                xinjecttable(2,numinject)=2.0*(k-1.5)*radii(i)*sintheta
+
                   xinjecttable(3,numinject) = radii(i)*costheta
                   IF (k-1.5 .LT. 0.0) THEN
                      phi = -phibound

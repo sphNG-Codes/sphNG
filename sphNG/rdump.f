@@ -523,12 +523,8 @@ c
       DO i = 1, npart
          iphase(i) = itempsort(i)
       END DO
-      
       DO i = 1, nptmass
-         itempsort(i) = isort(listpm(i))
-      ENDDO
-      DO i = 1, nptmass
-         listpm(i) = itempsort(i)
+         listpm(i) = isort(listpm(i))
       END DO
 c
 c--Zero torques

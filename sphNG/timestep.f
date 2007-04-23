@@ -211,7 +211,8 @@ C$OMP CRITICAL (writeiprint)
      &              vxyzu(4,i),xyzmh(5,i)
                WRITE (iprint,*)fxyzu(1,i),fxyzu(2,i),fxyzu(3,i)
                IF (imhd.EQ.idim) THEN
-                  WRITE (iprint,*) Bxyz(1,i),Bxyz(2,i),Bxyz(3,i)
+                  WRITE (iprint,*) 'B=',Bxyz(1,i),Bxyz(2,i),Bxyz(3,i)
+                  WRITE (iprint,*) 'valfven=',valfven2,aux1
                ENDIF
                WRITE (iprint,*)rmod,rmodcr
                WRITE (iprint,*)nneigh(i),rho(i),nlst
@@ -250,8 +251,8 @@ C$OMP END DO
 C$OMP END PARALLEL
 
       istepmingas = istepmingasnew
-      IF (istepmingas.LE.2) THEN
-         WRITE (iprint,*) 'ERROR - istepmingas.LE.2'
+      IF (istepmingas.LT.2) THEN
+         WRITE (iprint,*) 'ERROR - istepmingas.LT.2'
          CALL quit
       ENDIF
 

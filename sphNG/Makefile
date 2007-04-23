@@ -163,7 +163,7 @@ SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f \
 	chekopt.f condense.f constan.f coriol.f cyldis.f cylmas.f cylpres.f \
 	cylvel.f endrun.f energ.f \
-	eospg.f error.f evol.f externf.f extract.f \
+	eospg.f error.f evol.f externf.f externBfield.f extract.f \
         file.f getneigh.f \
 	getcv.f get1overmu.f getkappa.f \
 	gforsa_P.f gforsn_P.f gforspt_P.f \

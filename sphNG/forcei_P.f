@@ -52,8 +52,6 @@ c************************************************************
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/curlist'
       INCLUDE 'COMMONS/vsmooth'
-      INCLUDE 'COMMONS/Bxyz'
-      INCLUDE 'COMMONS/divcurlB'      
 
       REAL*4 ddvxyz(3,idim)
 
@@ -664,8 +662,7 @@ c
 c--External forces
 c
          IF (iexf.GE.1) 
-     &  CALL externf(ipart,realtime,xyzmh,fxyzu,trho,Bxyz,divcurlB,
-     &               Bextx,Bexty,Bextz,iexf)
+     &  CALL externf(ipart,realtime,xyzmh,fxyzu,trho,iexf)
      
 c
 c--Coriolis and centrifugal forces
@@ -705,8 +702,7 @@ c
 c--External forces
 c
          IF (iexf.GE.1) 
-     &  CALL externf(ipart,realtime,xyzmh,fxyzu,trho,Bxyz,divcurlB,
-     &               Bextx,Bexty,Bextz,iexf)
+     &  CALL externf(ipart,realtime,xyzmh,fxyzu,trho,iexf)
 c
 c--Coriolis and centrifugal forces
 c

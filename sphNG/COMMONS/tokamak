@@ -1,11 +1,14 @@
 c
 c     parameters for Tokamak torus
-c     D. Price 15/11/06
+c     D. Price & C. Toniolo
 c
-      REAL rtorus,atorus,da2,currj0
+      INTEGER iBext
+      PARAMETER(iBext = 1)
+      REAL rtorus,atorus,da2,currj0,Bphi
       INTEGER*1 nutorus
       PARAMETER(Rtorus = 1.)
       PARAMETER(atorus = Rtorus/5.)
       PARAMETER(da2 = 1./atorus**2)
       PARAMETER(nutorus = 2)
       PARAMETER(currj0 = 1.)
+      PARAMETER(Bphi = 0.)

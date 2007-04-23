@@ -1,5 +1,4 @@
-      SUBROUTINE externf(ipart,ti,xyzmh,fxyzu,rho,Bxyz,divcurlB,
-     &                   Bext_x, Bext_y, Bext_z, iexf)
+      SUBROUTINE externf(ipart,ti,xyzmh,fxyzu,rho,iexf)
 c************************************************************
 c                                                           *
 c  This subroutine computes the effect of an external       *
@@ -13,16 +12,15 @@ c        (5) Central point mass                             *
 c        (6) Distant point mass                             *
 c        (7) Central point mass and planet                  *
 c        (8) Galactic spiral potential (C. Dobbs)           *
-c        (9) Tokamak potential (D. Price)                   *
+c        (9) potential from external B field                *
+c           (D. Price/C.Toniolo)                            *
 c                                                           *
 c************************************************************
 
       INCLUDE 'idim'
 
       DIMENSION xyzmh(5,idim), fxyzu(4,idim)
-      REAL*4 divcurlB(4,imhd)
-      DIMENSION Bxyz(3,imhd)
-      REAL   Bext_x, Bext_y, Bext_z
+      REAL rhoi,fextx,fexty,fextz
       REAL*4 rho(idim), kappa, rxyplane, drxyplane
       INTEGER icountext
 
@@ -205,87 +203,23 @@ c spiral perturbation
          call potential(xi,yi,zi+dhi,ti,potent2)
          fxyzu(3,ipart) = fxyzu(3,ipart) - (potent2-potent1)/dhi
       ELSEIF (iexf.EQ.9) THEN
+c
+c--external force due to an assumed external B field
+c  (with non-zero curl)
+c         
          xi = xyzmh(1,ipart)
          yi = xyzmh(2,ipart)
          zi = xyzmh(3,ipart)
-c get cylindrical r
-         rcyl = sqrt(xi**2 + yi**2)
-         IF (rcyl.GT.tiny) THEN
-            drcyl = 1./rcyl
-         ELSE
-            drcyl = 0.
-         ENDIF
-c rintorus is radius from centre of torus
-         rintorus2 = (rcyl - Rtorus)**2 + zi**2
-         rintorus = SQRT(rintorus2)
-         IF (rintorus.GT.tiny) THEN
-            drintorus = 1./rintorus
-         ELSE
-            drintorus = 0.
-         ENDIF
-c         IF (rintorus2.LT.atorus**2) THEN
-c current in torus "phi" direction
-            term = 1. - rintorus2*da2
-            currjphi = currj0*term**nutorus
-c Bfield in torus "theta" direction
-            Btheta = currj0*atorus**2/(2.*(nutorus+1))*
-     &           (1. - term**(nutorus+1))*drintorus
-c force is in torus "r" direction  (J X B)
-            frtorus = -Btheta*currjphi
-c         ELSE
-ccc outside torus, use a f proportional to distance
-c            frtorus = -(rintorus - atorus)
-c         ENDIF
-c get force in cylindrical co-ordinates
-         sintheta = zi*drintorus
-         costheta = (rcyl-Rtorus)*drintorus
-         cosphi = xi*drcyl
-         sinphi = yi*drcyl
-         frcyl = frtorus*costheta
-         fz = frtorus*sintheta
-c translate to cartesians
-         fxyzu(1,ipart) = fxyzu(1,ipart) + frcyl*cosphi/rho(ipart)
-         fxyzu(2,ipart) = fxyzu(2,ipart) + frcyl*sinphi/rho(ipart)
-         fxyzu(3,ipart) = fxyzu(3,ipart) + fz/rho(ipart)
-         
-         IF (imhd.EQ.idim) THEN 
-c translate to cartesian coordinates B_ext, 
-	    Bext_x = -Btheta*sintheta*cosphi
-	    Bext_y = -Btheta*sintheta*sinphi
-	    Bext_z = Btheta*costheta
-	    currJext_x = -currjphi*sinphi
-	    currJext_y = currjphi*cosphi
-	    currJext_z = 0.
-	    Bint_x = Bxyz(1,ipart)
-	    Bint_y = Bxyz(2,ipart)
-	    Bint_z = Bxyz(3,ipart)
-	    currJint_x = divcurlB(2,ipart)
-	    currJint_y = divcurlB(3,ipart)
-	    currJint_z = divcurlB(4,ipart)
-c
-c--Add  J_int x B_ext
-c
-	    currjintbext_x = currJint_y*Bext_z - currJint_z*Bext_y
-	    currjintbext_y = currJint_z*Bext_x - currJint_x*Bext_z         
-	    currjintbext_z = currJint_x*Bext_y - currJint_y*Bext_x
-c
-c--Add  J_ext x B_int
-c
-	    currjextbint_x = currJext_y*Bint_z - currJext_z*Bint_y
-	    currjextbint_y = currJext_z*Bint_x - currJext_x*Bint_z         
-	    currjextbint_z = currJext_x*Bint_y - currJext_y*Bint_x 
-c--
-	    fxyzu(1,ipart) = fxyzu(1,ipart) + 
-     &                       (currjintbext_x+currjextbint_x)/rho(ipart)
-	    fxyzu(2,ipart) = fxyzu(2,ipart) + 
-     &                       (currjintbext_y+currjextbint_y)/rho(ipart)			 
-	    fxyzu(3,ipart) = fxyzu(3,ipart) + 
-     &                       (currjintbext_z+currjextbint_z)/rho(ipart)	
-
-         ENDIF
+         hi = xyzmh(5,ipart)
+         rhoi = rho(ipart)
+         CALL fexternalB(xi,yi,zi,hi,rhoi,fextx,fexty,fextz)
+         fxyzu(1,ipart) = fxyzu(1,ipart) + fextx
+         fxyzu(2,ipart) = fxyzu(2,ipart) + fexty
+         fxyzu(3,ipart) = fxyzu(3,ipart) + fextz
 c
 c External force to re-inject particles that try to escape from the cylinder
 c considered as a solid boundary
+c
       ELSEIF (iexf.EQ.10) THEN
          xi = xyzmh(1,ipart)
          yi = xyzmh(2,ipart)
@@ -296,7 +230,7 @@ c get cylindrical r
             drxyplane = 1./rxyplane
          ELSE
             drxyplane = 0.
-         ENDIF         
+         ENDIF
          deltar = rxyplane - radius
 c outside torus, use a f proportional to distance         
          IF (deltar.GT.0.) THEN

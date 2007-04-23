@@ -61,7 +61,7 @@ c--this weight is equivalent to m/(rho*h^3) in the grad h version
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/updated'
       INCLUDE 'COMMONS/ghost'
-      INCLUDE 'COMMONS/vsmooth'
+      INCLUDE 'COMMONS/tokamak'
 c
 c--Used for listparents list to keep a list of iupdated
 c
@@ -151,6 +151,7 @@ C$OMP& private(gradhi,gradsofti,gradpi,gradpj)
 C$OMP& private(Bxi,Byi,Bzi,B2i,Bevolxi,Bevolyi,Bevolzi)
 C$OMP& private(Bxj,Byj,Bzj,B2j,projBi,projBj,dBx,dBy,dBz)
 C$OMP& private(dBxideali,dByideali,dBzideali,dBxdissi,dBydissi,dBzdissi)
+C$OMP& private(Beqxi,Beqyi,Beqzi,dBxiequil,dByiequil,dBziequil)
 C$OMP& private(divBi,curlBxi,curlByi,curlBzi,fanisoxi,fanisoyi,fanisozi)
 C$OMP& private(dsoftxi,dsoftyi,dsoftzi,vsigi,vsigj,alphaB)
 C$OMP& private(vsproji,vsprojj,termb,vs2i,vs2j,dB2,robar1,fmi)
@@ -247,6 +248,15 @@ c
             Bevolxi = Bevolxyz(1,ipart)
             Bevolyi = Bevolxyz(2,ipart)
             Bevolzi = Bevolxyz(3,ipart)
+            IF (iBext.GT.0 .AND. iexf.NE.9) THEN
+               Beqxi = BEXTERNAL(xi,yi,zi,1)
+               Beqyi = BEXTERNAL(xi,yi,zi,2)
+               Beqzi = BEXTERNAL(xi,yi,zi,3)
+            ELSE
+               Beqxi = 0.
+               Beqyi = 0.
+               Beqzi = 0.
+            ENDIF
             B2i = Bxi**2 + Byi**2 + Bzi**2
             dBxideali = 0.
             dByideali = 0.
@@ -254,6 +264,9 @@ c
             dBxdissi = 0.
             dBydissi = 0.
             dBzdissi = 0.
+            dBxiequil = 0.
+            dByiequil = 0.
+            dBziequil = 0.
             divBi = 0.
             curlBxi = 0.
             curlByi = 0.
@@ -438,21 +451,18 @@ c
                Bxj = Bxyz(1,j)
                Byj = Bxyz(2,j)
                Bzj = Bxyz(3,j)
-			   dBx = Bxi - Bxj
-			   dBy = Byi - Byj
-			   dBz = Bzi - Bzj
+               dBx = Bxi - Bxj
+               dBy = Byi - Byj
+               dBz = Bzi - Bzj
                B2j = Bxj**2 + Byj**2 + Bzj**2
-c               projBsi = Bsmooth(1,ipart)*runix + Bsmooth(2,ipart)*runiy
-c     &                + Bsmooth(3,ipart)*runiz
-c               projBsj = Bsmooth(1,j)*runix + Bsmooth(2,j)*runiy
-c     &                + Bsmooth(3,j)*runiz
                projBi = Bxi*runix + Byi*runiy + Bzi*runiz
                projBj = Bxj*runix + Byj*runiy + Bzj*runiz
-	           projdB = dBx*runix + dBy*runiy + dBz*runiz
+               projdB = dBx*runix + dBy*runiy + dBz*runiz
                
+               projBeqi = Beqxi*runix + Beqyi*runiy + Beqzi*runiz
                projBext = Bextxi*runix + Bextyi*runiy + Bextzi*runiz
-c	       projBrho2i = (projBi - projBext)*rho21i
-c	       projBrho2j = (projBj - projBext)*rho1j*rho1j
+c               projBrho2i = (projBi - projBext)*rho21i
+c               projBrho2j = (projBj - projBext)*rho1j*rho1j
 
             ENDIF
 c
@@ -462,10 +472,10 @@ c
                index = v2i*ddvtable
                index1 = index + 1
                IF (index1.GT.itable) index1 = itable
-               dxx = v2i - index*dvtable	       
+               dxx = v2i - index*dvtable               
                dgrwdx = (grwij(index1)-grwij(index))*ddvtable ! slope
 c              (note that kernel gradient is multiplied by gradhi)
-	           grkerntable = (grwij(index)+ dgrwdx*dxx)
+                   grkerntable = (grwij(index)+ dgrwdx*dxx)
                grkerni = grkerntable*hi41*gradhi
                grpmi = grkerni*pmassj
 c
@@ -493,34 +503,37 @@ c
                ENDIF
                
                IF (imhd.EQ.idim) THEN
-c		  
+c                  
 c--time derivative terms
 c
-	          dBxideali = dBxideali - grpmi*dvx*projBi
-	          dByideali = dByideali - grpmi*dvy*projBi
-	          dBzideali = dBzideali - grpmi*dvz*projBi
-c	          dBxideali = dBxideali 
-c     &                - grpmi*(vsmooth(1,ipart)-vsmooth(1,j))*projBsi
-c	          dByideali = dByideali
-c     &                - grpmi*(vsmooth(2,ipart)-vsmooth(2,j))*projBsi
-c	          dBzideali = dBzideali
-c     &                - grpmi*(vsmooth(3,ipart)-vsmooth(3,j))*projBsi
-c		  
+                  dBxideali = dBxideali - grpmi*dvx*projBi
+                  dByideali = dByideali - grpmi*dvy*projBi
+                  dBzideali = dBzideali - grpmi*dvz*projBi
+
+c
+c--time derivative of equilibrium B field, iBext.ne.0
+c
+                  IF (iBext.GT.0 .AND. iexf.NE.9) THEN
+                     dBxiequil = dBxiequil - grpmi*dvx*projBeqi
+                     dByiequil = dByiequil - grpmi*dvy*projBeqi
+                     dBziequil = dBziequil - grpmi*dvz*projBeqi
+                  ENDIF
+c                  
 c--compute divB
 c
-c	          divBi = divBi - grpmi*projdB
-	          divBi = divBi - weight*grkerntable*hi1*projdB
+c                  divBi = divBi - grpmi*projdB
+                  divBi = divBi - weight*grkerntable*hi1*projdB
 c
 c--compute current
-c	          
-             curlBxi = curlBxi + grpmi*(dBy*runiz - dBz*runiy)
-             curlByi = curlByi + grpmi*(dBz*runix - dBx*runiz)
-             curlBzi = curlBzi + grpmi*(dBx*runiy - dBy*runix)
+c                  
+                  curlBxi = curlBxi + grpmi*(dBy*runiz - dBz*runiy)
+                  curlByi = curlByi + grpmi*(dBz*runix - dBx*runiz)
+                  curlBzi = curlBzi + grpmi*(dBx*runiy - dBy*runix)
 c                  curlBxi = curlBxi + weight*grkerntable*hi1*
 c     &                               (dBy*runiz - dBz*runiy)
-c		  curlByi = curlByi + weight*grkerntable*hi1*
+c                  curlByi = curlByi + weight*grkerntable*hi1*
 c     &                               (dBz*runix - dBx*runiz)
-c		  curlBzi = curlBzi + weight*grkerntable*hi1*
+c                  curlBzi = curlBzi + weight*grkerntable*hi1*
 c     &                               (dBx*runiy - dBy*runix)
                ENDIF
             ELSE
@@ -606,13 +619,13 @@ c--anisotropic magnetic force (Morris formalism)
 c
                   rhoij1 = rho1i*rho1j
                   projBext = Bextxi*runix + Bextyi*runiy + Bextzi*runiz
-		  fanisoxi = fanisoxi
+                  fanisoxi = fanisoxi
      &                   + grpm*((Bxj-Bextxi)*(projBj-projBext)
      &                         - (Bxi-Bextxi)*(projBi-projBext))*rhoij1
-		  fanisoyi = fanisoyi 
+                  fanisoyi = fanisoyi 
      &                   + grpm*((Byj-Bextyi)*(projBj-projBext)
      &                         - (Byi-Bextyi)*(projBi-projBext))*rhoij1
-		  fanisozi = fanisozi
+                  fanisozi = fanisozi
      &                   + grpm*((Bzj-Bextzi)*(projBj-projBext)
      &                         - (Bzi-Bextzi)*(projBi-projBext))*rhoij1
 c
@@ -647,18 +660,18 @@ c
 c--signal velocity (MHD)
 c
                   vsoundj = vsound(j)
-		  vs2j = vsoundj**2 + B2j*rho1j
-		  vsproji = 2.*vsoundi*projBi*sqrtrho1i
-		  vsprojj = 2.*vsoundj*projBj*SQRT(rho1j)
-		  vsigi = 0.5*(SQRT(vs2i - vsproji)
+                  vs2j = vsoundj**2 + B2j*rho1j
+                  vsproji = 2.*vsoundi*projBi*sqrtrho1i
+                  vsprojj = 2.*vsoundj*projBj*SQRT(rho1j)
+                  vsigi = 0.5*(SQRT(vs2i - vsproji)
      &                        +SQRT(vs2i + vsproji))
- 		  vsigj = 0.5*(SQRT(vs2j - vsprojj)
+                  vsigj = 0.5*(SQRT(vs2j - vsprojj)
      &                        +SQRT(vs2j + vsprojj))
                   vsbar = 0.5*(vsigi + vsigj)
 c
 c--artificial resistivity
 c
-		  IF (j.LE.npart .OR. ibound.EQ.11.OR.ibound.EQ.12) THEN    
+                  IF (j.LE.npart .OR. ibound.EQ.11.OR.ibound.EQ.12) THEN
                      alphaB = 0.5*(alphaMMpass(2,ipart)
      &                           + alphaMMpass(2,j))
 c                     alphaB = 1.0
@@ -666,10 +679,13 @@ c                     termB = alphaB*grpm*MAX(vsbar - projv,0.0)*robar1
                      termB = alphaB*grpm*(vsbar + 2.0*abs(projv))*robar1
 
                      IF (varmhd.EQ.'eulr') THEN
+#ifndef PERIODIC_NO_GHOSTS
+                        deulalpha = Bevolxi - Bevolxyz(1,j)
+                        deulbeta = Bevolyi - Bevolxyz(2,j)
+#endif
                         dBxdissi = dBxdissi + termB*deulalpha
                         dBydissi = dBydissi + termB*deulbeta
-c                       dBzdissi = dBzdissi + termB*(Bevolzi-Bevolxyz(3,j))
-		     ELSE
+                     ELSE
                         dBxdissi = dBxdissi + termB*dBx*robar1
                         dBydissi = dBydissi + termB*dBy*robar1
                         dBzdissi = dBzdissi + termB*dBz*robar1
@@ -677,19 +693,9 @@ c                       dBxdissi = dBxdissi + termB*(dBx - runix*projdB)*robar1
 c                       dBydissi = dBydissi + termB*(dBy - runiy*projdB)*robar1
 c                      dBzdissi = dBzdissi + termB*(dBz - runiz*projdB)*robar1
                      ENDIF
-                     
-c
-c--this is grad(div B) for diffusion of divergence errors
-c
-c                     dBxdissi = dBxdissi 
-c     &                  - 10.*termB*(0.2*dBx - runix*projdB)*robar1
-c                     dBydissi = dBydissi
-c     &                  - 10.*termB*(0.2*dBy - runiy*projdB)*robar1
-c                     dBzdissi = dBzdissi
-c     &                  - 10.*termB*(0.2*dBz - runiz*projdB)*robar1
 
-		     !!--add contribution to thermal energy
-		     dB2 = dBx*dBx + dBy*dBy + dBz*dBz
+                     !--add contribution to thermal energy
+                     dB2 = dBx*dBx + dBy*dBy + dBz*dBz
 c                    dqi = dqi - termB*(dB2 - projdB**2)*robar1
                      dqi = dqi - termB*dB2*robar1
                   ENDIF
@@ -798,24 +804,53 @@ c
             fxyzu(2,ipart) = fxyzu(2,ipart) + fanisoyi*cnormk
             fxyzu(3,ipart) = fxyzu(3,ipart) + fanisozi*cnormk
             divcurlB(1,ipart) = cnormk*divBi !!*rho1i
-            divcurlB(2,ipart) = cnormk*curlBxi*rho1i
-            divcurlB(3,ipart) = cnormk*curlByi*rho1i
-            divcurlB(4,ipart) = cnormk*curlBzi*rho1i
+            curlBxi = cnormk*curlBxi*rho1i
+            curlByi = cnormk*curlByi*rho1i
+            curlBzi = cnormk*curlBzi*rho1i
+            divcurlB(2,ipart) = curlBxi
+            divcurlB(3,ipart) = curlByi
+            divcurlB(4,ipart) = curlBzi
+c
+c--get contributions to dBxyz and force from an external B field
+c  (get force only using iexf=9, so do not add another contribution here)
+c
+            IF (iBext.GT.0 .AND. iexf.NE.9) THEN
+               CALL externBfield(xi,yi,zi,hi,vxi,vyi,vzi,rhoi,
+     &          Bxi,Byi,Bzi,curlBxi,curlByi,curlBzi,Beqxi,Beqyi,Beqzi,
+     &          fextx,fexty,fextz,advBx,advBy,advBz,'all')
+               fxyzu(1,ipart) = fxyzu(1,ipart) + fextx
+               fxyzu(2,ipart) = fxyzu(2,ipart) + fexty
+               fxyzu(3,ipart) = fxyzu(3,ipart) + fextz
+            ELSE
+               advBx = 0.
+               advBy = 0.
+               advBz = 0.
+            ENDIF
 c
 c--time derivative of B/rho, B (constructed from B/rho and rho derivatives) 
 c  or the Euler potentials (dissipation only)
 c
             IF (varmhd(1:1).EQ.'B') THEN
-               dBxyz(1,ipart) = cnormk*(dBxideali*rho21i + dBxdissi)
-               dBxyz(2,ipart) = cnormk*(dByideali*rho21i + dBydissi)
-               dBxyz(3,ipart) = cnormk*(dBzideali*rho21i + dBzdissi)
+               dBxyz(1,ipart) = cnormk* 
+     &                        ((dBxideali+dBxiequil)*rho21i + dBxdissi)
+               dBxyz(2,ipart) = cnormk*
+     &                        ((dByideali+dByiequil)*rho21i + dBydissi)
+               dBxyz(3,ipart) = cnormk*
+     &                        ((dBzideali+dBziequil)*rho21i + dBzdissi)
+               
+               !--add contribution from external B field advection
+               dBxyz(1,ipart) = dBxyz(1,ipart) - advBx*rho1i
+               dBxyz(2,ipart) = dBxyz(2,ipart) - advBy*rho1i
+               dBxyz(3,ipart) = dBxyz(3,ipart) - advBz*rho1i
+               
+               !--translate to dB/dt and add divv term if B is evolved
                IF (varmhd.EQ.'Bvol') THEN
                   dBxyz(1,ipart) = rhoi*dBxyz(1,ipart) 
-     &                            + Bxyz(1,ipart)*rho1i*divv(ipart)
+     &                         + (Bxyz(1,ipart)+Beqxi)*rho1i*divv(ipart)
                   dBxyz(2,ipart) = rhoi*dBxyz(2,ipart) 
-     &                            + Bxyz(2,ipart)*rho1i*divv(ipart)
+     &                         + (Bxyz(2,ipart)+Beqyi)*rho1i*divv(ipart)
                   dBxyz(3,ipart) = rhoi*dBxyz(3,ipart) 
-     &                            + Bxyz(3,ipart)*rho1i*divv(ipart)
+     &                         + (Bxyz(3,ipart)+Beqzi)*rho1i*divv(ipart)
                ENDIF
             ELSE
                dBxyz(1,ipart) = cnormk*dBxdissi
@@ -888,8 +923,7 @@ c
 c--External forces
 c       
          IF (iexf.GE.1) 
-     &  CALL externf(ipart,realtime,xyzmh,fxyzu,trho,Bxyz,divcurlB,
-     &               Beqx,Beqy,Beqz,iexf)
+     &      CALL externf(ipart,realtime,xyzmh,fxyzu,trho,iexf)
 c
 c--Coriolis and centrifugal forces
 c

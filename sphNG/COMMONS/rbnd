@@ -1,5 +1,5 @@
       COMMON /rbnd  / rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl,
-     &	     boundtemp
+     &	     boundtemp, bounddens
 c
 c--these are used in the modbound subroutine for periodic without ghosts
 c

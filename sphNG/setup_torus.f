@@ -16,12 +16,12 @@ c************************************************************
       REAL rhozero
       REAL deltaz,deltax,deltaphi,rcyl,rintorus2,phi
       REAL xtorus,ztorus,massp,totmass,totvol
-      REAL phitorus, thetator, r1, rho_c
+      REAL phitorus, randphi, ran1, thetator, r1, rho_c
       REAL rintorus, xi, yi, zi, rfactor, kappa
       INTEGER ipart,nx,nz,nphi,k,j,i
 
-      nx = 10
-      nz = 10
+      nx = 17
+      nz = 17
       deltaz = 2.*atorus/nz
       deltax = 2.*atorus/nx
       ipart = 0
@@ -39,19 +39,20 @@ c************************************************************
                deltaphi = deltaz*Rtorus/rcyl
                nphi = int(2.*pi/deltaphi)
                deltaphi = 2.*pi/nphi
+               randphi  = ran1(1)*deltaphi
             !--make ring of particles at r=rcyl
                DO i=1,nphi                   
                   ipart = ipart + 1
                   IF (ipart.GT.idim) STOP 'setup_torus: dims too small'
                   phi = (i-1)*deltaphi
-                  xyzmh(1,ipart) = rcyl*COS(phi)
-                  xyzmh(2,ipart) = rcyl*SIN(phi)
+                  xyzmh(1,ipart) = rcyl*COS(phi+randphi)
+                  xyzmh(2,ipart) = rcyl*SIN(phi+randphi)
                   xyzmh(3,ipart) = ztorus
 c                 zero velocities
                   vxyzu(1,ipart) = 0.
                   vxyzu(2,ipart) = 0.
                   vxyzu(3,ipart) = 0.
-                  vxyzu(4,ipart) = 1.5 ! so that p = rho in the equation of state routine
+                  vxyzu(4,ipart) = 0.15 !so that p = rho in the eos routine
                ENDDO
             ENDIF
          ENDDO
@@ -61,7 +62,7 @@ c                 zero velocities
       ntot = ipart
 !     choose an initial density
       totvol = (pi*atorus**2)*2.*pi*Rtorus
-      totmass = (pi*currj0*atorus**2)**2*Rtorus/36.
+      totmass = (pi*currj0*atorus**2)**2*Rtorus/36.*10.
       massp = totmass/npart
       rhozero = totmass/totvol
       

@@ -245,7 +245,10 @@ c
      &     MPI_COMM_WORLD,ierr)
 
       IF (iproc.EQ.0) THEN
+#else
+      escaptot = escap
 #endif
+
 c
 c--Write integration output :
 c
@@ -273,7 +276,8 @@ c
 c
 c--Energies + total angular momentum
 c
-         total = tkintot + tgravtot
+         totaltot = tkintot + tgravtot
+         total = totaltot
          IF (igrp.NE.0) total = totaltot + ttermtot + tmagtot + tradtot
          WRITE (iprint, 99004, ERR=100) total,tkintot,trotztot,trotxtot,
      &        tgravtot,ttermtot,tmagtot,tradtot,angtotot,totmomtot
@@ -427,6 +431,7 @@ c
 c
 c--Write transfer output
 c
+
       ELSEIF (where(1:5).EQ.'trans') THEN
          WRITE (iprint, 99008) ibegin, iend, file1, file2
 99008    FORMAT (//, ' dumps no ', I4, ' to ', I4, ' copied from file ',

@@ -508,6 +508,11 @@ c--Define code's units
 c
       CALL unit
 c
+c--Initialise starting date and time
+c  (some versions of the zz file require this)
+c
+      CALL getdat(iday, imon, iyear)
+c
 c--Execute main option
 c
 c  1) define new initial conditions

@@ -1,4 +1,4 @@
-      SUBROUTINE rdump(idisk1, ichkl)
+      SUBROUTINE rdump(idisk1, ichkl, iskip)
 c************************************************************
 c                                                           *
 c  This routine reads a dump into memory                    *
@@ -391,8 +391,11 @@ c--read artificial resistivity parameter
            ENDDO
          ENDIF
 c--real*8
-
+      ELSEIF (imhd.EQ.idim) THEN
+          WRITE(*,*) ' no magnetic fields detected in dump file' 
       ENDIF
+      
+      IF (iskip.EQ.1) RETURN
 c
 c--End reading of dump file
 c--------------------------

@@ -152,7 +152,7 @@ c
 c--Start transfering
 c
       DO i = ibegin, iend
-         CALL rdump(idisk1, ichkl)
+         CALL rdump(idisk1, ichkl, 1)
          IF (ichkl.EQ.1) CALL error(where, ichkl)
 c
 c--Allow for modifications

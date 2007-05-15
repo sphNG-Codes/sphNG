@@ -68,7 +68,7 @@ c
 c
 c--Read dump
 c
-      CALL rdump(idisk1, ichkl)
+      CALL rdump(idisk1, ichkl, 0)
       IF (ichkl.EQ.1) CALL error(where, ichkl)
 c
 c--Open point mass data output file

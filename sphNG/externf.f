@@ -20,8 +20,8 @@ c************************************************************
       INCLUDE 'idim'
 
       DIMENSION xyzmh(5,idim), fxyzu(4,idim)
-      REAL rhoi,fextx,fexty,fextz
-      REAL*4 rho(idim), kappa, rxyplane, drxyplane
+      REAL rhoi,fextx,fexty,fextz, fbound, rxyplane, drxyplane
+      REAL*4 rho(idim)
       INTEGER icountext
 
       INCLUDE 'COMMONS/kerne'
@@ -30,12 +30,13 @@ c************************************************************
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/potent'
-      INCLUDE 'COMMONS/tokamak'
-c      INCLUDE 'COMMONS/cylinder'
+      INCLUDE 'COMMONS/polyk2'
+      INCLUDE 'COMMONS/cgas'
+c      INCLUDE 'COMMONS/tokamak'
+      INCLUDE 'COMMONS/cylinder'
       
       icountext = 0
-c elastic constant K
-      kappa = 1.
+
 c
 c--Unit angular momentum
 c
@@ -226,22 +227,71 @@ c
          zi = xyzmh(3,ipart)
 c get cylindrical r
          rxyplane = sqrt(xi**2 + yi**2)
+         v2 = gamma*2./3.*RK2*(rhozero)**(gamma-1.)
+c         v2 = RK2
+c Correct estimate of velocity with Alfven speed when B field on   
+         IF (imhd.EQ.idim) THEN
+            valfven2 = ampl*ampl/rhozero
+            v2 = v2 + valfven2
+         ENDIF   
+c         if (rxyplane.ge.0.9) print *, v2, ampl*ampl/rhozero, rxyplane, 
+c     &    radius,hzero
+         frcyl = fbound(rxyplane,radius,hzero,10.*v2)
          IF (rxyplane.GT.tiny) THEN
             drxyplane = 1./rxyplane
          ELSE
             drxyplane = 0.
          ENDIF
-         deltar = rxyplane - radius
-c outside torus, use a f proportional to distance         
-         IF (deltar.GT.0.) THEN
-            icountext = icountext+1
-            frcyl = -kappa*deltar
 c get force in cartesian co-ordinates
-         fxyzu(1,ipart) = fxyzu(1,ipart)+frcyl*xi*drxyplane/rho(ipart)
-         fxyzu(2,ipart) = fxyzu(2,ipart)+frcyl*yi*drxyplane/rho(ipart)        
-         ENDIF
+         fru = sqrt(fxyzu(1,ipart)*fxyzu(1,ipart)+
+     &             fxyzu(2,ipart)*fxyzu(2,ipart))
+c         if (rxyplane.ge.0.9) print *, frcyl
+c         if (abs(frcyl).gt.0.) print *,frcyl/fru,frcyl,radius-rxyplane
+         fxyzu(1,ipart) = fxyzu(1,ipart)+frcyl*xi*drxyplane
+         fxyzu(2,ipart) = fxyzu(2,ipart)+frcyl*yi*drxyplane  
+         
       ENDIF
 
       RETURN
 
       END
+
+      FUNCTION fbound(rr,rmax,hi,v2)
+c************************************************************
+c                                                           *
+c  This subroutine computes the boundary force              *
+c  as in Monaghan (2005)                                    *
+c                                                           *
+c************************************************************
+      IMPLICIT NONE
+      REAL fbound
+      REAL rr,rmax,hi,v2
+      REAL gamfac,yy,qfac
+      REAL cnormk,tiny
+      PARAMETER (cnormk = 1.) !/3.1415926536)
+      PARAMETER (tiny = 1.e-14)
+
+      IF (hi.LE.0.) THEN
+         WRITE (*,*) 'Stop, hzero.LE.0 in fbound'
+         CALL quit
+      ENDIF
+      yy = abs(rr-rmax)
+      qfac = yy/hi
+      IF (qfac.LT.2./3.) THEN
+         gamfac = cnormk*2./3.
+      ELSEIF (qfac.LT.1.) THEN
+         gamfac = cnormk*(2.*qfac - 1.5*qfac**2)
+      ELSEIF (qfac.LT.2.) THEN
+         gamfac = cnormk*(0.5*(2.-qfac)**2)
+      ELSE
+         gamfac = 0.
+      ENDIF
+   
+      fbound = -0.1*v2*gamfac/(yy+tiny)
+      IF (rr.gt.rmax) THEN
+         WRITE(*,*) 'ERROR! particle crossed boundary'
+         WRITE(*,*) 'rr = ',rr,rmax,v2,fbound
+         CALL quit
+      ENDIF
+      
+      END FUNCTION fbound

@@ -175,7 +175,7 @@ c                        vxyzu(4,ii) = vxyzu(4,ii) * howmuch
          IF (imhd.EQ.idim) THEN
             IF (iaddmhd.EQ.'y') THEN
                CALL setBfield
-               CALL hcalc ! to get B/rho from B
+c               CALL hcalc ! to get B/rho from B
             ENDIF
          ENDIF               
 c

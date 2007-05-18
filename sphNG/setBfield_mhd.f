@@ -28,6 +28,7 @@ c************************************************************
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/setBfield'
       INCLUDE 'COMMONS/tokamak'
+      INCLUDE 'COMMONS/cylinder'
       
       INTEGER iBfield      
       CHARACTER*1 isetB
@@ -68,9 +69,10 @@ c
      &        '       uniform cartesian field : 1 ',/,
      &        '        uniform toroidal field : 2 ',/,
      &        '          non-zero div B field : 3 ',/,
-     &        '          tokamak Btheta field : 4 ')
+     &        '          tokamak Btheta field : 4 ',/,
+     &        'force free z-periodic cylinder : 5')
       READ (*, *) iBfield
-      IF (iBfield.LT.1.OR.iBfield.GT.4) GOTO 100
+      IF (iBfield.LT.1.OR.iBfield.GT.5) GOTO 100
 c
 c--set initial mean pressure for use in beta calculations
 c
@@ -85,7 +87,8 @@ c
 c     set area for mass-to-flux calculation (assumed spherical at the moment)
       area = pi*rmax**2
 
-      IF (iBfield.EQ.4) GOTO 300 ! field strength is fixed for torus
+c     field strength is fixed for torus and force free cylinder
+      IF (iBfield.EQ.4.OR.iBfield.EQ.5) GOTO 300 
 
 c
 c--set magnitude of B field a variety of ways
@@ -323,6 +326,37 @@ c
                Bevolxyz(3,i) = 0.
             ENDIF
          ENDDO
+      ELSEIF (iBfield.EQ.5) THEN
+c
+c  Setup for the Force Free Cylinder (Btheta)
+c  corresponding to the external force iexf=10
+c  taken from 
+c
+         WRITE(*,*) 'SETUP FOR THE FORCE FREE Z-PERIODIC CYLINDER'
+         WRITE(*,*) ' Radius ',radius,' Length = ',length
+         WRITE (*,*)' Muff = ',Muff, 'Amplitude =', ampl
+         IF (varmhd.EQ.'eulr') THEN
+            WRITE (*,*) 'Not implemented for Euler potentials'
+            STOP
+         ElSE   
+            DO i=1,npart
+c
+c        get position in cylindrical r coordinate
+c
+               xi = xyzmh(1,i)
+               yi = xyzmh(2,i)
+               rr= sqrt(xi**2 + yi**2)
+               IF (rr.GT.tiny) THEN
+                  drr = 1./rr
+               ELSE 
+                  drr = 0.
+               ENDIF       
+                  Bevolxyz(1,i) = -ampl*yi*drr*dbesj1(Muff*rr)
+                  Bevolxyz(2,i) = ampl*xi*drr*dbesj1(Muff*rr)                
+                  Bevolxyz(3,i) = ampl*dbesj0(Muff*rr)
+            ENDDO   
+         ENDIF  
+         Bzero = ampl
       ENDIF
 c
 c--spit out various information about the magnetic field we have set up

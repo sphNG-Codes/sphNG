@@ -49,8 +49,8 @@ c
 c--Allow partial revision of tree instead of full tree revision
 c
       LOGICAL ipartialrevtree
-c        PARAMETER (ipartialrevtree=.FALSE.)
-       PARAMETER (ipartialrevtree=.TRUE.)
+        PARAMETER (ipartialrevtree=.FALSE.)
+c       PARAMETER (ipartialrevtree=.TRUE.)
 c
 c--Allow controls individual timesteps
 c	 0 : all particles have single timestep

@@ -1,2 +1,4 @@
+      REAL gamma
+      
       COMMON /cgas  / gamma, encal
       CHARACTER*1 encal

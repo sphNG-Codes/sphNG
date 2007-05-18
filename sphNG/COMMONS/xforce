@@ -1,1 +1,4 @@
-      COMMON /xforce/ xmass, planetmass
+      REAL    xmass, planetmass, hzero
+      COMMON /xforce/ xmass, planetmass, hzero
+
+      

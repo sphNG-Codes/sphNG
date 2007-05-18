@@ -1,3 +1,8 @@
+      INTEGER listinactive,nlistinactive
+      REAL rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl,
+     &	     boundtemp, bounddens, dxbound,dybound,dzbound,
+     &       variation,phibound,flowrate,signorm,hoverr,partm 
+      
       COMMON /rbnd  / rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl,
      &	     boundtemp, bounddens
 c

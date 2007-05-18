@@ -16,7 +16,10 @@ c************************************************************
       IMPLICIT NONE
       REAL tiny
       PARAMETER (tiny=1.e-14)
-      INCLUDE 'COMMONS/tokamak'
+      INCLUDE 'COMMONS/xforce'
+      INCLUDE 'COMMONS/polyk2'
+      INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/tokamak'      
 c IN      
       REAL xi,yi,zi,hi,vxi,vyi,vzi,rhoi
       REAL Bintx,Binty,Bintz
@@ -31,13 +34,13 @@ c LOCAL
       REAL Bextr,Bexttheta,Bextphi,dBthetadr
       REAL currJextr,currJexttheta,currJextphi
       REAL currJextx,currJexty,currJextz
-      REAL frtorus,fbound,drhoi,valfven2
+      REAL frtorus,fbound,drhoi,valfven2,v2
       REAL currjintbextx,currjintbexty,currjintbextz
       REAL currjextbintx,currjextbinty,currjextbintz
 c
 c--get coordinate factors in torus coordinate system
 c
-      CALL get_factors(xi,yi,zi,costheta,sintheta,cosphi,sinphi,
+      CALL get_torus_factors(xi,yi,zi,costheta,sintheta,cosphi,sinphi,
      &                 rcyl,drcyl,rintorus,rintorus2,drintorus)
 c
 c--get 1/rho
@@ -74,7 +77,7 @@ c
          Bextr = 0.
          Bexttheta = 0.5*currj0*atorus**2/(nutorus+1)*
      &            (1. - term**(nutorus+1))*drintorus
-         Bextphi = Bphi
+         Bextphi = Bphi*Rtorus*drcyl
 c
 c        derivative of Btheta with respect to torus 'r'
 c
@@ -88,7 +91,9 @@ c
 c        estimate of alfven speed used to give right order
 c        of magnitude to boundary force
 c        
-         valfven2 = (Bexttheta*Bexttheta + Bextphi*Bextphi)*drhoi
+         v2 = RK2
+ !        valfven2 = (Bexttheta*Bexttheta + Bextphi*Bextphi)*drhoi
+ !        v2 = v2 + valfven2
 
       ELSEIF (iBext.EQ.2) THEN
 c
@@ -110,7 +115,9 @@ c
          
          frtorus = -Bexttheta*currJextphi*drhoi
          
+         v2 = gamma*2./3.*RK2*(rhozero)**(gamma-1.)
          valfven2 = (Bexttheta*Bexttheta + Bextphi*Bextphi)*drhoi
+         v2 = valfven2 + v2
       ELSE
          STOP 'unknown/unimplemented iBext in COMMONS/tokamak'
       ENDIF
@@ -129,7 +136,7 @@ c
 c
 c--add boundary force to force in torus 'r' direction
 c
-         frtorus = frtorus + fbound(rintorus,hi,valfven2)
+         frtorus = frtorus + fbound(rintorus,atorus,hzero,v2)
 c
 c--get J_ext x B_ext as the external force
 c        
@@ -167,7 +174,7 @@ c
 c
 c--add boundary force to force in torus 'r' direction
 c
-         frtorus = frtorus + fbound(rintorus,hi,valfven2)
+         frtorus = frtorus + fbound(rintorus,atorus,hzero,v2)
 c
 c--get J_ext x B_ext
 c
@@ -317,8 +324,8 @@ c************************************************************
       RETURN
       END SUBROUTINE vec_xyz_to_rthetaphi
       
-      SUBROUTINE get_factors(xi,yi,zi,costheta,sintheta,cosphi,sinphi,
-     &                       rcyl,drcyl,rintorus,rintorus2,drintorus)
+      SUBROUTINE get_torus_factors(xi,yi,zi,costheta,sintheta,cosphi,
+     &                   sinphi,rcyl,drcyl,rintorus,rintorus2,drintorus)
 c************************************************************
 c                                                           *
 c  This subroutine deals with the coordinate part of the    *
@@ -354,7 +361,7 @@ c rintorus is radius from centre of torus
       sinphi = yi*drcyl
       
       RETURN
-      END SUBROUTINE get_factors
+      END SUBROUTINE get_torus_factors
 
 
       FUNCTION Bexternal(xcoord,ycoord,zcoord,icomp)      
@@ -416,39 +423,3 @@ c************************************************************
       RETURN
       END SUBROUTINE fexternalB
       
-      FUNCTION fbound(rintorus,hi,valfven2)
-c************************************************************
-c                                                           *
-c  This subroutine computes the boundary force              *
-c  as in Monaghan (2005)                                    *
-c                                                           *
-c************************************************************
-      IMPLICIT NONE
-      REAL fbound
-      REAL rintorus,hi,valfven2
-      INCLUDE 'COMMONS/tokamak'
-      REAL gamfac,yy,qfac
-      REAL cnormk,tiny
-      PARAMETER (cnormk = 1./3.1415926536)
-      PARAMETER (tiny = 1.e-14)
-
-      yy = abs(rintorus-atorus)
-      qfac = yy/hi
-      IF (qfac.LT.2./3.) THEN
-         gamfac = cnormk*2./3.
-      ELSEIF (qfac.LT.1.) THEN
-         gamfac = cnormk*(2.*qfac - 1.5*qfac**2)
-      ELSEIF (qfac.LT.2.) THEN
-         gamfac = cnormk*(0.5*(2.-qfac)**2)
-      ELSE
-         gamfac = 0.
-      ENDIF
-      
-      fbound = -0.1*valfven2*gamfac/(yy + tiny)
-      IF (rintorus.gt.atorus) THEN
-         WRITE(*,*) 'ERROR! particle crossed boundary'
-         WRITE(*,*) 'rintorus = ',rintorus,atorus,valfven2,fbound
-         STOP 'particle crossed boundary'
-      ENDIF
-      
-      END FUNCTION fbound

@@ -200,16 +200,7 @@ cccc               ENDIF
 c
 c--Create ghost particles
 c
-         nghost = 0
-         IF (ibound.EQ.1) CALL ghostp1(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.2) CALL ghostp2(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound/10.EQ.9) 
-     &                    CALL ghostp3(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.100) 
-     &        CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.11) 
-     &        CALL ghostp11(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         ntot = npart + nghost
+         CALL ghostp(ntot,npart,xyzmh,vxyzu,ekcle,Bevolxyz)
 
          DO i = npart + 1, ntot
             DO k = 1, 5
@@ -695,16 +686,9 @@ c
          IF ((nlst.GT.ncrit .AND. imakeghost.EQ.1) 
      &                                    .OR. idonebound.EQ.1) THEN
 c         IF (imakeghost.EQ.1 .OR. idonebound.EQ.1) THEN
-            nghost = 0
-         IF (ibound.EQ.1) CALL ghostp1(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.2) CALL ghostp2(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound/10.EQ.9) 
-     &                    CALL ghostp3(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.100) 
-     &        CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.11) 
-     &        CALL ghostp11(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-            ntot = npart + nghost
+
+         CALL ghostp(ntot,npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+
          ENDIF
       ENDIF
 c
@@ -818,7 +802,8 @@ c
                      ENDIF
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, 3
-            dumBevolxyz(k,ipart) = Bevolxyz(k,ipart)+deltat*f1Bxyz(k,j)
+                           dumBevolxyz(k,ipart) = 
+     &                         Bevolxyz(k,ipart)+deltat*f1Bxyz(k,ipart)
                         END DO
                      ENDIF
                   ELSEIF (iphase(ipart).GE.1) THEN
@@ -903,7 +888,8 @@ c
                      ENDIF
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, 3
-            dumBevolxyz(k,ipart) = Bevolxyz(k,ipart)+deltat*f1Bxyz(k,j)
+                           dumBevolxyz(k,ipart) = 
+     &                        Bevolxyz(k,ipart)+deltat*f1Bxyz(k,ipart)
                         END DO
                      ENDIF
                   ELSEIF (iphase(ipart).GE.1) THEN
@@ -1012,7 +998,7 @@ c
                ENDIF
                IF (imhd.EQ.idim) THEN
                   DO l = 1, 3
-                     dumBevolxyz(l,j) = Bevolxyz(l,j)+deltat*f1Bxyz(l,j)
+                     dumBevolxyz(l,j) = Bevolxyz(l,j)+deltat*f1Bxyz(l,k)
                   END DO
                ENDIF
             ENDIF

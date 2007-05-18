@@ -169,47 +169,6 @@ cC$OMP END PARALLEL DO
          ENDIF
       ENDIF
 c
-c--Calculate B from the evolved magnetic field variable
-c
-      IF (imhd.EQ.idim) THEN
-         IF (varmhd.eq.'Bvol') THEN
-            DO i=nlst_in,nlst_end
-               ipart = llist(i)
-               Bxyz(1,ipart) = Bevolxyz(1,ipart)
-               Bxyz(2,ipart) = Bevolxyz(2,ipart)
-               Bxyz(3,ipart) = Bevolxyz(3,ipart)
-c
-c--smooth magnetic field variable
-c               
-c               Bevolxyz(1,ipart) = Bsmooth(1,ipart)
-c               Bevolxyz(2,ipart) = Bsmooth(2,ipart)
-c               Bevolxyz(3,ipart) = Bsmooth(3,ipart)
-            ENDDO
-         ELSEIF (varmhd.EQ.'Brho') THEN
-            DO i=nlst_in,nlst_end
-               ipart = llist(i)
-c
-c--smooth magnetic field variable
-c               
-c               Bevolxyz(1,ipart) = Bsmooth(1,ipart)
-c               Bevolxyz(2,ipart) = Bsmooth(2,ipart)
-c               Bevolxyz(3,ipart) = Bsmooth(3,ipart)
-c
-c--used smoothed B in dBevol/dt *and* in forces
-c
-               Bxyz(1,ipart) = Bevolxyz(1,ipart)*dumrho(ipart)
-               Bxyz(2,ipart) = Bevolxyz(2,ipart)*dumrho(ipart)
-               Bxyz(3,ipart) = Bevolxyz(3,ipart)*dumrho(ipart)
-
-c               Bsmooth(1,ipart) = Bsmooth(1,ipart)*dumrho(ipart)
-c               Bsmooth(2,ipart) = Bsmooth(2,ipart)*dumrho(ipart)
-c               Bsmooth(3,ipart) = Bsmooth(3,ipart)*dumrho(ipart)
-            ENDDO
-         ELSEIF (varmhd.NE.'eulr') THEN
-            STOP 'unknown MHD variable in derivi'
-         ENDIF
-      ENDIF
-c
 c--Implicit hyperdiffusion of div B
 c
       IF (itiming) CALL getused(tass1)
@@ -217,8 +176,8 @@ c
 c      IF(imhd.EQ.idim) THEN
       IF(.FALSE.) THEN
          WRITE (*,*) 'Calling Hyper at realtime ',dt*itime/imaxstep+gt
-         CALL divBdiffuse(dt,nlst_in,nlst_end,npart,llist,
-     &        xyzmh,dumrho,Bxyz)
+c         CALL divBdiffuse(dt,nlst_in,nlst_end,npart,llist,
+c     &        xyzmh,dumrho,Bxyz)
 
          IF (varmhd.EQ.'Bvol') THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)

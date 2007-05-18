@@ -593,7 +593,7 @@ C$OMP DO SCHEDULE (runtime)
             vxyzu(4,i) = vxyzu(4,j)
             gradhs(1,i) = gradhs(1,j)
             gradhs(2,i) = gradhs(2,j)
-            IF (imhd.EQ.idim) THEN
+            IF (imhd.EQ.idim .AND. varmhd.EQ.'eulr') THEN
                Bxyz(1,i) = Bxyz(1,j)
                Bxyz(2,i) = Bxyz(2,j)
                Bxyz(3,i) = Bxyz(3,j)
@@ -602,6 +602,44 @@ C$OMP DO SCHEDULE (runtime)
      &           ekcle(1,i) = ekcle(1,j)
          END DO
 C$OMP END DO
+
+c
+c--Calculate B from the evolved magnetic field variable
+c
+      IF (imhd.EQ.idim) THEN
+         IF (varmhd.eq.'Bvol') THEN
+C$OMP DO SCHEDULE (runtime)
+            DO i=nlst_in,nlst_end
+               ipart = list(i)
+               Bxyz(1,ipart) = Bevol(1,ipart)
+               Bxyz(2,ipart) = Bevol(2,ipart)
+               Bxyz(3,ipart) = Bevol(3,ipart)
+            ENDDO
+            DO ipart=npart+1,ntot
+               Bxyz(1,ipart) = Bevol(1,ipart)
+               Bxyz(2,ipart) = Bevol(2,ipart)
+               Bxyz(3,ipart) = Bevol(3,ipart)
+            ENDDO
+C$OMP END DO
+         ELSEIF (varmhd.EQ.'Brho') THEN
+C$OMP DO SCHEDULE (runtime)
+            DO i=nlst_in,nlst_end
+               ipart = list(i)
+               Bxyz(1,ipart) = Bevol(1,ipart)*dumrho(ipart)
+               Bxyz(2,ipart) = Bevol(2,ipart)*dumrho(ipart)
+               Bxyz(3,ipart) = Bevol(3,ipart)*dumrho(ipart)
+            ENDDO
+            DO ipart=npart+1,ntot
+               Bxyz(1,ipart) = Bevol(1,ipart)*dumrho(ipart)
+               Bxyz(2,ipart) = Bevol(2,ipart)*dumrho(ipart)
+               Bxyz(3,ipart) = Bevol(3,ipart)*dumrho(ipart)
+            ENDDO      
+C$OMP END DO
+         ELSEIF (varmhd.NE.'eulr') THEN
+            STOP 'unknown MHD variable in Bevol->Bxyz conversion'
+         ENDIF
+      ENDIF
+
 C$OMP END PARALLEL
 ccC$OMP END PARALLEL DO
       IF (nwarnup.GT.0) THEN

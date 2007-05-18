@@ -62,6 +62,7 @@ c--this weight is equivalent to m/(rho*h^3) in the grad h version
       INCLUDE 'COMMONS/updated'
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/tokamak'
+      INCLUDE 'COMMONS/cylinder'
 c
 c--Used for listparents list to keep a list of iupdated
 c
@@ -369,9 +370,9 @@ C$OMP END CRITICAL (listupdated)
      &                ekcle(1,j) = ekcle(1,irealj)
                   IF (imhd.EQ.idim) THEN
                      IF (varmhd.EQ.'Brho') THEN
-                        Bxyz(1,j) = Bxyz(1,irealj)
-                        Bxyz(2,j) = Bxyz(2,irealj)
-                        Bxyz(3,j) = Bxyz(3,irealj)
+                        Bxyz(1,j) = Bevolxyz(1,j)*trho(j)
+                        Bxyz(2,j) = Bevolxyz(2,j)*trho(j)
+                        Bxyz(3,j) = Bevolxyz(3,j)*trho(j)
                      ENDIF
                   ENDIF
                ELSE
@@ -399,9 +400,9 @@ C$OMP END CRITICAL (listupdated)
      &                ekcle(1,j) = ekcle(1,irealj)
                   IF (imhd.EQ.idim) THEN
                      IF (varmhd.EQ.'Brho') THEN
-                        Bxyz(1,j) = Bxyz(1,irealj)
-                        Bxyz(2,j) = Bxyz(2,irealj)
-                        Bxyz(3,j) = Bxyz(3,irealj)
+                        Bxyz(1,j) = Bevolxyz(1,j)*trho(j)
+                        Bxyz(2,j) = Bevolxyz(2,j)*trho(j)
+                        Bxyz(3,j) = Bevolxyz(3,j)*trho(j)
                      ENDIF
                   ENDIF
 
@@ -693,12 +694,25 @@ c                     termB = alphaB*grpm*MAX(vsbar - projv,0.0)*robar1
 c                       dBxdissi = dBxdissi + termB*(dBx - runix*projdB)*robar1
 c                       dBydissi = dBydissi + termB*(dBy - runiy*projdB)*robar1
 c                      dBzdissi = dBzdissi + termB*(dBz - runiz*projdB)*robar1
+c
+c-- Real constant resistivity
+c
+                        termeta = etamhd*grpmi*rho1j*rho1i  !times rhoi below
+                        dBxdissi = dBxdissi + termeta*2.*dBx
+                        dBydissi = dBydissi + termeta*2.*dBy
+                        dBzdissi = dBzdissi + termeta*2.*dBz                       
+c                        dBxdissi = dBxdissi + termeta*
+c     &                             (5.*runix*projdB-3.*dBx)
+c                        dBydissi = dBydissi + 
+c     &                             (5.*runiy*projdB-3.*dBy)
+c                        dBzdissi = dBzdissi +                    
+c     &                             (5.*runiz*projdB-3.*dBz)
                      ENDIF
 
                      !--add contribution to thermal energy
                      dB2 = dBx*dBx + dBy*dBy + dBz*dBz
 c                    dqi = dqi - termB*(dB2 - projdB**2)*robar1
-                     dqi = dqi - termB*dB2*robar1
+                     dqi = dqi - termB*dB2*robar1 
                   ENDIF
                ELSE
 c

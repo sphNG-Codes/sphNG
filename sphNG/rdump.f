@@ -39,6 +39,8 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/gradhterms'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/presb'
+      INCLUDE 'COMMONS/tokamak'
+      INCLUDE 'COMMONS/xforce'      
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -108,22 +110,39 @@ c--Default real
          WRITE (*,*) 'ERROR 5 in rdump: not enough default reals'
          CALL quit
       ENDIF
-      IF (imhd.EQ.idim .AND. number.GE.18) THEN
+c--need to read hzero for problems which utilise 
+c  the monaghan-style external boundary force
+c  D.Price 14.5.07
+      IF (number.GE.19) THEN
          READ (idisk1, END=100) gt, dtmaxdp, gamma, rhozero, RK2,
+     &        escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
+     &        specang, ptmassin, tmag, Bextx, Bexty, Bextz, hzero
+         WRITE(*,*) ' read hzero = ',hzero
+         IF (imhd.EQ.idim) THEN
+            WRITE(*,*) 'External field found, Bext = ',Bextx,Bexty,Bextz
+         ENDIF
+      ELSE
+         IF (iexf.EQ.10) THEN
+            WRITE(*,*) 'ERROR: hzero not found in rdump'
+            CALL quit
+         ENDIF
+         IF (imhd.EQ.idim .AND. number.GE.18) THEN
+            READ (idisk1, END=100) gt, dtmaxdp, gamma, rhozero, RK2,
      &        escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
      &        specang, ptmassin, tmag, Bextx, Bexty, Bextz
-         WRITE(*,*) 'External field found, Bext = ',Bextx,Bexty,Bextz
-      ELSE
-         IF (imhd.EQ.idim) THEN
-            WRITE(*,*) 'WARNING: dump does not contain external field'
-            WRITE(*,*) '         (setting to zero)'
-            Bextx = 0.
-            Bexty = 0.
-            Bextz = 0.
-         ENDIF
-         READ (idisk1, END=100) gt, dtmaxdp, gamma, rhozero, RK2,
+            WRITE(*,*) 'External field found, Bext = ',Bextx,Bexty,Bextz
+         ELSE
+            IF (imhd.EQ.idim) THEN
+              WRITE(*,*) 'WARNING: dump does not contain external field'
+              WRITE(*,*) '         (setting to zero)'
+               Bextx = 0.
+               Bexty = 0.
+               Bextz = 0.
+            ENDIF
+            READ (idisk1, END=100) gt, dtmaxdp, gamma, rhozero, RK2,
      &        escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
      &        specang, ptmassin
+         ENDIF
       ENDIF
 c--real*4
       READ (idisk1, END=100) number

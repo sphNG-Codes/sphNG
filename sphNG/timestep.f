@@ -33,6 +33,7 @@ c************************************************************
       INCLUDE 'COMMONS/nearmpt'
       INCLUDE 'COMMONS/Bxyz'
       INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/cylinder'
 
       xlog2 = 0.30103
       istepmin = imax
@@ -54,6 +55,7 @@ C$OMP& private(i,j,l,ll,xmindist,iptcur,rad2)
 C$OMP& private(divvi,aux1,aux2,aux3,denom,valfven2,rmodcool)
 C$OMP& private(crstepi,rmodcr,rmodvel,force2,rmod,vel2,coolstepi)
 C$OMP& private(stepi,ibin,istep2,irat,softrad,rad,omega,omega1,tcool)
+C$OMP& private(dti,dteta,rmodeta)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin)
 C$OMP& reduction(MIN:istepmingasnew)
@@ -63,6 +65,7 @@ c
 C$OMP DO SCHEDULE(runtime)
       DO j = 1, nlst
          i = llist(j)
+c         write (13,*) i, 'print1'
 c
 c--Compute timestep from force condition
 c
@@ -79,6 +82,7 @@ c
          ELSE
             rmod = 1.0E+30
          ENDIF
+c         write (13,*) rmod, 'print2',force2         
 c
 c--For sink particles, also use velocity criterion
 c
@@ -120,8 +124,21 @@ c
                ENDIF
             ELSE
                IF (imhd.EQ.idim) THEN
-                  valfven2 = (Bxyz(1,i)*Bxyz(1,i) +  Bxyz(2,i)*Bxyz(2,i)
-     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
+                   xi = xyzmh(1,i)
+                   yi = xyzmh(2,i)
+                   zi = xyzmh(3,i)
+                   Bxi = Bxyz(1,i)
+                   Byi = Bxyz(2,i)
+                   Bzi = Bxyz(3,i)
+                   IF (iBext.GT.0 .AND. iexf.NE.9) THEN
+                      Bxi = Bxi + BEXTERNAL(xi,yi,zi,1)
+                      Byi = Byi + BEXTERNAL(xi,yi,zi,2)
+                      Bzi = Bzi + BEXTERNAL(xi,yi,zi,3)
+                   ENDIF
+                   valfven2 = (Bxi*Bxi +  Byi*Byi + Bzi*Bzi)/rho(i)
+                   
+c                  valfven2 = (Bxyz(1,i)*Bxyz(1,i) +  Bxyz(2,i)*Bxyz(2,i)
+c     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
                   aux1 = alpha*sqrt(vsound(i)**2 + valfven2)
                ELSE
                   aux1 = alpha*vsound(i)
@@ -139,6 +156,7 @@ c
             rmodcr = crstepi/(dt*isteps(i)/imaxstep)
             rmod = MIN(rmod, rmodcr)
          ENDIF
+c         write (13,*) rmod, 'print3'
 c
 c--New timestep for cooling equation of state
 c
@@ -153,6 +171,27 @@ c
 c             PRINT *,rmod,rmodcool
              rmod = MIN(rmod,rmodcool)
          END IF
+c
+c--New timestep if particles cross boundaries
+c
+         IF(iphase(i).EQ.0 .AND. iexf.GT.0) THEN
+             dti = rmod*(dt*isteps(i)/imaxstep)
+             rmod = MIN(rmod,dtcrossbound(xyzmh(1,i),xyzmh(2,i),
+     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
+     &              fxyzu(1,i),fxyzu(2,i),fxyzu(3,i),dti)/
+     &              (dt*isteps(i)/imaxstep))   
+         END IF         
+c
+c--Check resistive diffusion time
+c
+         IF (imhd.EQ.idim) THEN
+            IF (iphase(i).EQ.0 .AND.etamhd.GT.tiny) THEN
+               dteta = xyzmh(5,i)**2/etamhd
+               rmodeta = dteta/(dt*isteps(i)/imaxstep)
+               IF (rmodeta.LT.rmod) print *,'dteta =', dteta,
+     &            rmod*(dt*isteps(i)/imaxstep)          
+            ENDIF
+         ENDIF
 c
 c--Reduce time step (no synchronization needed)
 c
@@ -202,6 +241,7 @@ c                  WRITE (iprint,*)
                WRITE (iprint,*)'rmin ',xmindist
 C$OMP END CRITICAL (writeiprint)
             ELSE
+                        write (13,*) isteps(i), 'print4'
 C$OMP CRITICAL (writeiprint)
                WRITE (iprint, 99300)
 99300          FORMAT ('STEP : Step too small ! Nothing can help!')

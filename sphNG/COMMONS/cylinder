@@ -1,0 +1,12 @@
+c
+c     parameters for Force-Free Cylinder
+c     C. Toniolo 08/12/06
+c
+      REAL radius, length, Muff, ampl, vampl, etamhd
+      PARAMETER(radius = 1.d0)
+      PARAMETER(length = 1.d0)
+      PARAMETER(Muff   = 2.5d0)
+      PARAMETER(ampl   = 0.001d0)
+      PARAMETER(vampl  = 0.1)  !absolute v amplitude is ampl*vampl
+      PARAMETER(etamhd = 0.0)
+      

@@ -71,10 +71,12 @@ c
 c--uncomment these lines to dump ghosts as well
 c  (useful for debugging)
 c
+c#ifdef DUMPGHOSTS
 c      nprint = npart + nghost
 c      DO i=npart+1,npart+nghost
 c         isort(i) = i
 c      ENDDO
+c#endif
 c
 c--Write
 c
@@ -895,16 +897,7 @@ c
 c
 c--Must rebuild the ghosts and make the tree again after sorting
 c
-      nghost = 0
-      IF (ibound.EQ.1) CALL ghostp1(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-      IF (ibound.EQ.2) CALL ghostp2(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-      IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound/10.EQ.9)
-     &     CALL ghostp3(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-      IF (ibound.EQ.100) 
-     &     CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-      IF (ibound.EQ.11) CALL ghostp11(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-
-      ntot = npart + nghost
+      CALL ghostp(ntot, npart, xyzmh, vxyzu, ekcle, Bevolxyz)
 
       DO i = 1, ntot
          DO j = 1, 5

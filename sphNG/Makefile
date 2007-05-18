@@ -167,7 +167,7 @@ SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
         file.f getneigh.f \
 	getcv.f get1overmu.f getkappa.f \
 	gforsa_P.f gforsn_P.f gforspt_P.f \
-	ghostp1.f ghostp2.f ghostp3.f ghostp11.f ghostp100.f \
+	ghostp.f ghostp1.f ghostp2.f ghostp3.f ghostp11.f ghostp100.f \
         gptall.f hdot_P.f \
 	header.F homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
 	inopts.f insulate_TREE_P.F integs.F ktable.f labrun.f lunit_double.f \

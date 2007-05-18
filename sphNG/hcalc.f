@@ -60,19 +60,7 @@ c      neimax = 120
          llist(i) = i
       END DO
 
-      IF (ibound.EQ.1)
-     &      CALL ghostp1(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
-      IF (ibound.EQ.2)
-     &      CALL ghostp2(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
-      IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound/10.EQ.9)
-     &      CALL ghostp3(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
-      IF (ibound.EQ.100) 
-     &     CALL ghostp100(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
-      IF (ibound.EQ.11)
-     &      CALL ghostp11(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
-      IF (ibound.EQ.0) nghost = 0
-
-      ntot = npart + nghost
+      CALL ghostp(ntot, npart, xyzmh, vxyzu, ekcle, Bevolxyz)
 
       IF (igrape.EQ.0) THEN
          DO i = 1, ntot

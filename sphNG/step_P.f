@@ -214,16 +214,7 @@ c               ENDIF
 c
 c--Create ghost particles
 c
-         nghost = 0
-         IF (ibound.EQ.1) CALL ghostp1(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.2) CALL ghostp2(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound/10.EQ.9) 
-     &                    CALL ghostp3(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.100) 
-     &        CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.11) 
-     &        CALL ghostp11(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         ntot = npart + nghost
+         CALL ghostp(ntot, npart, xyzmh, vxyzu, ekcle, Bevolxyz)
 
          DO i = npart + 1, ntot
             DO k = 1, 5
@@ -1052,16 +1043,8 @@ c
       IF ((nlst0.GT.ncrit .AND. imakeghost.EQ.1) 
      &                                    .OR. idonebound.EQ.1) THEN
 c      IF (imakeghost.EQ.1 .OR. idonebound.EQ.1) THEN
-         nghost = 0
-         IF (ibound.EQ.1) CALL ghostp1(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.2) CALL ghostp2(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound/10.EQ.9)
-     &                    CALL ghostp3(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.100)
-     &        CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         IF (ibound.EQ.11)
-     &        CALL ghostp11(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
-         ntot = npart + nghost
+
+         CALL ghostp(ntot, npart, xyzmh, vxyzu, ekcle, Bevolxyz)
       ENDIF
 c
 c--Identify particles to predict

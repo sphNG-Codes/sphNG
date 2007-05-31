@@ -306,6 +306,9 @@ ptmass: utils/ptmassmerge.o
 massvsangmom: checksystem checkparams utils/massvsangmom.o utils/readdump_sphNG.o indexx2.o idim
 	$(FC) $(FFLAGS) -o $@ utils/massvsangmom.o utils/readdump_sphNG.o indexx2.o
 
+masswithtime: checksystem checkparams utils/masswithtime.o utils/readdump_sphNG.o idim
+	$(FC) $(FFLAGS) -o $@ utils/masswithtime.o utils/readdump_sphNG.o
+
 # this routine needs to be compiled with single precision flags only
 
 zzsun_f77_double2.o: zzsun_f77_double2.f
@@ -360,5 +363,5 @@ updatedepends:
 include .depends
         
 clean:
-	\rm -f *.o sph_tree_lf_gradh sph_tree_lf sph_tree_rk_gradh sph_tree_rk
+	\rm -f *.o sph_tree_lf_gradh sph_tree_lf sph_tree_rk_gradh sph_tree_rk ./utils/*.o
 # DO NOT DELETE

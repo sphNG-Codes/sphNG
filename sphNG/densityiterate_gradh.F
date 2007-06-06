@@ -268,7 +268,8 @@ c
 c--switch to Bisection if not converging or running into trouble
 c
                WRITE(iprint,*) 'WARNING: switching to bisection on'//
-     &            ' particle ',ipart,' hi = ',hi,' hnew = ',hnew
+     &            ' particle ',iorig(ipart),'(',ipart,') hi = ',hi,
+     &            ' hnew = ',hnew
                IF (numneighreal.LE.0) THEN
                   WRITE(iprint,*) '(particle has no neighbours)'
                ENDIF

@@ -34,6 +34,7 @@ c************************************************************
       INCLUDE 'COMMONS/Bxyz'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/cylinder'
+      INCLUDE 'COMMONS/tokamak'
 
       xlog2 = 0.30103
       istepmin = imax
@@ -43,7 +44,7 @@ c************************************************************
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst,llist)
 C$OMP& shared(xyzmh,vxyzu)
-C$OMP& shared(fxyzu,Bxyz)
+C$OMP& shared(fxyzu,Bxyz,iexf)
 C$OMP& shared(dt,isteps,imaxstep,divv,rho)
 C$OMP& shared(alpha,beta,vsound,xlog2)
 C$OMP& shared(idtsyn,nearpt,nptlist)
@@ -55,7 +56,7 @@ C$OMP& private(i,j,l,ll,xmindist,iptcur,rad2)
 C$OMP& private(divvi,aux1,aux2,aux3,denom,valfven2,rmodcool)
 C$OMP& private(crstepi,rmodcr,rmodvel,force2,rmod,vel2,coolstepi)
 C$OMP& private(stepi,ibin,istep2,irat,softrad,rad,omega,omega1,tcool)
-C$OMP& private(dti,dteta,rmodeta)
+C$OMP& private(Bxi,Byi,Bzi,xi,yi,zi,dti,dteta,rmodeta)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin)
 C$OMP& reduction(MIN:istepmingasnew)

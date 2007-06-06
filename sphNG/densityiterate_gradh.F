@@ -615,6 +615,8 @@ C$OMP DO SCHEDULE (runtime)
                Bxyz(2,ipart) = Bevol(2,ipart)
                Bxyz(3,ipart) = Bevol(3,ipart)
             ENDDO
+C$OMP END DO
+C$OMP DO SCHEDULE (runtime)
             DO ipart=npart+1,ntot
                Bxyz(1,ipart) = Bevol(1,ipart)
                Bxyz(2,ipart) = Bevol(2,ipart)
@@ -629,6 +631,8 @@ C$OMP DO SCHEDULE (runtime)
                Bxyz(2,ipart) = Bevol(2,ipart)*dumrho(ipart)
                Bxyz(3,ipart) = Bevol(3,ipart)*dumrho(ipart)
             ENDDO
+C$OMP END DO
+C$OMP DO SCHEDULE (runtime)
             DO ipart=npart+1,ntot
                Bxyz(1,ipart) = Bevol(1,ipart)*dumrho(ipart)
                Bxyz(2,ipart) = Bevol(2,ipart)*dumrho(ipart)

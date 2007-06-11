@@ -41,9 +41,6 @@ c
       dvxyzu(4,ipart) = 0.0
 
        IF (iener.EQ.3) THEN 
-c Note if using this version of energ.f, any CALLS to energ must also 
-c include rho - probably just forcei_P.f or equivalent
-
 c Parameters for cooling curve (proton mass and heating rate) 
 c initiated in thermeq
 c Heating rate from Vazquez-Semadeni 2006 is divided by hydrogen mass

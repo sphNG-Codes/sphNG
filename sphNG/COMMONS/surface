@@ -1,0 +1,5 @@
+      REAL*8 oldxyz,surfp,surfpd
+      INTEGER iendisp, ielastic
+
+      COMMON /surface / oldxyzmh(5,iplanet),surfp(iplanet),
+     &	     surfpd(iplanet), iendisp, ielastic

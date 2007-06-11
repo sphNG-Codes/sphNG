@@ -29,6 +29,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/current'
       INCLUDE 'COMMONS/sync'
       INCLUDE 'COMMONS/densi'
+      INCLUDE 'COMMONS/typef'
 
       CHARACTER*7 where
 
@@ -76,6 +77,15 @@ c
          ymomadd(i) = 0.0
          zmomadd(i) = 0.0
       END DO
+
+c Initialise quantities for cooling curve if required
+
+      IF (iener.EQ.3) THEN
+ 
+       CALL thermeq
+
+      END IF
+
 c
 c--Write all quantities on listings
 c

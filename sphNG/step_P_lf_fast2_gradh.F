@@ -254,7 +254,7 @@ c      END DO
 
          CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
      &        npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
-
+       
          IF (itiming) THEN
             CALL getused(ts102)
             ts10 = ts10 + (ts102 - ts101)
@@ -579,7 +579,7 @@ c
       IF (itiming) CALL getused(ts71)
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst,llist,iscurrent,dt,isteps,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,rho)
 C$OMP& shared(it0,itime,imaxdens,cnormk,iener)
 C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,listrealpm)
@@ -603,10 +603,8 @@ c
          delvx = dthalf*f1vxyzu(1,i)
          delvy = dthalf*f1vxyzu(2,i)
          delvz = dthalf*f1vxyzu(3,i)
-
 c         IF (iphase(i).GT.0 .AND. nptmass.GE.2) 
 c     &        print *,'f1 ',i,f1vxyzu(2,i),vxyzu(1,i),vxyzu(2,i)
-
          vxyzu(1,i) = vxyzu(1,i) + delvx
          vxyzu(2,i) = vxyzu(2,i) + delvy
          vxyzu(3,i) = vxyzu(3,i) + delvz
@@ -635,6 +633,11 @@ c--Update u(i) and h(i)
 c
             IF (encal.NE.'r' .AND. encal.NE.'m') 
      &           vxyzu(4,i) = vxyzu(4,i) + dtfull*f1vxyzu(4,i)
+
+c correction of energy if using K & I cooling curve
+
+            IF (iener.EQ.3) CALL coolcurve(vxyzu(4,i),rho(i),dtfull)
+
             IF (iener.EQ.2 .AND. vxyzu(4,i).LT.0.0) vxyzu(4,i)=0.15
 
             xyzmh(5,i) = xyzmh(5,i) + dtfull*f1ha(1,i)
@@ -711,7 +714,7 @@ c
       IF (itbinupdate.GE.nbinmax-1 .OR. (.NOT. ipartialrevtree)) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,rho)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(isibdaupar,iflagtree,imfac,numberparents,listparents)
@@ -744,6 +747,9 @@ c
      &                 deltat*f1ha(1+k,j))
                   ENDDO
                ENDIF
+
+           IF (iener.EQ.3) CALL coolcurve(dumvxyzu(4,j),rho(j),deltat)
+
                IF (imhd.EQ.idim) THEN
                   DO k = 1, 3
                      dumBevolxyz(k,j) = Bevolxyz(k,j)+deltat*f1Bxyz(k,j)
@@ -760,7 +766,7 @@ C$OMP END PARALLEL DO
          DO i = 1, itbinupdate
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,rho)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(isibdaupar,iflagtree,imfac,npart)
@@ -800,6 +806,10 @@ c
      &                        alphaMM(k,ipart) + deltat*f1ha(1+k,ipart))
                         ENDDO
                      ENDIF
+
+           IF (iener.EQ.3) CALL coolcurve(vxyzu(4,ipart),rho(ipart),
+     &      deltat)
+
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, 3
                            dumBevolxyz(k,ipart) = 
@@ -821,7 +831,7 @@ c      ELSEIF (nlst.GT.nptmass) THEN
          DO i = 1, itbinupdate
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
-C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz)
+C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,rho)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(isibdaupar,iflagtree,imfac,npart)
@@ -886,6 +896,11 @@ c
      &                    alphaMM(k,ipart) + deltat*f1ha(k+1,ipart))
                         ENDDO
                      ENDIF
+
+
+           IF (iener.EQ.3) CALL coolcurve(dumvxyzu(4,ipart),rho(ipart),
+     &          deltat)
+
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, 3
                            dumBevolxyz(k,ipart) = 
@@ -951,7 +966,7 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,dumxyzmh,dumvxyzu,encal)
 C$OMP& shared(iphase,iener,ifsvi,dumalpha,alphaMM,alphamax)
-C$OMP& shared(Bevolxyz,dumBevolxyz)
+C$OMP& shared(Bevolxyz,dumBevolxyz,rho)
 C$OMP& shared(isibdaupar,iflagtree,imfac,irevise)
 C$OMP& shared(numberparents,listparents)
 C$OMP& private(j,k,l,deltat,iparent)
@@ -996,6 +1011,9 @@ c
      &              + deltat*f1ha(1+l,k))
                   ENDDO
                ENDIF
+
+           IF (iener.EQ.3) CALL coolcurve(dumvxyzu(4,j),rho(j),deltat)
+
                IF (imhd.EQ.idim) THEN
                   DO l = 1, 3
                      dumBevolxyz(l,j) = Bevolxyz(l,j)+deltat*f1Bxyz(l,k)
@@ -1048,6 +1066,7 @@ c
       IF (itiming) CALL getused(ts101)
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
      &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
+
       IF (itiming) THEN
          CALL getused(ts102)
          ts10 = ts10 + (ts102 - ts101)
@@ -1484,6 +1503,9 @@ c
                    ENDIF
                ENDIF
             END DO
+
+            IF (iener.EQ.3) CALL coolcurve(vxyzu(4,ipart),rho(ipart),
+     &      deltat)
 
             IF (igrape.EQ.0) THEN
                CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)

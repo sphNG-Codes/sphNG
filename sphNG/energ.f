@@ -24,6 +24,9 @@ c************************************************************
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/varet'
       INCLUDE 'COMMONS/ptmass'
+      INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/astrcon'
+      INCLUDE 'COMMONS/tcooling'
 
       REAL omega1
 c
@@ -36,6 +39,39 @@ c--pdv term is stored in dvxyzu(4,ipart) in forcei to use memory efficiently
 c
       pdv = dvxyzu(4,ipart)
       dvxyzu(4,ipart) = 0.0
+
+       IF (iener.EQ.3) THEN 
+c Note if using this version of energ.f, any CALLS to energ must also 
+c include rho - probably just forcei_P.f or equivalent
+
+c Parameters for cooling curve (proton mass and heating rate) 
+c initiated in thermeq
+c Heating rate from Vazquez-Semadeni 2006 is divided by hydrogen mass
+c as required for energy equation (Koyama & Inutsuka 2002).
+c Koyama & Inutsuka 2002 use d(rho*u)/dt rather than du/dt which
+c is used here for SPH. Everything is done in g and cm for now.
+
+c Find temperature in K
+
+      tempiso = 2./3.*vxyzu(4,ipart)/(Rg/gmw/uergg)
+
+c Cooling rate from Vazquez-Semadeni
+
+      coolingr=(1.e7*exp(-1.148e5/(tempiso+1000.))+
+     &    0.014*sqrt(tempiso)*exp(-92./tempiso))*heatingr
+
+c Find change in energy - in the energy equation (Koyama & Inutsuka 2002)
+c the cooling term is multiplied by rho/mass of hydrogen
+
+      dvxyzu(4,ipart)=heatingr-rho(ipart)*udens*coolingr/mpenerg
+
+c convert from cm^2 s^-3 to code units
+
+      dvxyzu(4,ipart)=dvxyzu(4,ipart)*utime**3./udist**2.
+      END IF
+
+c    End of section for cooling curve.
+
 c
 c--dq from expansion
 c
@@ -63,7 +99,7 @@ c            rhocrit = 3.0*rho_zero
      &           dvxyzu(4,ipart) = 0.0
             IF (vxyzu(4,ipart).LE.1.5/rhoratio .AND. 
      &           dvxyzu(4,ipart).LT.0.) dvxyzu(4,ipart) = 0.0
-         ELSEIF (iener.EQ.1) THEN
+         ELSEIF ((iener.EQ.1).OR.(iener.EQ.3)) THEN
 
 c
 c--Compute change in specific internal energy
@@ -71,11 +107,13 @@ c
 c  a) pdv term first
 c
             IF (iexpan.EQ.0) THEN
-               dvxyzu(4,ipart) = cnormk*pdv*pr(ipart)/
+               dvxyzu(4,ipart) = dvxyzu(4,ipart)+cnormk*pdv*pr(ipart)/
      &              rho(ipart)**2
+
             ELSE
-               dvxyzu(4,ipart) = cnormk*pdv*pr(ipart)/
+               dvxyzu(4,ipart) = dvxyzu(4,ipart)+cnormk*pdv*pr(ipart)/
      &              rho(ipart)**2 - vxyzu(4,ipart)*dqexp
+
             ENDIF
 c
 c  b) Shock dissipation if appropriate
@@ -83,6 +121,7 @@ c
             IF (ichoc.NE.0) THEN
                dvxyzu(4,ipart) = dvxyzu(4,ipart) + cnormk05*dq(ipart)
             ENDIF
+
 c
 c  c) Cooling for adiabatic-with-cooling eos
 c

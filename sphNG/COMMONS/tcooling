@@ -1,0 +1,3 @@
+      REAL mpenerg
+      COMMON /tcooling  /cooling(35500), tguess(35500), heatingr,
+     &     mpenerg 

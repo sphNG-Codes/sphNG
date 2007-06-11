@@ -161,8 +161,8 @@ FFLAGS += ${FPP_PREFIX} ${FPPFLAGS}
 
 SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f \
-	chekopt.f condense.f constan.f coriol.f cyldis.f cylmas.f cylpres.f \
-	cylvel.f endrun.f energ.f \
+	chekopt.f condense.f constan.f coolcurve.f coriol.f \
+	cyldis.f cylmas.f cylpres.f cylvel.f endrun.f energ.f \
 	eospg.f error.f evol.f externf.f externBfield.f extract.f \
         file.f getneigh.f \
 	getcv.f get1overmu.f getkappa.f \
@@ -176,13 +176,13 @@ SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
 	place.f potential.f preset.F \
 	prout.F ran1.f rdump.f reduce.f save.f setup_torus.f \
         scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
-	sphdis.f sphmas.f sphpres.f sphvel.f \
+	sphdis.f sphmas.f sphpres.f sphvel.f thermeq.f \
 	timestep.f toten.f treef_P.F unifdis.f unit.f \
 	wdump.f wrinsph.F
 
 # these are the sources required for the gradh code to compile
 
-SRCGRADH= densityiterate_gradh_fast.F derivi_P_gradh.f \
+SRCGRADH= densityiterate_gradh.F derivi_P_gradh.f \
         forcei_P_gradh.F hcalc_gradh.f 
 	#divBclean_mhd.f divBdiffuse.f divBiterate.f \
 	#directsum_poisson_vec_mhd_clean.f 

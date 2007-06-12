@@ -290,7 +290,7 @@ C$OMP END PARALLEL DO
          revtreep3 = revtreep3 + (revtreeptemp2 - revtreeptemp1)
       ENDIF
 
-      IF (nlist.GT.nptmass) THEN
+      IF (nlst.GT.nptmass) THEN
          iupdatenode = 1
       ELSE
          iupdatenode = 0

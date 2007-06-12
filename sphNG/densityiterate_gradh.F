@@ -83,10 +83,7 @@ c
       nwarndown = 0
       nwarnroundoff = 0
       stressmax = 0.
-      bisection = .false.
       nbisection = 0
-      hminbisec = 0.
-      hmaxbisec = 1.e6
 c
 c--for constant pressure boundaries, use a minimum density
 c  equal to the external density
@@ -107,7 +104,7 @@ C$OMP& shared(listpm,iphase,dphidh,uradconst,icall,encal)
 C$OMP& shared(iprint,nptmass,iptmass,radcrit2,iorig,third)
 C$OMP& shared(dumrho,iscurrent,npart,ibound,ntot,ireal)
 C$OMP& shared(isteps,it0,it1,imax,imaxstep,dt,itime)
-C$OMP& shared(varmhd,Bevol,Bxyz,vsmooth,Bsmooth,bisection)
+C$OMP& shared(varmhd,Bevol,Bxyz,vsmooth,Bsmooth)
 C$OMP& private(n,ipart,j,k,xi,yi,zi,vxi,vyi,vzi,pmassi,hi,hj,rhoi)
 C$OMP& private(divvi,curlvxi,curlvyi,curlvzi,gradhi,gradsofti)
 C$OMP& private(pmassj,hi_old,hi1,hi21,hi31,hi41,hneigh)
@@ -118,7 +115,7 @@ C$OMP& private(l,iptcur,dphi,dwdhi,dpotdh,iteration,numneighi)
 C$OMP& private(numneighreal,rhohi,dhdrhoi,omegai,func,dfdh1)
 C$OMP& private(hnew,deltat,deltarho)
 C$OMP& private(dalphaxi,dalphayi,dalphazi,dbetaxi,dbetayi,dbetazi)
-C$OMP& private(denom,ddenom)
+C$OMP& private(denom,ddenom,bisection)
 C$OMP& private(rxxi,rxyi,rxzi,ryyi,ryzi,rzzi)
 C$OMP& private(gradalphaxi,gradalphayi,gradalphazi)
 C$OMP& private(gradbetaxi,gradbetayi,gradbetazi,term)
@@ -141,6 +138,9 @@ C$OMP DO SCHEDULE(runtime)
          hi = xyzmh(5,ipart)
          hi_old = hi
          hneigh = 0.
+         bisection = .false.
+         hminbisec = 0.
+         hmaxbisec = 1.e6
 c
 c--Predict h
 c
@@ -167,7 +167,7 @@ c
      &              numneighi,neighlist,xyzmh)
                inumrecalc = inumrecalc + 1
                IF (numneighi.EQ.0) THEN
-                  WRITE(*,*) 'ZERO NEIGHBOURS!, h=',hi,ipart
+                  WRITE(iprint,*) 'ZERO NEIGHBOURS!, h=',hi,ipart
                ENDIF
             ENDIF
 c
@@ -237,7 +237,8 @@ c--Newton-Raphson iteration
 c
                dfdh1 = dhdrhoi/omegai
                hnew = hi - func*dfdh1
-!               print*,'newton raphson (',iteration,'): hnew = ',hnew
+c               write(iprint,*)
+c     &          'newton raphson (',iteration,'): hnew = ',hnew
             ELSE
 c
 c--Bisection iteration
@@ -248,17 +249,20 @@ c
                   hminbisec = hi
                ENDIF
                hnew = 0.5*(hminbisec + hmaxbisec)
-!               print*,'bisection (',iteration,'): hnew = ',hnew
+c               write(iprint,*) 'bisection (',iteration,'): hnew =',hnew
             ENDIF
 c
 c--Don't allow sudden jumps to huge numbers of neighbours
+c  (Newton-Raphson only)
 c
-            IF (hnew.GT.1.2*hi) THEN
-               nwarnup = nwarnup + 1
-               hnew = 1.2*hi
-            ELSEIF (hnew.LT.0.8*hi) THEN
-               nwarndown = nwarndown + 1
-               hnew = 0.8*hi
+            IF (.not.bisection) THEN
+               IF (hnew.GT.1.2*hi) THEN
+                  nwarnup = nwarnup + 1
+                  hnew = 1.2*hi
+               ELSEIF (hnew.LT.0.8*hi) THEN
+                  nwarndown = nwarndown + 1
+                  hnew = 0.8*hi
+               ENDIF
             ENDIF
             
             IF ((hnew.LE.0. .OR. omegai.LE.tiny .OR. 
@@ -284,13 +288,18 @@ c
                BiSection = .true.
                hminbisec = 0.
                hmaxbisec = 1.e6
+               !--don't have to start with ridiculous h, 
+               !  just something reasonably big between above limits
+               hnew = 2.*hi_old
 !               hnew = 0.5*(hminbisec + hmaxbisec)
-            ENDIF
-            
-            IF (ABS(hnew-hi)/hi_old.LT.htol .AND. omegai.GT.0.) THEN
+c
+c--otherwise check for convergence
+c
+            ELSEIF (ABS(hnew-hi)/hi_old.LT.htol) THEN
                imaxit = MAX(imaxit, iteration)
                inumit = inumit + iteration
                IF (BiSection) THEN
+                  write(iprint,*) 'SWITCH BACK TO N-R ',ipart,hnew,hi
                   BiSection = .false. ! switch back to N-R
                ELSE
                   GOTO 30

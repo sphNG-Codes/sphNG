@@ -11,11 +11,13 @@ c************************************************************
       INCLUDE 'COMMONS/tcooling'
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/astrcon'
+      INCLUDE 'COMMONS/physcon'
 
-      REAL tempiso, teq, ueqm, coolingtime
+      REAL tempiso, teq, ueq, coolingtime, coolingr, rhon
+      INTEGER ic
 
 c Find temperature in K
-  
+
       tempiso = 2./3.*ucool/(Rg/gmw/uergg)
 
 c Cooling rate from Vazquez-Semadeni
@@ -49,6 +51,6 @@ c Find equilibrium temperature from previously defined values
       ENDIF           
 
       IF (coolingtime.EQ.0.) ucool=ueq
-	   
+
       RETURN
       END

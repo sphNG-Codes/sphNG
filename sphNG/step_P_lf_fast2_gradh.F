@@ -807,7 +807,7 @@ c
                         ENDDO
                      ENDIF
 
-           IF (iener.EQ.3) CALL coolcurve(vxyzu(4,ipart),rho(ipart),
+           IF (iener.EQ.3) CALL coolcurve(dumvxyzu(4,ipart),rho(ipart),
      &      deltat)
 
                      IF (imhd.EQ.idim) THEN
@@ -1504,7 +1504,7 @@ c
                ENDIF
             END DO
 
-            IF (iener.EQ.3) CALL coolcurve(vxyzu(4,ipart),rho(ipart),
+            IF (iener.EQ.3) CALL coolcurve(dumvxyzu(4,j),rho(j),
      &      deltat)
 
             IF (igrape.EQ.0) THEN

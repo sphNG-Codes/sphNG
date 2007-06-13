@@ -350,10 +350,11 @@ c
                   drr = 1./rr
                ELSE 
                   drr = 0.
-               ENDIF       
-                  Bevolxyz(1,i) = -ampl*yi*drr*dbesj1(Muff*rr)
-                  Bevolxyz(2,i) = ampl*xi*drr*dbesj1(Muff*rr)                
-                  Bevolxyz(3,i) = ampl*dbesj0(Muff*rr)
+               ENDIF
+            STOP 'bessel functions commented out in repository version'
+               !Bevolxyz(1,i) = -ampl*yi*drr*besj1(Muff*rr)
+               !Bevolxyz(2,i) = ampl*xi*drr*besj1(Muff*rr)                
+               !Bevolxyz(3,i) = ampl*besj0(Muff*rr)
             ENDDO   
          ENDIF  
          Bzero = ampl

@@ -71,16 +71,8 @@ c
 99002 FORMAT(' derivi ',I8, I8)
 
 
-
-
-
 c         CALL densityiterate_gradh(dt,npart,ntot,xyzmh,vxyzu,
 c     &        nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz)
-
-
-
-
-
 
 
 c
@@ -112,6 +104,7 @@ c    Also means potential energy and neighbours of sinks are not updated
       ELSE
          CALL error(where,1)
       ENDIF
+
 c
 c--Find neighbours and calculate gravity on and from point masses
 c     The point masses are no longer in the TREE/GRAPE - done separately for
@@ -141,6 +134,7 @@ c
             CALL getused(tdens2)
             tdens = tdens + (tdens2 - tdens1)
          ENDIF
+
 c
 c--Predict the pressure, divv, etc. on list-particle neighbors
 c
@@ -251,6 +245,7 @@ c
 c--End if for nlst>nptmass
 c
       ENDIF
+
 c
 c--Compute implicit radiative transfer
 c
@@ -259,15 +254,17 @@ c
       IF(encal.EQ.'r') THEN
 c         WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt,
 c     &        ekcle(1,1),dumrho(1)
+
          CALL ASS(nlst_in,nlst_end,nlstall,llist,dt,itime,npart,
      &        xyzmh,vxyzu,ekcle,dumrho,dedxyz,alphaMM)
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(nlstall,vxyzu,dumrho,pr,vsound,llist,ekcle)
+C$OMP& shared(nlstall,vxyzu,dumrho,pr,vsound,llist,ekcle,iphase)
 C$OMP& private(i,ipart)
          DO i = 1, nlstall
             ipart = llist(i)
-            CALL eospg(ipart,vxyzu,dumrho,pr,vsound,ekcle)
+            IF (iphase(ipart).EQ.0) 
+     &           CALL eospg(ipart,vxyzu,dumrho,pr,vsound,ekcle)
          END DO
 C$OMP END PARALLEL DO
       END IF

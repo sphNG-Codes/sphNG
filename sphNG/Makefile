@@ -49,10 +49,10 @@ ifeq ($(SYSTEM), ukaff1a)
         FC= xlf_r -qnosave
     endif
 #    FFLAGS= -O3 -q64 -qextname -qsmp=noauto 
-    FFLAGS= -O3 -q64 -qsmp=noauto 
+    FFLAGS= -O3 -q64 -qsmp=noauto
     DBLFLAG= -qrealsize=8
 #    DEBUGFLAG= -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
-    DEBUGFLAG= -C
+#    DEBUGFLAG= -C
     KNOWN_SYSTEM=yes
     FPP_PREFIX=-d -WF,
 #    ZZFILE= zzsun_f77_double1.f zzsun_f77_double2.f
@@ -154,9 +154,16 @@ ifeq ($(mpi), yes)
     FPPFLAGS += -DMPI
 endif
 
+<<<<<<< Makefile
+ifeq ($(mpidebug), yes)
+    FFLAGS += -d -WF,-DMPI,-DMPIDEBUG
+endif
+
+=======
 # add preprocessor flags (and prefix required for some compilers)
 FFLAGS += ${FPP_PREFIX} ${FPPFLAGS}
 
+>>>>>>> 1.28
 # these are the sources common to all compilations
 
 SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
@@ -167,14 +174,14 @@ SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
         file.f getneigh.f \
 	getcv.f get1overmu.f getkappa.f \
 	gforsa_P.f gforsn_P.f gforspt_P.f \
-	ghostp.f ghostp1.f ghostp2.f ghostp3.f ghostp11.f ghostp100.f \
+	ghostp.f ghostp1.f ghostp2.f ghostp3.F ghostp11.f ghostp100.f \
         gptall.f hdot_P.f \
 	header.F homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
 	inopts.f insulate_TREE_P.F integs.F ktable.f labrun.f lunit_double.f \
-	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
+	mainop.f mesop.f modif.f mtree_P.f \
 	newrun.f options.f phoenix.f phoenix2.f \
 	place.f potential.f preset.F \
-	prout.F ran1.f rdump.f reduce.f save.f setup_torus.f \
+	prout.F ran1.f rdump.F reduce.f save.f setup_torus.f \
         scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f thermeq.f \
 	timestep.f toten.f treef_P.F unifdis.f unit.f \
@@ -189,7 +196,7 @@ SRCGRADH= densityiterate_gradh.F derivi_P_gradh.f \
 
 # these are the sources required for the non-gradh code to compile
         
-SRCNONGRADH= densityi_P.f derivi_P.f forcei_P.f hcalc.f
+SRCNONGRADH= densityi_P.f derivi_P.f forcei_P.F hcalc.f
 
 # these are the extra routines required for the radiative transfer code to compile
         

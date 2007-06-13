@@ -3,6 +3,11 @@
       REAL tiny
 
       PARAMETER (idim=1001000)
+c#ifdef MPI
+      PARAMETER (idim2 = 2*idim)
+c#else
+c      PARAMETER (idim2 = idim)
+c#endif
       PARAMETER (iptdim=1000)
       PARAMETER (iptneigh=10000)
       PARAMETER (tiny=1.0E-20)

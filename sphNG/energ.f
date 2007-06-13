@@ -1,4 +1,4 @@
-      SUBROUTINE energ(ipart, ti, vxyzu, dvxyzu, xyzmh)
+      SUBROUTINE energ(ipart, npart, ntot, ti, vxyzu, dvxyzu, xyzmh)
 c************************************************************
 c                                                           *
 c  This routine computes the change in internal energy or   *
@@ -12,7 +12,7 @@ c************************************************************
 
       INCLUDE 'idim'
 
-      DIMENSION vxyzu(4,idim), dvxyzu(4,idim), xyzmh(5,idim)
+      DIMENSION vxyzu(4,idim), dvxyzu(4,idim), xyzmh(5,mmax)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/densi'
@@ -75,6 +75,17 @@ c
       chi = 4.0 - 3.0*gamma
       CALL scaling(ti, rscale, drdt, dlnrdt)
       dqexp = chi*dlnrdt
+c
+c--For MPI code do not need to add energy changes that are added only added
+c     by the process that actually holds the particle
+c
+      IF (ipart.GT.npart) THEN
+         xfac = 0.0
+         ipartntot = ipart + ntot + 2
+      ELSE
+         xfac = 1.0
+         ipartntot = ipart
+      ENDIF
 
       IF (varsta.NE.'entropy') THEN
          IF (iener.EQ.2) THEN
@@ -109,8 +120,7 @@ c
 
             ELSE
                dvxyzu(4,ipart) = dvxyzu(4,ipart)+cnormk*pdv*pr(ipart)/
-     &              rho(ipart)**2 - vxyzu(4,ipart)*dqexp
-
+     &              rho(ipart)**2 - vxyzu(4,ipart)*dqexp*xfac
             ENDIF
 c
 c  b) Shock dissipation if appropriate
@@ -122,9 +132,9 @@ c
 c
 c  c) Cooling for adiabatic-with-cooling eos
 c
-            IF(encal.EQ.'c') THEN
-               r = SQRT(xyzmh(1,ipart)**2 + xyzmh(2,ipart)**2 + 
-     &               xyzmh(3,ipart)**2 )
+            IF(encal.EQ.'c' .AND. xfac.EQ.1.0) THEN
+               r = SQRT(xyzmh(1,ipartntot)**2 + xyzmh(2,ipartntot)**2 + 
+     &               xyzmh(3,ipartntot)**2 )
 
 c Omega1 is 1/omega
 c !! I think listpm(1) should be the array index of the 
@@ -149,7 +159,7 @@ c  a) Shock dissipation
 c
       ELSEIF (ichoc.NE.0) THEN
           dvxyzu(4,ipart) = vxyzu(4,ipart)*gamma1*dq(ipart)*rho(ipart)* 
-     &                 cnormk05/pr(ipart) - pr(ipart)*dqexp
+     &                 cnormk05/pr(ipart) - pr(ipart)*dqexp*xfac
       ENDIF
 
       RETURN

@@ -5,13 +5,13 @@ c  This subroutine integrates the systeme of differential   *
 c     equations over one timestep and measures time neded.  *
 c                                                           *
 c************************************************************
+      INCLUDE 'idim'
+      INCLUDE 'igrape'
+
 #ifdef MPI
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpi'
 #endif
-
-      INCLUDE 'idim'
-      INCLUDE 'igrape'
 
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/densi'

@@ -1,4 +1,4 @@
-      SUBROUTINE densityi (npart,xyzmh,vxyzu,ekcle,
+      SUBROUTINE densityi (npart,ntot,xyzmh,vxyzu,ekcle,
      &            nlst_in,nlst_end,list,itime)
 c************************************************************
 c                                                           *
@@ -49,6 +49,7 @@ c
       rhonext = 0.
       icreate = 0
       radcrit2 = radcrit*radcrit
+      ntot2 = ntot + 2
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end,list,divv,curlv)
@@ -56,25 +57,36 @@ C$OMP& shared(hmax,xyzmh,vxyzu,pr,vsound,rho)
 C$OMP& shared(nneigh,neighb,neighover,selfnormkernel)
 C$OMP& shared(cnormk,radkernel,dvtable,ddvtable,wij,grwij)
 C$OMP& shared(listpm,iphase,ekcle)
-C$OMP& shared(iprint,nptmass,iptmass,radcrit2,iorig)
+C$OMP& shared(iprint,nptmass,iptmass,radcrit2,iorig,npart,ntot,ntot2)
 C$OMP& private(n,ipart,j,k,xi,yi,zi,vxi,vyi,vzi,pmassi,hi,hj,rhoi)
 C$OMP& private(divvi,curlvxi,curlvyi,curlvzi)
 C$OMP& private(pmassj,hmean,hmean21,hmean31,hmean41)
 C$OMP& private(dx,dy,dz,dvx,dvy,dvz,rij2,rij1,v2)
 C$OMP& private(index,dxx,index1,dwdx,wtij,dgrwdx,grwtij)
 C$OMP& private(projv,procurlvx,procurlvy,procurlvz)
-C$OMP& private(l,iptcur)
+C$OMP& private(l,iptcur,ipartntot)
 C$OMP& reduction(MAX:rhonext)
       DO 50 n = nlst_in, nlst_end
          ipart = list(n)
 
          IF (iphase(ipart).GE.1) GOTO 50
-
-         xi = xyzmh(1,ipart)
-         yi = xyzmh(2,ipart)
-         zi = xyzmh(3,ipart)
-         pmassi = xyzmh(4,ipart)
-         hi = xyzmh(5,ipart)
+c
+c--Need for MPI code
+c
+         IF (ipart.GT.ntot) THEN
+            ipartntot = ipart + ntot2
+            xi = xyzmh(1,ipartntot)
+            yi = xyzmh(2,ipartntot)
+            zi = xyzmh(3,ipartntot)
+            pmassi = xyzmh(4,ipartntot)
+            hi = xyzmh(5,ipartntot)
+         ELSE
+            xi = xyzmh(1,ipart)
+            yi = xyzmh(2,ipart)
+            zi = xyzmh(3,ipart)
+            pmassi = xyzmh(4,ipart)
+            hi = xyzmh(5,ipart)
+         ENDIF
          vxi = vxyzu(1,ipart)
          vyi = vxyzu(2,ipart)
          vzi = vxyzu(3,ipart)
@@ -170,13 +182,22 @@ c
             ENDIF
  40      CONTINUE
 
-         rho(ipart) = cnormk*(rhoi + selfnormkernel*pmassi/(hi*hi*hi))
          divv(ipart) = cnormk*divvi
          curlv(ipart) = cnormk*SQRT(curlvxi**2+curlvyi**2+curlvzi**2)
+         IF (ipart.GT.npart) THEN
+c
+c--This is for MPI code only - and actually ipart will be greater than ntot
+c     Self-contribution will be added on by the process that actually holds
+c     particle ipart, not the remote process.  Same for call to eospg.
+c
+            rho(ipart) = cnormk*rhoi
+         ELSE
+           rho(ipart) = cnormk*(rhoi + selfnormkernel*pmassi/(hi*hi*hi))
 c
 c--Pressure and sound velocity from ideal gas law...
 c
-         CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
+            CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
+         ENDIF
 c
 c--Find particle with highest density outside radcrit of point mass
 c

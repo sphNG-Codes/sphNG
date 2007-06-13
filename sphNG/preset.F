@@ -5,13 +5,13 @@ c  This routine makes sure that everything not entered as   *
 c     option is defined before integration begins.          *
 c                                                           *
 c************************************************************
+      INCLUDE 'idim'
+      INCLUDE 'igrape'
+
 #ifdef MPI
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpi'
 #endif
-
-      INCLUDE 'idim'
-      INCLUDE 'igrape'
 
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/densi'
@@ -55,7 +55,7 @@ c
 c--Open file1
 c
 #ifdef MPI
-      CALL appendiproc(7,file1,iproc)
+c      CALL appendiproc(7,file1,iproc)
       write (*,*) 'About to open ',file1
 #endif
 
@@ -69,6 +69,7 @@ c
 c--Read dump
 c
       CALL rdump(idisk1, ichkl, 0)
+      CLOSE (idisk1)
       IF (ichkl.EQ.1) CALL error(where, ichkl)
 c
 c--Open point mass data output file

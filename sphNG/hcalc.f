@@ -145,7 +145,7 @@ ccc      IF (iagain.GT.0) GOTO 10
 c
 c--get density
 c
-      CALL densityi(npart,xyzmh,vxyzu,ekcle,
+      CALL densityi(npart,ntot,xyzmh,vxyzu,ekcle,
      &        1,npart,llist,itime)
 
 

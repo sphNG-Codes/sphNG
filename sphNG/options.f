@@ -7,6 +7,11 @@ c************************************************************
 
       INCLUDE 'idim'
 
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
+
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/typef'
@@ -84,7 +89,14 @@ c
 c
 c--Open output file
 c 
- 100  IF(iprint.NE.6) OPEN (iprint, FILE=namerun)
+ 100  CONTINUE
+#ifdef MPI
+      IF (iproc.EQ.0) THEN
+#endif
+      IF(iprint.NE.6) OPEN (iprint, FILE=namerun)
+#ifdef MPI
+      ENDIF
+#endif
 
       CALL labrun
 c

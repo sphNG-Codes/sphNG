@@ -1,4 +1,4 @@
-      SUBROUTINE gforsn(m, nlistgn, listgn, xyzmh, fsx, fsy, fsz, epot)
+      SUBROUTINE gforsn(m,ntot,nlistgn,listgn,xyzmh,fsx,fsy,fsz,epot)
 c************************************************************
 c                                                           *
 c  Subroutine by W. Press (11/21/86).  Evaluates force on   *
@@ -18,9 +18,19 @@ c************************************************************
 
       DIMENSION listgn(idim), xyzmh(5,mmax)
 
-      rrx = xyzmh(1,m)
-      rry = xyzmh(2,m)
-      rrz = xyzmh(3,m)
+c
+c--Need for MPI code
+c
+      IF (m.GT.ntot) THEN
+         mtot2 = m + ntot + 2
+         rrx = xyzmh(1,mtot2)
+         rry = xyzmh(2,mtot2)
+         rrz = xyzmh(3,mtot2)
+      ELSE
+         rrx = xyzmh(1,m)
+         rry = xyzmh(2,m)
+         rrz = xyzmh(3,m)
+      ENDIF
 
       DO j = 1, nlistgn
          n = listgn(j)

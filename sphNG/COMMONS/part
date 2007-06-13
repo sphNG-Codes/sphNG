@@ -1,1 +1,1 @@
-      COMMON /part  / xyzmh(5,idim), vxyzu(4,idim), npart
+      COMMON /part  / xyzmh(5,idim2), vxyzu(4,idim2), npart

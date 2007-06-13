@@ -111,8 +111,8 @@ c
                IF (imhd.EQ.idim) THEN
                   valfven2 = (Bxyz(1,i)*Bxyz(1,i) +  Bxyz(2,i)*Bxyz(2,i)
      &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
-                  aux1 = max(alphaMM(1,i),alphaMM(2,i))*
-     &                   sqrt(vsound(i)**2 + valfven2)
+c                  aux1 = max(alphaMM(1,i),alphaMM(2,i))*
+c     &                   sqrt(vsound(i)**2 + valfven2)
                ELSE
                   aux1 = alphaMM(1,i)*vsound(i)
                ENDIF

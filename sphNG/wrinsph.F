@@ -5,12 +5,12 @@ c  This subroutine writes a new file inname from parameters *
 c     taken from setpart                                    *
 c                                                           *
 c************************************************************
+      INCLUDE 'idim'
+
 #ifdef MPI
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpi'
 #endif
-
-      INCLUDE 'idim'
 
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/physcon'

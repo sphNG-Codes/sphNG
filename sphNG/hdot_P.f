@@ -1,4 +1,4 @@
-      SUBROUTINE hdot(npart, ipart, dt, xyzmh, dha)
+      SUBROUTINE hdot(npart, ipart, numneigh, dt, xyzmh, dha)
 c************************************************************
 c                                                           *
 c  This subroutine computes the derivative of the smoothing *
@@ -40,8 +40,6 @@ c
       IF (iphase(ipart).GE.1) THEN
          dha(1,ipart) = 0.
          GOTO 15
-      ELSE
-         numneigh = nneigh(ipart)
       ENDIF
 
       IF (xyzmh(5,ipart).LT.hmin .AND. numneigh.GT.neimin) THEN

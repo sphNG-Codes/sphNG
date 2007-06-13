@@ -8,6 +8,11 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
+
       REAL*8 umassi, udisti, utimei, umagfdi
 
       INCLUDE 'COMMONS/units'
@@ -399,7 +404,7 @@ c--skip current/div B
                READ (idisk1, END=100)
             END DO
 c--read artificial resistivity parameter
-            READ (idisk1, END=100) (alphaMM(2,i), i=1, npart)
+c            READ (idisk1, END=100) (alphaMM(2,i), i=1, npart)
          ELSE
            IF (ifsvi.EQ.6) THEN
            WRITE(*,*) 'WARNING: resistivity parameter not found in dump'
@@ -419,6 +424,223 @@ c
 c--End reading of dump file
 c--------------------------
 c
+#ifdef MPI
+c      goto 10000
+      icount = 0
+      IF (numproc.EQ.2) THEN
+         DO i = 1, npart
+            IF (iproc.EQ.0 .AND. 
+     &           xyzmh(1,i).GE.0.0) THEN
+               icount = icount + 1
+               isteps(icount) = isteps(i)
+               iphase(icount) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icount) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icount) = vxyzu(j,i)
+               END DO
+               rho(icount) = rho(i)
+               dgrav(icount) = dgrav(i)
+               
+            ELSEIF (iproc.EQ.1 .AND. 
+     &              xyzmh(1,i).LT.0.0) THEN
+               icount = icount + 1
+               isteps(icount) = isteps(i)
+               iphase(icount) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icount) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icount) = vxyzu(j,i)
+               END DO
+               rho(icount) = rho(i)
+               dgrav(icount) = dgrav(i)
+            ENDIF
+         END DO
+      ELSEIF (numproc.EQ.4) THEN
+         DO i = 1, npart
+            IF (iproc.EQ.0 .AND. xyzmh(3,i).GE.0.0 .AND.
+     &           xyzmh(1,i).GE.0.0) THEN
+               icount = icount + 1
+               isteps(icount) = isteps(i)
+               iphase(icount) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icount) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icount) = vxyzu(j,i)
+               END DO
+               rho(icount) = rho(i)
+               dgrav(icount) = dgrav(i)
+
+            ELSEIF (iproc.EQ.1 .AND. xyzmh(3,i).GE.0.0 .AND.
+     &              xyzmh(1,i).LT.0.0) THEN
+               icount = icount + 1
+               isteps(icount) = isteps(i)
+               iphase(icount) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icount) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icount) = vxyzu(j,i)
+               END DO
+               rho(icount) = rho(i)
+               dgrav(icount) = dgrav(i)
+
+            ELSEIF (iproc.EQ.2 .AND. xyzmh(3,i).LT.0.0 .AND.
+     &              xyzmh(1,i).GE.0.0) THEN
+               icount = icount + 1
+               isteps(icount) = isteps(i)
+               iphase(icount) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icount) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icount) = vxyzu(j,i)
+               END DO
+               rho(icount) = rho(i)
+               dgrav(icount) = dgrav(i)
+
+            ELSEIF (iproc.EQ.3 .AND. xyzmh(3,i).LT.0.0 .AND.
+     &              xyzmh(1,i).LT.0.0) THEN
+               icount = icount + 1
+               isteps(icount) = isteps(i)
+               iphase(icount) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icount) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icount) = vxyzu(j,i)
+               END DO
+               rho(icount) = rho(i)
+               dgrav(icount) = dgrav(i)
+            ENDIF
+         END DO
+      ELSEIF (numproc.EQ.8) THEN
+         DO i = 1, npart
+            IF (iproc.EQ.0 .AND. xyzmh(3,i).GE.0.0 .AND.
+     &           xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
+               icount = icount + 1
+               isteps(icount) = isteps(i)
+               iphase(icount) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icount) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icount) = vxyzu(j,i)
+               END DO
+               rho(icount) = rho(i)
+               dgrav(icount) = dgrav(i)
+
+            ELSEIF (iproc.EQ.1 .AND. xyzmh(3,i).GE.0.0 .AND.
+     &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
+               icount = icount + 1
+               isteps(icount) = isteps(i)
+               iphase(icount) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icount) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icount) = vxyzu(j,i)
+               END DO
+               rho(icount) = rho(i)
+               dgrav(icount) = dgrav(i)
+
+            ELSEIF (iproc.EQ.2 .AND. xyzmh(3,i).LT.0.0 .AND.
+     &              xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
+               icount = icount + 1
+               isteps(icount) = isteps(i)
+               iphase(icount) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icount) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icount) = vxyzu(j,i)
+               END DO
+               rho(icount) = rho(i)
+               dgrav(icount) = dgrav(i)
+
+            ELSEIF (iproc.EQ.3 .AND. xyzmh(3,i).LT.0.0 .AND.
+     &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
+               icount = icount + 1
+               isteps(icount) = isteps(i)
+               iphase(icount) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icount) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icount) = vxyzu(j,i)
+               END DO
+               rho(icount) = rho(i)
+               dgrav(icount) = dgrav(i)
+
+            ELSEIF (iproc.EQ.4 .AND. xyzmh(3,i).GE.0.0 .AND.
+     &           xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
+               icount = icount + 1
+               isteps(icount) = isteps(i)
+               iphase(icount) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icount) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icount) = vxyzu(j,i)
+               END DO
+               rho(icount) = rho(i)
+               dgrav(icount) = dgrav(i)
+
+            ELSEIF (iproc.EQ.5 .AND. xyzmh(3,i).GE.0.0 .AND.
+     &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
+               icount = icount + 1
+               isteps(icount) = isteps(i)
+               iphase(icount) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icount) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icount) = vxyzu(j,i)
+               END DO
+               rho(icount) = rho(i)
+               dgrav(icount) = dgrav(i)
+
+            ELSEIF (iproc.EQ.6 .AND. xyzmh(3,i).LT.0.0 .AND.
+     &              xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
+               icount = icount + 1
+               isteps(icount) = isteps(i)
+               iphase(icount) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icount) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icount) = vxyzu(j,i)
+               END DO
+               rho(icount) = rho(i)
+               dgrav(icount) = dgrav(i)
+
+            ELSEIF (iproc.EQ.7 .AND. xyzmh(3,i).LT.0.0 .AND.
+     &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
+               icount = icount + 1
+               isteps(icount) = isteps(i)
+               iphase(icount) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icount) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icount) = vxyzu(j,i)
+               END DO
+               rho(icount) = rho(i)
+               dgrav(icount) = dgrav(i)
+            ENDIF
+         END DO
+      ELSE
+         PRINT *,' Currently invalid number of processes ',numproc
+         CALL quit
+      ENDIF
+      npart = icount
+      n1 = icount
+10000 continue
+      print *,iproc,': KEEPING ',npart
+#endif
       gtdouble = DBLE(gt)
 c
 c--Sort particles to ensure most efficient running.  Note that this 
@@ -612,6 +834,27 @@ c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2)) THEN
       ELSEIF (ifcor.GT.2) THEN
          ifcor = ifcor - 2
       ENDIF
+
+#ifdef MPIDEBUG
+      xxmin = 1.0E+30
+      DO i = 1, npart
+         xxnew = xyzmh(1,i)**2 + xyzmh(2,i)**2 + (xyzmh(3,i)-0.0)**2
+         IF (xxnew.LT.xxmin) THEN
+            xxmin = xxnew
+            ipos1 = i
+         ENDIF
+      END DO
+      print *,iproc,': CLOSEST z=+0.0 ',ipos1,xxmin
+      xxmin = 1.0E+30
+      DO i = 1, npart
+         xxnew = xyzmh(1,i)**2 + xyzmh(2,i)**2 + (xyzmh(3,i)+0.0)**2
+         IF (xxnew.LT.xxmin) THEN
+            xxmin = xxnew
+            ipos2 = i
+         ENDIF
+      END DO
+      print *,iproc,': CLOSEST z=-0.0 ',ipos2,xxmin
+#endif
       
       IF (itrace.EQ.'all') WRITE (*, 99002)
 99002 FORMAT (' exit subroutine rdump')

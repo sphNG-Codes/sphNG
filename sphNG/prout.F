@@ -5,12 +5,12 @@ c  This routine prints out all interesting quantities at    *
 c     the present time                                      *
 c                                                           *
 c************************************************************
+      INCLUDE 'idim'
+
 #ifdef MPI
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpi'
 #endif
-
-      INCLUDE 'idim'
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/tming'
@@ -47,6 +47,11 @@ c************************************************************
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/physeos'
       INCLUDE 'COMMONS/outmhd'
+
+#ifdef MPI
+      REAL*4 romax1tot, romax2tot, valphamin1tot, valphamax1tot,
+     &     valphamin2tot, valphamax2tot
+#endif
 
       CHARACTER*24 sentenc
       CHARACTER*7 where
@@ -168,36 +173,42 @@ c
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(vcmz1,vcmz1tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(hmi1,hmi1tot,1,MPI_REAL8,MPI_SUM,0,
+      CALL MPI_REDUCE(hmi1,hmi1tot,1,MPI_REAL8,MPI_MIN,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(hma1,hma1tot,1,MPI_REAL8,MPI_SUM,0,
+      CALL MPI_REDUCE(hma1,hma1tot,1,MPI_REAL8,MPI_MAX,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(dmax1,dmax1tot,1,MPI_REAL8,MPI_SUM,0,
+      CALL MPI_REDUCE(dmax1,dmax1tot,1,MPI_REAL8,MPI_MAX,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(zmax1,zmax1tot,1,MPI_REAL8,MPI_SUM,0,
+      CALL MPI_REDUCE(zmax1,zmax1tot,1,MPI_REAL8,MPI_MAX,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(romean1,romean1tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(romax1,romax1tot,1,MPI_REAL8,MPI_SUM,0,
+      romean1tot = romean1tot/numproc
+      CALL MPI_REDUCE(romax1,romax1tot,1,MPI_REAL4,MPI_MAX,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(rocen1,rocen1tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(valphamin1,valphamin1tot,1,MPI_REAL8,MPI_SUM,0,
+      rocen1tot = rocen1tot/numproc
+      CALL MPI_REDUCE(valphamin1,valphamin1tot,1,MPI_REAL4,MPI_MIN,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(valphamax1,valphamax1tot,1,MPI_REAL8,MPI_SUM,0,
+      CALL MPI_REDUCE(valphamax1,valphamax1tot,1,MPI_REAL4,MPI_MAX,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(tgmean1,tgmean1tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(tgmax1,tgmax1tot,1,MPI_REAL8,MPI_SUM,0,
+      tgmean1tot = tgmean1tot/numproc
+      CALL MPI_REDUCE(tgmax1,tgmax1tot,1,MPI_REAL8,MPI_MAX,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(tgcen1,tgcen1tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
+      tgcen1tot = tgcen1tot/numproc
       CALL MPI_REDUCE(trmean1,trmean1tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(trmax1,trmax1tot,1,MPI_REAL8,MPI_SUM,0,
+      trmean1tot = trmean1tot/numproc
+      CALL MPI_REDUCE(trmax1,trmax1tot,1,MPI_REAL8,MPI_MAX,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(trcen1,trcen1tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
+      trcen1tot = trcen1tot/numproc
 
       CALL MPI_REDUCE(n2,n2tot,1,MPI_INTEGER,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
@@ -213,36 +224,42 @@ c
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(vcmz2,vcmz2tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(hmi2,hmi2tot,1,MPI_REAL8,MPI_SUM,0,
+      CALL MPI_REDUCE(hmi2,hmi2tot,1,MPI_REAL8,MPI_MIN,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(hma2,hma2tot,1,MPI_REAL8,MPI_SUM,0,
+      CALL MPI_REDUCE(hma2,hma2tot,1,MPI_REAL8,MPI_MAX,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(dmax2,dmax2tot,1,MPI_REAL8,MPI_SUM,0,
+      CALL MPI_REDUCE(dmax2,dmax2tot,1,MPI_REAL8,MPI_MAX,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(zmax2,zmax2tot,1,MPI_REAL8,MPI_SUM,0,
+      CALL MPI_REDUCE(zmax2,zmax2tot,1,MPI_REAL8,MPI_MAX,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(romean2,romean2tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(romax2,romax2tot,1,MPI_REAL8,MPI_SUM,0,
+      romean2tot = romean2tot/numproc
+      CALL MPI_REDUCE(romax2,romax2tot,1,MPI_REAL4,MPI_MAX,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(rocen2,rocen2tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(valphamin2,valphamin2tot,1,MPI_REAL8,MPI_SUM,0,
+      rocen2tot = rocen2tot/numproc
+      CALL MPI_REDUCE(valphamin2,valphamin2tot,1,MPI_REAL4,MPI_MIN,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(valphamax2,valphamax2tot,1,MPI_REAL8,MPI_SUM,0,
+      CALL MPI_REDUCE(valphamax2,valphamax2tot,1,MPI_REAL4,MPI_MAX,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(tgmean2,tgmean2tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(tgmax2,tgmax2tot,1,MPI_REAL8,MPI_SUM,0,
+      tgmean2tot = tgmean2tot/numproc
+      CALL MPI_REDUCE(tgmax2,tgmax2tot,1,MPI_REAL8,MPI_MAX,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(tgcen2,tgcen2tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
+      tgcen2tot = tgcen2tot/numproc
       CALL MPI_REDUCE(trmean2,trmean2tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(trmax2,trmax2tot,1,MPI_REAL8,MPI_SUM,0,
+      trmean2tot = trmean2tot/numproc
+      CALL MPI_REDUCE(trmax2,trmax2tot,1,MPI_REAL8,MPI_MAX,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(trcen2,trcen2tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
+      trcen2tot = trcen2tot/numproc
 
       IF (iproc.EQ.0) THEN
 #else
@@ -276,9 +293,8 @@ c
 c
 c--Energies + total angular momentum
 c
-         totaltot = tkintot + tgravtot
-         total = totaltot
-         IF (igrp.NE.0) total = totaltot + ttermtot + tmagtot + tradtot
+         total = tkintot + tgravtot
+         IF (igrp.NE.0) total = total + ttermtot + tmagtot + tradtot
          WRITE (iprint, 99004, ERR=100) total,tkintot,trotztot,trotxtot,
      &        tgravtot,ttermtot,tmagtot,tradtot,angtotot,totmomtot
 99004    FORMAT (' General properties of system : ', /,

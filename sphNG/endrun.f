@@ -7,6 +7,11 @@ c************************************************************
 
       INCLUDE 'idim'
 
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
+
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/actio'
       INCLUDE 'COMMONS/debug'
@@ -23,6 +28,9 @@ c
 c
 c--Write end page
 c
+#ifdef MPI
+      IF (iproc.EQ.0) THEN
+#endif
       WRITE (iprint, 99001) namerun, ij, im, iy, ih, imin, is
 99001 FORMAT (/////, 1X, 'SPH run ', A20, ' ended on : ',
      &           I2, '/', I2, '/', I4, '  at ', I2, ' h. ', I2,
@@ -30,9 +38,12 @@ c
       WRITE (iprint, 99002) tused/60.
 99002 FORMAT (1X, 'cpu time used for this run :', F10.3, ' min.')
 
+      IF (job(1:9).EQ.'evolution') CLOSE (iprint)
+#ifdef MPI
+      ENDIF
+#endif
       iprint = 6
 
-      IF (job(1:9).EQ.'evolution') CLOSE (iprint)
       IF (job(1:9).EQ.'evolution' .AND. (nptmass.NE.0 .OR. 
      &                                           iptmass.NE.0)) THEN
          CLOSE (iptprint)

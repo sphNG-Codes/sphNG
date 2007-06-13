@@ -308,7 +308,7 @@ c
 c         IF (nbuild.EQ.1 .OR. MOD(ncount, nstep).EQ.0 .OR. 
          IF (MOD(ncount, nstep).EQ.0 .OR. 
      &                       iptcreat.EQ.1) THEN
-            CALL file
+c            CALL file
             CALL wdump(idisk1)
          ENDIF
 c

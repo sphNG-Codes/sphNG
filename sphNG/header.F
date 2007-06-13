@@ -5,13 +5,13 @@ c  This routine writes on first page of listing the value   *
 c     of all variable defined at the start of the run.      *
 c                                                           *
 c************************************************************
+      INCLUDE 'idim'
+      INCLUDE 'igrape'
+
 #ifdef MPI
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpi'
 #endif
-
-      INCLUDE 'idim'
-      INCLUDE 'igrape'
 
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/physcon'

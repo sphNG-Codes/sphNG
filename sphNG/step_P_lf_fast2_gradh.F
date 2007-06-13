@@ -6,13 +6,13 @@ c     equations for one timestep using                      *
 c     a second-order Leap-Frog method.                      *
 c                                                           *
 c************************************************************
+      INCLUDE 'idim'
+      INCLUDE 'igrape'
+
 #ifdef MPI
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpi'
 #endif
-
-      INCLUDE 'idim'
-      INCLUDE 'igrape'
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/part'
@@ -439,11 +439,21 @@ c---------- END FIRST TIME AROUND ----------
 c
 c--Find minimum time for force calculation
 c
- 100  itime = imax
+ 100  itimelocal = imax
       IF (itiming) CALL getused(ts1p1)
       DO i = 1, nbinmax
-         IF (nlstbins(i).GT.0) itime = MIN(itime, it2bin(i))
+         IF (nlstbins(i).GT.0) itimelocal = MIN(itimelocal, it2bin(i))
       END DO
+#ifdef MPI
+      CALL MPI_ALLREDUCE(itimelocal,itime,1,MPI_INTEGER,MPI_MIN,
+     &     MPI_COMM_WORLD,ierr)
+#ifdef MPIDEBUG
+      print *,' '
+      print *,iproc,': TIMES ',itimelocal, itime
+#endif
+#else
+      itime = itimelocal
+#endif
       IF (itiming) THEN
          CALL getused(ts1p2)
          ts1 = ts1 + (ts1p2 - ts1p1)
@@ -1192,7 +1202,7 @@ C$OMP& shared(ikilled,nactive,nkill,time,iorig,nlstacc,listacc)
 C$OMP& shared(anglostx,anglosty,anglostz)
 C$OMP& shared(dumBevolxyz,Bevolxyz)
 C$OMP& shared(variation,phibound,nlistinactive,listinactive)
-C$OMP& private(i,j)
+C$OMP& private(i,j,k)
 C$OMP& private(r2,pmassi,phiparticle)
 c
 c--Compute new time steps for particles which have been advanced

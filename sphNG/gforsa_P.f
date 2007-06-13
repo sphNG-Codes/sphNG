@@ -1,4 +1,4 @@
-      SUBROUTINE gforsa(m, nlistga, listga, xyzmh, fsx, fsy, fsz, epot)
+      SUBROUTINE gforsa(m,ntot,nlistga,listga,xyzmh,fsx,fsy,fsz,epot)
 c************************************************************
 c                                                           *
 c  Subroutine by W. Press (11/21/86).  Evaluates force on   *
@@ -16,11 +16,21 @@ c************************************************************
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/ptsoft'
 
-      DIMENSION listga(idim), xyzmh(5,idim)
+      DIMENSION listga(idim), xyzmh(5,mmax)
 
-      rrx = xyzmh(1,m)
-      rry = xyzmh(2,m)
-      rrz = xyzmh(3,m)
+c
+c--Need for MPI code
+c
+      IF (m.GT.ntot) THEN
+         mtot2 = m + ntot + 2
+         rrx = xyzmh(1,mtot2)
+         rry = xyzmh(2,mtot2)
+         rrz = xyzmh(3,mtot2)
+      ELSE
+         rrx = xyzmh(1,m)
+         rry = xyzmh(2,m)
+         rrz = xyzmh(3,m)
+      ENDIF
 
       DO 101 j = 1, nlistga
          n = listga(j)

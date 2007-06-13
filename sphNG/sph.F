@@ -408,13 +408,13 @@ c  Running time scales like NlogN.                          *
 c                                                           *
 c************************************************************
 
+      INCLUDE 'idim'
+      INCLUDE 'igrape'
+
 #ifdef MPI
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpi'
 #endif
-
-      INCLUDE 'idim'
-      INCLUDE 'igrape'
 
       INCLUDE 'COMMONS/infor'
       INCLUDE 'COMMONS/actio'

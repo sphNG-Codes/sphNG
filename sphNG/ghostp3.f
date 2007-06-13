@@ -8,6 +8,11 @@ c************************************************************
 
       INCLUDE 'idim'
 
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
+
       DIMENSION xyzmh(5,idim)
       DIMENSION vxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
@@ -134,7 +139,11 @@ c                  vxyzu(4,nptot) = boundtemp*ekcle(3,nptot)
 
  300  CONTINUE
 
+#ifdef MPI
+      IF (iproc.EQ.0) WRITE (iprint, *) 'nghost ', nghost
+#else
       WRITE (iprint, *) 'nghost ', nghost
+#endif
 
       ntot = npart + nghost
       IF (ntot.GT.idim) CALL error(where, ntot)

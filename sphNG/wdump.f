@@ -7,6 +7,11 @@ c************************************************************
 
       INCLUDE 'idim'
 
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
+
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/densi'
@@ -93,6 +98,11 @@ c----------------------
 c
 c--Write output file
 c
+#ifdef MPI
+      IF (iproc.EQ.0) CALL file
+#else
+      CALL file
+#endif
       WRITE (idisk1, ERR=100) int1,r1,int2,i1,int1
 c
 c--contruct header string based on compile-time options
@@ -118,10 +128,66 @@ c
 c
 c--Single values
 c
+#ifdef MPI
+      nblocks = numproc
+      CALL MPI_REDUCE(npart,nparttot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(n1,n1tot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(n2,n2tot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(nreassign,nreassigntot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(naccrete,naccretetot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(nkill,nkilltot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(escap,escaptot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(tkin,tkintot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(tgrav,tgravtot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(tterm,ttermtot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(anglostx,anglostxtot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(anglosty,anglostytot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(anglostz,anglostztot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(specang,specangtot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(ptmassin,ptmassintot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(tmag,tmagtot,1,MPI_REAL8,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
+#else
+      nblocks = 1
+
+      nparttot = npart
+      n1tot = n1
+      n2tot = n2
+      nreassigntot = nreassign
+      naccretetot = naccrete
+      nkilltot = nkill
+      escaptot = escap
+      tkintot = tkin
+      tgravtot = tgrav
+      ttermtot = tterm
+      anglostxtot = anglostx
+      anglostytot = anglosty
+      anglostztot = anglostz
+      specangtot = specang
+      ptmassintot = ptmassin
+      tmagtot = tmag
+#endif
+c
 c--Default int
-      number = 6
+      number = 7
       WRITE (idisk1, ERR=100) number
-      WRITE (idisk1, ERR=100) npart,n1,n2,nreassign,naccrete,nkill
+      WRITE (idisk1, ERR=100) nparttot,n1tot,n2tot,nreassigntot,
+     &     naccretetot,nkilltot,nblocks
 c--int*1, int*2, int*4, int*8
       number = 0
       DO i = 1, 4
@@ -131,8 +197,10 @@ c--Default real
       number = 19
       WRITE (idisk1, ERR=100) number
       WRITE (idisk1, ERR=100) gt, dtmax, gamma, rhozero, RK2,
-     &     escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
-     &     specang, ptmassin, tmag, Bextx, Bexty, Bextz, hzero
+     &     escaptot, tkintot, tgravtot, ttermtot, 
+     &     anglostxtot, anglostytot, anglostztot,
+     &     specangtot, ptmassintot, tmagtot, Bextx, Bexty, Bextz
+     &     hzero
 c--real*4
       number = 0
       WRITE (idisk1, ERR=100) number
@@ -149,7 +217,17 @@ c
       number = 2
       IF (encal.EQ.'r') number = 3
       IF (imhd.EQ.idim) number = 4
-      WRITE (idisk1, ERR=100) number
+      nblockarrays = number*nblocks
+      WRITE (idisk1, ERR=100) nblockarrays
+#ifdef MPI
+      nowgo = 0
+      IF (iproc.GT.0) THEN
+         CALL MPI_RECV(nowgo,1,MPI_INTEGER,iproc-1,99,MPI_COMM_WORLD,
+     &        istatus,ierr)
+c         print *,iproc,': Opening file ',nprint
+         CALL file
+      ENDIF
+#endif
 c
 c--Array length 1 header
 c
@@ -357,10 +435,19 @@ c--real*4
          DO j = 1, 4
             WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, nprint)
          ENDDO
-         WRITE(idisk1, ERR=100) (alphaMM(2,isort(i)),i=1,nprint)
+c         WRITE(idisk1, ERR=100) (alphaMM(2,isort(i)),i=1,nprint)
 c--real*8
 
       ENDIF
+      CALL FLUSH (idisk1)
+      CLOSE (idisk1)
+#ifdef MPI
+      IF (iproc.LT.numproc-1) THEN
+         nowgo = 1
+         CALL MPI_SEND(nowgo,1,MPI_INTEGER,iproc+1,99,MPI_COMM_WORLD,
+     &        ierr)
+      ENDIF
+#endif
 c
 c--End writing of full dump file
 c-------------------------------
@@ -613,12 +700,13 @@ c--real*4
 c--real*8
 
       ENDIF
+      CALL FLUSH (idisk1)
+      CALL CLOSE (idisk1)
 c
 c--End writing of small dump file
 c--------------------------------
 c
       ENDIF
-      CALL FLUSH (idisk1)
 c
 c--Sort particles to ensure most efficient running.  Note that this 
 c     should not be visible to the outside observer.  In other words,

@@ -6,6 +6,8 @@ c     created if the size of the current file gets too      *
 c     large.                                                *
 c                                                           *
 c************************************************************
+      INCLUDE 'idim'
+
 #ifdef MPI
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpi'
@@ -37,7 +39,7 @@ c      IF (ifsize.LT.maxsize) RETURN
 c
 c--If not create new file and close old
 c
-      CLOSE (idisk1)
+c      CLOSE (idisk1)
       IF ((file1(5:5).GE.'0') .AND. (file1(5:5).LE.'9')) THEN
          READ (file1, 99403) name, inum
 99403    FORMAT (A4, I3)
@@ -66,10 +68,16 @@ c
       ENDIF
 
 #ifdef MPI
-      CALL appendiproc(7,file1,iproc)
-#endif
-
+c      CALL appendiproc(7,file1,iproc)
+      IF (iproc.EQ.0) THEN
+         OPEN (idisk1, FILE=file1, FORM='unformatted', RECL=imaxrec)
+      ELSE
+         OPEN (idisk1, FILE=file1, FORM='unformatted',
+     &        POSITION='APPEND', RECL=imaxrec)
+      ENDIF
+#else
       OPEN (idisk1, FILE=file1, FORM='unformatted', RECL=imaxrec)
+#endif
 c
 c--Write witness on listing
 c

@@ -1,0 +1,14 @@
+      PARAMETER (nummaxproc = 128)
+
+      INTEGER ierr, numproc, iproc
+      INTEGER nparttot, nactivetot, n1tot, n2tot
+      REAL fmas1tot, fmas2tot
+
+      COMMON /mpi / ierr, numproc, iproc
+      COMMON /mpiint/ nparttot, nactivetot, n1tot, n2tot, nptmasstot
+      COMMON /mpireal/ fmas1tot, fmas2tot
+
+      COMMON /mpireq/ istatus(MPI_STATUS_SIZE),
+     &	     irequest_array(nummaxproc), 
+     &	     istatus_array(MPI_STATUS_SIZE,nummaxproc),
+     &       nneighfull(idim)

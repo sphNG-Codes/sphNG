@@ -1,5 +1,5 @@
-      SUBROUTINE forcei(nlst_in,nlst_end,list,dt,itime,
-     &      npart,xyzmh,vxyzu,fxyzu,dha,
+      SUBROUTINE forcei(nlst_in,nlst_end,nlst_tot,list,dt,itime,
+     &      npart,ntot,xyzmh,vxyzu,fxyzu,dha,
      &      trho,pr,vsound,alphaMMpass,ekcle,dedxyz)
 c************************************************************
 c                                                           *
@@ -10,7 +10,12 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,idim), vxyzu(4,idim)
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
+
+      DIMENSION xyzmh(5,mmax), vxyzu(4,idim)
       REAL*4 trho(idim),pr(idim),vsound(idim),dha(1+isizealphaMM,idim)
       REAL*4 alphaMMpass(isizealphaMM,idim)
       DIMENSION list(idim)
@@ -69,23 +74,23 @@ c
 
       realtime = dt*itime/imaxstep + gt
 
-      IF (nlst_end.GT.nptmass) THEN
+      IF (nlst_end.GT.nptmass .OR. nlst_tot.GT.nlst_end) THEN
 
       IF (ifsvi.EQ.6 .OR. XSPH) THEN
 c
 c--Calculates ddvx, ddvy, ddvz only if viscosity=6
 c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(nlst_in,nlst_end,list,nneigh,iphase,neighover,neighb)
+C$OMP& shared(nlst_in,nlst_tot,list,nneigh,iphase,neighover,neighb)
 C$OMP& shared(xyzmh,radkernel,trho,grwij,vxyzu,dvtable,ddvtable)
 C$OMP& shared(ddvxyz,cnormk)
-C$OMP& shared(epsilvbar,vsmooth,wij)
+C$OMP& shared(epsilvbar,vsmooth,wij,ntot)
 C$OMP& private(n,ipart,ddvxi,ddvyi,ddvzi,k,j,dx,dy,dz,rij2,rij,rij1)
 C$OMP& private(hmean,hmean21,hmean41,v,v2,index,dxx,index1,rhoj,grwtij)
 C$OMP& private(dgrwdx,grpm,dvx,dvy,dvz,edotv,termx,termy,termz)
 C$OMP& private(ddvscalar,vsmoothxi,vsmoothyi,vsmoothzi,hmean1,hmean31)
-C$OMP& private(rhoi,dwdx,wtij,wtijmrho,temp)
-      DO 180 n = nlst_in, nlst_end
+C$OMP& private(rhoi,dwdx,wtij,wtijmrho,temp,ipartntot)
+      DO 180 n = nlst_in, nlst_tot
          ipart = list(n)
 
          vsmooth(1,ipart) = vxyzu(1,ipart)
@@ -117,16 +122,23 @@ c
 c
 c--Gravity and potential energy
 c
-            dx = xyzmh(1,ipart) - xyzmh(1,j)
-            dy = xyzmh(2,ipart) - xyzmh(2,j)
-            dz = xyzmh(3,ipart) - xyzmh(3,j)
+c--Need for MPI code
+c
+            IF (ipart.GT.ntot) THEN
+               ipartntot = ipart + ntot + 2
+            ELSE
+               ipartntot = ipart
+            ENDIF
+            dx = xyzmh(1,ipartntot) - xyzmh(1,j)
+            dy = xyzmh(2,ipartntot) - xyzmh(2,j)
+            dz = xyzmh(3,ipartntot) - xyzmh(3,j)
             rij2 = dx*dx + dy*dy + dz*dz + tiny
             rij = SQRT(rij2)
             rij1 = 1./rij
 c
 c--Define mean h
 c
-            hmean = 0.5*(xyzmh(5,ipart) + xyzmh(5,j))
+            hmean = 0.5*(xyzmh(5,ipartntot) + xyzmh(5,j))
             hmean1 = 1.0/hmean
             hmean21 = hmean1*hmean1
             hmean31 = hmean21*hmean1
@@ -196,8 +208,8 @@ c
 c--Initialize
 c
 C$OMP PARALLEL default(none)
-C$OMP& shared(nlst_in,nlst_end,npart,hmin,list,nneigh,neimin,neimax)
-C$OMP& shared(icall,dt,imaxstep,isteps)
+C$OMP& shared(nlst_in,nlst_end,nlst_tot,npart,hmin,list)
+C$OMP& shared(icall,dt,imaxstep,isteps,nneigh,neimin,neimax)
 C$OMP& shared(xyzmh,vxyzu,dha,fxyzu,trho,pr,vsound,dq)
 C$OMP& shared(neighb,neighover,dvtable,ddvtable,psoft)
 C$OMP& shared(fmass,fpoten,dphidh,part2kernel,part1kernel,radkernel)
@@ -208,8 +220,11 @@ C$OMP& shared(iphase,listpm,iprint,nptmass,iorig)
 C$OMP& shared(alphaMMpass,alphamin,ddv,ddvxyz)
 C$OMP& shared(igrp,igphi,ifsvi,iexf)
 C$OMP& shared(ifcor,iexpan,iener,damp)
-C$OMP& shared(realtime,ekcle,encal,dedxyz,vsmooth)
-C$OMP& private(n,ipart,stepsi,numneigh,vsig)
+C$OMP& shared(realtime,ekcle,encal,dedxyz,vsmooth,ntot)
+#ifdef MPI
+C$OMP& shared(nneighfull,iproc)
+#endif
+C$OMP& private(n,ipart,stepsi,numneigh,vsig,ipartntot)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(poteni,dphiti,gradxi,gradyi,gradzi,artxi,artyi,artzi)
 C$OMP& private(pdvi,dqi,rhoi,pro2i,vsoundi,k,j,hj,dx,dy,dz)
@@ -236,8 +251,12 @@ C$OMP DO SCHEDULE(runtime)
 c
 c--Derivative of smoothing length
 c       
+#ifdef MPI
+            numneigh = nneighfull(ipart)
+#else
+            numneigh = nneigh(ipart)
+#endif
             IF (icall.EQ.3) THEN
-               numneigh = nneigh(ipart)
                inmin = MIN(inmin,numneigh)
                inmax = MAX(inmax,numneigh)
                inminsy = MIN(inminsy,numneigh)
@@ -248,23 +267,34 @@ c
                IF (numneigh.LT.neimin) ioutinf = ioutinf + 1
             ENDIF
             stepsi = dt*isteps(ipart)/imaxstep
-            CALL hdot(npart, ipart, stepsi, xyzmh, dha)
+            CALL hdot(npart, ipart, numneigh, stepsi, xyzmh, dha)
          ENDIF
       END DO
 C$OMP END DO
 
 C$OMP DO SCHEDULE(runtime)
-      DO n = nlst_in, nlst_end
+      DO n = nlst_in, nlst_tot
          ipart = list(n)
          IF (iphase(ipart).GE.1) GOTO 80
 c
 c--Compute forces on particle ipart
 c
-         xi = xyzmh(1,ipart)
-         yi = xyzmh(2,ipart)
-         zi = xyzmh(3,ipart)
-         pmassi = xyzmh(4,ipart)
-         hi = xyzmh(5,ipart)
+c--Need for MPI code
+c
+         IF (ipart.GT.ntot) THEN
+            ipartntot = ipart + ntot + 2
+            xi = xyzmh(1,ipartntot)
+            yi = xyzmh(2,ipartntot)
+            zi = xyzmh(3,ipartntot)
+            pmassi = xyzmh(4,ipartntot)
+            hi = xyzmh(5,ipartntot)
+         ELSE
+            xi = xyzmh(1,ipart)
+            yi = xyzmh(2,ipart)
+            zi = xyzmh(3,ipart)
+            pmassi = xyzmh(4,ipart)
+            hi = xyzmh(5,ipart)
+         ENDIF
          IF (XSPH) THEN
             vxi = vsmooth(1,ipart)
             vyi = vsmooth(2,ipart)
@@ -299,6 +329,7 @@ c
          ddvscalar = 0.
 
          rhoi = trho(ipart)
+
          IF (iphase(ipart).GE.1) THEN
             pro2i = 0.0
          ELSE
@@ -449,9 +480,17 @@ c
 c--Pressure gradient and pdv
 c
                poro2j = grpm*(pro2i + (pr(j) - pext)/(rhoj**2))
+
                gradxi = gradxi + poro2j*runix
                gradyi = gradyi + poro2j*runiy
                gradzi = gradzi + poro2j*runiz
+
+#ifdef MPIDEBUG
+c               IF (iproc.EQ.1 .AND. ipart.EQ.33630)
+c     &              print *,iproc,': PRES ',k,j,xyzmh(1,j),xyzmh(2,j),
+c     &              xyzmh(3,j),poro2j*runix,poro2j*runiy,poro2j*runiz,
+c     &              runix,runiy,runiz,poro2j,grpm,pro2i,pr(j),rhoj
+#endif
 
                IF (XSPH) THEN
                   dvx = vxi - vsmooth(1,j)
@@ -612,6 +651,19 @@ c
          fxyzu(4,ipart) = pdvi
          dq(ipart) = dqi
 
+#ifdef MPIDEBUG
+         if (iproc.EQ.1 .AND. ipartntot.EQ.65287) 
+     &        print *,iproc,':F',xyzmh(1,ipartntot),xyzmh(2,ipartntot),
+     &        xyzmh(3,ipartntot),fxyzu(1,ipart),fxyzu(2,ipart),
+     &        fxyzu(3,ipart),gradxi,gradyi,gradzi,artxi,artyi,artzi
+
+         if (iproc.EQ.2 .AND. ipartntot.EQ.69570) 
+     &        print *,iproc,':F',xyzmh(1,ipartntot),xyzmh(2,ipartntot),
+     &        xyzmh(3,ipartntot),fxyzu(1,ipart),fxyzu(2,ipart),
+     &        fxyzu(3,ipart),gradxi,gradyi,gradzi,artxi,artyi,artzi,
+     &        ipartntot,ipart,ntot
+#endif
+
          IF (ifsvi.EQ.6) THEN
 cc         dha(2,ipart) = 0.2*vsoundi*(alphamin(1)-alphaMMpass(1,ipart))/hi-
 cc     &           MIN(divv(ipart)/rhoi+0.5*vsoundi/hi,0.0)
@@ -629,21 +681,27 @@ c     &              1.0*SQRT(ABS(hi*ddv(ipart)*divv(ipart))
             ENDIF
          ENDIF
 c
+c--For MPI code, don't add any forces that only need to be added by process
+c     that actually holds the particle
+c
+         IF (ipart.LE.npart) THEN
+c
 c--Radiation pressure force
 c
-         IF (encal.EQ.'r') THEN
-            DO j = 1, 3               
-               fxyzu(j,ipart) = fxyzu(j,ipart) - 
-     &              ekcle(4,ipart)/trho(ipart)*dedxyz(j,ipart)
-            END DO
-         ENDIF
+            IF (encal.EQ.'r') THEN
+               DO j = 1, 3               
+                  fxyzu(j,ipart) = fxyzu(j,ipart) - 
+     &                 ekcle(4,ipart)/trho(ipart)*dedxyz(j,ipart)
+               END DO
+            ENDIF
 c
 c--Damp velocities if appropiate
 c
-         IF (damp.NE.0.) THEN
-            fxyzu(1,ipart) = fxyzu(1,ipart) - damp*vxyzu(1,ipart)
-            fxyzu(2,ipart) = fxyzu(2,ipart) - damp*vxyzu(2,ipart)
-            fxyzu(3,ipart) = fxyzu(3,ipart) - damp*vxyzu(3,ipart)
+            IF (damp.NE.0.) THEN
+               fxyzu(1,ipart) = fxyzu(1,ipart) - damp*vxyzu(1,ipart)
+               fxyzu(2,ipart) = fxyzu(2,ipart) - damp*vxyzu(2,ipart)
+               fxyzu(3,ipart) = fxyzu(3,ipart) - damp*vxyzu(3,ipart)
+            ENDIF
          ENDIF
 c
 c--Sink particles jump in here
@@ -653,26 +711,30 @@ c
 c--Energy conservation
 c  
          IF (iphase(ipart).EQ.0) THEN
-            CALL energ(ipart,realtime,vxyzu, fxyzu, xyzmh)  
+            CALL energ(ipart,npart,ntot,realtime,vxyzu,fxyzu,xyzmh)  
          ELSE
             dha(1,ipart) = 0.0
             fxyzu(4,ipart) = 0.0
          ENDIF
 c
+c--For MPI code, don't add any forces that only need to be added by process
+c     that actually holds the particle
+c
+         IF (ipart.LE.npart) THEN
+c
 c--External forces
 c
-         IF (iexf.GE.1) 
-     &  CALL externf(ipart,realtime,xyzmh,fxyzu,trho,iexf)
-     
+            IF (iexf.GE.1) 
+     &           CALL externf(ipart,realtime,xyzmh,fxyzu,trho,iexf)
 c
 c--Coriolis and centrifugal forces
 c
-         IF (ifcor.NE.0) CALL coriol(ipart,realtime,xyzmh,vxyzu,fxyzu) 
+           IF (ifcor.NE.0) CALL coriol(ipart,realtime,xyzmh,vxyzu,fxyzu)
 c
 c--Homologous expansion or contraction
 c
-         IF (iexpan.GT.0) CALL homexp(ipart,realtime,vxyzu,fxyzu) 
-
+            IF (iexpan.GT.0) CALL homexp(ipart,realtime,vxyzu,fxyzu) 
+         ENDIF
       END DO
 C$OMP END DO
 C$OMP END PARALLEL

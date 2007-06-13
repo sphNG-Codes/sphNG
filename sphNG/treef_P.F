@@ -1,4 +1,4 @@
-      SUBROUTINE treef(m,npart,xyzmh,acc,igrav,fsx,fsy,fsz,epot)
+      SUBROUTINE treef(m,npart,ntot,xyzmh,acc,igrav,fsx,fsy,fsz,epot)
 c
 c************************************************************
 c                                                           *
@@ -33,6 +33,7 @@ c************************************************************
       INCLUDE 'COMMONS/call'
 
       INTEGER istack, nlistga, nlistgn
+
 
       PARAMETER (istacksize=200)
       DIMENSION nstack(istacksize), listga(idim), listgn(idim)
@@ -74,9 +75,6 @@ c
       fsy = 0.
       fsz = 0.
       epot = 0.
-      rrx = xyzmh(1,m)
-      rry = xyzmh(2,m)
-      rrz = xyzmh(3,m)
       nlistga = 0
       nlistgn = 0
       istack = 0
@@ -91,17 +89,29 @@ c     from the (two daughters of the) root node.
 c     otherwise we start the search from the current node
       mpar = m
 #endif
-      hm = xyzmh(5,mpar)
-      
-c      DO i = 1, nlstbins(29)-1
-c         IF (listbins(i,29).NE.i+94296) THEN
-c            WRITE (*,*) 'listbins(i,29).NE.i+94296 , M1',m
-c            WRITE (iprint,*) 'listbins(i,29).NE.i+94296 , M1',m
-c            CALL quit
-c         ENDIF
-c      END DO
+c
+c--Needed for MPI code
+c
+      IF (m.GT.npart) THEN
+         mtot2 = m + ntot + 2
+         rrx = xyzmh(1,mtot2)
+         rry = xyzmh(2,mtot2)
+         rrz = xyzmh(3,mtot2)
+         hm = xyzmh(5,mtot2)
+         mpar = isibdaupar(2,nroot)
+         istack = 1
+         nstack(istack) = mpar
+      ELSE
+         rrx = xyzmh(1,m)
+         rry = xyzmh(2,m)
+         rrz = xyzmh(3,m)
+         hm = xyzmh(5,m)
+         mpar = m
+      ENDIF
 
  100  node = isibdaupar(1,mpar)
+c      if (m.gt.npart) 
+c     &     print *,'     ',m,node,mpar,nneigh(m)
       IF (node.NE.0) THEN
          istack = istack + 1
          nstack(istack) = node
@@ -137,6 +147,10 @@ c
                ELSE
                   pmassn = xyzmh(4,n)
                ENDIF
+
+c      if (m.gt.npart)
+c     &     print *,'       ',m,n,hm,xyzmh(5,n),rr,qcut2
+
                IF (istack+2.GT.istacksize) THEN
                   WRITE(iprint,*)'ERROR: stack too small in treef!',
      &                           istack+2,istacksize
@@ -150,7 +164,7 @@ c
                   istack = istack + 1
                   nstack(istack) = isibdaupar(1,j)
                ELSEIF (
-     &                 icall.EQ.1 .AND. 
+     &         (icall.EQ.1 .OR. m.GT.ntot) .AND. 
      &         (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iptintree.EQ.1))
      &                 .AND. accpar*rr.LT.qrr) THEN
                   j = isibdaupar(2,n)
@@ -158,7 +172,7 @@ c
                   nstack(istack) = j
                   istack = istack + 1
                   nstack(istack) = isibdaupar(1,j)
-               ELSEIF (icall.NE.1 .AND. 
+               ELSEIF (icall.NE.1 .AND. (m.LE.ntot) .AND.
      &         (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iptintree.EQ.1))
      &                 .AND. 
 c--Quadrupole
@@ -285,11 +299,11 @@ c
 c
 c--Get force from the atomic list
 c
-         CALL gforsa(m, nlistga, listga, xyzmh, fsx, fsy, fsz, epot)
+         CALL gforsa(m,ntot,nlistga,listga,xyzmh,fsx,fsy,fsz,epot)
 c
 c--Get force from the node list
 c
-         CALL gforsn(m, nlistgn, listgn, xyzmh, fsx, fsy, fsz, epot)
+         CALL gforsn(m,ntot,nlistgn,listgn,xyzmh,fsx,fsy,fsz,epot)
       ENDIF
       epot = -epot
 
@@ -411,4 +425,5 @@ c
 
       RETURN
       END
+
 

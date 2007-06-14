@@ -193,10 +193,11 @@ c--int*1, int*2, int*4, int*8
 c--Default real
       number = 19
       WRITE (idisk1, ERR=100) number
+
       WRITE (idisk1, ERR=100) gt, dtmax, gamma, rhozero, RK2,
      &     escaptot, tkintot, tgravtot, ttermtot, 
      &     anglostxtot, anglostytot, anglostztot,
-     &     specangtot, ptmassintot, tmagtot, Bextx, Bexty, Bextz
+     &     specangtot, ptmassintot, tmagtot, Bextx, Bexty, Bextz,
      &     hzero
 c--real*4
       number = 0

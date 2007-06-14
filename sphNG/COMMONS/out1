@@ -4,4 +4,4 @@
      &	              dmax1, zmax1, tmean1, tmax1, 
      &	              hmi1, hma1, romean1, rocen1, 
      &		      tgmean1, tgmax1, tgcen1, trmean1, trmax1, trcen1,
-     &		      valphamax1, valphamin1, romax1
+     &		      valphamax1, valphamin1, romax1, n1new

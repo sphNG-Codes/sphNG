@@ -291,7 +291,6 @@ c
       SUBROUTINE appendiproc(numchar,string,iproc)
 
       CHARACTER*25 string
-c      CHARACTER*3 iprocstring
 
       IF (iproc.LT.10) THEN
          WRITE (string,99001) string(1:numchar),iproc

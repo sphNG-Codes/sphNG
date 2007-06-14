@@ -220,7 +220,7 @@ C$OMP& shared(iphase,listpm,iprint,nptmass,iorig)
 C$OMP& shared(alphaMMpass,alphamin,ddv,ddvxyz)
 C$OMP& shared(igrp,igphi,ifsvi,iexf)
 C$OMP& shared(ifcor,iexpan,iener,damp)
-C$OMP& shared(realtime,ekcle,encal,dedxyz,vsmooth,ntot)
+C$OMP& shared(realtime,ekcle,encal,dedxyz,vsmooth,ntot,ibound)
 #ifdef MPI
 C$OMP& shared(nneighfull,iproc)
 #endif

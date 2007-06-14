@@ -8,6 +8,11 @@ c************************************************************
 
       INCLUDE 'idim'
 
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
+
       INCLUDE 'COMMONS/files'
       INCLUDE 'COMMONS/task'
       INCLUDE 'COMMONS/actio'
@@ -44,12 +49,18 @@ c
 c--Start from scratch
 c
       IF (what.EQ.'scratch' .OR. what.EQ.'s') THEN
+#ifdef MPI
+         IF (iproc.EQ.0) THEN
+#endif
          WRITE (*, 99006)
 99006    FORMAT (' name of binary file (7 char. max)')
          READ (*, 99005) file1
          WRITE (*,*) 'MAXIMUM RECORD LENGTH = ',imaxrec,' ',file1
          OPEN (idisk1, FILE=file1, STATUS='unknown', FORM='unformatted',
      &        RECL=imaxrec)
+#ifdef MPI
+         ENDIF
+#endif
          CALL setpart
          CALL inform(where)
          DO i = 1, npart
@@ -58,7 +69,7 @@ c
          END DO
          nfullstep = 1
          CALL wdump(idisk1)
-         CLOSE (idisk1)
+c         CLOSE (idisk1)
       ENDIF
 c
 c--Use existing dumps to create new dump

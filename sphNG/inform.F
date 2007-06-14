@@ -7,6 +7,11 @@ c************************************************************
 
       INCLUDE 'idim'
 
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
+
       INCLUDE 'COMMONS/tming'
       INCLUDE 'COMMONS/btree'
       INCLUDE 'COMMONS/part'
@@ -308,7 +313,11 @@ c
 c         IF (nbuild.EQ.1 .OR. MOD(ncount, nstep).EQ.0 .OR. 
          IF (MOD(ncount, nstep).EQ.0 .OR. 
      &                       iptcreat.EQ.1) THEN
-c            CALL file
+#ifdef MPI
+            IF (iproc.EQ.0) CALL file
+#else
+            CALL file
+#endif
             CALL wdump(idisk1)
          ENDIF
 c

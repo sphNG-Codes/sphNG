@@ -178,9 +178,11 @@ c
       CALL MPI_REDUCE(nsteplist,nsteplisttot,30,MPI_INTEGER,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
       IF (iproc.EQ.0) THEN
+         WRITE (iprint,99100) nparttot, nactivetot
+#else
+         WRITE (iprint,99100) npart, nactive
 #endif
 
-      WRITE (iprint,99100) npart, nactive
 99100 FORMAT ('Timestep distribution ',I8,' number active ',I8)
 
       DO j = 0, 29
@@ -199,7 +201,11 @@ c
 c
 c--Check for messages
 c
+#ifdef MPI
+c      CALL mesop
+#else
       CALL mesop
+#endif
 c
 c--Write time, and number of ghosts
 c

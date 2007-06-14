@@ -98,11 +98,6 @@ c----------------------
 c
 c--Write output file
 c
-#ifdef MPI
-      IF (iproc.EQ.0) CALL file
-#else
-      CALL file
-#endif
       WRITE (idisk1, ERR=100) int1,r1,int2,i1,int1
 c
 c--contruct header string based on compile-time options
@@ -129,6 +124,7 @@ c
 c--Single values
 c
 #ifdef MPI
+      print *,iproc,': Reduction '
       nblocks = numproc
       CALL MPI_REDUCE(npart,nparttot,1,MPI_INTEGER,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
@@ -162,6 +158,7 @@ c
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(tmag,tmagtot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
+      print *,iproc,': Reduction finished '
 #else
       nblocks = 1
 
@@ -221,6 +218,7 @@ c
       WRITE (idisk1, ERR=100) nblockarrays
 #ifdef MPI
       nowgo = 0
+      print *,iproc,': About to write'
       IF (iproc.GT.0) THEN
          CALL MPI_RECV(nowgo,1,MPI_INTEGER,iproc-1,99,MPI_COMM_WORLD,
      &        istatus,ierr)
@@ -443,6 +441,7 @@ c--real*8
       CLOSE (idisk1)
 #ifdef MPI
       IF (iproc.LT.numproc-1) THEN
+         print *,iproc,' Finished writing'
          nowgo = 1
          CALL MPI_SEND(nowgo,1,MPI_INTEGER,iproc+1,99,MPI_COMM_WORLD,
      &        ierr)
@@ -701,7 +700,7 @@ c--real*8
 
       ENDIF
       CALL FLUSH (idisk1)
-      CALL CLOSE (idisk1)
+      CLOSE (idisk1)
 c
 c--End writing of small dump file
 c--------------------------------

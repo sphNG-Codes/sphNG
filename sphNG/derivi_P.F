@@ -67,6 +67,7 @@ c      INCLUDE 'COMMONS/timeextra'
      &     inumbercumm(nummaxproc),
      &     inumberproc(nummaxproc)
       DIMENSION nneighrec(ineighproc)
+      DIMENSION lblocklengths(idim)
       REAL*4 rhorec(ineighproc), divvrec(ineighproc)
 #endif
 
@@ -192,24 +193,295 @@ c
 #endif
          CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
          CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
+         DO i = 1, idim
+            lblocklengths(i) = 1
+         END DO
          DO i = 1, nlst
             ipos = llist(i)
             llistsend(i) = ipos - 1
             nneighfull(ipos) = nneigh(ipos)
          END DO
-         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nlst, 1, llistsend, i5REAL8,
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nlst, 1, llistsend, i5REAL8,
+c     &        indexMPI5, ierr)
+         CALL MPI_TYPE_INDEXED(nlst, lblocklengths, llistsend, i5REAL8,
      &        indexMPI5, ierr)
          CALL MPI_TYPE_COMMIT(indexMPI5,ierr)
 
-         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nlst, 1, llistsend, i4REAL8,
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nlst, 1, llistsend, i4REAL8,
+c     &        indexMPI4, ierr)
+         CALL MPI_TYPE_INDEXED(nlst, lblocklengths, llistsend, i4REAL8,
      &        indexMPI4, ierr)
          CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
 
          inumofreturns = 0
+         inumofsends = 0
          maxnneighsentback = 0
+c
+c--IMPLEMENTATION USING CIRCULAR SEND_RECV
+c
+         DO i = 1, numproc - 1
+            iahead = MOD(iproc+i,numproc)
+            ibehind = MOD(numproc+iproc-i,numproc)
+c
+c--Send to node ahead, receive from node behind
+c
+#ifdef MPIDEBUG
+            print *,iproc,': Sending xyzmh to ',iahead,' rec from ',
+     &           ibehind
+#endif
+
+            CALL MPI_SENDRECV(xyzmh,1,indexMPI5,iahead,0,
+     &           xyzmh(1,2*ntot+3), idim, i5REAL8, ibehind,
+     &           0, MPI_COMM_WORLD, istatus, ierr)
+            CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
+
+            CALL MPI_SENDRECV(vxyzu,1,indexMPI4,iahead,1,
+     &           vxyzu(1,ntot+1), idim, i4REAL8, ibehind,
+     &           1, MPI_COMM_WORLD, istatus, ierr)
+            CALL MPI_GET_COUNT(istatus, i4REAL8, icheck, ierr)
+            IF (icheck.NE.inumber) THEN
+               WRITE (*,*) 'ERROR - icheck.NE.inumber 1 ',iproc,
+     &              ibehind,icheck,inumber
+               CALL quit
+            ENDIF
+
+#ifdef MPIDEBUG
+            print *,iproc,': Received ',inumber
+#endif
+c
+c--This should return neighbours lists for the particles as well as 
+c     gravitational forces from nodes and leaves
+c
+            inumreturn = 0
+            DO j = 1, inumber
+               jpart = j + ntot
+               iphase(jpart) = 0
+               IF (jpart.GT.idim) THEN
+                  WRITE (*,*) 'jpart.GT.idim'
+                  CALL quit
+               ENDIF
+               CALL treef(jpart,npart,ntot,xyzmh,acc,igphi,
+     &              fsx,fsy,fsz,epot)
+               dvxyzu(1,jpart) = fsx
+               dvxyzu(2,jpart) = fsy
+               dvxyzu(3,jpart) = fsz
+               dvxyzu(4,jpart) = epot
+c
+c--Make a list of indices to return densities
+c
+               IF (nneigh(jpart).GE.1) THEN
+                  inumreturn = inumreturn + 1
+                  llistrec(inumreturn) = jpart
+               ENDIF
+            END DO
+            ntotplusinumber = ntot + inumber
+#ifdef MPIDEBUG
+            print *,iproc,': number found neigh = ',inumreturn
+#endif
+            nneightogetback(ibehind+1) = inumreturn
+            IF (inumreturn.GT.0) THEN
+               inumofreturns = inumofreturns + 1
+c
+c--The neighbours lists should then be used to calculate contributions to
+c     rho and divv (and curlv if required) and add them onto (rho,divv)passed
+c     -1 is flag for using passed quantities
+c     Only need to do this if there are neighbours!
+c
+               CALL densityi(npart,ntot,xyzmh,vxyzu,ekcle,1,
+     &              inumreturn,llistrec,itime)
+#ifdef MPIDEBUG
+               print *,iproc,' done density'
+#endif
+c
+c--Need to mark neighbours of remote particles to have their rho etc updated
+c
+               IF (itiming) CALL getused(td11)
+               DO l = 1, inumreturn
+                  ipart = llistrec(l)
+                  DO j = 1, nneigh(ipart)
+                     IF (j.GE.nlmax) THEN
+                        jpart = neighover(j-nlmax+1,
+     &                       ABS(neighb(nlmax,ipart))) 
+                     ELSE
+                        jpart = neighb(j,ipart)
+                     ENDIF
+                     IF (iavail(jpart).EQ.0 .AND.
+     &                    (.NOT.iscurrent(jpart))) THEN
+                        iavail(jpart) = 1
+                        nlistavail = nlistavail + 1
+                        IF (nlistavail+nlst.GT.idim) THEN
+                           WRITE (*,*) 'nlistavail+nlst.GT.idim'
+                           WRITE (iprint,*) 'nlistavail+nlst.GT.idim'
+                           CALL quit
+                        ENDIF
+                        llist(nlst+nlistavail) = jpart
+                     ENDIF
+                  END DO
+               END DO
+               IF (itiming) THEN
+                  CALL getused(td12)
+                  td1 = td1 + (td12 - td11)
+               ENDIF
+#ifdef MPIDEBUG
+               print *,iproc,': set iavail'
+#endif
+c
+c--Return indices
+c
+#ifdef MPIDEBUG
+               print *,iproc,': modifying llistrec'
+#endif
+               DO j = 1, inumreturn
+                  llistrec(j) = llistrec(j) - ntot
+               END DO
+c
+c--End of work to do on neighbours
+c
+            ENDIF
+#ifdef MPIDEBUG
+            print *,iproc,': sending indices to ',ibehind,
+     &           inumreturn
+#endif
+
+            CALL MPI_SENDRECV(llistrec,inumreturn, MPI_INTEGER, ibehind,
+     &           10, llistrec(inumreturn+1), nlst, MPI_INTEGER, iahead,
+     &           10, MPI_COMM_WORLD, istatus, ierr)
+            CALL MPI_GET_COUNT(istatus,MPI_INTEGER,inumberneigh,ierr)
+#ifdef MPIDEBUG
+            print *,iproc,': returned indices to ',ibehind,' and got ',
+     &           inumberneigh,' from ',iahead
+#endif
+c
+c--Return densities of particles with density contributions (if any)
+c
+c--Note - need to change values of llistrec because in C array indices
+c     start from 0 not 1 and MPI assumes C-type indexing
+c
+            DO j = 1, inumreturn
+               llistrec(j) = llistrec(j) + ntot - 1
+            END DO
+
+c            CALL MPI_TYPE_CREATE_INDEXED_BLOCK(inumreturn, 1,
+c     &           llistrec, MPI_REAL4, indexMPI1return, ierr)
+            CALL MPI_TYPE_INDEXED(inumreturn, lblocklengths,
+     &           llistrec, MPI_REAL4, indexMPI1return, ierr)
+            CALL MPI_TYPE_COMMIT(indexMPI1return,ierr)
+
+c            CALL MPI_TYPE_CREATE_INDEXED_BLOCK(inumreturn, 1, 
+c     &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
+            CALL MPI_TYPE_INDEXED(inumreturn, lblocklengths, 
+     &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
+            CALL MPI_TYPE_COMMIT(indexMPI_I1return,ierr)
+
+            CALL MPI_SENDRECV(rho, 1, indexMPI1return, ibehind, 11, 
+     &           rhorec, inumberneigh, MPI_REAL4, iahead, 11, 
+     &           MPI_COMM_WORLD, istatus, ierr)
+            CALL MPI_GET_COUNT(istatus,MPI_REAL4,icheck,ierr)
+            IF (icheck.NE.inumberneigh) THEN
+               WRITE (*,*) 'ERROR - icheck.NE.inumberneigh 1 ',
+     &              iproc
+               CALL quit
+            ENDIF
+            
+#ifdef MPIDEBUG
+            print *,iproc,': sent rho'
+#endif
+
+            CALL MPI_SENDRECV(divv, 1, indexMPI1return, ibehind, 12, 
+     &           divvrec, inumberneigh, MPI_REAL4, iahead, 12, 
+     &           MPI_COMM_WORLD, istatus, ierr)
+            CALL MPI_GET_COUNT(istatus,MPI_REAL4,icheck,ierr)
+            IF (icheck.NE.inumberneigh) THEN
+               WRITE (*,*) 'ERROR - icheck.NE.inumberneigh 1 ',
+     &              iproc
+               CALL quit
+            ENDIF
+
+#ifdef MPIDEBUG
+            print *,iproc,': sent divv'
+#endif
+
+            CALL MPI_SENDRECV(nneigh, 1 ,indexMPI_I1return, ibehind, 13,
+     &           nneighrec, inumberneigh, MPI_INTEGER, iahead, 13, 
+     &           MPI_COMM_WORLD, istatus, ierr)
+            CALL MPI_GET_COUNT(istatus,MPI_REAL4,icheck,ierr)
+            IF (icheck.NE.inumberneigh) THEN
+               WRITE (*,*) 'ERROR - icheck.NE.inumberneigh 1 ',
+     &              iproc
+               CALL quit
+            ENDIF
+#ifdef MPIDEBUG
+            print *,iproc,': sent nneigh'
+#endif
+
+            CALL MPI_TYPE_FREE(indexMPI_I1return,ierr)
+            CALL MPI_TYPE_FREE(indexMPI1return,ierr)
+            IF (inumberneigh.GT.0) inumofsends = inumofsends + 1
+#ifdef MPIDEBUG
+            print *,iproc,': all sent'
+#endif
+            DO k = 1, inumberneigh
+               ipos = llist(llistrec(k + inumreturn))
+               rho(ipos) = rho(ipos) + rhorec(k)
+               divv(ipos) = divv(ipos) + divvrec(k)
+c--Note that cannot change nneigh() because this still needs to have the number
+c     of particles in the *local* neighbours list only.  nneighfull needed for
+c     hdot.
+               nneighfull(ipos) = nneighfull(ipos) + nneighrec(k)
+               llistsentback(k,iahead+1) = ipos - 1
+#ifdef MPIDEBUG
+#endif
+            END DO
+
+#ifdef MPIDEBUG
+            print *,iproc,': received neighbour data from ',iprocrec
+#endif
+            nneighsentback(iahead+1) = inumberneigh
+            maxnneighsentback = MAX(maxnneighsentback,
+     &           inumberneigh)
+c
+c--Send gravity forces back to sending process
+c
+#ifdef MPIDEBUG
+            print *,iproc,' sending forces back to ',ibehind
+#endif
+            CALL MPI_SENDRECV(dvxyzu(1,ntot+1),4*inumber,
+     &           MPI_REAL8,ibehind,14,
+     &           dvxyzu(1,ntotplusinumber+1),4*nlst,MPI_REAL8,
+     &                 iahead, 14, 
+     &           MPI_COMM_WORLD, istatus, ierr)
+            CALL MPI_GET_COUNT(istatus,MPI_REAL8,ireturned,ierr)
+            IF (ireturned.NE.4*nlst) THEN
+               WRITE (*,*) 'ERROR - ireturned.NE.4*nlst dvxyz'
+               CALL quit
+            ENDIF
+
+            DO l = 1, nlst
+               ipos = llist(l)
+               jpos = ntotplusinumber + l
+               DO k = 1, 3
+                  dvxyzu(k,ipos) = dvxyzu(k,ipos) + dvxyzu(k,jpos)
+               END DO
+               poten(ipos) = poten(ipos) + dvxyzu(4,jpos)
+            END DO
+
+#ifdef MPIDEBUG
+            print *,iproc,' sent forces'
+#endif
+
+         END DO
+
+
+
+c
+c--IMPLEMENTATION USING SEPARATE SEND/RECV's FARMED OUT BY 1 PROCESS AT A TIME
+c
+         GOTO 4000
+
          DO i = 0, numproc - 1
 c            CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
             IF (iproc.EQ.i) THEN
+
 c
 c--Send active node data to be processed by other processes.  Unfortunately
 c     this means that the local process doesn't do much, but as N->infinity
@@ -501,11 +773,15 @@ c
                      llistrec(j) = llistrec(j) + ntot - 1
                   END DO
 
-                  CALL MPI_TYPE_CREATE_INDEXED_BLOCK(inumreturn, 1,
+c                  CALL MPI_TYPE_CREATE_INDEXED_BLOCK(inumreturn, 1,
+c     &                 llistrec, MPI_REAL4, indexMPI1return, ierr)
+                  CALL MPI_TYPE_INDEXED(inumreturn, lblocklengths,
      &                 llistrec, MPI_REAL4, indexMPI1return, ierr)
                   CALL MPI_TYPE_COMMIT(indexMPI1return,ierr)
 
-                  CALL MPI_TYPE_CREATE_INDEXED_BLOCK(inumreturn, 1, 
+c                  CALL MPI_TYPE_CREATE_INDEXED_BLOCK(inumreturn, 1, 
+c     &                 llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
+                  CALL MPI_TYPE_INDEXED(inumreturn, lblocklengths, 
      &                 llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
                   CALL MPI_TYPE_COMMIT(indexMPI_I1return,ierr)
 
@@ -554,11 +830,13 @@ c
             ENDIF
          END DO
 
+ 4000    CONTINUE
+
          CALL MPI_TYPE_FREE(indexMPI4,ierr)
          CALL MPI_TYPE_FREE(indexMPI5,ierr)
 
 #ifdef MPIDEBUG
-         print *,iproc,': FINISHED PART 1'
+         print *,iproc,': FINISHED PART 1 ',itime
          IF (iproc.EQ.0) print *,iproc,':A',dvxyzu(1,625),
      &        dvxyzu(2,625),dvxyzu(3,625),xyzmh(1,625),
      &        xyzmh(2,625),xyzmh(3,625),
@@ -734,16 +1012,22 @@ c
 c
 c--Else does not need to send any particle back to this particular process.
 c
-               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
-     &                  1,llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c                       1,llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI5,ierr)
 
-               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
-     &                  1,llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
 
-               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
-     &                  1,llistsentback(1,j+1),MPI_REAL4,indexMPI1,ierr)
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),MPI_REAL4,indexMPI1,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),MPI_REAL4,indexMPI1,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI1,ierr)
 
                         CALL MPI_SEND(xyzmh,1,indexMPI5,j,20,
@@ -977,6 +1261,16 @@ c
       ENDIF
 
 #ifdef MPI
+
+
+
+
+c            CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+
+
+
+
+
 #ifdef MPIDEBUG
          IF (iproc.EQ.2) print *,iproc,':G',dvxyzu(1,ntot + 1+2054-1),
      &              dvxyzu(2,ntot+1+2054-1),dvxyzu(3,ntot+1+2054-1),
@@ -999,7 +1293,13 @@ c--Receive back forces, du, potential energy to be added on to local values
 c
             DO j = 1, inumofsends
 #ifdef MPIDEBUG
-               print *,iproc,': getting forces '
+               print *,iproc,': expecting to get ',inumofsends,
+     &              ' forces ',j
+               IF (iproc.EQ.14) THEN
+                  DO iii = 0, numproc -1
+                     print *,iproc,': LIST ',iii,nneighsentback(iii+1)
+                  END DO
+               ENDIF
 #endif
                CALL MPI_RECV(dvxyzu(1,istartrec),4*maxnneighsentback,
      &              MPI_REAL8,MPI_ANY_SOURCE,30,MPI_COMM_WORLD,istatus,
@@ -1011,27 +1311,13 @@ c
                   CALL quit
                ENDIF
 #ifdef MPIDEBUG
-               print *,iproc,': got forces from ',iprocrec,' put into ',
-     &              llistsentback(1,iprocrec+1)+1
+c               print *,iproc,': got forces from ',iprocrec,' put into ',
+c     &              llistsentback(1,iprocrec+1)+1
 #endif
 
                DO l = 1, nneighsentback(iprocrec+1)
                   ipos = llistsentback(l,iprocrec+1)+1
                   jpos = istartrec + l - 1                  
-#ifdef MPIDEBUG
-         IF (iproc.EQ.0 .AND. ipos.EQ.625) print *,iproc,':C',
-     &      dvxyzu(1,jpos),dvxyzu(2,jpos),dvxyzu(3,jpos),iprocrec,
-     &      ipos,jpos,l
-         IF (iproc.EQ.1 .AND. ipos.EQ.25786) print *,iproc,':C',
-     &      dvxyzu(1,jpos),dvxyzu(2,jpos),dvxyzu(3,jpos),iprocrec,
-     &      ipos,jpos,l
-         IF (iproc.EQ.2 .AND. ipos.EQ.460) print *,iproc,':C',
-     &      dvxyzu(1,jpos),dvxyzu(2,jpos),dvxyzu(3,jpos),iprocrec,
-     &      ipos,jpos,l
-         IF (iproc.EQ.3 .AND. ipos.EQ.25646) print *,iproc,':C',
-     &      dvxyzu(1,jpos),dvxyzu(2,jpos),dvxyzu(3,jpos),iprocrec,
-     &      ipos,jpos,l
-#endif
                   DO k = 1, 4
                      dvxyzu(k,ipos) = dvxyzu(k,ipos) + dvxyzu(k,jpos)
                   END DO
@@ -1058,6 +1344,31 @@ c
 c--Other processes send the forces back
 c
          ELSE
+            DO jjj = 1, inumofreturns
+               IF (inumberproc(jjj).EQ.i) THEN
+                  istart = inumbercumm(jjj)
+                  inumber = inumberindiv(jjj)
+                  iprocsend = inumberproc(jjj)
+                  inumberreturned = inumberreturned + 1
+#ifdef MPIDEBUG
+                  print *,iproc,': sending forces to ',iprocsend,
+     &                 ' istart ',istart,' returned ',inumberreturned,
+     &                 ' of ',inumofreturns
+#endif
+                  CALL MPI_SEND(dvxyzu(1,istart),4*inumber,MPI_REAL8,
+     &                 iprocsend,30,MPI_COMM_WORLD, ierr)
+                  CALL MPI_SEND(poten(istart),inumber,MPI_REAL4,
+     &                 iprocsend,31,MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                  print *,iproc,': sent forces and poten to ',iprocsend
+#endif
+                  GOTO 7765
+               ENDIF
+            END DO
+ 7765       CONTINUE
+
+            GOTO 8888
+
             IF (inumberreturned.LT.inumofreturns .AND.
      &           nneightogetback(i+1).GT.0) THEN
                inumberreturned = inumberreturned + 1
@@ -1066,7 +1377,8 @@ c
                iprocsend = inumberproc(inumberreturned)
 #ifdef MPIDEBUG
                print *,iproc,': sending forces to ',iprocsend,
-     &              ' istart ',istart
+     &              ' istart ',istart,' returned ',inumberreturned,
+     &              ' of ',inumofreturns
 #endif
                CALL MPI_SEND(dvxyzu(1,istart),4*inumber,MPI_REAL8,
      &              iprocsend,30,MPI_COMM_WORLD, ierr)
@@ -1074,11 +1386,14 @@ c
      &              iprocsend,31,MPI_COMM_WORLD, ierr)
 #ifdef MPIDEBUG
                print *,iproc,': sent forces and poten to ',iprocsend
-         IF (iproc.EQ.2) print *,iproc,':D',dvxyzu(1,istart+2054-1),
-     &              dvxyzu(2,istart+2054-1),dvxyzu(3,istart+2054-1)
+c         IF (iproc.EQ.2) print *,iproc,':D',dvxyzu(1,istart+2054-1),
+c     &              dvxyzu(2,istart+2054-1),dvxyzu(3,istart+2054-1)
 #endif
                istart = istart + inumber
             ENDIF
+
+ 8888       CONTINUE
+
          ENDIF
 c
 c--If there are no particles sent, don't need to do anything (no MPI_SEND 
@@ -1095,7 +1410,7 @@ c
       CALL MPI_TYPE_FREE(i5REAL8,ierr)
 
 #ifdef MPIDEBUG
-      print *,iproc,': FINISHED'
+      print *,iproc,': FINISHED ',itime
          IF (iproc.EQ.0) print *,iproc,':B',dvxyzu(1,625),
      &        dvxyzu(2,625),dvxyzu(3,625),xyzmh(1,625),
      &        xyzmh(2,625),xyzmh(3,625)

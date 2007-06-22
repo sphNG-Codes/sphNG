@@ -23,7 +23,7 @@ c************************************************************
       LOGICAL smalldump
       REAL dtmaxdp, gamma, rhozero, RK2
       REAL escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz
-      REAL specang, ptmassin, pmassinitial
+      REAL specang, ptmassin, pmassinitial, totmass
       REAL*8 umassi, udisti, utimei
       REAL, PARAMETER :: pi=3.1415926536
 
@@ -62,6 +62,8 @@ c
             OPEN(UNIT=iout+i,FILE=fileout(i),STATUS='replace',
      &           FORM='formatted')
          ENDDO
+         OPEN(UNIT=iout+nout+1,FILE='sinkstot.out',STATUS='replace',
+     &        FORM='formatted')
       ENDIF
       
       
@@ -89,9 +91,14 @@ c
      &                                       dumi,dumi,dumi,pmass(i)
                      !PRINT*,ipart,pmass(i)
                   ENDDO
+                  totmass = 0.
                   DO i=1,nptmass
+                     totmass = totmass + pmass(i)
                      WRITE(iout+i,*) timeff,time,pmass(i)
                   ENDDO
+                  IF (nptmass.GE.1) THEN
+                     WRITE(iout+nout+1) timeff,time,totmass
+                  ENDIF
 
                   IF (ierr /= 0) PRINT*,'ERROR READING SINKS FROM FILE'
                ENDIF
@@ -145,9 +152,14 @@ c--Default int
                         pmass(i) = pmasstemp(listpm(i))
                      ENDDO
                   ENDIF
+                  totmass = 0.
                   DO i=1,nptmass
+                     totmass = totmass + pmass(i)
                      WRITE(iout+i,*) timeff,time,pmass(i)
                   ENDDO
+                  IF (nptmass.GE.1) THEN
+                     WRITE(iout+nout+1) timeff,time,totmass
+                  ENDIF
                ENDIF
                ierr = -1 ! move on to next dump file
            ENDIF
@@ -164,6 +176,7 @@ c--Default int
          ELSE
             CLOSE(iout+i)
          ENDIF
+         CLOSE(iout+nout+1)
       ENDDO
             
       END PROGRAM masswithtime

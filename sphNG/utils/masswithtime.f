@@ -18,7 +18,7 @@ c************************************************************
       LOGICAL pfiles
 !--stuff for reading from dump files
       INTEGER npart,n1,n2,nreassign,naccrete,nkill
-      INTEGER nhydro,idisk1
+      INTEGER nhydro,idisk1,maxptmass
       INTEGER nums1(8),nums2(8),nums3(8),nums4(8)
       LOGICAL smalldump
       REAL dtmaxdp, gamma, rhozero, RK2
@@ -67,6 +67,7 @@ c
       ENDIF
       
       
+      maxptmass = 0
       DO j=1,nfiles
          CALL getarg(j,filename)
 
@@ -81,6 +82,7 @@ c
 c--get sink properties from sink P file
 c
                READ(idisk1,iostat=ierr) timeff,time,nptmass
+               maxptmass = max(nptmass,maxptmass)
                PRINT*,' t_ff= ',timeff,' t= ',time,' nptmass= ',nptmass
                IF (ierr /= 0) THEN
                   PRINT*,'ERROR READING TIME FROM FILE'
@@ -114,6 +116,7 @@ c
      &              npart,nhydro,nptmass,nums1,nums2,nums3,nums4)
 
                timeff = time/(SQRT((3. * pi) / (32. * rhozero)))
+               maxptmass = max(nptmass,maxptmass)
                PRINT*,' t_ff= ',timeff,' t= ',time,' nptmass= ',nptmass
 c
 c--skip normal particle block
@@ -170,7 +173,7 @@ c--Default int
       ENDDO
       
       DO i=1,nout
-         IF (i.GT.nptmass) THEN
+         IF (i.GT.maxptmass) THEN
       !--delete empty files
             CLOSE(iout+i,STATUS='DELETE')
          ELSE

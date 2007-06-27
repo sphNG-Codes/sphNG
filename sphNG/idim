@@ -1,4 +1,4 @@
-      INTEGER idim, iptdim, iptneigh, nlmax
+      INTEGER idim, idim2, iptdim, iptneigh, nlmax
       INTEGER mmax, iradtrans, imhd, imhdxsph, isizealphaMM
       REAL tiny
 

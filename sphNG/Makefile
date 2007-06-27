@@ -154,16 +154,13 @@ ifeq ($(mpi), yes)
     FPPFLAGS += -DMPI
 endif
 
-<<<<<<< Makefile
 ifeq ($(mpidebug), yes)
     FFLAGS += -d -WF,-DMPI,-DMPIDEBUG
+else
+# add preprocessor flags (and prefix required for some compilers)
+    FFLAGS += ${FPP_PREFIX} ${FPPFLAGS}
 endif
 
-=======
-# add preprocessor flags (and prefix required for some compilers)
-FFLAGS += ${FPP_PREFIX} ${FPPFLAGS}
-
->>>>>>> 1.28
 # these are the sources common to all compilations
 
 SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \

@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/bin/bash
 #
 # @(#) writes script for job submission to sun grid engine -- daniel price 17/2/03
 #
@@ -32,14 +32,14 @@ echo '#PBS -l ncpus='$ncpus  	    >> $sgename		 ## number of cpus
 echo '#PBS -l mem='$mem  	    >> $sgename		 ## memory
 echo '#PBS -l walltime=4:00:00'	    >> $sgename		 ## wall time HH:MM:SS
 echo '#PBS -m bae    '	            >> $sgename		 ## email me
-echo '#PBS -M dprice@ast.cam.ac.uk' >> $sgename		 ## email me
-echo '#PBS -o '$PWD'/'$filename'.output' >> $sgename	 ## job output
-echo '#PBS -o '$PWD'/'$filename'.errors' >> $sgename	 ## job errors
+echo '#PBS -M dprice@astro.ex.ac.uk' >> $sgename		 ## email me
+echo '#PBS -o $PBS_O_WORKDIR/'$filename'.output' >> $sgename	 ## job output
+echo '#PBS -o $PBS_O_WORKDIR/'$filename'.errors' >> $sgename	 ## job errors
 echo '#PBS -N '$jobname                  >> $sgename	 ## job name
 echo 'setenv MP_SLAVE_STACKSIZE 67108864' >> $sgename
 echo 'setenv OMP_SCHEDULE "guided, 1"   ' >> $sgename
 echo 'setenv OMP_NUM_THREADS '$ncpus >> $sgename
 echo 'setenv MPC_GANG OFF             ' >> $sgename
-echo 'cd '$PWD                          >> $sgename
+echo 'cd $PBS_O_WORKDIR '                >> $sgename
 echo './sph_gradh evolution '$filename   >> $sgename
 fi

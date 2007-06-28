@@ -42,6 +42,30 @@ FPPFLAGS=
 #
 ##############################################################
 
+ifeq ($(SYSTEM), zen)
+    ifeq ($(mpi), yes)
+#      FC= mpif77
+       FC= ifort -I/sw/sdev/intel-mpi/v3.0.021/x86_64/include64 
+    else
+       FC= ifort
+    endif
+    FFLAGS= -O3 -openmp -xT -mcmodel=medium -i-dynamic -WB -Vaxlib \
+            -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source
+    ifeq ($(mpi), yes)
+        FFLAGS += -DMPI -L/sw/sdev/intel-mpi/v3.0.021/x86_64/lib64 -Xlinker -rpath \
+                 -Xlinker $libdir -Xlinker -rpath \
+                 -Xlinker /opt/intel/mpi-rt/3.0 -lmpi -lmpiif -lmpigi \
+                 -lrt -lpthread -ldl
+    endif
+    DBLFLAG= -r8
+    DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -convert big_endian
+    ENDIANFLAGLITTLE= -convert little_endian
+# or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
+    ZZFILE= zzibm.f
+endif
+
 ifeq ($(SYSTEM), ukaff1a)
     ifeq ($(mpi), yes)
         FC= mpif77 -qnosave

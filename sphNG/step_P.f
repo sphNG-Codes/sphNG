@@ -529,7 +529,7 @@ c--Predict variables at t=time
 c
       IF (itiming) CALL getused(ts51)
 
-      IF (itbinupdate.GE.nbinmax-1 .OR. (.NOT. ipartialrevtree)) THEN
+      IF (itbinupdate.GE.nbinmax-1 .OR. ipartialrevtree.EQ.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle,vsmooth)
@@ -1185,7 +1185,7 @@ c--Predict variables at t=time
 c
       IF (itiming) CALL getused(ts81)
 
-      IF (itbinupdate.GE.nbinmax-1 .OR. (.NOT. ipartialrevtree)) THEN
+      IF (itbinupdate.GE.nbinmax-1 .OR. ipartialrevtree.EQ.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)

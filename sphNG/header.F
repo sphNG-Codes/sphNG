@@ -178,13 +178,8 @@ c
             ENDIF
 
             IF (igrape.EQ.0) THEN
-               IF (ipartialrevtree) THEN
-                  WRITE (iprint, 98303)
-98303             FORMAT (' Partial tree revision:    ALLOWED',/)
-               ELSE
-                  WRITE (iprint, 98304)
-98304             FORMAT (' Partial tree revision:    NOT ALLOWED',/)
-               ENDIF
+               WRITE (iprint, 98303) ipartialrevtree
+98303          FORMAT (' Partial tree revision: ',I1,/)
             ENDIF
          ENDIF
 c

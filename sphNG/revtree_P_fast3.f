@@ -33,7 +33,7 @@ c
 c      IF (nlst.GT.nnatom/5000 .OR. (.NOT. ipartialrevtree)) THEN
 c      IF (.TRUE.) THEN
       IF (nlst-nptmass.GT.10000 .OR. itbinupdate.GE.nbinmax-1 .OR. 
-     &     (.NOT. ipartialrevtree)) THEN
+     &     ipartialrevtree.LE.1) THEN
 
       IF (itiming) CALL getused(revtreeptemp1)
 

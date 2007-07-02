@@ -721,7 +721,7 @@ c
 
       numberparents = 0
 
-      IF (itbinupdate.GE.nbinmax-1 .OR. (.NOT. ipartialrevtree)) THEN
+      IF (itbinupdate.GE.nbinmax-1 .OR. ipartialrevtree.EQ.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,rho)
@@ -772,7 +772,7 @@ c
       END DO
 C$OMP END PARALLEL DO
 
-      ELSEIF (nlst-nptmass.GT.10000) THEN
+      ELSEIF (nlst-nptmass.GT.10000 .OR. ipartialrevtree.EQ.1) THEN
          DO i = 1, itbinupdate
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)

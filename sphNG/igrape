@@ -47,10 +47,16 @@ c      PARAMETER (iptintree=0)
 c      PARAMETER (iptintree=2)
 c
 c--Allow partial revision of tree instead of full tree revision
+c        0: No partial revision allowed (tree fully updated)
+c        1: Allows only some particles's dummy values to be updated in step
+c           but updates all the nodes in revtree
+c        2: Allows partial updates of dummy values in step and partial
+c           update of nodes in revtree
 c
-      LOGICAL ipartialrevtree
-        PARAMETER (ipartialrevtree=.FALSE.)
-c       PARAMETER (ipartialrevtree=.TRUE.)
+      INTEGER ipartialrevtree
+c        PARAMETER (ipartialrevtree=0)
+        PARAMETER (ipartialrevtree=1)
+c        PARAMETER (ipartialrevtree=2)
 c
 c--Allow controls individual timesteps
 c	 0 : all particles have single timestep

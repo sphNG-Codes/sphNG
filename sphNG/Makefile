@@ -338,6 +338,9 @@ massvsangmom: checksystem checkparams utils/massvsangmom.o utils/readdump_sphNG.
 masswithtime: checksystem checkparams utils/masswithtime.o utils/readdump_sphNG.o idim
 	$(FC) $(FFLAGS) -o $@ utils/masswithtime.o utils/readdump_sphNG.o
 
+getdeltat: checksystem checkparams utils/getdeltat.o utils/readdump_sphNG.o idim
+        $(FC) $(FFLAGS) -o $@ utils/getdeltat.o utils/readdump_sphNG.o
+
 # this routine needs to be compiled with single precision flags only
 
 zzsun_f77_double2.o: zzsun_f77_double2.f

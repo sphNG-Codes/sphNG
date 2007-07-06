@@ -5,7 +5,7 @@
       INCLUDE 'COMMONS/kerne'
       INCLUDE 'COMMONS/logun'
 
-      DIMENSION xyzmh(5,idim), list(idim)
+      DIMENSION xyzmh(5,idim), list(iptneigh)
 
       nlist = 0
       DO i = 1, ntot

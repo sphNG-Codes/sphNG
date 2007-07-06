@@ -49,6 +49,7 @@ c************************************************************
       INCLUDE 'COMMONS/eosq'
       INCLUDE 'COMMONS/stepopt'
       INCLUDE 'COMMONS/setBfield'
+      INCLUDE 'COMMONS/radtrans'
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey

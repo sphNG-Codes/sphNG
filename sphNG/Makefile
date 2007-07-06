@@ -50,7 +50,8 @@ ifeq ($(SYSTEM), zen)
        FC= ifort
     endif
     FFLAGS= -O3 -openmp -xT -mcmodel=medium -i-dynamic -WB -Vaxlib \
-            -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source
+            -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source\
+            -warn interfaces -gen-interfaces
     ifeq ($(mpi), yes)
         FFLAGS += -DMPI -L/sw/sdev/intel-mpi/v3.0.021/x86_64/lib64 -Xlinker -rpath \
                  -Xlinker $libdir -Xlinker -rpath \

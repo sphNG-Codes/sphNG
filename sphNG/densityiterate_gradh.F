@@ -19,7 +19,7 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,idim), vxyzu(4,idim), list(idim)
+      DIMENSION xyzmh(5,mmax), vxyzu(4,idim), list(idim)
       DIMENSION ekcle(5,iradtrans)
       DIMENSION Bevol(3,imhd),Bxyz(3,imhd)
 

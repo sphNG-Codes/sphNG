@@ -1,5 +1,5 @@
       SUBROUTINE forcei(nlst_in,nlst_end,listp,dt,itime,
-     &      npart,xyzmh,vxyzu,fxyzu,dha,trho,pr,vsound,alphaMMpass,
+     &      npart,ntot,xyzmh,vxyzu,fxyzu,dha,trho,pr,vsound,alphaMMpass,
      &      ekcle,dedxyz,Bxyz,dBxyz,Bevolxyz)
 c************************************************************
 c                                                           *
@@ -10,7 +10,7 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,idim), vxyzu(4,idim)
+      DIMENSION xyzmh(5,mmax), vxyzu(4,idim)
       REAL*4 trho(idim),pr(idim),vsound(idim),dha(1+isizealphaMM,idim)
       REAL*4 alphaMMpass(isizealphaMM,idim)
       DIMENSION listp(idim)
@@ -114,7 +114,7 @@ c
 c--Initialize
 c
 C$OMP PARALLEL default(none)
-C$OMP& shared(nlst_in,nlst_end,npart,listp,nneigh,neimin,neimax)
+C$OMP& shared(nlst_in,nlst_end,npart,ntot,listp,nneigh,neimin,neimax)
 C$OMP& shared(icall,dt,itime,imaxstep,isteps)
 C$OMP& shared(xyzmh,vxyzu,dha,fxyzu,trho,pr,vsound,dq,gradhs)
 C$OMP& shared(neighb,neighover,dvtable,ddvtable,psoft)
@@ -183,7 +183,8 @@ c     NOTE: Assumes that nlmax=1 is set to save memory for grad-h code.
 c     If not, will still work but cache re-use will be VERY BAD !!!!
 c     
             IF (iphase(ipart).EQ.0 .OR. iptintree.GE.1) THEN
-              CALL treef(ipart,npart,xyzmh,acc,igphi,fxi,fyi,fzi,poteni)
+               CALL treef(ipart,npart,ntot,xyzmh,acc,igphi,
+     &                    fxi,fyi,fzi,poteni)
 
                fxyzu(1,ipart) = fxi
                fxyzu(2,ipart) = fyi
@@ -924,7 +925,7 @@ c
 c--Energy conservation
 c
 
-         CALL energ(ipart,npart,realtime,vxyzu, fxyzu, xyzmh)  
+         CALL energ(ipart,npart,ntot,realtime,vxyzu, fxyzu, xyzmh)  
 c
 c--Radiation pressure force
 c

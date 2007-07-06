@@ -228,7 +228,7 @@ c--Compute forces on EACH particle
 c
       IF (itiming) CALL getused(tforce1)
 
-      CALL forcei(nlst_in,nlst_end,llist,dt,itime,npart,
+      CALL forcei(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
      &     xyzmh,vxyzu,dvxyzu,dha,dumrho,pr,vsound,alphaMM,ekcle,
      &     dedxyz,Bxyz,dBevolxyz,Bevolxyz)
 

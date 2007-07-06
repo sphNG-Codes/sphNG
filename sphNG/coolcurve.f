@@ -14,6 +14,7 @@ c************************************************************
       INCLUDE 'COMMONS/physcon'
 
       REAL tempiso, teq, ueq, coolingtime, coolingr, rhon
+      REAL*4 rhocool
       INTEGER ic
 
 c Find temperature in K

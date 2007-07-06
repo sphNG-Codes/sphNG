@@ -119,10 +119,15 @@ c
 c
 c--Get neighbours
 c
+         DO i = 1, ntot
+            DO j = 1, 5
+               dumxyzmh(j,i) = xyzmh(j,i)
+            END DO
+         ENDDO
          IF (igrape.EQ.0) THEN
-            CALL insulate(3, ntot, npart, xyzmh, f1vxyzu)
+            CALL insulate(3, ntot, npart, dumxyzmh, f1vxyzu)
          ELSEIF (igrape.EQ.1) THEN
-            CALL insulate(4, ntot, npart, xyzmh, f1vxyzu)
+            CALL insulate(4, ntot, npart, dumxyzmh, f1vxyzu)
          ENDIF
 c
 c--Compute smoothed variable for each particle

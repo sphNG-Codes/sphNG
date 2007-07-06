@@ -96,7 +96,7 @@ c
 c--Get argument on command line
 c
       ENTRY flush(iunit)
-      CALL FLUSH_(iunit)
+c      CALL FLUSH_(iunit)
       RETURN
 
       END

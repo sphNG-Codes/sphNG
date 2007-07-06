@@ -65,10 +65,15 @@ c
          OPEN(UNIT=iout+nout+1,FILE='sinkstot.out',STATUS='replace',
      &        FORM='formatted')
       ENDIF
-      
+      nfiles = 1000
+      print*,'nfiles = ',nfiles 
       
       maxptmass = 0
       DO j=1,nfiles
+c         print*,'enter file ',1
+c         READ(*,*,iostat=ierr) filename
+c         if (ierr /=0 ) goto 100
+
          CALL getarg(j,filename)
 
          PRINT*,'opening ',filename
@@ -84,6 +89,7 @@ c
                READ(idisk1,iostat=ierr) timeff,time,nptmass
                maxptmass = max(nptmass,maxptmass)
                PRINT*,' t_ff= ',timeff,' t= ',time,' nptmass= ',nptmass
+     &                 ,maxptmass
                IF (ierr /= 0) THEN
                   PRINT*,'ERROR READING TIME FROM FILE'
                ELSE
@@ -99,7 +105,7 @@ c
                      WRITE(iout+i,*) timeff,time,pmass(i)
                   ENDDO
                   IF (nptmass.GE.1) THEN
-                     WRITE(iout+nout+1) timeff,time,totmass
+                     WRITE(iout+nout+1,*) timeff,time,totmass
                   ENDIF
 
                   IF (ierr /= 0) PRINT*,'ERROR READING SINKS FROM FILE'
@@ -161,7 +167,7 @@ c--Default int
                      WRITE(iout+i,*) timeff,time,pmass(i)
                   ENDDO
                   IF (nptmass.GE.1) THEN
-                     WRITE(iout+nout+1) timeff,time,totmass
+                     WRITE(iout+nout+1,*) timeff,time,totmass
                   ENDIF
                ENDIF
                ierr = -1 ! move on to next dump file
@@ -171,7 +177,7 @@ c--Default int
          CLOSE(idisk1)
 
       ENDDO
-      
+ 100  CONTINUE     
       DO i=1,nout
          IF (i.GT.maxptmass) THEN
       !--delete empty files

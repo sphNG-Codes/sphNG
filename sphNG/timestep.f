@@ -175,7 +175,7 @@ c             PRINT *,rmod,rmodcool
 c
 c--New timestep if particles cross boundaries
 c
-         IF(iphase(i).EQ.0 .AND. iexf.GT.0) THEN
+         IF(iphase(i).EQ.0 .AND. iexf.GT.0 .OR. iBext.GT. 0) THEN
              dti = rmod*(dt*isteps(i)/imaxstep)
              rmod = MIN(rmod,dtcrossbound(xyzmh(1,i),xyzmh(2,i),
      &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),

@@ -435,7 +435,7 @@ c************************************************************
        
        dtcrossbound = dt
        
-       IF (iexf.EQ.9) THEN
+       IF (iexf.EQ.9. OR. iBext.NE.0) THEN
           CALL get_torus_factors(xi,yi,zi,costheta,sintheta,cosphi,
      &              sinphi,rrcyl,drcyl,rintorus,rintorus2,drintorus)
           vr =  vxi*costheta*cosphi+vyi*costheta*sinphi+vzi*sintheta

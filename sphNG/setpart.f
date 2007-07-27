@@ -49,6 +49,7 @@ c************************************************************
       INCLUDE 'COMMONS/eosq'
       INCLUDE 'COMMONS/stepopt'
       INCLUDE 'COMMONS/setBfield'
+      INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/radtrans'
 
       CHARACTER*60 filevelx, filevely, filevelz
@@ -73,6 +74,26 @@ c
       WRITE(*,99500) iseed
 99500 FORMAT(' The random seed is ',I5)
       rnd = ran1(iseed)
+c
+c--uncomment the lines below to skip setpart 
+c  and just call a setup routine (DJP & C. Toniolo)
+c
+c      varsta = 'intener'      
+c      CALL setup_torus(xyzmh,vxyzu,rhozero,RK2,npart,ntot)     
+c      CALL setup_cylinder(xyzmh,vxyzu,Bevolxyz,rhozero,RK2,
+c     &                    npart,ntot)   
+c      varmhd = 'Bvol'
+c      IF (imhd.EQ.idim) CALL setBfield
+c      nptmass = 0
+c      iptmass = 0
+c      iaccevol = 'f'
+c      n1 = npart
+c      extu = 1.5
+c      pext = 2./3.*extu*1.d0
+c      PRINT*,'INTERNAL ENERGY = ',vxyzu(4,1)
+c      CALL inopts
+c      GOTO 999
+      
 c
 c--Point masses 
 c
@@ -593,6 +614,30 @@ c
          ny = INT(deltay/(facy*h1)) + 2
          nz = INT(deltaz/(facz*h1)) + 1
          np = nx*ny*nz
+         IF (ibound.EQ.11 .AND. idist.EQ.2) THEN
+            WRITE (*,*) 'Adjust boundaries for lattice periodicity?'
+            READ (*, 99004) iok
+            IF (iok.EQ.'y'.OR.iok.EQ.'Y') THEN
+c           move the outer boundaries to ensure periodicity of the lattice
+               nx = 2*(INT(0.5*deltax/(facx*h1)) + 1)
+               ny = 2*(INT(0.5*deltay/(facy*h1)) + 1)
+               nz = 3*(INT(0.333333333*deltaz/(facz*h1)) + 1)
+               np = nx*ny*nz
+               deltax = nx*facx*h1
+               deltay = ny*facy*h1
+               deltaz = nz*facz*h1
+               xmax = 0.5*deltax
+               xmin = -xmax
+               ymax = 0.5*deltay
+               ymin = -ymax
+               zmax = 0.5*deltaz
+               zmin = -zmax
+               WRITE(*,*) nx,ny,nz,np
+               WRITE(*,*) 'adjusted ',xmin,xmax,ymin,ymax,zmin,zmax
+               WRITE(*,*) 'volume = ',deltax*deltay*deltaz
+            ENDIF
+         ENDIF
+
       ELSEIF (idist.EQ.4 .OR. idist.EQ.5) THEN
          nx = INT(deltax/(facx*h1)) + 1
          ny = INT(deltay/(facy*h1)) + 1 
@@ -628,6 +673,34 @@ c
       IF (ichang.EQ.3) GOTO 200
       IF (ichang.EQ.4) GOTO 300
       IF (ichang.EQ.5) GOTO 210
+ 
+ 450  CONTINUE
+
+      IF (igeom.EQ.1) THEN
+         totvol = (deltax * deltay * deltaz)
+      ELSEIF (igeom.EQ.2) THEN
+         totvol = (pi * deltaz * rcyl2)
+      ELSEIF (igeom.EQ.3) THEN
+         totvol = (4.0 * pi * rmax2 * rmax / 3.0) 
+      ELSEIF (igeom.EQ.4) THEN
+         totvol = (pi * deltaz * (rcyl2 - rmind2))
+      ELSEIF (igeom.EQ.5) THEN
+         totvol = (4.0*pi/3.0*(rcyl2*zmax - rmind2*rmind))
+         IF (totvol.LE.0.0) THEN
+            WRITE(*,*) 'Negative volume'
+            CALL quit
+         ENDIF
+      ELSEIF (igeom.EQ.6) THEN
+         totvol = (4.0*pi*(rmax2*rmax - hacc*hacc*hacc)/3.0)
+      ELSEIF (igeom.EQ.7) THEN
+         totvol = (4.0*pi/3.0 * (rmax2*rmax - rmind2*rmind)) 
+      ELSEIF (igeom.EQ.9) THEN
+         totvol = (pi*2.0*hoverr*(radiusmax**2-radiusmin**2))
+      ELSE
+         WRITE(*,*) 'ERROR igeom'
+         CALL quit
+      ENDIF
+
 c
 c--make sure npart is initialised to zero
 c  (unifdis can be called more than once)
@@ -636,7 +709,7 @@ c
 c
 c--Set Density Distribution
 c
- 450  WRITE(*, 99014)
+      WRITE(*, 99014)
 99014 FORMAT (' What density variations:', /,
      &   '  Uniform particle distribution, Non-uniform masses  (m)', /,
      &   '  Uniform particle masses, Non-uniform distribution  (d)', /,
@@ -694,87 +767,7 @@ c
 
          IF (icentral.EQ.'y') CALL condense
       ENDIF
-c
-c--Rotate particle distribution about y-axis
-c
- 500  WRITE (*, 99110)
-99110 FORMAT (' Do you want to rotate particles about y-axis?')
-      READ (*, *) irotatey
-      IF (irotatey.EQ.'Y' .OR. irotatey.EQ.'y') THEN
-         WRITE (*, 99115)
-99115    FORMAT (' Enter angle (deg)?')
-         READ (*,*) rangle
-         rangle = rangle*pi/180.0
-         DO i = 1, npart
-            r=SQRT(xyzmh(1,i)**2 + xyzmh(3,i)**2)
-            th=ATAN2(xyzmh(3,i), xyzmh(1,i)) + rangle
-            xyzmh(1,i)=r*COS(th)
-            xyzmh(3,i)=r*SIN(th)
-         END DO
-      ENDIF
-c
-c--Set Total Mass
-c
-      umassr = umass/solarm
-      IF (igeom.NE.9) THEN
-         WRITE (*, 99011)
-99011    FORMAT (' Do you want to enter: Total mass of the system (1)',
-     &        /,'                       Particle mass            (2)')
-         READ (*, *) ichmass
-         IF (ichmass.EQ.1) THEN
-            WRITE (*, 99012) umassr
-99012       FORMAT (' Enter total mass of system in units of ',1pe14.5,
-     &           ' solar masses')
-            READ (*, *) totmas
-            partm = totmas/(npart - nptmass)
-         ELSEIF (ichmass.EQ.2) THEN
-            WRITE (*, 99013) umassr
-99013       FORMAT (' Enter particle masses in units of ',1pe14.5,
-     &           ' solar masses')
-            READ (*, *) partm
-            totmas = partm*FLOAT(npart - nptmass)
-         ELSE
-            GOTO 500
-         ENDIF
-      ELSE
-         WRITE (*,99114)
-99114    FORMAT(' Enter signorm (units of 75 g/cm^2) ')
-         READ (*, *) signorm
-         rmindisc = 1.0-variation
-         rmaxdisc = 1.0+variation
-         totmas = 4.0/3.0*pi*75.0*signorm*(5.2*au)**2*
-     &        (rmaxdisc**1.5-rmindisc**1.5)/(pi/phibound)/umass
-         partm = totmas/(npart - nptmass)
-         flowrate = 75.0*SQRT(gg*solarm*5.2*au)*(2.0*SQRT(rmindisc)+
-     &        2.0*SQRT(rmaxdisc)-LOG(rmindisc)-LOG(rmaxdisc)-4.0)/
-     &        umass*utime*signorm/partm
-      ENDIF
-
-
-      IF (igeom.EQ.1) THEN
-         rhozero = totmas / (deltax * deltay * deltaz)
-      ELSEIF (igeom.EQ.2) THEN
-         rhozero = totmas / (pi * deltaz * rcyl2)
-      ELSEIF (igeom.EQ.3) THEN
-         rhozero = totmas / (4.0 * pi * rmax2 * rmax / 3.0) 
-      ELSEIF (igeom.EQ.4) THEN
-         rhozero = totmas / (pi * deltaz * (rcyl2 - rmind2))
-      ELSEIF (igeom.EQ.5) THEN
-         rhozero = totmas / (4.0*pi/3.0*(rcyl2*zmax - rmind2*rmind))
-         IF (rhozero.LE.0.0) THEN
-            WRITE(*,*) 'Negative volume'
-            CALL quit
-         ENDIF
-      ELSEIF (igeom.EQ.6) THEN
-         rhozero = totmas / (4.0*pi*(rmax2*rmax - hacc*hacc*hacc)/3.0)
-      ELSEIF (igeom.EQ.7) THEN
-         rhozero = totmas / (4.0*pi/3.0 * (rmax2*rmax - rmind2*rmind)) 
-      ELSEIF (igeom.EQ.9) THEN
-         rhozero = totmas / (pi*2.0*hoverr*(radiusmax**2-radiusmin**2))
-      ELSE
-         WRITE(*,*) 'ERROR igeom'
-         CALL quit
-      ENDIF
+      
 c
 c--set box containing surrounding medium for igeom=8
 c
@@ -837,7 +830,71 @@ c              move the outer boundaries to ensure periodicity of the lattice
       ELSE
          n1 = npart
          n2 = 0
+      ENDIF      
+c
+c--Rotate particle distribution about y-axis
+c
+ 500  WRITE (*, 99110)
+99110 FORMAT (' Do you want to rotate particles about y-axis?')
+      READ (*, *) irotatey
+      IF (irotatey.EQ.'Y' .OR. irotatey.EQ.'y') THEN
+         WRITE (*, 99115)
+99115    FORMAT (' Enter angle (deg)?')
+         READ (*,*) rangle
+         rangle = rangle*pi/180.0
+         DO i = 1, npart
+            r=SQRT(xyzmh(1,i)**2 + xyzmh(3,i)**2)
+            th=ATAN2(xyzmh(3,i), xyzmh(1,i)) + rangle
+            xyzmh(1,i)=r*COS(th)
+            xyzmh(3,i)=r*SIN(th)
+         END DO
       ENDIF
+c
+c--Set Total Mass
+c
+      umassr = umass/solarm
+      IF (igeom.NE.9) THEN
+         WRITE (*, 99011)
+99011    FORMAT (' Do you want to enter: Total mass of the system (1)',
+     &        /,'                       Particle mass            (2)', 
+     &        /,'                       Mean density rhozero     (3)')
+         READ (*, *) ichmass
+         IF (ichmass.EQ.1) THEN
+            WRITE (*, 99012) umassr
+99012       FORMAT (' Enter total mass of system in units of ',1pe14.5,
+     &           ' solar masses')
+            READ (*, *) totmas
+            partm = totmas/(npart - nptmass)
+         ELSEIF (ichmass.EQ.2) THEN
+            WRITE (*, 99013) umassr
+99013       FORMAT (' Enter particle masses in units of ',1pe14.5,
+     &           ' solar masses')
+            READ (*, *) partm
+            totmas = partm*FLOAT(npart - nptmass)
+         ELSEIF (ichmass.EQ.3) THEN
+            WRITE (*, 90013)
+90013       FORMAT (' Enter rhozero in code units')
+            READ (*, *) rhozero
+            totmas = rhozero*totvol
+            partm = totmas/(npart - nptmass)
+         ELSE
+            GOTO 500
+         ENDIF
+      ELSE
+         WRITE (*,99114)
+99114    FORMAT(' Enter signorm (units of 75 g/cm^2) ')
+         READ (*, *) signorm
+         rmindisc = 1.0-variation
+         rmaxdisc = 1.0+variation
+         totmas = 4.0/3.0*pi*75.0*signorm*(5.2*au)**2*
+     &        (rmaxdisc**1.5-rmindisc**1.5)/(pi/phibound)/umass
+         partm = totmas/(npart - nptmass)
+         flowrate = 75.0*SQRT(gg*solarm*5.2*au)*(2.0*SQRT(rmindisc)+
+     &        2.0*SQRT(rmaxdisc)-LOG(rmindisc)-LOG(rmaxdisc)-4.0)/
+     &        umass*utime*signorm/partm
+      ENDIF
+
+      rhozero = totmas/totvol
 
       WRITE(*,*) ' rhozero = ',rhozero,' rhozero(g/cc) = ',rhozero*udens
 c
@@ -1663,6 +1720,8 @@ c
          dtmax = dtfrac*tcomp
          WRITE(*,*) 'setting dtmax = ',dtmax
       ENDIF
+
+999   CONTINUE
 c
 c--adjust smoothing lengths (also calculates initial density)
 c  MUST be done (to get density) if evolving B/rho
@@ -1672,14 +1731,13 @@ c
 99044 FORMAT(' Do you want to adjust smoothing length',/,
      + ' to have similar number of neighbours ? (y/n) ')
       READ (*, 99004) iok
+
       IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim) CALL hcalc
-      
       IF (imhd.NE.idim) THEN      
          Bextx = 0.
          Bexty = 0.
          Bextz = 0.
       ENDIF
-       
       WRITE (*, 99056)
 99056 FORMAT (//, ' END OF SETUP')
 c

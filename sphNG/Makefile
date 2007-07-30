@@ -200,7 +200,7 @@ SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
         gptall.f hdot_P.f \
 	header.F homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
 	inopts.f insulate_TREE_P.F integs.F ktable.f labrun.f lunit_double.f \
-	mainop.f mesop.f modif.f mtree_P.f \
+	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
 	newrun.f options.f phoenix.f phoenix2.f \
 	place.f potential.f preset.F \
 	prout.F ran1.f rdump.F reduce.f save.f setup_torus.f \

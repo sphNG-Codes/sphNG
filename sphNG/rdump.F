@@ -204,10 +204,14 @@ c
 c
 c--Loop over blocks
 c
+#ifdef MPI
       nblocks = number/numberexp
-c      print *,npart,number,numberexp,nblocks
+!      print *,npart,number,numberexp,nblocks
+#else
+      nblocks = 1
+#endif
       DO iblock = 1, nblocks
-c         print *,'Doing block ',iblock
+         print *,'Doing block ',iblock
 c
 c--Read array type 1 header
 c
@@ -225,7 +229,7 @@ c
       READ (idisk1, END=100) number8, (nums2(i), i=1,8)
       IF (number8.GT.iptdim) THEN
          WRITE(*,*) 'ERROR 8.5 in rdump: nptmass exceeds dimensions!!',
-     &            nptmass,iptdim
+     &            number8,iptdim
          CALL quit
       ENDIF
       nptmass = number8
@@ -233,10 +237,11 @@ c      print *,iproc,': nptmass ',number8
 c
 c--Read array type 3 header
 c
-      IF (numberexp.GE.3) THEN
+      IF (number.GE.3) THEN
          READ (idisk1, END=100) number8, (nums3(i), i=1,8)
-         IF (number8.GT.iradtrans .OR. number8.NE.0 .AND. 
-     &        number8.LT.npart) THEN
+         IF (iradtrans.eq.idim .AND. 
+     &      (number8.GT.iradtrans .OR. number8.NE.0 .AND. 
+     &       number8.LT.npart)) THEN
             WRITE (*,*) 'ERROR 9 in rdump: iradtrans wrong ',number8,
      &           iradtrans,npart
             CALL quit
@@ -248,7 +253,7 @@ c
 c
 c--Read array type 4 header
 c
-      IF (numberexp.GE.4) THEN
+      IF (number.GE.4) THEN
          READ (idisk1, END=100) number8, (nums4(i), i=1,8)
          IF (imhd.EQ.idim.AND.(number8.GT.imhd .OR. number8.NE.1 .AND. 
      &        number8.LT.npart)) THEN
@@ -264,6 +269,7 @@ c
 c--Read array type 1 arrays
 c
 c--Default int
+c      print*,'icount = ',icount,icount+1,icount+nhydro
       READ (idisk1, END=100) (isteps(i), i=icount+1, icount+nhydro)
 c      print *,iproc,': read isteps'
 c--int*1

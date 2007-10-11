@@ -62,8 +62,13 @@ c
             OPEN(UNIT=iout+i,FILE=fileout(i),STATUS='replace',
      &           FORM='formatted')
          ENDDO
-         OPEN(UNIT=iout+nout+1,FILE='sinkstot.out',STATUS='replace',
+         IF (pfiles) THEN
+            OPEN(UNIT=iout+nout+1,FILE='sinkstot.out',STATUS='replace',
      &        FORM='formatted')
+         ELSE
+            OPEN(UNIT=iout+nout+1,FILE='sinkstotd.out',STATUS='replace',
+     &        FORM='formatted')
+         ENDIF
       ENDIF
       nfiles = 1000
       print*,'nfiles = ',nfiles 

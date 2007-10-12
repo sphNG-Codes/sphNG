@@ -255,11 +255,11 @@ c
             inumreturn = 0
             DO j = 1, inumber
                jpart = j + ntot
-               iphase(jpart) = 0
                IF (jpart.GT.idim) THEN
                   WRITE (*,*) 'jpart.GT.idim'
                   CALL quit
                ENDIF
+               iphase(jpart) = 0
                CALL treef(jpart,npart,ntot,xyzmh,acc,igphi,
      &              fsx,fsy,fsz,epot)
                dvxyzu(1,jpart) = fsx

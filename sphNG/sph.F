@@ -414,6 +414,7 @@ c************************************************************
 #ifdef MPI
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpidebug'
 #endif
 
       INCLUDE 'COMMONS/infor'
@@ -421,6 +422,7 @@ c************************************************************
       INCLUDE 'COMMONS/debug'
 
 #ifdef MPI
+      iloop = 0
       CALL MPI_INIT(ierr)
       CALL MPI_COMM_RANK(MPI_COMM_WORLD, iproc, ierr)
       CALL MPI_COMM_SIZE(MPI_COMM_WORLD, numproc, ierr)

@@ -110,10 +110,9 @@ c
       ENDIF
 
  100  node = isibdaupar(1,mpar)
-c      if (m.gt.npart) 
-c     &     print *,'     ',m,node,mpar,nneigh(m)
       IF (node.NE.0) THEN
          istack = istack + 1
+
          nstack(istack) = node
  150     IF (istack.NE.0) THEN
             n = nstack(istack)
@@ -148,9 +147,6 @@ c
                   pmassn = xyzmh(4,n)
                ENDIF
 
-c      if (m.gt.npart)
-c     &     print *,'       ',m,n,hm,xyzmh(5,n),rr,qcut2
-
                IF (istack+2.GT.istacksize) THEN
                   WRITE(iprint,*)'ERROR: stack too small in treef!',
      &                           istack+2,istacksize
@@ -164,7 +160,7 @@ c     &     print *,'       ',m,n,hm,xyzmh(5,n),rr,qcut2
                   istack = istack + 1
                   nstack(istack) = isibdaupar(1,j)
                ELSEIF (
-     &         (icall.EQ.1 .OR. m.GT.ntot) .AND. 
+c     &         (icall.EQ.1 .OR. m.GT.ntot) .AND. 
      &         (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iptintree.EQ.1))
      &                 .AND. accpar*rr.LT.qrr) THEN
                   j = isibdaupar(2,n)
@@ -172,21 +168,21 @@ c     &     print *,'       ',m,n,hm,xyzmh(5,n),rr,qcut2
                   nstack(istack) = j
                   istack = istack + 1
                   nstack(istack) = isibdaupar(1,j)
-               ELSEIF (icall.NE.1 .AND. (m.LE.ntot) .AND.
-     &         (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iptintree.EQ.1))
-     &                 .AND. 
-c--Quadrupole
-c     &                 0.005*gravmag*rr**3.LT.
-     &                 0.0035*gravmag*rr**3.LT.
-     &                 pmassn*qrr**2) THEN
-c--Monopole
-c     &                 0.0001*gravmag*rr**2.LT.
-c     &                 pmassn*qrr) THEN
-                  j = isibdaupar(2,n)
-                  istack = istack + 1
-                  nstack(istack) = j
-                  istack = istack + 1
-                  nstack(istack) = isibdaupar(1,j)
+c               ELSEIF (icall.NE.1 .AND. (m.LE.ntot) .AND.
+c     &         (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iptintree.EQ.1))
+c     &                 .AND. 
+cc--Quadrupole
+cc     &                 0.005*gravmag*rr**3.LT.
+c     &                 0.0035*gravmag*rr**3.LT.
+c     &                 pmassn*qrr**2) THEN
+cc--Monopole
+cc     &                 0.0001*gravmag*rr**2.LT.
+cc     &                 pmassn*qrr) THEN
+c                  j = isibdaupar(2,n)
+c                  istack = istack + 1
+c                  nstack(istack) = j
+c                  istack = istack + 1
+c                  nstack(istack) = isibdaupar(1,j)
                ELSE
                   nlistgn = nlistgn + 1
                   IF (nlistgn.GT.idim) THEN

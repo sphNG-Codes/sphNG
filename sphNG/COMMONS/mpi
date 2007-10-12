@@ -1,14 +1,44 @@
       PARAMETER (nummaxproc = 128)
+      PARAMETER (ineighproc = idim/2)
 
       INTEGER ierr, numproc, iproc
       INTEGER nparttot, nactivetot, n1tot, n2tot
       REAL fmas1tot, fmas2tot
 
       COMMON /mpi / ierr, numproc, iproc
-      COMMON /mpiint/ nparttot, nactivetot, n1tot, n2tot, nptmasstot
+      COMMON /mpiint/ nparttot, nactivetot, n1tot, n2tot, nptmasstot,
+     &	     maxnneighsentback,inumofreturns
       COMMON /mpireal/ fmas1tot, fmas2tot
 
       COMMON /mpireq/ istatus(MPI_STATUS_SIZE),
      &	     irequest_array(nummaxproc), 
      &	     istatus_array(MPI_STATUS_SIZE,nummaxproc),
      &       nneighfull(idim)
+
+      COMMON /mpiarr/ lsendlist(idim), llistrec(idim), 
+     &     nneighsentback(nummaxproc),
+     &     nneightogetback(nummaxproc),
+     &     llistsentback(ineighproc,nummaxproc),
+     &     inumberindiv(nummaxproc),
+     &     inumbercumm(nummaxproc),
+     &     inumberproc(nummaxproc),
+     &	   lblocklengths(idim)
+
+
+c
+c--Notes:
+c	maxnneighsentback is the maximum number of neighbours that were 
+c		found on another MPI process for any local particle in nlst
+c	inumofreturns is the number of MPI processes whose particles are
+c		currently moving that have neighbours on this MPI process
+c		(i.e. it is the number of MPI processes that will send
+c		data to it).
+c	nneighsentback() contains the number of particles that need to be
+c		sent back to each other MPI process for forces to be calculated
+c	nneightogetback() contains the number of particles that will be
+c		sent back from the other MPI process to this process
+c
+c--Quantities that do not need to be in common block:
+c	inumbertotal
+c	inumberreturned
+c

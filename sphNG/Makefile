@@ -23,6 +23,7 @@ SHELL = /bin/sh
 # the parameters as environment variables
 #DEBUG= no
 DOUBLEPRECISION= yes
+#openmp = yes
 #mpi = yes
 # endian can be "BIG", "LITTLE" or anything else which has no effect
 #ENDIAN= default
@@ -49,14 +50,20 @@ ifeq ($(SYSTEM), zen)
     else
        FC= ifort
     endif
-    FFLAGS= -O3 -openmp -xT -mcmodel=medium -i-dynamic -WB -Vaxlib \
+    FFLAGS= -O3 -xT -mcmodel=medium -i-dynamic -WB -Vaxlib \
             -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source\
             -warn interfaces -gen-interfaces
+    ifeq ($(openmp), yes)
+        FFLAGS += -openmp
+    endif
     ifeq ($(mpi), yes)
         FFLAGS += -DMPI -L/sw/sdev/intel-mpi/v3.0.021/x86_64/lib64 -Xlinker -rpath \
                  -Xlinker $libdir -Xlinker -rpath \
                  -Xlinker /opt/intel/mpi-rt/3.0 -lmpi -lmpiif -lmpigi \
                  -lrt -lpthread -ldl
+    endif
+    ifeq ($(mpidebug), yes)
+        FFLAGS += -DMPIDEBUG
     endif
     DBLFLAG= -r8
     DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
@@ -74,11 +81,20 @@ ifeq ($(SYSTEM), ukaff1a)
         FC= xlf_r -qnosave
     endif
 #    FFLAGS= -O3 -q64 -qextname -qsmp=noauto 
-    FFLAGS= -O3 -q64 -qsmp=noauto
+    FFLAGS= -O3 -q64
+    ifeq ($(openmp), yes)
+    FFLAGS += -qsmp=noauto
+    endif
     DBLFLAG= -qrealsize=8
 #    DEBUGFLAG= -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
 #    DEBUGFLAG= -C
     KNOWN_SYSTEM=yes
+ifeq ($(mpi), yes)
+    FPPFLAGS=-DMPI
+ifeq ($(mpidebug), yes)
+    FPPFLAGS=-DMPI,-DMPIDEBUG
+endif
+endif
     FPP_PREFIX=-d -WF,
 #    ZZFILE= zzsun_f77_double1.f zzsun_f77_double2.f
     ZZFILE= zzibm.f
@@ -175,16 +191,8 @@ ifeq ($(DOUBLEPRECISION), yes)
     FFLAGS += ${DBLFLAG}
 endif
 
-ifeq ($(mpi), yes)
-    FPPFLAGS += -DMPI
-endif
-
-ifeq ($(mpidebug), yes)
-    FFLAGS += -d -WF,-DMPI,-DMPIDEBUG
-else
 # add preprocessor flags (and prefix required for some compilers)
-    FFLAGS += ${FPP_PREFIX} ${FPPFLAGS}
-endif
+FFLAGS += ${FPP_PREFIX}${FPPFLAGS}
 
 # these are the sources common to all compilations
 
@@ -211,8 +219,8 @@ SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
 
 # these are the sources required for the gradh code to compile
 
-SRCGRADH= densityiterate_gradh.F derivi_P_gradh.f \
-        forcei_P_gradh.F hcalc_gradh.f 
+SRCGRADH= derivi_P_gradh_MPI.f forcei_P_gradh_MPI.F  \
+        densityiterate_gradh_MPI.F hcalc_gradh.f 
 	#divBclean_mhd.f divBdiffuse.f divBiterate.f \
 	#directsum_poisson_vec_mhd_clean.f 
 
@@ -395,5 +403,5 @@ updatedepends:
 include .depends
         
 clean:
-	\rm -f *.o sph_tree_lf_gradh sph_tree_lf sph_tree_rk_gradh sph_tree_rk ./utils/*.o
+	\rm -f *.o *.mod sph_tree_lf_gradh sph_tree_lf sph_tree_rk_gradh sph_tree_rk ./utils/*.o
 # DO NOT DELETE

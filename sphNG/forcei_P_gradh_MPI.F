@@ -176,7 +176,6 @@ c
          iparttree = ipart + ntot + 2
       ELSE
          iparttree = ipart
-         nneighprior = nneigh(ipart)
       ENDIF
 
 

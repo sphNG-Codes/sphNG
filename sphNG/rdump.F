@@ -58,21 +58,8 @@ c      INCLUDE 'COMMONS/torq'
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
       DIMENSION Bxyz(3,imhd)
 
-      DIMENSION icountproc(200)
-      DIMENSION numdiv(10)
-      
       DATA icall/2/
       DATA where/'rdump'/
-
-
-c      IF (iproc.GT.0) THEN
-c         DO i = 1, 100000
-c            DO j = 1, 1000000000
-c               xyzmh(1,i) = sin(xyzmh(2,i))
-c            END DO
-c         END DO
-c      ENDIF
-
 c     
 c--Read
 c
@@ -92,7 +79,13 @@ c
 c
 c--Read ouput file
 c
+
+      print *,'reading header'
+
       READ (idisk1, END=100) int1i,r1i,int2i,i1i,int3i
+
+      print *,'have read header'
+
       IF (int1i.NE.int1) THEN
          WRITE (*,*) 'ERROR 1 in rdump: ENDIANNESS wrong?'
          CALL quit
@@ -115,7 +108,13 @@ c--Default int
          WRITE (*,*) 'ERROR 4 in rdump: not enough default ints'
          CALL quit
       ENDIF
-      READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill
+      IF (number.EQ.7) THEN
+         READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
+     &        nblocks
+      ELSE
+         READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill
+         nblocks = 1
+      ENDIF
       IF (npart.GT.idim) THEN
          WRITE (*,*) 'ERROR in rdump: npart>idim'
          CALL quit
@@ -133,10 +132,12 @@ c--Default real
 c--need to read hzero for problems which utilise 
 c  the monaghan-style external boundary force
 c  D.Price 14.5.07
+
       IF (number.GE.19) THEN
          READ (idisk1, END=100) gt, dtmaxdp, gamma, rhozero, RK2,
      &        escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
      &        specang, ptmassin, tmag, Bextx, Bexty, Bextz, hzero
+
          WRITE(*,*) ' read hzero = ',hzero
          IF (imhd.EQ.idim) THEN
             WRITE(*,*) 'External field found, Bext = ',Bextx,Bexty,Bextz
@@ -164,6 +165,7 @@ c  D.Price 14.5.07
      &        specang, ptmassin
          ENDIF
       ENDIF
+
 c--real*4
       READ (idisk1, END=100) number
 c--real*8
@@ -187,31 +189,44 @@ c
 c--Arrays
 c
 c--Number of array lengths
+c     This has up to 4 blocks (hydro variables, sink particles, radiative
+c     transfer, and MHD) repeated nblocks times for each of nblocks MPI
+c     processes
 c
       READ (idisk1, END=100) number
-c      print *,iproc,': number of array lengths ',number
+#ifdef MPI
+      print *,iproc,': Number of array lengths & blocks',number,nblocks
+#else
+      print *,'Number of array lengths & blocks ',number,nblocks
+#endif
 c
 c--Expected
-c     
+c
       numberexp = 2
       IF (encal.EQ.'r') numberexp = 3
-      IF (imhd.EQ.idim) numberexp = numberexp + 1
+      IF (imhd.EQ.idim) numberexp = 4
 
-      IF (number.LT.2 .OR. MOD(number,numberexp).NE.0) THEN
+      IF (number.LT.2 .OR. numberexp.EQ.4 .AND.number/nblocks.NE.4) THEN
          WRITE (*,*) 'ERROR 7 in rdump ', number, numberexp
          CALL quit
+#ifdef MPI
+      ELSEIF (nblocks.NE.1 .AND. nblocks.NE.numproc) THEN
+         WRITE (*,*) 'ERROR in rdump: nblocks.NE.numproc ',
+     &        nblocks,numberexp,numproc
+         WRITE (*,*) 'Cannot start up job with different number of MPI',
+     &        ' processes'
+         CALL quit
+#endif
       ENDIF
 c
 c--Loop over blocks
 c
-#ifdef MPI
-      nblocks = number/numberexp
-!      print *,npart,number,numberexp,nblocks
-#else
-      nblocks = 1
-#endif
       DO iblock = 1, nblocks
+#ifdef MPI
+         print *,iproc,': Doing block ',iblock
+#else
          print *,'Doing block ',iblock
+#endif
 c
 c--Read array type 1 header
 c
@@ -222,7 +237,9 @@ c
          CALL quit
       ENDIF
       nhydro = number8
-c      print *,iproc,': nhydro ',number8
+#ifdef MPIDEBUG
+      print *,iproc,': nhydro ',number8
+#endif
 c
 c--Read array type 2 header
 c
@@ -233,15 +250,15 @@ c
          CALL quit
       ENDIF
       nptmass = number8
-c      print *,iproc,': nptmass ',number8
+#ifdef MPIDEBUG
+      print *,iproc,': nptmass ',number8
+#endif
 c
 c--Read array type 3 header
 c
       IF (number.GE.3) THEN
          READ (idisk1, END=100) number8, (nums3(i), i=1,8)
-         IF (iradtrans.eq.idim .AND. 
-     &      (number8.GT.iradtrans .OR. number8.NE.0 .AND. 
-     &       number8.LT.npart)) THEN
+         IF (iradtrans.EQ.idim .AND. number8.GT.iradtrans) THEN
             WRITE (*,*) 'ERROR 9 in rdump: iradtrans wrong ',number8,
      &           iradtrans,npart
             CALL quit
@@ -255,8 +272,7 @@ c--Read array type 4 header
 c
       IF (number.GE.4) THEN
          READ (idisk1, END=100) number8, (nums4(i), i=1,8)
-         IF (imhd.EQ.idim.AND.(number8.GT.imhd .OR. number8.NE.1 .AND. 
-     &        number8.LT.npart)) THEN
+         IF (imhd.EQ.idim.AND.number8.GT.imhd) THEN
             WRITE (*,*) 'ERROR 10 in rdump: imhd wrong ',number8,
      &           imhd,npart
             CALL quit
@@ -265,16 +281,57 @@ c
       ELSE
          nmhd = 0
       ENDIF
+
+c      print *,'nums4(7) ',nums4(7)
+c      nums4(7) = 4
+
+#ifdef MPI
+c
+c--IF MPI code, then need to skip blocks that are not for this process
+c
+      IF (nblocks.NE.1 .AND. iproc.NE.iblock-1) THEN
+#ifdef MPIDEBUG
+         print *,iproc,': Skipping block ',iblock
+#endif
+         DO j = 1, 8
+            DO k = 1, nums1(j)
+               READ (idisk1, END=100)
+            END DO
+         END DO
+         DO j = 1, 8
+            DO k = 1, nums2(j)
+               READ (idisk1, END=100)
+            END DO
+         END DO
+         IF (number.GE.3) THEN
+            DO j = 1, 8
+               DO k = 1, nums3(j)
+                  READ (idisk1, END=100)
+               END DO
+            END DO
+            IF (number.GE.4) THEN
+               DO j = 1, 8
+                  DO k = 1, nums4(j)
+                     READ (idisk1, END=100)
+                  END DO
+               END DO
+            ENDIF
+         ENDIF
+      ELSE
+#endif
 c
 c--Read array type 1 arrays
 c
+#ifdef MPIDEBUG
+         print *,iproc,': Reading data block'
+#endif
 c--Default int
-c      print*,'icount = ',icount,icount+1,icount+nhydro
-      READ (idisk1, END=100) (isteps(i), i=icount+1, icount+nhydro)
-c      print *,iproc,': read isteps'
+         READ (idisk1, END=100) (isteps(i), i=icount+1, icount+nhydro)
+#ifdef MPIDEBUG
+         print *,iproc,': read isteps ',isteps(1)
+#endif
 c--int*1
-      READ (idisk1, END=100) (iphase(i), i=icount+1, icount+nhydro)
-c      print *,iproc,': read iphase'
+         READ (idisk1, END=100) (iphase(i), i=icount+1, icount+nhydro)
 c--int*2
 
 c--int*4
@@ -282,52 +339,58 @@ c--int*4
 c--int*8
 
 c--Default real
-      DO j = 1, 5
-         READ (idisk1, END=100) (xyzmh(j,i), i=icount+1, icount+nhydro)
-      END DO
-      DO j = 1, 4
-         READ (idisk1, END=100) (vxyzu(j,i), i=icount+1, icount+nhydro)
-      END DO      
-c      print *,iproc,': read vel ',nums1(6)
+         DO j = 1, 5
+            READ (idisk1, END=100) (xyzmh(j,i), i=icount+1, 
+     &           icount+nhydro)
+         END DO
+         DO j = 1, 4
+            READ (idisk1, END=100) (vxyzu(j,i), i=icount+1, 
+     &           icount+nhydro)
+         END DO
+#ifdef MPIDEBUG
+         print *,iproc,': Read xyzmh, vxyzu'
+#endif
 c--skip unnecessary reals
-      IF (nums1(6).GT.9) THEN
-         DO j=1,nums1(6)-9
-            READ (idisk1, END=100)
-         ENDDO
-      ENDIF    
-c--real*4
-      READ (idisk1, END=100) (rho(i), i=icount+1, icount+nhydro)
-      IF (nlmax.EQ.1) THEN
-         iread = 1
-      ELSE
-         iread = 2
-         READ (idisk1, END=100) (dgrav(i), i=icount+1, icount+nhydro)
-         IF (gt.EQ.0.0) THEN
-            DO j = icount+1, icount+nhydro
-               dgrav(j) = 0.
+         IF (nums1(6).GT.9) THEN
+            DO j=1,nums1(6)-9
+               READ (idisk1, END=100)
             ENDDO
          ENDIF
-      ENDIF
-c      print *,iproc,': read rho dgrav ',nums1(7),iread
+c--real*4
+         READ (idisk1, END=100) (rho(i), i=icount+1, icount+nhydro)
+         IF (nlmax.EQ.1) THEN
+            iread = 1
+         ELSE
+            iread = 2
+            READ (idisk1, END=100) (dgrav(i), i=icount+1, icount+nhydro)
+            IF (gt.EQ.0.0) THEN
+               DO j = icount+1, icount+nhydro
+                  dgrav(j) = 0.
+               ENDDO
+            ENDIF
+         ENDIF
 c--skip unnecessary real*4's
-      IF (nums1(7).GT.iread) THEN
-         DO j=1,nums1(7)-iread
-            READ (idisk1, END=100)
-         ENDDO
-      ENDIF
-c     READ (idisk1, END=100) (alphaMM(1,i), i=icount+1, icount+nhydro)
+         IF (nums1(7).GT.iread) THEN
+            DO j=1,nums1(7)-iread
+               READ (idisk1, END=100)
+            ENDDO
+         ENDIF
+c       READ (idisk1, END=100) (alphaMM(1,i), i=icount+1, icount+nhydro)
 c--real*8
 
+#ifdef MPIDEBUG
+         print *,iproc,': Read hydro'
+#endif
 c
 c--Read array type 2 arrays
 c
 c--Default int
-      READ (idisk1, END=100) (listpm(i), i=1,nptmass)
+         READ (idisk1, END=100) (listpm(i), i=1,nptmass)
 
-      DO i = 1, nptmass
-         write (*,*) 'Setting ',i,listpm(i),xyzmh(5,listpm(i)),hacc
-         xyzmh(5,listpm(i)) = hacc
-      END DO
+         DO i = 1, nptmass
+            write (*,*) 'Setting ',i,listpm(i),xyzmh(5,listpm(i)),hacc
+            xyzmh(5,listpm(i)) = hacc
+         END DO
 
 
 c--int*1
@@ -339,21 +402,21 @@ c--int*4
 c--int*8
 
 c--Default real
-      READ (idisk1, END=100) (spinx(i),i=1,nptmass)
-      READ (idisk1, END=100) (spiny(i),i=1,nptmass)
-      READ (idisk1, END=100) (spinz(i),i=1,nptmass)
-      READ (idisk1, END=100) (angaddx(i),i=1,nptmass)
-      READ (idisk1, END=100) (angaddy(i),i=1,nptmass)
-      READ (idisk1, END=100) (angaddz(i),i=1,nptmass)
-      READ (idisk1, END=100) (spinadx(i),i=1,nptmass)
-      READ (idisk1, END=100) (spinady(i),i=1,nptmass)
-      READ (idisk1, END=100) (spinadz(i),i=1,nptmass)
+         READ (idisk1, END=100) (spinx(i),i=1,nptmass)
+         READ (idisk1, END=100) (spiny(i),i=1,nptmass)
+         READ (idisk1, END=100) (spinz(i),i=1,nptmass)
+         READ (idisk1, END=100) (angaddx(i),i=1,nptmass)
+         READ (idisk1, END=100) (angaddy(i),i=1,nptmass)
+         READ (idisk1, END=100) (angaddz(i),i=1,nptmass)
+         READ (idisk1, END=100) (spinadx(i),i=1,nptmass)
+         READ (idisk1, END=100) (spinady(i),i=1,nptmass)
+         READ (idisk1, END=100) (spinadz(i),i=1,nptmass)
 c--real*4
 
 c--real*8
 
-      IF (numberexp.GE.3 .AND. nradtrans.EQ.nhydro 
-     &    .AND. encal.EQ.'r') THEN
+         IF (number.GE.3 .AND. nradtrans.EQ.nhydro 
+     &        .AND. encal.EQ.'r') THEN
 c
 c--Array length 3 arrays
 c      
@@ -368,17 +431,17 @@ c--int*4
 c--int*8
 
 c--Default real
-         DO j = 1, 5
-            READ (idisk1, END=100) (ekcle(j,i), i=icount+1, 
-     &           icount+nradtrans)
-         END DO
+            DO j = 1, 5
+               READ (idisk1, END=100) (ekcle(j,i), i=icount+1, 
+     &              icount+nradtrans)
+            END DO
 c--real*4
 
 c--real*8
 
-      ENDIF
-      IF (numberexp.GE.4 .AND. nmhd.EQ.nhydro .AND. 
-     &     imhd.EQ.idim) THEN
+         ENDIF
+         IF (number.GE.4 .AND. nmhd.EQ.nhydro .AND. 
+     &        imhd.EQ.idim) THEN
 c
 c--Array length 4 arrays
 c      
@@ -396,427 +459,118 @@ c--Default real
 c
 c--read B field from dump
 c
-         IF (nums4(6).LT.3) THEN
-            WRITE(*,*) 'ERROR: no MHD variables in dump file'
-            CALL quit
-         ENDIF
-         DO j = 1, 3
-            READ (idisk1, END=100) (Bxyz(j,i), i=icount+1, icount+nmhd)
-         END DO
+            IF (nums4(6).LT.3) THEN
+               WRITE(*,*) 'ERROR: no MHD variables in dump file'
+               CALL quit
+            ENDIF
+            DO j = 1, 3
+               READ (idisk1, END=100) (Bxyz(j,i), i=icount+1, 
+     &              icount+nmhd)
+            END DO
+#ifdef MPIDEBUG
+         print *,iproc,': Read Bxyz'
+#endif
 c
 c--read Euler potentials from dump if necessary
 c
-         IF (varmhd.EQ.'eulr') THEN
-            IF (nums4(6).GE.5) THEN
-               DO j = 1, 2
-                  READ (idisk1, END=100) (Bevolxyz(j,i), i=icount+1, 
-     &                 icount+npart)
-               END DO
-            ELSE
-               WRITE(*,*) 'ERROR: Cannot start Euler potentials run '
-               WRITE(*,*) '       from non-Euler potentials dump'
-               CALL quit
-            ENDIF
-         ELSEIF (varmhd.EQ.'Brho') THEN
+            IF (varmhd.EQ.'eulr') THEN
+               IF (nums4(6).GE.5) THEN
+                  DO j = 1, 2
+                     READ (idisk1, END=100) (Bevolxyz(j,i), i=icount+1, 
+     &                    icount+nmhd)
+                  END DO
+#ifdef MPIDEBUG
+         print *,iproc,': Read Bevolxyz'
+#endif
+               ELSE
+                  WRITE(*,*) 'ERROR: Cannot start Euler potentials run'
+                  WRITE(*,*) '       from non-Euler potentials dump'
+                  CALL quit
+               ENDIF
+            ELSEIF (varmhd.EQ.'Brho') THEN
 c
 c--convert from B to B/rho for evolution
 c
-            DO i=icount+1,icount+npart
-               IF (rho(i).LE.0.) THEN
-                  WRITE(*,*) 'ERROR: rho <= 0 in rdump, evolving B/rho'
-                  CALL quit
-               ENDIF
-               DO j = 1,3
-                  Bevolxyz(j,i) = Bxyz(j,i)/rho(i)
+               DO i=icount+1,icount+nmhd
+                  IF (rho(i).LE.0.) THEN
+                   WRITE(*,*) 'ERROR: rho <= 0 in rdump, evolving B/rho'
+                     CALL quit
+                  ENDIF
+                  DO j = 1,3
+                     Bevolxyz(j,i) = Bxyz(j,i)/rho(i)
+                  ENDDO
                ENDDO
-            ENDDO
-         ELSEIF (varmhd.EQ.'Bvol') THEN
+            ELSEIF (varmhd.EQ.'Bvol') THEN
 c
 c--Bevol = B if evolving B
 c
-            DO i=icount+1,icount+npart
-               DO j = 1,3
-                  Bevolxyz(j,i) = Bxyz(j,i)
+               DO i=icount+1,icount+nmhd
+                  DO j = 1,3
+                     Bevolxyz(j,i) = Bxyz(j,i)
+                  ENDDO
                ENDDO
-            ENDDO
-         ELSE
-            STOP 'unknown MHD variable in rdump'
-         ENDIF
+            ELSE
+               STOP 'unknown MHD variable in rdump'
+            ENDIF
 c--real*4
-         IF (nums4(7).GT.4.AND.ifsvi.EQ.6) THEN
+            iread = 0
+            IF (nums4(7).GT.4.AND.ifsvi.EQ.6) THEN
 c--skip current/div B
-            DO j = 1, 4
-               READ (idisk1, END=100)
-            END DO
+               DO j = 1, 4
+                  iread = iread + 1
+                  READ (idisk1, END=100)
+               END DO
 c--read artificial resistivity parameter
 c            READ (idisk1, END=100) (alphaMM(2,i), i=icount+1, 
-c     &              icount+npart)
-         ELSE
-           IF (ifsvi.EQ.6) THEN
+c     &              icount+nmhd)
+c            iread = read + 1
+            ELSE
+               IF (ifsvi.EQ.6) THEN
            WRITE(*,*) 'WARNING: resistivity parameter not found in dump'
-           ENDIF
-           WRITE(*,*) ' => setting alphaB = alphamin everywhere'
-           DO i=icount+1,icount+npart
-              alphaMM(2,i) = alphamin(2)
-           ENDDO
-         ENDIF
+               ENDIF
+               WRITE(*,*) ' => setting alphaB = alphamin everywhere'
+               DO i=icount+1,icount+nmhd
+                  alphaMM(2,i) = alphamin(2)
+               ENDDO
+            ENDIF
+            DO i = iread + 1, nums4(7)
+               READ (idisk1, END=100)
+            END DO
 c--real*8
-      ELSEIF (imhd.EQ.idim) THEN
-          WRITE(*,*) ' no magnetic fields detected in dump file' 
-      ENDIF
+         ELSEIF (imhd.EQ.idim) THEN
+            WRITE(*,*) ' no magnetic fields detected in dump file' 
+         ENDIF
+
+#ifdef MPIDEBUG
+         print *,iproc,': Read MHD'
+#endif
 
 #ifdef MPI
-c      goto 10000
+c
+c--Split particles between different MPI processes
+c
+c      GOTO 10000
 
-      numprockeep = numproc
-      iprockeep = iproc
-
-c      numproc = 128
-c      iproc = iproc + 5
-
-      icountnew = icount
-      IF (numproc.EQ.2) THEN
-         DO i = icount+1, nhydro
-            IF (iproc.EQ.0 .AND. 
-     &           xyzmh(1,i).GE.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-               
-            ELSEIF (iproc.EQ.1 .AND. 
-     &              xyzmh(1,i).LT.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-            ENDIF
-         END DO
-      ELSEIF (numproc.EQ.4) THEN
-         DO i = icount+1, icount+nhydro
-            IF (iproc.EQ.0 .AND. xyzmh(3,i).GE.0.0 .AND.
-     &           xyzmh(1,i).GE.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-
-            ELSEIF (iproc.EQ.1 .AND. xyzmh(3,i).GE.0.0 .AND.
-     &              xyzmh(1,i).LT.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-
-            ELSEIF (iproc.EQ.2 .AND. xyzmh(3,i).LT.0.0 .AND.
-     &              xyzmh(1,i).GE.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-
-            ELSEIF (iproc.EQ.3 .AND. xyzmh(3,i).LT.0.0 .AND.
-     &              xyzmh(1,i).LT.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-            ENDIF
-         END DO
-      ELSEIF (numproc.EQ.8) THEN
-         DO i = icount+1, icount+nhydro
-            IF (iproc.EQ.0 .AND. xyzmh(3,i).GE.0.0 .AND.
-     &           xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-
-            ELSEIF (iproc.EQ.1 .AND. xyzmh(3,i).GE.0.0 .AND.
-     &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-
-            ELSEIF (iproc.EQ.2 .AND. xyzmh(3,i).LT.0.0 .AND.
-     &              xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-
-            ELSEIF (iproc.EQ.3 .AND. xyzmh(3,i).LT.0.0 .AND.
-     &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-
-            ELSEIF (iproc.EQ.4 .AND. xyzmh(3,i).GE.0.0 .AND.
-     &           xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-
-            ELSEIF (iproc.EQ.5 .AND. xyzmh(3,i).GE.0.0 .AND.
-     &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-
-            ELSEIF (iproc.EQ.6 .AND. xyzmh(3,i).LT.0.0 .AND.
-     &              xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-
-            ELSEIF (iproc.EQ.7 .AND. xyzmh(3,i).LT.0.0 .AND.
-     &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-            ENDIF
-         END DO
-      ELSEIF (numproc.EQ.10 .OR. 
-     &        numproc.EQ.12 .OR. numproc.EQ.14 .OR. numproc.EQ.16 
-     &        .OR. numproc.EQ.32 .OR. numproc.EQ.38 .OR. numproc.EQ.48
-     &        .OR. numproc.EQ.64 .OR. numproc.EQ.74 
-     &        .OR. numproc.EQ.122.OR. numproc.EQ.128) THEN
-         numdiv(1) = 0
-         IF (numproc.EQ.10) THEN
-            xpower = 1.0
-            ndivisor = 2
-            numdiv(2) = 4
-         ELSEIF (numproc.EQ.12) THEN
-            xpower = 1.0
-            ndivisor = 2
-            numdiv(2) = 5
-         ELSEIF (numproc.EQ.14) THEN
-            xpower = 0.65
-            ndivisor = 2
-            numdiv(2) = 6
-c         ELSEIF (numproc.EQ.8) THEN
-c            xpower = 1.0
-c            ndivisor = 2
-         ELSEIF (numproc.EQ.16) THEN
-            xpower = 0.61
-            ndivisor = 2
-            numdiv(2) = 7
-         ELSEIF (numproc.EQ.32) THEN
-            xpower = 0.74
-            ndivisor = 3
-            numdiv(2) = 5
-            numdiv(3) = 10
-         ELSEIF (numproc.EQ.38) THEN
-            xpower = 0.70
-            ndivisor = 3
-            numdiv(2) = 6
-            numdiv(3) = 12
-         ELSEIF (numproc.EQ.48) THEN
-            xpower = 0.65
-            ndivisor = 3
-            numdiv(2) = 8
-            numdiv(3) = 15
-         ELSEIF (numproc.EQ.64) THEN
-            xpower = 0.76
-            ndivisor = 4
-            numdiv(2) = 5
-            numdiv(3) = 10
-            numdiv(4) = 16
-         ELSEIF (numproc.EQ.74) THEN
-            xpower = 0.72
-            ndivisor = 4
-            numdiv(2) = 6
-            numdiv(3) = 12
-            numdiv(4) = 18
-         ELSEIF (numproc.EQ.122) THEN
-            xpower = 0.75
-            ndivisor = 5
-c--Given by 6*(j-1)
-            numdiv(2) = 6
-            numdiv(3) = 12
-            numdiv(4) = 18
-            numdiv(5) = 24
-         ELSEIF (numproc.EQ.128) THEN
-            xpower = 0.74
-            ndivisor = 5
-            numdiv(2) = 6
-            numdiv(3) = 12
-            numdiv(4) = 19
-            numdiv(5) = 26
-         ENDIF
-         iprocdiv2 = numproc/2
-         pilocal = ATAN2(0.0,-1.0)
-c         print *,pilocal,ATAN(0.2/1.0)
-
-c         DO i = 1, 200
-c            icountproc(i) = 0
-c         END DO
-
-         DO i = icount+1, icount+nhydro
-            xlatitude = ABS(ABS(ATAN(xyzmh(3,i)/SQRT(xyzmh(1,i)**2 +
-     &           xyzmh(2,i)**2))) - pilocal/2.0)
-            IF (xlatitude.LT.0.0) xlatitude = 0.0
-            xlongitude = ATAN2(xyzmh(2,i),xyzmh(1,i)) + pilocal
-
-            jvalue = INT(ndivisor*(xlatitude/(pilocal/2.0))**xpower)+1
-            IF (jvalue.GT.ndivisor) jvalue = ndivisor
-            
-            j2value = numdiv(jvalue)
-            IF (jvalue.GT.1) THEN
-               lvalue = INT(numdiv(jvalue)*xlongitude/(2.0*pilocal)) + 1
-               IF (lvalue.GT.numdiv(jvalue)) lvalue = numdiv(jvalue)
+c      IF (nblocks.NE.1) THEN
+c         IF (iproc.EQ.iblock-1) THEN
+            IF (nblocks.EQ.1) THEN
+               CALL split(npart,n1,icount,nhydro,isteps,iphase,xyzmh,
+     &              vxyzu,rho,dgrav,Bevolxyz,Bxyz)
             ELSE
-               lvalue = 0
+               print *,iproc,': MAINTAIN PARTICLE SPLIT ',npart,nhydro
+               npart = nhydro
+               n1 = nhydro
             ENDIF
+c         ENDIF
+c      ENDIF
 
-            iprocvalue = 0
-            DO ii = 1, jvalue-1
-               iprocvalue = iprocvalue + numdiv(ii)
-            END DO
-            iprocvalue = iprocvalue + lvalue
+10000 CONTINUE
 
-c            IF (iproc.EQ.0 .AND. MOD(i,1000).EQ.0) 
-c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
-
-            IF (xyzmh(3,i).GE.0.0) iprocvalue = iprocvalue + iprocdiv2
-
-            icountproc(iprocvalue+1) = icountproc(iprocvalue+1) +1
-
-            IF (iproc.EQ.iprocvalue) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-            ENDIF
-         END DO
-      ELSE
-         PRINT *,' Currently invalid number of processes ',numproc
-         CALL quit
-      ENDIF
-      npart = icountnew
-      n1 = icountnew
-      icount = icountnew
-10000 continue
       IF (iblock.EQ.nblocks) print *,iproc,': KEEPING ',npart
-
-c      DO i = 1, numproc
-c         print *,'    ',i,icountproc(i)
-c      END DO
-
-      numproc = numprockeep
-      iproc = iprockeep
-
+c
+c--End if to allow skipping of blocks of file belonging to other processes
+c
+      ENDIF
 #endif
 c
 c--End loop over blocks
@@ -1050,6 +804,493 @@ c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2)) THEN
  100  CONTINUE
       WRITE(*,*) 'END OF FILE REACHED IN RDUMP'
       ichkl = 1
+
+      RETURN
+      END
+
+
+c============================================================
+
+
+      SUBROUTINE split(npart,n1,icount,nhydro,isteps,iphase,xyzmh,
+     &     vxyzu,rho,dgrav,Bevolxyz,Bxyz)
+c************************************************************
+c                                                           *
+c--Splits based on spatial coordinates (x, y, z) for 2, 4   *
+c     or 8 processes. For more processes (10, 12, 14, 16,   *
+c     32, 38, 48, 64, 74, 122, 128) it does a spatial split *
+c     that tries to give equal numbers of particles from a  *
+c     sphere to each process in wedges that all extend into *
+c     the middle of the sphere.                             *
+c                                                           *
+c************************************************************
+
+      INCLUDE 'idim'
+      INCLUDE 'igrape'
+
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
+
+      INTEGER*1 iphase(idim)
+      REAL*4 rho(idim), dgrav(idim)
+      DIMENSION isteps(idim), xyzmh(5,idim), vxyzu(4,idim), 
+     &     Bevolxyz(3,idim), Bxyz(3,idim)
+
+      DIMENSION numdiv(10)
+      
+      icountnew = icount
+      IF (numproc.EQ.2) THEN
+         DO i = icount+1, nhydro
+            IF (iproc.EQ.0 .AND. 
+     &           xyzmh(1,i).GE.0.0) THEN
+               icountnew = icountnew + 1
+               isteps(icountnew) = isteps(i)
+               iphase(icountnew) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icountnew) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icountnew) = vxyzu(j,i)
+               END DO
+               rho(icountnew) = rho(i)
+               dgrav(icountnew) = dgrav(i)
+               IF (imhd.EQ.idim) THEN
+                  DO j = 1, 3
+                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  END DO
+                  DO j = 1, 3
+                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  END DO
+               ENDIF
+
+            ELSEIF (iproc.EQ.1 .AND. 
+     &              xyzmh(1,i).LT.0.0) THEN
+               icountnew = icountnew + 1
+               isteps(icountnew) = isteps(i)
+               iphase(icountnew) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icountnew) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icountnew) = vxyzu(j,i)
+               END DO
+               rho(icountnew) = rho(i)
+               dgrav(icountnew) = dgrav(i)
+               IF (imhd.EQ.idim) THEN
+                  DO j = 1, 3
+                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  END DO
+                  DO j = 1, 3
+                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  END DO
+               ENDIF
+               
+            ENDIF
+         END DO
+      ELSEIF (numproc.EQ.4) THEN
+         DO i = icount+1, icount+nhydro
+            IF (iproc.EQ.0 .AND. xyzmh(3,i).GE.0.0 .AND.
+     &           xyzmh(1,i).GE.0.0) THEN
+               icountnew = icountnew + 1
+               isteps(icountnew) = isteps(i)
+               iphase(icountnew) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icountnew) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icountnew) = vxyzu(j,i)
+               END DO
+               rho(icountnew) = rho(i)
+               dgrav(icountnew) = dgrav(i)
+               IF (imhd.EQ.idim) THEN
+                  DO j = 1, 3
+                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  END DO
+                  DO j = 1, 3
+                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  END DO
+               ENDIF
+
+            ELSEIF (iproc.EQ.1 .AND. xyzmh(3,i).GE.0.0 .AND.
+     &              xyzmh(1,i).LT.0.0) THEN
+               icountnew = icountnew + 1
+               isteps(icountnew) = isteps(i)
+               iphase(icountnew) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icountnew) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icountnew) = vxyzu(j,i)
+               END DO
+               rho(icountnew) = rho(i)
+               dgrav(icountnew) = dgrav(i)
+               IF (imhd.EQ.idim) THEN
+                  DO j = 1, 3
+                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  END DO
+                  DO j = 1, 3
+                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  END DO
+               ENDIF
+
+            ELSEIF (iproc.EQ.2 .AND. xyzmh(3,i).LT.0.0 .AND.
+     &              xyzmh(1,i).GE.0.0) THEN
+               icountnew = icountnew + 1
+               isteps(icountnew) = isteps(i)
+               iphase(icountnew) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icountnew) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icountnew) = vxyzu(j,i)
+               END DO
+               rho(icountnew) = rho(i)
+               dgrav(icountnew) = dgrav(i)
+               IF (imhd.EQ.idim) THEN
+                  DO j = 1, 3
+                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  END DO
+                  DO j = 1, 3
+                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  END DO
+               ENDIF
+
+            ELSEIF (iproc.EQ.3 .AND. xyzmh(3,i).LT.0.0 .AND.
+     &              xyzmh(1,i).LT.0.0) THEN
+               icountnew = icountnew + 1
+               isteps(icountnew) = isteps(i)
+               iphase(icountnew) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icountnew) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icountnew) = vxyzu(j,i)
+               END DO
+               rho(icountnew) = rho(i)
+               dgrav(icountnew) = dgrav(i)
+               IF (imhd.EQ.idim) THEN
+                  DO j = 1, 3
+                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  END DO
+                  DO j = 1, 3
+                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  END DO
+               ENDIF
+
+            ENDIF
+         END DO
+      ELSEIF (numproc.EQ.8) THEN
+         DO i = icount+1, icount+nhydro
+            IF (iproc.EQ.0 .AND. xyzmh(3,i).GE.0.0 .AND.
+     &           xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
+               icountnew = icountnew + 1
+               isteps(icountnew) = isteps(i)
+               iphase(icountnew) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icountnew) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icountnew) = vxyzu(j,i)
+               END DO
+               rho(icountnew) = rho(i)
+               dgrav(icountnew) = dgrav(i)
+               IF (imhd.EQ.idim) THEN
+                  DO j = 1, 3
+                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  END DO
+                  DO j = 1, 3
+                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  END DO
+               ENDIF
+
+            ELSEIF (iproc.EQ.1 .AND. xyzmh(3,i).GE.0.0 .AND.
+     &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
+               icountnew = icountnew + 1
+               isteps(icountnew) = isteps(i)
+               iphase(icountnew) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icountnew) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icountnew) = vxyzu(j,i)
+               END DO
+               rho(icountnew) = rho(i)
+               dgrav(icountnew) = dgrav(i)
+               IF (imhd.EQ.idim) THEN
+                  DO j = 1, 3
+                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  END DO
+                  DO j = 1, 3
+                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  END DO
+               ENDIF
+
+            ELSEIF (iproc.EQ.2 .AND. xyzmh(3,i).LT.0.0 .AND.
+     &              xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
+               icountnew = icountnew + 1
+               isteps(icountnew) = isteps(i)
+               iphase(icountnew) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icountnew) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icountnew) = vxyzu(j,i)
+               END DO
+               rho(icountnew) = rho(i)
+               dgrav(icountnew) = dgrav(i)
+               IF (imhd.EQ.idim) THEN
+                  DO j = 1, 3
+                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  END DO
+                  DO j = 1, 3
+                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  END DO
+               ENDIF
+
+            ELSEIF (iproc.EQ.3 .AND. xyzmh(3,i).LT.0.0 .AND.
+     &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
+               icountnew = icountnew + 1
+               isteps(icountnew) = isteps(i)
+               iphase(icountnew) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icountnew) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icountnew) = vxyzu(j,i)
+               END DO
+               rho(icountnew) = rho(i)
+               dgrav(icountnew) = dgrav(i)
+               IF (imhd.EQ.idim) THEN
+                  DO j = 1, 3
+                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  END DO
+                  DO j = 1, 3
+                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  END DO
+               ENDIF
+
+            ELSEIF (iproc.EQ.4 .AND. xyzmh(3,i).GE.0.0 .AND.
+     &           xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
+               icountnew = icountnew + 1
+               isteps(icountnew) = isteps(i)
+               iphase(icountnew) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icountnew) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icountnew) = vxyzu(j,i)
+               END DO
+               rho(icountnew) = rho(i)
+               dgrav(icountnew) = dgrav(i)
+               IF (imhd.EQ.idim) THEN
+                  DO j = 1, 3
+                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  END DO
+                  DO j = 1, 3
+                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  END DO
+               ENDIF
+
+            ELSEIF (iproc.EQ.5 .AND. xyzmh(3,i).GE.0.0 .AND.
+     &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
+               icountnew = icountnew + 1
+               isteps(icountnew) = isteps(i)
+               iphase(icountnew) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icountnew) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icountnew) = vxyzu(j,i)
+               END DO
+               rho(icountnew) = rho(i)
+               dgrav(icountnew) = dgrav(i)
+               IF (imhd.EQ.idim) THEN
+                  DO j = 1, 3
+                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  END DO
+                  DO j = 1, 3
+                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  END DO
+               ENDIF
+
+            ELSEIF (iproc.EQ.6 .AND. xyzmh(3,i).LT.0.0 .AND.
+     &              xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
+               icountnew = icountnew + 1
+               isteps(icountnew) = isteps(i)
+               iphase(icountnew) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icountnew) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icountnew) = vxyzu(j,i)
+               END DO
+               rho(icountnew) = rho(i)
+               dgrav(icountnew) = dgrav(i)
+               IF (imhd.EQ.idim) THEN
+                  DO j = 1, 3
+                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  END DO
+                  DO j = 1, 3
+                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  END DO
+               ENDIF
+
+            ELSEIF (iproc.EQ.7 .AND. xyzmh(3,i).LT.0.0 .AND.
+     &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
+               icountnew = icountnew + 1
+               isteps(icountnew) = isteps(i)
+               iphase(icountnew) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icountnew) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icountnew) = vxyzu(j,i)
+               END DO
+               rho(icountnew) = rho(i)
+               dgrav(icountnew) = dgrav(i)
+               IF (imhd.EQ.idim) THEN
+                  DO j = 1, 3
+                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  END DO
+                  DO j = 1, 3
+                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  END DO
+               ENDIF
+
+            ENDIF
+         END DO
+      ELSEIF (numproc.EQ.10 .OR. 
+     &        numproc.EQ.12 .OR. numproc.EQ.14 .OR. numproc.EQ.16 
+     &        .OR. numproc.EQ.32 .OR. numproc.EQ.38 .OR. numproc.EQ.48
+     &        .OR. numproc.EQ.64 .OR. numproc.EQ.74 
+     &        .OR. numproc.EQ.122.OR. numproc.EQ.128) THEN
+         numdiv(1) = 0
+         IF (numproc.EQ.10) THEN
+            xpower = 1.0
+            ndivisor = 2
+            numdiv(2) = 4
+         ELSEIF (numproc.EQ.12) THEN
+            xpower = 1.0
+            ndivisor = 2
+            numdiv(2) = 5
+         ELSEIF (numproc.EQ.14) THEN
+            xpower = 0.65
+            ndivisor = 2
+            numdiv(2) = 6
+c         ELSEIF (numproc.EQ.8) THEN
+c            xpower = 1.0
+c            ndivisor = 2
+         ELSEIF (numproc.EQ.16) THEN
+            xpower = 0.61
+            ndivisor = 2
+            numdiv(2) = 7
+         ELSEIF (numproc.EQ.32) THEN
+            xpower = 0.74
+            ndivisor = 3
+            numdiv(2) = 5
+            numdiv(3) = 10
+         ELSEIF (numproc.EQ.38) THEN
+            xpower = 0.70
+            ndivisor = 3
+            numdiv(2) = 6
+            numdiv(3) = 12
+         ELSEIF (numproc.EQ.48) THEN
+            xpower = 0.65
+            ndivisor = 3
+            numdiv(2) = 8
+            numdiv(3) = 15
+         ELSEIF (numproc.EQ.64) THEN
+            xpower = 0.76
+            ndivisor = 4
+            numdiv(2) = 5
+            numdiv(3) = 10
+            numdiv(4) = 16
+         ELSEIF (numproc.EQ.74) THEN
+            xpower = 0.72
+            ndivisor = 4
+            numdiv(2) = 6
+            numdiv(3) = 12
+            numdiv(4) = 18
+         ELSEIF (numproc.EQ.122) THEN
+            xpower = 0.75
+            ndivisor = 5
+c--Given by 6*(j-1)
+            numdiv(2) = 6
+            numdiv(3) = 12
+            numdiv(4) = 18
+            numdiv(5) = 24
+         ELSEIF (numproc.EQ.128) THEN
+            xpower = 0.74
+            ndivisor = 5
+            numdiv(2) = 6
+            numdiv(3) = 12
+            numdiv(4) = 19
+            numdiv(5) = 26
+         ENDIF
+         iprocdiv2 = numproc/2
+         pilocal = ATAN2(0.0,-1.0)
+c         print *,pilocal,ATAN(0.2/1.0)
+
+         DO i = icount+1, icount+nhydro
+            xlatitude = ABS(ABS(ATAN(xyzmh(3,i)/SQRT(xyzmh(1,i)**2 +
+     &           xyzmh(2,i)**2))) - pilocal/2.0)
+            IF (xlatitude.LT.0.0) xlatitude = 0.0
+            xlongitude = ATAN2(xyzmh(2,i),xyzmh(1,i)) + pilocal
+
+            jvalue = INT(ndivisor*(xlatitude/(pilocal/2.0))**xpower)+1
+            IF (jvalue.GT.ndivisor) jvalue = ndivisor
+            
+            j2value = numdiv(jvalue)
+            IF (jvalue.GT.1) THEN
+               lvalue = INT(numdiv(jvalue)*xlongitude/(2.0*pilocal)) + 1
+               IF (lvalue.GT.numdiv(jvalue)) lvalue = numdiv(jvalue)
+            ELSE
+               lvalue = 0
+            ENDIF
+
+            iprocvalue = 0
+            DO ii = 1, jvalue-1
+               iprocvalue = iprocvalue + numdiv(ii)
+            END DO
+            iprocvalue = iprocvalue + lvalue
+
+c            IF (iproc.EQ.0 .AND. MOD(i,1000).EQ.0) 
+c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
+
+            IF (xyzmh(3,i).GE.0.0) iprocvalue = iprocvalue + iprocdiv2
+
+            IF (iproc.EQ.iprocvalue) THEN
+               icountnew = icountnew + 1
+               isteps(icountnew) = isteps(i)
+               iphase(icountnew) = iphase(i)
+               DO j = 1, 5
+                  xyzmh(j,icountnew) = xyzmh(j,i)
+               END DO
+               DO j = 1, 4
+                  vxyzu(j,icountnew) = vxyzu(j,i)
+               END DO
+               rho(icountnew) = rho(i)
+               dgrav(icountnew) = dgrav(i)
+               IF (imhd.EQ.idim) THEN               
+                  DO j = 1, 3
+                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  END DO
+                  DO j = 1, 3
+                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  END DO
+               ENDIF
+
+            ENDIF
+         END DO
+      ELSE
+         PRINT *,' Currently invalid number of processes ',numproc
+         CALL quit
+      ENDIF
+      npart = icountnew
+      n1 = icountnew
+      icount = icountnew
 
       RETURN
       END

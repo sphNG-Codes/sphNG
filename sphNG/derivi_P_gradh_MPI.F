@@ -146,12 +146,16 @@ c
 #endif
          IF (itiming) CALL getused(tdens1)
 
+#ifdef MPIDEBUG
          print *,'DERIVI: calling densityiterate_gradh'
+#endif
 
          CALL densityiterate_gradh(dt,npart,ntot,xyzmh,vxyzu,dvxyzu,
      &        nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz)
 
+#ifdef MPIDEBUG
          print *,'DERIVI: called densityiterate_gradh'
+#endif
 
          IF (itiming) THEN
             CALL getused(tdens2)
@@ -745,11 +749,12 @@ c     &              llistsentback(1,iprocrec+1)+1
                   END DO
                END DO
 
+#ifdef MPIDEBUG
       IF (iproc.EQ.0) 
      &     print *,'called forcei PRE3 ',dvxyzu(1,68),
      &              dvxyzu(2,68),dvxyzu(3,68),dvxyzu(1,2325),
      &              dvxyzu(2,2325),dvxyzu(3,2325)
-
+#endif
 
                CALL MPI_RECV(poten(istartrec),maxnneighsentback,
      &              MPI_REAL4,iprocrec,31,MPI_COMM_WORLD,istatus,ierr)

@@ -179,7 +179,9 @@ c
       maxnneighsentback = 0
       DO iteration = 1, maxiterations
 
+#ifdef MPIDEBUG
          print *,'DEN_ITERATE: iteration ',iteration
+#endif
 
 #ifdef MPI
 c
@@ -681,7 +683,9 @@ C$OMP END PARALLEL DO
 c
 c--Check to see whether all particles have converged
 c
+#ifdef MPIDEBUG
       print *,'numsucceeded ',numsucceeded,nlstdo,htol,numproc
+#endif
 
       IF (numsucceeded.EQ.nlstdo) THEN
 #ifdef MPI

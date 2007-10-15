@@ -124,7 +124,9 @@ c
 c--Single values
 c
 #ifdef MPI
+#ifdef MPIDEBUG
       print *,iproc,': Reduction '
+#endif
       nblocks = numproc
       CALL MPI_REDUCE(npart,nparttot,1,MPI_INTEGER,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
@@ -158,7 +160,9 @@ c
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(tmag,tmagtot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
+#ifdef MPIDEBUG
       print *,iproc,': Reduction finished '
+#endif
 #else
       nblocks = 1
 
@@ -211,6 +215,9 @@ c--Arrays
 c
 c
 c--Number of array lengths
+c     This has up to 4 blocks (hydro variables, sink particles, radiative
+c     transfer, and MHD) repeated nblocks times for each of nblocks MPI
+c     processes
 c
       number = 2
       IF (encal.EQ.'r') number = 3
@@ -219,11 +226,15 @@ c
       WRITE (idisk1, ERR=100) nblockarrays
 #ifdef MPI
       nowgo = 0
+#ifdef MPIDEBUG
       print *,iproc,': About to write'
+#endif
       IF (iproc.GT.0) THEN
          CALL MPI_RECV(nowgo,1,MPI_INTEGER,iproc-1,99,MPI_COMM_WORLD,
      &        istatus,ierr)
-c         print *,iproc,': Opening file ',nprint
+#ifdef MPIDEBUG
+         print *,iproc,': Opening file ',nprint
+#endif
          CALL file
       ENDIF
 #endif
@@ -238,9 +249,9 @@ c
       nums(5) = 0
       nums(6) = 9
       IF (nlmax.EQ.1) THEN
-         nums(7) = 3
+         nums(7) = 4
       ELSE
-         nums(7) = 2
+         nums(7) = 3
       ENDIF
       nums(8) = 0
       WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
@@ -333,7 +344,7 @@ c--real*4
       ELSE
          WRITE (idisk1, ERR=100) (dgrav(isort(i)), i=1, nprint)      
       ENDIF
-c     WRITE (idisk1, ERR=100) (alphaMM(1,isort(i)), i=1, nprint)
+      WRITE (idisk1, ERR=100) (alphaMM(1,isort(i)), i=1, nprint)
 c--real*8
 
 c
@@ -434,7 +445,8 @@ c--real*4
          DO j = 1, 4
             WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, nprint)
          ENDDO
-c         WRITE(idisk1, ERR=100) (alphaMM(2,isort(i)),i=1,nprint)
+         WRITE(idisk1, ERR=100) (alphaMM(isizealphaMM,isort(i)),
+     &        i=1,nprint)
 c--real*8
 
       ENDIF
@@ -442,7 +454,9 @@ c--real*8
       CLOSE (idisk1)
 #ifdef MPI
       IF (iproc.LT.numproc-1) THEN
+#ifdef MPIDEBUG
          print *,iproc,' Finished writing'
+#endif
          nowgo = 1
          CALL MPI_SEND(nowgo,1,MPI_INTEGER,iproc+1,99,MPI_COMM_WORLD,
      &        ierr)

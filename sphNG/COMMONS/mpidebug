@@ -1,0 +1,1 @@
+	COMMON /mpidebug/ iprocdebug,iloop,iparticlex,iparticley

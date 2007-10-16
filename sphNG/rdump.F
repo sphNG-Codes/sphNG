@@ -836,7 +836,7 @@ c************************************************************
       INTEGER*1 iphase(idim)
       REAL*4 rho(idim), dgrav(idim)
       DIMENSION isteps(idim), xyzmh(5,idim), vxyzu(4,idim), 
-     &     Bevolxyz(3,idim), Bxyz(3,idim)
+     &     Bevolxyz(3,imhd), Bxyz(3,imhd)
 
       DIMENSION numdiv(10)
       

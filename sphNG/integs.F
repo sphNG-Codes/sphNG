@@ -358,9 +358,15 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
             WRITE (iprint, 98039) ts15/60.,    ts15/tstep*100.
             WRITE (iprint, 98040) ts16/60.,    ts16/tstep*100.
             WRITE (iprint, 98003) tins/60.,    tins/tstep*100.
-            WRITE (iprint, 98017) tmtree/60.,  tmtree/tins*100.
-            WRITE (iprint, 98018) ttreef/60.,  ttreef/tins*100.
-            WRITE (iprint, 98019) trevt/60.,   trevt/tins*100.
+            IF (tins.NE.0.0) THEN
+               WRITE (iprint, 98017) tmtree/60.,  tmtree/tins*100.
+               WRITE (iprint, 98018) ttreef/60.,  ttreef/tins*100.
+               WRITE (iprint, 98019) trevt/60.,   trevt/tins*100.
+            ELSE
+               WRITE (iprint, 98017) tmtree/60.,  tmtree
+               WRITE (iprint, 98018) ttreef/60.,  ttreef
+               WRITE (iprint, 98019) trevt/60.,   trevt
+            ENDIF
             IF (trevt.NE.0.0) THEN
               WRITE (iprint, 98119) revtreep1/60., revtreep1/trevt*100.
               WRITE (iprint, 98120) revtreep2/60., revtreep2/trevt*100.

@@ -650,63 +650,6 @@ c
       ENDIF
 
 #ifdef MPI
-
-c      GOTO 789
-
-
-      IF (iproc.EQ.0) THEN
-         DO n = 1, nlst_end
-            ipart = llist(n)
-            write (96,99902) xyzmh(1,ipart),xyzmh(2,ipart),
-     &           xyzmh(3,ipart),xyzmh(5,ipart),rho(ipart),divv(ipart),
-     &           gradhs(1,ipart),gradhs(2,ipart),
-     &           dvxyzu(1,ipart),dvxyzu(2,ipart),dvxyzu(3,ipart),
-     &           dvxyzu(4,ipart),poten(ipart),nneigh(ipart)
-         END DO
-         DO n = nlst_end+1, nlst_tot
-            ipart = llist(n)
-            iparttree = ipart + ntot + 2
-            write (98,99902) xyzmh(1,iparttree),xyzmh(2,iparttree),
-     &           xyzmh(3,iparttree),xyzmh(5,iparttree),
-     &           rho(ipart),divv(ipart),
-     &           gradhs(1,ipart),gradhs(2,ipart),
-     &           dvxyzu(1,ipart),dvxyzu(2,ipart),dvxyzu(3,ipart),
-     &           dvxyzu(4,ipart),poten(ipart),nneigh(ipart)
-         END DO
-      ELSE
-         DO n = 1, nlst_end
-            ipart = llist(n)
-            write (97,99902) xyzmh(1,ipart),xyzmh(2,ipart),
-     &           xyzmh(3,ipart),xyzmh(5,ipart),rho(ipart),divv(ipart),
-     &           gradhs(1,ipart),gradhs(2,ipart),
-     &           dvxyzu(1,ipart),dvxyzu(2,ipart),dvxyzu(3,ipart),
-     &           dvxyzu(4,ipart),poten(ipart),nneigh(ipart)
-         END DO
-         DO n = nlst_end+1, nlst_tot
-            ipart = llist(n)
-            iparttree = ipart + ntot + 2
-            write (99,99902) xyzmh(1,iparttree),xyzmh(2,iparttree),
-     &           xyzmh(3,iparttree),xyzmh(5,iparttree),
-     &           rho(ipart),divv(ipart),
-     &           gradhs(1,ipart),gradhs(2,ipart),
-     &           dvxyzu(1,ipart),dvxyzu(2,ipart),dvxyzu(3,ipart),
-     &           dvxyzu(4,ipart),poten(ipart),nneigh(ipart)
-         END DO
-      ENDIF
-
-
-
-c            CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
-
- 789  CONTINUE
-
-
-
-#ifdef MPIDEBUG
-         IF (iproc.EQ.2) print *,iproc,':G',dvxyzu(1,ntot + 1+2054-1),
-     &              dvxyzu(2,ntot+1+2054-1),dvxyzu(3,ntot+1+2054-1),
-     &     ntot+1+2054-1,ntot
-#endif
 c
 c--Now need to return forcei contributions from neighbours on remote nodes.
 c
@@ -728,11 +671,17 @@ c
                print *,iproc,': expecting to get ',inumofsends,
      &              ' forces ',j
 #endif
+               CALL MPI_RECV(iready,1,
+     &              MPI_INTEGER,MPI_ANY_SOURCE,98,MPI_COMM_WORLD,
+     &              istatus,ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_INTEGER, ireturned, ierr)
+               iprocrec = istatus(MPI_SOURCE)
+
                CALL MPI_RECV(dvxyzu(1,istartrec),4*maxnneighsentback,
-     &              MPI_REAL8,MPI_ANY_SOURCE,30,MPI_COMM_WORLD,istatus,
+     &              MPI_REAL8,iprocrec,30,MPI_COMM_WORLD,istatus,
      &              ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL8, ireturned, ierr)
-               iprocrec = istatus(MPI_SOURCE)
+c               iprocrec = istatus(MPI_SOURCE)
                IF (ireturned.NE.4*nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.4*nnsentback dvxyzu'
                   CALL quit
@@ -775,10 +724,9 @@ c     &              llistsentback(1,iprocrec+1)+1
 
                IF (imhd.EQ.idim) THEN
                CALL MPI_RECV(dBevolxyz(1,istartrec),3*maxnneighsentback,
-     &              MPI_REAL8,MPI_ANY_SOURCE,32,MPI_COMM_WORLD,istatus,
+     &              MPI_REAL8,iprocrec,32,MPI_COMM_WORLD,istatus,
      &              ierr)
                   CALL MPI_GET_COUNT(istatus,MPI_REAL8,ireturned,ierr)
-                  iprocrec = istatus(MPI_SOURCE)
                   IF (ireturned.NE.3*nneighsentback(iprocrec+1)) THEN
                WRITE (*,*) 'ERROR - ireturned.NE.3*nnsentback dBevolxyz'
                      CALL quit
@@ -802,7 +750,9 @@ c
 c--Other processes send the forces back
 c
          ELSE
+            print *,iproc,': in else ',inumofreturns
             DO jjj = 1, inumofreturns
+               print *,iproc,': jjj ',jjj
                IF (inumberproc(jjj).EQ.i) THEN
                   istart = inumbercumm(jjj)
                   inumber = inumberindiv(jjj)
@@ -813,6 +763,9 @@ c
      &                 ' istart ',istart,' returned ',inumberreturned,
      &                 ' of ',inumofreturns
 #endif
+                  iready = 1
+                  CALL MPI_SEND(iready,1,MPI_INTEGER,
+     &                 iprocsend,98,MPI_COMM_WORLD, ierr)
                   CALL MPI_SEND(dvxyzu(1,istart),4*inumber,MPI_REAL8,
      &                 iprocsend,30,MPI_COMM_WORLD, ierr)
                   CALL MPI_SEND(poten(istart),inumber,MPI_REAL4,
@@ -841,7 +794,7 @@ c     because none will be expected)
 c
       END DO
 
-c      GOTO 779
+      GOTO 779
 
       IF (iproc.EQ.0) THEN
          IF (gt.EQ.0.) THEN

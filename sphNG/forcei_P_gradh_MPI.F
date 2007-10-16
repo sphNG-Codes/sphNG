@@ -10,6 +10,8 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
+      INCLUDE 'COMMONS/mpidebug'
+
       DIMENSION xyzmh(5,mmax), vxyzu(4,idim)
       REAL*4 trho(idim),pr(idim),vsound(idim),dha(1+isizealphaMM,idim)
       REAL*4 alphaMMpass(isizealphaMM,idim)
@@ -129,7 +131,7 @@ C$OMP& shared(ifcor,iexpan,iener,damp)
 C$OMP& shared(realtime,ekcle,encal,dedxyz,acc)
 C$OMP& shared(Bxyz,dBxyz,Bextxi,Bextyi,Bextzi,B2ext,divcurlB,Bevolxyz)
 C$OMP& shared(gravxyzstore,potenstore,varmhd,iupdated,listparents)
-C$OMP& shared(iscurrent,ireal,ibound,nlistupdated)
+C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug)
 C$OMP& private(n,ipart,iparttree,stepsi)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(fxi,fyi,fzi,numneigh,hmin)
@@ -169,6 +171,8 @@ C$OMP DO SCHEDULE(runtime)
       DO n = nlst_in, nlst_end
          ipart = listp(n)
 
+c         IF (ipart.GT.ntot) print *,iprocdebug,': D ',n
+
 c
 c--Needed for MPI code
 c
@@ -201,7 +205,7 @@ c     NOTE: Assumes that nlmax=1 is set to save memory for grad-h code.
 c     If not, will still work but cache re-use will be VERY BAD !!!!
 c     
 c            IF (iphase(ipart).EQ.0 .OR. iptintree.GE.1) THEN
-              CALL treef(ipart,npart,ntot,xyzmh,acc,igphi,fxi,fyi,fzi,
+              CALL treef(ipart,npart,ntot,xyzmh,acc,0,fxi,fyi,fzi,
      &              poteni)
 
 c               fxyzu(1,ipart) = fxi
@@ -257,6 +261,8 @@ c
          hi21 = hi1*hi1
          hi41 = hi21*hi21
          
+c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
+
          vxi = vxyzu(1,ipart)
          vyi = vxyzu(2,ipart)
          vzi = vxyzu(3,ipart)
@@ -335,11 +341,15 @@ c         pro2i = (pr(ipart) - pext)*rho21i
          vs2i = vsoundi**2 + B2i*rho1i
 
          stepsi = dt*isteps(ipart)/imaxstep
+
+c         IF (ipart.GT.ntot) print *,iprocdebug,': D3 ',n
 c
 c--Loop over neighbors
 c
          DO 70 k = 1, nneigh(ipart)
             j = neighlist(k)
+
+c         IF (ipart.GT.ntot) print *,iprocdebug,': D4 ',n,k
 
             IF (iphase(j).GE.1) GOTO 70
 
@@ -813,6 +823,8 @@ c
 c
 c--Store quantities
 c
+c         IF (ipart.GT.ntot) print *,iprocdebug,': D5 ',n
+
          IF (igrape.EQ.0 .AND. igphi.NE.0) THEN
             fxyzu(1,ipart) = fxyzu(1,ipart) + gravxi + dsoftxi*cnormk
             fxyzu(2,ipart) = fxyzu(2,ipart) + gravyi + dsoftyi*cnormk
@@ -898,6 +910,8 @@ c
 c
 c--Artificial viscosity
 c
+c         IF (ipart.GT.ntot) print *,iprocdebug,': D6 ',n
+
          IF (ifsvi.NE.0) THEN
             fxyzu(1,ipart) = fxyzu(1,ipart) - artxi*cnormk
             fxyzu(2,ipart) = fxyzu(2,ipart) - artyi*cnormk
@@ -942,11 +956,12 @@ c
             fxyzu(2,ipart) = fxyzu(2,ipart) - damp*vxyzu(2,ipart)
             fxyzu(3,ipart) = fxyzu(3,ipart) - damp*vxyzu(3,ipart)
          ENDIF
+c         IF (ipart.GT.ntot) print *,iprocdebug,': D7 ',n
+
 c
 c--Energy conservation
 c
-
-         CALL energ(ipart,npart,ntot,realtime,vxyzu, fxyzu, xyzmh)  
+         CALL energ(ipart,npart,ntot,realtime,vxyzu,fxyzu,xyzmh,trho)  
 c
 c--Radiation pressure force
 c
@@ -956,6 +971,7 @@ c
      &              ekcle(4,ipart)/trho(ipart)*dedxyz(j,ipart)
             END DO
          ENDIF
+c         IF (ipart.GT.ntot) print *,iprocdebug,': D8 ',n
 c
 c--Forces that operate on both sink particles and gas from here on:
 c
@@ -964,11 +980,12 @@ c
 c--External forces
 c       
          IF (iexf.GE.1) 
-     &      CALL externf(ipart,realtime,xyzmh,fxyzu,trho,iexf)
+     &      CALL externf(ipart,ntot,realtime,xyzmh,fxyzu,trho,iexf)
 c
 c--Coriolis and centrifugal forces
 c
-         IF (ifcor.NE.0) CALL coriol(ipart,realtime,xyzmh,vxyzu,fxyzu) 
+         IF (ifcor.NE.0) CALL coriol(ipart,ntot,realtime,xyzmh,vxyzu,
+     &        fxyzu) 
 c
 c--Homologous expansion or contraction
 c

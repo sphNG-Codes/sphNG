@@ -711,7 +711,7 @@ c
 c--Energy conservation
 c  
          IF (iphase(ipart).EQ.0) THEN
-            CALL energ(ipart,npart,ntot,realtime,vxyzu,fxyzu,xyzmh)  
+            CALL energ(ipart,npart,ntot,realtime,vxyzu,fxyzu,xyzmh,trho)  
          ELSE
             dha(1,ipart) = 0.0
             fxyzu(4,ipart) = 0.0
@@ -725,11 +725,12 @@ c
 c--External forces
 c
             IF (iexf.GE.1) 
-     &           CALL externf(ipart,realtime,xyzmh,fxyzu,trho,iexf)
+     &           CALL externf(ipart,ntot,realtime,xyzmh,fxyzu,trho,iexf)
 c
 c--Coriolis and centrifugal forces
 c
-           IF (ifcor.NE.0) CALL coriol(ipart,realtime,xyzmh,vxyzu,fxyzu)
+           IF (ifcor.NE.0) CALL coriol(ipart,ntot,realtime,xyzmh,vxyzu,
+     &           fxyzu)
 c
 c--Homologous expansion or contraction
 c
@@ -745,7 +746,7 @@ c--Only sink particles being moved
 c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end,list,dha,fxyzu,xyzmh,iexf,ifcor)
-C$OMP& shared(iexpan,realtime,vxyzu,vsmooth,trho)
+C$OMP& shared(iexpan,realtime,vxyzu,vsmooth,trho,ntot)
 C$OMP& private(n,ipart)
       DO n = nlst_in, nlst_end
          ipart = list(n)
@@ -764,11 +765,12 @@ c
 c--External forces
 c
          IF (iexf.GE.1) 
-     &  CALL externf(ipart,realtime,xyzmh,fxyzu,trho,iexf)
+     &  CALL externf(ipart,ntot,realtime,xyzmh,fxyzu,trho,iexf)
 c
 c--Coriolis and centrifugal forces
 c
-         IF (ifcor.NE.0) CALL coriol(ipart,realtime,xyzmh,vxyzu,fxyzu) 
+         IF (ifcor.NE.0) CALL coriol(ipart,ntot,realtime,xyzmh,vxyzu,
+     &        fxyzu) 
 c
 c--Homologous expansion or contraction
 c

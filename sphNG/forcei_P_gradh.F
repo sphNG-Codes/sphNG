@@ -925,7 +925,7 @@ c
 c--Energy conservation
 c
 
-         CALL energ(ipart,npart,ntot,realtime,vxyzu, fxyzu, xyzmh)  
+         CALL energ(ipart,npart,ntot,realtime,vxyzu,fxyzu,xyzmh,trho)  
 c
 c--Radiation pressure force
 c
@@ -943,11 +943,12 @@ c
 c--External forces
 c       
          IF (iexf.GE.1) 
-     &      CALL externf(ipart,realtime,xyzmh,fxyzu,trho,iexf)
+     &      CALL externf(ipart,ntot,realtime,xyzmh,fxyzu,trho,iexf)
 c
 c--Coriolis and centrifugal forces
 c
-         IF (ifcor.NE.0) CALL coriol(ipart,realtime,xyzmh,vxyzu,fxyzu) 
+         IF (ifcor.NE.0) CALL coriol(ipart,ntot,realtime,xyzmh,vxyzu,
+     &        fxyzu) 
 c
 c--Homologous expansion or contraction
 c

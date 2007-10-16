@@ -750,9 +750,7 @@ c
 c--Other processes send the forces back
 c
          ELSE
-            print *,iproc,': in else ',inumofreturns
             DO jjj = 1, inumofreturns
-               print *,iproc,': jjj ',jjj
                IF (inumberproc(jjj).EQ.i) THEN
                   istart = inumbercumm(jjj)
                   inumber = inumberindiv(jjj)

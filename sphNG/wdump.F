@@ -236,6 +236,9 @@ c
          print *,iproc,': Opening file ',nprint
 #endif
          CALL file
+#ifdef MPIDEBUG
+         print *,iproc,': Opened file'
+#endif
       ENDIF
 #endif
 c
@@ -316,6 +319,9 @@ c
          nums(8) = 0
          WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
       ENDIF
+#ifdef MPIDEBUG
+         print *,iproc,': Written array headers'
+#endif
 c
 c--Array length 1 arrays
 c      
@@ -347,6 +353,9 @@ c--real*4
       WRITE (idisk1, ERR=100) (alphaMM(1,isort(i)), i=1, nprint)
 c--real*8
 
+#ifdef MPIDEBUG
+         print *,iproc,': Written hydro arrays'
+#endif
 c
 c--Array length 2 arrays
 c
@@ -375,6 +384,9 @@ c--real*4
 
 c--real*8
 
+#ifdef MPIDEBUG
+         print *,iproc,': Written sink particle arrays'
+#endif
       IF (encal.EQ.'r' .AND. iradtrans.EQ.idim) THEN
 c
 c--Array length 3 arrays
@@ -460,6 +472,10 @@ c--real*8
          nowgo = 1
          CALL MPI_SEND(nowgo,1,MPI_INTEGER,iproc+1,99,MPI_COMM_WORLD,
      &        ierr)
+      ELSE
+#ifdef MPIDEBUG
+         print *,iproc,' Finished writing'
+#endif
       ENDIF
 #endif
 c

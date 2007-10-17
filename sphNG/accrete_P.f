@@ -921,7 +921,7 @@ c
          f1vzi = (f1vzi*pmassi + f1vztemp)/pmassnew
          newaccel2 = f1vxi**2 + f1vyi**2 + f1vzi**2
          oldaccel2 = f1vxyzu(1,i)**2 + f1vxyzu(2,i)**2 +f1vxyzu(3,i)**2
-         IF (ABS(newaccel2-oldaccel2)/oldaccel2.LT.1.0E-4) THEN
+         IF (ABS(newaccel2-oldaccel2)/(oldaccel2+tiny).LT.1.0E-4) THEN
             f1vxyzu(1,i) = f1vxi
             f1vxyzu(2,i) = f1vyi
             f1vxyzu(3,i) = f1vzi

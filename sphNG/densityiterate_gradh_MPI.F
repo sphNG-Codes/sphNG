@@ -82,7 +82,7 @@ c      INCLUDE 'COMMONS/vsmooth'
       DIMENSION ldolist(idim),hi_old(idim)
       DIMENSION gradmhd(12,imhd)
 #ifdef MPI
-      DIMENSION nneighrec(ineighproc)
+      DIMENSION nneighrec(ineighproc),nneighsentbackold(nummaxproc)
       REAL*4 rhorec(ineighproc), dumrhorec(ineighproc)
       LOGICAL*1 isend(idim)
 #endif
@@ -157,7 +157,7 @@ c
          ELSE
             deltat = (dt*isteps(ipart))/imaxstep
          ENDIF
-ccccc         xyzmh(5,ipart) = xyzmh(5,ipart) - dhdrhoi*divv(ipart)*deltat
+         xyzmh(5,ipart) = xyzmh(5,ipart) - dhdrhoi*divv(ipart)*deltat
 
          rho(ipart) = 0.
          dumrho(ipart) = 0.
@@ -174,9 +174,12 @@ C$OMP END PARALLEL DO
 c
 c--Iterate density calculation for particle ipart
 c
+#ifdef MPI
       inumofreturns = 0
       inumofsends = 0
       maxnneighsentback = 0
+#endif
+
       DO iteration = 1, maxiterations
 
 #ifdef MPIDEBUG
@@ -266,8 +269,23 @@ c
 #endif
 
             IF (iteration.EQ.1) THEN
-               nneightogetback(ibehind+1) = inumreturn
-               IF (inumreturn.GT.0) inumofreturns = inumofreturns + 1
+c
+c--nneightogetback does not record actual number, just 0 or 1.
+c     Does not need the actual number, and getting the actual number would be
+c     difficult because of the iterations to set h's and, thus, neighbours.
+c
+               IF (inumreturn.GT.0) THEN
+                  inumofreturns = inumofreturns + 1
+                  nneightogetback(ibehind+1) = 1
+               ELSE
+                  nneightogetback(ibehind+1) = 0
+               ENDIF
+            ELSE
+               IF (inumreturn.GT.0 .AND. 
+     &              nneightogetback(ibehind+1).EQ.0) THEN
+                  inumofreturns = inumofreturns + 1
+                  nneightogetback(ibehind+1) = 1
+               ENDIF
             ENDIF
 
 #ifdef MPIDEBUG
@@ -351,6 +369,11 @@ c     &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
             CALL MPI_TYPE_FREE(indexMPI1return,ierr)
             IF (iteration.EQ.1) THEN
                IF (inumberneigh.GT.0) inumofsends = inumofsends + 1
+            ELSE
+               IF (inumberneigh.GT.0 .AND. 
+     &              nneighsentback(iahead+1).EQ.0) THEN
+                  inumofsends = inumofsends + 1
+               ENDIF
             ENDIF
 #ifdef MPIDEBUG
             print *,iproc,': all sent'
@@ -362,6 +385,9 @@ c     &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
                nneigh(ipos) = nneigh(ipos) + nneighrec(k)
                IF (iteration.EQ.1) THEN
                   llistsentback(k,iahead+1) = ipos - 1
+               ELSE
+                  llistsentback(k+nneighsentback(iahead+1),
+     &                 iahead+1) = ipos - 1
                ENDIF
 #ifdef MPIDEBUG
                IF (k.EQ.1) print *,iproc,': POSITION ',xyzmh(1,ipos),
@@ -377,10 +403,15 @@ c     &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
                print *,iproc,': reports ',inumberneigh,
      &              ' foreign neighbours on process ',iahead+1
 #endif
+               nneighsentbackold(iahead+1) = 0
                nneighsentback(iahead+1) = inumberneigh
-               maxnneighsentback = MAX(maxnneighsentback,
-     &              inumberneigh)
+            ELSE
+               nneighsentbackold(iahead+1) = 0
+               nneighsentback(iahead+1) = nneighsentback(iahead+1) +
+     &              inumberneigh
             ENDIF
+            maxnneighsentback = MAX(maxnneighsentback,
+     &           nneighsentback(iahead+1))
 c
 c--Send gravity forces back to sending process
 c
@@ -708,6 +739,11 @@ c
 #ifdef MPIDEBUG
       print *,iproc,': ifinished is ',ifinished,iscore,numproc
       print *,iproc,': maxnneighsentback is ',maxnneighsentback
+
+      print *,iproc,': INFORMATION ',iteration
+      DO i = 1, numproc
+         print *,iproc,': ',i,nneighsentback(i),nneighsentbackold(i)
+      END DO
 #endif
 
       IF (ifinished.EQ.numproc) GOTO 30
@@ -715,14 +751,14 @@ c
 c
 c--Otherwise, make new list of particles that are still to converge
 c
-ccc      nlstsend = 0
+      nlstsend = 0
       nlstdo_old = nlstdo
-ccc      nlstdo = 0
+      nlstdo = 0
       DO n = 1, nlstdo_old
          ipart = ldolist(n)
-ccc         IF (isucceed(ipart).NE.1) THEN
-ccc            nlstdo = nlstdo + 1
-ccc            ldolist(nlstdo) = ipart
+         IF (isucceed(ipart).NE.1) THEN
+            nlstdo = nlstdo + 1
+            ldolist(nlstdo) = ipart
 
             rho(ipart) = 0.
             dumrho(ipart) = 0.
@@ -735,14 +771,56 @@ ccc            ldolist(nlstdo) = ipart
             END DO
             poten(ipart) = 0.
 
-ccc#ifdef MPI
-ccc            IF (isend(n)) THEN
-ccc               nlstsend = nlstsend + 1
-ccc               lsendlist(nlstsend) = ipart - 1
-ccc            ENDIF
-ccc#endif
-ccc         ENDIF
+#ifdef MPI
+            IF (isend(ipart)) THEN
+               nlstsend = nlstsend + 1
+               lsendlist(nlstsend) = ipart - 1
+            ENDIF
+#endif
+         ENDIF
       END DO
+#ifdef MPI
+c
+c--Need to remove those particles that are being sent back from the lists of
+c     particles being sent back to each MPI process since they will be added
+c     back onto those lists if they have neighbours anyway (and we don't want
+c     them done more than once!)
+c
+      DO i = 1, numproc
+         IF (iproc.NE.i-1) THEN
+#ifdef MPIDEBUG
+            print *,iproc,': Trying remove ',nneighsentback(i),
+     &           nneighsentbackold(i),nlstsend,nlstdo
+#endif
+            IF (nneighsentback(i).GE.nneighsentbackold(i)+1) THEN
+               newvalue = nneighsentbackold(i)
+               DO k = nneighsentbackold(i)+1, nneighsentback(i)
+                  ifound = 0
+                  DO n = 1, nlstsend
+                     IF (llistsentback(k,i).EQ.lsendlist(n)) THEN
+                        ifound = 1
+                        GOTO 29
+                     ENDIF
+                  END DO
+ 29               IF (ifound.EQ.0) THEN
+                     newvalue = newvalue + 1
+                     llistsentback(newvalue,i) = llistsentback(k,i)
+                  ENDIF
+               END DO
+               nneighsentback(i) = newvalue
+            ENDIF
+         ENDIF
+      END DO
+
+#ifdef MPIDEBUG
+      print *,iproc,': REMOVED neighbours being sent back ',iteration
+      DO i = 1, numproc
+         print *,iproc,': ',i,nneighsentback(i),nneighsentbackold(i)
+      END DO
+#endif
+
+
+#endif      
 c
 c--End of iteration loop
 c

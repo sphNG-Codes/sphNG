@@ -272,11 +272,13 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
       CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(isizealphaMM,MPI_REAL4,ialphaREAL4,ierr)
 
       CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
+      CALL MPI_TYPE_COMMIT(ialphaREAL4,ierr)
 
 #ifdef MPIDEBUG
       print *,iproc,': START2 ',maxnneighsentback,nneighsentback(1),
@@ -346,6 +348,14 @@ c     &                  1,llistsentback(1,j+1),i2REAL4,indexMPI2,ierr)
      &                  llistsentback(1,j+1),i2REAL4,indexMPI2,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI2,ierr)
 
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),ialphaREAL4,
+c     &                  indexMPIalpha,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),ialphaREAL4,
+     &                       indexMPIalpha,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPIalpha,ierr)
+
                         CALL MPI_SEND(xyzmh,1,indexMPI5,j,20,
      &                       MPI_COMM_WORLD, ierr)
 
@@ -390,20 +400,20 @@ c                  end do
                         print *,iproc,' sent vsound to ',j
 #endif
 
-                        CALL MPI_SEND(gradhs,1,indexMPI2,j,28,
+                        CALL MPI_SEND(gradhs,1,indexMPI2,j,26,
      &                       MPI_COMM_WORLD, ierr)
 #ifdef MPIDEBUG
                         print *,iproc,' sent gradhs to ',j
 #endif
 
                         IF (imhd.EQ.idim) THEN
-                           CALL MPI_SEND(Bxyz,1,indexMPI3,j,26,
+                           CALL MPI_SEND(Bxyz,1,indexMPI3,j,27,
      &                          MPI_COMM_WORLD, ierr)
 #ifdef MPIDEBUG
                            print *,iproc,' sent Bxyz to ',j
 #endif
 
-                           CALL MPI_SEND(Bevolxyz,1,indexMPI3,j,27,
+                           CALL MPI_SEND(Bevolxyz,1,indexMPI3,j,28,
      &                          MPI_COMM_WORLD, ierr)
 #ifdef MPIDEBUG
                            print *,iproc,' sent Bevolxyz to ',j
@@ -412,8 +422,15 @@ c                  end do
                            CALL MPI_TYPE_FREE(indexMPI3,ierr)
                         ENDIF
 
+                        IF (ifsvi.EQ.6 .OR. imhd.EQ.idim) THEN
+                           CALL MPI_SEND(alphaMM,1,indexMPIalpha,j,29,
+     &                          MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                           print *,iproc,' sent alphaMM to ',j
+#endif                           
+                        ENDIF
 
-
+                        CALL MPI_TYPE_FREE(indexMPIalpha,ierr)
                         CALL MPI_TYPE_FREE(indexMPI2,ierr)
                         CALL MPI_TYPE_FREE(indexMPI1,ierr)
                         CALL MPI_TYPE_FREE(indexMPI4,ierr)
@@ -533,7 +550,7 @@ c                  end do
 #endif
 
                 CALL MPI_RECV(gradhs(1,istart),inumber,i2REAL4,
-     &                 iprocrec, 28, MPI_COMM_WORLD, istatus, ierr)
+     &                 iprocrec, 26, MPI_COMM_WORLD, istatus, ierr)
                   CALL MPI_GET_COUNT(istatus, i2REAL4, icheck, ierr)
                   IF (icheck.NE.inumber) THEN
                      WRITE (*,*) 'ERROR - icheck.NE.inumber 8 ',
@@ -546,7 +563,7 @@ c                  end do
 
                   IF (imhd.EQ.idim) THEN
                      CALL MPI_RECV(Bxyz(1,istart),inumber,i3REAL8,
-     &                  iprocrec, 26, MPI_COMM_WORLD, istatus, ierr)
+     &                  iprocrec, 27, MPI_COMM_WORLD, istatus, ierr)
                      CALL MPI_GET_COUNT(istatus,i3REAL8,icheck,ierr)
                      IF (icheck.NE.inumber) THEN
                         WRITE (*,*) 'ERROR - icheck.NE.inumber 6 ',
@@ -558,7 +575,7 @@ c                  end do
 #endif
 
                      CALL MPI_RECV(Bevolxyz(1,istart),inumber,i3REAL8,
-     &                  iprocrec, 27, MPI_COMM_WORLD, istatus, ierr)
+     &                  iprocrec, 28, MPI_COMM_WORLD, istatus, ierr)
                      CALL MPI_GET_COUNT(istatus,i3REAL8,icheck,ierr)
                      IF (icheck.NE.inumber) THEN
                         WRITE (*,*) 'ERROR - icheck.NE.inumber 7 ',
@@ -567,6 +584,22 @@ c                  end do
                      ENDIF
 #ifdef MPIDEBUG
                      print *,iproc,': got Bxyz from ',iprocrec,icheck
+#endif
+                  ENDIF
+
+                  IF (ifsvi.EQ.6 .OR. imhd.EQ.idim) THEN
+                     CALL MPI_RECV(alphaMM(1,istart), inumber,
+     &                    ialphaREAL4, iprocrec, 29, MPI_COMM_WORLD, 
+     &                    istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus, ialphaREAL4, icheck, 
+     &                    ierr)
+                     IF (icheck.NE.inumber) THEN
+                        WRITE (*,*) 'ERROR - icheck.NE.inumber 8 ',
+     &                       iproc
+                        CALL quit
+                     ENDIF
+#ifdef MPIDEBUG
+                     print *,iproc,': got alphaMM from ',iprocrec,icheck
 #endif
                   ENDIF
                ELSE
@@ -599,18 +632,9 @@ c
          jpart = ntot + j
          llist(nlst_end + j) = jpart
          iphase(jpart) = 0
+
          CALL treef(jpart,npart,ntot,xyzmh,acc,0,fsx,fsy,fsz,epot)
-#ifdef MPIDEBUG
-c         IF (iproc.EQ.1 .AND. jpart.EQ.33629) print *,iproc,': NN ',
-c     &        dumrho(jpart),nneigh(jpart),j,jpart,xyzmh(1,jpart+
-c     &        ntot+2),xyzmh(2,jpart+ntot+2),xyzmh(3,jpart+ntot+2)
-         IF (iproc.EQ.1 .AND. jpart.EQ.33630) print *,iproc,': NN ',
-     &        dumrho(jpart),nneigh(jpart),j,jpart,xyzmh(1,jpart+
-     &        ntot+2),xyzmh(2,jpart+ntot+2),xyzmh(3,jpart+ntot+2)
-c         IF (iproc.EQ.1 .AND. jpart.EQ.33631) print *,iproc,': NN ',
-c     &        dumrho(jpart),nneigh(jpart),j,jpart,xyzmh(1,jpart+
-c     &        ntot+2),xyzmh(2,jpart+ntot+2),xyzmh(3,jpart+ntot+2)
-#endif
+
          DO k = 1, 3
             dvxyzu(k,jpart) = 0.0
          END DO
@@ -872,6 +896,7 @@ c                  write (89,99004) ipart
          CALL quit
       ENDIF
 
+      CALL MPI_TYPE_FREE(ialphaREAL4,ierr)
       CALL MPI_TYPE_FREE(i2REAL4,ierr)
       CALL MPI_TYPE_FREE(i3REAL8,ierr)
       CALL MPI_TYPE_FREE(i4REAL8,ierr)

@@ -359,7 +359,11 @@ c--skip unnecessary reals
 c--real*4
          READ (idisk1, END=100) (rho(i), i=icount+1, icount+nhydro)
          IF (nlmax.EQ.1) THEN
-            iread = 1
+            iread = 3
+            READ (idisk1, END=100) (gradhs(1,i), i=icount+1, 
+     &           icount+nhydro)
+            READ (idisk1, END=100) (gradhs(2,i), i=icount+1, 
+     &           icount+nhydro)
          ELSE
             iread = 2
             READ (idisk1, END=100) (dgrav(i), i=icount+1, icount+nhydro)
@@ -369,13 +373,17 @@ c--real*4
                ENDDO
             ENDIF
          ENDIF
+         IF (nums1(7).GT.iread) THEN
+            iread = iread + 1
+            READ (idisk1, END=100) (alphaMM(1,i), i=icount+1, 
+     &           icount+nhydro)
+         ENDIF
 c--skip unnecessary real*4's
          IF (nums1(7).GT.iread) THEN
             DO j=1,nums1(7)-iread
                READ (idisk1, END=100)
             ENDDO
          ENDIF
-c       READ (idisk1, END=100) (alphaMM(1,i), i=icount+1, icount+nhydro)
 c--real*8
 
 #ifdef MPIDEBUG
@@ -521,9 +529,9 @@ c--skip current/div B
                   READ (idisk1, END=100)
                END DO
 c--read artificial resistivity parameter
-c            READ (idisk1, END=100) (alphaMM(2,i), i=icount+1, 
-c     &              icount+nmhd)
-c            iread = read + 1
+               READ (idisk1, END=100) (alphaMM(isizealphaMM,i), 
+     &              i=icount+1, icount+nmhd)
+               iread = read + 1
             ELSE
                IF (ifsvi.EQ.6) THEN
            WRITE(*,*) 'WARNING: resistivity parameter not found in dump'
@@ -555,7 +563,7 @@ c      IF (nblocks.NE.1) THEN
 c         IF (iproc.EQ.iblock-1) THEN
             IF (nblocks.EQ.1) THEN
                CALL split(npart,n1,icount,nhydro,isteps,iphase,xyzmh,
-     &              vxyzu,rho,dgrav,Bevolxyz,Bxyz)
+     &              vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM)
             ELSE
                print *,iproc,': MAINTAIN PARTICLE SPLIT ',npart,nhydro
                npart = nhydro
@@ -813,7 +821,7 @@ c============================================================
 
 
       SUBROUTINE split(npart,n1,icount,nhydro,isteps,iphase,xyzmh,
-     &     vxyzu,rho,dgrav,Bevolxyz,Bxyz)
+     &     vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM)
 c************************************************************
 c                                                           *
 c--Splits based on spatial coordinates (x, y, z) for 2, 4   *
@@ -834,7 +842,8 @@ c************************************************************
 #endif
 
       INTEGER*1 iphase(idim)
-      REAL*4 rho(idim), dgrav(idim)
+      REAL*4 rho(idim), dgrav(idim), gradhs(2,idim),
+     &     alphaMM(isizealphaMM,idim)
       DIMENSION isteps(idim), xyzmh(5,idim), vxyzu(4,idim), 
      &     Bevolxyz(3,imhd), Bxyz(3,imhd)
 
@@ -856,6 +865,11 @@ c************************************************************
                END DO
                rho(icountnew) = rho(i)
                dgrav(icountnew) = dgrav(i)
+               IF (nlmax.EQ.1) THEN
+                  DO j = 1, 2
+                     gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -864,6 +878,9 @@ c************************************************************
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               DO j = 1, isizealphaMM
+                  alphaMM(j,icountnew) = alphaMM(j,i)
+               END DO
 
             ELSEIF (iproc.EQ.1 .AND. 
      &              xyzmh(1,i).LT.0.0) THEN
@@ -878,6 +895,11 @@ c************************************************************
                END DO
                rho(icountnew) = rho(i)
                dgrav(icountnew) = dgrav(i)
+               IF (nlmax.EQ.1) THEN
+                  DO j = 1, 2
+                     gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -886,6 +908,9 @@ c************************************************************
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               DO j = 1, isizealphaMM
+                  alphaMM(j,icountnew) = alphaMM(j,i)
+               END DO
                
             ENDIF
          END DO
@@ -904,6 +929,11 @@ c************************************************************
                END DO
                rho(icountnew) = rho(i)
                dgrav(icountnew) = dgrav(i)
+               IF (nlmax.EQ.1) THEN
+                  DO j = 1, 2
+                     gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -912,6 +942,9 @@ c************************************************************
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               DO j = 1, isizealphaMM
+                  alphaMM(j,icountnew) = alphaMM(j,i)
+               END DO
 
             ELSEIF (iproc.EQ.1 .AND. xyzmh(3,i).GE.0.0 .AND.
      &              xyzmh(1,i).LT.0.0) THEN
@@ -926,6 +959,11 @@ c************************************************************
                END DO
                rho(icountnew) = rho(i)
                dgrav(icountnew) = dgrav(i)
+               IF (nlmax.EQ.1) THEN
+                  DO j = 1, 2
+                     gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -934,6 +972,9 @@ c************************************************************
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               DO j = 1, isizealphaMM
+                  alphaMM(j,icountnew) = alphaMM(j,i)
+               END DO
 
             ELSEIF (iproc.EQ.2 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).GE.0.0) THEN
@@ -948,6 +989,11 @@ c************************************************************
                END DO
                rho(icountnew) = rho(i)
                dgrav(icountnew) = dgrav(i)
+               IF (nlmax.EQ.1) THEN
+                  DO j = 1, 2
+                     gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -956,6 +1002,9 @@ c************************************************************
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               DO j = 1, isizealphaMM
+                  alphaMM(j,icountnew) = alphaMM(j,i)
+               END DO
 
             ELSEIF (iproc.EQ.3 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).LT.0.0) THEN
@@ -970,6 +1019,11 @@ c************************************************************
                END DO
                rho(icountnew) = rho(i)
                dgrav(icountnew) = dgrav(i)
+               IF (nlmax.EQ.1) THEN
+                  DO j = 1, 2
+                     gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -978,6 +1032,9 @@ c************************************************************
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               DO j = 1, isizealphaMM
+                  alphaMM(j,icountnew) = alphaMM(j,i)
+               END DO
 
             ENDIF
          END DO
@@ -996,6 +1053,11 @@ c************************************************************
                END DO
                rho(icountnew) = rho(i)
                dgrav(icountnew) = dgrav(i)
+               IF (nlmax.EQ.1) THEN
+                  DO j = 1, 2
+                     gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -1004,6 +1066,9 @@ c************************************************************
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               DO j = 1, isizealphaMM
+                  alphaMM(j,icountnew) = alphaMM(j,i)
+               END DO
 
             ELSEIF (iproc.EQ.1 .AND. xyzmh(3,i).GE.0.0 .AND.
      &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
@@ -1018,6 +1083,11 @@ c************************************************************
                END DO
                rho(icountnew) = rho(i)
                dgrav(icountnew) = dgrav(i)
+               IF (nlmax.EQ.1) THEN
+                  DO j = 1, 2
+                     gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -1026,6 +1096,9 @@ c************************************************************
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               DO j = 1, isizealphaMM
+                  alphaMM(j,icountnew) = alphaMM(j,i)
+               END DO
 
             ELSEIF (iproc.EQ.2 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
@@ -1040,6 +1113,11 @@ c************************************************************
                END DO
                rho(icountnew) = rho(i)
                dgrav(icountnew) = dgrav(i)
+               IF (nlmax.EQ.1) THEN
+                  DO j = 1, 2
+                     gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -1048,6 +1126,9 @@ c************************************************************
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               DO j = 1, isizealphaMM
+                  alphaMM(j,icountnew) = alphaMM(j,i)
+               END DO
 
             ELSEIF (iproc.EQ.3 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
@@ -1062,6 +1143,11 @@ c************************************************************
                END DO
                rho(icountnew) = rho(i)
                dgrav(icountnew) = dgrav(i)
+               IF (nlmax.EQ.1) THEN
+                  DO j = 1, 2
+                     gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -1070,6 +1156,9 @@ c************************************************************
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               DO j = 1, isizealphaMM
+                  alphaMM(j,icountnew) = alphaMM(j,i)
+               END DO
 
             ELSEIF (iproc.EQ.4 .AND. xyzmh(3,i).GE.0.0 .AND.
      &           xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
@@ -1084,6 +1173,11 @@ c************************************************************
                END DO
                rho(icountnew) = rho(i)
                dgrav(icountnew) = dgrav(i)
+               IF (nlmax.EQ.1) THEN
+                  DO j = 1, 2
+                     gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -1092,6 +1186,9 @@ c************************************************************
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               DO j = 1, isizealphaMM
+                  alphaMM(j,icountnew) = alphaMM(j,i)
+               END DO
 
             ELSEIF (iproc.EQ.5 .AND. xyzmh(3,i).GE.0.0 .AND.
      &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
@@ -1106,6 +1203,11 @@ c************************************************************
                END DO
                rho(icountnew) = rho(i)
                dgrav(icountnew) = dgrav(i)
+               IF (nlmax.EQ.1) THEN
+                  DO j = 1, 2
+                     gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -1114,6 +1216,9 @@ c************************************************************
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               DO j = 1, isizealphaMM
+                  alphaMM(j,icountnew) = alphaMM(j,i)
+               END DO
 
             ELSEIF (iproc.EQ.6 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
@@ -1128,6 +1233,11 @@ c************************************************************
                END DO
                rho(icountnew) = rho(i)
                dgrav(icountnew) = dgrav(i)
+               IF (nlmax.EQ.1) THEN
+                  DO j = 1, 2
+                     gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -1136,6 +1246,9 @@ c************************************************************
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               DO j = 1, isizealphaMM
+                  alphaMM(j,icountnew) = alphaMM(j,i)
+               END DO
 
             ELSEIF (iproc.EQ.7 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
@@ -1150,6 +1263,11 @@ c************************************************************
                END DO
                rho(icountnew) = rho(i)
                dgrav(icountnew) = dgrav(i)
+               IF (nlmax.EQ.1) THEN
+                  DO j = 1, 2
+                     gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -1158,6 +1276,9 @@ c************************************************************
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               DO j = 1, isizealphaMM
+                  alphaMM(j,icountnew) = alphaMM(j,i)
+               END DO
 
             ENDIF
          END DO
@@ -1273,6 +1394,11 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
                END DO
                rho(icountnew) = rho(i)
                dgrav(icountnew) = dgrav(i)
+               IF (nlmax.EQ.1) THEN
+                  DO j = 1, 2
+                     gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN               
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -1281,6 +1407,9 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               DO j = 1, isizealphaMM
+                  alphaMM(j,icountnew) = alphaMM(j,i)
+               END DO
 
             ENDIF
          END DO

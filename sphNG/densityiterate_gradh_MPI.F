@@ -406,7 +406,7 @@ c     &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
                nneighsentbackold(iahead+1) = 0
                nneighsentback(iahead+1) = inumberneigh
             ELSE
-               nneighsentbackold(iahead+1) = 0
+               nneighsentbackold(iahead+1) = nneighsentback(iahead+1)
                nneighsentback(iahead+1) = nneighsentback(iahead+1) +
      &              inumberneigh
             ENDIF
@@ -744,6 +744,7 @@ c
       DO i = 1, numproc
          print *,iproc,': ',i,nneighsentback(i),nneighsentbackold(i)
       END DO
+      print *,iproc,': inumofsends ',inumofsends
 #endif
 
       IF (ifinished.EQ.numproc) GOTO 30
@@ -808,6 +809,7 @@ c
                   ENDIF
                END DO
                nneighsentback(i) = newvalue
+               IF (nneighsentback(i).EQ.0) inumofsends = inumofsends-1
             ENDIF
          ENDIF
       END DO

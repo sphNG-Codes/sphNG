@@ -20,18 +20,23 @@ c************************************************************
       REAL angx,angy,angz,angxi,angyi,angzi,angto
       REAL angx1,angy1,angz1,angto1
       REAL angm(idim),radius(idim),spinxi,spinyi,spinzi
-      REAL totmass,mass,totmass1
+      REAL totmass,mass,totmass1,timeff
+      REAL*4 rho(idim)
+      REAL*8 udisti,utimei,umassi, udens
       CHARACTER*100 filename,fileout
-      INTEGER ioutput,njvals,nrvals
-      PARAMETER (njvals=6,nrvals=9)
+      INTEGER ioutput,njvals,nrvals,nrhovals
+      PARAMETER (njvals=6,nrvals=9,nrhovals=9)
       REAL massbelowJ(njvals),angmval(njvals)
       REAL masswithinR(nrvals),rval(nrvals)
+      REAL massaboverho(nrhovals),rhoval(nrhovals)
       LOGICAL smalldump
+      REAL, PARAMETER :: pi=3.1415926536
       
 c      DATA angmval /1.e-3,1.e-2,0.1,1.0,5.0/
       DATA angmval /1.e-3,1.e-2,0.1,0.2,0.5,1.0/
       DATA rval /0.02,0.05,0.1,0.2,0.5,1.0,2.0,3.0,4.0/
-      
+      DATA rhoval /1.e-20,1.e-19,1.e-18,1.e-17,1.e-16, 
+     &             1.e-15,1.e-14,1.e-13,1.e-12/      
       
       nfiles = iargc()
       IF (nfiles.LE.0) THEN
@@ -44,9 +49,10 @@ c
       PRINT*,' 1: mass fraction below J value vs time'
       PRINT*,' 2: mass fraction vs radius'
       PRINT*,' 3: mass fraction within a given radius vs time'
+      PRINT*,' 4: mass above a given rho vs time'
       WRITE(*,*) 'Please select output:'
       READ*,ioutput
-      IF (ioutput.GT.3 .OR. ioutput.LT.0) STOP 'unknown output choice'
+      IF (ioutput.GT.4 .OR. ioutput.LT.0) STOP 'unknown output choice'
       
       IF (ioutput.EQ.1) THEN
          fileout = 'mbelowj.out'
@@ -54,6 +60,10 @@ c
          OPEN(UNIT=55,FILE=fileout,STATUS='replace',FORM='formatted')
       ELSEIF (ioutput.EQ.3) THEN
          fileout = 'mwithinr.out'
+         PRINT*,' opening ',fileout
+         OPEN(UNIT=55,FILE=fileout,STATUS='replace',FORM='formatted')
+      ELSEIF (ioutput.EQ.4) THEN
+         fileout = 'massaboverho.out'
          PRINT*,' opening ',fileout
          OPEN(UNIT=55,FILE=fileout,STATUS='replace',FORM='formatted')
       ENDIF
@@ -66,7 +76,7 @@ c
      &   npart,n1,n2,gt,gamma,rhozero,RK2,
      &   escap,tkin,tgrav,tterm,xyzmh,vxyzu,rho,iphase,isteps,nptmass,
      &   listpm,spinx,spiny,spinz,angaddx,angaddy,angaddz,
-     &   spinadx,spinady,spinadz,ierr)
+     &   spinadx,spinady,spinadz,udisti,umassi,utimei,ierr)
          IF (ierr.GT.0) STOP 'aborting...'
          IF (ierr.EQ.-1) THEN
             PRINT*,'WARNING: small dump file: AM not present'
@@ -78,10 +88,8 @@ c
          ELSE
             smalldump = .false.
          ENDIF
-c
-c--calculate specific AM for each particle
-c  also total angular momentum
-c
+         timeff = gt/(SQRT((3. * pi) / (32. * rhozero)))
+         
          angx = 0.
          angy = 0.
          angz = 0.
@@ -90,7 +98,14 @@ c
          angz1 = 0.
          totmass = 0.
          totmass1 = 0.
+         udens = umassi/udisti**3
          print*,'npart=',npart,'n1=',n1,'n2=',n2
+
+         IF (ioutput.NE.4) THEN
+c
+c--calculate specific AM for each particle
+c  also total angular momentum
+c        
          DO i = 1, npart
             IF (iphase(i).GE.0) THEN
                radius(i) = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2 
@@ -134,7 +149,9 @@ c
      &           angto1/angto
          ENDIF
          PRINT*,' total mass = ',totmass
-
+         
+         ENDIF
+         
          IF (ioutput.EQ.0) THEN
 c
 c--now sort particles by specific AM
@@ -227,9 +244,35 @@ c
      &                 (masswithinR(k),k=1,nrvals)
             WRITE(55,*) gt,totmass1,
      &                 (masswithinR(k),k=1,nrvals)         
+
+         ELSEIF (ioutput.EQ.4) THEN
+c
+c--print out time slices : mass fraction above a certain rho
+c
+            DO k=1,nrhovals
+               massaboverho(k) = 0.
+            ENDDO
+            DO i=1,n1
+               IF (iphase(i).EQ.0) THEN
+                  DO k=1,nrhovals
+                     IF (rho(i)*udens.GE.rhoval(k)) THEN
+                        massaboverho(k) = massaboverho(k) + xyzmh(4,i)
+                     ENDIF
+                  ENDDO
+               ELSEIF (iphase(i).GE.1) THEN
+                  print*,' sink mass = ',i,xyzmh(4,i)
+                  massaboverho(k) = massaboverho(k) + xyzmh(4,i)
+               ENDIF
+            ENDDO
+            
+            WRITE(*,*) 't=',gt,timeff,'rho=',
+     &                 (massaboverho(k),k=1,nrhovals)
+            WRITE(55,*) gt,timeff,(massaboverho(k),k=1,nrhovals)
          ENDIF
 100   END DO
       
-      IF (ioutput.EQ.1 .OR. ioutput.EQ.3) CLOSE(UNIT=55)
-               
+      IF (ioutput.EQ.1 .OR. ioutput.EQ.3 .OR. ioutput.EQ.4) THEN
+         CLOSE(UNIT=55)
+      ENDIF
+            
       END PROGRAM massvsangmom

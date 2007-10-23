@@ -3,7 +3,7 @@
      &   escap,tkin,tgrav,tterm,xyzmh,vxyzu,rho,
      &   iphase,isteps,nptmass,
      &   listpm,spinx,spiny,spinz,angaddx,angaddy,angaddz,
-     &   spinadx,spinady,spinadz,ierr)
+     &   spinadx,spinady,spinadz,udisti,umassi,utimei,ierr)
 c************************************************************
 c                                                           *
 c  This is rdump but as a standalone subroutine             *

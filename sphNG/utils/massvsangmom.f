@@ -260,8 +260,10 @@ c
                      ENDIF
                   ENDDO
                ELSEIF (iphase(i).GE.1) THEN
-                  print*,' sink mass = ',i,xyzmh(4,i)
-                  massaboverho(k) = massaboverho(k) + xyzmh(4,i)
+                  !print*,' sink mass = ',i,xyzmh(4,i)
+                  DO k=1,nrhovals
+                     massaboverho(k) = massaboverho(k) + xyzmh(4,i)
+                  ENDDO
                ENDIF
             ENDDO
             

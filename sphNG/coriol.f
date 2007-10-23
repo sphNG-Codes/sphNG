@@ -17,11 +17,7 @@ c************************************************************
 c
 c--Needed for MPI code
 c
-      IF (ipart.GT.ntot) THEN
-         iparttree = ipart + ntot + 2
-      ELSE
-         iparttree = ipart
-      ENDIF
+      IF (ipart.GT.ntot) RETURN
 c
 c--Scaling factors
 c
@@ -36,13 +32,13 @@ c--Rotation around z axis
 c
 c--Coriolis
 c
-         fcorcx = a32*vxyzu(2,ipart) + aadot*xyzmh(2,iparttree)
-         fcorcy = -a32*vxyzu(1,ipart) - aadot*xyzmh(1,iparttree)
+         fcorcx = a32*vxyzu(2,ipart) + aadot*xyzmh(2,ipart)
+         fcorcy = -a32*vxyzu(1,ipart) - aadot*xyzmh(1,ipart)
 c
 c--Centrifugal
 c
-         fcentx = a3*omeg2*xyzmh(1,iparttree)
-         fcenty = a3*omeg2*xyzmh(2,iparttree)
+         fcentx = a3*omeg2*xyzmh(1,ipart)
+         fcenty = a3*omeg2*xyzmh(2,ipart)
 
          fxyzu(1,ipart) = fxyzu(1,ipart) + fcorcx + fcentx
          fxyzu(2,ipart) = fxyzu(2,ipart) + fcorcy + fcenty
@@ -58,13 +54,13 @@ c--Rotation end over end around x axis
 c
 c--Coriolis
 c
-         fcorcy = a32*vxyzu(3,ipart) + aadot*xyzmh(3,iparttree)
-         fcorcz = -a32*vxyzu(2,ipart) - aadot*xyzmh(2,iparttree)
+         fcorcy = a32*vxyzu(3,ipart) + aadot*xyzmh(3,ipart)
+         fcorcz = -a32*vxyzu(2,ipart) - aadot*xyzmh(2,ipart)
 c
 c--Centrifugal
 c
-         fcenty = a3*omeg2*xyzmh(2,iparttree)
-         fcentz = a3*omeg2*xyzmh(3,iparttree)
+         fcenty = a3*omeg2*xyzmh(2,ipart)
+         fcentz = a3*omeg2*xyzmh(3,ipart)
 
          fxyzu(2,ipart) = fxyzu(2,ipart) + fcorcy + fcenty
          fxyzu(3,ipart) = fxyzu(3,ipart) + fcorcz + fcentz

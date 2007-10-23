@@ -37,11 +37,7 @@ c      INCLUDE 'COMMONS/tokamak'
 c
 c--Needed for MPI code
 c
-      IF (ipart.GT.ntot) THEN
-         iparttree = ipart + ntot + 2
-      ELSE
-         iparttree = ipart
-      ENDIF
+      IF (ipart.GT.ntot) RETURN
 c
 c--Unit angular momentum
 c
@@ -67,20 +63,20 @@ c
          r0 = h0**2
          r02 = r0**2
          omega = h0/r02
-         d2 = xyzmh(1,iparttree)**2 + xyzmh(2,iparttree)**2
+         d2 = xyzmh(1,ipart)**2 + xyzmh(2,ipart)**2
          d = SQRT(d2)
          d3 = d2*d
          omeg = omega*(r0/d)**q
          h1 = omeg*d2
          h2 = h1**2
-         r2 = d2 + xyzmh(3,iparttree)**2
+         r2 = d2 + xyzmh(3,ipart)**2
          r = SQRT(r2)
 
-         runix = xyzmh(1,iparttree)/r
-         runiy = xyzmh(2,iparttree)/r
-         runiz = xyzmh(3,iparttree)/r
-         dunix = xyzmh(1,iparttree)/d
-         duniy = xyzmh(2,iparttree)/d
+         runix = xyzmh(1,ipart)/r
+         runiy = xyzmh(2,ipart)/r
+         runiz = xyzmh(3,ipart)/r
+         dunix = xyzmh(1,ipart)/d
+         duniy = xyzmh(2,ipart)/d
 
          fxyzu(1,ipart) = fxyzu(1,ipart) - 0.9999*runix/r2 + 
      &        t1*h2*dunix/d3
@@ -92,15 +88,15 @@ c--Rotating cylinders
 c
       ELSEIF (iexf.EQ.4) THEN
          omega = 0.6
-         d2 = xyzmh(1,iparttree)**2 + xyzmh(2,iparttree)**2
+         d2 = xyzmh(1,ipart)**2 + xyzmh(2,ipart)**2
          d = SQRT(d2)
          d3 = d2*d
          omeg = omega
          IF (d.GT.1.) omeg = 0.
          h1 = d2*omeg
          h2 = h1**2
-         dunix = xyzmh(1,iparttree)/d
-         duniy = xyzmh(2,iparttree)/d
+         dunix = xyzmh(1,ipart)/d
+         duniy = xyzmh(2,ipart)/d
 
          fxyzu(1,ipart) = fxyzu(1,ipart) + h2*dunix/d3
          fxyzu(2,ipart) = fxyzu(2,ipart) + h2*duniy/d3
@@ -108,9 +104,9 @@ c
 c--Central point mass
 c
       ELSEIF (iexf.EQ.5) THEN
-         xi = xyzmh(1,iparttree)
-         yi = xyzmh(2,iparttree)
-         zi = xyzmh(3,iparttree)
+         xi = xyzmh(1,ipart)
+         yi = xyzmh(2,ipart)
+         zi = xyzmh(3,ipart)
          d2 = (xi*xi + yi*yi + zi*zi + tiny)
          d = SQRT(d2)
          runix = xi/d
@@ -126,9 +122,9 @@ c--Distant point mass
 c
       ELSEIF (iexf.EQ.6) THEN
          zdist = 40.
-         xi = xyzmh(1,iparttree)
-         yi = xyzmh(2,iparttree)
-         zi = zdist - xyzmh(3,iparttree)
+         xi = xyzmh(1,ipart)
+         yi = xyzmh(2,ipart)
+         zi = zdist - xyzmh(3,ipart)
          d2 = (xi*xi + yi*yi + zi*zi)
          d = SQRT(d2)
          runix = xi/d
@@ -143,9 +139,9 @@ c
 c--Central point mass and planet
 c
       ELSEIF (iexf.EQ.7) THEN
-         xi = xyzmh(1,iparttree)
-         yi = xyzmh(2,iparttree)
-         zi = xyzmh(3,iparttree)
+         xi = xyzmh(1,ipart)
+         yi = xyzmh(2,ipart)
+         zi = xyzmh(3,ipart)
          d2 = (xi*xi + yi*yi + zi*zi + tiny)
          d = SQRT(d2)
          runix = xi/d
@@ -177,10 +173,10 @@ c
          fxyzu(3,ipart) = fxyzu(3,ipart) - planetmass*runiz/d2
          poten(ipart) = poten(ipart) - planetmass/d
       ELSEIF (iexf.EQ.8) THEN
-         xi = xyzmh(1,iparttree)
-         yi = xyzmh(2,iparttree)
-         zi = xyzmh(3,iparttree)
-         hi = xyzmh(5,iparttree)
+         xi = xyzmh(1,ipart)
+         yi = xyzmh(2,ipart)
+         zi = xyzmh(3,ipart)
+         hi = xyzmh(5,ipart)
          dhi = hi/1000.
          d2 = (xi*xi + yi*yi)
          r=SQRT(d2+zi*zi)
@@ -213,10 +209,10 @@ c
 c--external force due to an assumed external B field
 c  (with non-zero curl)
 c         
-         xi = xyzmh(1,iparttree)
-         yi = xyzmh(2,iparttree)
-         zi = xyzmh(3,iparttree)
-         hi = xyzmh(5,iparttree)
+         xi = xyzmh(1,ipart)
+         yi = xyzmh(2,ipart)
+         zi = xyzmh(3,ipart)
+         hi = xyzmh(5,ipart)
          rhoi = rho(ipart)
          CALL fexternalB(xi,yi,zi,hi,rhoi,fextx,fexty,fextz)
          fxyzu(1,ipart) = fxyzu(1,ipart) + fextx
@@ -227,9 +223,9 @@ c External force to re-inject particles that try to escape from the cylinder
 c considered as a solid boundary
 c
       ELSEIF (iexf.EQ.10) THEN
-         xi = xyzmh(1,iparttree)
-         yi = xyzmh(2,iparttree)
-         zi = xyzmh(3,iparttree)
+         xi = xyzmh(1,ipart)
+         yi = xyzmh(2,ipart)
+         zi = xyzmh(3,ipart)
 c get cylindrical r
          rxyplane = sqrt(xi**2 + yi**2)
          v2 = gamma*2./3.*RK2*(rhozero)**(gamma-1.)

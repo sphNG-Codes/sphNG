@@ -303,12 +303,12 @@ c     than idim.
 c
                DO j = 0, numproc - 1
                   IF (j.NE.iproc) THEN
-                     inumofsends = inumofsends + 1
 c
 c--Only sends anything at all to another MPI process if it needs to (the
 c     other MPI process knows when it doesn't need to expect anything)
 c
                      IF (nneighsentback(j+1).GT.0) THEN
+                        inumofsends = inumofsends + 1
 #ifdef MPIDEBUG
                         print *,iproc,': sending neighbour data to ',j,
      &                       ' starting at ',llistsentback(1,j+1),'+1'
@@ -711,8 +711,8 @@ c               iprocrec = istatus(MPI_SOURCE)
                   CALL quit
                ENDIF
 #ifdef MPIDEBUG
-c               print *,iproc,': got forces from ',iprocrec,' put into ',
-c     &              llistsentback(1,iprocrec+1)+1
+               print *,iproc,': got forces from ',iprocrec,' put into ',
+     &              llistsentback(1,iprocrec+1)+1
 #endif
                DO l = 1, nneighsentback(iprocrec+1)
                   ipos = llistsentback(l,iprocrec+1)+1
@@ -723,10 +723,10 @@ c     &              llistsentback(1,iprocrec+1)+1
                END DO
 
 #ifdef MPIDEBUG
-      IF (iproc.EQ.0) 
-     &     print *,'called forcei PRE3 ',dvxyzu(1,68),
-     &              dvxyzu(2,68),dvxyzu(3,68),dvxyzu(1,2325),
-     &              dvxyzu(2,2325),dvxyzu(3,2325)
+c      IF (iproc.EQ.0) 
+c     &     print *,'called forcei PRE3 ',dvxyzu(1,68),
+c     &              dvxyzu(2,68),dvxyzu(3,68),dvxyzu(1,2325),
+c     &              dvxyzu(2,2325),dvxyzu(3,2325)
 #endif
 
                CALL MPI_RECV(poten(istartrec),maxnneighsentback,
@@ -737,7 +737,7 @@ c     &              llistsentback(1,iprocrec+1)+1
                   CALL quit
                ENDIF
 #ifdef MPIDEBUG
-               print *,iproc,': got poten from ',iprocrec
+c               print *,iproc,': got poten from ',iprocrec
 #endif
 
                DO l = 1, nneighsentback(iprocrec+1)
@@ -768,6 +768,11 @@ c     &              llistsentback(1,iprocrec+1)+1
                      END DO
                   END DO
                ENDIF
+
+#ifdef MPIDEBUG
+               print *,iproc,': received forces, poten ',j,' of ',
+     &              inumofsends
+#endif
 
             END DO
 c

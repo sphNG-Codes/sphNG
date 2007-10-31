@@ -86,8 +86,9 @@ c
       ENDIF
 
 #ifdef MPI
-      WRITE (iterm, 99006) mpitype,'  Type of MPI decomposition ',
-     &     '(s)phere, (d)isc, (c)artesian'
+      WRITE (iterm, 99016) mpitype
+99016 FORMAT (A1,'  Type of MPI decomposition ',
+     &     '(s)phere, (d)isc, (c)artesian')
 #else
       WRITE (iterm, *) 'x  Type of MPI decomposition'
 #endif

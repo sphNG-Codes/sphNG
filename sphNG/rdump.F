@@ -115,7 +115,7 @@ c--Default int
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill
          nblocks = 1
       ENDIF
-      IF (npart.GT.idim) THEN
+      IF (npart.GT.idim .AND. nblocks.EQ.1) THEN
          WRITE (*,*) 'ERROR in rdump: npart>idim'
          CALL quit
       ENDIF
@@ -206,7 +206,8 @@ c
       IF (encal.EQ.'r') numberexp = 3
       IF (imhd.EQ.idim) numberexp = 4
 
-      IF (number.LT.2 .OR. numberexp.EQ.4 .AND.number/nblocks.NE.4) THEN
+      IF (number.LT.2 .OR. number/nblocks.LT.2 .OR. 
+     &     numberexp.EQ.4 .AND.number/nblocks.NE.4) THEN
          WRITE (*,*) 'ERROR 7 in rdump ', number, numberexp
          CALL quit
 #ifdef MPI
@@ -218,6 +219,7 @@ c
          CALL quit
 #endif
       ENDIF
+      numberarray = number/nblocks
 c
 c--Loop over blocks
 c
@@ -256,7 +258,7 @@ c
 c
 c--Read array type 3 header
 c
-      IF (number.GE.3) THEN
+      IF (numberarray.GE.3) THEN
          READ (idisk1, END=100) number8, (nums3(i), i=1,8)
          IF (iradtrans.EQ.idim .AND. number8.GT.iradtrans) THEN
             WRITE (*,*) 'ERROR 9 in rdump: iradtrans wrong ',number8,
@@ -270,7 +272,7 @@ c
 c
 c--Read array type 4 header
 c
-      IF (number.GE.4) THEN
+      IF (numberarray.GE.4) THEN
          READ (idisk1, END=100) number8, (nums4(i), i=1,8)
          IF (imhd.EQ.idim.AND.number8.GT.imhd) THEN
             WRITE (*,*) 'ERROR 10 in rdump: imhd wrong ',number8,
@@ -303,13 +305,13 @@ c
                READ (idisk1, END=100)
             END DO
          END DO
-         IF (number.GE.3) THEN
+         IF (numberarray.GE.3) THEN
             DO j = 1, 8
                DO k = 1, nums3(j)
                   READ (idisk1, END=100)
                END DO
             END DO
-            IF (number.GE.4) THEN
+            IF (numberarray.GE.4) THEN
                DO j = 1, 8
                   DO k = 1, nums4(j)
                      READ (idisk1, END=100)
@@ -423,7 +425,7 @@ c--real*4
 
 c--real*8
 
-         IF (number.GE.3 .AND. nradtrans.EQ.nhydro 
+         IF (numberarray.GE.3 .AND. nradtrans.EQ.nhydro 
      &        .AND. encal.EQ.'r') THEN
 c
 c--Array length 3 arrays
@@ -448,7 +450,7 @@ c--real*4
 c--real*8
 
          ENDIF
-         IF (number.GE.4 .AND. nmhd.EQ.nhydro .AND. 
+         IF (numberarray.GE.4 .AND. nmhd.EQ.nhydro .AND. 
      &        imhd.EQ.idim) THEN
 c
 c--Array length 4 arrays
@@ -777,8 +779,8 @@ ccc      GOTO 50
 c
 c--Change reference frame
 c
-      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
-c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2)) THEN
+c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
+      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2)) THEN
          CALL chanref(icall)
       ELSEIF (ifcor.GT.2) THEN
          ifcor = ifcor - 2
@@ -847,43 +849,20 @@ c************************************************************
       DIMENSION isteps(idim), xyzmh(5,idim), vxyzu(4,idim), 
      &     Bevolxyz(3,imhd), Bxyz(3,imhd)
 
-      DIMENSION numdiv(10)
-      
-      icountnew = icount
-      IF (numproc.EQ.2) THEN
-         DO i = icount+1, nhydro
-            IF (iproc.EQ.0 .AND. 
-     &           xyzmh(1,i).GE.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-               IF (nlmax.EQ.1) THEN
-                  DO j = 1, 2
-                     gradhs(j,icountnew) = gradhs(j,i)
-                  END DO
-               ENDIF
-               IF (imhd.EQ.idim) THEN
-                  DO j = 1, 3
-                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
-                  END DO
-                  DO j = 1, 3
-                     Bxyz(j,icountnew) = Bxyz(j,i)
-                  END DO
-               ENDIF
-               DO j = 1, isizealphaMM
-                  alphaMM(j,icountnew) = alphaMM(j,i)
-               END DO
+      INTEGER classify_disc,classify_sphere,classify_cartesian
 
-            ELSEIF (iproc.EQ.1 .AND. 
-     &              xyzmh(1,i).LT.0.0) THEN
+      DIMENSION numdiv(10)
+
+      icountnew = icount
+c
+c--Type of domain decomposition
+c
+c--Disc-type domain decomposition
+c
+      IF (mpitype.EQ.'d') THEN
+         DO i = icount+1, nhydro
+            ibelong = classify_disc(i,xyzmh)
+            IF (iproc.EQ.ibelong) THEN
                icountnew = icountnew + 1
                isteps(icountnew) = isteps(i)
                iphase(icountnew) = iphase(i)
@@ -911,72 +890,139 @@ c************************************************************
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
-               
             ENDIF
          END DO
-      ELSEIF (numproc.EQ.4) THEN
-         DO i = icount+1, icount+nhydro
-            IF (iproc.EQ.0 .AND. xyzmh(3,i).GE.0.0 .AND.
-     &           xyzmh(1,i).GE.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-               IF (nlmax.EQ.1) THEN
-                  DO j = 1, 2
-                     gradhs(j,icountnew) = gradhs(j,i)
+c
+c--Sphere-type domain decomposition
+c
+      ELSEIF (mpitype.EQ.'s') THEN
+         IF (numproc.EQ.2) THEN
+            DO i = icount+1, nhydro
+               IF (iproc.EQ.0 .AND. 
+     &              xyzmh(1,i).GE.0.0) THEN
+                  icountnew = icountnew + 1
+                  isteps(icountnew) = isteps(i)
+                  iphase(icountnew) = iphase(i)
+                  DO j = 1, 5
+                     xyzmh(j,icountnew) = xyzmh(j,i)
                   END DO
-               ENDIF
-               IF (imhd.EQ.idim) THEN
-                  DO j = 1, 3
-                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                  DO j = 1, 4
+                     vxyzu(j,icountnew) = vxyzu(j,i)
                   END DO
-                  DO j = 1, 3
-                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  rho(icountnew) = rho(i)
+                  dgrav(icountnew) = dgrav(i)
+                  IF (nlmax.EQ.1) THEN
+                     DO j = 1, 2
+                        gradhs(j,icountnew) = gradhs(j,i)
+                     END DO
+                  ENDIF
+                  IF (imhd.EQ.idim) THEN
+                     DO j = 1, 3
+                        Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                     END DO
+                     DO j = 1, 3
+                        Bxyz(j,icountnew) = Bxyz(j,i)
+                     END DO
+                  ENDIF
+                  DO j = 1, isizealphaMM
+                     alphaMM(j,icountnew) = alphaMM(j,i)
                   END DO
-               ENDIF
-               DO j = 1, isizealphaMM
-                  alphaMM(j,icountnew) = alphaMM(j,i)
-               END DO
 
-            ELSEIF (iproc.EQ.1 .AND. xyzmh(3,i).GE.0.0 .AND.
-     &              xyzmh(1,i).LT.0.0) THEN
-               icountnew = icountnew + 1
-               isteps(icountnew) = isteps(i)
-               iphase(icountnew) = iphase(i)
-               DO j = 1, 5
-                  xyzmh(j,icountnew) = xyzmh(j,i)
-               END DO
-               DO j = 1, 4
-                  vxyzu(j,icountnew) = vxyzu(j,i)
-               END DO
-               rho(icountnew) = rho(i)
-               dgrav(icountnew) = dgrav(i)
-               IF (nlmax.EQ.1) THEN
-                  DO j = 1, 2
-                     gradhs(j,icountnew) = gradhs(j,i)
+               ELSEIF (iproc.EQ.1 .AND. 
+     &                 xyzmh(1,i).LT.0.0) THEN
+                  icountnew = icountnew + 1
+                  isteps(icountnew) = isteps(i)
+                  iphase(icountnew) = iphase(i)
+                  DO j = 1, 5
+                     xyzmh(j,icountnew) = xyzmh(j,i)
                   END DO
+                  DO j = 1, 4
+                     vxyzu(j,icountnew) = vxyzu(j,i)
+                  END DO
+                  rho(icountnew) = rho(i)
+                  dgrav(icountnew) = dgrav(i)
+                  IF (nlmax.EQ.1) THEN
+                     DO j = 1, 2
+                        gradhs(j,icountnew) = gradhs(j,i)
+                     END DO
+                  ENDIF
+                  IF (imhd.EQ.idim) THEN
+                     DO j = 1, 3
+                        Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                     END DO
+                     DO j = 1, 3
+                        Bxyz(j,icountnew) = Bxyz(j,i)
+                     END DO
+                  ENDIF
+                  DO j = 1, isizealphaMM
+                     alphaMM(j,icountnew) = alphaMM(j,i)
+                  END DO
+                  
                ENDIF
-               IF (imhd.EQ.idim) THEN
-                  DO j = 1, 3
-                     Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+            END DO
+         ELSEIF (numproc.EQ.4) THEN
+            DO i = icount+1, icount+nhydro
+               IF (iproc.EQ.0 .AND. xyzmh(3,i).GE.0.0 .AND.
+     &              xyzmh(1,i).GE.0.0) THEN
+                  icountnew = icountnew + 1
+                  isteps(icountnew) = isteps(i)
+                  iphase(icountnew) = iphase(i)
+                  DO j = 1, 5
+                     xyzmh(j,icountnew) = xyzmh(j,i)
                   END DO
-                  DO j = 1, 3
-                     Bxyz(j,icountnew) = Bxyz(j,i)
+                  DO j = 1, 4
+                     vxyzu(j,icountnew) = vxyzu(j,i)
                   END DO
-               ENDIF
-               DO j = 1, isizealphaMM
-                  alphaMM(j,icountnew) = alphaMM(j,i)
-               END DO
-
-            ELSEIF (iproc.EQ.2 .AND. xyzmh(3,i).LT.0.0 .AND.
+                  rho(icountnew) = rho(i)
+                  dgrav(icountnew) = dgrav(i)
+                  IF (nlmax.EQ.1) THEN
+                     DO j = 1, 2
+                        gradhs(j,icountnew) = gradhs(j,i)
+                     END DO
+                  ENDIF
+                  IF (imhd.EQ.idim) THEN
+                     DO j = 1, 3
+                        Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                     END DO
+                     DO j = 1, 3
+                        Bxyz(j,icountnew) = Bxyz(j,i)
+                     END DO
+                  ENDIF
+                  DO j = 1, isizealphaMM
+                     alphaMM(j,icountnew) = alphaMM(j,i)
+                  END DO
+                  
+               ELSEIF (iproc.EQ.1 .AND. xyzmh(3,i).GE.0.0 .AND.
+     &                 xyzmh(1,i).LT.0.0) THEN
+                  icountnew = icountnew + 1
+                  isteps(icountnew) = isteps(i)
+                  iphase(icountnew) = iphase(i)
+                  DO j = 1, 5
+                     xyzmh(j,icountnew) = xyzmh(j,i)
+                  END DO
+                  DO j = 1, 4
+                     vxyzu(j,icountnew) = vxyzu(j,i)
+                  END DO
+                  rho(icountnew) = rho(i)
+                  dgrav(icountnew) = dgrav(i)
+                  IF (nlmax.EQ.1) THEN
+                     DO j = 1, 2
+                        gradhs(j,icountnew) = gradhs(j,i)
+                     END DO
+                  ENDIF
+                  IF (imhd.EQ.idim) THEN
+                     DO j = 1, 3
+                        Bevolxyz(j,icountnew) = Bevolxyz(j,i)
+                     END DO
+                     DO j = 1, 3
+                        Bxyz(j,icountnew) = Bxyz(j,i)
+                     END DO
+                  ENDIF
+                  DO j = 1, isizealphaMM
+                     alphaMM(j,icountnew) = alphaMM(j,i)
+                  END DO
+                  
+               ELSEIF (iproc.EQ.2 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).GE.0.0) THEN
                icountnew = icountnew + 1
                isteps(icountnew) = isteps(i)
@@ -1415,6 +1461,12 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
          END DO
       ELSE
          PRINT *,' Currently invalid number of processes ',numproc
+         CALL quit
+      ENDIF
+
+      ELSE
+         PRINT *,' Currently invalid MPI domain decompostion ',numproc,
+     &        mpitype
          CALL quit
       ENDIF
       npart = icountnew

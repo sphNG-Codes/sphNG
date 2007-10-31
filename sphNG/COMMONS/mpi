@@ -4,11 +4,13 @@
       INTEGER ierr, numproc, iproc
       INTEGER nparttot, nactivetot, n1tot, n2tot
       REAL fmas1tot, fmas2tot
+      CHARACTER*1 mpitype
 
       COMMON /mpi / ierr, numproc, iproc
       COMMON /mpiint/ nparttot, nactivetot, n1tot, n2tot, nptmasstot,
      &	     maxnneighsentback,inumofreturns
       COMMON /mpireal/ fmas1tot, fmas2tot
+      COMMON /mpichar/ mpitype
 
       COMMON /mpireq/ istatus(MPI_STATUS_SIZE),
      &	     irequest_array(nummaxproc), 

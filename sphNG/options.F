@@ -113,6 +113,12 @@ c
 99006 FORMAT (A1)
       IF (encal.EQ.'r') READ (iterm, *) tolerance, boundtemp
 
+#ifdef MPI
+      READ (iterm, 99006) mpitype
+#else
+      READ (iterm, *)
+#endif
+
       READ (iterm, *) initialptm
       READ (iterm, 99006) iaccevol
       IF (iaccevol.EQ.'v' .OR. iaccevol.EQ.'s') READ (iterm, *) accfac

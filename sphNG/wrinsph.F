@@ -85,6 +85,13 @@ c
      &    ' tolerance boundtemp')
       ENDIF
 
+#ifdef MPI
+      WRITE (iterm, 99006) mpitype,'  Type of MPI decomposition ',
+     &     '(s)phere, (d)isc, (c)artesian'
+#else
+      WRITE (iterm, *) 'x  Type of MPI decomposition'
+#endif
+
       WRITE (iterm, 89000) initialptm
 89000 FORMAT(2X,I2,'  Point Masses Initially')
       WRITE (iterm, 89005) iaccevol

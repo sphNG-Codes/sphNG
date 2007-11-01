@@ -3,7 +3,7 @@
 
 		IMPLICIT NONE      
       REAL*8 rho,tm,aiony,aionx,aionz1,aionz2
-      REAL*8 rhsy,cv,nh,h,IH,IHe1,k,me,nhe,IHe2,IH2,nH2
+      REAL*8 rhsy,cv,nh,h,IH,IHe1,me,nhe,IHe2,IH2,nH2
       REAL*8 aiony1,aiony2,delta,mu,y0,yp,aionz21,aionz22
       REAL*8 aionz11,aionz12,K,aionx1,aionx2,rhsz1,rhsz2,mH
 		REAL*8 rhsx,pi,Y,X,Rg,Z
@@ -103,7 +103,8 @@
       ELSEIF(aionx1.EQ.0.0.AND.aionx2.EQ.0.0) THEN
          aionx=0.0
       ELSE
-         PRINT *,"mu: error in ionisation x",aionx1,aionx2,rhsx,tm
+         PRINT *,"mu: error in ionisation x",aionx1,aionx2,rhsx,tm,
+     &        aiony,IH/(k*tm),IH
          STOP
       END IF
 
@@ -224,18 +225,28 @@
 
       PROGRAM MAKETABLE
 
-      REAL*8 ltm,lrho,tg,rho,mu,muu,startu,endu,cv,u,K,y1,y2
+      REAL*8 ltm,lrho,rho8,tg,mu,muu,startu,endu,cv,u,K,y1,y2
       DIMENSION muu(4602,1800)
       INTEGER I,J,R
 
-		INCLUDE '../COMMONS/tgtbl'
-		INCLUDE '../COMMONS/mutbl'
+      INCLUDE '../COMMONS/tgtbl'
+      INCLUDE '../COMMONS/mutbl'
+      INCLUDE '../COMMONS/units'
+
+      REAL*4 rho
+
+      umass = 1.0
+      udist = 1.0
+      udens = 1.0
+      utime = 1.0
+      uergg = 1.0
+      uergcc = 1.0
 
 
       OPEN(UNIT=8,FILE='gasttbl',FORM='unformatted')
-	      DO i=1, tgmxu
-	      READ(8) (tgtable(i,j), j=1, tgmxrh)
-	      ENDDO
+      DO i=1, tgmxu
+         READ(8) (tgtable(i,j), j=1, tgmxrh)
+      ENDDO
       CLOSE(8)
 
 !		PRINT *,mu(0.9,10.0**14.71/getcv(0.9,10.0**14.71))
@@ -243,8 +254,6 @@
 !		STOP
 
       OPEN(UNIT=10,FILE='molmasstbl',FORM='unformatted')
-
-
 
       DO nrho=-20000,2999,5!-20,0,0.005
 
@@ -260,8 +269,9 @@
             cv = getcv(rho,u)
             tg = u/cv
             j=R
-!            print *,"Making ",I,J," as ",rho,tg           
-            muu(I,J)=log10(mu(rho,tg))
+!            print *,"Making ",I,J," as ",rho,tg,u,cv
+            rho8 = rho
+            muu(I,J)=log10(mu(rho8,tg))
 !            print *,"Done"
          ENDDO
 
@@ -291,13 +301,13 @@
       DO I=1,mumxu-1
          K=K+0.005
          u=10.0**(REAL(K))
-			rho=1e-18			
-!			print *,1e-10,u
-			PRINT *,mutable(I,4600),muu(4600,I)			
+         rho=1e-18			
+!     print *,1e-10,u
+         PRINT *,mutable(I,4600),muu(4600,I)			
          y1=get1overmu(rho,u)
          y2=getcv(rho,u)
          WRITE(57,*)  u/y2,y2,1.0/y1
-			rho = 0.9
+         rho = 0.9
          y1=get1overmu(rho,u)
          y2=getcv(rho,u)
          WRITE(58,*)  u/y2,y2,1.0/y1

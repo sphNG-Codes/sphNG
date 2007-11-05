@@ -32,6 +32,13 @@ c************************************************************
       INCLUDE 'COMMONS/current'
       INCLUDE 'COMMONS/ener1'
       INCLUDE 'COMMONS/bodys'
+      INCLUDE 'COMMONS/treecom_P'
+      INCLUDE 'COMMONS/typef'
+      INCLUDE 'COMMONS/dum'
+      INCLUDE 'COMMONS/radtrans'
+
+      DIMENSION itempsort(idim)
+      EQUIVALENCE (itempsort, next1)
 
       DIMENSION listtrans(idim), numlist(nummaxproc)
 c
@@ -96,6 +103,8 @@ c
                IF (iahead.EQ.listtrans(j)) THEN
                   ipos = ipos + 1
                   lsendlist(ipos) = j - 1
+c                  IF (ipos.LE.5) print *,'To ',
+c     &                 iahead,j,iunique(iorig(j))
                   IF (ipos.GE.numlist(iahead+1)) GOTO 10
                ENDIF
             END DO
@@ -142,6 +151,10 @@ c
          CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
          igotnumber = inumber
 
+c         IF (npartnew+igotnumber.GE.6581) THEN
+c            print *,iproc,': GOT ',(xyzmh(ijk,6581), ijk=1,5)
+c         ENDIF
+
 #ifdef MPIDEBUGT
          print *,iproc,': Received xyzmh transfer of ',inumber,
      &        ' and wants to send ',numlist(iahead+1)
@@ -154,25 +167,25 @@ c     &       lsendlist, i4REAL8, indexMPI4, ierr)
             CALL MPI_TYPE_INDEXED(numlist(iahead+1), lblocklengths, 
      &           lsendlist, i4REAL8, indexMPI4, ierr)
             CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
-            
+
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(iahead+1), 1, 
 c     &       lsendlist, i3REAL8, indexMPI3, ierr)
             CALL MPI_TYPE_INDEXED(numlist(iahead+1), lblocklengths, 
      &           lsendlist, i3REAL8, indexMPI3, ierr)
             CALL MPI_TYPE_COMMIT(indexMPI3,ierr)
-            
+
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(iahead+1), 1, 
 c     &       lsendlist, MPI_INTEGER, indexMPI_INT, ierr)
             CALL MPI_TYPE_INDEXED(numlist(iahead+1), lblocklengths, 
      &           lsendlist, MPI_INTEGER, indexMPI_INT, ierr)
             CALL MPI_TYPE_COMMIT(indexMPI_INT,ierr)
-            
+
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(iahead+1), 1, 
 c     &       lsendlist, MPI_INTEGER1, indexMPI_INT1, ierr)
             CALL MPI_TYPE_INDEXED(numlist(iahead+1), lblocklengths, 
      &           lsendlist, MPI_INTEGER1, indexMPI_INT1, ierr)
             CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
-            
+
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(iahead+1), 1, 
 c     &       lsendlist, i2REAL4, indexMPI2, ierr)
             CALL MPI_TYPE_INDEXED(numlist(iahead+1), lblocklengths, 
@@ -197,7 +210,21 @@ c     &       lsendlist, ialphaREAL41, indexMPIalpha1, ierr)
      &           lsendlist, ialphaREAL41, indexMPIalpha1, ierr)
             CALL MPI_TYPE_COMMIT(indexMPIalpha1,ierr)
 
-            
+c
+c--NOTE: itempsort is used to send iunique indexes of particles which 
+c     are not sorted like all the other arrays
+c
+            DO i = 1, numlist(iahead+1)
+               itempsort(i) = iorig(lsendlist(i) + 1) - 1
+            END DO
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(iahead+1), 1, 
+c     &       lsendlist, MPI_INTEGER8, indexMPI_INT8, ierr)
+            CALL MPI_TYPE_INDEXED(numlist(iahead+1), lblocklengths, 
+     &           itempsort, MPI_INTEGER8, indexMPI_INT8, ierr)
+            CALL MPI_TYPE_COMMIT(indexMPI_INT8,ierr)
+c
+c--Now do send and receives
+c
             CALL MPI_SENDRECV(vxyzu,1,indexMPI4,iahead,101,
      &           vxyzu(1,npartnew+1), idim, i4REAL8, ibehind,
      &           101, MPI_COMM_WORLD, istatus, ierr)
@@ -303,9 +330,26 @@ c     &       lsendlist, ialphaREAL41, indexMPIalpha1, ierr)
             print *,iproc,': Received iphase transfer of ',inumber
 #endif
 
-            CALL MPI_SENDRECV(rho,1,indexMPI1,iahead,109,
-     &           rho(npartnew+1), idim, MPI_REAL4, ibehind,
+            CALL MPI_SENDRECV(iunique,1,indexMPI_INT8,iahead,109,
+     &           iunique(npartnew+1), idim, MPI_INTEGER8, ibehind,
      &           109, MPI_COMM_WORLD, istatus, ierr)
+            CALL MPI_GET_COUNT(istatus, MPI_INTEGER8, inumber, ierr)
+            IF (inumber.NE.igotnumber) THEN
+               WRITE (*,*) 'ERROR - balance igotnumber'
+               CALL quit
+            ENDIF
+            DO iii = npartnew+1,npartnew+MIN(5,igotnumber)
+               print *,'REC ',iproc,iii,iunique(iii)
+            END DO
+
+
+#ifdef MPIDEBUGT
+            print *,iproc,': Received iunique transfer of ',inumber
+#endif
+
+            CALL MPI_SENDRECV(rho,1,indexMPI1,iahead,110,
+     &           rho(npartnew+1), idim, MPI_REAL4, ibehind,
+     &           110, MPI_COMM_WORLD, istatus, ierr)
             CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
             IF (inumber.NE.igotnumber) THEN
                WRITE (*,*) 'ERROR - balance igotnumber'
@@ -319,9 +363,9 @@ c     &       lsendlist, ialphaREAL41, indexMPIalpha1, ierr)
                dumrho(ipart) = rho(ipart)
             END DO
 
-            CALL MPI_SENDRECV(poten,1,indexMPI1,iahead,110,
+            CALL MPI_SENDRECV(poten,1,indexMPI1,iahead,111,
      &           poten(npartnew+1), idim, MPI_REAL4, ibehind,
-     &           110, MPI_COMM_WORLD, istatus, ierr)
+     &           111, MPI_COMM_WORLD, istatus, ierr)
             CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
             IF (inumber.NE.igotnumber) THEN
                WRITE (*,*) 'ERROR - balance igotnumber'
@@ -333,9 +377,9 @@ c     &       lsendlist, ialphaREAL41, indexMPIalpha1, ierr)
 #endif
 
             IF (nlmax.EQ.1) THEN
-               CALL MPI_SENDRECV(gradhs,1,indexMPI2,iahead,111,
+               CALL MPI_SENDRECV(gradhs,1,indexMPI2,iahead,112,
      &              gradhs(1,npartnew+1), idim, i2REAL4, ibehind,
-     &              111, MPI_COMM_WORLD, istatus, ierr)
+     &              112, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, i2REAL4, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
@@ -347,9 +391,9 @@ c     &       lsendlist, ialphaREAL41, indexMPIalpha1, ierr)
 #endif
             ENDIF
 
-            CALL MPI_SENDRECV(alphaMM,1,indexMPIalpha,iahead,112,
+            CALL MPI_SENDRECV(alphaMM,1,indexMPIalpha,iahead,113,
      &           alphaMM(1,npartnew+1), idim, ialphaREAL4, ibehind,
-     &           112, MPI_COMM_WORLD, istatus, ierr)
+     &           113, MPI_COMM_WORLD, istatus, ierr)
             CALL MPI_GET_COUNT(istatus, ialphaREAL4, inumber, ierr)
             IF (inumber.NE.igotnumber) THEN
                WRITE (*,*) 'ERROR - balance igotnumber'
@@ -360,9 +404,9 @@ c     &       lsendlist, ialphaREAL41, indexMPIalpha1, ierr)
             print *,iproc,': Received alphaMM transfer of ',inumber
 #endif
 
-            CALL MPI_SENDRECV(f1ha,1,indexMPIalpha1,iahead,113,
+            CALL MPI_SENDRECV(f1ha,1,indexMPIalpha1,iahead,114,
      &           f1ha(1,npartnew+1), idim, ialphaREAL41, ibehind,
-     &           113, MPI_COMM_WORLD, istatus, ierr)
+     &           114, MPI_COMM_WORLD, istatus, ierr)
             CALL MPI_GET_COUNT(istatus, ialphaREAL41, inumber, ierr)
             IF (inumber.NE.igotnumber) THEN
                WRITE (*,*) 'ERROR - balance igotnumber'
@@ -373,9 +417,9 @@ c     &       lsendlist, ialphaREAL41, indexMPIalpha1, ierr)
             print *,iproc,': Received f1ha transfer of ',inumber
 #endif
 
-            CALL MPI_SENDRECV(f2ha,1,indexMPIalpha1,iahead,114,
+            CALL MPI_SENDRECV(f2ha,1,indexMPIalpha1,iahead,115,
      &           f2ha(1,npartnew+1), idim, ialphaREAL41, ibehind,
-     &           114, MPI_COMM_WORLD, istatus, ierr)
+     &           115, MPI_COMM_WORLD, istatus, ierr)
             CALL MPI_GET_COUNT(istatus, ialphaREAL41, inumber, ierr)
             IF (inumber.NE.igotnumber) THEN
                WRITE (*,*) 'ERROR - balance igotnumber'
@@ -387,9 +431,9 @@ c     &       lsendlist, ialphaREAL41, indexMPIalpha1, ierr)
 #endif
 
             IF (imhd.EQ.idim) THEN
-               CALL MPI_SENDRECV(Bevolxyz,1,indexMPI3,iahead,115,
+               CALL MPI_SENDRECV(Bevolxyz,1,indexMPI3,iahead,116,
      &              Bevolxyz(1,npartnew+1), idim, i3REAL8, ibehind,
-     &              115, MPI_COMM_WORLD, istatus, ierr)
+     &              116, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, i3REAL8, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
@@ -400,9 +444,9 @@ c     &       lsendlist, ialphaREAL41, indexMPIalpha1, ierr)
                print *,iproc,': Received Bevol transfer of ',inumber
 #endif
 
-               CALL MPI_SENDRECV(Bxyz,1,indexMPI3,iahead,116,
+               CALL MPI_SENDRECV(Bxyz,1,indexMPI3,iahead,117,
      &              Bxyz(1,npartnew+1), idim, i3REAL8, ibehind,
-     &              116, MPI_COMM_WORLD, istatus, ierr)
+     &              117, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, i3REAL8, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
@@ -413,9 +457,9 @@ c     &       lsendlist, ialphaREAL41, indexMPIalpha1, ierr)
                print *,iproc,': Received Bxyz transfer of ',inumber
 #endif
 
-               CALL MPI_SENDRECV(f1Bxyz,1,indexMPI3,iahead,117,
+               CALL MPI_SENDRECV(f1Bxyz,1,indexMPI3,iahead,118,
      &              f1Bxyz(1,npartnew+1), idim, i3REAL8, ibehind,
-     &              117, MPI_COMM_WORLD, istatus, ierr)
+     &              118, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, i3REAL8, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
@@ -426,9 +470,9 @@ c     &       lsendlist, ialphaREAL41, indexMPIalpha1, ierr)
                print *,iproc,': Received f1Bxyz transfer of ',inumber
 #endif
 
-               CALL MPI_SENDRECV(f2Bxyz,1,indexMPI3,iahead,118,
+               CALL MPI_SENDRECV(f2Bxyz,1,indexMPI3,iahead,119,
      &              f2Bxyz(1,npartnew+1), idim, i3REAL8, ibehind,
-     &              118, MPI_COMM_WORLD, istatus, ierr)
+     &              119, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, i3REAL8, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
@@ -443,6 +487,7 @@ c     &       lsendlist, ialphaREAL41, indexMPIalpha1, ierr)
             CALL MPI_TYPE_FREE(indexMPIalpha,ierr)
             CALL MPI_TYPE_FREE(indexMPI1,ierr)
             CALL MPI_TYPE_FREE(indexMPI2,ierr)
+            CALL MPI_TYPE_FREE(indexMPI_INT8,ierr)
             CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
             CALL MPI_TYPE_FREE(indexMPI_INT,ierr)
             CALL MPI_TYPE_FREE(indexMPI3,ierr)
@@ -475,6 +520,25 @@ c
          iscurrent(i) = .FALSE.
          isort(i) = i
          iorig(i) = i
+         DO k = 1, 5
+            dumxyzmh(k,i) = xyzmh(k,i)
+         END DO
+         DO k = 1, 3
+            dumvxyzu(k,i) = vxyzu(k,i)
+         END DO
+         DO k = 1, isizealphaMM
+            dumalpha(k,i) = alphaMM(k,i)
+         END DO
+         IF (iradtrans.EQ.idim) THEN
+            DO k = 1, 5
+               dumekcle(k,i) = ekcle(k,i)
+            END DO
+         ENDIF
+         IF (imhd.EQ.idim) THEN
+            DO k = 1, 3
+               dumBevolxyz(k,i) = Bevolxyz(k,i)
+            END DO
+         ENDIF
       END DO
 c
 c--Now remove particles that have been transferred to another MPI process
@@ -534,14 +598,28 @@ c      goto 200
          ENDIF
       END DO
 c
+c--Need to re-make ghosts and re-make tree
+c
+      IF (ibound.GT.0) THEN
+         CALL ghostp(ntot,npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+      ELSE
+         nghost = 0
+         ntot = npart + nghost
+      ENDIF
+#ifdef MPIDEBUGT
+      print *,iproc,': Balance is making tree ',ntot, npart
+#endif
+      CALL insulate(1, ntot, npart, dumxyzmh, f1vxyzu)
+c
 c--End of MPI-only section
 c
 #endif
 
-
 c 200  CALL quit
 
-
+c      IF (npart.GE.6581) THEN
+c         print *,iproc,': EXIT-6581 ',(xyzmh(ijk,6581), ijk=1,5)
+c      ENDIF
 
       RETURN
       END

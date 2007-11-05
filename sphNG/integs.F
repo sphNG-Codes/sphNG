@@ -93,6 +93,13 @@ c
       gt = REAL(gtdouble)
 
 #ifdef MPI
+c
+c--Load balance MPI processes
+c
+      CALL balance
+#endif
+
+#ifdef MPI
       IF (iproc.EQ.0) THEN
 #endif
       IF (ioutinf.NE.0) THEN

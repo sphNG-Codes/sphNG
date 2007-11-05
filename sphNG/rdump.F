@@ -339,7 +339,14 @@ c--int*2
 c--int*4
 
 c--int*8
-
+         IF (nums1(5).GE.1) THEN
+            READ (idisk1, END=100) (iunique(i), i=icount+1,
+     &           icount+nhydro)
+         ELSE
+            DO i=icount+1,icount+nhydro
+               iunique(i) = i
+            END DO
+         ENDIF
 c--Default real
          DO j = 1, 5
             READ (idisk1, END=100) (xyzmh(j,i), i=icount+1, 
@@ -565,7 +572,8 @@ c      IF (nblocks.NE.1) THEN
 c         IF (iproc.EQ.iblock-1) THEN
             IF (nblocks.EQ.1) THEN
                CALL split(npart,n1,icount,nhydro,isteps,iphase,xyzmh,
-     &              vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM)
+     &              vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,
+     &              iunique)
             ELSE
                print *,iproc,': MAINTAIN PARTICLE SPLIT ',npart,nhydro
                npart = nhydro
@@ -823,7 +831,7 @@ c============================================================
 
 
       SUBROUTINE split(npart,n1,icount,nhydro,isteps,iphase,xyzmh,
-     &     vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM)
+     &     vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,iunique)
 c************************************************************
 c                                                           *
 c--Splits based on spatial coordinates (x, y, z) for 2, 4   *
@@ -844,6 +852,7 @@ c************************************************************
 #endif
 
       INTEGER*1 iphase(idim)
+      INTEGER*8 iunique(idim)
       REAL*4 rho(idim), dgrav(idim), gradhs(2,idim),
      &     alphaMM(isizealphaMM,idim)
       DIMENSION isteps(idim), xyzmh(5,idim), vxyzu(4,idim), 
@@ -890,6 +899,7 @@ c
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
+               iunique(icountnew) = iunique(i)
             ENDIF
          END DO
 c
@@ -927,6 +937,7 @@ c
                   DO j = 1, isizealphaMM
                      alphaMM(j,icountnew) = alphaMM(j,i)
                   END DO
+                  iunique(icountnew) = iunique(i)
 
                ELSEIF (iproc.EQ.1 .AND. 
      &                 xyzmh(1,i).LT.0.0) THEN
@@ -957,6 +968,7 @@ c
                   DO j = 1, isizealphaMM
                      alphaMM(j,icountnew) = alphaMM(j,i)
                   END DO
+                  iunique(icountnew) = iunique(i)
                   
                ENDIF
             END DO
@@ -991,6 +1003,7 @@ c
                   DO j = 1, isizealphaMM
                      alphaMM(j,icountnew) = alphaMM(j,i)
                   END DO
+                  iunique(icountnew) = iunique(i)
                   
                ELSEIF (iproc.EQ.1 .AND. xyzmh(3,i).GE.0.0 .AND.
      &                 xyzmh(1,i).LT.0.0) THEN
@@ -1021,6 +1034,7 @@ c
                   DO j = 1, isizealphaMM
                      alphaMM(j,icountnew) = alphaMM(j,i)
                   END DO
+                  iunique(icountnew) = iunique(i)
                   
                ELSEIF (iproc.EQ.2 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).GE.0.0) THEN
@@ -1051,6 +1065,7 @@ c
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
+               iunique(icountnew) = iunique(i)
 
             ELSEIF (iproc.EQ.3 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).LT.0.0) THEN
@@ -1081,6 +1096,7 @@ c
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
+               iunique(icountnew) = iunique(i)
 
             ENDIF
          END DO
@@ -1115,6 +1131,7 @@ c
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
+               iunique(icountnew) = iunique(i)
 
             ELSEIF (iproc.EQ.1 .AND. xyzmh(3,i).GE.0.0 .AND.
      &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
@@ -1145,6 +1162,7 @@ c
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
+               iunique(icountnew) = iunique(i)
 
             ELSEIF (iproc.EQ.2 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
@@ -1175,6 +1193,7 @@ c
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
+               iunique(icountnew) = iunique(i)
 
             ELSEIF (iproc.EQ.3 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
@@ -1205,6 +1224,7 @@ c
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
+               iunique(icountnew) = iunique(i)
 
             ELSEIF (iproc.EQ.4 .AND. xyzmh(3,i).GE.0.0 .AND.
      &           xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
@@ -1235,6 +1255,7 @@ c
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
+               iunique(icountnew) = iunique(i)
 
             ELSEIF (iproc.EQ.5 .AND. xyzmh(3,i).GE.0.0 .AND.
      &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
@@ -1265,6 +1286,7 @@ c
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
+               iunique(icountnew) = iunique(i)
 
             ELSEIF (iproc.EQ.6 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
@@ -1295,6 +1317,7 @@ c
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
+               iunique(icountnew) = iunique(i)
 
             ELSEIF (iproc.EQ.7 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
@@ -1325,6 +1348,7 @@ c
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
+               iunique(icountnew) = iunique(i)
 
             ENDIF
          END DO
@@ -1456,6 +1480,7 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
+               iunique(icountnew) = iunique(i)
 
             ENDIF
          END DO

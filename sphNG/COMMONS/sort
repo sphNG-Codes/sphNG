@@ -1,3 +1,4 @@
+      INTEGER*8 iunique
+
       COMMON /sort  / tempsort(idim), iorig(idim), isort(idim)
-
-
+      COMMON /unique/ iunique(idim)

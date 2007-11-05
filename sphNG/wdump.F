@@ -249,7 +249,7 @@ c
       nums(2) = 1
       nums(3) = 0
       nums(4) = 0
-      nums(5) = 0
+      nums(5) = 1
       nums(6) = 9
       IF (nlmax.EQ.1) THEN
          nums(7) = 4
@@ -334,7 +334,10 @@ c--int*2
 c--int*4
 
 c--int*8
-
+c
+c--NOTE: iunique is not sorted
+c
+      WRITE (idisk1, ERR=100) (iunique(i), i=1, nprint)
 c--Default real
       DO j = 1, 5
          WRITE (idisk1, ERR=100) (xyzmh(j,isort(i)), i=1, nprint)

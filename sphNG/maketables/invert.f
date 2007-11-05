@@ -18,10 +18,10 @@
          tg1=10.0**((I-1)*0.005)
          DO J=1,4601
             utable(i,j)=(10.0**cvtable(i,j))*tg1
-				IF(cvtable(i,j).EQ.0.0) THEN
-					PRINT *,"Detected zero cv"
-					STOP
-				ENDIF
+            IF(cvtable(i,j).EQ.0.0) THEN
+               PRINT *,"Detected zero cv ",i,j,cvtable(i,j),tg1
+               STOP
+            ENDIF
          ENDDO
       END DO
       CLOSE(8)

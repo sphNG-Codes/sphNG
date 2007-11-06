@@ -59,7 +59,10 @@ c      write (*,*) 'Enter kap'
 !     This bit extrapolates the table to lower densities as being the same
 ! as 1d-14
 
-      IF(nkrho1.LE.1) nkrho1=2
+      IF(nkrho1.LE.1) THEN
+         nkrho1=2
+         IF (ltg.LT.3.35) lrho = -14
+      ENDIF
 
       nkrho2=nkrho1+1
  
@@ -73,7 +76,7 @@ c      write (*,*) 'Enter kap'
          nktg1=2
       ELSEIF(u/cv.GE.2500.0.AND.u/cv.Le.10000.0) THEN
          nktg1=INT(20*ltg)+15
-      ELSEIF(u/cv.GT.10000.0) THEN
+      ELSEIF(u/cv.GT.10000.0 .AND. lrho.GE.-14.0) THEN
          val1l = optable(94,nkrho1)
          val1h = optable(94,nkrho2)
          val2l = optable(95,nkrho1)
@@ -140,6 +143,15 @@ c      write (*,*) 'Exit kap'
 !     Final value of log10 opacity
       rkappa=(1.0-v)*(1.0-w)*y1+v*(1.0-w)*y2+w*v*y3+(1.0-v)*w*y4
 
+c
+c--For very low densities and temperatures > 2000K (use Bell & Lin 1994)
+c
+      IF (lrho.LT.-14 .AND. ltg.GT.3.35) THEN
+         rkappa = MAX(-8.0 + lrho*2.0/3.0 + ltg*3.0,
+     &        -36.0 + lrho/3.0 + ltg*10.0)
+         rkappa = MIN(rkappa,LOG10(0.4))
+      ENDIF
+      
 !     And the actual opacity returned
       rkappa=(10.0**rkappa)*umass/udist**2
 !     PRINT *,getkappa,umass,udist,rkappa,v,w

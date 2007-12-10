@@ -9,6 +9,11 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
+
       PARAMETER (Courant=0.30)
 
       DIMENSION llist(idim),fxyzu(4,idim)
@@ -291,7 +296,19 @@ c
 C$OMP END DO
 C$OMP END PARALLEL
 
-      istepmingas = istepmingasnew
+#ifdef MPI
+      CALL MPI_ALLREDUCE(istepmax,istepmaxtot,1,MPI_INTEGER,MPI_MAX,
+     &     MPI_COMM_WORLD, ierr)
+      CALL MPI_ALLREDUCE(istepmin,istepmintot,1,MPI_INTEGER,MPI_MIN,
+     &     MPI_COMM_WORLD, ierr)
+      CALL MPI_ALLREDUCE(istepmingasnew,istepmingastot,1,MPI_INTEGER,
+     &     MPI_MIN,MPI_COMM_WORLD, ierr)
+      istepmax = istepmaxtot
+      istepmin = istepmintot
+      istepmingasnew = istepmingastot
+#endif
+
+      IF (istepmingasnew.NE.imax) istepmingas = istepmingasnew
       IF (istepmingas.LT.2) THEN
          WRITE (iprint,*) 'ERROR - istepmingas.LT.2'
          CALL quit

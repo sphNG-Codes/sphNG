@@ -65,6 +65,12 @@ ifeq ($(SYSTEM), zen)
     ifeq ($(mpidebug), yes)
         FFLAGS += -DMPIDEBUG
     endif
+    ifeq ($(mpidebugt), yes)
+        FFLAGS += -DMPIDEBUGT
+    endif
+    ifeq ($(mpidebugs), yes)
+        FFLAGS += -DMPIDEBUGS
+    endif
     DBLFLAG= -r8
     DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
     KNOWN_SYSTEM=yes
@@ -196,7 +202,7 @@ FFLAGS += ${FPP_PREFIX}${FPPFLAGS}
 
 # these are the sources common to all compilations
 
-SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
+SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f \
 	chekopt.f condense.f constan.f coolcurve.f coriol.f \
 	cyldis.f cylmas.f cylpres.f cylvel.f endrun.f energ.f \
@@ -205,7 +211,7 @@ SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
 	getcv.f get1overmu.f getkappa.f \
 	gforsa_P.f gforsn_P.f gforspt_P.f \
 	ghostp.f ghostp1.f ghostp2.f ghostp3.F ghostp11.f ghostp100.f \
-        gptall.f hdot_P.f \
+        gptall.f gptfromgas.f gpti.f hdot_P.f \
 	header.F homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
 	inopts.f insulate_TREE_P.F integs.F ktable.f labrun.f lunit_double.f \
 	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
@@ -214,12 +220,12 @@ SOURCES= sph.F accrete_P.f addump.f angmom.f boundry.f \
 	prout.F ran1.f rdump.F reduce.f save.f setup_torus.f \
         scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f thermeq.f \
-	timestep.f toten.f treef_P.F unifdis.f unit.f \
+	toten.f treef_P.F unifdis.f unit.f \
 	wdump.f wrinsph.F
 
 # these are the sources required for the gradh code to compile
 
-SRCGRADH= derivi_P_gradh_MPI.f forcei_P_gradh_MPI.F  \
+SRCGRADH= derivi_P_gradh_MPI.F forcei_P_gradh_MPI.F  \
         densityiterate_gradh_MPI.F hcalc_gradh.f 
 	#divBclean_mhd.f divBdiffuse.f divBiterate.f \
 	#directsum_poisson_vec_mhd_clean.f 
@@ -238,8 +244,8 @@ SRCTORUS= montecarloRT.f
 
 # timestepping routine
 
-SRCRK = step_P.f revtree_P.f
-SRCLF = step_P_lf_fast2_gradh.F revtree_P_fast3.f
+SRCRK = step_P.F revtree_P.f
+SRCLF = step_P_lf_fast2_gradh.F revtree_P_fast3.f timestep.F
 
 # construct object files
 

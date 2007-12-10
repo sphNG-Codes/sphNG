@@ -10,6 +10,11 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
+
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/dum'
@@ -116,6 +121,9 @@ c
       IF (ifirst) THEN
          ifirst = .FALSE.
 
+#ifdef MPI
+      IF (iproc.EQ.0) THEN
+#endif
          IF (integrator.EQ.0) THEN
             WRITE (iprint,*) 'Integrator: Runga-Kutta-Fehlberg'
             WRITE (iprint,*)
@@ -123,6 +131,9 @@ c
             WRITE (iprint,*) 'Integrator miss-match'
             CALL quit
          ENDIF
+#ifdef MPI
+      ENDIF
+#endif
 
          IF (gt.EQ.0.0) THEN
             ibin = INT(LOG10(dt/dtini)/xlog2) + 1
@@ -133,14 +144,18 @@ c
             ENDIF
             idtini = imaxstep/2**ibin
             istepmin = idtini
+            istepmingas = idtini
             istepmax = idtini
          ELSE
             istepmin = imax
+            istepmingas = imax
             istepmax = -1
             DO i = 1, npart
                IF (iphase(i).NE.-1) THEN
                   istepmin = MIN(istepmin, isteps(i))
                   istepmax = MAX(istepmax, isteps(i))
+                  IF (iphase(i).EQ.0) istepmingas = 
+     &                 MIN(istepmingas, isteps(i))
                ENDIF
             END DO
          ENDIF
@@ -377,6 +392,8 @@ c            itime0new = MIN(itime0new, it2bin(i))
             itime0 = MIN(itime0, it2bin(i))
          ENDIF
       END DO
+
+
 cC$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 cC$OMP& shared(npart,iphase,it0,it1,isteps)
 cC$OMP& private(j)
@@ -445,14 +462,29 @@ c            CALL quit
 c         ENDIF
 c      END DO
 
+#ifdef MPI
+      CALL MPI_ALLREDUCE(itime0,itime0global,1,MPI_INTEGER,MPI_MIN,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_ALLREDUCE(itime1,itime1global,1,MPI_INTEGER,MPI_MIN,
+     &     MPI_COMM_WORLD,ierr)
+#ifdef MPIDEBUG
+      print *,' '
+      print *,iproc,': TIMES ',itime0global, itime1global
+#endif
+#else
+      itime0global = itime0
+      itime1global = itime1
+c      print *,iproc,': TIMES ',itime0global, itime1global
+#endif
+
 c
 c--Check if predictions at half time step are needed
 c
-      IF (itime1.GE.itime0) THEN
-         itime = itime0
+      IF (itime1global.GE.itime0global) THEN
+         itime = itime0global
          GOTO 101
       ELSE
-         itime = itime1
+         itime = itime1global
       ENDIF
 c
 c--Allow for tracing flow
@@ -721,10 +753,11 @@ c
 c--Make the tree or update the tree
 c
 ccc       IF (nactive.NE.nptmass) THEN  
-      IF (igrape.EQ.0 .AND. (nlst.GT.nptmass .OR. 
+      IF (igrape.EQ.0 .AND. (nlst.GT.nptmass .OR. icreate.EQ.1 .OR.
      &                                       iptintree.GT.0)) THEN    
 ccc         IF (nlst.GE.ncrit .OR. iaccr.EQ.1 .OR. ikilled.EQ.1) THEN
-         IF (nlst.GE.ncrit) THEN
+         IF (nlst.GE.ncrit .OR. icreate.EQ.1) THEN
+            icreate = 0
 ccc            iaccr = 0
 ccc            ikilled = 0
             CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)
@@ -1377,11 +1410,12 @@ c
 c--Make or update the tree
 c
 ccc      IF (nactive.NE.nptmass) THEN    
-      IF (igrape.EQ.0 .AND. (nlst.GT.nptmass .OR. 
+      IF (igrape.EQ.0 .AND. (nlst.GT.nptmass .OR. icreate.EQ.1 .OR.
      &                                       iptintree.GT.0)) THEN
          IF (nlst.GT.ncrit .OR.(nlst0.GT.ncrit.AND.imakeghost.EQ.1).OR.
 ccc     &        idonebound.EQ.1 .OR. iaccr.EQ.1 .OR. ikilled.EQ.1) THEN
-     &        idonebound.EQ.1) THEN
+     &        idonebound.EQ.1 .OR. icreate.EQ.1) THEN
+               icreate = 0
 ccc            iaccr = 0
 ccc            ikilled = 0
             CALL insulate(1, ntot, npart, dumxyzmh, f1vxyzu)
@@ -1407,6 +1441,7 @@ c
       ikilled = 0
       istminold = istepmin
       istepmin = imax
+      istepmingas = imax
       istepmax = 0
       iptnum = 0
       time = dt*itime/imaxstep + gt
@@ -1437,7 +1472,7 @@ C$OMP& private(errdivtol,rap,rmod1,divvi,aux1,aux2,aux3,denom)
 C$OMP& private(crstepi,rmodcr,force21,force22,force2,rmodcr2,rmod)
 C$OMP& private(stepi,ibin,factor,istep2,irat,r2,pmassi)
 C$OMP& reduction(MAX:istepmax)
-C$OMP& reduction(MIN:istepmin)
+C$OMP& reduction(MIN:istepmin,istepmingas)
 
 C$OMP DO SCHEDULE(runtime)
       DO j = nlst0 + 1, nlst0 + nlst1
@@ -1677,6 +1712,7 @@ c--Update minimum time step
 c
          istepmax = MAX(istepmax, isteps(i))
          istepmin = MIN(istepmin, isteps(i))
+         IF (iphase(i).EQ.0) istepmingas = MIN(istepmingas, isteps(i))
 c
 c--Reset variables
 c
@@ -1699,36 +1735,66 @@ c         artviy1(i) = artviy(i)
  855  CONTINUE
 C$OMP END DO
 C$OMP END PARALLEL
+#ifdef MPI
+c
+c--Need to ensure that istepmin and istepmax are GLOBAL
+c
+      CALL MPI_ALLREDUCE(istepmin,istepminglobal,1,MPI_INTEGER,MPI_MIN,
+     &     MPI_COMM_WORLD,ierr)
+      istepmin = istepminglobal
+      CALL MPI_ALLREDUCE(istepmingas,istepmingasglobal,1,MPI_INTEGER,
+     &     MPI_MIN,MPI_COMM_WORLD,ierr)
+      istepmingas = istepmingasglobal
+      CALL MPI_ALLREDUCE(istepmax,istepmaxglobal,1,MPI_INTEGER,MPI_MAX,
+     &     MPI_COMM_WORLD,ierr)
+      istepmax = istepmaxglobal
+#endif
       IF (itiming) THEN
          CALL getused(ts92)
          ts9 = ts9 + (ts92 - ts91)
       ENDIF
-c      DO j = 1, nlst0
-c         i = llist(j)
-c         IF (istepmin.EQ.isteps(i)) ikeepstepmin = i
-c      END DO
-c      WRITE (iprint,*) 'Px ',istepmin,iorig(i),iphase(i)
-c      CALL FLUSH (iprint)
+
+      IF (individualtimesteps.EQ.0) THEN
 c
-c--Make point mass timesteps equal to the minimum time step used
+c--All particles on smallest timestep
 c
-      DO i = 1, nptmass
-         iptcur = listpm(i)
-         IF (istepmin.GT.isteps(iptcur)) THEN
-            istep2 = 2*isteps(iptcur)
-            irat = MOD(idtsyn, istep2)
-            IF (irat.EQ.0) THEN
-               isteps(iptcur) = istep2
-               istepmin = isteps(iptcur)
+         DO i = 1, npart
+            isteps(i) = istepmin
+            it1(i) = it0(i) + isteps(i)/2
+            it2(i) = it0(i) + isteps(i)
+         END DO
+      ELSEIF (individualtimesteps.EQ.1) THEN
+c
+c--Sinks ALL on smallest timestep
+c
+         DO i = 1, nptmass
+            iptcur = listpm(i)
+            IF (istepmin.LT.isteps(iptcur)) THEN
+               isteps(iptcur) = istepmin  
+               it1(iptcur) = it0(iptcur) + isteps(iptcur)/2        
+               it2(iptcur) = it0(iptcur) + isteps(iptcur)
+            ENDIF
+         END DO
+      ELSEIF (individualtimesteps.EQ.2) THEN
+c
+c--All particles can have individual timesteps (including sink particles)
+c     but sink particles must have timesteps shorter than gas or the same
+c     gas the gas if all sinks have same timestep as gas minimum
+c
+         DO i = 1, nptmass
+            iptcur = listpm(i)
+            IF (istepmingas/2.LT.isteps(iptcur)) THEN
+               isteps(iptcur) = MAX(istepmin,istepmingas/2)
                it1(iptcur) = it0(iptcur) + isteps(iptcur)/2
                it2(iptcur) = it0(iptcur) + isteps(iptcur)
             ENDIF
-         ELSEIF (istepmin.LT.isteps(iptcur)) THEN
-            isteps(iptcur) = istepmin  
-            it1(iptcur) = it0(iptcur) + isteps(iptcur)/2        
-            it2(iptcur) = it0(iptcur) + isteps(iptcur)
-         ENDIF
-      END DO
+         END DO
+      ELSE
+         WRITE (iprint,*) 'ERROR - individualtimesteps',
+     &        individualtimesteps
+         CALL quit
+      ENDIF
+
 c
 c--Allow for tracing flow
 c
@@ -1740,6 +1806,9 @@ c
 c--Update time
 c
       IF (itime.GE.iteighth) THEN
+#ifdef MPI
+      IF (iproc.EQ.0) THEN
+#endif
          WRITE(iprint,253) dt*itime/imaxstep + gt,
      &        dt*itime/imaxstep, nlst0
  253     FORMAT ('Dynamic time = ', 1PE17.10,
@@ -1800,12 +1869,15 @@ c         IF (nptmass.EQ.0) GOTO 700
  700     CONTINUE
          CALL FLUSH (iprint)
          CALL FLUSH (iptprint)
+#ifdef MPI
+      ENDIF
+#endif
          iteighth = itime + imaxstep/8
       ENDIF
 c
 c--Accrete particles near point mass, or create point mass
 c
-      IF (nlst0.GT.nptmass .AND. (nptmass.NE.0 .OR. icreate.EQ.1)) THEN
+      IF (nptmasstot.NE.0 .OR. icreatetot.EQ.1) THEN
          isave = 0
          IF (itime.GE.iptout) THEN
             isave = 1
@@ -1817,7 +1889,7 @@ c--Accrete particles near point mass, or create point mass
 c
          IF (itiming) CALL getused(taccrete1)
 
-         CALL accrete(dt, realtime, isave)
+         CALL accrete(dt, realtime, isave, ntot)
 
          IF (itiming) THEN
             CALL getused(taccrete2)
@@ -1913,7 +1985,7 @@ c
 c--Create NEW particles to keep number of particles within a shell
 c     constant.  
 c
-      IF (nptmass.NE.0 .OR. icreate.EQ.1) THEN
+      IF (nptmasstot.NE.0 .OR. icreatetot.EQ.1) THEN
          IF (ibound/10.EQ.9 .AND. nshell.GT.inshell) THEN
             iaccr = 0
             ikilled = 0
@@ -2008,7 +2080,8 @@ c
                   CALL insulate(3,ntot,npart,dumxyzmh,f1vxyzu)
                   numneigh = nneigh(i)
                ELSE
-                  CALL getneigh(i,ntot,xyzmh(5,i),dumxyzmh,nlist,
+                  nlist = 0
+                  CALL getneigh(i,ntot,xyzmh(5,i),dumxyzmh,mmax,nlist,
      &                 iptneigh,nearl)
                   numneigh = nlist
                ENDIF
@@ -2240,7 +2313,8 @@ c
                   CALL insulate(3,ntot,npart,dumxyzmh,f1vxyzu)
                   numneigh = nneigh(i)
                ELSE
-                  CALL getneigh(i,ntot,xyzmh(5,i),dumxyzmh,nlist,
+                  nlist = 0
+                  CALL getneigh(i,ntot,xyzmh(5,i),dumxyzmh,mmax,nlist,
      &                 iptneigh,nearl)
                   numneigh = nlist
                ENDIF
@@ -2611,6 +2685,8 @@ c         WRITE (iprint,*) 'itime.GE.itnext'
                nneightot = nneightot + nneigh(ipart)
             END DO
          ENDIF
+
+         print *,iproc,': END OF STEP ',nptmasstot
          
          RETURN
       ENDIF

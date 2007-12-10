@@ -1,13 +1,18 @@
-      SUBROUTINE getneigh(ipart,ntot,hi,xyzmh,nlist,nlistmax,list)
+      SUBROUTINE getneigh(ipart,ntot,hi,xyzmh,limits,nlist,
+     &     nlistmax,list)
 
       INCLUDE 'idim'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/kerne'
       INCLUDE 'COMMONS/logun'
 
-      DIMENSION xyzmh(5,idim), list(iptneigh)
+      DIMENSION xyzmh(5,limits), list(iptneigh)
+c
+c--Not setting nlist=0 allows particles to be added onto an existing list.
+c     However, it also means that nlist MUST BE SET BEFORE CALLING getneigh!
+c
+ccc      nlist = 0
 
-      nlist = 0
       DO i = 1, ntot
          IF (iphase(i).EQ.0) THEN
             dx = xyzmh(1,ipart) - xyzmh(1,i)

@@ -594,7 +594,13 @@ c
 c--End loop over blocks
 c
       END DO
-
+#ifdef MPI
+c
+c--Set global number of sink particles
+c
+      CALL MPI_ALLREDUCE(nptmass,nptmasstot,1,MPI_INTEGER,MPI_SUM,
+     &     MPI_COMM_WORLD,ierr)
+#endif
       IF (iskip.EQ.1) RETURN
 c
 c--End reading of dump file

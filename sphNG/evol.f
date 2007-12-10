@@ -64,6 +64,19 @@ c
          ENDIF
       END DO
 
+      DO i = 1, idim
+c         torqt(i) = 0.0
+c         torqg(i) = 0.0
+c         torqp(i) = 0.0
+c         torqv(i) = 0.0
+c         torqc(i) = 0.0
+         iremove(i) = -1
+         iavail(i) = 0
+         iscurrent(i) = .FALSE.
+         it1(i) = 0
+         listrealpm(i) = 0
+      END DO
+
       DO i = 1, nptmass
          j = listpm(i)
          listrealpm(j) = i
@@ -107,18 +120,6 @@ c
 ccc      tkeep = 0.0
 
       itest = 0
-
-      DO i = 1, idim
-c         torqt(i) = 0.0
-c         torqg(i) = 0.0
-c         torqp(i) = 0.0
-c         torqv(i) = 0.0
-c         torqc(i) = 0.0
-         iremove(i) = -1
-         iavail(i) = 0
-         iscurrent(i) = .FALSE.
-         it1(i) = 0
-      END DO
 
       DO i = 1, 1000000
 c

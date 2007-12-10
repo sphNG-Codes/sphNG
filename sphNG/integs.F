@@ -184,6 +184,8 @@ c
 #ifdef MPI
       CALL MPI_REDUCE(nsteplist,nsteplisttot,30,MPI_INTEGER,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(nactive,nactivetot,1,MPI_INTEGER,MPI_SUM,0,
+     &     MPI_COMM_WORLD,ierr)
       IF (iproc.EQ.0) THEN
          WRITE (iprint,99100) nparttot, nactivetot
 #else

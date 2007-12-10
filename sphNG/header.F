@@ -76,7 +76,8 @@ c************************************************************
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(fmas2,fmas2tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(nptmass,nptmasstot,1,MPI_INTEGER,MPI_SUM,0,
+
+      CALL MPI_ALLREDUCE(nptmass,nptmasstot,1,MPI_INTEGER,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
       IF (iproc.EQ.0) THEN
 #endif

@@ -1,8 +1,8 @@
-      SUBROUTINE gforspt(xyzmh, fxyzu)
+      SUBROUTINE gforspt(nlst, llist, npart, ntot, xyzmh, fxyzu)
 c************************************************************
 c                                                           *
 c  Subroutine by MRB 2000.  Evaluates forces on point       *
-c     mass due ONLY to other point masses (NOT GAS).        *
+c     masses due ONLY to other point masses (NOT GAS).      *
 c     ALSO evaluates forces on current gas particles from   *
 c     point masses (PT-GAS).  The GAS-GAS and GAS-PT are    *
 c     done in the TREE.                                     *
@@ -11,8 +11,9 @@ c************************************************************
 
       INCLUDE 'idim'
 
-      DIMENSION xyzmh(5,idim)
+      DIMENSION xyzmh(5,mmax)
       DIMENSION fxyzu(4,idim)
+      DIMENSION llist(idim)
 
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/ptsoft'
@@ -23,10 +24,10 @@ c************************************************************
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/nearmpt'
       INCLUDE 'COMMONS/current'
-      INCLUDE 'COMMONS/curlist'
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/delay'
+      INCLUDE 'COMMONS/mpidebug'
 
       CHARACTER*7 where
 
@@ -42,7 +43,7 @@ c
 C$OMP PARALLEL default(none)
 C$OMP& shared(nptmass,listpm,fxyzu,poten,xyzmh)
 C$OMP& shared(pmass,iptsoft,ptsoft,nlst,llist,iphase)
-C$OMP& private(i,ipart,hipt,rrx,rry,rrz)
+C$OMP& private(i,ipart,iparttree,hipt,rrx,rry,rrz)
 C$OMP& private(jptn,jpt,pmassj,difx,dify,difz,rr,rr05,fff,potn)
 C$OMP& private(rrs05,rr32,rr4,rr4s025,rr54)
 C$OMP& private(hptmass,v2,v1,third,v4)
@@ -50,19 +51,24 @@ C$OMP DO SCHEDULE(runtime)
       DO i = 1, nlst
          ipart = llist(i)
 c
-c--Note: fx,fy,fz have been initialised in the TREE call for
-c     both point masses and gas particles
+c--Needed for MPI code
 c
-         rrx = xyzmh(1,ipart)
-         rry = xyzmh(2,ipart)
-         rrz = xyzmh(3,ipart)
-         hipt = xyzmh(5,ipart)
+         IF (ipart.GT.npart) THEN
+            iparttree = ipart + ntot + 2
+         ELSE
+            iparttree = ipart
+         ENDIF
+
+         rrx = xyzmh(1,iparttree)
+         rry = xyzmh(2,iparttree)
+         rrz = xyzmh(3,iparttree)
+         hipt = xyzmh(5,iparttree)
 
          DO jptn = 1, nptmass
             jpt = listpm(jptn)
             IF (jpt.NE.ipart) THEN
                pmassj = xyzmh(4,jpt)
-     
+
                difx = xyzmh(1,jpt) - rrx
                dify = xyzmh(2,jpt) - rry
                difz = xyzmh(3,jpt) - rrz     
@@ -135,6 +141,7 @@ c
                fxyzu(1,ipart) = fxyzu(1,ipart) + fff*difx
                fxyzu(2,ipart) = fxyzu(2,ipart) + fff*dify
                fxyzu(3,ipart) = fxyzu(3,ipart) + fff*difz
+               fxyzu(4,ipart) = fxyzu(4,ipart) - potn
                poten(ipart) = poten(ipart) - potn
             ENDIF
          END DO

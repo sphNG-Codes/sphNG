@@ -77,13 +77,14 @@ c--this weight is equivalent to m/(rho*h^3) in the grad h version
 c      INCLUDE 'COMMONS/vsmooth'
 
       LOGICAL*1 Bisection
-      INTEGER isucceed(idim),hminbisec(idim),hmaxbisec(idim)
+      INTEGER*1 isucceed(idim)
+      REAL*4 hminbisec(idim),hmaxbisec(idim)
 
       DIMENSION ldolist(idim),hi_old(idim)
       DIMENSION gradmhd(12,imhd)
 #ifdef MPI
       DIMENSION nneighrec(ineighproc),nneighsentbackold(nummaxproc)
-      REAL*4 rhorec(ineighproc), dumrhorec(ineighproc)
+      REAL*4 rhorec(ineighproc), dumrhorec(ineighproc), rhonextmax
       LOGICAL*1 isend(idim)
 #endif
 
@@ -92,10 +93,15 @@ c      INCLUDE 'COMMONS/vsmooth'
 c
 c--Initialise
 c
+      iproblem = 0
+c      IF (itime.EQ.000)
+c     &     print *,iproc,': Entered densityiterate ',itime
+
       uradconst = radconst/uergcc
       third = 1./3.
       rhonext = 0.
       icreate = 0
+      icreatetot = 0
       radcrit2 = radcrit*radcrit
       numparticlesdone = numparticlesdone + nlst_end
       nwarnup = 0
@@ -115,14 +121,17 @@ c      ELSE
 c      ENDIF
 
 c
-c--Get rid of sink particles (they do not need to be iterated).  This list
-c     is reused for the subsequent iterations when it is expected that it will 
-c     contain fewer and fewer particles.
+c--Need to leave in sink particles.  Even though they do not need to be 
+c     iterated, they need to be included for the gravitational forces from
+c     gas particles on other MPI processes to be included (for iptintree=1,2).
+c     This list is reused for the subsequent iterations when it is expected 
+c     that it will contain fewer and fewer particles as gas particles have
+c     their correct smoothing length and density set.
 c
       nlstdo = 0
       DO n = nlst_in, nlst_end
          ipart = list(n)
-         IF (iphase(ipart).EQ.0) THEN
+         IF (iphase(ipart).GE.0) THEN
             nlstdo = nlstdo + 1
             ldolist(nlstdo) = list(n)
          ENDIF
@@ -145,25 +154,27 @@ C$OMP& private(n,ipart,pmassi,hi,dhdrhoi,deltat,k)
          lsendlist(n) = ipart - 1
          isend(n) = .TRUE.
 #endif
-         pmassi = xyzmh(4,ipart)
-         hi = xyzmh(5,ipart)
-         hi_old(ipart) = hi
+         IF (iphase(ipart).EQ.0) THEN
+            pmassi = xyzmh(4,ipart)
+            hi = xyzmh(5,ipart)
+            hi_old(ipart) = hi
 c
 c--Predict h
 c
-         dhdrhoi = - hi/(3.*(pmassi*(hfact/hi)**3 + rhomin))
-         IF (it1(ipart).EQ.imax) THEN
-            deltat = (dt*isteps(ipart)/2)/imaxstep
-         ELSE
-            deltat = (dt*isteps(ipart))/imaxstep
-         ENDIF
+            dhdrhoi = - hi/(3.*(pmassi*(hfact/hi)**3 + rhomin))
+            IF (it1(ipart).EQ.imax) THEN
+               deltat = (dt*isteps(ipart)/2)/imaxstep
+            ELSE
+               deltat = (dt*isteps(ipart))/imaxstep
+            ENDIF
          xyzmh(5,ipart) = xyzmh(5,ipart) - dhdrhoi*divv(ipart)*deltat
 
-         rho(ipart) = 0.
-         dumrho(ipart) = 0.
-         divv(ipart) = 0.
-         curlv(ipart) = 0.
-         gradhs(2,ipart) = 0.
+            rho(ipart) = 0.
+            dumrho(ipart) = 0.
+            divv(ipart) = 0.
+            curlv(ipart) = 0.
+            gradhs(2,ipart) = 0.
+         ENDIF
          nneigh(ipart) = 0
          DO k = 1, 4
             dvxyzu(k,ipart) = 0.
@@ -178,12 +189,20 @@ c
       inumofreturns = 0
       inumofsends = 0
       maxnneighsentback = 0
+      DO i = 1, idim
+         lblocklengths(i) = 1
+      END DO
+      nneighsentanyatall = .FALSE.
+      DO i = 1, numproc
+         nneighsentany(i) = .FALSE.
+      END DO
 #endif
 
       DO iteration = 1, maxiterations
 
 #ifdef MPIDEBUG
-         print *,'DEN_ITERATE: iteration ',iteration
+c      IF (itime.EQ.000)
+              print *,'DEN_ITERATE: iteration ',iteration
 #endif
 
 #ifdef MPI
@@ -207,26 +226,32 @@ c
          CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
          CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
 
-         DO i = 1, idim
-            lblocklengths(i) = 1
-         END DO
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nlstsend, 1, lsendlist, 
 c     &       i5REAL8, indexMPI5, ierr)
          CALL MPI_TYPE_INDEXED(nlstsend, lblocklengths, lsendlist, 
      &        i5REAL8, indexMPI5, ierr)
          CALL MPI_TYPE_COMMIT(indexMPI5,ierr)
+
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nlstsend, 1, lsendlist, 
+c     &       MPI_INTEGER1, indexMPI_INT1, ierr)
+         CALL MPI_TYPE_INDEXED(nlstsend, lblocklengths, lsendlist, 
+     &        MPI_INTEGER1, indexMPI_INT1, ierr)
+         CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
 c
 c--IMPLEMENTATION USING CIRCULAR SEND_RECV
 c
          DO ii = 1, numproc - 1
+c            IF (nptmasstot.GE.1) print *,iproc,' CIRCULAR ',ii
             iahead = MOD(iproc+ii,numproc)
             ibehind = MOD(numproc+iproc-ii,numproc)
 c
 c--Send to node ahead, receive from node behind
 c
 #ifdef MPIDEBUG
-            print *,iproc,': Sending xyzmh to ',iahead,' rec from ',
-     &           ibehind,radkernel,xyzmh(1,1),numproc
+c      IF (iteration.GT.45 .AND. iteration.LT.55 .AND.
+c     &           (iproc.EQ.0))
+           print *,iproc,': Sending xyzmh to ',iahead,' rec from ',
+     &           ibehind,xyzmh(1,lsendlist(1)+1),numproc
 #endif
 
             CALL MPI_SENDRECV(xyzmh,1,indexMPI5,iahead,0,
@@ -235,25 +260,76 @@ c
             CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
 
 #ifdef MPIDEBUG
-            print *,iproc,': Received ',inumber,radkernel,xyzmh(1,1),
-     &           numproc
+c      IF (iteration.GT.45 .AND. iteration.LT.55 .AND.
+c     &           (iproc.EQ.1))
+        print *,iproc,': Received ',inumber,radkernel,
+     &           xyzmh(1,2*ntot+3),numproc
+#endif
+
+            CALL MPI_SENDRECV(iphase,1,indexMPI_INT1,iahead,1,
+     &           iphase(ntot+1), idim, MPI_INTEGER1, ibehind,
+     &           1, MPI_COMM_WORLD, istatus, ierr)
+            CALL MPI_GET_COUNT(istatus, MPI_INTEGER1, igotnumber, ierr)
+	    IF (igotnumber.NE.inumber) THEN
+               WRITE (iprint, *) 'ERROR - igotnumber.NE.inumber: iphase'
+               CALL quit
+	    ENDIF
+#ifdef MPIDEBUG
+c      IF (itime.EQ.000)
+                 print *,iproc,': Received iphase ',inumber
 #endif
 c
 c--This calculates the contributions to rhoi, gradhi, numneighreal, and 
 c     gravity forces from non-neighbours
 c
-            inumreturn = 0
-            DO i = 1, inumber
+c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+c      IF (itime.EQ.000)
+c     &      print *,iproc,': DOING REC'
+c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
+            inumreturn = 0
+            nptmasslocal = nptmass
+            DO i = 1, inumber
+c               IF (nptmasstot.GE.1 .AND. iproc.EQ.1) print *,iproc,
+c     &              ': DOING inumber ',i,ntot,iphase(i+ntot)
                ipart = i + ntot
                IF (ipart.GT.idim) THEN
                   WRITE (*,*) 'ipart.GT.idim'
                   CALL quit
                ENDIF
-               iphase(ipart) = 0
-
+               IF (iphase(ipart).GE.1) THEN
+                  nptmasslocal = nptmasslocal + 1
+                  listpm(nptmasslocal) = ipart
+               ENDIF
+c               IF (nptmasstot.GE.1 .AND. iproc.EQ.1) print *,iproc,
+c     &              'calling densitygrad'
+c               IF (iteration.GT.45 .AND. iproc.EQ.1 .AND. 
+c     &              iteration.LT.50) THEN
+c                  ipartt = ipart + ntot + 2
+c                  print *,iproc,':ipart:',xyzmh(1,ipartt),
+c     &                 xyzmh(2,ipartt),
+c     &                 xyzmh(3,ipartt),xyzmh(5,ipartt),iphase(ipartt)
+c                  IF (ipart.EQ.2610) iproblem = 1
+c
+c               ENDIF
                CALL densitygradh(ipart,npart,ntot,xyzmh,nneighlocal,
      &              dvxyzu)
+c               IF (iteration.GT.45 .AND. iproc.EQ.1 .AND. 
+c     &              iteration.LT.50) THEN
+c                  print *,iproc,': NNEIGH ',ipart,nneighlocal
+c                 print *,iproc,': ',(neighlist(kk),kk=1,nneighlocal)
+c                  print *,iproc,': 808: ',xyzmh(1,808),xyzmh(2,808),
+c     &                 xyzmh(3,808),xyzmh(5,808),iphase(808)
+c                  print *,iproc,': 867: ',xyzmh(1,867),xyzmh(2,867),
+c     &                 xyzmh(3,867),xyzmh(5,867),iphase(867)
+c                  print *,iproc,': 836: ',xyzmh(1,836),xyzmh(2,836),
+c     &                 xyzmh(3,836),xyzmh(5,836),iphase(836)
+c                  print *,iproc,':ipart:',xyzmh(1,ipartt),
+c     &                 xyzmh(2,ipartt),
+c     &                 xyzmh(3,ipartt),xyzmh(5,ipartt),iphase(ipartt)
+c                  iproblem = 0
+c               ENDIF
+
 c
 c--Make a list of indices to return densities
 c
@@ -264,8 +340,16 @@ c
             END DO
             ntotplusinumber = ntot + inumber
 
+c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+c      IF (itime.EQ.000)
+c     &      print *,iproc,': DOING REC2'
+c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+
 #ifdef MPIDEBUG
-            print *,iproc,': number found neigh = ',inumreturn,numproc
+c            IF (nptmasstot.GE.1) 
+c      IF (itime.EQ.000)
+         print *,iproc,': number found neigh = ',inumreturn,numproc,
+     &           inumber
 #endif
 
             IF (iteration.EQ.1) THEN
@@ -274,22 +358,51 @@ c--nneightogetback does not record actual number, just 0 or 1.
 c     Does not need the actual number, and getting the actual number would be
 c     difficult because of the iterations to set h's and, thus, neighbours.
 c
+c--Also records whether any particles had neighbours during *ANY* of the
+c     iterations, regardless of whether or not the particles had neighbours
+c     on this process when the particle's h had eventually converged.
+c
                IF (inumreturn.GT.0) THEN
                   inumofreturns = inumofreturns + 1
                   nneightogetback(ibehind+1) = 1
                ELSE
                   nneightogetback(ibehind+1) = 0
                ENDIF
+c               IF (itime.EQ.000) THEN
+c     &              print *,iproc,' TOGET ',iteration,inumofreturns,
+c     &              ibehind,inumreturn,nneightogetback(ibehind+1)
+c               ENDIF
+c               nneighreclasttime(ibehind+1) = inumber - 
+c     &              (nptmasslocal - nptmass)
             ELSE
+c               IF (itime.EQ.000) THEN
+c     &             print *,iproc,' TOGET-PRE ',iteration,inumofreturns,
+c     &              ibehind,inumreturn,nneightogetback(ibehind+1)
+c               ENDIF
                IF (inumreturn.GT.0 .AND. 
      &              nneightogetback(ibehind+1).EQ.0) THEN
                   inumofreturns = inumofreturns + 1
                   nneightogetback(ibehind+1) = 1
                ENDIF
+c               IF (inumreturn.EQ.0 .AND. nneightogetback(ibehind+1).GT.0
+c     &              .AND. inumber.EQ.nneighreclasttime(ibehind+1)) THEN
+c                  inumofreturns = inumofreturns - 1
+c                  IF (inumofreturns.LT.0) THEN
+c                     WRITE (*,*) 'ERROR - inumofreturns.LT.0'
+c                     CALL quit
+c                  ENDIF
+c                  nneightogetback(ibehind+1) = 0
+c               ENDIF
+c               nneighreclasttime(ibehind+1) = inumber
+c               IF (itime.EQ.000) THEN
+c     &             print *,iproc,' TOGET-POST ',iteration,inumofreturns,
+c     &              ibehind,inumreturn,nneightogetback(ibehind+1)
+c               ENDIF
             ENDIF
 
 #ifdef MPIDEBUG
-            print *,iproc,': sending indices to ',ibehind,inumreturn,
+c      IF (itime.EQ.000)
+        print *,iproc,': sending indices to ',ibehind,inumreturn,
      &           numproc
 #endif
 
@@ -368,11 +481,16 @@ c     &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
             CALL MPI_TYPE_FREE(indexMPI_I1return,ierr)
             CALL MPI_TYPE_FREE(indexMPI1return,ierr)
             IF (iteration.EQ.1) THEN
-               IF (inumberneigh.GT.0) inumofsends = inumofsends + 1
+               IF (inumberneigh.GT.0) THEN
+                  inumofsends = inumofsends + 1
+                  nneighsentany(iahead+1) = .TRUE.
+               ENDIF
             ELSE
                IF (inumberneigh.GT.0 .AND. 
-     &              nneighsentback(iahead+1).EQ.0) THEN
+     &              .NOT.nneighsentany(iahead+1)) THEN
+c     &              nneighsentback(iahead+1).EQ.0) THEN
                   inumofsends = inumofsends + 1
+                  nneighsentany(iahead+1) = .TRUE.
                ENDIF
             ENDIF
 #ifdef MPIDEBUG
@@ -396,7 +514,8 @@ c     &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
             END DO
 
 #ifdef MPIDEBUG
-            print *,iproc,': received neighbour data ',numproc
+c      IF (itime.EQ.000)
+              print *,iproc,': received neighbour data ',numproc
 #endif
             IF (iteration.EQ.1) THEN
 #ifdef MPIDEBUG
@@ -413,15 +532,17 @@ c     &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
             maxnneighsentback = MAX(maxnneighsentback,
      &           nneighsentback(iahead+1))
 c
-c--Send gravity forces back to sending process
+c--Send gravity forces back to sending process (includes forces from gas
+c	particles on sinks if iptintree=1 and also sink particles if
+c       iptintree=2).
 c
 #ifdef MPIDEBUG
             print *,iproc,' sending forces back to ',ibehind,numproc
 #endif
             CALL MPI_SENDRECV(dvxyzu(1,ntot+1),4*inumber,
-     &           MPI_REAL8,ibehind,14,
+     &           MPI_REAL8,ibehind,15,
      &           dvxyzu(1,ntotplusinumber+1),4*nlstsend,MPI_REAL8,
-     &                 iahead, 14, 
+     &                 iahead, 15, 
      &           MPI_COMM_WORLD, istatus, ierr)
             CALL MPI_GET_COUNT(istatus,MPI_REAL8,ireturned,ierr)
             IF (ireturned.NE.4*nlstsend) THEN
@@ -441,10 +562,12 @@ c               poten(ipos) = poten(ipos) + dvxyzu(4,jpos)
             END DO
 
 #ifdef MPIDEBUG
-            print *,iproc,' sent forces ',radkernel,xyzmh(1,1),numproc
+c      IF (itime.EQ.000)
+         print *,iproc,' sent forces ',radkernel,xyzmh(1,1),numproc
 #endif
-
          END DO
+         CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+         CALL MPI_TYPE_FREE(indexMPI5,ierr)
 c
 c--End circular send/receive
 c
@@ -504,7 +627,10 @@ c     &           gradhs(1,ipart),gradhs(2,ipart),
 
  777  CONTINUE
 
-
+c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+c      IF (itime.EQ.000)
+c     &      print *,iproc,': DOING LOCAL'
+c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
          numsucceeded = 0
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -514,7 +640,7 @@ C$OMP& shared(nneigh,neighb,neighover,selfnormkernel)
 C$OMP& shared(cnormk,radkernel,dvtable,ddvtable,wij,grwij)
 C$OMP& shared(listpm,iphase,dphidh,uradconst,icall,encal)
 C$OMP& shared(iprint,nptmass,iptmass,radcrit2,iorig,third)
-C$OMP& shared(dumrho,iscurrent,ibound,ireal)
+C$OMP& shared(dumrho,iscurrent,ibound,ireal,nptmastot)
 C$OMP& shared(isteps,it0,it1,imax,imaxstep,dt,itime)
 C$OMP& shared(varmhd,Bevol,Bxyz,vsmooth,Bsmooth,nlstdo,ldolist)
 C$OMP& shared(dvxyzu,hi_old,isucceed,poten,isend,numproc,iproc,gradmhd)
@@ -541,14 +667,13 @@ C$OMP& reduction(+:nwarnroundoff,nbisection,numsucceeded)
       DO n = 1, nlstdo
          ipart = ldolist(n)
 c
-c--Don't need to exclude sink particles because already excluded
-c
-ccc         IF (iphase(ipart).GE.1) GOTO 50
-c
-c--Adds on local contributions to rho, gradh, and nneigh
+c--Adds on local contributions to rho, gradh, and nneigh and long-range
+c	 gravity
 c
          CALL densitygradh(ipart,npart,ntot,xyzmh,nneighlocal,
      &        dvxyzu)
+
+         IF (iphase(ipart).EQ.0) THEN
 
          IF (nneighlocal.GT.nneighmax) THEN
             WRITE (iprint,*) 'ERROR: nneighlocal exceeds nneighmax'
@@ -595,7 +720,11 @@ c
                hminbisec(ipart) = hi
             ENDIF
             hnew = 0.5*(hminbisec(ipart) + hmaxbisec(ipart))
-c               write(iprint,*) 'bisection (',iteration,'): hnew =',hnew
+            write(iprint,*) 'bisection (',iteration,'): hnew =',
+     &           hnew,ipart,hi,func,hmaxbisec(ipart),hminbisec(ipart)
+c            write(*,*) 'bisection (',iteration,'): hnew =',hnew,ipart,
+c     &           hi,func,hmaxbisec(ipart),hminbisec(ipart),nneighi,
+c     &           gradhi,rhoi,rhohi,dhdrhoi,omegai
          ENDIF
 c
 c--Don't allow sudden jumps to huge numbers of neighbours
@@ -620,6 +749,10 @@ c
             WRITE(iprint,*) 'WARNING: switching to bisection on'//
      &           ' particle ',iorig(ipart),'(',ipart,') hi = ',hi,
      &           ' hnew = ',hnew
+c            WRITE(*,*) 'WARNING: switching to bisection on'//
+c     &           ' particle ',iorig(ipart),'(',ipart,') hi = ',hi,
+c     &           ' hnew = ',hnew,nneighi,gradhi,rhoi,rhohi,dhdrhoi,
+c     &           omegai
             IF (nneighi.LE.0) THEN
                WRITE(iprint,*) '(particle has no neighbours)'
             ENDIF
@@ -641,11 +774,13 @@ c
 c
 c--Otherwise check for convergence
 c
-         ELSEIF (ABS(hnew-hi)/hi_oldi.LT.htol) THEN
+         ELSEIF (ABS(hnew-hi)/hi_oldi.LT.htol.AND.isucceed(ipart).EQ.0
+     &           .OR. ABS(hnew-hi)/hi_oldi.LT.1.0e-6) THEN
             imaxit = MAX(imaxit, iteration)
             inumit = inumit + iteration
             IF (isucceed(ipart).EQ.-1) THEN
                write(iprint,*) 'SWITCH BACK TO N-R ',ipart,hnew,hi
+c               write(*,*) 'SWITCH BACK TO N-R ',ipart,hnew,hi
                isucceed(ipart) = 0  ! switch back to N-R
             ELSE
 c
@@ -694,7 +829,17 @@ c     &               (zi - xyzmh(3,iptcur))**2 .LT.radcrit2) GOTO 50
 c                  END DO
 c                  rhonext = MAX(rhonext, rho(ipart))
 c               ENDIF
+
             ENDIF
+         ENDIF
+
+         ELSE
+c
+c--Else for sink particles
+c
+         isucceed(ipart) = 1
+         numsucceeded = numsucceeded + 1
+         poten(ipart) = dvxyzu(4,ipart)
          ENDIF
 
 #ifdef MPI
@@ -715,7 +860,8 @@ c
 c--Check to see whether all particles have converged
 c
 #ifdef MPIDEBUG
-      print *,'numsucceeded ',numsucceeded,nlstdo,htol,numproc
+c      IF (itime.EQ.000)
+           print *,'numsucceeded ',numsucceeded,nlstdo,htol,numproc
 #endif
 
       IF (numsucceeded.EQ.nlstdo) THEN
@@ -737,14 +883,17 @@ c
      &     MPI_COMM_WORLD,ierr)
 
 #ifdef MPIDEBUG
+c      IF (itime.EQ.000) THEN
       print *,iproc,': ifinished is ',ifinished,iscore,numproc
       print *,iproc,': maxnneighsentback is ',maxnneighsentback
 
       print *,iproc,': INFORMATION ',iteration
       DO i = 1, numproc
-         print *,iproc,': ',i,nneighsentback(i),nneighsentbackold(i)
+         print *,iproc,': ',i,nneighsentback(i),nneighsentbackold(i),
+     &        nneighsentany(i)
       END DO
       print *,iproc,': inumofsends ',inumofsends
+c      ENDIF
 #endif
 
       IF (ifinished.EQ.numproc) GOTO 30
@@ -782,10 +931,10 @@ c
       END DO
 #ifdef MPI
 c
-c--Need to remove those particles that are being sent back from the lists of
-c     particles being sent back to each MPI process since they will be added
-c     back onto those lists if they have neighbours anyway (and we don't want
-c     them done more than once!)
+c--Need to remove those particles that are being sent back now from the lists
+c     of particles that will be sent back to each MPI process to calculate
+c     forces since they will be added back onto those lists if they 
+c     have neighbours anyway (and we don't want them done more than once!)
 c
       DO i = 1, numproc
          IF (iproc.NE.i-1) THEN
@@ -809,7 +958,7 @@ c
                   ENDIF
                END DO
                nneighsentback(i) = newvalue
-               IF (nneighsentback(i).EQ.0) inumofsends = inumofsends-1
+c               IF (nneighsentback(i).EQ.0) inumofsends = inumofsends-1
             ENDIF
          ENDIF
       END DO
@@ -828,7 +977,12 @@ c--End of iteration loop
 c
       END DO
       WRITE (iprint,*) 'ERROR: density iteration failed for ',nlstdo,
-     &     ' particles'
+     &     ' particles ',ifinished,iproc
+      WRITE (*,*) 'ERROR: density iteration failed for ',nlstdo,
+     &     ' particles ',ifinished,iproc
+#ifdef MPI
+      CALL MPI_BARRIER(MPI_COMM_WORLD,ierr)
+#endif
       CALL quit
 
  30   CONTINUE
@@ -865,17 +1019,32 @@ c     &           gradhs(1,ipart),gradhs(2,ipart),
 
 
 
-
 c
 c--For MPI job, need to add contributions to other quantities (such as divv,
 c     curlv, etc) from other MPI processes
 c
 #ifdef MPI
+#ifdef MPIDEBUG
+c      IF (itime.EQ.000) THEN
+         print *,iproc,': HERE '
+         DO i = 1, numproc
+         print *,iproc,': VALUES ',i-1,nneightogetback(i),inumofreturns
+         END DO
+         DO i = 1, numproc
+         print *,iproc,': SEND ',i-1,nneighsentback(i),maxnneighsentback
+         END DO
+c      ENDIF
+#endif
+
+      nneighsentanyatall = .FALSE.
+      DO i = 1, numproc
+         nneighsentanyatall = nneighsentanyatall .OR. nneighsentany(i)
+      ENDDO
       inumbertotal = 0
       inumberreturned = 0
       DO i = 0, numproc - 1
          IF (iproc.EQ.i) THEN
-            IF (maxnneighsentback.GT.0) THEN
+            IF (nneighsentanyatall) THEN
 c
 c--Otherwise this process does not need to send any particle back!
 c
@@ -888,9 +1057,10 @@ c     which other quantities need to be calculated is less than idim.
 c
                DO j = 0, numproc - 1
                   IF (j.NE.iproc) THEN
-                     IF (nneighsentback(j+1).GT.0) THEN
+                     IF (nneighsentany(j+1)) THEN
 #ifdef MPIDEBUG
-                        print *,iproc,': sending neighbour data to ',j,
+c      IF (itime.EQ.000)
+                       print *,iproc,': sending neighbour data to ',j,
      &                       ' starting at ',llistsentback(1,j+1),'+1',
      &                       ' and sending ',nneighsentback(j+1),
      &                       ' elements'
@@ -904,43 +1074,48 @@ c                       1,llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
      &                  llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI5,ierr)
 
-c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
-c     &                  1,llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
-                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
-     &                  llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
-                        CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
-
-c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
-c     &                  1,llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
-                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
-     &                  llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
-                        CALL MPI_TYPE_COMMIT(indexMPI3,ierr)
-
                         CALL MPI_SEND(xyzmh,1,indexMPI5,j,40,
      &                       MPI_COMM_WORLD, ierr)
 
 #ifdef MPIDEBUG
                         print *,iproc,' sent xyzmh to ',j
 #endif
+                        CALL MPI_TYPE_FREE(indexMPI5,ierr)
 
-                        CALL MPI_SEND(vxyzu,1,indexMPI4,j,41,
-     &                       MPI_COMM_WORLD, ierr)
-#ifdef MPIDEBUG
-                        print *,iproc,' sent vxyzu'
-#endif
-                        IF (imhd.EQ.idim) THEN
-                           CALL MPI_SEND(Bevol,1,indexMPI3,j,43,
+                        IF (nneighsentback(j+1).GT.0) THEN
+
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
+
+                           CALL MPI_SEND(vxyzu,1,indexMPI4,j,41,
      &                          MPI_COMM_WORLD, ierr)
 #ifdef MPIDEBUG
-                           print *,iproc,' sent Bevol'
+                           print *,iproc,' sent vxyzu'
 #endif
+                           CALL MPI_TYPE_FREE(indexMPI4,ierr)
+
+                           IF (imhd.EQ.idim) THEN
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI3,ierr)
+
+                              CALL MPI_SEND(Bevol,1,indexMPI3,j,43,
+     &                             MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                              print *,iproc,' sent Bevol'
+#endif
+                              CALL MPI_TYPE_FREE(indexMPI3,ierr)
+                           ENDIF
                         ENDIF
 
-                        CALL MPI_TYPE_FREE(indexMPI3,ierr)
-                        CALL MPI_TYPE_FREE(indexMPI4,ierr)
-                        CALL MPI_TYPE_FREE(indexMPI5,ierr)
 #ifdef MPIDEBUG
-                        print *,iproc,': sent neighbour data to ',j,
+c      IF (itime.EQ.000)
+                       print *,iproc,': sent neighbour data to ',j,
      &                       radkernel,xyzmh(1,1)
 #endif
                      ENDIF
@@ -955,7 +1130,8 @@ c
      &           nneightogetback(i+1).GT.0) THEN
                inumberreturned = inumberreturned + 1
 #ifdef MPIDEBUG
-               print *,iproc,': receiving neigh data ',inumberreturned,
+c      IF (itime.EQ.000)
+            print *,iproc,': receiving neigh data ',inumberreturned,
      &              inumofreturns,radkernel,xyzmh(1,1)
 #endif
                istart = ntot + inumbertotal + 1
@@ -965,11 +1141,13 @@ c
                iprocrec = istatus(MPI_SOURCE)
 
 #ifdef MPIDEBUG
+c      IF (itime.EQ.000) THEN
                print *,iproc,': got xyzmh from ',iprocrec,inumber,
      &     ' to be put into ',istart,radkernel,xyzmh(1,1)
 
                print *,iproc,': POSITION BACK ',xyzmh(1,istart+ntot+2),
      &              xyzmh(2,istart+ntot+2),xyzmh(3,istart+ntot+2)
+c      ENDIF
 #endif
 
                IF (inumber.GT.0) THEN
@@ -996,9 +1174,6 @@ c
      &                    radkernel,xyzmh(1,1)
 #endif
                   ENDIF
-               ELSE
-                  WRITE (*,*) 'ERROR - number returned <=0: ',inumber
-                  CALL quit
                ENDIF
                inumbertotal = inumbertotal + inumber
                inumberindiv(inumberreturned) = inumber
@@ -1021,10 +1196,12 @@ c
       ENDIF
 
 #ifdef MPIDEBUG
+c      IF (itime.EQ.000) THEN
       print *,iproc,': Received all particles with remote neighbours ',
      &     inumbertotal,radkernel,xyzmh(1,1)
       print *,' '
       print *,' '
+c      ENDIF
 #endif
 c
 c--Calculate ONLY neighbours lists for remote particles, then contributions
@@ -1053,7 +1230,7 @@ c     &     ntot+1+2054-1,ntot
 
 c      STOP
 
-      CALL MPI_BARRIER(MPI_COMM_WORLD,ierr)
+c      CALL MPI_BARRIER(MPI_COMM_WORLD,ierr)
 c
 c--Now need to return contributions from neighbours on remote nodes.
 c
@@ -1071,7 +1248,8 @@ c--Receive back forces, du, potential energy to be added on to local values
 c
             DO j = 1, inumofsends
 #ifdef MPIDEBUG
-               print *,iproc,': expecting to get ',inumofsends,
+c      IF (itime.EQ.000)
+                    print *,iproc,': expecting to get ',inumofsends,
      &              ' divv contributions ',j,
      &              ' with maxnneighsentback ',maxnneighsentback
 c               IF (iproc.EQ.14) THEN
@@ -1127,7 +1305,8 @@ c               ENDIF
                   CALL quit
                ENDIF
 #ifdef MPIDEBUG
-               print *,iproc,': got gradhs2 from ',iprocrec
+c      IF (itime.EQ.000)
+                    print *,iproc,': got gradhs2 from ',iprocrec
 #endif
 
                DO l = 1, nneighsentback(iprocrec+1)
@@ -1174,7 +1353,8 @@ c
                   inumberreturned = inumberreturned + 1
 
 #ifdef MPIDEBUG
-                  print *,iproc,': sending forces to ',iprocsend,
+c      IF (itime.EQ.000)
+                   print *,iproc,': sending forces to ',iprocsend,
      &                 ' istart ',istart,' number ',inumber,
      &                 ' returned ',inumberreturned,
      &                 ' of ',inumofreturns,xyzmh(1,1)
@@ -1193,7 +1373,8 @@ c                  ENDIF
      &                 iprocsend,52,MPI_COMM_WORLD, ierr)
 
 #ifdef MPIDEBUG
-                  print *,iproc,': sent divv,curlv,gradhs to ',
+c      IF (itime.EQ.000)
+                       print *,iproc,': sent divv,curlv,gradhs to ',
      &                 iprocsend,' and has sent ',inumber,' values'
 #endif
 c
@@ -1228,20 +1409,21 @@ c
       CALL MPI_TYPE_FREE(i12REAL8,ierr)
 
 #ifdef MPIDEBUG
-      print *,iproc,': FINISHED ',itime
-         IF (iproc.EQ.0) print *,iproc,':B',dvxyzu(1,625),
-     &        dvxyzu(2,625),dvxyzu(3,625),xyzmh(1,625),
-     &        xyzmh(2,625),xyzmh(3,625)
-         IF (iproc.EQ.1) print *,iproc,':B',dvxyzu(1,25786),
-     &        dvxyzu(2,25786),dvxyzu(3,25786),xyzmh(1,25786),
-     &        xyzmh(2,25786),xyzmh(3,25786)
-         IF (iproc.EQ.2) print *,iproc,':B',dvxyzu(1,460),
-     &        dvxyzu(2,460),dvxyzu(3,460),xyzmh(1,460),
-     &        xyzmh(2,460),xyzmh(3,460)
-         IF (iproc.EQ.3) print *,iproc,':B',dvxyzu(1,25646),
-     &        dvxyzu(2,25646),dvxyzu(3,25646),xyzmh(1,25646),
-     &        xyzmh(2,25646),xyzmh(3,25646)
-      print *,' '
+c      IF (itime.EQ.000)
+           print *,iproc,': FINISHED ',itime
+c         IF (iproc.EQ.0) print *,iproc,':B',dvxyzu(1,625),
+c     &        dvxyzu(2,625),dvxyzu(3,625),xyzmh(1,625),
+c     &        xyzmh(2,625),xyzmh(3,625)
+c         IF (iproc.EQ.1) print *,iproc,':B',dvxyzu(1,25786),
+c     &        dvxyzu(2,25786),dvxyzu(3,25786),xyzmh(1,25786),
+c     &        xyzmh(2,25786),xyzmh(3,25786)
+c         IF (iproc.EQ.2) print *,iproc,':B',dvxyzu(1,460),
+c     &        dvxyzu(2,460),dvxyzu(3,460),xyzmh(1,460),
+c     &        xyzmh(2,460),xyzmh(3,460)
+c         IF (iproc.EQ.3) print *,iproc,':B',dvxyzu(1,25646),
+c     &        dvxyzu(2,25646),dvxyzu(3,25646),xyzmh(1,25646),
+c     &        xyzmh(2,25646),xyzmh(3,25646)
+c      print *,' '
 #endif
 #endif
 
@@ -1456,8 +1638,7 @@ ccC$OMP END PARALLEL DO
 c
 c--Possible to create a point mass
 c
-      IF (rhonext.GT.rhocrea .AND. nptmass.LT.iptdim .AND.
-     &                     iptmass.NE.0 .AND. icall.EQ.3) THEN
+      IF (rhonext.GT.rhocrea .AND. iptmass.NE.0 .AND. icall.EQ.3) THEN
 c
 c--Find particle with highest density outside radcrit of point mass
 c
@@ -1478,11 +1659,22 @@ c     done on this time step. Otherwise, not possible to accrete
 c     them to form a point mass and it may create a point mass without
 c     accreting many particles!
 c
+c--NOTE: For MPI job, still need to check for neighbours on another process
+c	For this, need to check within forcei when particles are sent back
+c	Only need to check particle that has passed all local tests and
+c	also has neighbours on other process.
+c	Need to check that all its neighbours are currently being evolved.
+c	Also need to check that it is the candidate sink particle with the
+c	greatest density on all MPI processes (only form 1 sink at a time).
+c	These things only need to be checked if there is a particle for
+c	which icreate=1 on any MPI process.
+c
          IF ((2.0*xyzmh(5,irhonex)).LT.hacc) THEN
             WRITE(iprint,*)'Ptmass creation passed h ',xyzmh(5,irhonex)
 
-            CALL getneigh(irhonex,npart,xyzmh(5,irhonex),xyzmh,nlist,
-     &           iptneigh,nearl)
+	    nlist = 0
+            CALL getneigh(irhonex,npart,xyzmh(5,irhonex),xyzmh,idim,
+     &           nlist,iptneigh,nearl)
 
             iokay = 1
             DO n = 1, nlist
@@ -1494,9 +1686,9 @@ c--Set creation flag to true. Other tests done in accrete.f
 c
             IF (iokay.EQ.1) THEN
                icreate = 1 
-               WRITE(iprint,*) ' and all particles on step'
+               WRITE(iprint,*) ' and all local particles on step'
             ELSE
-               WRITE(iprint,*) ' but not all particles on step'
+               WRITE(iprint,*) ' but not all local particles on step'
             ENDIF
          ELSE
             WRITE(iprint,*) 'Ptmass creation failed on h ',
@@ -1504,8 +1696,146 @@ c
          ENDIF
       ENDIF
 
+#ifdef MPI
+  250 CALL MPI_ALLREDUCE(icreate,icreatetot,1,MPI_INTEGER,MPI_SUM,
+     &     MPI_COMM_WORLD,ierr)
+#ifdef MPIDEBUGS
+      print *,iproc,': icreatetot ',icreatetot,icreate
+#endif
+      IF (icreatetot.GE.1) THEN
+c
+c--Check most dense particle first
+c
+	 IF (icreatetot.GT.1) THEN
+   	    IF (icreate.EQ.0) rhonext = 0.
+	    CALL MPI_ALLREDUCE(rhonext,rhonextmax,1,MPI_REAL4,MPI_MAX,
+     &           MPI_COMM_WORLD,ierr)
+#ifdef MPIDEBUGS
+      print *,iproc,': rhonextmax ',rhonextmax,rhonext
+#endif
+            IF (rhonext.EQ.rhonextmax) THEN
+               itest = iproc
+            ELSE
+               itest = 0
+            ENDIF
+c
+c--If more than one process has a particle with density=rhonextmax, then
+c	take the process with the largest rank first
+c
+            CALL MPI_ALLREDUCE(itest,itestmax,1,MPI_INTEGER,MPI_MAX,
+     &           MPI_COMM_WORLD,ierr)
+            iproccreate = itestmax
+#ifdef MPIDEBUGS
+      print *,iproc,': iproccreate ',iproccreate
+#endif
+	 ELSE
+            itest = icreate*iproc
+            CALL MPI_ALLREDUCE(itest,itestmax,1,MPI_INTEGER,MPI_MAX,
+     &           MPI_COMM_WORLD,ierr)
+            iproccreate = itestmax
+#ifdef MPIDEBUGS
+      print *,iproc,': iproccreate ',iproccreate
+#endif
+         ENDIF
+c
+c--iproccreate is the process whose particle is being tested.  All MPI
+c	processes know this.
+c
+	 IF (iproccreate.EQ.iproc) THEN
+c
+c--Check for neighbours on other processes - only need to loop over "sendback"
+c	lists to see which processes need to check
+c
+	    IF (nneighsentanyatall) THEN
+	       DO j = 0, numproc - 1
+                  IF (j.NE.iproc) THEN
+                     IF (nneighsentany(j+1)) THEN
+                        CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8,
+     &	                     ierr)
+                        CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
+
+                        CALL MPI_SEND(xyzmh(1,irhonex),1,i5REAL8,j,60,
+     &                       MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUGS
+      print *,iproc,': sent irhonex data to ',j
+#endif
+
+	                CALL MPI_TYPE_FREE(i5REAL8,ierr)
+c
+c--Receive back information on whether neighbouring particles are all on 
+c	current timestep or not
+c
+                        CALL MPI_RECV(iokay,1,MPI_INTEGER,j,61,
+     &                       MPI_COMM_WORLD, istatus, ierr)
+#ifdef MPIDEBUGS
+      print *,iproc,': was told that iokay=',iokay,' by ',j
+#endif
+                        IF (iokay.EQ.0) icreate = 0
+                     ENDIF
+                  ENDIF
+               END DO
+            ENDIF
+	 ELSE
+            IF (nneightogetback(iproccreate+1).GT.0) THEN
+c
+c--Expect to get particle which has neighbours on this process
+c
+               CALL MPI_RECV(xyzmh(1,2*ntot+3), 5, MPI_REAL8,
+     &              MPI_ANY_SOURCE, 60, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               iprocrec = istatus(MPI_SOURCE)
+               IF (inumber.NE.5) THEN
+                  WRITE (iprint,*) 'ERROR - Particle test ',inumber
+                  CALL quit
+               ENDIF
+c
+c--Find neighbours of this particle and test to see whether they are all
+c	being evolved on the current step
+c
+               nlist = 0
+               CALL getneigh(2*ntot+3,npart,xyzmh(5,2*ntot+3),xyzmh,
+     &           mmax,nlist,iptneigh,nearl)
+
+               iokay = 1
+               DO n = 1, nlist
+                  j = nearl(n)
+                  IF (it0(j).NE.itime) iokay = 0
+               END DO
+c
+c--Send back the result
+c
+	       CALL MPI_SEND(iokay,1,MPI_INTEGER,iprocrec,61,
+     &              MPI_COMM_WORLD, ierr)
+	    ENDIF
+	 ENDIF
+c
+c--Everyone needs to find out the overall result
+c
+         iokay = icreate
+         CALL MPI_BCAST(iokay,1,MPI_INTEGER,iproccreate,
+     &        MPI_COMM_WORLD, ierr)         
+#ifdef MPIDEBUGS
+      print *,iproc,': has been told that creation is ',iokay,
+     &        iproccreate
+#endif
+         IF (iokay.EQ.0) GOTO 250
+         icreatetot = 1
+         IF (iproc.NE.iproccreate) icreate = 0
+#ifdef MPIDEBUGS
+      print *,iproc,': icreate, icreatetot ',icreate,
+     &        icreatetot
+#endif
+      ENDIF
+#else
+      icreatetot = icreate
+#endif
       IF (itrace.EQ.'all') WRITE (iprint,300)
   300 FORMAT ('exit subroutine densityiterate')
+
+c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+c      IF (itime.EQ.000)
+c     &      print *,iproc,': Exited densityiterate'
+c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
       RETURN
       END
@@ -1519,6 +1849,7 @@ c
       SUBROUTINE densitygradh(ipart,npart,ntot,xyzmh,numneighi,dvxyzu)
 
       INCLUDE 'idim'
+      INCLUDE 'igrape'
 
       DIMENSION xyzmh(5,mmax), dvxyzu(4,idim)
 
@@ -1529,13 +1860,20 @@ c
       INCLUDE 'COMMONS/table'
       INCLUDE 'COMMONS/densi'
       INCLUDE 'COMMONS/dumderivi'
+      INCLUDE 'COMMONS/treecom_P'
+      INCLUDE 'COMMONS/phase'
+      INCLUDE 'COMMONS/ptmass'
 
+#ifdef MPI
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidebug'
+#endif
 c
 c--Needed for MPI code
 c
+c      IF (nptmasstot.GE.1 .AND. iproc.EQ.1) print *,iproc,' Entered ',
+c     &     ' densitygrad ',ipart,npart,ntot
       IF (ipart.GT.npart) THEN
          iparttree = ipart + ntot + 2
       ELSE
@@ -1543,65 +1881,67 @@ c
          nneighprior = nneigh(ipart)
       ENDIF
 
-      xi = xyzmh(1,iparttree)
-      yi = xyzmh(2,iparttree)
-      zi = xyzmh(3,iparttree)
-      pmassi = xyzmh(4,iparttree)
-      hi = xyzmh(5,iparttree)
-
       CALL treef(ipart,npart,ntot,xyzmh,acc,igphi,fsx,fsy,fsz,epot)
+
+      rhoi = 0.
+      gradhi = 0.
+      numneighi = 0
+      IF (iphase(ipart).EQ.0) THEN
+         numneighi = nneigh(ipart)
 c
 c--Calculate density contribution by looping over interacting neighbors
 c
-      numneighi = nneigh(ipart)
-      rhoi = 0.
-      gradhi = 0.
-      nneighi = 0
-      hi1 = 1./hi
-      hi21 = hi1*hi1
-      hi31 = hi21*hi1
-      hi41 = hi21*hi21
+         xi = xyzmh(1,iparttree)
+         yi = xyzmh(2,iparttree)
+         zi = xyzmh(3,iparttree)
+         pmassi = xyzmh(4,iparttree)
+         hi = xyzmh(5,iparttree)
+         hi1 = 1./hi
+         hi21 = hi1*hi1
+         hi31 = hi21*hi1
+         hi41 = hi21*hi21
 
-      IF (numneighi.GT.0) THEN
+         IF (numneighi.GT.0) THEN
 
-         DO k = 1, numneighi
-            j = neighlist(k)
+            DO k = 1, numneighi
+               j = neighlist(k)
 
-            dx = xi - xyzmh(1,j)
-            dy = yi - xyzmh(2,j)
-            dz = zi - xyzmh(3,j)
+               dx = xi - xyzmh(1,j)
+               dy = yi - xyzmh(2,j)
+               dz = zi - xyzmh(3,j)
 #ifdef PERIODIC_NO_GHOSTS
-            CALL modbound(dx,dy,dz)
+               CALL modbound(dx,dy,dz)
 #endif
-            pmassj = xyzmh(4,j)
+               pmassj = xyzmh(4,j)
 
-            rij2 = dx*dx + dy*dy + dz*dz + tiny
-            v2 = rij2*hi21
+               rij2 = dx*dx + dy*dy + dz*dz + tiny
+               v2 = rij2*hi21
 
-            IF (v2.LT.radkernel**2) THEN
-               rij1 = SQRT(rij2)
+               IF (v2.LT.radkernel**2) THEN
+                  rij1 = SQRT(rij2)
 c
 c--Get kernel quantities from interpolation in table
 c
-               index = v2*ddvtable
-               dxx = v2 - index*dvtable
-               index1 = index + 1
-               IF (index1.GT.itable) index1 = itable
-               dwdx = (wij(index1) - wij(index))*ddvtable
-               wtij = (wij(index) + dwdx*dxx)*hi31
-               dgrwdx = (grwij(index1) - grwij(index))*ddvtable
-               grwtij = (grwij(index) + dgrwdx*dxx)*hi41/rij1
+                  index = v2*ddvtable
+                  dxx = v2 - index*dvtable
+                  index1 = index + 1
+                  IF (index1.GT.itable) index1 = itable
+                  dwdx = (wij(index1) - wij(index))*ddvtable
+                  wtij = (wij(index) + dwdx*dxx)*hi31
+                  dgrwdx = (grwij(index1) - grwij(index))*ddvtable
+                  grwtij = (grwij(index) + dgrwdx*dxx)*hi41/rij1
 c
 c--Derivative w.r.t. h for grad h correction terms (and dhdrho)
 c
-               dwdhi = (-rij2*grwtij - 3.*wtij)*hi1
-               gradhi = gradhi + pmassj*dwdhi
+                  dwdhi = (-rij2*grwtij - 3.*wtij)*hi1
+                  gradhi = gradhi + pmassj*dwdhi
 c
 c--Compute density
 c
-               rhoi = rhoi + pmassj*wtij
-            ENDIF
-         END DO
+                  rhoi = rhoi + pmassj*wtij
+               ENDIF
+            END DO
+         ENDIF
       ENDIF
 c
 c--Needed for MPI code
@@ -1624,6 +1964,32 @@ c
          dvxyzu(2,ipart) = dvxyzu(2,ipart) + fsy
          dvxyzu(3,ipart) = dvxyzu(3,ipart) + fsz
          dvxyzu(4,ipart) = dvxyzu(4,ipart) + epot
+      ENDIF
+c
+c--Add gravity from sink particles
+c
+c      IF (nptmass.GE.1) print *,iproc,': ',ipart,dvxyzu(1,ipart)
+
+      IF (nptmass.GT.0) THEN
+c
+c--Add gravity on gas and sinks from sink particles
+c
+	 IF (iptintree.EQ.0) THEN
+            CALL gpti(ipart, npart, ntot, xyzmh, dvxyzu)
+c
+c--On sinks and gas but without gravity from gas on sinks
+c
+	 ELSEIF (iptintree.EQ.1) THEN
+            nlst = 1
+            next1(nlst) = ipart
+            CALL gforspt(nlst,next1,npart,ntot,xyzmh,dvxyzu)
+         ENDIF
+      ENDIF
+c
+c--Add gravity on sink particles from gas
+c
+      IF (iptintree.EQ.0 .AND. iphase(ipart).GE.1) THEN
+         CALL gptfromgas(ipart, npart, ntot, xyzmh, dvxyzu)
       ENDIF
 
       RETURN

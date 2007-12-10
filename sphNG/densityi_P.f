@@ -241,6 +241,7 @@ c
          IF ((2.0*xyzmh(5,irhonex)).LT.hacc) THEN
             WRITE(iprint,*)'Ptmass creation passed h ',xyzmh(5,irhonex)
 
+            nlist = 0
             CALL getneigh(irhonex,npart,xyzmh(5,irhonex),xyzmh,nlist,
      &           iptneigh,nearl)
 

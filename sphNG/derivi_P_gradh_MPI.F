@@ -111,6 +111,8 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
 c
 c--Allow for tracing flow
 c
+c      IF (gt.GT.50.) print *,iproc,': ENTERED derivi'
+
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
 99001 FORMAT(' entry subroutine derivi_gradh')
       IF (igrape.NE.0) THEN
@@ -142,7 +144,7 @@ c     other processes may be doing gas particles
 c
 #ifdef MPI
 #else
-      IF (nlst_end.GT.nptmass) THEN
+c      IF (nlst_end.GT.nptmass) THEN
 #endif
          IF (itiming) CALL getused(tdens1)
 
@@ -193,7 +195,7 @@ cC$OMP END PARALLEL DO
          ENDIF
 #ifdef MPI
 #else
-      ENDIF
+c      ENDIF
 #endif
 c
 c--Implicit hyperdiffusion of div B
@@ -250,7 +252,6 @@ c      ENDIF
         tass = tass + (tass2 - tass1)
       ENDIF
 
-
 #ifdef MPI
 c
 c--Now need to do forcei contributions from neighbours on remote nodes.
@@ -290,7 +291,7 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
       inumofsends = 0
       DO i = 0, numproc - 1
          IF (iproc.EQ.i) THEN
-            IF (maxnneighsentback.GT.0) THEN
+            IF (nneighsentanyatall) THEN
 c
 c--Otherwise this process does not need to send any particle back!
 c
@@ -307,7 +308,7 @@ c
 c--Only sends anything at all to another MPI process if it needs to (the
 c     other MPI process knows when it doesn't need to expect anything)
 c
-                     IF (nneighsentback(j+1).GT.0) THEN
+                     IF (nneighsentany(j+1)) THEN
                         inumofsends = inumofsends + 1
 #ifdef MPIDEBUG
                         print *,iproc,': sending neighbour data to ',j,
@@ -321,6 +322,16 @@ c                       1,llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
                 CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
      &                  llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI5,ierr)
+
+
+                        CALL MPI_SEND(xyzmh,1,indexMPI5,j,20,
+     &                       MPI_COMM_WORLD, ierr)
+
+#ifdef MPIDEBUG
+                        print *,iproc,' sent xyzmh to ',j
+#endif
+
+                        IF (nneighsentback(j+1).GT.0) THEN
 
 c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
 c     &                  1,llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
@@ -355,13 +366,6 @@ c     &                  indexMPIalpha,ierr)
      &                  llistsentback(1,j+1),ialphaREAL4,
      &                       indexMPIalpha,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPIalpha,ierr)
-
-                        CALL MPI_SEND(xyzmh,1,indexMPI5,j,20,
-     &                       MPI_COMM_WORLD, ierr)
-
-#ifdef MPIDEBUG
-                        print *,iproc,' sent xyzmh to ',j
-#endif
 
                         CALL MPI_SEND(vxyzu,1,indexMPI4,j,21,
      &                       MPI_COMM_WORLD, ierr)
@@ -434,6 +438,8 @@ c                  end do
                         CALL MPI_TYPE_FREE(indexMPI2,ierr)
                         CALL MPI_TYPE_FREE(indexMPI1,ierr)
                         CALL MPI_TYPE_FREE(indexMPI4,ierr)
+                        ENDIF
+
                         CALL MPI_TYPE_FREE(indexMPI5,ierr)
 #ifdef MPIDEBUG
                         print *,iproc,': sent neighbour data to ',j
@@ -602,9 +608,6 @@ c                  end do
                      print *,iproc,': got alphaMM from ',iprocrec,icheck
 #endif
                   ENDIF
-               ELSE
-                  WRITE (*,*) 'ERROR - number returned <=0: ',inumber
-                  CALL quit
                ENDIF
                inumbertotal = inumbertotal + inumber
                inumberindiv(inumberreturned) = inumber

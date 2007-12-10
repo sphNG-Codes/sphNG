@@ -90,7 +90,9 @@ c
 99016 FORMAT (A1,'  Type of MPI decomposition ',
      &     '(s)phere, (d)isc, (c)artesian')
 #else
-      WRITE (iterm, *) 'x  Type of MPI decomposition'
+      WRITE (iterm, 99017)
+99017 FORMAT ('d  Type of MPI decomposition ',
+     &     '(s)phere, (d)isc, (c)artesian')
 #endif
 
       WRITE (iterm, 89000) initialptm

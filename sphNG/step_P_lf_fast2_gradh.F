@@ -109,6 +109,9 @@ c
       ilocal = 0
       naddedplanet = 0
       itreeupdate = .FALSE.
+
+      print *,iproc,': ENTERED STEP ',nptmasstot
+
 c
 c--Integration
 c
@@ -175,7 +178,7 @@ c
                   dumxyzmh(k,i) = xyzmh(k,i)
                END DO
                DO k = 1, 4
-                  dumvxyzu(k,i) = vxyzu(k,i) 
+                  dumvxyzu(k,i) = vxyzu(k,i)
                END DO
                IF (imhd.EQ.idim) THEN
                   DO k = 1, 3
@@ -448,8 +451,8 @@ c
       CALL MPI_ALLREDUCE(itimelocal,itime,1,MPI_INTEGER,MPI_MIN,
      &     MPI_COMM_WORLD,ierr)
 #ifdef MPIDEBUG
-      print *,' '
-      print *,iproc,': TIMES ',itimelocal, itime
+c      IF (gt.GT.63.7) 
+          print *,iproc,': TIMES ',itimelocal, itime
 #endif
 #else
       itime = itimelocal
@@ -557,6 +560,9 @@ c
                   ENDIF
                   IF (it0(ipart)+isteps(ipart).NE.itime) THEN
                      WRITE (*,*) 'ERROR - it0+istep.NE.itime 2'
+                     WRITE (*,*) ipart,it2(ipart),itime,it2bin(i)
+                     WRITE (*,*) isteps(ipart),it0(ipart),iphase(ipart)
+                     WRITE (*,*) listpm(1),listpm(2),iproc
                      WRITE (iprint,*) 'ERROR - it0+istep.NE.itime 2'
                      CALL quit
                   ENDIF
@@ -576,6 +582,10 @@ c
          ENDIF
       END DO
       itbinupdate = MIN(itbinupdate + 7, nbinmax)
+
+#ifdef MPIDEBUG
+      print *,iproc,': itbinupdate ',itbinupdate
+#endif
 
       nlst = jj
       nlstnneigh = nlst
@@ -708,12 +718,14 @@ c
 c--Get ready to make or update tree
 c
       iwillupdatetree = igrape.EQ.0 .AND. (nlst.GT.nptmass .OR. 
-     &     nlstacc.GT.0 .OR. iptintree.GT.0)
+     &     nlstacc.GT.0 .OR. iptintree.GT.0 .OR. icreate.EQ.1)
       imaketree = iwillupdatetree .AND. (nlst.GT.ncrit .OR. 
-     &     imakeghost.EQ.1 .OR. idonebound.EQ.1)
+     &     imakeghost.EQ.1 .OR. idonebound.EQ.1 .OR. icreate.EQ.1)
       irevise = iwillupdatetree .AND. (.NOT. imaketree) .AND.
      &     (.NOT.(iptintree.EQ.1 .AND. nlst.LE.nptmass .AND.
      &           nlstacc.EQ.0))
+c      print *,iproc,': TREE ',iwillupdatetree,imaketree,irevise,
+c     &     nlst,nptmass,nlstacc,iptintree
 c
 c--Predict variables at t=time
 c
@@ -1065,6 +1077,7 @@ c
             END DO
          ENDIF
          iaccr = 0
+         icreate = 0
          ikilled = 0
          nlstacc = 0
       ENDIF
@@ -1076,6 +1089,16 @@ c
       IF (itiming) CALL getused(ts101)
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
      &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
+
+c      IF (nptmasstot.GE.1) THEN
+c      DO j = 1, nlst
+c         i = llist(j)
+c         IF (dumxyzmh(1,i)**2 + dumxyzmh(2,i)**2 + dumxyzmh(3,i)**2
+c     &        .LT.2.0e-4) print *,iproc,': ',i,j,iunique(iorig(i)),
+c     &     SQRT(dumxyzmh(1,i)**2 + dumxyzmh(2,i)**2 + dumxyzmh(3,i)**2),
+c     &     f1vxyzu(1,i),poten(i)
+c      END DO
+c      ENDIF
 
       IF (itiming) THEN
          CALL getused(ts102)
@@ -1349,8 +1372,8 @@ c
 c
 c--Accrete particles near point mass, or create point mass
 c
-c      IF (nlst.GT.nptmass .AND. (nptmass.NE.0 .OR. icreate.EQ.1)) THEN
-      IF (nptmass.NE.0 .OR. icreate.EQ.1) THEN
+c      IF (nlst.GT.nptmass .AND. (nptmass.NE.0 .OR. icreatetot.EQ.1)) THEN
+      IF (nptmasstot.NE.0 .OR. icreatetot.EQ.1) THEN
          isave = 0
          IF (itime.GE.iptout) THEN
             isave = 1
@@ -1362,7 +1385,7 @@ c--Accrete particles near point mass, or create point mass
 c 
          IF (itiming) CALL getused(taccrete1)
 
-         CALL accrete(dt, realtime, isave)
+         CALL accrete(dt, realtime, isave, ntot)
 
          IF (itiming) THEN
             CALL getused(taccrete2)
@@ -1435,7 +1458,7 @@ c
 c--Create NEW particles to keep number of particles within a shell
 c     constant.  
 c
-      IF (nptmass.NE.0 .OR. icreate.EQ.1) THEN
+      IF (nptmasstot.NE.0 .OR. icreatetot.EQ.1) THEN
          IF (ibound/10.EQ.9 .AND. nshell.GT.inshell) THEN
             IF (nlmax.EQ.1) THEN
                WRITE (*,*) 'Cannot use grad-h with shell boundaries'
@@ -1535,7 +1558,8 @@ c
                   CALL insulate(3,ntot,npart,dumxyzmh,f1vxyzu)
                   numneigh = nneigh(i)
                ELSE
-                  CALL getneigh(i,ntot,xyzmh(5,i),dumxyzmh,nlist,
+                  nlist = 0
+                  CALL getneigh(i,ntot,xyzmh(5,i),dumxyzmh,mmax,nlist,
      &                 iptneigh,nearl)
                   numneigh = nlist
                ENDIF
@@ -1763,7 +1787,8 @@ c
                   CALL insulate(3,ntot,npart,dumxyzmh,f1vxyzu)
                   numneigh = nneigh(i)
                ELSE
-                  CALL getneigh(i,ntot,xyzmh(5,i),dumxyzmh,nlist,
+                  nlist = 0
+                  CALL getneigh(i,ntot,xyzmh(5,i),dumxyzmh,mmax,nlist,
      &                 iptneigh,nearl)
                   numneigh = nlist
                ENDIF
@@ -2135,6 +2160,12 @@ c
                nneightot = nneightot + nneigh(ipart)
             END DO
          ENDIF
+
+#ifdef MPI
+c         CALL MPI_BARRIER(MPI_COMM_WORLD,ierr)
+         print *,iproc,': END OF STEP ',nptmasstot
+c         CALL MPI_BARRIER(MPI_COMM_WORLD,ierr)
+#endif
 
          RETURN
       ENDIF

@@ -32,6 +32,8 @@ c************************************************************
       INCLUDE 'COMMONS/gravi'
       INCLUDE 'COMMONS/call'
 
+      INCLUDE 'COMMONS/mpidebug'
+
       INTEGER istack, nlistga, nlistgn
 
 
@@ -52,13 +54,21 @@ c
 c--Accreted particles not in tree
 c
       IF (iphase(m).EQ.-1) CALL error(where, 1)
+
+      nneigh(m) = 0 
+      fsx = 0.
+      fsy = 0.
+      fsz = 0.
+      epot = 0.      
 c
 c--Point masses no longer in tree - gravity and neighbours done in gforspt.f
 c
-      IF (iphase(m).GE.1 .AND. iptintree.EQ.0) CALL error(where, 2)
+      IF (iphase(m).GE.1 .AND. iptintree.EQ.0) GOTO 900
 
       IF (iphase(m).GE.1) THEN
-         DO i = 1, nptmass
+         nptmasssearch = nptmass
+         IF (m.GT.npart) nptmasssearch = nptmasslocal
+         DO i = 1, nptmasssearch
             IF (listpm(i).EQ.m) THEN
                iptn = i
                nptlist(iptn) = 0
@@ -67,14 +77,9 @@ c
          END DO
       ENDIF
 
- 50   nneigh(m) = 0 
-      gravmag = SQRT(gravxyzstore(1,m)**2 + gravxyzstore(2,m)**2 + 
+ 50   gravmag = SQRT(gravxyzstore(1,m)**2 + gravxyzstore(2,m)**2 + 
      &     gravxyzstore(3,m)**2)
       accpar = acc**2
-      fsx = 0.
-      fsy = 0.
-      fsz = 0.
-      epot = 0.
       nlistga = 0
       nlistgn = 0
       istack = 0
@@ -152,7 +157,7 @@ c
      &                           istack+2,istacksize
                   CALL quit
                ENDIF
-               
+
                IF (rr.LT.qcut2) THEN
                   j = isibdaupar(2,n)
                   istack = istack + 1
@@ -260,19 +265,23 @@ C$OMP END CRITICAL (neighlistoverflow)
                   listga(nlistga) = n
                ENDIF
 
-               IF (iptintree.GT.0 .AND. iphase(m).GE.1 .AND.
-     &                               iphase(n).EQ.0) THEN
-                  hmean2 = hm*hm
+               IF (iptintree.GT.0) THEN
+                  IF (iphase(m).GE.1 .AND. iphase(n).EQ.0) THEN
+                     hmean2 = hm*hm
 ccc                  hmean2 = rcut2
-                  IF (rr.LT.hmean2) THEN
-                     nptlist(iptn) = nptlist(iptn) + 1
-                     IF (nptlist(iptn).GT.iptneigh) THEN
-                        WRITE (iprint,*) 'ERROR - iptneigh '
-                        CALL quit
-                     ELSE
-                        nearpt(nptlist(iptn),iptn) = n
+                     IF (rr.LT.hmean2) THEN
+                        nptlist(iptn) = nptlist(iptn) + 1
+                        IF (nptlist(iptn).GT.iptneigh) THEN
+                           WRITE (iprint,*) 'ERROR - iptneigh '
+                           CALL quit
+                        ELSE
+                           nearpt(nptlist(iptn),iptn) = n
+                        ENDIF
                      ENDIF
                   ENDIF
+               ELSEIF (iphase(n).GE.1) THEN
+                  print *,'iphase(n).GE.1 ',m,n,iphase(m),iphase(n)
+                  CALL error(where,2)
                ENDIF
 
             ENDIF
@@ -310,7 +319,7 @@ c            WRITE (iprint,*) 'listbins(i,29).NE.i+94296 , M3',m
 c         ENDIF
 c      END DO
 
-      RETURN
+ 900  RETURN
       END
 
 

@@ -10,7 +10,11 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidebug'
+#endif
 
       DIMENSION xyzmh(5,mmax), vxyzu(4,idim)
       REAL*4 trho(idim),pr(idim),vsound(idim),dha(1+isizealphaMM,idim)
@@ -81,9 +85,98 @@ c
       IF (itrace.EQ.'all') WRITE (iprint, 250)
   250 FORMAT(' entry subroutine forcei')
 
+c      print *,iproc,': Entered forcei'
+
       nlistupdated = 0
       realtime = dt*itime/imaxstep + gt
+#ifdef MPI
+c
+c--Need to get all sink particle data from all MPI processes so can check
+c     that viscous and magnetic forces are not applied across sinks.
+c     Need xyzmh only.  This is also done in accrete.f
+c
+      IF (nptmasstot.GT.0) THEN
+         CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
+         CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
 
+         DO ii = 1, nptmass
+            listpm(ii) = listpm(ii) - 1
+         END DO
+
+         CALL MPI_TYPE_INDEXED(nptmass, lblocklengths, listpm,
+     &        i5REAL8, indexMPI5, ierr)
+         CALL MPI_TYPE_COMMIT(indexMPI5,ierr)
+
+         DO ii = 1, nptmass
+            listpm(ii) = listpm(ii) + 1
+         END DO
+
+         nptmasslocal = nptmass
+         DO ii = 1, numproc - 1
+            iahead = MOD(iproc+ii,numproc)
+            ibehind = MOD(numproc+iproc-ii,numproc)
+c
+c--Send number of sink particles to be received
+c
+            CALL MPI_SENDRECV(nptmass,1,MPI_INTEGER,iahead, 110,
+     &           nptmassrec,1,MPI_INTEGER,ibehind, 110,
+     &           MPI_COMM_WORLD, istatus, ierr)
+            CALL MPI_GET_COUNT(istatus, MPI_INTEGER, inumber, ierr)
+            IF (inumber.NE.1) THEN
+               WRITE (*,*) 'ERROR - nptmassrec not received (forcei)'
+               CALL quit
+            ENDIF
+#ifdef MPIDEBUGS
+            print *,iproc,': FORCEI send ',nptmass,' ptmasses to ',
+     &           iahead,' recv ',nptmassrec,' from ',ibehind
+#endif
+            IF (nptmasslocal+nptmassrec.GT.iptdim) THEN
+             WRITE (*,*) 'ERROR iptdim not large enough for all sinks',
+     &              nptmasslocal,nptmassrec,iptdim
+               CALL quit
+            ENDIF
+            IF (2*ntot+2+inumbertotal+nptmasslocal+nptmassrec-
+     &           nptmass.GT.mmax) THEN
+               WRITE (*,*) 'ERROR mmax not large enough for all sinks',
+     &              nptmasslocal,nptmassrec,nptmass,ntot,mmax
+               CALL quit
+            ENDIF
+c
+c--Send sink particle information (xyzmh, vxyzu, iscurrent, iunique)
+c
+            CALL MPI_SENDRECV(xyzmh, 1, indexMPI5, iahead, 111,
+     &           xyzmh(1,2*ntot+2+inumbertotal+nptmasslocal-nptmass+1), 
+     &           idim, i5REAL8, ibehind, 111, 
+     &           MPI_COMM_WORLD, istatus, ierr)
+            CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
+            IF (inumber.NE.nptmassrec) THEN
+               WRITE (*,*) 'ERROR - inumber.NE.nptmassrec ',inumber,
+     &              nptmassrec
+               CALL quit
+            ENDIF
+
+            DO iii = nptmasslocal + 1, nptmasslocal + nptmassrec
+               listpm(iii) = 2*ntot + 2 + inumbertotal + iii - nptmass
+            END DO
+
+            nptmasslocal = nptmasslocal + nptmassrec
+         END DO
+         IF (nptmasslocal.NE.nptmasstot) THEN
+            WRITE (*,*) 'ERROR - nptmasslocal.NE.nptmasstot ',
+     &           nptmasslocal,nptmasstot
+            CALL quit
+         ENDIF
+#ifdef MPIDEBUGS
+         print *,iproc,': FORCEI: Transfer of all sink data complete ',
+     &      nptmasslocal,nptmass,nptmassglobal
+#endif
+         CALL MPI_TYPE_FREE(indexMPI5,ierr)
+         CALL MPI_TYPE_FREE(i5REAL8,ierr)
+      ENDIF
+#endif
+c
+c--For external magnetic pressure boundaries
+c
       IF (imhd.EQ.idim .AND. ibound.EQ.7) THEN
 c--external magnetic pressure boundaries -- use dummy variables 
 c  as can still have external fields even if ibound.ne.7
@@ -124,7 +217,7 @@ C$OMP& shared(fmass,fpoten,part2kernel,part1kernel,radkernel)
 C$OMP& shared(part2potenkernel,part1potenkernel,grwij)
 C$OMP& shared(divv,curlv,beta,alpha,poten,dgrav,nlst0)
 C$OMP& shared(cnormk,epsil,epsil2,where,pext)
-C$OMP& shared(iphase,listpm,iprint,nptmass,iorig)
+C$OMP& shared(iphase,listpm,iprint,nptmasstot,iorig)
 C$OMP& shared(alphaMMpass,alphamin)
 C$OMP& shared(igrp,igphi,ifsvi,iexf)
 C$OMP& shared(ifcor,iexpan,iener,damp)
@@ -620,7 +713,7 @@ c
 c--No artificial viscosity, resistivity, pressure, or MHD between particles 
 c     across a point mass
 c
-            DO ii = 1, nptmass
+            DO ii = 1, nptmasstot
                iptcurv = listpm(ii)
                xii = xyzmh(1,iptcurv)
                yii = xyzmh(2,iptcurv)
@@ -1003,21 +1096,13 @@ C$OMP DO SCHEDULE(runtime)
 C$OMP END DO 
 C$OMP END PARALLEL
 c
-c--Calculate gravity on and from point masses (when sink particles done outside
-c     or partially outside the tree) - done separately for higher accuracy
-c
-      IF (nptmass.GT.0) THEN
-         IF (iptintree.EQ.0) THEN
-            CALL gptall(xyzmh,npart,fxyzu)
-         ELSEIF (iptintree.EQ.1) THEN
-            CALL gforspt(xyzmh,fxyzu)
-         ENDIF
-      ENDIF
-c
 c--Allow for tracing flow
 c
       IF (itrace.EQ.'all') WRITE (iprint, 255)
  255  FORMAT(' exit subroutine forcei')
+
+c      print *,iproc,': Exited forcei'
+
 
       RETURN
       END

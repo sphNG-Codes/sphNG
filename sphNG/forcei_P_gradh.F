@@ -973,7 +973,7 @@ c
          IF (iptintree.EQ.0) THEN
             CALL gptall(xyzmh,npart,fxyzu)
          ELSEIF (iptintree.EQ.1) THEN
-            CALL gforspt(xyzmh,fxyzu)
+            CALL gforspt(nlst_end,listp,npart,ntot,xyzmh,fxyzu)
          ENDIF
       ENDIF
 c

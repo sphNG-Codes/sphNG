@@ -238,7 +238,14 @@ c
      &           npart, idim
          CALL quit
       ENDIF
+#ifdef MPI
+      IF (nblocks.NE.1 .AND. iproc.EQ.iblock-1) THEN
+#endif
       nhydro = number8
+#ifdef MPI
+      ENDIF
+#endif
+
 #ifdef MPIDEBUG
       print *,iproc,': nhydro ',number8
 #endif
@@ -251,7 +258,13 @@ c
      &            number8,iptdim
          CALL quit
       ENDIF
+#ifdef MPI
+      IF (nblocks.NE.1 .AND. iproc.EQ.iblock-1) THEN
+#endif
       nptmass = number8
+#ifdef MPI
+      ENDIF
+#endif
 #ifdef MPIDEBUG
       print *,iproc,': nptmass ',number8
 #endif
@@ -405,7 +418,8 @@ c--Default int
          READ (idisk1, END=100) (listpm(i), i=1,nptmass)
 
          DO i = 1, nptmass
-            write (*,*) 'Setting ',i,listpm(i),xyzmh(5,listpm(i)),hacc
+            write (*,*) 'Setting ',i,listpm(i),xyzmh(5,listpm(i)),hacc,
+     &           iphase(listpm(i))
             xyzmh(5,listpm(i)) = hacc
          END DO
 
@@ -601,6 +615,7 @@ c
       CALL MPI_ALLREDUCE(nptmass,nptmasstot,1,MPI_INTEGER,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
 #endif
+
       IF (iskip.EQ.1) RETURN
 c
 c--End reading of dump file
@@ -820,7 +835,7 @@ c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
       END DO
       print *,iproc,': CLOSEST z=-0.0 ',ipos2,xxmin
 #endif
-      
+
       IF (itrace.EQ.'all') WRITE (*, 99002)
 99002 FORMAT (' exit subroutine rdump')
       RETURN

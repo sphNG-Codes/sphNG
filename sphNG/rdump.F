@@ -239,7 +239,7 @@ c
          CALL quit
       ENDIF
 #ifdef MPI
-      IF (nblocks.NE.1 .AND. iproc.EQ.iblock-1) THEN
+      IF (nblocks.EQ.1 .OR. nblocks.NE.1 .AND. iproc.EQ.iblock-1) THEN
 #endif
       nhydro = number8
 #ifdef MPI
@@ -259,7 +259,7 @@ c
          CALL quit
       ENDIF
 #ifdef MPI
-      IF (nblocks.NE.1 .AND. iproc.EQ.iblock-1) THEN
+      IF (nblocks.EQ.1 .OR. nblocks.NE.1 .AND. iproc.EQ.iblock-1) THEN
 #endif
       nptmass = number8
 #ifdef MPI

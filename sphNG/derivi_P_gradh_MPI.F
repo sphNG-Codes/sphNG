@@ -559,7 +559,7 @@ ccc         CALL treef(jpart,npart,ntot,xyzmh,acc,0,fsx,fsy,fsz,epot)
          dq(jpart) = 0.0
          IF (imhd.EQ.idim) THEN
             DO k = 1, 3
-               dBevolxyz(3,jpart) = 0.
+               dBevolxyz(k,jpart) = 0.
             END DO
          ENDIF
       END DO
@@ -696,11 +696,11 @@ c     &                    dvxyzu(1,jpos)
 c                  ENDIF
                   DO k = 1, 4
                      dvxyzu(k,ipos) = dvxyzu(k,ipos) + dvxyzu(k,jpos)
-                     IF (iunique(iorig(ipos)).EQ.2757) THEN
-                        print *,iproc,': FOR ',k,dvxyzu(k,ipos),
-     &                       dvxyzu(k,jpos),iprocrec,
-     &                       ipos,jpos
-                     ENDIF
+c                     IF (iunique(iorig(ipos)).EQ.2757) THEN
+c                        print *,iproc,': FOR ',k,dvxyzu(k,ipos),
+c     &                       dvxyzu(k,jpos),iprocrec,
+c     &                       ipos,jpos
+c                     ENDIF
                   END DO
                END DO
 
@@ -747,6 +747,11 @@ c               print *,iproc,': got poten from ',iprocrec
                      DO k = 1, 3
                         dBevolxyz(k,ipos) = dBevolxyz(k,ipos) + 
      &                       dBevolxyz(k,jpos)
+c                        IF (iunique(iorig(ipos)).EQ.2757) THEN
+c                           print *,iproc,': dB ',k,dBevolxyz(k,ipos),
+c     &                          dBevolxyz(k,jpos),iprocrec,
+c     &                          ipos,jpos
+c                        ENDIF
                      END DO
                   END DO
                ENDIF
@@ -873,8 +878,6 @@ c                  write (89,99004) ipart
          END DO
       ENDIF
 
-      print *,'nlst ',nlst,nlst_end,nlst_tot
-
  779  CONTINUE
 
 
@@ -915,21 +918,25 @@ cc     &           gradhs(1,ipart),gradhs(2,ipart),
 c     &           dvxyzu(1,ipart),dvxyzu(2,ipart),dvxyzu(3,ipart),
 c     &           dvxyzu(4,ipart),poten(ipart),nneigh(ipart)
 c         END DO
-99901              FORMAT (11(1PE12.5,1X),I8)
-99902              FORMAT (13(1PE12.5,1X),I8)
-99903              FORMAT (13(1PE17.10,1X),I8)
+99901 FORMAT (11(1PE12.5,1X),I8)
+99902 FORMAT (13(1PE12.5,1X),I8)
+99903 FORMAT (13(1PE17.10,1X),I8)
 
 c      STOP
 
-                   DO ipos = 1, npart
-                   IF (iunique(iorig(ipos)).EQ.2757) THEN
-                      DO k = 1,4
-                      print *,iproc,': FOR-FINAL ',k,dvxyzu(k,ipos)
-                      END DO
-                   ENDIF             
-                   END DO
+c      DO ipos = 1, npart
+c         IF (iunique(iorig(ipos)).EQ.2757) THEN
+c            DO k = 1,4
+c               print *,iproc,': FOR-FINAL ',k,dvxyzu(k,ipos)
+c            END DO
+c            DO k = 1,3
+c               print *,iproc,': dB-FINAL ',k,Bxyz(k,ipos),
+c    &              Bevolxyz(k,ipos),dBevolxyz(k,ipos)
+c            END DO
+c         ENDIF             
+c      END DO
                    
-c                   CALL quit
+c      CALL quit
                    
       RETURN
       END

@@ -192,7 +192,7 @@ c
          dq(ipart) = 0.
          IF (imhd.EQ.idim) THEN
             DO k = 1, 3
-               dBxyz(3,ipart) = 0.
+               dBxyz(k,ipart) = 0.
             END DO
          ENDIF
       END DO

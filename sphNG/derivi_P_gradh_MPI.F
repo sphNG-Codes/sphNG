@@ -103,9 +103,10 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
       INCLUDE 'COMMONS/vsmooth'
       INCLUDE 'COMMONS/divcurlB'
       INCLUDE 'COMMONS/gradhterms'
+      INCLUDE 'COMMONS/compact'
 
       CHARACTER*7 where
-      DIMENSION dedxyz(3,iradtrans)
+      DIMENSION dedxyz(3,iradtrans),listex(idim)
 
       DATA where/'derivi'/
 c
@@ -153,7 +154,8 @@ c      IF (nlst_end.GT.nptmass) THEN
 #endif
 
          CALL densityiterate_gradh(dt,npart,ntot,xyzmh,vxyzu,dvxyzu,
-     &        nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz)
+     &        nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz,
+     &        dBevolxyz)
 
 #ifdef MPIDEBUG
          print *,'DERIVI: called densityiterate_gradh'
@@ -162,36 +164,6 @@ c      IF (nlst_end.GT.nptmass) THEN
          IF (itiming) THEN
             CALL getused(tdens2)
             tdens = tdens + (tdens2 - tdens1)
-         ENDIF
-c     
-c--Compute implicit radiative transfer
-c     
-         IF (itiming) CALL getused(tass1)
-
-         IF(encal.EQ.'r') THEN
-            WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
-            WRITE(*,*) 'radiation/gradh not yet implemented'
-            STOP
-
-c            WRITE (*,*) 'nlstall is ',nlstall
-
-c            CALL ASS(nlst_in,nlst_end,nlstall,llist,dt,itime,npart,
-c     &           xyzmh,vxyzu,ekcle,dumrho,vsound,dedxyz)
-
-cC$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-cC$OMP& shared(nlstall,vxyzu,dumrho,pr,vsound,llist,iphase,ekcle)
-cC$OMP& private(i,ipart)
-c            DO i = 1, nlstall
-c               ipart = llist(i)
-c               IF (iphase(ipart).EQ.0) 
-c     &              CALL eospg(ipart,vxyzu,dumrho,pr,vsound,ekcle)
-c            END DO
-cC$OMP END PARALLEL DO
-         END IF
-
-         IF (itiming) THEN
-            CALL getused(tass2)
-            tass = tass + (tass2 - tass1)
          ENDIF
 #ifdef MPI
 #else
@@ -318,26 +290,31 @@ c
 c--Else does not need to send any particle back to this particular process.
 c
 c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
-c                       1,llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
+c     &                  1,llistsentback(1,j+1),MPI_REAL4,indexMPI1,ierr)
                 CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
-     &                  llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
-                        CALL MPI_TYPE_COMMIT(indexMPI5,ierr)
+     &                  llistsentback(1,j+1),MPI_REAL4,indexMPI1,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI1,ierr)
 
+c                        IF (iproc.EQ.0) THEN
+c                           print *,' SentbackDER ',llistsentback(1,j+1),
+c     &                       iunique(iorig(llistsentback(1,j+1)+1)),
+c     &                       i,j,iunique(iorig(llistsentback(2,j+1)+1))
+c
+c                           DO ijk = 1, nneighsentback(j+1)
+c                              print *,iorig(llistsentback(ijk,j+1)+1)-1
+c                           END DO
+c                        ENDIF
 
-                        CALL MPI_SEND(xyzmh,1,indexMPI5,j,20,
+                        DO ijk = 1, nneighsentback(j+1)
+                        listex(ijk) = iorig(llistsentback(ijk,j+1)+1)-1
+                        END DO
+
+                        CALL MPI_SEND(divv,1,indexMPI1,j,23,
      &                       MPI_COMM_WORLD, ierr)
-
 #ifdef MPIDEBUG
-                        print *,iproc,' sent xyzmh to ',j
+                        print *,iproc,' sent divv'
 #endif
-
                         IF (nneighsentback(j+1).GT.0) THEN
-
-c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
-c     &                  1,llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
-                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
-     &                  llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
-                        CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
 
                         IF (imhd.EQ.idim) THEN
 c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
@@ -346,12 +323,6 @@ c     &                  1,llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
      &                  llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI3,ierr)
                         ENDIF
-
-c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
-c     &                  1,llistsentback(1,j+1),MPI_REAL4,indexMPI1,ierr)
-                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
-     &                  llistsentback(1,j+1),MPI_REAL4,indexMPI1,ierr)
-                        CALL MPI_TYPE_COMMIT(indexMPI1,ierr)
 
 c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
 c     &                  1,llistsentback(1,j+1),i2REAL4,indexMPI2,ierr)
@@ -367,30 +338,15 @@ c     &                  indexMPIalpha,ierr)
      &                       indexMPIalpha,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPIalpha,ierr)
 
-                        CALL MPI_SEND(vxyzu,1,indexMPI4,j,21,
-     &                       MPI_COMM_WORLD, ierr)
-#ifdef MPIDEBUG
-                        print *,iproc,' sent vxyzu'
-#endif
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),MPI_INTEGER8,indexMPI_I8,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &    listex,MPI_INTEGER8,indexMPI_I8,ierr)
+c     &    iorig(llistsentback(1,j+1)+1),MPI_INTEGER8,indexMPI_I8,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI_I8,ierr)
 
-                        CALL MPI_SEND(rho,1,indexMPI1,j,22,
+                        CALL MPI_SEND(iunique,1,indexMPI_I8,j,200,
      &                       MPI_COMM_WORLD, ierr)
-c                  do ll = 1, 10
-c                     print *,'S   ',rho(llistsentback(ll,j+1)+1)
-c                  end do
-c                  do ll = 10, 1, -1
-c                     print *,'S   ',rho(llistsentback(
-c     &                    nneighsentback(j+1)-ll+1,j+1)+1)
-c                  end do
-#ifdef MPIDEBUG
-                        print *,iproc,' sent rho'
-#endif
-
-                        CALL MPI_SEND(divv,1,indexMPI1,j,23,
-     &                       MPI_COMM_WORLD, ierr)
-#ifdef MPIDEBUG
-                        print *,iproc,' sent divv'
-#endif
 
                         CALL MPI_SEND(pr,1,indexMPI1,j,24,
      &                       MPI_COMM_WORLD, ierr)
@@ -434,13 +390,12 @@ c                  end do
 #endif                           
                         ENDIF
 
+                        CALL MPI_TYPE_FREE(indexMPI_I8,ierr)
                         CALL MPI_TYPE_FREE(indexMPIalpha,ierr)
                         CALL MPI_TYPE_FREE(indexMPI2,ierr)
                         CALL MPI_TYPE_FREE(indexMPI1,ierr)
-                        CALL MPI_TYPE_FREE(indexMPI4,ierr)
                         ENDIF
 
-                        CALL MPI_TYPE_FREE(indexMPI5,ierr)
 #ifdef MPIDEBUG
                         print *,iproc,': sent neighbour data to ',j
 #endif
@@ -465,71 +420,28 @@ c--Need to store this particles beyond the end of the tree nodes, hence the
 c     +ntot+2 in the line below (this only applies to xyzmh, not the other
 c     arrays such as vxyzu).
 c
-               CALL MPI_RECV(xyzmh(1,istart+ntot+2), idim,i5REAL8,
-     &              MPI_ANY_SOURCE, 20, MPI_COMM_WORLD, istatus, ierr)
-               CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
+               CALL MPI_RECV(divv(istart), idim, MPI_REAL4,
+     &              i, 23, MPI_COMM_WORLD, istatus, ierr)
+c     &              MPI_ANY_SOURCE, 23, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
                iprocrec = istatus(MPI_SOURCE)
 
 #ifdef MPIDEBUG
-      IF (iproc.EQ.1 .AND. iprocrec.EQ.0)
-     &     print *,iproc,':E',xyzmh(1,istart+ntot+2+625-1),
-     &     xyzmh(2,istart+ntot+2+625-1),xyzmh(3,istart+ntot+2+625-1),
-     &     istart+ntot+2+625-1
-
-      IF (iproc.EQ.2 .AND. iprocrec.EQ.3)
-     &     print *,iproc,':E',xyzmh(1,istart+ntot+2+2054-1),
-     &     xyzmh(2,istart+ntot+2+2054-1),xyzmh(3,istart+ntot+2+2054-1),
-     &     istart+ntot+2+2054-1
-
-               print *,iproc,': got xyzmh from ',iprocrec,inumber,
-     &     ' to be put into ',istart
+                  print *,iproc,': got divv from ',iprocrec,inumber
 #endif
 
                IF (inumber.GT.0) THEN
-                  CALL MPI_RECV(vxyzu(1,istart),inumber,i4REAL8,
-     &                 iprocrec, 21, MPI_COMM_WORLD, istatus, ierr)
-                  CALL MPI_GET_COUNT(istatus, i4REAL8, icheck, ierr)
+                  CALL MPI_RECV(iunique(istart), inumber, MPI_INTEGER8,
+     &                 iprocrec,200, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_INTEGER8,icheck,ierr)
                   IF (icheck.NE.inumber) THEN
-                     WRITE (*,*) 'ERROR - icheck.NE.inumber 1 ',
+                     WRITE (*,*) 'ERROR - icheck.NE.inumber 200 ',
      &                    iproc
                      CALL quit
                   ENDIF
 
-                  CALL MPI_RECV(dumrho(istart),inumber,MPI_REAL4,
-     &                 iprocrec, 22, MPI_COMM_WORLD, istatus, ierr)
-                  CALL MPI_GET_COUNT(istatus, MPI_REAL4, icheck, ierr)
-                  IF (icheck.NE.inumber) THEN
-                     WRITE (*,*) 'ERROR - icheck.NE.inumber 2 ',
-     &                    iproc
-                     CALL quit
-                  ENDIF
-#ifdef MPIDEBUG
-                  IF (iproc.EQ.1 .and. iprocrec.EQ.0)
-     &                 print *,iproc,': ??? ',iprocrec,
-     &                 dumrho(istart+1300-1),xyzmh(1,istart+ntot+2+
-     &                 1300-1),xyzmh(2,istart+ntot+2+
-     &                 1300-1),xyzmh(3,istart+ntot+2+
-     &                 1300-1),istart+1300-1
-c                  do ll = 1, 10
-c                     print *,'R   ',dumrho(istart+ll-1)
-c                  end do
-c                  do ll = 10, 1, -1
-c                     print *,'R   ',dumrho(istart+inumber-ll)
-c                  end do
-                  print *,iproc,': got rho from ',iprocrec,icheck
-#endif
-
-                  CALL MPI_RECV(divv(istart),inumber,MPI_REAL4,iprocrec,
-     &                 23, MPI_COMM_WORLD, istatus, ierr)
-                  CALL MPI_GET_COUNT(istatus, MPI_REAL4, icheck, ierr)
-                  IF (icheck.NE.inumber) THEN
-                     WRITE (*,*) 'ERROR - icheck.NE.inumber 3 ',
-     &                    iproc
-                     CALL quit
-                  ENDIF
-#ifdef MPIDEBUG
-                  print *,iproc,': got divv from ',iprocrec,icheck
-#endif
+c                  print *,iproc,': Recved ',(iunique(ijk),ijk=istart,
+c     &                 istart+inumber)
 
                   CALL MPI_RECV(pr(istart), inumber, MPI_REAL4,iprocrec,
      &                 24, MPI_COMM_WORLD, istatus, ierr)
@@ -633,17 +545,27 @@ c     that forces and poten are zeroed before call of forcei.
 c
       DO j = 1, inumbertotal
          jpart = ntot + j
+         iorig(jpart) = jpart
+
          llist(nlst_end + j) = jpart
          iphase(jpart) = 0
 
-         CALL treef(jpart,npart,ntot,xyzmh,acc,0,fsx,fsy,fsz,epot)
+ccc         CALL treef(jpart,npart,ntot,xyzmh,acc,0,fsx,fsy,fsz,epot)
 
          DO k = 1, 3
             dvxyzu(k,jpart) = 0.0
          END DO
          poten(jpart) = 0.0
+         dq(jpart) = 0.0
+         IF (imhd.EQ.idim) THEN
+            DO k = 1, 3
+               dBevolxyz(3,jpart) = 0.
+            END DO
+         ENDIF
       END DO
       nlst_tot = nlst_end + inumbertotal
+
+      print *,nlst_tot,nlst_end,inumbertotal
 
 #ifdef MPIDEBUG
       print *,iproc,': Received all particles with remote neighbours'
@@ -654,6 +576,41 @@ c
 #else
       nlst_tot = nlst_end
 #endif
+      IF (nlst_tot.NE.ncompact) THEN
+         WRITE (*,*) 'ERROR - ncompact.NE.nlst_tot ',ncompact,nlst_tot,
+     &        nlst_end
+         CALL quit
+      ENDIF
+c     
+c--Compute implicit radiative transfer
+c     
+      IF (itiming) CALL getused(tass1)
+
+      IF(encal.EQ.'r') THEN
+         WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
+         WRITE(*,*) 'radiation/gradh not yet implemented'
+         STOP
+
+c        WRITE (*,*) 'nlstall is ',nlstall
+
+c        CALL ASS(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
+c     &           xyzmh,vxyzu,ekcle,dumrho,dedxyz,alphaMM)
+
+cC$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+cC$OMP& shared(nlstall,vxyzu,dumrho,pr,vsound,llist,iphase,ekcle)
+cC$OMP& private(i,ipart)
+c            DO i = 1, nlstall
+c               ipart = llist(i)
+c               IF (iphase(ipart).EQ.0) 
+c     &              CALL eospg(ipart,vxyzu,dumrho,pr,vsound,ekcle)
+c            END DO
+cC$OMP END PARALLEL DO
+      END IF
+
+      IF (itiming) THEN
+         CALL getused(tass2)
+         tass = tass + (tass2 - tass1)
+      ENDIF
 c
 c--Compute forces on EACH particle
 c
@@ -663,7 +620,20 @@ c
       print *,iproc,': calling forcei'
 #endif
 
-      CALL forcei(nlst_in,nlst_tot,llist,dt,itime,npart,ntot,
+
+c      DO i = 1, nlst_tot
+c         ipart = llist(i)
+c         DO k = 1, 3
+c            dvxyzu(k,ipart) = 0.0
+c         END DO
+c      END DO
+
+
+
+c      CALL forcei(nlst_in,nlst_tot,llist,dt,itime,npart,ntot,
+c     &     xyzmh,vxyzu,dvxyzu,dha,dumrho,pr,vsound,alphaMM,ekcle,
+c     &     dedxyz,Bxyz,dBevolxyz,Bevolxyz)
+      CALL forcei(nlst_in,nlst_end,nlst_tot,llist,dt,itime,npart,ntot,
      &     xyzmh,vxyzu,dvxyzu,dha,dumrho,pr,vsound,alphaMM,ekcle,
      &     dedxyz,Bxyz,dBevolxyz,Bevolxyz)
 
@@ -720,8 +690,17 @@ c               iprocrec = istatus(MPI_SOURCE)
                DO l = 1, nneighsentback(iprocrec+1)
                   ipos = llistsentback(l,iprocrec+1)+1
                   jpos = istartrec + l - 1
+c                  IF (ipos.EQ.1164) THEN
+c                     print *,iproc,ipos,jpos,' extra ',dvxyzu(1,ipos),
+c     &                    dvxyzu(1,jpos)
+c                  ENDIF
                   DO k = 1, 4
                      dvxyzu(k,ipos) = dvxyzu(k,ipos) + dvxyzu(k,jpos)
+                     IF (iunique(iorig(ipos)).EQ.2757) THEN
+                        print *,iproc,': FOR ',k,dvxyzu(k,ipos),
+     &                       dvxyzu(k,jpos),iprocrec,
+     &                       ipos,jpos
+                     ENDIF
                   END DO
                END DO
 
@@ -942,6 +921,15 @@ c         END DO
 
 c      STOP
 
-
+                   DO ipos = 1, npart
+                   IF (iunique(iorig(ipos)).EQ.2757) THEN
+                      DO k = 1,4
+                      print *,iproc,': FOR-FINAL ',k,dvxyzu(k,ipos)
+                      END DO
+                   ENDIF             
+                   END DO
+                   
+c                   CALL quit
+                   
       RETURN
       END

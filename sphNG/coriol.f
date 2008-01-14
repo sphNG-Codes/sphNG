@@ -1,4 +1,4 @@
-      SUBROUTINE coriol(ipart, ntot, ti, xyzmh, vxyzu, fxyzu)
+      SUBROUTINE coriol(ipart, ntot, ti, xyzmh, vxyzu, fx, fy, fz)
 c************************************************************
 c                                                           *
 c  This routine adds centrifugal and coriolis forces        *
@@ -7,7 +7,7 @@ c************************************************************
 
       INCLUDE 'idim'
 
-      DIMENSION xyzmh(5,idim), vxyzu(4,idim), fxyzu(4,idim)
+      DIMENSION xyzmh(5,idim), vxyzu(4,idim)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/rotat'
@@ -40,12 +40,12 @@ c
          fcentx = a3*omeg2*xyzmh(1,ipart)
          fcenty = a3*omeg2*xyzmh(2,ipart)
 
-         fxyzu(1,ipart) = fxyzu(1,ipart) + fcorcx + fcentx
-         fxyzu(2,ipart) = fxyzu(2,ipart) + fcorcy + fcenty
+         fx = fx + fcorcx + fcentx
+         fy = fy + fcorcy + fcenty
 
          IF (idebug(1:6).EQ.'coriol') THEN
-            WRITE (iprint, 99002) fxyzu(1,ipart)
-            WRITE (iprint, 99002) fxyzu(2,ipart)
+            WRITE (iprint, 99002) fx
+            WRITE (iprint, 99002) fy
          ENDIF
 
       ELSEIF (ifcor.EQ.2) THEN
@@ -62,12 +62,12 @@ c
          fcenty = a3*omeg2*xyzmh(2,ipart)
          fcentz = a3*omeg2*xyzmh(3,ipart)
 
-         fxyzu(2,ipart) = fxyzu(2,ipart) + fcorcy + fcenty
-         fxyzu(3,ipart) = fxyzu(3,ipart) + fcorcz + fcentz
+         fy = fy + fcorcy + fcenty
+         fz = fz + fcorcz + fcentz
 
          IF (idebug(1:6).EQ.'coriol') THEN
-            WRITE (iprint, 99002) fxyzu(2,ipart)
-            WRITE (iprint, 99002) fxyzu(3,ipart)
+            WRITE (iprint, 99002) fy
+            WRITE (iprint, 99002) fz
          ENDIF
 
       ENDIF

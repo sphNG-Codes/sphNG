@@ -28,6 +28,7 @@ c************************************************************
       INCLUDE 'COMMONS/kerne'
       INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/sort'
+      INCLUDE 'COMMONS/current'
 
       INCLUDE 'COMMONS/gravi'
       INCLUDE 'COMMONS/call'
@@ -202,7 +203,17 @@ c--This line was altered for individual timesteps
 c
                hn = xyzmh(5,n)
                IF (nlmax.EQ.1) THEN
-                  rcut2 = (MAX(hm,hn)*radkernel)**2
+c
+c--For gradh code, only get neighbours that are within hm and NON-ACTIVE
+c     particles within hn.  Forces are then applied so that m applies it's
+c     contribution to m and n if n is active, but if n is not active it's
+c     contribution is added when m is being done.
+c
+                  IF (iscurrent(n)) THEN
+                     rcut2 = (hm*radkernel)**2
+                  ELSE
+                     rcut2 = (MAX(hm,hn)*radkernel)**2
+                  ENDIF
                ELSE
                   rcut2 = ((hm + hn)*radkernel/2.0)**2
                ENDIF

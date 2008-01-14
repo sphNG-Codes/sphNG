@@ -1,4 +1,4 @@
-      SUBROUTINE externf(ipart,ntot,ti,xyzmh,fxyzu,rho,iexf)
+      SUBROUTINE externf(ipart,ntot,ti,xyzmh,fx,fy,fz,rho,iexf)
 c************************************************************
 c                                                           *
 c  This subroutine computes the effect of an external       *
@@ -19,7 +19,7 @@ c************************************************************
 
       INCLUDE 'idim'
 
-      DIMENSION xyzmh(5,idim), fxyzu(4,idim)
+      DIMENSION xyzmh(5,idim)
       REAL rhoi,fextx,fexty,fextz, fbound, rxyplane, drxyplane
       REAL*4 rho(idim)
 
@@ -52,7 +52,7 @@ c
       IF (iexf.EQ.1) THEN
          grav = 1.0E4*utime**2/udist
 
-         fxyzu(3,ipart) = fxyzu(3,ipart) - grav
+         fz = fz - grav
 c
 c--Accretion disk
 c
@@ -78,11 +78,11 @@ c
          dunix = xyzmh(1,ipart)/d
          duniy = xyzmh(2,ipart)/d
 
-         fxyzu(1,ipart) = fxyzu(1,ipart) - 0.9999*runix/r2 + 
+         fx = fx - 0.9999*runix/r2 + 
      &        t1*h2*dunix/d3
-         fxyzu(2,ipart) = fxyzu(2,ipart) - 0.9999*runiy/r2 + 
+         fy = fy - 0.9999*runiy/r2 + 
      &        t1*h2*duniy/d3
-         fxyzu(3,ipart) = fxyzu(3,ipart) - 0.9999*runiz/r2
+         fz = fz - 0.9999*runiz/r2
 c
 c--Rotating cylinders
 c
@@ -98,8 +98,8 @@ c
          dunix = xyzmh(1,ipart)/d
          duniy = xyzmh(2,ipart)/d
 
-         fxyzu(1,ipart) = fxyzu(1,ipart) + h2*dunix/d3
-         fxyzu(2,ipart) = fxyzu(2,ipart) + h2*duniy/d3
+         fx = fx + h2*dunix/d3
+         fy = fy + h2*duniy/d3
 c
 c--Central point mass
 c
@@ -113,9 +113,9 @@ c
          runiy = yi/d
          runiz = zi/d
 
-         fxyzu(1,ipart) = fxyzu(1,ipart) - xmass*runix/d2
-         fxyzu(2,ipart) = fxyzu(2,ipart) - xmass*runiy/d2
-         fxyzu(3,ipart) = fxyzu(3,ipart) - xmass*runiz/d2
+         fx = fx - xmass*runix/d2
+         fy = fy - xmass*runiy/d2
+         fz = fz - xmass*runiz/d2
          poten(ipart) = poten(ipart) - xmass/d
 c
 c--Distant point mass
@@ -131,9 +131,9 @@ c
          runiy = yi/d
          runiz = zi/d
 
-         fxyzu(1,ipart) = fxyzu(1,ipart) - xmass*runix/d2
-         fxyzu(2,ipart) = fxyzu(2,ipart) - xmass*runiy/d2
-         fxyzu(3,ipart) = fxyzu(3,ipart) - xmass*runiz/d2
+         fx = fx - xmass*runix/d2
+         fy = fy - xmass*runiy/d2
+         fz = fz - xmass*runiz/d2
          poten(ipart) = poten(ipart) - xmass/d
 c
 c--Central point mass and planet
@@ -148,9 +148,9 @@ c
          runiy = yi/d
          runiz = zi/d
 
-         fxyzu(1,ipart) = fxyzu(1,ipart) - xmass*runix/d2
-         fxyzu(2,ipart) = fxyzu(2,ipart) - xmass*runiy/d2
-         fxyzu(3,ipart) = fxyzu(3,ipart) - xmass*runiz/d2
+         fx = fx - xmass*runix/d2
+         fy = fy - xmass*runiy/d2
+         fz = fz - xmass*runiz/d2
          poten(ipart) = poten(ipart) - xmass/d
 c
 c--Assumes planet at location (1,0,0) in code units
@@ -168,9 +168,9 @@ c
          runiy = yi/d
          runiz = zi/d
 
-         fxyzu(1,ipart) = fxyzu(1,ipart) - planetmass*runix/d2
-         fxyzu(2,ipart) = fxyzu(2,ipart) - planetmass*runiy/d2
-         fxyzu(3,ipart) = fxyzu(3,ipart) - planetmass*runiz/d2
+         fx = fx - planetmass*runix/d2
+         fy = fy - planetmass*runiy/d2
+         fz = fz - planetmass*runiz/d2
          poten(ipart) = poten(ipart) - planetmass/d
       ELSEIF (iexf.EQ.8) THEN
          xi = xyzmh(1,ipart)
@@ -183,13 +183,13 @@ c
 
 c contribution of logarithmic potential and halo
 
-         fxyzu(1,ipart)=fxyzu(1,ipart)-2.*Co*xi/(Rc**2.+d2+(zi/zq)**2.)
+         fx=fx-2.*Co*xi/(Rc**2.+d2+(zi/zq)**2.)
      &          -p1*(rc2/r)**2.*(r-rc2*atan(r/rc2))*xi/r
 
-         fxyzu(2,ipart)=fxyzu(2,ipart)-2.*Co*yi/(Rc**2.+d2+(zi/zq)**2.)
+         fy=fy-2.*Co*yi/(Rc**2.+d2+(zi/zq)**2.)
      &          -p1*(rc2/r)**2.*(r-rc2*atan(r/rc2))*yi/r
 
-         fxyzu(3,ipart)=fxyzu(3,ipart)-2.*Co*zi/((Rc**2.+d2+(zi/zq)**2.)
+         fz=fz-2.*Co*zi/((Rc**2.+d2+(zi/zq)**2.)
      &             *zq**2.)
 
 c spiral perturbation
@@ -197,13 +197,13 @@ c spiral perturbation
          call potential(xi,yi,zi,ti,potent1)
 
          call potential(xi+dhi,yi,zi,ti,potent2)
-         fxyzu(1,ipart) = fxyzu(1,ipart) - (potent2-potent1)/dhi
+         fx = fx - (potent2-potent1)/dhi
 
          call potential(xi,yi+dhi,zi,ti,potent2)
-         fxyzu(2,ipart) = fxyzu(2,ipart) - (potent2-potent1)/dhi
+         fy = fy - (potent2-potent1)/dhi
 
          call potential(xi,yi,zi+dhi,ti,potent2)
-         fxyzu(3,ipart) = fxyzu(3,ipart) - (potent2-potent1)/dhi
+         fz = fz - (potent2-potent1)/dhi
       ELSEIF (iexf.EQ.9) THEN
 c
 c--external force due to an assumed external B field
@@ -215,9 +215,9 @@ c
          hi = xyzmh(5,ipart)
          rhoi = rho(ipart)
          CALL fexternalB(xi,yi,zi,hi,rhoi,fextx,fexty,fextz)
-         fxyzu(1,ipart) = fxyzu(1,ipart) + fextx
-         fxyzu(2,ipart) = fxyzu(2,ipart) + fexty
-         fxyzu(3,ipart) = fxyzu(3,ipart) + fextz
+         fx = fx + fextx
+         fy = fy + fexty
+         fz = fz + fextz
 c
 c External force to re-inject particles that try to escape from the cylinder
 c considered as a solid boundary
@@ -244,12 +244,12 @@ c     &    radius,hzero
             drxyplane = 0.
          ENDIF
 c get force in cartesian co-ordinates
-         fru = sqrt(fxyzu(1,ipart)*fxyzu(1,ipart)+
-     &             fxyzu(2,ipart)*fxyzu(2,ipart))
+         fru = sqrt(fx*fx+
+     &             fy*fy)
 c         if (rxyplane.ge.0.9) print *, frcyl
 c         if (abs(frcyl).gt.0.) print *,frcyl/fru,frcyl,radius-rxyplane
-         fxyzu(1,ipart) = fxyzu(1,ipart)+frcyl*xi*drxyplane
-         fxyzu(2,ipart) = fxyzu(2,ipart)+frcyl*yi*drxyplane  
+         fx = fx+frcyl*xi*drxyplane
+         fy = fy+frcyl*yi*drxyplane  
          
       ENDIF
 

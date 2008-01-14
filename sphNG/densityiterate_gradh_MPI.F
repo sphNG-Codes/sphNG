@@ -1,5 +1,5 @@
       SUBROUTINE densityiterate_gradh (dt,npart,ntot,xyzmh,vxyzu,dvxyzu,
-     &            nlst_in,nlst_end,list,itime,ekcle,Bevol,Bxyz)
+     &            nlst_in,nlst_end,listp,itime,ekcle,Bevol,Bxyz,dBxyz)
 c************************************************************
 c                                                           *
 c  Subroutine to compute the density and smoothing lengths  *
@@ -27,9 +27,9 @@ c************************************************************
 #endif
 
       DIMENSION xyzmh(5,mmax), vxyzu(4,idim), dvxyzu(4,idim)
-      DIMENSION list(idim)
+      DIMENSION listp(idim)
       DIMENSION ekcle(5,iradtrans)
-      DIMENSION Bevol(3,imhd),Bxyz(3,imhd)
+      DIMENSION Bevol(3,imhd),Bxyz(3,imhd),dBxyz(3,imhd)
 
 c--Neides=INT(4./3.*pi*8.*hfact**3))
       PARAMETER (hfact = 1.2)
@@ -74,7 +74,12 @@ c--this weight is equivalent to m/(rho*h^3) in the grad h version
       INCLUDE 'COMMONS/outneigh'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/ener1'
+c--treecom_P is included to use listparents to make list of inactive particles
+c     that are neighbours of active particles for updating their densities etc
+      INCLUDE 'COMMONS/treecom_P'
 c      INCLUDE 'COMMONS/vsmooth'
+      INCLUDE 'COMMONS/compact'
+      INCLUDE 'COMMONS/updated'
 
       LOGICAL*1 Bisection
       INTEGER*1 isucceed(idim)
@@ -93,9 +98,9 @@ c      INCLUDE 'COMMONS/vsmooth'
 c
 c--Initialise
 c
-      iproblem = 0
+      iproblem = itime
 c      IF (itime.EQ.000)
-c     &     print *,iproc,': Entered densityiterate ',itime
+          print *,iproc,': Entered densityiterate ',itime
 
       uradconst = radconst/uergcc
       third = 1./3.
@@ -109,6 +114,10 @@ c     &     print *,iproc,': Entered densityiterate ',itime
       nwarnroundoff = 0
       stressmax = 0.
       nbisection = 0
+
+      ncompact = 0
+      icompact = 0
+      nlistupdated = 0
 c
 c--For constant pressure boundaries, use a minimum density
 c  equal to the external density
@@ -130,10 +139,10 @@ c     their correct smoothing length and density set.
 c
       nlstdo = 0
       DO n = nlst_in, nlst_end
-         ipart = list(n)
+         ipart = listp(n)
          IF (iphase(ipart).GE.0) THEN
             nlstdo = nlstdo + 1
-            ldolist(nlstdo) = list(n)
+            ldolist(nlstdo) = listp(n)
          ENDIF
       END DO
 
@@ -141,7 +150,7 @@ c
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none) 
 C$OMP& shared(nlstdo,ldolist,isucceed,xyzmh,hi_old,it1,isteps,imaxstep)
-C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten)
+C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend)
 #endif
@@ -180,6 +189,12 @@ c
             dvxyzu(k,ipart) = 0.
          END DO
          poten(ipart) = 0.
+         dq(ipart) = 0.
+         IF (imhd.EQ.idim) THEN
+            DO k = 1, 3
+               dBxyz(3,ipart) = 0.
+            END DO
+         ENDIF
       END DO
 C$OMP END PARALLEL DO
 c
@@ -200,10 +215,10 @@ c
 
       DO iteration = 1, maxiterations
 
-#ifdef MPIDEBUG
-c      IF (itime.EQ.000)
-              print *,'DEN_ITERATE: iteration ',iteration
-#endif
+c#ifdef MPIDEBUG
+      IF (itime.EQ.2097152)
+     &         print *,'DEN_ITERATE: iteration ',iteration
+c#endif
 
 #ifdef MPI
 c
@@ -274,23 +289,24 @@ c     &           (iproc.EQ.1))
                WRITE (iprint, *) 'ERROR - igotnumber.NE.inumber: iphase'
                CALL quit
 	    ENDIF
-#ifdef MPIDEBUG
-c      IF (itime.EQ.000)
-                 print *,iproc,': Received iphase ',inumber
-#endif
+c#ifdef MPIDEBUG
+      IF (itime.EQ.2097152)
+     &            print *,iproc,': Received iphase ',inumber
+c#endif
 c
 c--This calculates the contributions to rhoi, gradhi, numneighreal, and 
 c     gravity forces from non-neighbours
 c
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
-c      IF (itime.EQ.000)
-c     &      print *,iproc,': DOING REC'
+      IF (itime.EQ.2097152)
+     &     print *,iproc,': DOING REC'
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
             inumreturn = 0
             nptmasslocal = nptmass
             DO i = 1, inumber
-c               IF (nptmasstot.GE.1 .AND. iproc.EQ.1) print *,iproc,
+c               IF (itime.EQ.2097152 .AND. 
+c     &              nptmasstot.GE.1 .AND. iproc.LT.4) print *,iproc,
 c     &              ': DOING inumber ',i,ntot,iphase(i+ntot)
                ipart = i + ntot
                IF (ipart.GT.idim) THEN
@@ -341,16 +357,16 @@ c
             ntotplusinumber = ntot + inumber
 
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
-c      IF (itime.EQ.000)
-c     &      print *,iproc,': DOING REC2'
+c      IF (itime.EQ.2097152)
+c     &     print *,iproc,': DOING REC2'
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
-#ifdef MPIDEBUG
+c#ifdef MPIDEBUG
 c            IF (nptmasstot.GE.1) 
-c      IF (itime.EQ.000)
-         print *,iproc,': number found neigh = ',inumreturn,numproc,
+      IF (itime.EQ.2097152)
+     &    print *,iproc,': number found neigh = ',inumreturn,numproc,
      &           inumber
-#endif
+c#endif
 
             IF (iteration.EQ.1) THEN
 c
@@ -498,6 +514,12 @@ c     &              nneighsentback(iahead+1).EQ.0) THEN
 #endif
             DO k = 1, inumberneigh
                ipos = lsendlist(llistrec(k + inumreturn)) + 1
+
+c               IF (iunique(iorig(ipos)).EQ.2757) THEN
+c                  print *,'Got ',nneigh(ipos),nneighrec(k),k,iteration,
+c     &                 iahead
+c               ENDIF
+
                rho(ipos) = rho(ipos) + rhorec(k)
                dumrho(ipos) = dumrho(ipos) + dumrhorec(k)
                nneigh(ipos) = nneigh(ipos) + nneighrec(k)
@@ -634,7 +656,7 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
          numsucceeded = 0
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(nlst_in,nlst_end,npart,ntot,list,divv,curlv,gradhs)
+C$OMP& shared(nlst_in,nlst_end,npart,ntot,listp,divv,curlv,gradhs)
 C$OMP& shared(hmax,xyzmh,vxyzu,pr,vsound,rho,ekcle,rhomin)
 C$OMP& shared(nneigh,neighb,neighover,selfnormkernel)
 C$OMP& shared(cnormk,radkernel,dvtable,ddvtable,wij,grwij)
@@ -816,19 +838,42 @@ c--Calculate other quantities using the interaction list from local process
 c
                CALL divvcurlvgrad(ipart,npart,ntot,xyzmh,vxyzu,Bevol,
      &              nneighlocal,gradmhd)
-
 c
-c--Find particle with highest density outside radcrit of point mass
+c--Set up compact list of neighbours within h_i and non-active neighbours
+c     within h_j
 c
-c               IF (iptmass.NE.0) THEN
-c                  DO l = 1, nptmass
-c                     iptcur = listpm(l)
-c                     IF ( (xi - xyzmh(1,iptcur))**2 + 
-c     &                    (yi - xyzmh(2,iptcur))**2 + 
-c     &               (zi - xyzmh(3,iptcur))**2 .LT.radcrit2) GOTO 50
-c                  END DO
-c                  rhonext = MAX(rhonext, rho(ipart))
-c               ENDIF
+C$OMP CRITICAL (listcompact)
+               ncompact = ncompact + 1
+               ncompacthere = ncompact
+               icompacthere = icompact
+               icompact = icompact + nneighlocal
+C$OMP END CRITICAL (listcompact)
+               IF (icompacthere+nneighlocal.GT.icompactmax) THEN
+                  WRITE (*,*) 'ERROR - compact not large enough DI ',
+     &                 icompacthere, nneighlocal, icompactmax
+                  CALL quit
+               ENDIF
+               ivar(1,ncompacthere) = nneighlocal
+               ivar(2,ncompacthere) = icompacthere
+               ivar(3,ncompacthere) = ipart
+               DO k = 1, nneighlocal
+                  j = neighlist(k)
+                  ijvar(icompacthere + k) = j
+                  IF (.NOT.iscurrent(j) .AND. .NOT.iupdated(j) 
+     &                 .AND. j.LE.npart) THEN
+                     iupdated(j) = .TRUE.
+C$OMP FLUSH(iupdated)
+C$OMP CRITICAL (listupdated)
+                     nlistupdated = nlistupdated + 1
+                     numberupdated = nlistupdated
+C$OMP END CRITICAL (listupdated)
+                     IF (numberupdated.GT.idim) THEN
+                        WRITE (iprint,*) 'ERROR - numberupdated.GT.idim'
+                        CALL quit
+                     ENDIF
+                     listparents(numberupdated) = j
+                  ENDIF
+               END DO
 
             ENDIF
          ENDIF
@@ -840,6 +885,20 @@ c
          isucceed(ipart) = 1
          numsucceeded = numsucceeded + 1
          poten(ipart) = dvxyzu(4,ipart)
+c
+c--Set up compact list of neighbours within h_i and non-active neighbours
+c     within h_j
+c
+C$OMP CRITICAL (listcompact)
+         ncompact = ncompact + 1
+         ncompacthere = ncompact
+C$OMP END CRITICAL (listcompact)
+         ivar(1,ncompacthere) = 0
+         ivar(2,ncompacthere) = 1
+         ivar(3,ncompacthere) = ipart
+c
+c--End of sink particles
+c
          ENDIF
 
 #ifdef MPI
@@ -1018,7 +1077,7 @@ c     &           gradhs(1,ipart),gradhs(2,ipart),
  778  CONTINUE
 
 
-
+      ncompactlocal = ncompact
 c
 c--For MPI job, need to add contributions to other quantities (such as divv,
 c     curlv, etc) from other MPI processes
@@ -1074,6 +1133,12 @@ c                       1,llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
      &                  llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI5,ierr)
 
+c                        IF (iproc.EQ.0) THEN
+c                           print *,' Sent back ',llistsentback(1,j+1),
+c     &                       iunique(iorig(llistsentback(1,j+1)+1)),
+c     &                          i,j
+c                        ENDIF
+
                         CALL MPI_SEND(xyzmh,1,indexMPI5,j,40,
      &                       MPI_COMM_WORLD, ierr)
 
@@ -1096,6 +1161,19 @@ c     &                  1,llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
                            print *,iproc,' sent vxyzu'
 #endif
                            CALL MPI_TYPE_FREE(indexMPI4,ierr)
+
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),MPI_REAL4,indexMPI1,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),MPI_REAL4,indexMPI1,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI1,ierr)
+
+                           CALL MPI_SEND(dumrho,1,indexMPI1,j,42,
+     &                          MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                           print *,iproc,' sent dumrho'
+#endif
+                           CALL MPI_TYPE_FREE(indexMPI1,ierr)
 
                            IF (imhd.EQ.idim) THEN
 c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
@@ -1136,7 +1214,8 @@ c      IF (itime.EQ.000)
 #endif
                istart = ntot + inumbertotal + 1
                CALL MPI_RECV(xyzmh(1,istart+ntot+2), idim,i5REAL8,
-     &              MPI_ANY_SOURCE, 40, MPI_COMM_WORLD, istatus, ierr)
+     &              i, 40, MPI_COMM_WORLD, istatus, ierr)
+c     &              MPI_ANY_SOURCE, 40, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
                iprocrec = istatus(MPI_SOURCE)
 
@@ -1156,6 +1235,15 @@ c      ENDIF
                   CALL MPI_GET_COUNT(istatus, i4REAL8, icheck, ierr)
                   IF (icheck.NE.inumber) THEN
                      WRITE (*,*) 'ERROR - icheck.NE.inumber 1 ',
+     &                    iproc
+                     CALL quit
+                  ENDIF
+
+                  CALL MPI_RECV(dumrho(istart),inumber,MPI_REAL4,
+     &                 iprocrec, 42, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL4, icheck, ierr)
+                  IF (icheck.NE.inumber) THEN
+                     WRITE (*,*) 'ERROR - icheck.NE.inumber 2 ',
      &                    iproc
                      CALL quit
                   ENDIF
@@ -1207,18 +1295,55 @@ c
 c--Calculate ONLY neighbours lists for remote particles, then contributions
 c     to divv, curlv, and Euler potential alpha and beta, etc
 c
-      DO j = 1, inumbertotal
+      DO i = 1, inumbertotal
 
-         jpart = ntot + j
-         list(nlst_end + j) = jpart
-         iphase(jpart) = 0
+         ipart = ntot + i
+         listp(nlst_end + i) = jpart
+         iphase(ipart) = 0
+         hasghost(ipart) = .FALSE.
 
-         CALL treef(jpart,npart,ntot,xyzmh,acc,0,fsx,fsy,fsz,epot)
+         CALL treef(ipart,npart,ntot,xyzmh,acc,0,fsx,fsy,fsz,epot)
 
-         numneighlocal = nneigh(jpart)
+         nneighlocal = nneigh(ipart)
 
-         CALL divvcurlvgrad(jpart,npart,ntot,xyzmh,vxyzu,Bevol,
-     &        numneighlocal,gradmhd)
+         CALL divvcurlvgrad(ipart,npart,ntot,xyzmh,vxyzu,Bevol,
+     &        nneighlocal,gradmhd)
+c
+c--Set up compact list of neighbours within h_i and non-active neighbours
+c     within h_j
+c
+ccC$OMP CRITICAL (listcompact2)
+         ncompact = ncompact + 1
+         ncompacthere = ncompact
+         icompacthere = icompact
+         icompact = icompact + nneighlocal
+ccC$OMP END CRITICAL (listcompact2)
+         IF (icompacthere+nneighlocal.GT.icompactmax) THEN
+            WRITE (*,*) 'ERROR - compact not large enough DI ',
+     &           icompacthere, nneighlocal, icompactmax
+            CALL quit
+         ENDIF
+         ivar(1,ncompacthere) = nneighlocal
+         ivar(2,ncompacthere) = icompacthere
+         ivar(3,ncompacthere) = ipart
+         DO k = 1, nneighlocal
+            jpart = neighlist(k)
+            ijvar(icompacthere + k) = jpart
+            IF (.NOT.iscurrent(jpart) .AND. .NOT.iupdated(jpart) 
+     &           .AND. jpart.LE.npart) THEN
+               iupdated(jpart) = .TRUE.
+ccC$OMP FLUSH(iupdated)
+ccC$OMP CRITICAL (listupdated)
+               nlistupdated = nlistupdated + 1
+               numberupdated = nlistupdated
+ccC$OMP END CRITICAL (listupdated)
+               IF (numberupdated.GT.idim) THEN
+                  WRITE (iprint,*) 'ERROR - numberupdated.GT.idim'
+                  CALL quit
+               ENDIF
+               listparents(numberupdated) = jpart
+            ENDIF
+         END DO
       END DO
 
 #ifdef MPIDEBUG
@@ -1428,7 +1553,7 @@ c      print *,' '
 #endif
 
       DO j = 1, nlst_end
-         ipart = list(j)
+         ipart = listp(j)
          IF (iphase(ipart).EQ.0) THEN
 c
 c--Need to complete calculations of divv, curlv, and gradhs(2,*)
@@ -1546,33 +1671,46 @@ c               print*,ipart,'vsmooth = ',vsmooth(:,ipart)
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(npart,ntot,ireal,rho,dumrho,xyzmh,pr,vsound,divv,curlv)
-C$OMP& shared(vxyzu,gradhs,Bxyz,encal,ibound,ekcle,varmhd,list,Bevol)
-C$OMP& shared(nlst_in,nlst_end)
+C$OMP& shared(vxyzu,gradhs,Bxyz,encal,ibound,ekcle,varmhd,listp,Bevol)
+C$OMP& shared(nlst_in,nlst_end,listparents,nlistupdated,iupdated)
+C$OMP& shared(dt,itime)
 C$OMP& private(i,j,ipart)
+c
+c--Update density and quantities depending on density for inactive particles
+c     that are neighbours of active particles
+c
+C$OMP DO SCHEDULE (runtime)
+      DO i = 1, nlistupdated
+         j = listparents(i)
+         iupdated(j) = .FALSE.
+         CALL extrapolate(j,dt,itime,dumrho,vxyzu,pr,vsound,
+     &                    ekcle,Bxyz,Bevol)
+      END DO
+C$OMP END DO
 c
 c--Copy changed values onto ghost particles
 c
 C$OMP DO SCHEDULE (runtime)
-         DO i = npart + 1, ntot
-            j = ireal(i)
-            rho(i) = rho(j)
-            dumrho(i) = dumrho(j)
-            xyzmh(5,i) = xyzmh(5,j)
-            pr(i) = pr(j)
-            vsound(i) = vsound(j)
-            divv(i) = divv(j)
-            curlv(i) = curlv(j)
-            vxyzu(4,i) = vxyzu(4,j)
-            gradhs(1,i) = gradhs(1,j)
-            gradhs(2,i) = gradhs(2,j)
-            IF (imhd.EQ.idim .AND. varmhd.EQ.'eulr') THEN
-               Bxyz(1,i) = Bxyz(1,j)
-               Bxyz(2,i) = Bxyz(2,j)
-               Bxyz(3,i) = Bxyz(3,j)
-            ENDIF
-            IF (encal.EQ.'r' .AND. ibound.EQ.100) 
-     &           ekcle(1,i) = ekcle(1,j)
-         END DO
+      DO i = npart + 1, ntot
+         j = ireal(i)
+         rho(i) = rho(j)
+         dumrho(i) = dumrho(j)
+         xyzmh(5,i) = xyzmh(5,j)
+         pr(i) = pr(j)
+         vsound(i) = vsound(j)
+         divv(i) = divv(j)
+         curlv(i) = curlv(j)
+         vxyzu(4,i) = vxyzu(4,j)
+         gradhs(1,i) = gradhs(1,j)
+         gradhs(2,i) = gradhs(2,j)
+         IF (imhd.EQ.idim .AND. varmhd.EQ.'eulr') THEN
+            Bxyz(1,i) = Bxyz(1,j)
+            Bxyz(2,i) = Bxyz(2,j)
+            Bxyz(3,i) = Bxyz(3,j)
+         ENDIF
+         IF (encal.EQ.'r' .AND. ibound.EQ.100) 
+     &        ekcle(1,i) = ekcle(1,j)
+      END DO
 C$OMP END DO
 c
 c--Calculate B from the evolved magnetic field variable
@@ -1581,7 +1719,7 @@ c
          IF (varmhd.eq.'Bvol') THEN
 C$OMP DO SCHEDULE (runtime)
             DO i=nlst_in,nlst_end
-               ipart = list(i)
+               ipart = listp(i)
                Bxyz(1,ipart) = Bevol(1,ipart)
                Bxyz(2,ipart) = Bevol(2,ipart)
                Bxyz(3,ipart) = Bevol(3,ipart)
@@ -1597,7 +1735,7 @@ C$OMP END DO
          ELSEIF (varmhd.EQ.'Brho') THEN
 C$OMP DO SCHEDULE (runtime)
             DO i=nlst_in,nlst_end
-               ipart = list(i)
+               ipart = listp(i)
                Bxyz(1,ipart) = Bevol(1,ipart)*dumrho(ipart)
                Bxyz(2,ipart) = Bevol(2,ipart)*dumrho(ipart)
                Bxyz(3,ipart) = Bevol(3,ipart)*dumrho(ipart)
@@ -1644,7 +1782,7 @@ c--Find particle with highest density outside radcrit of point mass
 c
          irhonex = 0
          DO n = nlst_in, nlst_end
-            ipart = list(n)
+            ipart = listp(n)
             IF (rho(ipart).EQ.rhonext) THEN
                irhonex = ipart
             ENDIF
@@ -1780,7 +1918,12 @@ c
 c
 c--Expect to get particle which has neighbours on this process
 c
-               CALL MPI_RECV(xyzmh(1,2*ntot+3), 5, MPI_REAL8,
+               itest = 2*ntot+inumbertotal+3
+               IF (itest.GT.mmax) THEN
+                  WRITE (*,*) 'ERROR - itest.GT.mmax ',itest,mmax
+                  CALL quit
+               ENDIF
+               CALL MPI_RECV(xyzmh(1,itest), 5, MPI_REAL8,
      &              MPI_ANY_SOURCE, 60, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
                iprocrec = istatus(MPI_SOURCE)
@@ -1793,8 +1936,8 @@ c--Find neighbours of this particle and test to see whether they are all
 c	being evolved on the current step
 c
                nlist = 0
-               CALL getneigh(2*ntot+3,npart,xyzmh(5,2*ntot+3),xyzmh,
-     &           mmax,nlist,iptneigh,nearl)
+               CALL getneigh(itest,npart,xyzmh(5,itest),xyzmh,
+     &              mmax,nlist,iptneigh,nearl)
 
                iokay = 1
                DO n = 1, nlist
@@ -1834,8 +1977,9 @@ c
 
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 c      IF (itime.EQ.000)
-c     &      print *,iproc,': Exited densityiterate'
+           print *,iproc,': Exited densityiterate'
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+c      CALL quit
 
       RETURN
       END
@@ -1872,8 +2016,8 @@ c
 c
 c--Needed for MPI code
 c
-c      IF (nptmasstot.GE.1 .AND. iproc.EQ.1) print *,iproc,' Entered ',
-c     &     ' densitygrad ',ipart,npart,ntot
+      IF (iproblem.EQ.2097152) print *,iproc,' Entered ',
+     &     ' densitygrad ',ipart,npart,ntot,iphase(ipart),xyzmh(1,ipart)
       IF (ipart.GT.npart) THEN
          iparttree = ipart + ntot + 2
       ELSE
@@ -1999,6 +2143,9 @@ c=============================================================================
 c
 c--Subroutine for calculating other quantities such as divv, curlv, alpha,
 c     and beta for Euler potentials, etc
+c
+c--Also now updates the densities
+c
 c
       SUBROUTINE divvcurlvgrad(ipart,npart,ntot,xyzmh,vxyzu,Bevol,
      &     numneighi,gradmhd)

@@ -355,7 +355,9 @@ c--int*8
          IF (nums1(5).GE.1) THEN
             READ (idisk1, END=100) (iunique(i), i=icount+1,
      &           icount+nhydro)
-         ELSE
+         ENDIF
+         IF (nums1(5).LT.1 .OR. iunique(icount+1).EQ.0) THEN
+            print *,'Read iunique ',(iunique(i), i=icount+1,icount+10)
             DO i=icount+1,icount+nhydro
                iunique(i) = i
             END DO

@@ -382,12 +382,17 @@ c--skip unnecessary reals
          ENDIF
 c--real*4
          READ (idisk1, END=100) (rho(i), i=icount+1, icount+nhydro)
+         iread = 1
          IF (nlmax.EQ.1) THEN
-            iread = 3
-            READ (idisk1, END=100) (gradhs(1,i), i=icount+1, 
-     &           icount+nhydro)
-            READ (idisk1, END=100) (gradhs(2,i), i=icount+1, 
-     &           icount+nhydro)
+            IF (nums1(7).GE.2) THEN
+               READ (idisk1, END=100) (gradhs(1,i), i=icount+1, 
+     &              icount+nhydro)
+               iread = iread + 1
+            ELSEIF (nums1(7).GE.3) THEN
+               READ (idisk1, END=100) (gradhs(2,i), i=icount+1, 
+     &              icount+nhydro)
+               iread = iread + 1
+            ENDIF
          ELSE
             iread = 2
             READ (idisk1, END=100) (dgrav(i), i=icount+1, icount+nhydro)

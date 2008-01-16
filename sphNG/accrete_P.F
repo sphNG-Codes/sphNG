@@ -6,6 +6,7 @@ c                                                           *
 c************************************************************
 
       INCLUDE 'idim'
+      INCLUDE 'igrape'
 
 #ifdef MPI
       INCLUDE 'mpif.h'

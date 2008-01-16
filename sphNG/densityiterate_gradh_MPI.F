@@ -1298,7 +1298,7 @@ c
       DO i = 1, inumbertotal
 
          ipart = ntot + i
-         listp(nlst_end + i) = jpart
+         listp(nlst_end + i) = ipart
          iphase(ipart) = 0
          hasghost(ipart) = .FALSE.
 

@@ -42,6 +42,7 @@ c
       rcyl2 = rcyl * rcyl
       rmind2 = rmind * rmind
       zmax2 = zmax*zmax
+      rcylin = 0.
       npartold = max(npart,nptmass)
 
       IF ((idist.EQ.3).AND.(igeom.EQ.2)) THEN

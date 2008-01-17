@@ -41,7 +41,7 @@ c
 99001 FORMAT(' entry subroutine gforspt')
 
 C$OMP PARALLEL default(none)
-C$OMP& shared(nptmass,listpm,fxyzu,poten,xyzmh)
+C$OMP& shared(nptmass,listpm,fxyzu,poten,xyzmh,npart,ntot)
 C$OMP& shared(pmass,iptsoft,ptsoft,nlst,llist,iphase)
 C$OMP& private(i,ipart,iparttree,hipt,rrx,rry,rrz)
 C$OMP& private(jptn,jpt,pmassj,difx,dify,difz,rr,rr05,fff,potn)

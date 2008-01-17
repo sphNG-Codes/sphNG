@@ -1841,10 +1841,12 @@ C$OMP& shared(nptmass,listpm,xyzmh,ptsoft,imerge,realtime,iorig)
 C$OMP& shared(iphase,nlstacc,listacc,numberacc,vxyzu,spinx,spiny,spinz)
 C$OMP& shared(spinadx,spinady,spinadz,f1vxyzu,ptminner,ptmsyn,ptmadd)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,xmomadd,ymomadd,zmomadd,iprint)
+C$OMP& shared(iunique,nptmasstot)
 C$OMP& shared(iscurrent,imerged1,imerged2)
 C$OMP& private(iii,jjj,iptm1,x1,y1,z1,iptm2,rx,ry,rz,r2)
 C$OMP& private(i1list,i2list,itemp,pmass1,pmass2,dvx,dvy,dvz)
 C$OMP& private(totalmass,spinm)
+C$OMP& reduction(+:numberacclocal)
       DO iii = 1, nptmasstot
          IF (imerge.EQ.0) THEN
             iptm1 = listpm(iii) 

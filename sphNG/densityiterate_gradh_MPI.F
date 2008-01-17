@@ -1571,9 +1571,10 @@ c
             IF (iptmass.NE.0) THEN
                DO l = 1, nptmass
                   iptcur = listpm(l)
-                  IF ( (xi - xyzmh(1,iptcur))**2 +
-     &                 (yi - xyzmh(2,iptcur))**2 +
-     &                 (zi - xyzmh(3,iptcur))**2 .LT.radcrit2) GOTO 50
+                  IF ( (xyzmh(1,ipart) - xyzmh(1,iptcur))**2 +
+     &                 (xyzmh(2,ipart) - xyzmh(2,iptcur))**2 +
+     &                 (xyzmh(3,ipart) - xyzmh(3,iptcur))**2 
+     &                 .LT.radcrit2) GOTO 50
                END DO
                rhonext = MAX(rhonext, rho(ipart))
             ENDIF
@@ -2091,19 +2092,23 @@ c
 c--Needed for MPI code
 c
       IF (ipart.GT.npart) THEN
-         rho(ipart) = cnormk*rhoi
-         dumrho(ipart) = cnormk*gradhi
-         nneigh(ipart) = numneighi
+         IF (iphase(ipart).EQ.0) THEN
+            rho(ipart) = cnormk*rhoi
+            dumrho(ipart) = cnormk*gradhi
+            nneigh(ipart) = numneighi
+         ENDIF
          dvxyzu(1,ipart) = fsx
          dvxyzu(2,ipart) = fsy
          dvxyzu(3,ipart) = fsz
          dvxyzu(4,ipart) = epot
       ELSE
-         rho(ipart) = rho(ipart) +
-     &        cnormk*(rhoi + selfnormkernel*pmassi*hi31)
-         dumrho(ipart) = dumrho(ipart) + cnormk*(gradhi +
-     &        selfnormkernel*pmassi*(-3.*hi41))
-         nneigh(ipart) = nneighprior + numneighi
+         IF (iphase(ipart).EQ.0) THEN
+            rho(ipart) = rho(ipart) +
+     &           cnormk*(rhoi + selfnormkernel*pmassi*hi31)
+            dumrho(ipart) = dumrho(ipart) + cnormk*(gradhi +
+     &           selfnormkernel*pmassi*(-3.*hi41))
+            nneigh(ipart) = nneighprior + numneighi
+         ENDIF
          dvxyzu(1,ipart) = dvxyzu(1,ipart) + fsx
          dvxyzu(2,ipart) = dvxyzu(2,ipart) + fsy
          dvxyzu(3,ipart) = dvxyzu(3,ipart) + fsz

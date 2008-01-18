@@ -227,6 +227,7 @@ C$OMP& shared(realtime,ekcle,encal,dedxyz,acc)
 C$OMP& shared(Bxyz,dBxyz,Bextxi,Bextyi,Bextzi,B2ext,divcurlB,Bevolxyz)
 C$OMP& shared(gravxyzstore,potenstore,varmhd,iupdated,listparents)
 C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug)
+C$OMP& shared(ivar,ijvar)
 C$OMP& private(n,ipart,iparttree,stepsi)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(fxi,fyi,fzi,numneigh,hmin)
@@ -255,11 +256,14 @@ C$OMP& private(dsoftxi,dsoftyi,dsoftzi,vsigi,vsigj,alphaB)
 C$OMP& private(vsproji,vsprojj,termb,vs2i,vs2j,dB2,robar1,fmi)
 C$OMP& private(grkerni,grpmi,phii,dsoftterm,dsofttermi,projdB,projbext)
 C$OMP& private(grkernj,phij,dsofttermj,rhoij1,fmj,vsoundj)
-C$OMP& private(grkern,grkerntable,deulalpha,deulbeta)
+C$OMP& private(grkern,grkerntable,dBevolx,dBevoly,dBevolz)
 C$OMP& private(irealj,advBx,advBy,advBz,termeta)
 C$OMP& private(fextx,fexty,fextz,projBeqi,inosink)
 C$OMP& private(fanisox,fanisoy,fanisoz,forcex,forcey,forcez,xmasi)
 C$OMP& private(t12jpmassi,t12jpmassj,r32grav,forcexi,forceyi,forcezi)
+C$OMP& private(Bevoldotdv,termBpmi,termBpmj,termetapmj,termetapmi)
+C$OMP& private(dBxdissj,dBydissj,dBzdissj)
+C$OMP& private(ioffset)
 C$OMP& reduction(+:ioutmin,ioutsup,ioutinf)
 C$OMP& reduction(MIN:inmin,inminsy)
 C$OMP& reduction(MAX:inmax,inmaxsy)
@@ -516,10 +520,15 @@ c
             dy = yi - xyzmh(2,j)
             dz = zi - xyzmh(3,j)
 #ifdef PERIODIC_NO_GHOSTS
-            IF (imhd.EQ.idim .AND. varmhd.EQ.'eulr') THEN
-               deulalpha = Bevolxi - Bevolxyz(1,j)
-               deulbeta = Bevolyi - Bevolxyz(2,j)
-               CALL modboundeulr(dx,dy,dz,deulalpha,deulbeta)
+            IF (imhd.EQ.idim) THEN
+               IF (varmhd.EQ.'eulr') THEN
+                  dBevolx = Bevolxi - Bevolxyz(1,j)
+                  dBevoly = Bevolyi - Bevolxyz(2,j)
+                  CALL modboundeulr(dx,dy,dz,dBevolx,dBevoly)
+               ELSEIF (varmhd.EQ.'vecp') THEN
+                  WRITE(iprint,*) 'modbound not implemented for vecp'
+                  CALL quit
+               ENDIF
             ELSE
                CALL modbound(dx,dy,dz)
             ENDIF
@@ -554,6 +563,13 @@ c
                Bxj = Bxyz(1,j)
                Byj = Bxyz(2,j)
                Bzj = Bxyz(3,j)
+#ifndef PERIODIC_NO_GHOSTS ! if not done above
+               IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
+                  dBevolx = Bevolxi - Bevolxyz(1,j)
+                  dBevoly = Bevolyi - Bevolxyz(2,j)
+                  dBevolz = Bevolzi - Bevolxyz(3,j)
+               ENDIF
+#endif
                dBx = Bxi - Bxj
                dBy = Byi - Byj
                dBz = Bzi - Bzj
@@ -629,9 +645,22 @@ c
 c
 c--time derivative terms
 c
-                  dBxideali = dBxideali - grpmi*dvx*projBi*cnormk
-                  dByideali = dByideali - grpmi*dvy*projBi*cnormk
-                  dBzideali = dBzideali - grpmi*dvz*projBi*cnormk
+                  IF (varmhd.EQ.'vecp') THEN
+c--Axel Gauge dA_i /dt = -A^j grad_i v_j
+                   Bevoldotdv = Bevolxi*dvx + Bevolyi*dvy + Bevolzi*dvz
+                   dBxideali = dBxideali + Bevoldotdv*grpmi*runix*cnormk
+                   dByideali = dByideali + Bevoldotdv*grpmi*runiy*cnormk
+                   dBzideali = dBzideali + Bevoldotdv*grpmi*runiz*cnormk
+c--alternative Gauge dA_i /dt = v^j grad_i A_j
+c                   Bevoldotdv = vxi*dBevolx + vyi*dBevoly + vzi*dBevolz
+c                   dBxideali = dBxideali - Bevoldotdv*grpmi*runix*cnormk
+c                   dByideali = dByideali - Bevoldotdv*grpmi*runiy*cnormk
+c                   dBzideali = dBzideali - Bevoldotdv*grpmi*runiz*cnormk
+                  ELSE
+                   dBxideali = dBxideali - grpmi*dvx*projBi*cnormk
+                   dByideali = dByideali - grpmi*dvy*projBi*cnormk
+                   dBzideali = dBzideali - grpmi*dvz*projBi*cnormk
+                  ENDIF
 c
 c--time derivative of equilibrium B field, iBext.ne.0
 c
@@ -711,8 +740,12 @@ c--Artificial resistivity
 c
                      IF (j.LE.npart .OR. ibound.EQ.11.OR.ibound.EQ.12) 
      &                    THEN
-                        alphaB = 0.5*(alphaMMpass(2,ipart)
-     &                       + alphaMMpass(2,j))
+                         IF (ifsvi.EQ.6) THEN
+                            alphaB = 0.5*(alphaMMpass(2,ipart)
+     &                                  + alphaMMpass(2,j))
+                         ELSE
+                            alphaB = alphamin(2)
+                         ENDIF
 c                        alphaB = 1.0
 c                        termB = alphaB*pmassj*grkern*
 c     &                       MAX(vsbar - projv,0.0)*robar1
@@ -720,13 +753,10 @@ c     &                       MAX(vsbar - projv,0.0)*robar1
      &                       (vsbar + 2.0*abs(projv))*robar1
                         termBpmj = termB*pmassj
 
-                        IF (varmhd.EQ.'eulr') THEN
-#ifndef PERIODIC_NO_GHOSTS
-                           deulalpha = Bevolxi - Bevolxyz(1,j)
-                           deulbeta = Bevolyi - Bevolxyz(2,j)
-#endif
-                           dBxdissi = dBxdissi + termBpmj*deulalpha
-                           dBydissi = dBydissi + termBpmj*deulbeta
+                        IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
+                           dBxdissi = dBxdissi + termBpmj*dBevolx
+                           dBydissi = dBydissi + termBpmj*dBevoly
+                           dBzdissi = dBzdissi + termBpmj*dBevolz
                         ELSE
                            dBxdissi = dBxdissi + termBpmj*dBx*robar1
                            dBydissi = dBydissi + termBpmj*dBy*robar1
@@ -739,7 +769,7 @@ c-- Real constant resistivity
 c
 c        !times rhoi below
                            termeta = etamhd*grkern*rho1j*rho1i
-                           termetampj = termeta*pmassj
+                           termetapmj = termeta*pmassj
                            dBxdissi = dBxdissi + termetapmj*2.*dBx
                            dBydissi = dBydissi + termetapmj*2.*dBy
                            dBzdissi = dBzdissi + termetapmj*2.*dBz
@@ -844,13 +874,10 @@ c
                         dBydissj = 0.
                         dBzdissj = 0.
 
-                        IF (varmhd.EQ.'eulr') THEN
-#ifndef PERIODIC_NO_GHOSTS
-                           deulalpha = Bevolxi - Bevolxyz(1,j)
-                           deulbeta = Bevolyi - Bevolxyz(2,j)
-#endif
-                           dBxdissj = dBxdissj + termBpmi*deulalpha
-                           dBydissj = dBydissj + termBpmi*deulbeta
+                        IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
+                           dBxdissj = dBxdissj + termBpmi*dBevolx
+                           dBydissj = dBydissj + termBpmi*dBevoly
+                           dBydissj = dBydissj + termBpmi*dBevolz
                         ELSE
                            dBxdissj = dBxdissj + termBpmi*dBx*robar1
                            dBydissj = dBydissj + termBpmi*dBy*robar1
@@ -1085,21 +1112,22 @@ c--Artificial resistivity
 c
                         IF (j.LE.npart .OR. ibound.EQ.11.OR.ibound.EQ.12
      &                                                            ) THEN
-                           alphaB = 0.5*(alphaMMpass(2,ipart)
-     &                          + alphaMMpass(2,j))
+                           IF (ifsvi.EQ.6) THEN
+                              alphaB = 0.5*(alphaMMpass(2,ipart)
+     &                                  + alphaMMpass(2,j))
+                           ELSE
+                              alphaB = alphamin(2)
+                           ENDIF
 c                        alphaB = 1.0
 c                        termB = alphaB*pmassj*grkern*
 c     &                     MAX(vsbar - projv,0.0)*robar1
                            termB = alphaB*pmassj*grkern*
      &                          (vsbar + 2.0*abs(projv))*robar1
 
-                           IF (varmhd.EQ.'eulr') THEN
-#ifndef PERIODIC_NO_GHOSTS
-                              deulalpha = Bevolxi - Bevolxyz(1,j)
-                              deulbeta = Bevolyi - Bevolxyz(2,j)
-#endif
-                              dBxdissi = dBxdissi + termB*deulalpha
-                              dBydissi = dBydissi + termB*deulbeta
+                           IF(varmhd.EQ.'eulr'.OR.varmhd.EQ.'vecp') THEN
+                              dBxdissi = dBxdissi + termB*dBevolx
+                              dBydissi = dBydissi + termB*dBevoly
+                              dBzdissi = dBzdissi + termB*dBevolz
                            ELSE
                               dBxdissi = dBxdissi + termB*dBx*robar1
                               dBydissi = dBydissi + termB*dBy*robar1
@@ -1324,6 +1352,7 @@ C$OMP ATOMIC
                dBxyz(3,ipart) = dBxyz(3,ipart) - advBz*rho1i
                
                !--translate to dB/dt and add divv term if B is evolved
+               ! -- DJP !! THIS LOOKS WRONG IN MPI CODE !!
                IF (varmhd.EQ.'Bvol') THEN
                   dBxyz(1,ipart) = rhoi*dBxyz(1,ipart) 
      &                         + (Bxyz(1,ipart)+Beqxi)*rho1i*divv(ipart)
@@ -1332,7 +1361,17 @@ C$OMP ATOMIC
                   dBxyz(3,ipart) = rhoi*dBxyz(3,ipart) 
      &                         + (Bxyz(3,ipart)+Beqzi)*rho1i*divv(ipart)
                ENDIF
-            ELSE
+            ELSEIF (varmhd.EQ.'vecp') THEN
+C$OMP ATOMIC
+               dBxyz(1,ipart)= dBxyz(1,ipart) +dBxideali*rho1i +dBxdissi
+c     &                       + (vyi*Bextz - vzi*Bexty)  ! add v x B_ext
+C$OMP ATOMIC
+               dBxyz(2,ipart)= dBxyz(2,ipart) +dByideali*rho1i +dBydissi
+c     &                       + (vzi*Bextx - vxi*Bextz)  ! add v x B_ext
+C$OMP ATOMIC
+               dBxyz(3,ipart)= dBxyz(3,ipart) +dBzideali*rho1i +dBzdissi
+c     &                       + (vxi*Bexty - vyi*Bextx)  ! add v x B_ext
+            ELSE ! Euler potentials
 C$OMP ATOMIC
                dBxyz(1,ipart) = dBxyz(1,ipart) + dBxdissi
 C$OMP ATOMIC

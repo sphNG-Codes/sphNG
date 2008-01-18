@@ -80,13 +80,14 @@ c     that are neighbours of active particles for updating their densities etc
 c      INCLUDE 'COMMONS/vsmooth'
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/updated'
+      INCLUDE 'COMMONS/presb'
 
       LOGICAL*1 Bisection
       INTEGER*1 isucceed(idim)
       REAL*4 hminbisec(idim),hmaxbisec(idim)
 
       DIMENSION ldolist(idim),hi_old(idim)
-      DIMENSION gradmhd(12,imhd)
+      DIMENSION gradmhd(15,imhd)
 #ifdef MPI
       DIMENSION nneighrec(ineighproc),nneighsentbackold(nummaxproc)
       REAL*4 rhorec(ineighproc), dumrhorec(ineighproc), rhonextmax
@@ -100,7 +101,7 @@ c--Initialise
 c
       iproblem = itime
 c      IF (itime.EQ.000)
-          print *,iproc,': Entered densityiterate ',itime
+c          print *,iproc,': Entered densityiterate ',itime
 
       uradconst = radconst/uergcc
       third = 1./3.
@@ -151,6 +152,7 @@ c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none) 
 C$OMP& shared(nlstdo,ldolist,isucceed,xyzmh,hi_old,it1,isteps,imaxstep)
 C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)
+C$OMP& shared(iphase,dBxyz)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend)
 #endif
@@ -229,13 +231,15 @@ c
 #endif
          iprocdebug = iproc
 
-         CALL MPI_TYPE_CONTIGUOUS(12, MPI_REAL8, i12REAL8, ierr)
+         CALL MPI_TYPE_CONTIGUOUS(15, MPI_REAL8, i15REAL8, ierr)
+c         CALL MPI_TYPE_CONTIGUOUS(12, MPI_REAL8, i12REAL8, ierr)
          CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
          CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
          CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
          CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
 
-         CALL MPI_TYPE_COMMIT(i12REAL8,ierr)
+         CALL MPI_TYPE_COMMIT(i15REAL8,ierr)
+c         CALL MPI_TYPE_COMMIT(i12REAL8,ierr)
          CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
          CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
          CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
@@ -666,6 +670,7 @@ C$OMP& shared(dumrho,iscurrent,ibound,ireal,nptmastot)
 C$OMP& shared(isteps,it0,it1,imax,imaxstep,dt,itime)
 C$OMP& shared(varmhd,Bevol,Bxyz,vsmooth,Bsmooth,nlstdo,ldolist)
 C$OMP& shared(dvxyzu,hi_old,isucceed,poten,isend,numproc,iproc,gradmhd)
+C$OMP& shared(ivar,ijvar)
 C$OMP& private(n,ipart,j,k,xi,yi,zi,vxi,vyi,vzi,pmassi,hi,hj,rhoi)
 C$OMP& private(divvi,curlvxi,curlvyi,curlvzi,gradhi,gradsofti)
 C$OMP& private(pmassj,hi_oldi,hi1,hi21,hi31,hi41,hneigh)
@@ -682,10 +687,12 @@ C$OMP& private(gradalphaxi,gradalphayi,gradalphazi)
 C$OMP& private(gradbetaxi,gradbetayi,gradbetazi,term)
 C$OMP& private(vbarxi,vbaryi,vbarzi,hminbisec,hmaxbisec)
 C$OMP& private(alphai,betai,wkern,dalpha,dbeta,grpmi)
-C$OMP& private(nneighlocal,nneighi)
+C$OMP& private(nneighlocal,nneighi,ncompacthere,icompacthere)
+C$OMP& private(numberupdated)
 C$OMP& reduction(MAX:rhonext,imaxit)
 C$OMP& reduction(+:inumit,inumfixed,inumrecalc,nwarnup,nwarndown)
 C$OMP& reduction(+:nwarnroundoff,nbisection,numsucceeded)
+C$OMP& reduction(+:ncompact,icompact)
       DO n = 1, nlstdo
          ipart = ldolist(n)
 c
@@ -1445,10 +1452,10 @@ c
                IF (imhd.EQ.idim) THEN
 
                   CALL MPI_RECV(gradmhd(1,istartrec),
-     &                 12*maxnneighsentback,MPI_REAL8,
+     &                 15*maxnneighsentback,MPI_REAL8,
      &                 iprocrec,53,MPI_COMM_WORLD,istatus,ierr)
                   CALL MPI_GET_COUNT(istatus,MPI_REAL8,ireturned,ierr)
-                  IF (ireturned.NE.12*nneighsentback(iprocrec+1)) THEN
+                  IF (ireturned.NE.15*nneighsentback(iprocrec+1)) THEN
                      WRITE (*,*) 'ERROR - ireturned.NE.nnsendbk gradmhd'
                      CALL quit
                   ENDIF
@@ -1459,7 +1466,7 @@ c
                   DO l = 1, nneighsentback(iprocrec+1)
                      ipos = llistsentback(l,iprocrec+1)+1
                      jpos = istartrec + l - 1
-                     DO k = 1, 12
+                     DO k = 1, 15
                         gradmhd(k,ipos)=gradmhd(k,ipos)+gradmhd(k,jpos)
                      END DO
                   END DO
@@ -1506,8 +1513,11 @@ c
 c--Send back quantities for MHD gradients (if required)
 c
                   IF (imhd.EQ.idim) THEN
-                     CALL MPI_SEND(gradmhd(1,istart),inumber,i12REAL8,
+c                     CALL MPI_SEND(gradmhd(1,istart),inumber,i12REAL8,
+c     &                    iprocsend,53,MPI_COMM_WORLD, ierr)
+                     CALL MPI_SEND(gradmhd(1,istart),inumber,i15REAL8,
      &                    iprocsend,53,MPI_COMM_WORLD, ierr)
+
                   ENDIF
 
                   GOTO 7765
@@ -1531,7 +1541,8 @@ c
       CALL MPI_TYPE_FREE(i3REAL8,ierr)
       CALL MPI_TYPE_FREE(i4REAL8,ierr)
       CALL MPI_TYPE_FREE(i5REAL8,ierr)
-      CALL MPI_TYPE_FREE(i12REAL8,ierr)
+c      CALL MPI_TYPE_FREE(i12REAL8,ierr)
+      CALL MPI_TYPE_FREE(i15REAL8,ierr)
 
 #ifdef MPIDEBUG
 c      IF (itime.EQ.000)
@@ -1584,7 +1595,7 @@ c
 c--calculate B from the evolved Euler potentials
 c
             IF (imhd.EQ.idim) THEN
-               IF (varmhd.EQ.'eulr') THEN
+               IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
                   rxxi = gradmhd(1,ipart)
                   rxyi = gradmhd(2,ipart)
                   rxzi = gradmhd(3,ipart)
@@ -1638,15 +1649,45 @@ c
                      gradbetayi = dbetayi*term
                      gradbetazi = dbetazi*term
                   ENDIF
+                  IF (varmhd.EQ.'vecp') THEN
 c
-c--grad alpha cross grad beta
+c--vector potential: B = curl A
 c
-                  term= gradalphayi*gradbetazi - gradalphazi*gradbetayi
-                  Bxyz(1,ipart)= term
-                  term= gradalphazi*gradbetaxi - gradalphaxi*gradbetazi
-                  Bxyz(2,ipart)= term
-                  term= gradalphaxi*gradbetayi - gradalphayi*gradbetaxi
-                  Bxyz(3,ipart)= term
+                     dgammaxi = gradmhd(13,ipart)
+                     dgammayi = gradmhd(14,ipart)
+                     dgammazi = gradmhd(15,ipart)
+                     IF (abs(denom).GT.tiny) THEN
+                        gradgammaxi = (dgammaxi*(ryyi*rzzi - ryzi*ryzi)
+     &                        + dgammayi*(rxzi*ryzi - rzzi*rxyi)
+     &                        + dgammazi*(rxyi*ryzi - rxzi*ryyi))*ddenom
+                        gradgammayi = (dgammaxi*(ryzi*rxzi - rxyi*rzzi)
+     &                        + dgammayi*(rzzi*rxxi - rxzi*rxzi)
+     &                        + dgammazi*(rxyi*rxzi - rxxi*ryzi))*ddenom
+                        gradgammazi = (dgammaxi*(rxyi*ryzi - rxzi*ryyi)
+     &                        + dgammayi*(rxyi*rxzi - rxxi*ryzi)
+     &                        + dgammazi*(rxxi*ryyi - rxyi*rxyi))*ddenom
+                     ELSE
+                        gradgammaxi = dgammaxi*term
+                        gradgammayi = dgammayi*term
+                        gradgammazi = dgammazi*term
+                     ENDIF
+                     term = gradgammayi - gradbetazi
+                     Bxyz(1,ipart) = term !+ Bextx
+                     term = gradalphazi - gradgammaxi
+                     Bxyz(2,ipart) = term !+ Bexty
+                     term = gradbetaxi - gradalphayi
+                     Bxyz(3,ipart) = term !+ Bextz             
+                  ELSE
+c
+c--Euler potentials: B = grad alpha cross grad beta
+c
+                     term= gradalphayi*gradbetazi - gradalphazi*gradbetayi
+                     Bxyz(1,ipart)= term
+                     term= gradalphazi*gradbetaxi - gradalphaxi*gradbetazi
+                     Bxyz(2,ipart)= term
+                     term= gradalphaxi*gradbetayi - gradalphayi*gradbetaxi
+                     Bxyz(3,ipart)= term
+                  ENDIF
 c             ELSE
 c
 c--add self contribution and store smoothed velocity
@@ -1704,10 +1745,12 @@ C$OMP DO SCHEDULE (runtime)
          vxyzu(4,i) = vxyzu(4,j)
          gradhs(1,i) = gradhs(1,j)
          gradhs(2,i) = gradhs(2,j)
-         IF (imhd.EQ.idim .AND. varmhd.EQ.'eulr') THEN
-            Bxyz(1,i) = Bxyz(1,j)
-            Bxyz(2,i) = Bxyz(2,j)
-            Bxyz(3,i) = Bxyz(3,j)
+         IF (imhd.EQ.idim) THEN
+            IF (varmhd.EQ.'eulr' .or. varmhd.EQ.'vecp') THEN
+               Bxyz(1,i) = Bxyz(1,j)
+               Bxyz(2,i) = Bxyz(2,j)
+               Bxyz(3,i) = Bxyz(3,j)            
+            ENDIF
          ENDIF
          IF (encal.EQ.'r' .AND. ibound.EQ.100) 
      &        ekcle(1,i) = ekcle(1,j)
@@ -1749,7 +1792,7 @@ C$OMP DO SCHEDULE (runtime)
                Bxyz(3,ipart) = Bevol(3,ipart)*dumrho(ipart)
             ENDDO      
 C$OMP END DO
-         ELSEIF (varmhd.NE.'eulr') THEN
+         ELSEIF (varmhd.NE.'eulr' .AND. varmhd.NE.'vecp') THEN
             STOP 'unknown MHD variable in Bevol->Bxyz conversion'
          ENDIF
       ENDIF
@@ -1766,8 +1809,13 @@ ccC$OMP END PARALLEL DO
      &        nwarndown,' times'
       ENDIF
       IF (nwarnroundoff.GT.0) THEN
-         WRITE (iprint,*) 'WARNING: denom in euler gradients zero on ',
+         IF (varmhd.EQ.'vecp') THEN
+           WRITE (iprint,*) 'WARNING: denom in vecp gradients zero on ',
      &        nwarnroundoff,' particles'
+         ELSEIF (varmhd.EQ.'eulr') THEN
+          WRITE (iprint,*) 'WARNING: denom in euler gradients zero on ',
+     &        nwarnroundoff,' particles'
+         ENDIF
       ENDIF
       IF (nbisection.GT.0) THEN
          WRITE(iprint,*) 'WARNING: used bisection on ',nbisection,
@@ -1976,11 +2024,13 @@ c
       IF (itrace.EQ.'all') WRITE (iprint,300)
   300 FORMAT ('exit subroutine densityiterate')
 
+#ifdef MPI
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 c      IF (itime.EQ.000)
            print *,iproc,': Exited densityiterate'
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 c      CALL quit
+#endif
 
       RETURN
       END
@@ -2017,8 +2067,10 @@ c
 c
 c--Needed for MPI code
 c
+#ifdef MPI
       IF (iproblem.EQ.2097152) print *,iproc,' Entered ',
      &     ' densitygrad ',ipart,npart,ntot,iphase(ipart),xyzmh(1,ipart)
+#endif
       IF (ipart.GT.npart) THEN
          iparttree = ipart + ntot + 2
       ELSE
@@ -2158,7 +2210,7 @@ c
       INCLUDE 'idim'
 
       DIMENSION xyzmh(5,mmax), vxyzu(4,idim), Bevol(3,imhd),
-     &     gradmhd(12,imhd)
+     &     gradmhd(15,imhd)
 
       INCLUDE 'COMMONS/nlim'
       INCLUDE 'COMMONS/kerne'
@@ -2193,7 +2245,7 @@ c
       gradsofti = 0.
 
       IF (imhd.EQ.idim) THEN
-         DO k = 1, 12
+         DO k = 1, 15
             gradmhd(k,ipart) = 0.
          END DO
       ENDIF
@@ -2212,9 +2264,10 @@ c
 c--Calculate B from the evolved magnetic field variable
 c
       IF (imhd.EQ.idim) THEN
-         IF (varmhd.EQ.'eulr') THEN
+         IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
             alphai= Bevol(1,ipart)
             betai= Bevol(2,ipart)
+            gammai = Bevol(3,ipart)
          ENDIF
       ENDIF
                   
@@ -2229,6 +2282,9 @@ c
             dalpha= alphai - Bevol(1,j)
             dbeta= betai - Bevol(2,j)
             CALL modboundeulr(dx,dy,dz,dalpha,dbeta)
+         ELSEIF (varmhd.EQ.'vecp') THEN
+            write(iprint,*) 'densityiterate: modbound not implemented for vecp'
+            CALL quit
          ELSE
             CALL modbound(dx,dy,dz)
          ENDIF
@@ -2286,7 +2342,7 @@ c
 c--grad alpha and grad beta (Euler potentials)
 c
             IF (imhd.EQ.idim) THEN
-               IF (varmhd.EQ.'eulr') THEN
+               IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
                   grpmi= pmassj*grwtij
 c
 c--rxx, rxy, rxz, ryy, ryz, rzz
@@ -2300,6 +2356,7 @@ c
 #ifndef PERIODIC_NO_GHOSTS
                   dalpha= alphai - Bevol(1,j)
                   dbeta= betai - Bevol(2,j)
+                  dgamma = gammai - Bevol(3,j)
 #endif
 c
 c--dalpha(x,y,z) and dbeta(x,y,z)
@@ -2311,6 +2368,12 @@ c
                   gradmhd(10,ipart) = gradmhd(10,ipart)-grpmi*dbeta*dx
                   gradmhd(11,ipart) = gradmhd(11,ipart)-grpmi*dbeta*dy
                   gradmhd(12,ipart) = gradmhd(12,ipart)-grpmi*dbeta*dz
+
+                  !--strictly only for vecp but should not matter
+                  gradmhd(13,ipart) = gradmhd(13,ipart)-grpmi*dgamma*dx
+                  gradmhd(14,ipart) = gradmhd(14,ipart)-grpmi*dgamma*dy
+                  gradmhd(15,ipart) = gradmhd(15,ipart)-grpmi*dgamma*dz
+
 c               ELSE
 c
 c--smoothed velocity for use in the B or B/rho evolution

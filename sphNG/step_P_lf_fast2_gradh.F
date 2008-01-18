@@ -109,9 +109,9 @@ c
       ilocal = 0
       naddedplanet = 0
       itreeupdate = .FALSE.
-
+#ifdef MPI
       print *,iproc,': ENTERED STEP ',nptmasstot
-
+#endif
 c
 c--Integration
 c

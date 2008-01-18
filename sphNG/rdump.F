@@ -518,11 +518,25 @@ c
      &                    icount+nmhd)
                   END DO
 #ifdef MPIDEBUG
-         print *,iproc,': Read Bevolxyz'
+         print *,iproc,': Read Euler Bevolxyz'
 #endif
                ELSE
                   WRITE(*,*) 'ERROR: Cannot start Euler potentials run'
                   WRITE(*,*) '       from non-Euler potentials dump'
+                  CALL quit
+               ENDIF
+            ELSEIF (varmhd.EQ.'vecp') THEN
+               IF (nums4(6).GE.6) THEN
+                  DO j = 1, 3
+                     READ (idisk1, END=100) (Bevolxyz(j,i), i=icount+1, 
+     &                    icount+nmhd)
+                  END DO
+#ifdef MPIDEBUG
+         print *,iproc,': Read vecp Bevolxyz'
+#endif
+               ELSE
+                  WRITE(*,*) 'ERROR: Cannot start vec potentials run'
+                  WRITE(*,*) '       from non-vec potentials dump'
                   CALL quit
                ENDIF
             ELSEIF (varmhd.EQ.'Brho') THEN
@@ -566,7 +580,7 @@ c--read artificial resistivity parameter
                IF (ifsvi.EQ.6) THEN
            WRITE(*,*) 'WARNING: resistivity parameter not found in dump'
                ENDIF
-               WRITE(*,*) ' => setting alphaB = alphamin everywhere'
+               WRITE(*,*) '=> setting alphaB=',alphamin(2),' everywhere'
                DO i=icount+1,icount+nmhd
                   alphaMM(2,i) = alphamin(2)
                ENDDO

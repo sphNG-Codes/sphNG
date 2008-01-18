@@ -48,7 +48,8 @@ c
 99102 FORMAT (/,' Which MHD variable do you want to evolve?', /,
      &   ' B     (flux density per unit volume)         : Bvol b)', /,
      &   ' B/rho (flux density per unit mass)           : Brho r)', /,
-     &   ' Euler potentials (B = grad alpha x grad beta): eulr e)')
+     &   ' Euler potentials (B = grad alpha x grad beta): eulr e)', /,
+     &   ' Vector potential (B = curl A)                : vecp v)')
       WRITE(*,*) ' (NB: a simulation can be restarted in B or B/rho'
       WRITE(*,*) '  from any run, but an Euler potential run can only '
       WRITE(*,*) '  restarted from an Euler potential run.)'
@@ -58,8 +59,9 @@ c
       IF (varmhd.EQ.'b' .or. varmhd.EQ.'B') varmhd = 'Bvol'
       IF (varmhd.EQ.'r') varmhd = 'Brho'
       IF (varmhd.EQ.'e') varmhd = 'eulr'
+      IF (varmhd.EQ.'v') varmhd = 'vecp'
       IF (varmhd.NE.'Bvol' .and. varmhd.NE.'Brho'
-     &    .and. varmhd.NE.'eulr') GOTO 50
+     &    .and. varmhd.NE.'eulr' .and. varmhd.NE.'vecp') GOTO 50
      
       WRITE(*,99025) ' Magnetic field variable = ',varmhd
 99025 FORMAT(A,A4)
@@ -215,6 +217,55 @@ c
             ELSE
              STOP 'mixed cartesian field NOT IMPLEMENTED for EULER POTS'
             ENDIF
+         ELSEIF (varmhd.EQ.'vecp') THEN
+c
+c--for vector potential with cartesian fields
+c  these should be entirely set as EXTERNAL fields (done below anyway)
+c            WRITE(*,*) 'Setting vector potential to zero '
+c            WRITE(*,*) '=> using external B fields'
+c            DO i=1,npart
+c               Bevolxyz(1,i) = 0.
+c               Bevolxyz(2,i) = 0.
+c               Bevolxyz(3,i) = 0.
+c            ENDDO
+c
+c  the below is an alternative which should work but is a bit weird 
+c  and is only implemented for the purposes of testing
+c  NB: there is a Gauge choice doing it this way
+c
+            IF (abs(fracz-1.0).LT.tiny) THEN
+	       DO i=1,npart
+                  Bevolxyz(1,i) = -Bzero*xyzmh(2,i)
+                  Bevolxyz(2,i) = 0.
+                  Bevolxyz(3,i) = 0.
+                  ! alternative
+c                  Bevolxyz(1,i) = 0.
+c                  Bevolxyz(2,i) = Bzero*xyzmh(1,i)
+c                  Bevolxyz(3,i) = 0.
+               ENDDO
+            ELSEIF (abs(fracy-1.0).LT.tiny) THEN
+	       DO i=1,npart
+                  Bevolxyz(1,i) = Bzero*xyzmh(3,i)
+                  Bevolxyz(2,i) = 0.
+                  Bevolxyz(3,i) = 0.
+c                  ! alternative
+c                  Bevolxyz(1,i) = 0.
+c                  Bevolxyz(2,i) = 0.
+c                  Bevolxyz(3,i) = -Bzero*xyzmh(1,i)
+               ENDDO
+            ELSEIF (abs(fracx-1.0).LT.tiny) THEN
+	       DO i=1,npart
+                  Bevolxyz(1,i) = 0.
+                  Bevolxyz(2,i) = -Bzero*xyzmh(3,i)
+                  Bevolxyz(3,i) = 0.
+                  ! alternative
+c                  Bevolxyz(1,i) = 0.
+c                  Bevolxyz(2,i) = 0.
+c                  Bevolxyz(3,i) = Bzero*xyzmh(2,i)
+               ENDDO
+            ELSE
+             STOP 'mixed cartesian field NOT IMPLEMENTED for VECTOR POT'
+            ENDIF         
          ELSE
             DO i=1,npart
                Bevolxyz(1,i) = Bxzero
@@ -246,6 +297,9 @@ c  Setup for the Bx peak advection problem in Dedner et al JCP 175, 645
 c  Bx = r(x^2 + y^2)/sqrt(4pi) (ie div B .ne. 0) 
 c  Basically to see how an initially non-zero div B propagates
 c
+         IF (varmhd(1:1).NE.'B') THEN
+           STOP 'not implemented for eulr or vecp'
+         ENDIF
          WRITE(*,99104) umagfd
          WRITE(*,99106) 'Enter Binit'
 99106    FORMAT(A)
@@ -311,13 +365,15 @@ c
                   ENDIF
                   Bevolxyz(2,i) = 0.5*rintorus**2
                   Bevolxyz(3,i) = 0.
-               ELSE
+               ELSEIF (varmhd(1:1).EQ.'B') THEN
 c
 c        otherwise transform to get Bx, By and Bz
 c            
                   Bevolxyz(1,i) = -Btheta*sintheta*COS(phi)
                   Bevolxyz(2,i) = -Btheta*sintheta*SIN(phi)
                   Bevolxyz(3,i) = Btheta*COS(theta)
+               ELSE
+                  STOP 'not implemented for vecp'
                ENDIF
                Bzero = MAX(Bzero,Btheta)
             ELSE
@@ -335,7 +391,7 @@ c
          WRITE(*,*) 'SETUP FOR THE FORCE FREE Z-PERIODIC CYLINDER'
          WRITE(*,*) ' Radius ',radius,' Length = ',length
          WRITE (*,*)' Muff = ',Muff, 'Amplitude =', ampl
-         IF (varmhd.EQ.'eulr') THEN
+         IF (varmhd(1:1).NE.'B') THEN
             WRITE (*,*) 'Not implemented for Euler potentials'
             STOP
          ElSE   
@@ -353,7 +409,7 @@ c
                ENDIF
             STOP 'bessel functions commented out in repository version'
                !Bevolxyz(1,i) = -ampl*yi*drr*besj1(Muff*rr)
-               !Bevolxyz(2,i) = ampl*xi*drr*besj1(Muff*rr)                
+               !Bevolxyz(2,i) = ampl*xi*drr*besj1(Muff*rr)
                !Bevolxyz(3,i) = ampl*besj0(Muff*rr)
             ENDDO   
          ENDIF  

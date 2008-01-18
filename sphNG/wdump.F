@@ -99,27 +99,7 @@ c
 c--Write output file
 c
       WRITE (idisk1, ERR=100) int1,r1,int2,i1,int1
-c
-c--contruct header string based on compile-time options
-c  these are for information only (ie. not important for restarting)
-c
-      fileident = 'FsphNG:'
-      IF (nlmax.EQ.1) THEN
-         fileident = fileident(1:7) // 'gradh=on, '
-      ELSE
-         fileident = fileident(1:7) // 'gradh=off,'
-      ENDIF
-      IF (imhd.EQ.idim) THEN
-         fileident = fileident(1:17) // 'MHD=on ,'
-      ELSE
-         fileident = fileident(1:17) // 'MHD=off,'
-      ENDIF
-      IF (iradtrans.EQ.idim) THEN
-         fileident = fileident(1:25) // 'RT=on '
-      ELSE
-         fileident = fileident(1:25) // 'RT=off'
-      ENDIF
-      WRITE (idisk1, ERR=100) fileident
+      WRITE (idisk1, ERR=100) fileident('F')
 c
 c--Single values
 c
@@ -311,6 +291,8 @@ c
          IF (imhd.EQ.idim) THEN
             IF (varmhd.EQ.'eulr') THEN
                nums(6) = 5
+            ELSEIF (varmhd.EQ.'vecp') THEN
+               nums(6) = 6
             ELSE
                nums(6) = 3
             ENDIF
@@ -448,10 +430,15 @@ c
             END DO         
          ENDIF
 c
-c--Dump Euler potentials if necessary
+c--Dump Euler/vector potentials if necessary
 c
          IF (varmhd.EQ.'eulr') THEN
             DO j = 1, 2
+               WRITE (idisk1, ERR=100) 
+     &            (Bevolxyz(j,isort(i)), i=1, nprint)
+            END DO
+         ELSEIF (varmhd.EQ.'vecp') THEN
+            DO j = 1, 3
                WRITE (idisk1, ERR=100) 
      &            (Bevolxyz(j,isort(i)), i=1, nprint)
             END DO
@@ -496,8 +483,7 @@ c
 c--Write output file
 c
       WRITE (idisk1, ERR=100) int1,r1,int2,i1,int1
-      fileident = 'SHydroRTMHD1'
-      WRITE (idisk1, ERR=100) fileident
+      WRITE (idisk1, ERR=100) fileident('S')
 c
 c--Single values
 c
@@ -1055,3 +1041,34 @@ c
 
       RETURN
       END
+
+      FUNCTION fileident(firstchar)
+c*********************************************************************
+c  contruct header string based on compile-time options
+c  these are for information only (ie. not important for restarting)
+c
+c*********************************************************************
+      IMPLICIT NONE
+      INCLUDE 'idim'
+      INCLUDE 'COMMONS/varmhd'
+      CHARACTER*100 fileident
+      CHARACTER*1 firstchar
+
+      fileident = firstchar//'sphNG:'
+      IF (nlmax.EQ.1) THEN
+         fileident = fileident(1:7) // 'gradh=on, '
+      ELSE
+         fileident = fileident(1:7) // 'gradh=off,'
+      ENDIF
+      IF (imhd.EQ.idim) THEN
+         fileident = fileident(1:17) // 'MHD='//varmhd(1:4)//','
+      ELSE
+         fileident = fileident(1:17) // 'MHD=none,'
+      ENDIF
+      IF (iradtrans.EQ.idim) THEN
+         fileident = fileident(1:26) // 'RT=on '
+      ELSE
+         fileident = fileident(1:26) // 'RT=off'
+      ENDIF
+
+      END FUNCTION fileident

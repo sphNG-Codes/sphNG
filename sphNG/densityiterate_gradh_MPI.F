@@ -1676,16 +1676,16 @@ c
                      term = gradalphazi - gradgammaxi
                      Bxyz(2,ipart) = term !+ Bexty
                      term = gradbetaxi - gradalphayi
-                     Bxyz(3,ipart) = term !+ Bextz             
+                     Bxyz(3,ipart) = term !+ Bextz
                   ELSE
 c
 c--Euler potentials: B = grad alpha cross grad beta
 c
-                     term= gradalphayi*gradbetazi - gradalphazi*gradbetayi
+                     term= gradalphayi*gradbetazi-gradalphazi*gradbetayi
                      Bxyz(1,ipart)= term
-                     term= gradalphazi*gradbetaxi - gradalphaxi*gradbetazi
+                     term= gradalphazi*gradbetaxi-gradalphaxi*gradbetazi
                      Bxyz(2,ipart)= term
-                     term= gradalphaxi*gradbetayi - gradalphayi*gradbetaxi
+                     term= gradalphaxi*gradbetayi-gradalphayi*gradbetaxi
                      Bxyz(3,ipart)= term
                   ENDIF
 c             ELSE
@@ -2283,7 +2283,8 @@ c
             dbeta= betai - Bevol(2,j)
             CALL modboundeulr(dx,dy,dz,dalpha,dbeta)
          ELSEIF (varmhd.EQ.'vecp') THEN
-            write(iprint,*) 'densityiterate: modbound not implemented for vecp'
+            write(iprint,*) 
+     &           'densityiterate: modbound not implemented for vecp'
             CALL quit
          ELSE
             CALL modbound(dx,dy,dz)

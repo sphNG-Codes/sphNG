@@ -221,13 +221,17 @@ c
 c
 c--for vector potential with cartesian fields
 c  these should be entirely set as EXTERNAL fields (done below anyway)
-c            WRITE(*,*) 'Setting vector potential to zero '
-c            WRITE(*,*) '=> using external B fields'
-c            DO i=1,npart
-c               Bevolxyz(1,i) = 0.
-c               Bevolxyz(2,i) = 0.
-c               Bevolxyz(3,i) = 0.
-c            ENDDO
+            IF (.FALSE.) THEN
+            
+            WRITE(*,*) 'Setting vector potential to zero '
+            WRITE(*,*) '=> using external B fields'
+            DO i=1,npart
+               Bevolxyz(1,i) = 0.
+               Bevolxyz(2,i) = 0.
+               Bevolxyz(3,i) = 0.
+            ENDDO
+            
+            ELSE
 c
 c  the below is an alternative which should work but is a bit weird 
 c  and is only implemented for the purposes of testing
@@ -265,7 +269,9 @@ c                  Bevolxyz(3,i) = Bzero*xyzmh(2,i)
                ENDDO
             ELSE
              STOP 'mixed cartesian field NOT IMPLEMENTED for VECTOR POT'
-            ENDIF         
+            ENDIF
+            
+            ENDIF       
          ELSE
             DO i=1,npart
                Bevolxyz(1,i) = Bxzero

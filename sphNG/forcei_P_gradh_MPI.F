@@ -617,7 +617,7 @@ c
 c
 c--(note that kernel gradient is multiplied by gradhi)
 c
-               grkerntable = (grwij(index)+ dgrwdx*dxx)
+               grkerntable = (grwij(index)+ dgrwdx*dxx)*cnormk
                grkerni = grkerntable*hi41*gradhi
                grpmi = grkerni*pmassj
 c
@@ -638,7 +638,7 @@ c
                   ELSEIF (vi.GT.part1kernel) THEN
                      phii = phii + rij1*part1potenkernel
                   ENDIF
-                  dsoftterm = 0.5*grkerni*gradsofti*cnormk
+                  dsoftterm = 0.5*grkerni*gradsofti
                ENDIF
 
                IF (imhd.EQ.idim) THEN
@@ -648,43 +648,43 @@ c
                   IF (varmhd.EQ.'vecp') THEN
 c--Axel Gauge dA_i /dt = -A^j grad_i v_j
                    Bevoldotdv = Bevolxi*dvx + Bevolyi*dvy + Bevolzi*dvz
-                   dBxideali = dBxideali + Bevoldotdv*grpmi*runix*cnormk
-                   dByideali = dByideali + Bevoldotdv*grpmi*runiy*cnormk
-                   dBzideali = dBzideali + Bevoldotdv*grpmi*runiz*cnormk
+                   dBxideali = dBxideali + Bevoldotdv*grpmi*runix
+                   dByideali = dByideali + Bevoldotdv*grpmi*runiy
+                   dBzideali = dBzideali + Bevoldotdv*grpmi*runiz
 c--alternative Gauge dA_i /dt = v^j grad_i A_j
 c                   Bevoldotdv = vxi*dBevolx + vyi*dBevoly + vzi*dBevolz
-c                   dBxideali = dBxideali - Bevoldotdv*grpmi*runix*cnormk
-c                   dByideali = dByideali - Bevoldotdv*grpmi*runiy*cnormk
-c                   dBzideali = dBzideali - Bevoldotdv*grpmi*runiz*cnormk
+c                   dBxideali = dBxideali - Bevoldotdv*grpmi*runix
+c                   dByideali = dByideali - Bevoldotdv*grpmi*runiy
+c                   dBzideali = dBzideali - Bevoldotdv*grpmi*runiz
                   ELSE
-                   dBxideali = dBxideali - grpmi*dvx*projBi*cnormk
-                   dByideali = dByideali - grpmi*dvy*projBi*cnormk
-                   dBzideali = dBzideali - grpmi*dvz*projBi*cnormk
+                   dBxideali = dBxideali - grpmi*dvx*projBi
+                   dByideali = dByideali - grpmi*dvy*projBi
+                   dBzideali = dBzideali - grpmi*dvz*projBi
                   ENDIF
 c
 c--time derivative of equilibrium B field, iBext.ne.0
 c
                   IF (iBext.GT.0 .AND. iexf.NE.9) THEN
-                     dBxiequil = dBxiequil - grpmi*dvx*projBeqi*cnormk
-                     dByiequil = dByiequil - grpmi*dvy*projBeqi*cnormk
-                     dBziequil = dBziequil - grpmi*dvz*projBeqi*cnormk
+                     dBxiequil = dBxiequil - grpmi*dvx*projBeqi
+                     dByiequil = dByiequil - grpmi*dvy*projBeqi
+                     dBziequil = dBziequil - grpmi*dvz*projBeqi
                   ENDIF
 c
 c--compute divB
 c
-c                  divBi = divBi - grpmi*projdB*cnormk
-                  divBi = divBi - weight*grkerntable*hi1*projdB*cnormk
+c                  divBi = divBi - grpmi*projdB
+                  divBi = divBi - weight*grkerntable*hi1*projdB
 c
 c--compute current
 c
-                  curlBxi = curlBxi +grpmi*(dBy*runiz -dBz*runiy)*cnormk
-                  curlByi = curlByi +grpmi*(dBz*runix -dBx*runiz)*cnormk
-                  curlBzi = curlBzi +grpmi*(dBx*runiy -dBy*runix)*cnormk
-c                  curlBxi = curlBxi + weight*grkerntable*hi1*cnormk*
+                  curlBxi = curlBxi +grpmi*(dBy*runiz -dBz*runiy)
+                  curlByi = curlByi +grpmi*(dBz*runix -dBx*runiz)
+                  curlBzi = curlBzi +grpmi*(dBx*runiy -dBy*runix)
+c                  curlBxi = curlBxi + weight*grkerntable*hi1*
 c     &                               (dBy*runiz - dBz*runiy)
-c                  curlByi = curlByi + weight*grkerntable*hi1*cnormk*
+c                  curlByi = curlByi + weight*grkerntable*hi1*
 c     &                               (dBz*runix - dBx*runiz)
-c                  curlBzi = curlBzi + weight*grkerntable*hi1*cnormk*
+c                  curlBzi = curlBzi + weight*grkerntable*hi1*
 c     &                               (dBx*runiy - dBy*runix)
                ENDIF
 
@@ -698,14 +698,14 @@ c-------------------------
 c
 c--Pressure force
 c
-                  gradpi = gradp*pmassj*cnormk
+                  gradpi = gradp*pmassj
                   gradxi = gradxi - gradpi*runix
 c                  IF (iproc.EQ.0 .AND. ipart.EQ.1164) 
 c     &                 print *,j,- gradpi*runix
                   gradyi = gradyi - gradpi*runiy
                   gradzi = gradzi - gradpi*runiz
 
-                  grkern = 0.5*grkerni*cnormk
+                  grkern = 0.5*grkerni
 c
 c--Anisotropic magnetic force (Morris formalism)
 c
@@ -785,8 +785,8 @@ c
 c--add contribution to thermal energy
 c
                         dB2 = dBx*dBx + dBy*dBy + dBz*dBz
-c                        dqi = dqi - termBpmj/cnormk*(dB2 - projdB**2)*robar1
-                        dqi = dqi - termBpmj/cnormk*dB2*robar1
+c                        dqi = dqi - termBpmj*(dB2 - projdB**2)*robar1
+                        dqi = dqi - termBpmj*dB2*robar1
                      ENDIF
                   ELSE
 c
@@ -834,7 +834,7 @@ c     &            print *,' j ',j,t12j,projv,alphamean,grkern,f,robar1
                      artxi = artxi - t12jpmassj*runix
                      artyi = artyi - t12jpmassj*runiy
                      artzi = artzi - t12jpmassj*runiz
-                     dqi = dqi + t12jpmassj*projv/cnormk
+                     dqi = dqi + t12jpmassj*projv
                   ELSE
                      t12j = 0.
                   ENDIF
@@ -849,7 +849,7 @@ c
 c--Pressure force
 c
                      IF (igrp.NE.0) THEN
-                        gradpj = gradp*pmassi*cnormk
+                        gradpj = gradp*pmassi
                         forcex = gradpj*runix
                         forcey = gradpj*runiy
                         forcez = gradpj*runiz
@@ -892,16 +892,16 @@ c        !times rhoi below
                            dBzdissj = dBzdissj + termetapmi*dBz
                         ENDIF
 C$OMP ATOMIC
-                        dBxyz(1,j) = dBxyz(1,j) + dBxdissj
+                        dBxyz(1,j) = dBxyz(1,j) - dBxdissj
 C$OMP ATOMIC
-                        dBxyz(2,j) = dBxyz(2,j) + dBydissj
+                        dBxyz(2,j) = dBxyz(2,j) - dBydissj
 C$OMP ATOMIC
-                        dBxyz(3,j) = dBxyz(3,j) + dBzdissj
+                        dBxyz(3,j) = dBxyz(3,j) - dBzdissj
 c
 c--add contribution to thermal energy
 c
 C$OMP ATOMIC
-                        dq(j) = dq(j) - termBpmi/cnormk*dB2*robar1
+                        dq(j) = dq(j) - termBpmi*dB2*robar1
                      ENDIF
 c
 c--Artificial viscosity
@@ -912,7 +912,7 @@ c
                         forcey = forcey + t12jpmassi*runiy
                         forcez = forcez + t12jpmassi*runiz
 C$OMP ATOMIC
-                        dq(j) = dq(j) + t12jpmassi*projv/cnormk
+                        dq(j) = dq(j) + t12jpmassi*projv
                      ENDIF
 c
 c--Add contributions to particle j
@@ -1038,7 +1038,8 @@ c
 c
 c--(note that kernel gradient is multiplied by gradhj)
 c
-                  grkernj = (grwij(index)+ dgrwdx*dxx)*hj41*gradhs(1,j)
+                  grkernj = (grwij(index)+ dgrwdx*dxx)*
+     &                      cnormk*hj41*gradhs(1,j)
 c
 c--j contribution to pressure gradient and isotropic mag force
 c
@@ -1059,7 +1060,7 @@ c
                      ELSEIF (vj.GT.part1kernel) THEN
                         phij = phij + rij1*part1potenkernel
                      ENDIF
-                     dsofttermj = 0.5*grkernj*pmassj*gradhs(2,j)*cnormk
+                     dsofttermj = 0.5*grkernj*pmassj*gradhs(2,j)
                   ENDIF
 c
 c--If i and j are not across a sink particle
@@ -1071,12 +1072,12 @@ c-------------------------
 c
 c--Pressure force
 c
-                     gradpj = gradp*pmassj*cnormk
+                     gradpj = gradp*pmassj
                      gradxi = gradxi - gradpj*runix
                      gradyi = gradyi - gradpj*runiy
                      gradzi = gradzi - gradpj*runiz
 
-                     grkern = 0.5*grkernj*cnormk
+                     grkern = 0.5*grkernj
 c
 c--Anisotropic magnetic force (Morris formalism)
 c
@@ -1199,7 +1200,7 @@ c
                         artxi = artxi - t12jpmassj*runix
                         artyi = artyi - t12jpmassj*runiy
                         artzi = artzi - t12jpmassj*runiz
-                        dqi = dqi + t12jpmassj*projv/cnormk
+                        dqi = dqi + t12jpmassj*projv
                      ENDIF
 c
 c--End if for inosink

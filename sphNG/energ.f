@@ -44,7 +44,6 @@ c
 c
 c--Initialisation
 c
-      cnormk05 = cnormk*0.5
       gamma1 = gamma - 1.
 c
 c--pdv term is stored in dvxyzu(4,ipart) in forcei to use memory efficiently
@@ -118,18 +117,18 @@ c
 c  a) pdv term first
 c
             IF (iexpan.EQ.0) THEN
-               dvxyzu(4,ipart) = dvxyzu(4,ipart)+cnormk*pdv*pr(ipart)/
+               dvxyzu(4,ipart) = dvxyzu(4,ipart)+pdv*pr(ipart)/
      &              trho(ipart)**2
 
             ELSE
-               dvxyzu(4,ipart) = dvxyzu(4,ipart)+cnormk*pdv*pr(ipart)/
+               dvxyzu(4,ipart) = dvxyzu(4,ipart)+pdv*pr(ipart)/
      &              trho(ipart)**2 - vxyzu(4,ipart)*dqexp*xfac
             ENDIF
 c
 c  b) Shock dissipation if appropriate
 c
             IF (ichoc.NE.0) THEN
-               dvxyzu(4,ipart) = dvxyzu(4,ipart) + cnormk05*dq(ipart)
+               dvxyzu(4,ipart) = dvxyzu(4,ipart) + 0.5*dq(ipart)
             ENDIF
 
 c
@@ -162,7 +161,7 @@ c  a) Shock dissipation
 c
       ELSEIF (ichoc.NE.0) THEN
           dvxyzu(4,ipart) = vxyzu(4,ipart)*gamma1*dq(ipart)*
-     &        trho(ipart)*cnormk05/pr(ipart) - pr(ipart)*dqexp*xfac
+     &        trho(ipart)*0.5/pr(ipart) - pr(ipart)*dqexp*xfac
       ENDIF
 
       RETURN

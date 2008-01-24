@@ -575,7 +575,9 @@ c--skip current/div B
 c--read artificial resistivity parameter
                READ (idisk1, END=100) (alphaMM(isizealphaMM,i), 
      &              i=icount+1, icount+nmhd)
-               iread = read + 1
+               WRITE(*,*) 'alpha B read: first few = ',
+     &              alphaMM(isizealphaMM,icount+1:icount+min(10,nmhd))
+               iread = iread + 1
             ELSE
                IF (ifsvi.EQ.6) THEN
            WRITE(*,*) 'WARNING: resistivity parameter not found in dump'

@@ -116,9 +116,10 @@ c
                IF (imhd.EQ.idim) THEN
                   valfven2 = (Bxyz(1,i)*Bxyz(1,i) +  Bxyz(2,i)*Bxyz(2,i)
      &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
-c                  aux1 = max(alphaMM(1,i),alphaMM(2,i))*
-c     &                   sqrt(vsound(i)**2 + valfven2)
+                  aux1 = max(alphaMM(1,i),alphaMM(isizealphaMM,i))*
+     &                   sqrt(vsound(i)**2 + valfven2)
                ELSE
+                  valfven2 = 0.
                   aux1 = alphaMM(1,i)*vsound(i)
                ENDIF
                aux2 = xyzmh(5,i)*ABS(divvi)
@@ -147,6 +148,7 @@ c                  valfven2 = (Bxyz(1,i)*Bxyz(1,i) +  Bxyz(2,i)*Bxyz(2,i)
 c     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
                   aux1 = alpha*sqrt(vsound(i)**2 + valfven2)
                ELSE
+                  valfven2 = 0.
                   aux1 = alpha*vsound(i)
                ENDIF
                aux2 = xyzmh(5,i)*ABS(divvi)
@@ -157,7 +159,8 @@ c     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
                   aux2 = 0.0
                ENDIF
             ENDIF
-            denom = aux3 + vsound(i) + 1.2*(aux1 + aux2)
+            denom = aux3 + sqrt(vsound(i)**2 + valfven2)
+     &                   + 1.2*(aux1 + aux2)
             crstepi = Courant*xyzmh(5,i)/denom
             rmodcr = crstepi/(dt*isteps(i)/imaxstep)
             rmod = MIN(rmod, rmodcr)

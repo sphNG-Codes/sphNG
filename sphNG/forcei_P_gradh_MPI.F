@@ -227,7 +227,7 @@ C$OMP& shared(realtime,ekcle,encal,dedxyz,acc)
 C$OMP& shared(Bxyz,dBxyz,Bextxi,Bextyi,Bextzi,B2ext,divcurlB,Bevolxyz)
 C$OMP& shared(gravxyzstore,potenstore,varmhd,iupdated,listparents)
 C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug)
-C$OMP& shared(ivar,ijvar)
+C$OMP& shared(ivar,ijvar,Bextx,Bexty,Bextz)
 C$OMP& private(n,ipart,iparttree,stepsi)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(fxi,fyi,fzi,numneigh,hmin)
@@ -272,6 +272,11 @@ C$OMP DO SCHEDULE(runtime)
       DO n = nlst_in, nlst_tot
 c         ipart = listp(n)
          ipart = ivar(3,n)
+         
+         if (ipart.eq.0) then
+            print*,' ERROR : ipart= ',ipart
+            call quit
+         endif
 
 c         IF (ipart.GT.ntot) print *,iprocdebug,': D ',n
 
@@ -1365,13 +1370,13 @@ C$OMP ATOMIC
             ELSEIF (varmhd.EQ.'vecp') THEN
 C$OMP ATOMIC
                dBxyz(1,ipart)= dBxyz(1,ipart) +dBxideali*rho1i +dBxdissi
-c     &                       + (vyi*Bextz - vzi*Bexty)  ! add v x B_ext
+     &                       + (vyi*Bextz - vzi*Bexty)  ! add v x B_ext
 C$OMP ATOMIC
                dBxyz(2,ipart)= dBxyz(2,ipart) +dByideali*rho1i +dBydissi
-c     &                       + (vzi*Bextx - vxi*Bextz)  ! add v x B_ext
+     &                       + (vzi*Bextx - vxi*Bextz)  ! add v x B_ext
 C$OMP ATOMIC
                dBxyz(3,ipart)= dBxyz(3,ipart) +dBzideali*rho1i +dBzdissi
-c     &                       + (vxi*Bexty - vyi*Bextx)  ! add v x B_ext
+     &                       + (vxi*Bexty - vyi*Bextx)  ! add v x B_ext
             ELSE ! Euler potentials
 C$OMP ATOMIC
                dBxyz(1,ipart) = dBxyz(1,ipart) + dBxdissi

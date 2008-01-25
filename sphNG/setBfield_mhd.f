@@ -221,7 +221,7 @@ c
 c
 c--for vector potential with cartesian fields
 c  these should be entirely set as EXTERNAL fields (done below anyway)
-            IF (.FALSE.) THEN
+            IF (.TRUE.) THEN
             
             WRITE(*,*) 'Setting vector potential to zero '
             WRITE(*,*) '=> using external B fields'
@@ -426,7 +426,11 @@ c--spit out various information about the magnetic field we have set up
 c
       Bzero2 = Bzero**2
       valfven = SQRT(Bzero2/rhozero)
-      betazero = przero/(0.5*Bzero2)
+      IF (Bzero2.gt.0.) THEN
+         betazero = przero/(0.5*Bzero2)
+      ELSE
+         betazero = 0.
+      ENDIF
       WRITE(*,98009) valfven,betazero
 98009 FORMAT (' Alfven speed = ',1pe10.4,/,' Plasma beta  = ',1pe10.4)
 
@@ -448,8 +452,10 @@ c
 c
 c--calculate angle of uniform field to x axis
 c        
-      angle = ACOS(Bxzero/Bzero)*180.0/pi
-      WRITE (*,99010) angle
+      IF (Bzero.gt.tiny) THEN
+         angle = ACOS(Bxzero/Bzero)*180.0/pi
+         WRITE (*,99010) angle
+      ENDIF
 99010 FORMAT (' Angle between field and x axis = ',f7.3,' degrees')
 c
 c--spit out field strength in CGS units

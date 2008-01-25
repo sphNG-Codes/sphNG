@@ -1319,12 +1319,12 @@ c
 c--Set up compact list of neighbours within h_i and non-active neighbours
 c     within h_j
 c
-ccC$OMP CRITICAL (listcompact2)
+C$OMP CRITICAL (listcompact2)
          ncompact = ncompact + 1
          ncompacthere = ncompact
          icompacthere = icompact
          icompact = icompact + nneighlocal
-ccC$OMP END CRITICAL (listcompact2)
+C$OMP END CRITICAL (listcompact2)
          IF (icompacthere+nneighlocal.GT.icompactmax) THEN
             WRITE (*,*) 'ERROR - compact not large enough DI ',
      &           icompacthere, nneighlocal, icompactmax
@@ -1339,11 +1339,11 @@ ccC$OMP END CRITICAL (listcompact2)
             IF (.NOT.iscurrent(jpart) .AND. .NOT.iupdated(jpart) 
      &           .AND. jpart.LE.npart) THEN
                iupdated(jpart) = .TRUE.
-ccC$OMP FLUSH(iupdated)
-ccC$OMP CRITICAL (listupdated)
+C$OMP FLUSH(iupdated)
+C$OMP CRITICAL (listupdated)
                nlistupdated = nlistupdated + 1
                numberupdated = nlistupdated
-ccC$OMP END CRITICAL (listupdated)
+C$OMP END CRITICAL (listupdated)
                IF (numberupdated.GT.idim) THEN
                   WRITE (iprint,*) 'ERROR - numberupdated.GT.idim'
                   CALL quit
@@ -1672,11 +1672,11 @@ c
                         gradgammazi = dgammazi*term
                      ENDIF
                      term = gradgammayi - gradbetazi
-                     Bxyz(1,ipart) = term !+ Bextx
+                     Bxyz(1,ipart) = term + Bextx
                      term = gradalphazi - gradgammaxi
-                     Bxyz(2,ipart) = term !+ Bexty
+                     Bxyz(2,ipart) = term + Bexty
                      term = gradbetaxi - gradalphayi
-                     Bxyz(3,ipart) = term !+ Bextz
+                     Bxyz(3,ipart) = term + Bextz
                   ELSE
 c
 c--Euler potentials: B = grad alpha cross grad beta

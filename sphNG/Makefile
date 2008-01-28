@@ -45,8 +45,7 @@ FPPFLAGS=
 
 ifeq ($(SYSTEM), zen)
     ifeq ($(mpi), yes)
-#      FC= mpif77
-       FC= ifort -I/sw/sdev/intel-mpi/v3.0.021/x86_64/include64 
+      FC= mpif90
     else
        FC= ifort
     endif
@@ -57,10 +56,7 @@ ifeq ($(SYSTEM), zen)
         FFLAGS += -openmp
     endif
     ifeq ($(mpi), yes)
-        FFLAGS += -DMPI -L/sw/sdev/intel-mpi/v3.0.021/x86_64/lib64 -Xlinker -rpath \
-                 -Xlinker $libdir -Xlinker -rpath \
-                 -Xlinker /opt/intel/mpi-rt/3.0 -lmpi -lmpiif -lmpigi \
-                 -lrt -lpthread -ldl
+        FFLAGS += -DMPI
     endif
     ifeq ($(mpidebug), yes)
         FFLAGS += -DMPIDEBUG
@@ -402,7 +398,7 @@ updatedepends:
 #       command below greps for INCLUDE in all .f files, uses sed to exclude comment lines, cut to extract text between quotes
 #       then writes a dependency line for each .o file in Makefile format to the .depends file
 #	@echo updating .depends
-	@for x in *.[f,F]; do echo $${x/.[f,F]/.o}: `grep INCLUDE $$x | sed '/^[c,C,\!]/d' | cut -d\' -f 2` >> .depends; done
+	@for x in *.[f,F]; do echo $${x/.[f,F]/.o}: `grep INCLUDE $$x | sed '/^[c,C,\!]/d' | cut -d\' -f 2` | sed /mpif.h/d >> .depends; done
 	@diff --brief .dependsold .depends || ${MAKE} ${MAKECMDGOALS}
 	@rm -f .dependsold
 

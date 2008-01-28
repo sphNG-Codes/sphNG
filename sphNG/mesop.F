@@ -8,6 +8,11 @@ c************************************************************
 
       INCLUDE 'idim'
 
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+#endif
+
       INCLUDE 'COMMONS/tming'
       INCLUDE 'COMMONS/stop'
       INCLUDE 'COMMONS/logun'
@@ -28,6 +33,8 @@ c************************************************************
       CHARACTER*7 where
       CHARACTER*5 dummy5
       CHARACTER*3 dummy3
+
+      REAL*4 rhomaxsynclocal, rhomax, rhomaxlocal
 
       DATA where/'mesop'/
 c
@@ -171,9 +178,15 @@ c              find nearest power of two to the change ratio required
             DO j = 1, npart
                IF (iphase(j).NE.-1) THEN
                   ibin = INT(LOG10(REAL(isteps(j)))/xlog2+0.5)
-                  IF (ibin.GT.nbinmax) THEN
+                  IF (ibin.GT.nbinmax .OR. ibin.GT.30) THEN
                      WRITE (*,*) 'ERROR - ibin.GT.nbinmax mes'
+#ifdef MPI
+                     IF (iproc.EQ.0) THEN
+#endif
                      WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax mes'
+#ifdef MPI
+                     ENDIF
+#endif
                      CALL quit
                   ENDIF
                   nlstbins(ibin) = nlstbins(ibin) + 1
@@ -212,11 +225,23 @@ c
 c
 c--Erase message file
 c
- 400  IF (iwait.EQ.0) THEN
+ 400  CONTINUE
+#ifdef MPI
+      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+      IF (iproc.NE.0) THEN
+         CLOSE (idisk2)
+      ENDIF
+      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+      IF (iproc.EQ.0) THEN
+#endif
+      IF (iwait.EQ.0) THEN
          CLOSE (idisk2, STATUS='delete')
       ELSE
          CLOSE (idisk2)
       ENDIF
+#ifdef MPI
+      ENDIF
+#endif
 c
 c--Automatic change of syncronisation time using local free-fall time
 c
@@ -226,20 +251,40 @@ c
       IF (string(i)(1:4).EQ.'auto') THEN
          READ (string(i)(6:20),*) fffac
          WRITE (*, 99016) fffac
+#ifdef MPI
+         IF (iproc.EQ.0) THEN
+#endif
          WRITE (iprint, 99016) fffac
+#ifdef MPI
+         ENDIF
+#endif
 99016    FORMAT (' Synctcontrol : ', 1PE12.5)
 
          ipower = 0
-         rhomax = 0.
+         rhomaxlocal = 0.
          DO j = 1, npart
-            IF (rho(j).GT.rhomax) rhomax = rho(j)
+            IF (rho(j).GT.rhomaxlocal) rhomaxlocal = rho(j)
          END DO
+
+#ifdef MPI
+         CALL MPI_ALLREDUCE(rhomaxlocal, rhomax, 1, MPI_REAL4,
+     &        MPI_MAX, MPI_COMM_WORLD, ierr)
+#else
+         rhomax = rhomaxlocal
+#endif
+
          freefalltime = SQRT((3 * pi) / (32 * rhomax))
          timemax = fffac*freefalltime
          IF (dtmax.GT.timemax) THEN
             ipower = - (INT(LOG10(dtmax/timemax)/0.30103) + 1)
             WRITE (*, 99009) ipower, freefalltime, rhomax
+#ifdef MPI
+            IF (iproc.EQ.0) THEN
+#endif
             WRITE (iprint, 99009) ipower, fffac, freefalltime, rhomax
+#ifdef MPI
+            ENDIF
+#endif
 99009       FORMAT (' Synct autochange : ', I2,' fffac ',1PE12.5,
      &        ' free-fall ',1PE12.5,' rhomax ',1PE12.5)
 
@@ -291,9 +336,15 @@ c
             DO j = 1, npart
                IF (iphase(j).NE.-1) THEN
                   ibin = INT(LOG10(REAL(isteps(j)))/xlog2+0.5)
-                  IF (ibin.GT.nbinmax) THEN
+                  IF (ibin.GT.nbinmax .OR. ibin.GT.30) THEN
                      WRITE (*,*) 'ERROR - ibin.GT.nbinmax mes'
+#ifdef MPI
+                     IF (iproc.EQ.0) THEN
+#endif
                      WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax mes'
+#ifdef MPI
+                     ENDIF
+#endif
                      CALL quit
                   ENDIF
                   nlstbins(ibin) = nlstbins(ibin) + 1
@@ -319,10 +370,17 @@ c
 
          rhomaxsyncold = rhomaxsync
          ipower = 0
-         rhomaxsync = 0.
+         rhomaxsynclocal = 0.
          DO j = 1, npart
-            rhomaxsync = MAX(rhomaxsync, rho(j))
+            rhomaxsynclocal = MAX(rhomaxsynclocal, rho(j))
          END DO
+
+#ifdef MPI
+         CALL MPI_ALLREDUCE(rhomaxsynclocal, rhomaxsync, 1, MPI_REAL4,
+     &        MPI_MAX, MPI_COMM_WORLD, ierr)
+#else
+         rhomaxsync = rhomaxsynclocal
+#endif
 
          freefalltime = SQRT((3 * pi) / (32 * rhozero))
 
@@ -334,13 +392,25 @@ c
 
          WRITE (*, 99017) dtmaxsync, 10**contrast, 
      &        rhomaxsync/rhomaxsyncold, ipower
+#ifdef MPI
+         IF (iproc.EQ.0) THEN
+#endif
          WRITE (iprint, 99017) dtmaxsync, 10**contrast, 
      &        rhomaxsync/rhomaxsyncold, ipower
+#ifdef MPI
+         ENDIF
+#endif
 99017    FORMAT (' Dtmaxsync : ', 1PE12.5,' contrast ',1PE12.5,
      &        ' ratio ',1PE12.5,' ipower ',I2)
 
          IF (ipower.GE.0 .AND. tstep/60.0.GT.720.0) THEN
+#ifdef MPI
+         IF (iproc.EQ.0) THEN
+#endif
             WRITE (iprint,99034) tstep/60.0
+#ifdef MPI
+         ENDIF
+#endif
             WRITE (*,99034) tstep/60.0
 99034       FORMAT('  Synct autochange since time ',1PE12.5)
             ipower = -1
@@ -349,7 +419,13 @@ c
             tempvar = gt/(2.0*dtmax)
             diff = tempvar-INT(tempvar)
             IF (diff.GT.0.25 .AND. diff.LT.0.75) THEN
+#ifdef MPI
+               IF (iproc.EQ.0) THEN
+#endif
                WRITE (iprint,99035) diff
+#ifdef MPI
+               ENDIF
+#endif
                WRITE (*,99035) diff
 99035          FORMAT('  Synct autochange attempt, but sync ',1PE12.5)
                ipower = 0
@@ -363,7 +439,13 @@ c
 
             IF (ipower.LT.0) THEN
                WRITE (*, 99021) ipower
+#ifdef MPI
+               IF (iproc.EQ.0) THEN
+#endif
                WRITE (iprint, 99021) ipower
+#ifdef MPI
+               ENDIF
+#endif
 99021          FORMAT ('  Synct autochange : ', I2)
                dtmax = dtmax/FLOAT(ifactor)
                istepmin = MIN(istepmin, imaxnew)
@@ -388,7 +470,13 @@ c
                   GOTO 500
                ENDIF
                WRITE (*, 99021) ipower
+#ifdef MPI
+               IF (iproc.EQ.0) THEN
+#endif
                WRITE (iprint, 99021) ipower
+#ifdef MPI
+               ENDIF
+#endif
 
                dtmax = dtmax*FLOAT(ifactor)
                istepmin = istepmin/ifactor
@@ -404,11 +492,23 @@ c
                END DO
             ELSE
                IF (dtmax*FLOAT(ifactor).GT.dtmaxsync) THEN
+#ifdef MPI
+                  IF (iproc.EQ.0) THEN
+#endif
                   WRITE (iprint,99040)
+#ifdef MPI
+                  ENDIF
+#endif
                   WRITE (*,99040)             
 99040       FORMAT('  Synct autochange attempt, but dtmaxsync reached')
                ELSEIF (tstep/60.*FLOAT(ifactor).GT.720.) THEN
+#ifdef MPI
+                  IF (iproc.EQ.0) THEN
+#endif
                   WRITE (iprint,99041)
+#ifdef MPI
+                  ENDIF
+#endif
                   WRITE (*,99041)             
 99041       FORMAT('  Synct autochange attempt, but tstepmax reached')
                ENDIF
@@ -423,9 +523,15 @@ c
             DO j = 1, npart
                IF (iphase(j).NE.-1) THEN
                   ibin = INT(LOG10(REAL(isteps(j)))/xlog2+0.5)
-                  IF (ibin.GT.nbinmax) THEN
+                  IF (ibin.GT.nbinmax .OR. ibin.GT.30) THEN
                      WRITE (*,*) 'ERROR - ibin.GT.nbinmax mes'
+#ifdef MPI
+                     IF (iproc.EQ.0) THEN
+#endif
                      WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax mes'
+#ifdef MPI
+                     ENDIF
+#endif
                      CALL quit
                   ENDIF
                   nlstbins(ibin) = nlstbins(ibin) + 1

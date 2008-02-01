@@ -165,6 +165,12 @@ c      IF (nlst_end.GT.nptmass) THEN
             CALL getused(tdens2)
             tdens = tdens + (tdens2 - tdens1)
          ENDIF
+
+c         IF (encal.EQ.'v' .OR. encal.EQ.'i') THEN
+c            CALL montecarloRT(nlst_in,nlst_end,nlstall,llist,npart,
+c     &         xyzmh,vxyzu,dumrho, dt*itime/imaxstep+gt)
+c         END IF
+
 #ifdef MPI
 #else
 c      ENDIF

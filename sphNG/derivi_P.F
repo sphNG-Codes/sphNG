@@ -950,7 +950,7 @@ c           CALL ASS(nlst_in,nlst_end,nlstall,llist,dt,itime,npart,
 c     &        xyzmh,vxyzu,ekcle,dumrho,dedxyz)
          ELSE
 c            CALL montecarloRT(nlst_in,nlst_end,nlstall,llist,npart,
-c     &         xyzmh,vxyzu,dumrho)
+c     &         xyzmh,vxyzu,dumrho, dt*itime/imaxstep+gt)
          ENDIF
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)

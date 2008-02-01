@@ -43,7 +43,7 @@ c
 c   
 #ifdef MPI
       CALL MPI_ALLREDUCE(nptmass, nptmass_all, 1, MPI_INTEGER, 
-     &                   MPI_SUM, MPI_COMM_ID, ierr)
+     &                   MPI_SUM, MPI_COMM_WORLD, ierr)
 #else
       nptmass_all = nptmass
 #endif

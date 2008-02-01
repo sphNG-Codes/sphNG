@@ -236,7 +236,7 @@ SRCRT= ass.f newgsimpl_P5_sor.f quartic_gs1t.f derivi_P_RT.f
 
 # these are the extra routines required for Monte-Carlo radiative transfer
         
-SRCTORUS= montecarloRT.f
+SRCTORUS= montecarloRT.F
 
 # timestepping routine
 

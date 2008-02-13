@@ -873,7 +873,7 @@ c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
 
 c============================================================
 
-
+#ifdef MPI
       SUBROUTINE split(npart,n1,icount,nhydro,isteps,iphase,xyzmh,
      &     vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,iunique)
 c************************************************************
@@ -890,10 +890,8 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-#ifdef MPI
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpi'
-#endif
 
       INTEGER*1 iphase(idim)
       INTEGER*8 iunique(idim)
@@ -1544,3 +1542,5 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
 
       RETURN
       END
+#endif
+

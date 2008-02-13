@@ -1,16 +1,13 @@
       SUBROUTINE montecarloRT(nlst_in,nlst_end,nlstall,list,npart,
      &         xyzmh,vxyzu,trho,time)
       
+      IMPLICIT NONE
+
       INCLUDE 'idim'
 #ifdef MPI
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpi'
-#endif
-
-      DIMENSION xyzmh(5,idim)
-      DIMENSION vxyzu(4,idim)
-      REAL*4 trho(idim)
-      DIMENSION list(idim)
+#endif      
 
       INCLUDE 'COMMONS/call'
       INCLUDE 'COMMONS/logun'
@@ -22,8 +19,17 @@
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/physcon'
 
-      DIMENSION temperature(idim)
-      
+! Arguments
+      INTEGER, INTENT(IN) :: npart
+      INTEGER :: nlst_in,nlst_end,nlstall, list(idim)
+      REAL ::  xyzmh(5,idim)
+      REAL, INTENT(INOUT) ::  vxyzu(4,idim)
+      REAL*4 trho(idim)
+      REAL, INTENT(IN) :: time
+
+! Local variables
+      INTEGER :: i, itorus, igas, iterate
+      REAL :: temperature(idim), gaspartmass, cvold, cvnew, getcv
       LOGICAL, save :: ifirst = .true.
 
 ! Time interval between torus calls

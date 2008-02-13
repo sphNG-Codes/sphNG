@@ -1,1 +1,3 @@
+      REAL solarm, solarr, earthm, earthr, au, pc, gmw
+
       COMMON /astrcon/ solarm, solarr, earthm, earthr, au, pc, gmw

@@ -1,1 +1,4 @@
+      REAL gg, c, Rg, pi, radconst, cgsmu0
+
       COMMON /physcon/gg, c, Rg, pi, radconst, cgsmu0
+

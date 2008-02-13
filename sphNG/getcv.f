@@ -1,6 +1,6 @@
-      FUNCTION GETCV(rho2,u2)
+      REAL FUNCTION GETCV(rho2,u2)
 
-!      IMPLICIT NONE
+      IMPLICIT NONE
 
       REAL*4 rho2
       REAL rho,u2,u,lrho,lu,rhoval1,rhoval2,uval1,uval2

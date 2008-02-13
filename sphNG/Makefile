@@ -43,6 +43,35 @@ FPPFLAGS=
 #
 ##############################################################
 
+ifeq ($(SYSTEM), ompi)
+    FC= mpif90
+    FFLAGS= -DMPI -O3 -march=pentium4 -mtune=pentium4 -malign-double -Wno=155
+    ifeq ($(mpidebug), yes)
+        FFLAGS += -DMPIDEBUG
+    endif
+    DBLFLAG= -r8
+    DEBUGFLAG= -g -ftrace=full -fbounds-check
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -fendian='BIG'
+    ENDIANFLAGLITTLE= -fendian='LITTLE'
+    ZZFILE= zzibm.f
+endif
+
+ifeq ($(SYSTEM), intelmac)
+    ifeq ($(PROFILE), yes)
+      FFLAGS= -pg
+    else
+      FFLAGS=
+    endif
+    FC= g95
+    DBLFLAG= -r8
+    DEBUGFLAG= -g -ftrace=full -fbounds-check
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -fendian='BIG'
+    ENDIANFLAGLITTLE= -fendian='LITTLE'
+    ZZFILE= zzibm.f
+endif
+
 ifeq ($(SYSTEM), zen)
     ifeq ($(mpi), yes)
       FC= mpif90
@@ -221,10 +250,15 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 
 # these are the sources required for the gradh code to compile
 
+ifeq (${mpi},yes)
 SRCGRADH= derivi_P_gradh_MPI.F forcei_P_gradh_MPI.F  \
         densityiterate_gradh_MPI.F hcalc_gradh.f 
 	#divBclean_mhd.f divBdiffuse.f divBiterate.f \
 	#directsum_poisson_vec_mhd_clean.f 
+else
+SRCGRADH= derivi_P_gradh.f forcei_P_gradh.F  \
+        densityiterate_gradh.F hcalc_gradh.f 
+endif
 
 # these are the sources required for the non-gradh code to compile
         
@@ -251,7 +285,7 @@ TOBJRK = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o)
 TOBJRT = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o)
 TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o)
 TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o)
-TOBJTORUS = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCTORUS:.f=.o)
+TOBJTORUS = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCTORUS:.f=.o)
 
 OBJECTS = $(TOBJECTS:.F=.o) 
 OBJLF = $(TOBJLF:.F=.o) 
@@ -329,7 +363,7 @@ sphtorus: $(OBJTORUS)
 	@echo ""
 	@echo "This is the TORUS code (Leapfrog by default)"
 	@echo ""
-	$(FC) $(FFLAGS) $(TORUSLIB) -o $@ $(OBJTORUS)
+	$(FC) $(FFLAGS) -o $@ $(OBJTORUS) -L${TORUS_LIB}
 
 util: binary convert ptmass massvsangmom
 

@@ -167,8 +167,8 @@ c      IF (nlst_end.GT.nptmass) THEN
          ENDIF
 
 c         IF (encal.EQ.'v' .OR. encal.EQ.'i') THEN
-c            CALL montecarloRT(nlst_in,nlst_end,nlstall,llist,npart,
-c     &         xyzmh,vxyzu,dumrho, dt*itime/imaxstep+gt)
+c            CALL montecarloRT(npart, xyzmh, vxyzu, dumrho, 
+c     &                        dt*itime/imaxstep+gt)
 c         END IF
 
 #ifdef MPI

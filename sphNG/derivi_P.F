@@ -949,7 +949,7 @@ c
 c           CALL ASS(nlst_in,nlst_end,nlstall,llist,dt,itime,npart,
 c     &        xyzmh,vxyzu,ekcle,dumrho,dedxyz)
          ELSE
-c            CALL montecarloRT(nlst_in,nlst_end,nlstall,llist,npart,
+c            CALL montecarloRT(npart,
 c     &         xyzmh,vxyzu,dumrho, dt*itime/imaxstep+gt)
          ENDIF
 

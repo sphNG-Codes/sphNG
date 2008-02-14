@@ -1,5 +1,4 @@
-      SUBROUTINE montecarloRT(nlst_in,nlst_end,nlstall,list,npart,
-     &         xyzmh,vxyzu,trho,time)
+      SUBROUTINE montecarloRT(npart, xyzmh,vxyzu,trho,time)
       
       IMPLICIT NONE
 
@@ -21,7 +20,6 @@
 
 ! Arguments
       INTEGER, INTENT(IN) :: npart
-      INTEGER :: nlst_in,nlst_end,nlstall, list(idim)
       REAL ::  xyzmh(5,idim)
       REAL, INTENT(INOUT) ::  vxyzu(4,idim)
       REAL*4 trho(idim)
@@ -65,7 +63,7 @@ c
       IF ( (nptmass_all > lastNptmass .or. 
      &     time-lastRadTime >= radTimeStep) .and. nptmass_all > 0 ) THEN
 
-        WRITE (*,*) 'Monte Carlo, icall ',icall,nlstall,nlst_end
+        WRITE (*,*) 'Monte Carlo, icall ',icall
         WRITE (*,*) 'nptmass, lastNptmass, time, lastRadTime=', 
      &               nptmass_all, lastNptmass, time, lastRadTime
         lastRadTime = time

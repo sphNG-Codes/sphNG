@@ -5,7 +5,6 @@
       INCLUDE 'idim'
 #ifdef MPI
       INCLUDE 'mpif.h'
-      INCLUDE 'COMMONS/mpi'
 #endif      
 
       INCLUDE 'COMMONS/call'
@@ -20,13 +19,13 @@
 
 ! Arguments
       INTEGER, INTENT(IN) :: npart
-      REAL ::  xyzmh(5,idim)
-      REAL, INTENT(INOUT) ::  vxyzu(4,idim)
-      REAL*4 trho(idim)
-      REAL, INTENT(IN) :: time
+      REAL, INTENT(IN)    :: xyzmh(5,idim)
+      REAL, INTENT(INOUT) :: vxyzu(4,idim)
+      REAL*4, INTENT(IN)  :: trho(idim)
+      REAL, INTENT(IN)    :: time
 
 ! Local variables
-      INTEGER :: i, itorus, igas, iterate
+      INTEGER :: i, itorus, igas, iterate, ierr
       REAL :: temperature(idim), gaspartmass, cvold, cvnew, getcv
       LOGICAL, save :: ifirst = .true.
 

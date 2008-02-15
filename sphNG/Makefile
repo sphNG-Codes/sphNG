@@ -242,7 +242,8 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
 	newrun.f options.f phoenix.f phoenix2.f \
 	place.f potential.f preset.F \
-	prout.F ran1.f rdump.F reduce.f save.f setup_torus.f \
+	prout.F ran1.f rdump.F reduce.f \
+        resistivity.f save.f setup_torus.f \
         scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f thermeq.f \
 	toten.f treef_P.F unifdis.f unit.f \
@@ -250,15 +251,10 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 
 # these are the sources required for the gradh code to compile
 
-ifeq (${mpi},yes)
 SRCGRADH= derivi_P_gradh_MPI.F forcei_P_gradh_MPI.F  \
         densityiterate_gradh_MPI.F hcalc_gradh.f 
 	#divBclean_mhd.f divBdiffuse.f divBiterate.f \
 	#directsum_poisson_vec_mhd_clean.f 
-else
-SRCGRADH= derivi_P_gradh.f forcei_P_gradh.F  \
-        densityiterate_gradh.F hcalc_gradh.f 
-endif
 
 # these are the sources required for the non-gradh code to compile
         

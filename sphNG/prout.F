@@ -457,17 +457,23 @@ c
      &           ' cen:', 1PE14.5, /,
      &           ' visc. switch  min :', 1PE14.5, ' max:', 1PE14.5, /,
      &           ' temperature  mean :', 1PE14.5, ' max:', 1PE14.5,
-     &           ' cen:', 1PE14.5, /)
+     &           ' cen:', 1PE14.5)
          IF (imhd.EQ.idim) THEN
             WRITE (iprint, 99206) Bmin, Bmean, Bmax
-99206       FORMAT (' mag field    min  :', 1PE14.5, 'mean:', 1PE14.5,
-     &              ' max:', 1PE14.5,/)         
+99206       FORMAT (' mag field    min  :', 1PE14.5, '  av:', 1PE14.5,
+     &              ' max:', 1PE14.5)         
+            IF (iresist.GE.2) THEN
+               WRITE (iprint, 99207) etamin, etaav, etamax
+99207          FORMAT (' eta resist   min  :', 1PE14.5, '  av:',1PE14.5,
+     &              ' max:', 1PE14.5)
+            ENDIF  
          ENDIF
          IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
             WRITE (iprint, 99106, ERR=100)trmean1tot,trmax1tot,trcen1tot
 99106       FORMAT (' temper. rad. mean :', 1PE14.5, ' max:', 
-     &           1PE14.5, ' cen:', 1PE14.5, /)
+     &           1PE14.5, ' cen:', 1PE14.5)
          ENDIF
+         WRITE (iprint,"(/)")
 c
 c--Object no 2
 c

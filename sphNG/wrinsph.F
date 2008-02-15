@@ -111,6 +111,8 @@ c
       IF (imhd.EQ.idim) THEN
          WRITE (iterm, 87002) ifsvi,alpha,beta,alphamin(2),alphamax(2)
 87002    FORMAT(2X,I2,4(1X,1F6.3),' Artificial Viscosity & Resistivity')
+         WRITE (iterm, 87003) iresist, etamhd
+87003   FORMAT(2X,I2,1X,1F6.3,'  Real Resistivity (1=const,2=func),eta')
       ELSE
          WRITE (iterm, 88002) ifsvi,alpha,beta
 88002    FORMAT(2X,I2,1X,1F6.3,1X,1F6.3,'  Artificial Viscosity')

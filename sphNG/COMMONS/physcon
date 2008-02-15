@@ -1,4 +1,5 @@
-      REAL gg, c, Rg, pi, radconst, cgsmu0
-
+      REAL*8 gg, c, Rg, pi, radconst, cgsmu0
+      REAL*8 qe, ccmu0, ratiomptome, sigmaterm
+      
       COMMON /physcon/gg, c, Rg, pi, radconst, cgsmu0
-
+      COMMON /physcon2/qe, ccmu0, ratiomptome, sigmaterm

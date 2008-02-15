@@ -81,6 +81,8 @@ c
       DATA where/'forcei'/
       DATA epsil/1.E-2/
       DATA epsil2/1.E-4/
+      
+      EXTERNAL etafunc
 c
 c--Allow for tracing flow
 c
@@ -227,7 +229,7 @@ C$OMP& shared(realtime,ekcle,encal,dedxyz,acc)
 C$OMP& shared(Bxyz,dBxyz,Bextxi,Bextyi,Bextzi,B2ext,divcurlB,Bevolxyz)
 C$OMP& shared(gravxyzstore,potenstore,varmhd,iupdated,listparents)
 C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug)
-C$OMP& shared(ivar,ijvar,Bextx,Bexty,Bextz)
+C$OMP& shared(ivar,ijvar,Bextx,Bexty,Bextz,etamhd,iresist)
 C$OMP& private(n,ipart,iparttree,stepsi)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(fxi,fyi,fzi,numneigh,hmin)
@@ -263,7 +265,7 @@ C$OMP& private(fanisox,fanisoy,fanisoz,forcex,forcey,forcez,xmasi)
 C$OMP& private(t12jpmassi,t12jpmassj,r32grav,forcexi,forceyi,forcezi)
 C$OMP& private(Bevoldotdv,termBpmi,termBpmj,termetapmj,termetapmi)
 C$OMP& private(dBxdissj,dBydissj,dBzdissj)
-C$OMP& private(ioffset)
+C$OMP& private(ioffset,etai,etaj,ui,uj)
 C$OMP& reduction(+:ioutmin,ioutsup,ioutinf)
 C$OMP& reduction(MIN:inmin,inminsy)
 C$OMP& reduction(MAX:inmax,inmaxsy)
@@ -274,7 +276,7 @@ c         ipart = listp(n)
          ipart = ivar(3,n)
          
          if (ipart.eq.0) then
-            print*,' ERROR : ipart= ',ipart
+            print*,' ERROR : ipart= ',ipart,'n = ',n,nlst_in
             call quit
          endif
 
@@ -334,8 +336,15 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
          vxi = vxyzu(1,ipart)
          vyi = vxyzu(2,ipart)
          vzi = vxyzu(3,ipart)
+         ui = vxyzu(4,ipart)
          gradhi = gradhs(1,ipart)
          gradsofti = gradhs(2,ipart)
+
+         rhoi = trho(ipart) ! set rhoi here so we can define eta
+         rho1i = 1./rhoi
+         sqrtrho1i = SQRT(rho1i)
+         rho21i = rho1i*rho1i         
+
          IF (imhd.EQ.idim) THEN
             Bxi = Bxyz(1,ipart)
             Byi = Bxyz(2,ipart)
@@ -369,6 +378,13 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
             fanisoxi = 0.
             fanisoyi = 0.
             fanisozi = 0.
+            IF (iresist.EQ.2) THEN
+               etai = etafunc(rhoi,ui)
+            ELSEIF (iresist.EQ.1) THEN
+               etai = etamhd
+            ELSE
+               etai = 0.
+            ENDIF
          ELSE
             B2i = 0.
             B2j = 0.
@@ -397,11 +413,6 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
          ddvyi = 0.
          ddvzi = 0.
          ddvscalar = 0.
-
-         rhoi = trho(ipart)
-         rho1i = 1./rhoi
-         sqrtrho1i = SQRT(rho1i)
-         rho21i = rho1i*rho1i         
 c
 c--note that pressure term includes isotropic magnetic pressure         
 c         pro2i = (pr(ipart) - pext)*rho21i
@@ -555,6 +566,7 @@ c
             dvx = vxi - vxyzu(1,j)
             dvy = vyi - vxyzu(2,j)
             dvz = vzi - vxyzu(3,j)
+            uj = vxyzu(4,j)
             projv = dvx*runix + dvy*runiy + dvz*runiz
 
             v2i = rij2*hi21
@@ -587,6 +599,13 @@ c
                projBext = Bextxi*runix + Bextyi*runiy + Bextzi*runiz
 c               projBrho2i = (projBi - projBext)*rho21i
 c               projBrho2j = (projBj - projBext)*rho1j*rho1j
+               IF (iresist.EQ.2) THEN
+                  etaj = etafunc(rhoj,uj)
+               ELSEIF (iresist.EQ.1) THEN
+                  etaj = etamhd
+               ELSE
+                  etaj = 0.
+               ENDIF
             ENDIF
 c
 c--Determine whether or not there is a sink particle between i and j
@@ -773,11 +792,11 @@ c
 c-- Real constant resistivity
 c
 c        !times rhoi below
-                           termeta = etamhd*grkern*rho1j*rho1i
+                           termeta = (etai+etaj)*grkern*rho1j*rho1i
                            termetapmj = termeta*pmassj
-                           dBxdissi = dBxdissi + termetapmj*2.*dBx
-                           dBydissi = dBydissi + termetapmj*2.*dBy
-                           dBzdissi = dBzdissi + termetapmj*2.*dBz
+                           dBxdissi = dBxdissi + termetapmj*dBx
+                           dBydissi = dBydissi + termetapmj*dBy
+                           dBzdissi = dBzdissi + termetapmj*dBz
 
 c                        dBxdissi = dBxdissi + termetapmj*
 c     &                             (5.*runix*projdB-3.*dBx)
@@ -891,7 +910,7 @@ c
 c-- Real constant resistivity
 c
 c        !times rhoi below
-                           termetapmi = termeta*pmassi*2.
+                           termetapmi = termeta*pmassi
                            dBxdissj = dBxdissj + termetapmi*dBx
                            dBydissj = dBydissj + termetapmi*dBy
                            dBzdissj = dBzdissj + termetapmi*dBz
@@ -1145,10 +1164,11 @@ c
 c--Real constant resistivity
 c
 c        !times rhoi below
-                              termeta = etamhd*pmassj*grkern*rho1j*rho1i
-                              dBxdissi = dBxdissi + termeta*2.*dBx
-                              dBydissi = dBydissi + termeta*2.*dBy
-                              dBzdissi = dBzdissi + termeta*2.*dBz
+                              termeta = (etai+etaj)*
+     &                                  pmassj*grkern*rho1j*rho1i
+                              dBxdissi = dBxdissi + termeta*dBx
+                              dBydissi = dBydissi + termeta*dBy
+                              dBzdissi = dBzdissi + termeta*dBz
 
 c                           dBxdissi = dBxdissi + termeta*
 c     &                             (5.*runix*projdB-3.*dBx)

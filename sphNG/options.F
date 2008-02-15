@@ -127,6 +127,7 @@ c
       READ (iterm, *) igphi
       IF (imhd.EQ.idim) THEN
          READ (iterm, *) ifsvi, alpha, beta, alphamin(2), alphamax(2)
+         READ (iterm, *) iresist,etamhd
       ELSE
          READ (iterm, *) ifsvi, alpha, beta
 c      IF (ifsvi.EQ.6) THEN

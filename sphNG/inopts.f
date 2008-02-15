@@ -50,6 +50,10 @@ c
       ELSE
          READ (iterm, *) ifsvi,alpha,beta
       ENDIF
+c--NB: we always read resistivity options from inspho, even
+c  if doing a hydro run, so that all inspho's are compatible
+c  (and should contain this line)      
+      READ (iterm, *) iresist,etamhd
       READ (iterm, *) ifcor
       READ (iterm, *) ichoc
       READ (iterm, *) iener

@@ -1,1 +1,10 @@
-      COMMON /dissi / damp
+c
+c     damp is the fractional damping for artificial damping
+c     of velocities ie. v = v + dt*(f - damp*v)
+c
+c     etamhd is the value of resistivity (in code units)
+c     for constant physical resistivity
+c
+      REAL damp, etamhd
+
+      COMMON /dissi / damp, etamhd

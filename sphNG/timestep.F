@@ -40,11 +40,14 @@ c************************************************************
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/cylinder'
       INCLUDE 'COMMONS/tokamak'
+      INCLUDE 'COMMONS/dissi'
 
       xlog2 = 0.30103
       istepmin = imax
       istepmingasnew = imax
       istepmax = -1
+      istepeta = 0
+      etafac = 0.
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst,llist)
@@ -55,16 +58,17 @@ C$OMP& shared(alpha,beta,vsound,xlog2)
 C$OMP& shared(idtsyn,nearpt,nptlist)
 C$OMP& shared(iprint,nneigh,iphase)
 C$OMP& shared(iorig,nptmass,listpm,listrealpm,encal)
-C$OMP& shared(ifsvi,alphaMM,iptsoft,ptsoft)
+C$OMP& shared(ifsvi,alphaMM,iptsoft,ptsoft,iresist,etamhd)
 C$OMP& shared(iptmass,hacc,haccall,ptmcrit,radcrit)
 C$OMP& private(i,j,l,ll,xmindist,iptcur,rad2)
 C$OMP& private(divvi,aux1,aux2,aux3,denom,valfven2,rmodcool)
 C$OMP& private(crstepi,rmodcr,rmodvel,force2,rmod,vel2,coolstepi)
 C$OMP& private(stepi,ibin,istep2,irat,softrad,rad,omega,omega1,tcool)
-C$OMP& private(Bxi,Byi,Bzi,xi,yi,zi,dti,dteta,rmodeta)
+C$OMP& private(Bxi,Byi,Bzi,xi,yi,zi,dti,dteta,rmodeta,etai)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin)
 C$OMP& reduction(MIN:istepmingasnew)
+C$OMP& reduction(+:istepeta,etafac)
 c
 c--Compute new time steps for particles which have been advanced
 c
@@ -194,11 +198,33 @@ c
 c--Check resistive diffusion time
 c
          IF (imhd.EQ.idim) THEN
-            IF (iphase(i).EQ.0 .AND.etamhd.GT.tiny) THEN
-               dteta = xyzmh(5,i)**2/etamhd
-               rmodeta = dteta/(dt*isteps(i)/imaxstep)
-               IF (rmodeta.LT.rmod) print *,'dteta =', dteta,
-     &            rmod*(dt*isteps(i)/imaxstep)          
+            IF (iresist.EQ.2) THEN
+c           resistivity which is a function of density
+               IF (iphase(i).EQ.0) THEN
+                  etai = etafunc(rho(i),vxyzu(4,i))
+                  IF (etai.GT.tiny) THEN
+                     dteta = xyzmh(5,i)**2/etai
+                     rmodeta = dteta/(dt*isteps(i)/imaxstep)
+                     IF (rmodeta.LT.rmod) THEN
+                        istepeta = istepeta + 1
+                        etafac = etafac 
+     &                         + rmod*(dt*isteps(i)/imaxstep)/dteta
+                        rmod = MIN(rmod, rmodeta)
+                     ENDIF
+                  ENDIF        
+               ENDIF            
+            ELSEIF (iresist.EQ.1) THEN
+c           constant resistivity
+               IF (iphase(i).EQ.0 .AND.etamhd.GT.tiny) THEN
+                  dteta = xyzmh(5,i)**2/etamhd
+                  rmodeta = dteta/(dt*isteps(i)/imaxstep)
+                  IF (rmodeta.LT.rmod) THEN
+                     istepeta = istepeta + 1
+                     etafac = etafac 
+     &                      + rmod*(dt*isteps(i)/imaxstep)/dteta
+                     rmod = MIN(rmod, rmodeta)
+                  ENDIF
+               ENDIF
             ENDIF
          ENDIF
 c
@@ -310,6 +336,11 @@ C$OMP END PARALLEL
       istepmin = istepmintot
       istepmingasnew = istepmingastot
 #endif
+
+      IF (imhd.eq.idim .and. istepeta.GT.1) THEN
+         WRITE(*,*) 'WARNING: resistivity constraining dt on ',
+     &            istepeta,' parts by ratio ',etafac/real(istepeta)
+      ENDIF
 
       IF (istepmingasnew.NE.imax) istepmingas = istepmingasnew
       IF (istepmingas.LT.2) THEN

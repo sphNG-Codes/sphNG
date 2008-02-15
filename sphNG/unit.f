@@ -54,8 +54,8 @@ c      rhocrit = 2.e-13
       rhocrit = 1.e-13
 c      rhocrit = 1.e-12
 c      rhocrit = 1.e-16
-      gam = 1.4
-c      gam = 5./3.
+c      gam = 1.4
+      gam = 5./3.
 c
 c--Critical density for changing gamma from 1.4 to 1.1 for variable e.o.s.
 c     i.e. at 2000K assuming trans to 1.4 at 10K
@@ -87,7 +87,7 @@ c      rhocrit3 = 1.0e-12
 c
 c--****** For turning off 2nd collapse phase! ******
 c
-c      rhocrit2 = rhocrit3
+      rhocrit2 = rhocrit3
 c
 c
 c

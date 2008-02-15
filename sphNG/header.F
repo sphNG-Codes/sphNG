@@ -300,14 +300,27 @@ c
                WRITE(iprint,99214)            
             ELSEIF (varmhd.EQ.'eulr') THEN
                WRITE(iprint,99215)
-            ELSE
+            ELSEIF (varmhd.EQ.'vecp') THEN
                WRITE(iprint,99216)
+            ELSE
+               WRITE(iprint,99217)
             ENDIF
 99213       FORMAT(' Magnetic fields are ON, evolving B/rho',//)
 99214       FORMAT(' Magnetic fields are ON, evolving B',//)
 99215       FORMAT(' Magnetic fields are ON, using Euler potentials',//)
-99216       FORMAT(' WARNING: Magnetic fields are ON',
+99216       FORMAT(' Magnetic fields are ON, using vector potential',//)
+99217       FORMAT(' WARNING: Magnetic fields are ON',
      &             ', but unknown variable',//)
+     
+            IF (iresist.EQ.1) THEN
+               WRITE(iprint,99221) etamhd
+            ELSEIF (iresist.EQ.2) THEN
+               WRITE(iprint,99222)
+            ENDIF
+99221       FORMAT(' Physical resistivity ON, using constant eta =',
+     &             1PE12.3,//)
+99222       FORMAT(' Physical resistivity ON, function of density',//)
+
          ENDIF
 c
 c--Print out massive point mass details

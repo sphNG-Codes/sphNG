@@ -19,7 +19,8 @@ c************************************************************
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/numpa'
-
+      REAL*8 etai
+      REAL*4 rhoi
 c
 c--Allow for tracing flow
 c
@@ -48,6 +49,9 @@ c
       Bmax = 0.
       valphaBmax = -1.
       valphaBmin = 10.0
+      etamax = 0.
+      etamin = 1.E30
+      etaav = 0.
       
 c
 c--Calculate quantities
@@ -136,6 +140,13 @@ c--magnetic resistivity parameter
 c
          valphaBmax = MAX(valphaBmax, alphaMM(2,i))
          valphaBmin = MIN(valphaBmin, alphaMM(2,i))
+         
+         IF (iresist.GE.2) THEN
+            etai = etafunc(rhoi,vxyzu(4,i))
+            etamax = MAX(etamax, etai)
+            etamin = MIN(etamin, etai)
+            etaav = etaav + etai
+         ENDIF
       ENDDO
       
       denom = 1./FLOAT(npart)
@@ -146,6 +157,7 @@ c
       curlBav = curlBav*denom
       div2curlBav = div2curlBav*denom
       Bmean = Bmean*denom
+      etaav = etaav*denom
       
       RETURN
       END

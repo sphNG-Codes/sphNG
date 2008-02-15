@@ -175,14 +175,14 @@ c--int*1, int*2, int*4, int*8
          WRITE (idisk1, ERR=100) number
       END DO
 c--Default real
-      number = 19
+      number = 20
       WRITE (idisk1, ERR=100) number
 
       WRITE (idisk1, ERR=100) gt, dtmax, gamma, rhozero, RK2,
      &     escaptot, tkintot, tgravtot, ttermtot, 
      &     anglostxtot, anglostytot, anglostztot,
      &     specangtot, ptmassintot, tmagtot, Bextx, Bexty, Bextz,
-     &     hzero
+     &     hzero,uzero_n2
 c--real*4
       number = 0
       WRITE (idisk1, ERR=100) number

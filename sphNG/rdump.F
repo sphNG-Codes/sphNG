@@ -57,6 +57,8 @@ c      INCLUDE 'COMMONS/torq'
       INTEGER*8 number8
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
       DIMENSION Bxyz(3,imhd)
+      PARAMETER (idimhead = 20)
+      DIMENSION rheader(idimhead)
 
       DATA icall/2/
       DATA where/'rdump'/
@@ -132,38 +134,51 @@ c--Default real
 c--need to read hzero for problems which utilise 
 c  the monaghan-style external boundary force
 c  D.Price 14.5.07
-
-      IF (number.GE.19) THEN
-         READ (idisk1, END=100) gt, dtmaxdp, gamma, rhozero, RK2,
-     &        escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
-     &        specang, ptmassin, tmag, Bextx, Bexty, Bextz, hzero
-
-         WRITE(*,*) ' read hzero = ',hzero
+      READ (idisk1, END=100) (rheader(i),i=1,min(number,idimhead))
+      gt = rheader(1)
+      dtmaxdp = rheader(2)
+      gamma = rheader(3)
+      rhozero = rheader(4)
+      RK2 = rheader(5)
+      escap = rheader(6)
+      tkin = rheader(7)
+      tgrav = rheader(8)
+      tterm = rheader(9)
+      anglostx = rheader(10)
+      anglosty = rheader(11)
+      anglostz = rheader(12)
+      specang = rheader(13)
+      ptmassin = rheader(14)
+      IF (imhd.EQ.idim .and. number.GE.18) THEN
+         tmag = rheader(15)
+         Bextx = rheader(16)
+         Bexty = rheader(17)
+         Bextz = rheader(18)
+         WRITE(*,*) 'External field found, Bext = ',Bextx,Bexty,Bextz
+      ELSE
          IF (imhd.EQ.idim) THEN
-            WRITE(*,*) 'External field found, Bext = ',Bextx,Bexty,Bextz
+            WRITE(*,*) 'WARNING: dump does not contain external field'
+            WRITE(*,*) '         (setting to zero)'
          ENDIF
+         Bextx = 0.
+         Bexty = 0.
+         Bextz = 0.
+      ENDIF
+      IF (number.GE.19) THEN
+         hzero = rheader(19)
+         WRITE(*,*) ' read hzero = ',hzero
       ELSE
          IF (iexf.EQ.10) THEN
             WRITE(*,*) 'ERROR: hzero not found in rdump'
             CALL quit
          ENDIF
-         IF (imhd.EQ.idim .AND. number.GE.18) THEN
-            READ (idisk1, END=100) gt, dtmaxdp, gamma, rhozero, RK2,
-     &        escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
-     &        specang, ptmassin, tmag, Bextx, Bexty, Bextz
-            WRITE(*,*) 'External field found, Bext = ',Bextx,Bexty,Bextz
-         ELSE
-            IF (imhd.EQ.idim) THEN
-              WRITE(*,*) 'WARNING: dump does not contain external field'
-              WRITE(*,*) '         (setting to zero)'
-               Bextx = 0.
-               Bexty = 0.
-               Bextz = 0.
-            ENDIF
-            READ (idisk1, END=100) gt, dtmaxdp, gamma, rhozero, RK2,
-     &        escap, tkin, tgrav, tterm, anglostx, anglosty, anglostz,
-     &        specang, ptmassin
-         ENDIF
+         hzero = 0.
+      ENDIF
+      IF (number.GE.20 .AND. n2.GT.0) THEN
+         uzero_n2 = rheader(20)
+         WRITE(*,*) ' read u for surrounding medium = ',uzero_n2
+      ELSE
+         uzero_n2 = 0.
       ENDIF
 
 c--real*4

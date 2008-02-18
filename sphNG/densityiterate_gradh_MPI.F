@@ -670,7 +670,7 @@ C$OMP& shared(dumrho,iscurrent,ibound,ireal,nptmastot)
 C$OMP& shared(isteps,it0,it1,imax,imaxstep,dt,itime)
 C$OMP& shared(varmhd,Bevol,Bxyz,vsmooth,Bsmooth,nlstdo,ldolist)
 C$OMP& shared(dvxyzu,hi_old,isucceed,poten,isend,numproc,iproc,gradmhd)
-C$OMP& shared(ivar,ijvar,ncompact)
+C$OMP& shared(ivar,ijvar,ncompact,icompact)
 C$OMP& private(n,ipart,j,k,xi,yi,zi,vxi,vyi,vzi,pmassi,hi,hj,rhoi)
 C$OMP& private(divvi,curlvxi,curlvyi,curlvzi,gradhi,gradsofti)
 C$OMP& private(pmassj,hi_oldi,hi1,hi21,hi31,hi41,hneigh)
@@ -692,7 +692,6 @@ C$OMP& private(numberupdated)
 C$OMP& reduction(MAX:rhonext,imaxit)
 C$OMP& reduction(+:inumit,inumfixed,inumrecalc,nwarnup,nwarndown)
 C$OMP& reduction(+:nwarnroundoff,nbisection,numsucceeded)
-C$OMP& reduction(+:icompact)
       DO n = 1, nlstdo
          ipart = ldolist(n)
 c
@@ -1319,12 +1318,12 @@ c
 c--Set up compact list of neighbours within h_i and non-active neighbours
 c     within h_j
 c
-C$OMP CRITICAL (listcompact2)
+cC$OMP CRITICAL (listcompact2)
          ncompact = ncompact + 1
          ncompacthere = ncompact
          icompacthere = icompact
          icompact = icompact + nneighlocal
-C$OMP END CRITICAL (listcompact2)
+cC$OMP END CRITICAL (listcompact2)
          IF (icompacthere+nneighlocal.GT.icompactmax) THEN
             WRITE (*,*) 'ERROR - compact not large enough DI ',
      &           icompacthere, nneighlocal, icompactmax
@@ -1339,11 +1338,11 @@ C$OMP END CRITICAL (listcompact2)
             IF (.NOT.iscurrent(jpart) .AND. .NOT.iupdated(jpart) 
      &           .AND. jpart.LE.npart) THEN
                iupdated(jpart) = .TRUE.
-C$OMP FLUSH(iupdated)
-C$OMP CRITICAL (listupdated)
+cC$OMP FLUSH(iupdated)
+cC$OMP CRITICAL (listupdated)
                nlistupdated = nlistupdated + 1
                numberupdated = nlistupdated
-C$OMP END CRITICAL (listupdated)
+cC$OMP END CRITICAL (listupdated)
                IF (numberupdated.GT.idim) THEN
                   WRITE (iprint,*) 'ERROR - numberupdated.GT.idim'
                   CALL quit

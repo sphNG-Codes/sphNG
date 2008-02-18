@@ -71,7 +71,11 @@ c
       WRITE (iterm, 99003) file1
 99003 FORMAT (A7)
       WRITE (iterm, 99003) varsta
-      IF (imhd.EQ.idim) WRITE (iterm, 10001) varmhd
+      IF (imhd.EQ.idim) THEN
+         WRITE (iterm, 10001) varmhd
+      ELSE
+         WRITE (iterm, 10001) 'Brho'
+      ENDIF
 10001 FORMAT(A4)
 c
 c--Write options
@@ -110,13 +114,13 @@ c
 88001 FORMAT(2X,I2,'  Gravity')
       IF (imhd.EQ.idim) THEN
          WRITE (iterm, 87002) ifsvi,alpha,beta,alphamin(2),alphamax(2)
-87002    FORMAT(2X,I2,4(1X,1F6.3),' Artificial Viscosity & Resistivity')
          WRITE (iterm, 87003) iresist, etamhd
-87003   FORMAT(2X,I2,1X,1F6.3,'  Real Resistivity (1=const,2=func),eta')
       ELSE
-         WRITE (iterm, 88002) ifsvi,alpha,beta
-88002    FORMAT(2X,I2,1X,1F6.3,1X,1F6.3,'  Artificial Viscosity')
+         WRITE (iterm, 87002) ifsvi,alpha,beta, 0., 0.
+         WRITE (iterm, 87003) 0, 0.
       ENDIF
+87002 FORMAT(2X,I2,4(1X,1F6.3),' Artificial Viscosity & Resistivity')
+87003 FORMAT(2X,I2,1X,1F6.3,'  Real Resistivity (1=const,2=func),eta')
       WRITE (iterm, 88003) ifcor
 88003 FORMAT(2X,I2,'  Coriolis Forces')
       WRITE (iterm, 88004) ichoc

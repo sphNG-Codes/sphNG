@@ -105,7 +105,11 @@ c
       READ (iterm, 99003) file1
 99003 FORMAT (A7)
       READ (iterm, 99003) varsta
-      IF (imhd.EQ.idim) READ (iterm, *) varmhd
+      IF (imhd.EQ.idim) THEN
+         READ (iterm, *) varmhd
+      ELSE
+         READ (iterm, *)
+      ENDIF
 c
 c--Read options
 c
@@ -130,6 +134,7 @@ c
          READ (iterm, *) iresist,etamhd
       ELSE
          READ (iterm, *) ifsvi, alpha, beta
+         READ (iterm, *)
 c      IF (ifsvi.EQ.6) THEN
          alphamin(1) = alpha
          alphamax(1) = beta

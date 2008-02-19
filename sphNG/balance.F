@@ -39,6 +39,8 @@ c************************************************************
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/accnum'
       INCLUDE 'COMMONS/accurpt'
+      INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/radsink'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -63,6 +65,11 @@ c
       CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
       CALL MPI_TYPE_COMMIT(ialphaREAL4,ierr)
       CALL MPI_TYPE_COMMIT(ialphaREAL41,ierr)
+
+      IF (encal.EQ.'r') THEN
+         CALL MPI_TYPE_CONTIGUOUS(nmaxexposed, MPI_INTEGER, iNINT, ierr)
+         CALL MPI_TYPE_COMMIT(iNINT,ierr)
+      ENDIF
 c
 c--Find particles that need to be transferred to each MPI process.
 c     Returns an INTEGER*2 array with the process number that each
@@ -339,6 +346,11 @@ c
                            CALL MPI_SEND(f2Bxyz,1,indexMPI3,j,119,
      &                          MPI_COMM_WORLD, ierr)
                         ENDIF
+
+                        IF (encal.EQ.'r') THEN
+                           CALL MPI_SEND(ekcle,1,indexMPI5,j,142,
+     &                          MPI_COMM_WORLD, ierr)
+                        ENDIF
 c
 c--Deallocate types
 c
@@ -375,6 +387,16 @@ c
      &                          lblocklengths, listptmass, 
      &                          MPI_INTEGER, indexMPI_INT, ierr)
                            CALL MPI_TYPE_COMMIT(indexMPI_INT,ierr)
+                 
+                           CALL MPI_TYPE_INDEXED(npttrans, 
+     &                          lblocklengths, listptmass, 
+     &                          MPI_LOGICAL, indexMPI_L, ierr)
+                           CALL MPI_TYPE_COMMIT(indexMPI_L,ierr)
+
+                           CALL MPI_TYPE_INDEXED(npttrans, 
+     &                          lblocklengths, listptmass, 
+     &                          iNINT, indexMPI_LIST, ierr)
+                           CALL MPI_TYPE_COMMIT(indexMPI_LIST,ierr)
                  
                            CALL MPI_SEND(spinx,1,indexMPI1,j,122,
      &                          MPI_COMM_WORLD, ierr)
@@ -421,6 +443,32 @@ c
 
                            CALL MPI_SEND(nactotal,1,indexMPI_INT,j,140,
      &                          MPI_COMM_WORLD, ierr)
+
+                           IF (encal.EQ.'r') THEN
+                              CALL MPI_SEND(nexposed,1,indexMPI_INT,
+     &                             j, 143, MPI_COMM_WORLD, ierr)
+
+                              CALL MPI_SEND(nexposedold,1,indexMPI_INT,
+     &                             j, 144, MPI_COMM_WORLD, ierr)
+
+                              CALL MPI_SEND(ptmassluminosity,1,
+     &                             indexMPI1,j,145,MPI_COMM_WORLD,ierr)
+
+                              CALL MPI_SEND(cummulativeenergy,1,
+     &                             indexMPI1,j,146,MPI_COMM_WORLD,ierr)
+
+                              CALL MPI_SEND(actualcumenergy,1,
+     &                             indexMPI1,j,147,MPI_COMM_WORLD,ierr)
+
+                              CALL MPI_SEND(iexposedold,1,
+     &                             indexMPI_L,j,148,MPI_COMM_WORLD,ierr)
+
+                              CALL MPI_SEND(listexposed,1,indexMPI_LIST,
+     &                             j,149,MPI_COMM_WORLD,ierr)
+
+                           CALL MPI_SEND(listexposedold,1,indexMPI_LIST,
+     &                             j,150,MPI_COMM_WORLD,ierr)
+                           ENDIF
 c
 c--Send information about which particle matches each sink so that listpm
 c     can be re-constructed on the new MPI process
@@ -438,6 +486,8 @@ c
      &               ptmsyn(listptmass(1)+1),xmomsyn(listptmass(1)+1),
      &               xmomadd(listptmass(1)+1)
 #endif
+                           CALL MPI_TYPE_FREE(indexMPI_LIST,ierr)
+                           CALL MPI_TYPE_FREE(indexMPI_L,ierr)
                            CALL MPI_TYPE_FREE(indexMPI_INT,ierr)
                            CALL MPI_TYPE_FREE(indexMPI1,ierr)
                         ENDIF
@@ -636,6 +686,16 @@ c                  END DO
                   CALL MPI_RECV(f2Bxyz(1,npartnew+1), idim, i3REAL8,
      &                 iprocrec, 119, MPI_COMM_WORLD, istatus, ierr)
                   CALL MPI_GET_COUNT(istatus, i3REAL8, inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber'
+                     CALL quit
+                  ENDIF
+               ENDIF
+
+               IF (encal.EQ.'r') THEN
+                  CALL MPI_RECV(ekcle(1,npartnew+1), idim, i5REAL8,
+     &                 iprocrec, 142, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber'
                      CALL quit
@@ -841,6 +901,88 @@ c
                      CALL quit
                   ENDIF
 
+                  IF (encal.EQ.'r') THEN
+                     CALL MPI_RECV(nexposed(nptmassnew+1),nptrecv,
+     &                    MPI_INTEGER, iprocrec, 143, MPI_COMM_WORLD,
+     &                    istatus,ierr)
+                    CALL MPI_GET_COUNT(istatus,MPI_INTEGER,inumber,ierr)
+                     IF (inumber.NE.nptrecv) THEN
+                        WRITE (*,*) 'ERROR - inumber.NE.nptrecvK ',
+     &                       inumber,nptrecv
+                        CALL quit
+                     ENDIF
+
+                     CALL MPI_RECV(nexposedold(nptmassnew+1),nptrecv,
+     &                    MPI_INTEGER, iprocrec, 144, MPI_COMM_WORLD,
+     &                    istatus,ierr)
+                    CALL MPI_GET_COUNT(istatus,MPI_INTEGER,inumber,ierr)
+                     IF (inumber.NE.nptrecv) THEN
+                        WRITE (*,*) 'ERROR - inumber.NE.nptrecvL ',
+     &                       inumber,nptrecv
+                        CALL quit
+                     ENDIF
+
+                   CALL MPI_RECV(ptmassluminosity(nptmassnew+1),nptrecv,
+     &                    MPI_REAL8, iprocrec, 145, MPI_COMM_WORLD,
+     &                    istatus,ierr)
+                    CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                     IF (inumber.NE.nptrecv) THEN
+                        WRITE (*,*) 'ERROR - inumber.NE.nptrecvM ',
+     &                       inumber,nptrecv
+                        CALL quit
+                     ENDIF
+
+                  CALL MPI_RECV(cummulativeenergy(nptmassnew+1),nptrecv,
+     &                    MPI_REAL8, iprocrec, 146, MPI_COMM_WORLD,
+     &                    istatus,ierr)
+                    CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                     IF (inumber.NE.nptrecv) THEN
+                        WRITE (*,*) 'ERROR - inumber.NE.nptrecvN ',
+     &                       inumber,nptrecv
+                        CALL quit
+                     ENDIF
+
+                    CALL MPI_RECV(actualcumenergy(nptmassnew+1),nptrecv,
+     &                    MPI_REAL8, iprocrec, 147, MPI_COMM_WORLD,
+     &                    istatus,ierr)
+                    CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                     IF (inumber.NE.nptrecv) THEN
+                        WRITE (*,*) 'ERROR - inumber.NE.nptrecvO ',
+     &                       inumber,nptrecv
+                        CALL quit
+                     ENDIF
+
+                     CALL MPI_RECV(iexposedold(nptmassnew+1),nptrecv,
+     &                    MPI_LOGICAL, iprocrec, 148, MPI_COMM_WORLD,
+     &                    istatus,ierr)
+                    CALL MPI_GET_COUNT(istatus,MPI_LOGICAL,inumber,ierr)
+                     IF (inumber.NE.nptrecv) THEN
+                        WRITE (*,*) 'ERROR - inumber.NE.nptrecvP ',
+     &                       inumber,nptrecv
+                        CALL quit
+                     ENDIF
+
+                     CALL MPI_RECV(listexposed(1,nptmassnew+1),nptrecv,
+     &                    iNINT, iprocrec, 149, MPI_COMM_WORLD,
+     &                    istatus,ierr)
+                    CALL MPI_GET_COUNT(istatus,iNINT,inumber,ierr)
+                     IF (inumber.NE.nptrecv) THEN
+                        WRITE (*,*) 'ERROR - inumber.NE.nptrecvQ ',
+     &                       inumber,nptrecv
+                        CALL quit
+                     ENDIF
+
+                   CALL MPI_RECV(listexposedold(1,nptmassnew+1),nptrecv,
+     &                    iNINT, iprocrec, 150, MPI_COMM_WORLD,
+     &                    istatus,ierr)
+                    CALL MPI_GET_COUNT(istatus,iNINT,inumber,ierr)
+                     IF (inumber.NE.nptrecv) THEN
+                        WRITE (*,*) 'ERROR - inumber.NE.nptrecvR ',
+     &                       inumber,nptrecv
+                        CALL quit
+                     ENDIF
+                  ENDIF
+
                   CALL MPI_RECV(listpm(nptmassnew+1),nptrecv,
      &                 MPI_INTEGER, iprocrec, 141, MPI_COMM_WORLD,
      &                 istatus,ierr)
@@ -878,6 +1020,10 @@ c
       print *,iproc,': New value of npart, nptmass = ',npartnew, npart, 
      &     nptmassnew, nptmass
 
+      IF (encal.EQ.'r') THEN
+         CALL MPI_TYPE_FREE(iNINT,ierr)
+      ENDIF
+
       CALL MPI_TYPE_FREE(ialphaREAL41,ierr)
       CALL MPI_TYPE_FREE(ialphaREAL4,ierr)
       CALL MPI_TYPE_FREE(i2REAL4,ierr)
@@ -900,7 +1046,7 @@ c
          DO k = 1, isizealphaMM
             dumalpha(k,i) = alphaMM(k,i)
          END DO
-         IF (iradtrans.EQ.idim) THEN
+         IF (encal.EQ.'r') THEN
             DO k = 1, 5
                dumekcle(k,i) = ekcle(k,i)
             END DO
@@ -1008,9 +1154,9 @@ c      goto 200
             it2(i) = isteps(i)
 
             ibin = INT(LOG10(REAL(isteps(i)))/xlog2+0.5)
-            IF (ibin.GT.nbinmax) THEN
-               WRITE (*,*) 'ERROR - ibin.GT.nbinmax B'
-               WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax B'
+            IF (ibin.GT.nbinmax .OR. ibin.GT.30 .OR. ibin.LT.0) THEN
+               WRITE (*,*) 'ERROR - ibin.GT.nbinmax B ',ibin
+               WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax B ',ibin
                CALL quit
             ENDIF
             nlstbins(ibin) = nlstbins(ibin) + 1

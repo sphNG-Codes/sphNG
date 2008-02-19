@@ -101,9 +101,10 @@ c         ENDIF
 !page two of astro-ph/0410343
          valdown = (1.2512E+22* rho *(10.0**ltg)**(-3.5)) + 0.4
 !     PRINT *,valup,valdown, (10.0**ltg)**(-3.5)
-         getkappa = MIN(valup,valdown)*umass/udist**2
+         rkappa = MIN(valup,valdown)*umass/udist**2
 c      write (*,*) 'Exit kap'
-         RETURN
+         GOTO 666
+c         RETURN
       ENDIF
       
       nktg2=nktg1+1
@@ -157,13 +158,19 @@ c
 !     PRINT *,getkappa,umass,udist,rkappa,v,w
 
 
-      getkappa=rkappa!/10.0
+ 666  CONTINUE
+
+      getkappa=rkappa!/1000.0
 !      getkappa=MAX(rkappa,1.0/(10.0*rmax*rho2))
 !      getkappa=MAX(rkappa,1.0/(rmax*4.0*0.01))
 !      getkappa=15.0*umass/udist**2
 
 
-      IF(getkappa.EQ.0.00) CALL FAILED(5,ltg,lrho)
+      IF(getkappa.EQ.0.00) THEN
+         print *,'Info: ',u/cv,lrho,val1l,val1h,val2l,val2h
+         print *,w,val1,val2,grad,valup,ltg,valdown
+         CALL FAILED(5,ltg,lrho)
+      ENDIF
 
 c      WRITE (*,*) 'Exit kap'
       RETURN

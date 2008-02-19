@@ -58,11 +58,11 @@ c--Set number of active particles
 c
       nactive = 0
       DO i = 1, npart
-         IF (iphase(i).NE.-1) THEN
+         IF (iphase(i).GE.0) THEN
             nactive = nactive + 1
             rhomaxsync = MAX(rhomaxsync,rho(i))
          ENDIF
-      END DO
+      END DO      
 
       DO i = 1, idim
 c         torqt(i) = 0.0

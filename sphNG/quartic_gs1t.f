@@ -1,16 +1,12 @@
-      SUBROUTINE QUARTIC_GS1T(u1term,u0term,uold,soln,moresweep,HREAL,
-     &     nlstall)
-
+      SUBROUTINE QUARTIC_GS1T(u1term,u0term,uold,soln,moresweep)
       
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/physcon'
 
-      INTEGER HREAL,nlstall
-
       REAL  E,U,cv,dt,planck,rho,s5,s6,s7,y1,ua,ub1,uc1,ub2,uc2,kappa
       INTEGER  sooty,im,pid,inpt,I,rtst
-      REAL  a,b,c,d,f,ue0,lp,p,q,r,s,t,a0,a1,a2,a3,a4,ub,uc,t1,t2,yy
+      REAL  a,b,d,f,ue0,lp,p,q,r,s,t,a0,a1,a2,a3,a4,ub,uc,t1,t2,yy
       REAL  z1,z2,z3,z4
       COMPLEX  ca,cb,cc,cd,ce,cf
       COMPLEX  p1,p2,p3,y2,y3,y,t0
@@ -29,6 +25,9 @@
                                 !QUARTIC4 - solver for trapezoidal T^4
       lightspeed = c /udist * utime
       uradconst = radconst / uergcc
+
+
+      GOTO 300
 
       
 c      PRINT *,"Entered Q4 with ",sooty," sooty"
@@ -62,6 +61,9 @@ c      PRINT *,"Original value of x:",ue0
      $     rho*E-planck/cv**4*U**4)
       f4=0.5*kappa/uradconst*dt/sooty*uradconst*lightspeed*rho
       f5=0.5*dt/sooty*uradconst*lightspeed*kappa**2/uradconst**2
+
+
+ 300  CONTINUE
       
                                 ! a4=1.0
                                 ! a3=4.0*c2*c3*c5**3/c2/c5**4
@@ -117,10 +119,10 @@ c      PRINT *,"Original value of x:",ue0
          a3=g3
          a4=g4
 
-         vhgr=1.0d1*uradconst**2/kappa**2*(kappa/uradconst*rho*E-
-     $     planck/cv**4*U**4)
-         vlwr=1.0d-1*uradconst**2/kappa**2*(kappa/uradconst*rho*E-
-     $     planck/cv**4*U**4)
+c         vhgr=1.0d1*uradconst**2/kappa**2*(kappa/uradconst*rho*E-
+c     $     planck/cv**4*U**4)
+c         vlwr=1.0d-1*uradconst**2/kappa**2*(kappa/uradconst*rho*E-
+c     $     planck/cv**4*U**4)
       ELSE IF(laeg.EQ.le1) THEN
          a0=e0
          a1=e1
@@ -129,22 +131,19 @@ c      PRINT *,"Original value of x:",ue0
          a4=e4
          swape=.TRUE.
 
-         vhgr=1.0d1*kappa/uradconst*E-planck/cv**4*U**4
-         vlwr=1.0d-1*kappa/uradconst*E-planck/cv**4*U**4
+c         vhgr=1.0d1*kappa/uradconst*E-planck/cv**4*U**4
+c         vlwr=1.0d-1*kappa/uradconst*E-planck/cv**4*U**4
       ELSE
-      vhgr=1.0d1*uradconst/kappa*(kappa/uradconst*E-planck/cv**4*U**4)
-      vlwr=1.0d-1*uradconst/kappa*(kappa/uradconst*E-planck/cv**4*U**4)
+c      vhgr=1.0d1*uradconst/kappa*(kappa/uradconst*E-planck/cv**4*U**4)
+c      vlwr=1.0d-1*uradconst/kappa*(kappa/uradconst*E-planck/cv**4*U**4)
 
       END IF
 
-            if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 1'
+c      tm=u/cv
+c      tr=(e*rho/uradconst)**0.25
 
-      
-      tm=u/cv
-      tr=(e*rho/uradconst)**0.25
-
-      tmin=MIN(tm,tr)
-      tmax=MAX(tm,tr)
+c      tmin=MIN(tm,tr)
+c      tmax=MAX(tm,tr)
 
 c     !     Real root of equation:
 c     !     y^3 -4 a0 y - a1^2 = 0
@@ -196,8 +195,6 @@ c     !     y^3 -4 a0 y - a1^2 = 0
       z3(1)=0.0
       z4(1)=0.0
       
-      if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 2'
-      
                                 !Solution to quartic
                                 !This is solution to two quadratics
                                 !v^2+(a2/2... etc)
@@ -233,16 +230,16 @@ c     !     y^3 -4 a0 y - a1^2 = 0
          uc2=y1/2.0+SQRT(uc)
       ENDIF
 
-      if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3q',
-     &     y1,uc,ub,a2,a3,a1,a0
+c      if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3q',
+c     &     y1,uc,ub,a2,a3,a1,a0
 
                                 ! PRINT *,"ubc",ub1,ub2,uc1,uc2
 
-      if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3'
+c      if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3'
 
       IF(ub2**2-4.0*uc2.GT.0.0.AND.ub1**2-4.0*uc1.LT.0.0) THEN
-         if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3a',
-     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
+c         if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3a',
+c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
 
          IF(ABS((a3/2.0)-SQRT(ub))/ABS(a3/2.0).LT.1d-6) THEN
          PRINT *,"QUARTIC4: Error, big - big / big too big for co-eff b"
@@ -256,8 +253,8 @@ c     !     y^3 -4 a0 y - a1^2 = 0
          z1(2)=1
          
       ELSE IF(ub2**2-4.0*uc2.LT.0.0.AND.ub1**2-4.0*uc1.GT.0.0) THEN
-         if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3b',
-     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
+c         if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3b',
+c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
 
          IF(ABS(2.0*a0/(y1**2)).LT.1d-6) THEN
 
@@ -284,8 +281,8 @@ c     !     y^3 -4 a0 y - a1^2 = 0
          
 
       ELSE  IF(ub2**2-4.0*uc2.LT.0.0.AND.ub1**2-4.0*uc1.LT.0.0) THEN
-         if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3c',
-     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
+c         if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3c',
+c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
 
 
      !!  NUMERICAL SOLUTION IF ONLY IMAGINARY ARE RETURNED ANALYTICALLY !!
@@ -300,8 +297,8 @@ c      CALL RTSAFE(soln,vlwr,vhgr,1d-8,a0,a1,a2,a3,a4)
 c      PRINT *,"soln:",soln
          STOP
       ELSE
-         if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3c',
-     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
+c         if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3c',
+c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
 
          
          IF(ABS((a3/2.0)-SQRT(ub))/ABS(a3/2.0).LT.1d-6) THEN
@@ -345,7 +342,7 @@ c      PRINT *,"soln:",soln
 !     END IF
       
  150  GOTO 555
-            if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 4'
+c            if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 4'
       IF(swapg) THEN
       z1(1)=kappa**2/uradconst**2*z1(1)
       z2(1)=kappa**2/uradconst**2*z2(1)
@@ -376,8 +373,8 @@ cC$OMP END CRITICAL(quart)
 
 
 !     GOTO 160  
-            if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 5',
-     &     z1(2),z2(2),z3(2),z4(2)
+c            if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 5',
+c     &     z1(2),z2(2),z3(2),z4(2)
       IF(z1(2).EQ.1.AND.z2(2).EQ.1.AND.z3(2).EQ.0.AND.z4(2).EQ.0) THEN
         
          IF(z1(1).GT.0.0 .AND. z2(1).LE.0.0) THEN
@@ -492,7 +489,7 @@ cC$OMP END CRITICAL(quart)
 !         STOP
       END IF
       END IF
-            if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 6'
+c            if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 6'
 
 !      PRINT *,"Solution chosen is: ",soln!,tmin,tmax
  541   CONTINUE

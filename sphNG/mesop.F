@@ -34,7 +34,7 @@ c************************************************************
       CHARACTER*5 dummy5
       CHARACTER*3 dummy3
 
-      REAL*4 rhomaxsynclocal, rhomax, rhomaxlocal
+      REAL*4 rhomaxsynclocal, rhomax, rhomaxlocal, rhomaxsyncold
 
       DATA where/'mesop'/
 c
@@ -368,11 +368,19 @@ c
       ELSEIF (string(i)(1:4).EQ.'dens') THEN
          READ (string(i)(6:20),*) contrast, dtmaxsync
 
+#ifdef MPI
+         CALL MPI_ALLREDUCE(rhomaxsync, rhomaxsyncold, 1, MPI_REAL4,
+     &        MPI_MAX, MPI_COMM_WORLD, ierr)
+#else
          rhomaxsyncold = rhomaxsync
+#endif
+
          ipower = 0
          rhomaxsynclocal = 0.
          DO j = 1, npart
-            rhomaxsynclocal = MAX(rhomaxsynclocal, rho(j))
+            IF (iphase(j).EQ.0) THEN
+               rhomaxsynclocal = MAX(rhomaxsynclocal, rho(j))
+            ENDIF
          END DO
 
 #ifdef MPI

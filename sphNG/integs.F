@@ -211,7 +211,7 @@ c
 c--Check for messages
 c
 #ifdef MPI
-c      CALL mesop
+      CALL mesop
 #else
       CALL mesop
 #endif

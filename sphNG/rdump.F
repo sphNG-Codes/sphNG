@@ -625,7 +625,7 @@ c         IF (iproc.EQ.iblock-1) THEN
             IF (nblocks.EQ.1) THEN
                CALL split(npart,n1,icount,nhydro,isteps,iphase,xyzmh,
      &              vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,
-     &              iunique)
+     &              iunique,ekcle)
             ELSE
                print *,iproc,': MAINTAIN PARTICLE SPLIT ',npart,nhydro
                npart = nhydro
@@ -890,7 +890,7 @@ c============================================================
 
 #ifdef MPI
       SUBROUTINE split(npart,n1,icount,nhydro,isteps,iphase,xyzmh,
-     &     vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,iunique)
+     &     vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,iunique,ekcle)
 c************************************************************
 c                                                           *
 c--Splits based on spatial coordinates (x, y, z) for 2, 4   *
@@ -913,7 +913,7 @@ c************************************************************
       REAL*4 rho(idim), dgrav(idim), gradhs(2,idim),
      &     alphaMM(isizealphaMM,idim)
       DIMENSION isteps(idim), xyzmh(5,idim), vxyzu(4,idim), 
-     &     Bevolxyz(3,imhd), Bxyz(3,imhd)
+     &     Bevolxyz(3,imhd), Bxyz(3,imhd), ekcle(5,iradtrans)
 
       INTEGER classify_disc,classify_sphere,classify_cartesian
 
@@ -943,6 +943,11 @@ c
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
                      gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
+               IF (iradtrans.EQ.idim) THEN
+                  DO j = 1, 5
+                     ekcle(j,icountnew) = ekcle(j,i)
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
@@ -983,6 +988,11 @@ c
                         gradhs(j,icountnew) = gradhs(j,i)
                      END DO
                   ENDIF
+                  IF (iradtrans.EQ.idim) THEN
+                     DO j = 1, 5
+                        ekcle(j,icountnew) = ekcle(j,i)
+                     END DO
+                  ENDIF
                   IF (imhd.EQ.idim) THEN
                      DO j = 1, 3
                         Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -1014,7 +1024,12 @@ c
                         gradhs(j,icountnew) = gradhs(j,i)
                      END DO
                   ENDIF
-                  IF (imhd.EQ.idim) THEN
+                  IF (iradtrans.EQ.idim) THEN
+                     DO j = 1, 5
+                        ekcle(j,icountnew) = ekcle(j,i)
+                     END DO
+                  ENDIF
+                   IF (imhd.EQ.idim) THEN
                      DO j = 1, 3
                         Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                      END DO
@@ -1049,7 +1064,12 @@ c
                         gradhs(j,icountnew) = gradhs(j,i)
                      END DO
                   ENDIF
-                  IF (imhd.EQ.idim) THEN
+                  IF (iradtrans.EQ.idim) THEN
+                     DO j = 1, 5
+                        ekcle(j,icountnew) = ekcle(j,i)
+                     END DO
+                  ENDIF
+                   IF (imhd.EQ.idim) THEN
                      DO j = 1, 3
                         Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                      END DO
@@ -1080,7 +1100,12 @@ c
                         gradhs(j,icountnew) = gradhs(j,i)
                      END DO
                   ENDIF
-                  IF (imhd.EQ.idim) THEN
+                  IF (iradtrans.EQ.idim) THEN
+                     DO j = 1, 5
+                        ekcle(j,icountnew) = ekcle(j,i)
+                     END DO
+                  ENDIF
+                   IF (imhd.EQ.idim) THEN
                      DO j = 1, 3
                         Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                      END DO
@@ -1109,6 +1134,11 @@ c
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
                      gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
+               IF (iradtrans.EQ.idim) THEN
+                  DO j = 1, 5
+                     ekcle(j,icountnew) = ekcle(j,i)
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
@@ -1140,6 +1170,11 @@ c
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
                      gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
+               IF (iradtrans.EQ.idim) THEN
+                  DO j = 1, 5
+                     ekcle(j,icountnew) = ekcle(j,i)
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
@@ -1177,6 +1212,11 @@ c
                      gradhs(j,icountnew) = gradhs(j,i)
                   END DO
                ENDIF
+               IF (iradtrans.EQ.idim) THEN
+                  DO j = 1, 5
+                     ekcle(j,icountnew) = ekcle(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -1206,6 +1246,11 @@ c
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
                      gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
+               IF (iradtrans.EQ.idim) THEN
+                  DO j = 1, 5
+                     ekcle(j,icountnew) = ekcle(j,i)
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
@@ -1239,6 +1284,11 @@ c
                      gradhs(j,icountnew) = gradhs(j,i)
                   END DO
                ENDIF
+               IF (iradtrans.EQ.idim) THEN
+                  DO j = 1, 5
+                     ekcle(j,icountnew) = ekcle(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -1268,6 +1318,11 @@ c
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
                      gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
+               IF (iradtrans.EQ.idim) THEN
+                  DO j = 1, 5
+                     ekcle(j,icountnew) = ekcle(j,i)
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
@@ -1301,6 +1356,11 @@ c
                      gradhs(j,icountnew) = gradhs(j,i)
                   END DO
                ENDIF
+               IF (iradtrans.EQ.idim) THEN
+                  DO j = 1, 5
+                     ekcle(j,icountnew) = ekcle(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -1330,6 +1390,11 @@ c
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
                      gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
+               IF (iradtrans.EQ.idim) THEN
+                  DO j = 1, 5
+                     ekcle(j,icountnew) = ekcle(j,i)
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
@@ -1363,6 +1428,11 @@ c
                      gradhs(j,icountnew) = gradhs(j,i)
                   END DO
                ENDIF
+               IF (iradtrans.EQ.idim) THEN
+                  DO j = 1, 5
+                     ekcle(j,icountnew) = ekcle(j,i)
+                  END DO
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j = 1, 3
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
@@ -1392,6 +1462,11 @@ c
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
                      gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
+               IF (iradtrans.EQ.idim) THEN
+                  DO j = 1, 5
+                     ekcle(j,icountnew) = ekcle(j,i)
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
@@ -1524,6 +1599,11 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
                      gradhs(j,icountnew) = gradhs(j,i)
+                  END DO
+               ENDIF
+               IF (iradtrans.EQ.idim) THEN
+                  DO j = 1, 5
+                     ekcle(j,icountnew) = ekcle(j,i)
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN               

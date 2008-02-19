@@ -252,20 +252,20 @@ c--Load in tables of opacity and cv
 c
 c      IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
       IF (encal.EQ.'r') THEN
-         OPEN(UNIT=8,FILE='/home/mbate/tables/opacitytbl')
+         OPEN(UNIT=8,FILE='/home/mrbate/tables/opacitytbl')
          DO i=1, opmxtg
             READ(8,*) (optable(i,j), j=1, opmxrh)
          ENDDO
          CLOSE(8)
       
-         OPEN(UNIT=8,FILE='/home/mbate/tables/gasttbl',
+         OPEN(UNIT=8,FILE='/home/mrbate/tables/gasttbl',
      &        FORM='unformatted')
          DO i=1, tgmxu
             READ(8) (tgtable(i,j), j=1, tgmxrh)
          ENDDO
          CLOSE(8)
  
-         OPEN(UNIT=8,FILE='/home/mbate/tables/molmasstbl',
+         OPEN(UNIT=8,FILE='/home/mrbate/tables/molmasstbl',
      &        FORM='unformatted')
          DO i=1, mumxu
             READ(8) (mutable(i,j), j=1, mumxrh)

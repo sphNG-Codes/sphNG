@@ -115,7 +115,13 @@ c--Read options
 c
       READ (iterm, 99006) encal
 99006 FORMAT (A1)
-      IF (encal.EQ.'r') READ (iterm, *) tolerance, boundtemp
+      IF (encal.EQ.'r') THEN
+         IF (iradtrans.NE.idim) THEN
+            WRITE (iprint,*) 'ERROR - iradtrans.NE.idim'
+            CALL quit
+         ENDIF
+         READ (iterm, *) tolerance, boundtemp, bounddens
+      ENDIF
 
 #ifdef MPI
       READ (iterm, 99006) mpitype

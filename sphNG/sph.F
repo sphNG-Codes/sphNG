@@ -421,6 +421,11 @@ c************************************************************
       INCLUDE 'COMMONS/actio'
       INCLUDE 'COMMONS/debug'
 
+#ifdef _OPENMP
+      INTEGER*8 forcei_lock
+      COMMON /locks / forcei_lock(idim)
+#endif
+
 #ifdef MPI
       iloop = 0
       CALL MPI_INIT(ierr)
@@ -499,6 +504,12 @@ c
          WRITE (*,*) 'ERROR - XSPH, imhdxsph ',XSPH, imhdxsph
          CALL quit
       ENDIF
+
+#ifdef _OPENMP
+      DO i = 1, idim
+         CALL OMP_INIT_LOCK(forcei_lock(i))
+      END DO
+#endif
 
       CALL mainop
 c

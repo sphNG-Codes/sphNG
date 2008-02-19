@@ -78,6 +78,11 @@ c
       CHARACTER*7 where
       LOGICAL inosink
 
+#ifdef _OPENMP
+      INTEGER*8 forcei_lock
+      COMMON /locks / forcei_lock(idim)
+#endif
+
       DATA where/'forcei'/
       DATA epsil/1.E-2/
       DATA epsil2/1.E-4/
@@ -230,6 +235,7 @@ C$OMP& shared(Bxyz,dBxyz,Bextxi,Bextyi,Bextzi,B2ext,divcurlB,Bevolxyz)
 C$OMP& shared(gravxyzstore,potenstore,varmhd,iupdated,listparents)
 C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug)
 C$OMP& shared(ivar,ijvar,Bextx,Bexty,Bextz,etamhd,iresist)
+C$OMP& shared(forcei_lock)
 C$OMP& private(n,ipart,iparttree,stepsi)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(fxi,fyi,fzi,numneigh,hmin)
@@ -264,8 +270,8 @@ C$OMP& private(fextx,fexty,fextz,projBeqi,inosink)
 C$OMP& private(fanisox,fanisoy,fanisoz,forcex,forcey,forcez,xmasi)
 C$OMP& private(t12jpmassi,t12jpmassj,r32grav,forcexi,forceyi,forcezi)
 C$OMP& private(Bevoldotdv,termBpmi,termBpmj,termetapmj,termetapmi)
-C$OMP& private(dBxdissj,dBydissj,dBzdissj)
-C$OMP& private(ioffset,etai,etaj,ui,uj)
+C$OMP& private(dBxdissj,dBydissj,dBzdissj,dBxyz_xi,dBxyz_yi,dBxyz_zi)
+C$OMP& private(ioffset,etai,etaj,ui,uj,dqj)
 C$OMP& reduction(+:ioutmin,ioutsup,ioutinf)
 C$OMP& reduction(MIN:inmin,inminsy)
 C$OMP& reduction(MAX:inmax,inmaxsy)
@@ -450,84 +456,6 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D4 ',n,k
      &              xyzmh(3,j),vxyzu(1,j),vxyzu(2,j),vxyzu(3,j)
                WRITE(iprint,*) ipart,iorig(ipart),icall,xi,yi,zi
                CALL quit
-            ENDIF
-c
-c--Interpolate density, pressure, vsound and B of neighbour that is not 
-c    being evolved. This may have already been done in radiative 
-c    transfer routines (flag iupdated set if so).
-c
-            IF (.FALSE.) THEN
-ccc            IF (.NOT.iscurrent(j) .AND. .NOT.iupdated(j)) THEN
-               iupdated(j) = .TRUE.
-C$OMP FLUSH(iupdated)
-C$OMP CRITICAL (listupdated)
-               nlistupdated = nlistupdated + 1
-               IF (nlistupdated.GT.idim) THEN
-                  WRITE (iprint,*) 'ERROR - nlistupdate.GT.idim'
-                  CALL quit
-               ENDIF
-               listparents(nlistupdated) = j
-C$OMP END CRITICAL (listupdated)
-               IF (j.LE.npart) THEN
-                  CALL extrapolate(j,dt,itime,trho,vxyzu,pr,vsound,
-     &                             ekcle,Bxyz,Bevolxyz)
-               ELSEIF (iupdated(ireal(j))) THEN
-                  iupdated(j) = .TRUE.
-C$OMP FLUSH(iupdated)
-C$OMP CRITICAL (listupdated)
-                  nlistupdated = nlistupdated + 1
-                  IF (nlistupdated.GT.idim) THEN
-                     WRITE (iprint,*) 'ERROR - nlistupdate.GT.idim'
-                     CALL quit
-                  ENDIF
-                  listparents(nlistupdated) = j
-C$OMP END CRITICAL (listupdated)
-                  irealj = ireal(j)
-                  trho(j) = trho(irealj)
-                  pr(j) = pr(irealj)
-                  vsound(j) = vsound(irealj)
-                  divv(j) = 0.
-                  IF (encal.EQ.'r' .AND. ibound.EQ.100)
-     &                ekcle(1,j) = ekcle(1,irealj)
-                  IF (imhd.EQ.idim) THEN
-                     IF (varmhd.EQ.'Brho') THEN
-                        Bxyz(1,j) = Bevolxyz(1,j)*trho(j)
-                        Bxyz(2,j) = Bevolxyz(2,j)*trho(j)
-                        Bxyz(3,j) = Bevolxyz(3,j)*trho(j)
-                     ENDIF
-                  ENDIF
-               ELSE
-                  irealj = ireal(j)
-                  iupdated(irealj) = .TRUE.
-                  iupdated(j) = .TRUE.
-C$OMP FLUSH(iupdated)
-C$OMP CRITICAL (listupdated)
-                  nlistupdated = nlistupdated + 2
-                  IF (nlistupdated.GT.idim) THEN
-                     WRITE (iprint,*) 'ERROR - nlistupdate.GT.idim'
-                     CALL quit
-                  ENDIF
-                  listparents(nlistupdated-1) = j
-                  listparents(nlistupdated) = ireal(j)
-C$OMP END CRITICAL (listupdated)
-                  CALL extrapolate(irealj,dt,itime,trho,vxyzu,pr,vsound,
-     &                             ekcle,Bxyz,Bevolxyz)
-                  
-                  trho(j) = trho(irealj)
-                  pr(j) = pr(irealj)
-                  vsound(j) = vsound(irealj)
-                  divv(j) = 0.
-                  IF (encal.EQ.'r' .AND. ibound.EQ.100)
-     &                ekcle(1,j) = ekcle(1,irealj)
-                  IF (imhd.EQ.idim) THEN
-                     IF (varmhd.EQ.'Brho') THEN
-                        Bxyz(1,j) = Bevolxyz(1,j)*trho(j)
-                        Bxyz(2,j) = Bevolxyz(2,j)*trho(j)
-                        Bxyz(3,j) = Bevolxyz(3,j)*trho(j)
-                     ENDIF
-                  ENDIF
-
-               ENDIF
             ENDIF
 c
 c--Gravity and potential energy
@@ -882,6 +810,7 @@ c
                         forcey = 0.
                         forcez = 0.
                      ENDIF
+                     dqj = 0.
 c
 c--Anisotropic magnetic force (Morris formalism)
 c
@@ -915,38 +844,47 @@ c        !times rhoi below
                            dBydissj = dBydissj + termetapmi*dBy
                            dBzdissj = dBzdissj + termetapmi*dBz
                         ENDIF
-C$OMP ATOMIC
-                        dBxyz(1,j) = dBxyz(1,j) - dBxdissj
-C$OMP ATOMIC
-                        dBxyz(2,j) = dBxyz(2,j) - dBydissj
-C$OMP ATOMIC
-                        dBxyz(3,j) = dBxyz(3,j) - dBzdissj
 c
 c--add contribution to thermal energy
 c
-C$OMP ATOMIC
-                        dq(j) = dq(j) - termBpmi*dB2*robar1
+                        dqj = dqj - termBpmi*dB2*robar1
                      ENDIF
 c
 c--Artificial viscosity
 c
                      IF (ifsvi.NE.0 .AND. projv.LT.0.0) THEN
                         t12jpmassi = t12j*pmassi
+
                         forcex = forcex + t12jpmassi*runix
                         forcey = forcey + t12jpmassi*runiy
                         forcez = forcez + t12jpmassi*runiz
-C$OMP ATOMIC
-                        dq(j) = dq(j) + t12jpmassi*projv
+
+                        dqj = dqj + t12jpmassi*projv
                      ENDIF
 c
 c--Add contributions to particle j
 c
-C$OMP ATOMIC
+c--Note: C$OMP ATOMIC would be the best way to do these IF the compiler was
+c     written properly, but ifort isn't
+c
+#ifdef _OPENMP
+                     CALL OMP_SET_LOCK(forcei_lock(j))
+#endif
                      fxyzu(1,j) = fxyzu(1,j) + forcex
-C$OMP ATOMIC
                      fxyzu(2,j) = fxyzu(2,j) + forcey
-C$OMP ATOMIC
                      fxyzu(3,j) = fxyzu(3,j) + forcez
+
+                     dq(j) = dq(j) + dqj
+
+                     IF (imhd.EQ.idim) THEN
+                        dBxyz(1,j) = dBxyz(1,j) - dBxdissj
+                        dBxyz(2,j) = dBxyz(2,j) - dBydissj
+                        dBxyz(3,j) = dBxyz(3,j) - dBzdissj
+                     ENDIF
+
+#ifdef _OPENMP
+                     CALL OMP_UNSET_LOCK(forcei_lock(j))
+#endif
                   ENDIF
 c
 c--End if for inosink
@@ -1003,7 +941,7 @@ c
                dsoftzi = dsoftzi - dsofttermi*runiz
 c
 c--Add terms to particle j (if j is active)
-c-------------------------
+c------------------------------------------
 c
                IF (iscurrent(j)) THEN
                   xmasi = fm*pmassi*r32grav
@@ -1017,36 +955,26 @@ c
                      gravyi = gravyi - xmasj*dy
                      gravzi = gravzi - xmasj*dz
                      poteni = poteni - 0.5*rij1*pmassj
-
-
-
-c                     print *,hi,hj,pmassi,r32grav,rij1,xmasi,phi,dx,
-c     &                    dy,dz,ipart,j
                   ENDIF
 
-
-c                  IF (iproc.EQ.0 .AND. j.EQ.1164)
-c     &                 print *,j, xmasi*dx,' j-act ',ipart,fxyzu(1,j)
-
-
                   dsofttermi = dsoftterm*pmassi
-C$OMP ATOMIC
+c
+c--Note: C$OMP ATOMIC would be the best way to do these IF the compiler was
+c     written properly, but ifort isn't
+c
+#ifdef _OPENMP
+                  CALL OMP_SET_LOCK(forcei_lock(j))
+#endif
                   fxyzu(1,j) = fxyzu(1,j) + xmasi*dx + dsofttermi*runix
-C$OMP ATOMIC
                   fxyzu(2,j) = fxyzu(2,j) + xmasi*dy + dsofttermi*runiy
-C$OMP ATOMIC
                   fxyzu(3,j) = fxyzu(3,j) + xmasi*dz + dsofttermi*runiz
-C$OMP ATOMIC
+
                   poten(j) = poten(j) + phi*pmassi
-
-
-c                  IF (iproc.EQ.0 .AND. j.EQ.1164)
-c     &                 print *,'cumm ',fxyzu(1,j),xmasi*dx
-
+#ifdef _OPENMP
+                  CALL OMP_UNSET_LOCK(forcei_lock(j))
+#endif
                ENDIF
             ENDIF
-
-
 c
 c--Using hj  (only need to be done if j is non-active since if it is active
 c     j's contribution is added to i when j is done.
@@ -1300,14 +1228,11 @@ ccc            forcezi = gravzi
 c            IF (iproc.EQ.0 .AND. ipart.EQ.1164) print *,'gravxi ',
 c     &           gravxi
 
-C$OMP ATOMIC
-            poten(ipart) = poten(ipart) + poteni 
 c
 c--Add self contribution to potential
 c
             IF (ipart.LE.npart) THEN
-C$OMP ATOMIC
-               poten(ipart)=poten(ipart)+xyzmh(4,ipart)*fpoten(0)*hi1
+               poteni = poteni+xyzmh(4,ipart)*fpoten(0)*hi1
             ENDIF
             dgrav(ipart) = 0.
          ENDIF
@@ -1358,52 +1283,33 @@ c
 c--time derivative of B/rho, B (constructed from B/rho and rho derivatives) 
 c  or the Euler potentials (dissipation only)
 c
+            dBxyz_xi = 0.
+            dBxyz_yi = 0.
+            dBxyz_zi = 0.
             IF (varmhd(1:1).EQ.'B') THEN
-C$OMP ATOMIC
-               dBxyz(1,ipart) = dBxyz(1,ipart) +
+               dBxyz_xi = dBxyz_xi +
      &                        ((dBxideali+dBxiequil)*rho21i + dBxdissi)
-C$OMP ATOMIC
-               dBxyz(2,ipart) = dBxyz(2,ipart) + 
+               dBxyz_yi = dBxyz_yi + 
      &                        ((dByideali+dByiequil)*rho21i + dBydissi)
-C$OMP ATOMIC
-               dBxyz(3,ipart) = dBxyz(3,ipart) +
+               dBxyz_zi = dBxyz_zi +
      &                        ((dBzideali+dBziequil)*rho21i + dBzdissi)
                
                !--add contribution from external B field advection
-C$OMP ATOMIC
-               dBxyz(1,ipart) = dBxyz(1,ipart) - advBx*rho1i
-C$OMP ATOMIC
-               dBxyz(2,ipart) = dBxyz(2,ipart) - advBy*rho1i
-C$OMP ATOMIC
-               dBxyz(3,ipart) = dBxyz(3,ipart) - advBz*rho1i
-               
-               !--translate to dB/dt and add divv term if B is evolved
-               ! -- DJP !! THIS LOOKS WRONG IN MPI CODE !!
-               IF (varmhd.EQ.'Bvol') THEN
-                  dBxyz(1,ipart) = rhoi*dBxyz(1,ipart) 
-     &                         + (Bxyz(1,ipart)+Beqxi)*rho1i*divv(ipart)
-                  dBxyz(2,ipart) = rhoi*dBxyz(2,ipart) 
-     &                         + (Bxyz(2,ipart)+Beqyi)*rho1i*divv(ipart)
-                  dBxyz(3,ipart) = rhoi*dBxyz(3,ipart) 
-     &                         + (Bxyz(3,ipart)+Beqzi)*rho1i*divv(ipart)
-               ENDIF
+               dBxyz_xi = dBxyz_xi - advBx*rho1i
+               dBxyz_yi = dBxyz_yi - advBy*rho1i
+               dBxyz_zi = dBxyz_zi - advBz*rho1i
+
             ELSEIF (varmhd.EQ.'vecp') THEN
-C$OMP ATOMIC
-               dBxyz(1,ipart)= dBxyz(1,ipart) +dBxideali*rho1i +dBxdissi
+               dBxyz_xi= dBxyz_xi +dBxideali*rho1i +dBxdissi
      &                       + (vyi*Bextz - vzi*Bexty)  ! add v x B_ext
-C$OMP ATOMIC
-               dBxyz(2,ipart)= dBxyz(2,ipart) +dByideali*rho1i +dBydissi
+               dBxyz_yi= dBxyz_yi +dByideali*rho1i +dBydissi
      &                       + (vzi*Bextx - vxi*Bextz)  ! add v x B_ext
-C$OMP ATOMIC
-               dBxyz(3,ipart)= dBxyz(3,ipart) +dBzideali*rho1i +dBzdissi
+               dBxyz_zi= dBxyz_zi +dBzideali*rho1i +dBzdissi
      &                       + (vxi*Bexty - vyi*Bextx)  ! add v x B_ext
             ELSE ! Euler potentials
-C$OMP ATOMIC
-               dBxyz(1,ipart) = dBxyz(1,ipart) + dBxdissi
-C$OMP ATOMIC
-               dBxyz(2,ipart) = dBxyz(2,ipart) + dBydissi
-C$OMP ATOMIC
-               dBxyz(3,ipart) = dBxyz(3,ipart) + dBzdissi
+               dBxyz_xi = dBxyz_xi + dBxdissi
+               dBxyz_yi = dBxyz_yi + dBydissi
+               dBxyz_zi = dBxyz_zi + dBzdissi
             ENDIF
          ENDIF
 c
@@ -1417,7 +1323,6 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D6 ',n
             forcezi = forcezi + artzi
          ENDIF
          fxyzu(4,ipart) = pdvi
-         dq(ipart) = dq(ipart) + dqi
 c
 c--Morris & Monaghan switch source and decay terms for both artificial viscosity
 c  and artificial resistivity (see Price & Monaghan 2005)
@@ -1461,10 +1366,12 @@ c
 c--Radiation pressure force
 c
          IF (encal.EQ.'r') THEN
-            DO j = 1, 3
-               fxyzu(j,ipart) = fxyzu(j,ipart) -
-     &              ekcle(4,ipart)/trho(ipart)*dedxyz(j,ipart)
-            END DO
+            forcexi = forcexi -
+     &           ekcle(4,ipart)/trho(ipart)*dedxyz(1,ipart)
+            forceyi = forceyi -
+     &           ekcle(4,ipart)/trho(ipart)*dedxyz(2,ipart)
+            forcezi = forcezi -
+     &           ekcle(4,ipart)/trho(ipart)*dedxyz(3,ipart)
          ENDIF
 c
 c--Forces that operate on both sink particles and gas from here on:
@@ -1490,13 +1397,29 @@ c
 c
 c--Add local values to global force
 c
-C$OMP ATOMIC
+c--Note: C$OMP ATOMIC would be the best way to do these IF the compiler was
+c     written properly, but ifort isn't
+c
+#ifdef _OPENMP
+         CALL OMP_SET_LOCK(forcei_lock(ipart))
+#endif
          fxyzu(1,ipart) = fxyzu(1,ipart) + forcexi
-C$OMP ATOMIC
          fxyzu(2,ipart) = fxyzu(2,ipart) + forceyi
-C$OMP ATOMIC
          fxyzu(3,ipart) = fxyzu(3,ipart) + forcezi
 
+         poten(ipart) = poten(ipart) + poteni 
+
+         dq(ipart) = dq(ipart) + dqi
+
+         IF (imhd.EQ.idim) THEN
+            dBxyz(1,ipart) = dBxyz(1,ipart) + dBxyz_xi
+            dBxyz(2,ipart) = dBxyz(2,ipart) + dBxyz_yi
+            dBxyz(3,ipart) = dBxyz(3,ipart) + dBxyz_zi
+         ENDIF
+
+#ifdef _OPENMP
+         CALL OMP_UNSET_LOCK(forcei_lock(ipart))
+#endif
       END DO
 C$OMP END DO
 C$OMP DO SCHEDULE(runtime)
@@ -1518,44 +1441,42 @@ c            ENDIF
 c
 c--Translate to dB/dt and add divv term if B is evolved
 c
-            IF (varmhd(1:1).EQ.'B') THEN
-               IF (varmhd.EQ.'Bvol') THEN
-                  rhoi = trho(ipart)
-                  rho1i = 1./rhoi
+            IF (varmhd.EQ.'Bvol') THEN
+               rhoi = trho(ipart)
+               rho1i = 1./rhoi
 
-                  DO k = 1, 3
-                     dBxyz(k,ipart) = rhoi*dBxyz(k,ipart)
-                  END DO
+               DO k = 1, 3
+                  dBxyz(k,ipart) = rhoi*dBxyz(k,ipart)
+               END DO
 
-                  IF (n.LE.nlst_end) THEN
-                     IF (ipart.GT.npart) THEN
-                        WRITE (*,*) 'ERROR - ipart.GT.npart'
-                        CALL quit
-                     ELSE
-                        iparttree = ipart
-                     ENDIF
-                     xi = xyzmh(1,iparttree)
-                     yi = xyzmh(2,iparttree)
-                     zi = xyzmh(3,iparttree)
-
-                     IF (iBext.GT.0 .AND. iexf.NE.9) THEN
-                        Beqxi = BEXTERNAL(xi,yi,zi,1)
-                        Beqyi = BEXTERNAL(xi,yi,zi,2)
-                        Beqzi = BEXTERNAL(xi,yi,zi,3)
-                     ELSE
-                        Beqxi = 0.
-                        Beqyi = 0.
-                        Beqzi = 0.
-                     ENDIF
-
-                     dBxyz(1,ipart) = dBxyz(1,ipart)
-     &                    + (Bxyz(1,ipart)+Beqxi)*rho1i*divv(ipart)
-                     dBxyz(2,ipart) = dBxyz(2,ipart)
-     &                    + (Bxyz(2,ipart)+Beqyi)*rho1i*divv(ipart)
-                     dBxyz(3,ipart) = dBxyz(3,ipart)
-     &                    + (Bxyz(3,ipart)+Beqzi)*rho1i*divv(ipart)
-
+               IF (n.LE.nlst_end) THEN
+                  IF (ipart.GT.npart) THEN
+                     WRITE (*,*) 'ERROR - ipart.GT.npart'
+                     CALL quit
+                  ELSE
+                     iparttree = ipart
                   ENDIF
+                  xi = xyzmh(1,iparttree)
+                  yi = xyzmh(2,iparttree)
+                  zi = xyzmh(3,iparttree)
+
+                  IF (iBext.GT.0 .AND. iexf.NE.9) THEN
+                     Beqxi = BEXTERNAL(xi,yi,zi,1)
+                     Beqyi = BEXTERNAL(xi,yi,zi,2)
+                     Beqzi = BEXTERNAL(xi,yi,zi,3)
+                  ELSE
+                     Beqxi = 0.
+                     Beqyi = 0.
+                     Beqzi = 0.
+                  ENDIF
+
+                  dBxyz(1,ipart) = dBxyz(1,ipart)
+     &                 + (Bxyz(1,ipart)+Beqxi)*rho1i*divv(ipart)
+                  dBxyz(2,ipart) = dBxyz(2,ipart)
+     &                 + (Bxyz(2,ipart)+Beqyi)*rho1i*divv(ipart)
+                  dBxyz(3,ipart) = dBxyz(3,ipart)
+     &                 + (Bxyz(3,ipart)+Beqzi)*rho1i*divv(ipart)
+
                ENDIF
             ENDIF
          ENDIF
@@ -1577,7 +1498,6 @@ c
  255  FORMAT(' exit subroutine forcei')
 
 c      print *,iproc,': Exited forcei'
-
 
 c      CALL quit
 
@@ -1622,7 +1542,6 @@ c
       ENDIF
 
       trho(j) = rho(j) + deltarho
-      CALL eospg(j, vxyzu, trho, pr, vsound, ekcle)
       
       IF (imhd.EQ.idim) THEN
 c
@@ -1644,6 +1563,8 @@ c
          ekcle(3,j) = GETCV(trho(j),vxyzu(4,j))
          ekcle(2,j) = GETKAPPA(vxyzu(4,j),ekcle(3,j),trho(j))
       ENDIF
+
+      CALL eospg(j, vxyzu, trho, pr, vsound, ekcle)
 
       RETURN
       

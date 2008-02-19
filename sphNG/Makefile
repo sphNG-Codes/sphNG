@@ -74,7 +74,7 @@ endif
 
 ifeq ($(SYSTEM), zen)
     ifeq ($(mpi), yes)
-      FC= mpif90
+       FC= mpif90
     else
        FC= ifort
     endif
@@ -95,6 +95,9 @@ ifeq ($(SYSTEM), zen)
     endif
     ifeq ($(mpidebugs), yes)
         FFLAGS += -DMPIDEBUGS
+    endif
+    ifeq ($(mpidebugrt), yes)
+        FFLAGS += -DMPIDEBUGRT
     endif
     DBLFLAG= -r8
     DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
@@ -262,7 +265,7 @@ SRCNONGRADH= densityi_P.f derivi_P.f forcei_P.F hcalc.f
 
 # these are the extra routines required for the radiative transfer code to compile
         
-SRCRT= ass.f newgsimpl_P5_sor.f quartic_gs1t.f derivi_P_RT.f
+SRCRT= ass.f newgsimpl_MPI.f quartic_gs1t.f
 
 # these are the extra routines required for Monte-Carlo radiative transfer
         
@@ -281,6 +284,7 @@ TOBJRK = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o)
 TOBJRT = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o)
 TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o)
 TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o)
+TOBJGRADHRKRT = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o)
 TOBJTORUS = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCTORUS:.f=.o)
 
 OBJECTS = $(TOBJECTS:.F=.o) 
@@ -289,6 +293,7 @@ OBJRK = $(TOBJRK:.F=.o)
 OBJRT = $(TOBJRT:.F=.o) 
 OBJGRADHLF = $(TOBJGRADHLF:.F=.o) 
 OBJGRADHRK = $(TOBJGRADHRK:.F=.o) 
+OBJGRADHRKRT = $(TOBJGRADHRKRT:.F=.o) 
 OBJTORUS = $(TOBJTORUS:.F=.o) 
 
 # specific rules to make MPI object files
@@ -323,6 +328,8 @@ gradhlf: checksystem checkparams sph_tree_lf_gradh
 
 gradhrk: checksystem checkparams sph_tree_rk_gradh 
 
+gradhrkrt: checksystem checkparams sph_tree_rk_gradh_RT
+
 all: lf rk RT gradhlf gradhrk
 
 sph_tree_lf_gradh: $(OBJGRADHLF)
@@ -336,6 +343,12 @@ sph_tree_rk_gradh: $(OBJGRADHRK)
 	@echo "This is the gradh, Runge Kutta version"
 	@echo ""
 	$(FC) $(FFLAGS) -o $@ $(OBJGRADHRK)
+
+sph_tree_rk_gradh_RT: $(OBJGRADHRKRT)
+	@echo ""
+	@echo "This is the gradh, Runge Kutta, radiative transfer version"
+	@echo ""
+	$(FC) $(FFLAGS) -o $@ $(OBJGRADHRKRT)
 
 sph_tree_lf: $(OBJLF)
 	@echo ""

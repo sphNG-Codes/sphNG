@@ -54,7 +54,7 @@ c   formula from Wardle & Ng (1999)
 c   ratecoefft = 1.d-15*dsqrt(128.d0*kb/(9.d0*pi*me))*dsqrt(Te)
 c   where we have pre-calculated the non-temperature dependent term
 c
-      ratecoefft = 10.*ratecoeff*dsqrt(Te)  ! units cm^3/s
+      ratecoefft = ratecoeff*dsqrt(Te)  ! units cm^3/s
 c
 c     conductivity sigma (multiplied by mu0 and needs to be divided by rho)
       sigmaterme = sigmaterm*densne
@@ -79,3 +79,31 @@ c
       !print*,' eta (physical) = ',etareal,' eta (code) = ',etafunc
       
       END FUNCTION etafunc
+
+
+      SUBROUTINE test_etafunc
+      IMPLICIT NONE
+      INCLUDE 'COMMONS/units'
+      INTEGER npts,i
+      PARAMETER (npts = 100)
+      REAL rho,rhologstart,deltarholog,eta,etareal,ucode
+      REAL etafunc
+      REAL*4 rhocode
+
+      PRINT*,' TESTING RESISTIVITY FUNCTION '
+      
+      rhologstart = -20.
+      deltarholog = 20./dble(npts-1)
+      
+      OPEN(UNIT=1,FILE='etatest.out',STATUS='REPLACE',FORM='FORMATTED')
+      DO i=1,npts
+         rho = 10.d0**(rhologstart + (i-1)*deltarholog)
+         rhocode = rho*udist**3/umass
+         ucode = 5.e-2
+         eta = etafunc(rhocode,ucode)
+         etareal = eta*udist**2/utime
+         WRITE(1,*) rho,eta,etareal
+      ENDDO
+      CLOSE(UNIT=1)
+      
+      END SUBROUTINE test_etafunc

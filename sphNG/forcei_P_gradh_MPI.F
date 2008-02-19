@@ -77,6 +77,7 @@ c
 
       CHARACTER*7 where
       LOGICAL inosink
+      REAL*4 rhotemp
 
 #ifdef _OPENMP
       INTEGER*8 forcei_lock
@@ -271,7 +272,7 @@ C$OMP& private(fanisox,fanisoy,fanisoz,forcex,forcey,forcez,xmasi)
 C$OMP& private(t12jpmassi,t12jpmassj,r32grav,forcexi,forceyi,forcezi)
 C$OMP& private(Bevoldotdv,termBpmi,termBpmj,termetapmj,termetapmi)
 C$OMP& private(dBxdissj,dBydissj,dBzdissj,dBxyz_xi,dBxyz_yi,dBxyz_zi)
-C$OMP& private(ioffset,etai,etaj,ui,uj,dqj)
+C$OMP& private(ioffset,etai,etaj,ui,uj,dqj,rhotemp)
 C$OMP& reduction(+:ioutmin,ioutsup,ioutinf)
 C$OMP& reduction(MIN:inmin,inminsy)
 C$OMP& reduction(MAX:inmax,inmaxsy)
@@ -385,7 +386,8 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
             fanisoyi = 0.
             fanisozi = 0.
             IF (iresist.EQ.2) THEN
-               etai = etafunc(rhoi,ui)
+               rhotemp = rhoi
+               etai = etafunc(rhotemp,ui)
             ELSEIF (iresist.EQ.1) THEN
                etai = etamhd
             ELSE
@@ -528,7 +530,8 @@ c
 c               projBrho2i = (projBi - projBext)*rho21i
 c               projBrho2j = (projBj - projBext)*rho1j*rho1j
                IF (iresist.EQ.2) THEN
-                  etaj = etafunc(rhoj,uj)
+                  rhotemp = rhoj
+                  etaj = etafunc(rhotemp,uj)
                ELSEIF (iresist.EQ.1) THEN
                   etaj = etamhd
                ELSE
@@ -688,7 +691,7 @@ c
      &                    + SQRT(vs2j + vsprojj))
                      vsbar = 0.5*(vsigi + vsigj)
 c
-c--Artificial resistivity
+c--Artificial and Non-artificial resistivity
 c
                      IF (j.LE.npart .OR. ibound.EQ.11.OR.ibound.EQ.12) 
      &                    THEN
@@ -704,27 +707,34 @@ c     &                       MAX(vsbar - projv,0.0)*robar1
                         termB = alphaB*grkern*
      &                       (vsbar + 2.0*abs(projv))*robar1
                         termBpmj = termB*pmassj
+c
+c--Physical resistivity
+c
+                        termeta = (etai+etaj)*grkern*rij1
+                        termetapmj = termeta*pmassj*rho1j
 
                         IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
+c--artificial
                            dBxdissi = dBxdissi + termBpmj*dBevolx
                            dBydissi = dBydissi + termBpmj*dBevoly
                            dBzdissi = dBzdissi + termBpmj*dBevolz
+c--physical
+                           dBxdissi = dBxdissi + termetapmj*dBevolx
+                           dBydissi = dBydissi + termetapmj*dBevoly
+                           dBzdissi = dBzdissi + termetapmj*dBevolz
                         ELSE
+c--artificial
                            dBxdissi = dBxdissi + termBpmj*dBx*robar1
                            dBydissi = dBydissi + termBpmj*dBy*robar1
                            dBzdissi = dBzdissi + termBpmj*dBz*robar1
 c        dBxdissi = dBxdissi + termBpmj*(dBx - runix*projdB)*robar1
 c        dBydissi = dBydissi + termBpmj*(dBy - runiy*projdB)*robar1
 c        dBzdissi = dBzdissi + termBpmj*(dBz - runiz*projdB)*robar1
-c
-c-- Real constant resistivity
-c
-c        !times rhoi below
-                           termeta = (etai+etaj)*grkern*rho1j*rho1i
-                           termetapmj = termeta*pmassj
-                           dBxdissi = dBxdissi + termetapmj*dBx
-                           dBydissi = dBydissi + termetapmj*dBy
-                           dBzdissi = dBzdissi + termetapmj*dBz
+
+c--physical
+                           dBxdissi = dBxdissi + termetapmj*dBx*rho1i
+                           dBydissi = dBydissi + termetapmj*dBy*rho1i
+                           dBzdissi = dBzdissi + termetapmj*dBz*rho1i
 
 c                        dBxdissi = dBxdissi + termetapmj*
 c     &                             (5.*runix*projdB-3.*dBx)
@@ -826,23 +836,26 @@ c
                         dBxdissj = 0.
                         dBydissj = 0.
                         dBzdissj = 0.
+                        termetapmi = termeta*pmassi*rho1i
 
                         IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
+c--artificial
                            dBxdissj = dBxdissj + termBpmi*dBevolx
                            dBydissj = dBydissj + termBpmi*dBevoly
                            dBydissj = dBydissj + termBpmi*dBevolz
+c--physical
+                           dBxdissj = dBxdissj + termetapmi*dBevolx
+                           dBydissj = dBydissj + termetapmi*dBevoly
+                           dBzdissj = dBzdissj + termetapmi*dBevolz
                         ELSE
+c--artificial
                            dBxdissj = dBxdissj + termBpmi*dBx*robar1
                            dBydissj = dBydissj + termBpmi*dBy*robar1
                            dBzdissj = dBzdissj + termBpmi*dBz*robar1
-c
-c-- Real constant resistivity
-c
-c        !times rhoi below
-                           termetapmi = termeta*pmassi
-                           dBxdissj = dBxdissj + termetapmi*dBx
-                           dBydissj = dBydissj + termetapmi*dBy
-                           dBzdissj = dBzdissj + termetapmi*dBz
+c--physical
+                           dBxdissj = dBxdissj + termetapmi*dBx*rho1j
+                           dBydissj = dBydissj + termetapmi*dBy*rho1j
+                           dBzdissj = dBzdissj + termetapmi*dBz*rho1j
                         ENDIF
 c
 c--add contribution to thermal energy
@@ -1076,27 +1089,34 @@ c                        termB = alphaB*pmassj*grkern*
 c     &                     MAX(vsbar - projv,0.0)*robar1
                            termB = alphaB*pmassj*grkern*
      &                          (vsbar + 2.0*abs(projv))*robar1
+c
+c--Real resistivity
+c
+                           termeta = (etai+etaj)*
+     &                               pmassj*grkern*rho1j*rij1
 
                            IF(varmhd.EQ.'eulr'.OR.varmhd.EQ.'vecp') THEN
+c--artificial
                               dBxdissi = dBxdissi + termB*dBevolx
                               dBydissi = dBydissi + termB*dBevoly
                               dBzdissi = dBzdissi + termB*dBevolz
+c--physical
+                              dBxdissi = dBxdissi + termeta*dBevolx
+                              dBydissi = dBydissi + termeta*dBevoly
+                              dBzdissi = dBzdissi + termeta*dBevolz
                            ELSE
+c--artificial
                               dBxdissi = dBxdissi + termB*dBx*robar1
                               dBydissi = dBydissi + termB*dBy*robar1
                               dBzdissi = dBzdissi + termB*dBz*robar1
 c               dBxdissi = dBxdissi + termB*(dBx - runix*projdB)*robar1
 c               dBydissi = dBydissi + termB*(dBy - runiy*projdB)*robar1
 c               dBzdissi = dBzdissi + termB*(dBz - runiz*projdB)*robar1
-c
-c--Real constant resistivity
-c
-c        !times rhoi below
-                              termeta = (etai+etaj)*
-     &                                  pmassj*grkern*rho1j*rho1i
-                              dBxdissi = dBxdissi + termeta*dBx
-                              dBydissi = dBydissi + termeta*dBy
-                              dBzdissi = dBzdissi + termeta*dBz
+
+c--physical
+                              dBxdissi = dBxdissi + termeta*dBx*rho1i
+                              dBydissi = dBydissi + termeta*dBy*rho1i
+                              dBzdissi = dBzdissi + termeta*dBz*rho1i
 
 c                           dBxdissi = dBxdissi + termeta*
 c     &                             (5.*runix*projdB-3.*dBx)

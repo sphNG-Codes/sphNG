@@ -52,6 +52,10 @@ c
       etamax = 0.
       etamin = 1.E30
       etaav = 0.
+      etarealoverartav = 0.
+      etarealoverartmin= 1.E30
+      etarealoverartmax = 0.
+      ietacount = 0
       
 c
 c--Calculate quantities
@@ -146,6 +150,20 @@ c
             etamax = MAX(etamax, etai)
             etamin = MIN(etamin, etai)
             etaav = etaav + etai
+            
+            vsigi = sqrt(vsound(i)**2 + B2i*rho1i)
+            IF (ifsvi.EQ.6) THEN
+               etaart = 0.1*alphaMM(2,i)*vsigi*xyzmh(5,i)
+            ELSE
+               etaart = 0.1*alphamin(2)*vsigi*xyzmh(5,i)
+            ENDIF
+            IF (etaart.GT.0.) THEN
+               ratio = etai/etaart
+               etarealoverartmin = min(etarealoverartmin,ratio)
+               etarealoverartmax = max(etarealoverartmax,ratio)
+               etarealoverartav = etarealoverartav + ratio
+               ietacount = ietacount + 1
+            ENDIF
          ENDIF
       ENDDO
       
@@ -158,6 +176,8 @@ c
       div2curlBav = div2curlBav*denom
       Bmean = Bmean*denom
       etaav = etaav*denom
-      
+      ietacount = max(ietacount,1)
+      etarealoverartav = etarealoverartav/FLOAT(ietacount)
+
       RETURN
       END

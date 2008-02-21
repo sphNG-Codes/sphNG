@@ -427,7 +427,7 @@ c
 	    WRITE (iprint, 66001, ERR=100) betamhdmin,betamhdmax,
      &           betamhdav,divBmax,divBav,curlBmax,curlBav,div2curlBmax,
      &           div2curlBav,omegamhdmax,omegamhdav,omegtol,fracdivBok,
-     &           valphaBmin,valphaBmax,fluxtot,crosshel
+     &           valphaBmin,valphaBmax
 66001       FORMAT (/,' Magnetic field parameters : ', /,
      &   '          plasma beta  min : ', 1PE14.5,'  max : ', 1PE14.5,
      &   ' mean : ', 1PE14.5, /,     
@@ -436,7 +436,17 @@ c
      &   '      (div B)/(curl B) max : ', 1PE14.5,'  mean: ', 1PE14.5,/,
      &   '              divB*h/B max : ', 1PE14.5,
      &   '  mean: ', 1PE14.5,' frac < ',1PE9.2,' : ',0PF6.2,'%',/,
-     &   '   resistivity switch  min : ', 1PE14.5, '  max : ',1PE14.5,//,
+     &   '   resistivity switch  min : ', 1PE14.5, '  max : ',1PE14.5)
+            IF (iresist.GE.2) THEN
+               WRITE (iprint, 66002, ERR=100) etarealoverartmin,
+     &               etarealoverartmax,etarealoverartav
+            ENDIF
+66002       FORMAT (
+     &   '     eta real/eta art. min : ', 1PE14.5,'  max : ', 1PE14.5,
+     &   ' mean : ', 1PE14.5)
+
+            WRITE (iprint, 66003, ERR=100) fluxtot,crosshel
+66003       FORMAT (/,
      &   ' total magnetic flux  (int div B dV)   : ', 1PE14.5,/,
      &   ' total cross helicity (int v.B dV)     : ', 1PE14.5)
          ENDIF
@@ -473,7 +483,6 @@ c
 99106       FORMAT (' temper. rad. mean :', 1PE14.5, ' max:', 
      &           1PE14.5, ' cen:', 1PE14.5)
          ENDIF
-         WRITE (iprint,"(/)")
 c
 c--Object no 2
 c

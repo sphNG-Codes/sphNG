@@ -12,6 +12,7 @@ c************************************************************
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/dissi'
       REAL*4 rhoi
       REAL ui
       REAL etafunc
@@ -69,7 +70,7 @@ c
       sigma = sigmae !+ sigmai
       
       rhoreal = rhoi*umass/udist**3
-      etareal = rhoreal/sigma
+      etareal = etamhd*rhoreal/sigma
 c
 c--multiply by rho in code units and sqrt(Te) in K
 c

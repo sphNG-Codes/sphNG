@@ -239,8 +239,8 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	getcv.f get1overmu.f getkappa.f \
 	gforsa_P.f gforsn_P.f gforspt_P.f \
 	ghostp.f ghostp1.f ghostp2.f ghostp3.F ghostp11.f ghostp100.f \
-        gptall.f gptfromgas.f gpti.f hdot_P.f \
-	header.F homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
+        gptall.f gptfromgas.f gpti.f hdot_P.f header.F hillmass.f \
+	homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
 	inopts.f insulate_TREE_P.F integs.F ktable.f labrun.f lunit_double.f \
 	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
 	newrun.f options.f phoenix.f phoenix2.f \
@@ -250,7 +250,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
         scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f thermeq.f \
 	toten.f treef_P.F unifdis.f unit.f \
-	wdump.f wrinsph.F
+	wdump.f wrinsph.F zeusread.f
 
 # these are the sources required for the gradh code to compile
 

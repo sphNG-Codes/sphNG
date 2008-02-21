@@ -1,0 +1,12 @@
+      PARAMETER(nradiusmax = 150)
+      PARAMETER(nthetamax = 36)
+      REAL*8 radii,thetas,drad,density,vr,vt,vp,zmasses,
+     &	radiic, thetasc
+      INTEGER nradius, ntheta
+
+      COMMON/zeus / radii(nradiusmax),thetas(nthetamax),
+     &     drad(nradiusmax),density(6,nradiusmax,nthetamax,2),
+     &     vr(6,nradiusmax,nthetamax,2),zmasses(6),
+     &     vt(6,nradiusmax,nthetamax,2),vp(6,nradiusmax,nthetamax,2),
+     &     nradius, ntheta,radiic(nradiusmax),thetasc(nthetamax)
+

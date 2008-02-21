@@ -1,10 +1,11 @@
-      SUBROUTINE preset
+      SUBROUTINE preset(ihopin)
 c************************************************************
 c                                                           *
 c  This routine makes sure that everything not entered as   *
 c     option is defined before integration begins.          *
 c                                                           *
 c************************************************************
+
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
@@ -51,70 +52,76 @@ c************************************************************
       CHARACTER*25 ptfile, accfile, killfile, reassfile
 
       DATA where/'preset'/
+
+      INTEGER ihopin
+
+      IF(ihopin.NE.1) THEN
 c
 c--Open file1
 c
 #ifdef MPI
 c      CALL appendiproc(7,file1,iproc)
-      write (*,*) 'About to open ',file1
+         write (*,*) 'About to open ',file1
 #endif
 
-      OPEN (idisk1, FILE=file1, STATUS='unknown', FORM='unformatted',
-     &        RECL=imaxrec)
+         OPEN (idisk1, FILE=file1, STATUS='unknown', 
+     &        FORM='unformatted', RECL=imaxrec)
 c
 c--Find correct dump to start
 c
-      CALL place(idisk1, ipos, irec, 1)
+         CALL place(idisk1, ipos, irec, 1)
 c
 c--Read dump
 c
-      CALL rdump(idisk1, ichkl, 0)
-      CLOSE (idisk1)
-      IF (ichkl.EQ.1) CALL error(where, ichkl)
+         CALL rdump(idisk1, ichkl, 0)
+         CLOSE (idisk1)
+         IF (ichkl.EQ.1) CALL error(where, ichkl)
 c
 c--Open point mass data output file
 c
-      WRITE (ptfile,99990) namerun
-99990 FORMAT ('P', A20)
-      WRITE (accfile,99991) namerun
-99991 FORMAT ('A', A20)
+         WRITE (ptfile,99990) namerun
+99990    FORMAT ('P', A20)
+         WRITE (accfile,99991) namerun
+99991    FORMAT ('A', A20)
 #ifdef MPI
-      CALL appendiproc(21,ptfile,iproc)
-      CALL appendiproc(21,accfile,iproc)
+         CALL appendiproc(21,ptfile,iproc)
+         CALL appendiproc(21,accfile,iproc)
 #endif
-      IF (nptmass.NE.0 .OR. iptmass.NE.0) THEN
-         OPEN (iptprint, FILE=ptfile,STATUS='unknown',
-     &        FORM='unformatted')
-         OPEN (iaccpr,FILE=accfile,STATUS='unknown',
-     &        FORM='unformatted')
-      ENDIF
+         IF (nptmass.NE.0 .OR. iptmass.NE.0) THEN
+            OPEN (iptprint, FILE=ptfile,STATUS='unknown',
+     &           FORM='unformatted')
+            OPEN (iaccpr,FILE=accfile,STATUS='unknown',
+     &           FORM='unformatted')
+         ENDIF
 c
 c--Open files for killing and reassignment of particles
 c
-      WRITE (killfile,99992) namerun
-99992 FORMAT ('K', A20)
-      WRITE (reassfile,99993) namerun
-99993 FORMAT ('R', A20)
+         WRITE (killfile,99992) namerun
+99992    FORMAT ('K', A20)
+         WRITE (reassfile,99993) namerun
+99993    FORMAT ('R', A20)
 #ifdef MPI
-      CALL appendiproc(21,killfile,iproc)
-      CALL appendiproc(21,reassfile,iproc)
+         CALL appendiproc(21,killfile,iproc)
+         CALL appendiproc(21,reassfile,iproc)
 #endif
-      IF (ibound.EQ.8 .OR. ibound/10.EQ.9 .OR. ibound.EQ.100) THEN
-         OPEN (ikillpr, FILE=killfile, STATUS='unknown',
-     &        FORM='unformatted')
-         OPEN (ireasspr, FILE=reassfile, STATUS='unknown',
-     &        FORM='unformatted')
-      ENDIF
+         IF (ibound.EQ.8 .OR. ibound/10.EQ.9 .OR. ibound.EQ.100) THEN
+            OPEN (ikillpr, FILE=killfile, STATUS='unknown',
+     &           FORM='unformatted')
+            OPEN (ireasspr, FILE=reassfile, STATUS='unknown',
+     &           FORM='unformatted')
+         ENDIF
 c
 c--Open notify file
 c
 #ifdef MPI
-      IF (iproc.EQ.0) THEN
+         IF (iproc.EQ.0) THEN
 #endif
-      OPEN (inotify,FILE='notify')
+            OPEN (inotify,FILE='notify')
 #ifdef MPI
-      ENDIF
+         ENDIF
 #endif
+
+      ENDIF
 c
 c--check ibound = 11 for periodic no ghosts
 c
@@ -272,16 +279,22 @@ c      IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
          ENDDO
          CLOSE(8)
       ENDIF
+
+      IF (ihopin.NE.1) THEN
 c
 c--Build table for choosing inflow into planet/disc simulation
 c 
-      IF (ibound.EQ.100) CALL cumradtable
+         IF (ibound.EQ.100 .AND. iexf.EQ.7) THEN
+            CALL cumradtable
 c
 c--Build table for choosing inflow into planet/disc simulation from ZEUS
 c     output
 c 
-      IF (ibound.EQ.100) CALL zeustable
- 
+            CALL zeusread
+            print *, 'Building ZEUS table for mass', hmass
+            CALL zeustable
+         ENDIF
+      ENDIF 
       IF (itrace.EQ.'all') WRITE(iprint,250)
  250  FORMAT(' exit subroutine preset')
 

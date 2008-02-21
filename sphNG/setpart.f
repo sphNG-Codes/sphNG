@@ -51,6 +51,7 @@ c************************************************************
       INCLUDE 'COMMONS/setBfield'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/integ'
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
@@ -59,6 +60,12 @@ c
 c--Initialise time
 c
       gt = 0.0
+
+      DO i = 1, idim
+         iorig(i) = i
+         isort(i) = i
+         iunique(i) = i
+      END DO
 
       CALL ktable
 c
@@ -460,6 +467,16 @@ c
          xmin = - xmax
          ymin = - ymax
          rmax = SQRT(radiusmax*radiusmax + zmax*zmax)
+
+         WRITE (*,89002)
+89002    FORMAT('Enter radius for planet')
+         READ (*,*) rplanet
+
+         hzero = rplanet/5.
+         nlistinactive = 0
+         pradfac = (rplanet + (0.01*exp(-4.*gt/pi)))/rplanet
+         print *, 'RPLANET = ', rplanet*pradfac
+         iexf = 7
       ENDIF
 
       deltax = xmax - xmin
@@ -709,6 +726,9 @@ c
 c
 c--Set Density Distribution
 c
+      DO i = 1, iradtrans
+         ekcle(3,i) = 1.0
+      END DO
       WRITE(*, 99014)
 99014 FORMAT (' What density variations:', /,
      &   '  Uniform particle distribution, Non-uniform masses  (m)', /,
@@ -889,9 +909,9 @@ c
          totmas = 4.0/3.0*pi*75.0*signorm*(5.2*au)**2*
      &        (rmaxdisc**1.5-rmindisc**1.5)/(pi/phibound)/umass
          partm = totmas/(npart - nptmass)
-         flowrate = 75.0*SQRT(gg*solarm*5.2*au)*(2.0*SQRT(rmindisc)+
-     &        2.0*SQRT(rmaxdisc)-LOG(rmindisc)-LOG(rmaxdisc)-4.0)/
-     &        umass*utime*signorm/partm
+         flowrate = 75.0*SQRT(gg*solarm*5.2*au)*((2./3.*rmindisc**
+     &        (3./2.))+(2./3.*rmaxdisc**(3./2.))-LOG(rmindisc)-
+     &        LOG(rmaxdisc)-(4./3.))/umass*utime*signorm/partm
       ENDIF
 
       rhozero = totmas/totvol
@@ -927,7 +947,6 @@ c         ELSE
 c            xyzmh(4,i) = partm
 c         ENDIF
          dgrav(i) = 0.
-         iorig(i) = i
       END DO
 c
 c--Check if distribution is ok
@@ -996,6 +1015,7 @@ c
      &        '   Isothermal,     p=2/3*u*rho   (i)',/,
      &        '   Adiabatic,      p=2/3*u*rho   (a)',/,
      &        '   Polytropic,     p=A*rho^gamma (p)',/,
+     &        '   Radiative,      p=R*rho*u/Cv  (r)',/,
      &        '   Variable gamma, p=A*rho^gamma (v)',/,
      &        '      critical rho (s) = ', 1PE14.5, 1PE14.5, 1PE14.5)
          READ (*, 99004) encal
@@ -1017,9 +1037,6 @@ c
             ELSE            
                RK2 = thermal/(rhozero**gm1)
             ENDIF            
-
-            IF (igeom.EQ.9) encal = 'i'
-
          ELSE IF (encal.EQ.'a' .OR. encal.EQ.'c') THEN
             gamma = 5.0/3.0
             gm1 = gamma - 1.0
@@ -1058,6 +1075,24 @@ c
             gm1 = gamma - 1.0
 	    IF (ien.EQ.'s') thermal = vsoundin2/(gamma*gm1)
             RK2 = thermal/(rhozero**gm1)
+c
+c--Radiative transfer
+c
+         ELSE IF (encal.EQ.'r') THEN
+            gamma = 5.0/3.0
+            gm1 = gamma - 1.0
+            IF (ien.EQ.'s') thermal = vsoundin2/(gamma*gm1)
+            RK2 = thermal/(rhozero**gm1)
+
+            WRITE (*,99035)
+99035       FORMAT('Enter radiative transfer tolerance, boundary             
+     &           temperature, and scale height at which disk becomes optically           
+     &           thin:')
+            READ(*,*) tolerance, boundtemp, bounddens
+
+            WRITE (*, 89019)
+89019       FORMAT ('Choose an opacity denominator')
+            READ (*,*) opdenom
          ELSE
             GOTO 616
          ENDIF
@@ -1314,6 +1349,7 @@ c
             WRITE (*,55533)
 55533              FORMAT (' Enter planet mass for external forces')
             READ (*,*) planetmass
+            hmass = planetmass
          ELSE
             irotref = 'n'
             planetmass = 0.
@@ -1358,6 +1394,7 @@ c Set velocity dispersion parameter
             ENDIF
             alpha = SQRT(gg2 * xmass/radius)
             vxyzu(1,i) = -alpha * ytild + xyzmh(2,i)*velsub
+c            print *, xyzmh(1,i),xyzmh(2,i),vxyzu(1,i)
             vxyzu(2,i) =  alpha * xtild - xyzmh(1,i)*velsub
             vxyzu(3,i) = 0.
          ELSEIF (iok.EQ.'s') THEN
@@ -1732,6 +1769,8 @@ c
      + ' to have similar number of neighbours ? (y/n) ')
       READ (*, 99004) iok
 
+      CALL preset(1)
+
       IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim) CALL hcalc
       IF (imhd.NE.idim) THEN      
          Bextx = 0.
@@ -1744,6 +1783,8 @@ c
 c--Write options
 c
       CALL wrinsph
+
+      iuniquenext = npart
 
       IF (idebug.EQ.'setpart') THEN
          WRITE (iprint, 99058) (xyzmh(1,i), i=1, npart)

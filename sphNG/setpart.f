@@ -1085,9 +1085,9 @@ c
             RK2 = thermal/(rhozero**gm1)
 
             WRITE (*,99035)
-99035       FORMAT('Enter radiative transfer tolerance, boundary             
-     &           temperature, and scale height at which disk becomes optically           
-     &           thin:')
+99035       FORMAT('Enter radiative transfer tolerance, boundary'//
+     &      ' temperature, and scale height at which disk becomes'//
+     &      ' optically thin:')
             READ(*,*) tolerance, boundtemp, bounddens
 
             WRITE (*, 89019)

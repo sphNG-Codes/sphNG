@@ -73,6 +73,9 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/vsmooth'
+      INCLUDE 'COMMONS/dissi'
+      INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/tokamak'
 
       DIMENSION nsteplist(30)
       INTEGER*8 nneightotsave
@@ -107,6 +110,7 @@ c
       ncrit = INT(nactive/10.0)
       ilocal = 0
       naddedplanet = 0
+      istepeta = 0
 c
 c--Define coefficients for Runge-Kutta integrator
 c
@@ -1457,7 +1461,7 @@ C$OMP PARALLEL default(none)
 C$OMP& shared(nlst0,nlst1,llist,iscurrent,dumvxyzu)
 C$OMP& shared(dum2vxyz,it1,it2,imax,igphi,encal)
 C$OMP& shared(vxyzu,dgrav,dumxyzmh)
-C$OMP& shared(f1vxyzu,f1ha,f2vxyzu,f2ha)
+C$OMP& shared(f1vxyzu,f1ha,f2vxyzu,f2ha,Bxyz,iexf)
 C$OMP& shared(tol,tolh,tolptm,dt,isteps,imaxstep,e1,small,divv,rho)
 C$OMP& shared(alpha,beta,vsound,xlog2,gravx,gravy,gravz,gradpx,gradpy)
 C$OMP& shared(gradpz,artvix,artviy,artviz,gravx1,gravy1,gradpx1,gradpy1)
@@ -1465,14 +1469,16 @@ C$OMP& shared(artvix1,artviy1,it0,idtsyn,ibound,deadbound)
 C$OMP& shared(iprint,xyzmh,poten,nneigh,iphase,ikillpr)
 C$OMP& shared(pmass,ikilled,nactive,nkill,time,iorig,nlstacc,listacc)
 C$OMP& shared(anglostx,anglosty,anglostz,istminold)
-C$OMP& shared(ifsvi,alphaMM,dumekcle,ekcle)
+C$OMP& shared(ifsvi,alphaMM,dumekcle,ekcle,iresist,etamhd)
 C$OMP& private(i,j,l,tolpart,errBx,errBy,errBz)
 C$OMP& private(errx,erry,errz,errvx,errvy,errvz,erru,errh,errm)
-C$OMP& private(errdivtol,rap,rmod1,divvi,aux1,aux2,aux3,denom)
+C$OMP& private(errdivtol,rap,rmod1,divvi,aux1,aux2,aux3,denom,valfven2)
 C$OMP& private(crstepi,rmodcr,force21,force22,force2,rmodcr2,rmod)
 C$OMP& private(stepi,ibin,factor,istep2,irat,r2,pmassi)
+C$OMP& private(Bxi,Byi,Bzi,xi,yi,zi,dti,dteta,rmodeta,etai)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin,istepmingas)
+C$OMP& reduction(+:istepeta,etafac)
 
 C$OMP DO SCHEDULE(runtime)
       DO j = nlst0 + 1, nlst0 + nlst1
@@ -1595,7 +1601,15 @@ c
          IF (iphase(i).EQ.0) THEN
             divvi = divv(i)/rho(i)
             IF (ifsvi.EQ.6) THEN
-               aux1 = alphaMM(1,i)*vsound(i)
+               IF (imhd.EQ.idim) THEN
+                  valfven2 = (Bxyz(1,i)*Bxyz(1,i) +  Bxyz(2,i)*Bxyz(2,i)
+     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
+                  aux1 = max(alphaMM(1,i),alphaMM(isizealphaMM,i))*
+     &                   sqrt(vsound(i)**2 + valfven2)
+               ELSE
+                  valfven2 = 0.
+                  aux1 = alphaMM(1,i)*vsound(i)
+               ENDIF
                aux2 = xyzmh(5,i)*ABS(divvi)
                aux3 = aux2
                IF (divvi.LT.0.0) THEN
@@ -1604,7 +1618,27 @@ c
                   aux2 = 0.0
                ENDIF
             ELSE
-               aux1 = alpha*vsound(i)
+               IF (imhd.EQ.idim) THEN
+                   xi = xyzmh(1,i)
+                   yi = xyzmh(2,i)
+                   zi = xyzmh(3,i)
+                   Bxi = Bxyz(1,i)
+                   Byi = Bxyz(2,i)
+                   Bzi = Bxyz(3,i)
+                   IF (iBext.GT.0 .AND. iexf.NE.9) THEN
+                      Bxi = Bxi + BEXTERNAL(xi,yi,zi,1)
+                      Byi = Byi + BEXTERNAL(xi,yi,zi,2)
+                      Bzi = Bzi + BEXTERNAL(xi,yi,zi,3)
+                   ENDIF
+                   valfven2 = (Bxi*Bxi +  Byi*Byi + Bzi*Bzi)/rho(i)
+                   
+c                  valfven2 = (Bxyz(1,i)*Bxyz(1,i) +  Bxyz(2,i)*Bxyz(2,i)
+c     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
+                  aux1 = alpha*sqrt(vsound(i)**2 + valfven2)
+               ELSE
+                  valfven2 = 0.
+                  aux1 = alpha*vsound(i)
+               ENDIF
                aux2 = xyzmh(5,i)*ABS(divvi)
                aux3 = aux2
                IF (divvi.LT.0.0) THEN
@@ -1613,7 +1647,8 @@ c
                   aux2 = 0.0
                ENDIF
             ENDIF
-            denom = aux3 + vsound(i) + 1.2*(aux1 + aux2)
+            denom = aux3 + sqrt(vsound(i)**2 + valfven2)
+     &                   + 1.2*(aux1 + aux2)
             crstepi = 0.3*xyzmh(5,i)/denom
             rmodcr = crstepi/(dt*isteps(i)/imaxstep)
             force21 = f1vxyzu(1,i)**2 + f1vxyzu(2,i)**2 + 
@@ -1629,6 +1664,39 @@ c
             rmod = MIN(rmod1, rmodcr, rmodcr2)
          ELSE
             rmod = rmod1
+         ENDIF
+c
+c--Check resistive diffusion time
+c
+         IF (imhd.EQ.idim) THEN
+            IF (iresist.EQ.2) THEN
+c           resistivity which is a function of density
+               IF (iphase(i).EQ.0) THEN
+                  etai = etafunc(rho(i),vxyzu(4,i))
+                  IF (etai.GT.tiny) THEN
+                     dteta = 0.5*xyzmh(5,i)**2/etai
+                     rmodeta = dteta/(dt*isteps(i)/imaxstep)
+                     IF (rmodeta.LT.rmod) THEN
+                        istepeta = istepeta + 1
+                        etafac = etafac 
+     &                         + rmod*(dt*isteps(i)/imaxstep)/dteta
+                        rmod = MIN(rmod, rmodeta)
+                     ENDIF
+                  ENDIF        
+               ENDIF            
+            ELSEIF (iresist.EQ.1) THEN
+c           constant resistivity
+               IF (iphase(i).EQ.0 .AND.etamhd.GT.tiny) THEN
+                  dteta = 0.5*xyzmh(5,i)**2/etamhd
+                  rmodeta = dteta/(dt*isteps(i)/imaxstep)
+                  IF (rmodeta.LT.rmod) THEN
+                     istepeta = istepeta + 1
+                     etafac = etafac 
+     &                      + rmod*(dt*isteps(i)/imaxstep)/dteta
+                     rmod = MIN(rmod, rmodeta)
+                  ENDIF
+               ENDIF
+            ENDIF
          ENDIF
 c
 c--Reduce time step (no synchronization needed)
@@ -1749,6 +1817,7 @@ c
      &     MPI_COMM_WORLD,ierr)
       istepmax = istepmaxglobal
 #endif
+
       IF (itiming) THEN
          CALL getused(ts92)
          ts9 = ts9 + (ts92 - ts91)
@@ -2687,7 +2756,11 @@ c         WRITE (iprint,*) 'itime.GE.itnext'
          ENDIF
 
          print *,iproc,': END OF STEP ',nptmasstot
-         
+
+         IF (imhd.eq.idim .and. istepeta.GT.1) THEN
+            WRITE(iprint,*) 'WARNING: resistivity constrained dt ',
+     &           istepeta,' times by ratio ',etafac/real(istepeta)
+         ENDIF         
          RETURN
       ENDIF
 

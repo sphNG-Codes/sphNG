@@ -46,7 +46,7 @@ c
 c
 c--Set all quantities needed for the run
 c
-      CALL preset
+      CALL preset(0)
 c
 c--Initialise random number generator
 c

@@ -59,8 +59,8 @@ c
 c--Gas molecular weight, mu
 c
 c      gmw = 2.0
-      gmw = 2.46
-      IF (encal.EQ.'r') gmw = 4.0/(2*0.7+0.28)
+c      gmw = 2.46
+      gmw = 4.0/(2*0.7+0.28)
 
       RETURN
       END

@@ -420,6 +420,7 @@ c************************************************************
       INCLUDE 'COMMONS/infor'
       INCLUDE 'COMMONS/actio'
       INCLUDE 'COMMONS/debug'
+      INCLUDE 'COMMONS/rbnd'
 
 #ifdef _OPENMP
       INTEGER*8 forcei_lock
@@ -435,6 +436,9 @@ c************************************************************
          WRITE (*,*) 'ERROR - numproc.GT.nummaxproc'
          CALL quit
       ENDIF
+      DO i = 1, idim
+         lblocklengths(i) = 1
+      END DO      
 #endif
 c
 c--Version - date is date last updated with other code version changes
@@ -510,6 +514,7 @@ c
          CALL OMP_INIT_LOCK(forcei_lock(i))
       END DO
 #endif
+      nlistinactive = 0
 
       CALL mainop
 c

@@ -40,8 +40,6 @@ c
       imax = 1073741824
       imaxstep = imax/2
 
-      nlistinactive = 0
-
       CALL options
 c
 c--Set all quantities needed for the run

@@ -427,12 +427,14 @@ c--real*4
             iread = iread + 1
             READ (idisk1, END=100) (alphaMM(1,i), i=icount+1, 
      &           icount+nhydro)
-            DO i = icount+1, icount+nhydro
-               IF (alphaMM(1,i).LE.0.) THEN
-                  WRITE (*,*) 'ERROR in rdump - alphaMM(1,i).LE.0'
-                  CALL quit
-               ENDIF
-            END DO
+            IF (gt.NE.0.0) THEN
+               DO i = icount+1, icount+nhydro
+                  IF (alphaMM(1,i).LE.0.) THEN
+                     WRITE (*,*) 'ERROR in rdump - alphaMM(1,i).LE.0'
+                     CALL quit
+                  ENDIF
+               END DO
+            ENDIF
          ENDIF
 c--skip unnecessary real*4's
          IF (nums1(7).GT.iread) THEN

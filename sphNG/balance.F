@@ -41,6 +41,8 @@ c************************************************************
       INCLUDE 'COMMONS/accurpt'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/radsink'
+      INCLUDE 'COMMONS/rbnd'
+      INCLUDE 'COMMONS/logun'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -84,12 +86,12 @@ c
          numrecv(ii) = 0
       END DO
 
-      DO i = 1, npart
-         IF (listtrans(i).EQ.iproc) write (40+iproc,*) xyzmh(1,i),
-     &              xyzmh(2,i),xyzmh(3,i)
-         IF (listtrans(i).NE.iproc) write (50+iproc,*) xyzmh(1,i),
-     &              xyzmh(2,i),xyzmh(3,i)
-      END DO
+c      DO i = 1, npart
+c         IF (listtrans(i).EQ.iproc) write (40+iproc,*) xyzmh(1,i),
+c     &              xyzmh(2,i),xyzmh(3,i)
+c         IF (listtrans(i).NE.iproc) write (50+iproc,*) xyzmh(1,i),
+c     &              xyzmh(2,i),xyzmh(3,i)
+c      END DO
 
 #ifdef MPIDEBUGT
       DO i = 1, numproc
@@ -154,6 +156,8 @@ c
                            IF (j.EQ.listtrans(ipart)) THEN
                               ipos = ipos + 1
                               lsendlist(ipos) = ipart - 1
+                              nlistinactive = nlistinactive + 1
+                              listinactive(nlistinactive) = ipart
 c                                 IF (ipos.LE.5) print *,'To ',
 c     &                              ipart,iunique(iorig(ipart))
                               IF (iphase(ipart).GT.0) THEN
@@ -1122,6 +1126,7 @@ c
          nptmass = nptmassnew
       ENDIF
 
+      npartold = npart
       npart = npartnew
       n1 = npart
 
@@ -1134,6 +1139,24 @@ c
       print *,iproc,': PTMASS ID ',(listpm(i),i=1,nptmass),
      &     (iphase(listpm(i)),i=1,nptmass)
 #endif
+c
+c--Now move new particles around within MPI process to fill in blanks left
+c     by killed particles or by particles moved to other MPI processes.
+c
+      print *,iproc,': MOVE ',npart-npartold,nlistinactive,npart
+      IF (iproc.EQ.0) WRITE (iprint,*) 'MOVE ',npart-npartold,
+     &     nlistinactive,npart
+      nlistinactiveold = nlistinactive
+      DO i = npart, npartold + 1, -1
+         IF (nlistinactive.GT.0) THEN
+            CALL move_particle(i,listinactive(nlistinactive))
+            nlistinactive = nlistinactive - 1
+         ENDIF
+      END DO
+      npart = npart - (nlistinactiveold - nlistinactive)
+      n1 = n1 - (nlistinactiveold - nlistinactive)
+      IF (iproc.EQ.0) WRITE (iprint,*) 'MOVE-POST ',npart,
+     &     nlistinactive,nlistinactiveold
 c
 c--Need to reset lists of particles in each timestep bin
 c
@@ -1374,4 +1397,112 @@ c************************************************************
       RETURN
       END
 
-c==========================================================================
+c---------------------------------------------------------------------------
+
+      SUBROUTINE move_particle(ifrom,ito)
+c************************************************************
+c                                                           *
+c     Moves a particle from location ifrom to ito (within   *
+c     an MPI process, not between MPI processes)            *
+c                                                           *
+c     NOTE: Does not alter listbins for timesteps or ireal  *
+c     for ghost particles.  Does not alter tree.            *
+c                                                           *
+c************************************************************
+
+      INCLUDE 'idim'
+      INCLUDE 'igrape'
+
+      INCLUDE 'COMMONS/part'
+      INCLUDE 'COMMONS/numpa'
+      INCLUDE 'COMMONS/gradhterms'
+      INCLUDE 'COMMONS/timei'
+      INCLUDE 'COMMONS/phase'
+      INCLUDE 'COMMONS/mhd'
+      INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/sort'
+      INCLUDE 'COMMONS/active'
+      INCLUDE 'COMMONS/timeextra'
+      INCLUDE 'COMMONS/f1'
+      INCLUDE 'COMMONS/f2'
+      INCLUDE 'COMMONS/densi'
+      INCLUDE 'COMMONS/dumderivi'
+      INCLUDE 'COMMONS/current'
+      INCLUDE 'COMMONS/ener1'
+      INCLUDE 'COMMONS/bodys'
+      INCLUDE 'COMMONS/treecom_P'
+      INCLUDE 'COMMONS/typef'
+      INCLUDE 'COMMONS/dum'
+      INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/ptmass'
+      INCLUDE 'COMMONS/accnum'
+      INCLUDE 'COMMONS/accurpt'
+      INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/radsink'
+
+      DO i = 1, 5
+         xyzmh(i,ito) = xyzmh(i,ifrom)
+         dumxyzmh(i,ito) = dumxyzmh(i,ifrom)
+      END DO
+      DO i = 1, 4
+         vxyzu(i,ito) = vxyzu(i,ifrom)
+         dumvxyzu(i,ito) = dumvxyzu(i,ifrom)
+         f1vxyzu(i,ito) = f1vxyzu(i,ifrom)
+         f2vxyzu(i,ito) = f2vxyzu(i,ifrom)         
+      END DO
+      isteps(ito) = isteps(ifrom)
+      it0(ito) = it0(ifrom)
+      it1(ito) = it1(ifrom)
+      it2(ito) = it2(ifrom)
+      iphase(ito) = iphase(ifrom)
+      IF (iphase(ifrom).GE.1) THEN
+         ipt = listrealpm(ifrom)
+         IF (ipt.LE.0 .OR. ipt.GT.nptmass) THEN
+            WRITE (*,*) 'ERROR - ipt.LE.0 .OR. ipt.GT.nptmass'
+            CALL quit
+         ENDIF
+         listrealpm(ito) = ipt
+         listpm(ipt) = ito
+         listrealpm(ifrom) = 0
+      ENDIF
+      iphase(ifrom) = -1
+c      iorig(ito) = ito
+c      isort(ito) = ito
+c      iorig(ifrom) = 0
+c      isort(ifrom) = 0
+      iunique(ito) = iunique(ifrom)
+      rho(ito) = rho(ifrom)
+      dumrho(ito) = dumrho(ifrom)
+      poten(ito) = poten(ifrom)
+      iscurrent(ito) = iscurrent(ifrom)
+      DO i = 1, 2
+         gradhs(i,ito) = gradhs(i,ifrom)
+      END DO
+      DO i = 1, isizealphaMM
+         alphaMM(i,ito) = alphaMM(i,ifrom)
+         dumalpha(i,ito) = dumalpha(i,ifrom)
+      END DO
+      DO i = 1, 1+isizealphaMM
+         f1ha(i,ito) = f1ha(i,ifrom)
+         f2ha(i,ito) = f2ha(i,ifrom)
+      END DO
+      IF (imhd.EQ.idim) THEN
+         DO i = 1, 3
+            Bevolxyz(i,ito) = Bevolxyz(i,ifrom)
+            dumBevolxyz(i,ito) = dumBevolxyz(i,ifrom)
+            Bxyz(i,ito) = Bxyz(i,ifrom)
+            f1Bxyz(i,ito) = f1Bxyz(i,ifrom)
+            f2Bxyz(i,ito) = f2Bxyz(i,ifrom)
+         END DO
+      ENDIF
+      IF (encal.EQ.'r') THEN
+         DO i = 1, 5
+            ekcle(i,ito) = ekcle(i,ifrom)
+            dumekcle(i,ito) = dumekcle(i,ifrom)
+         END DO
+      ENDIF
+
+      RETURN
+      END
+
+c===========================================================================

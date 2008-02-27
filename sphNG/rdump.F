@@ -382,6 +382,11 @@ c--Default real
             READ (idisk1, END=100) (xyzmh(j,i), i=icount+1, 
      &           icount+nhydro)
          END DO
+         DO i = icount+1, icount+nhydro
+            IF (iphase(i).EQ.-1) THEN
+               print *,i,xyzmh(1,i),xyzmh(2,i)
+            ENDIF
+         END DO
          DO j = 1, 4
             READ (idisk1, END=100) (vxyzu(j,i), i=icount+1, 
      &           icount+nhydro)
@@ -403,7 +408,8 @@ c--real*4
                READ (idisk1, END=100) (gradhs(1,i), i=icount+1, 
      &              icount+nhydro)
                iread = iread + 1
-            ELSEIF (nums1(7).GE.3) THEN
+            ENDIF
+            IF (nums1(7).GE.3) THEN
                READ (idisk1, END=100) (gradhs(2,i), i=icount+1, 
      &              icount+nhydro)
                iread = iread + 1
@@ -421,6 +427,12 @@ c--real*4
             iread = iread + 1
             READ (idisk1, END=100) (alphaMM(1,i), i=icount+1, 
      &           icount+nhydro)
+            DO i = icount+1, icount+nhydro
+               IF (alphaMM(1,i).LE.0.) THEN
+                  WRITE (*,*) 'ERROR in rdump - alphaMM(1,i).LE.0'
+                  CALL quit
+               ENDIF
+            END DO
          ENDIF
 c--skip unnecessary real*4's
          IF (nums1(7).GT.iread) THEN
@@ -749,6 +761,9 @@ c
          END DO
          DO i = 1, npart
             alphaMM(k,i) = tempsort(i)
+            IF (alphaMM(k,i).LE.0.0) THEN
+               print *,'READ ',alphaMM(k,i),k,i
+            ENDIF
          END DO
       ENDDO
       

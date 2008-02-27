@@ -82,7 +82,6 @@ c      INCLUDE 'COMMONS/vsmooth'
       INCLUDE 'COMMONS/updated'
       INCLUDE 'COMMONS/presb'
 
-      LOGICAL*1 Bisection
       INTEGER*1 isucceed(idim)
       REAL*4 hminbisec(idim),hmaxbisec(idim)
 
@@ -152,11 +151,11 @@ c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none) 
 C$OMP& shared(nlstdo,ldolist,isucceed,xyzmh,hi_old,it1,isteps,imaxstep)
 C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)
-C$OMP& shared(iphase,dBxyz)
+C$OMP& shared(iphase,dBxyz,it0,itime)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend)
 #endif
-C$OMP& private(n,ipart,pmassi,hi,dhdrhoi,deltat,k)
+C$OMP& private(n,ipart,pmassi,hi,dhdrhoi,deltat,k,hchange)
       DO n = 1, nlstdo
          ipart = ldolist(n)
          isucceed(ipart) = 0
@@ -173,12 +172,27 @@ c
 c--Predict h
 c
             dhdrhoi = - hi/(3.*(pmassi*(hfact/hi)**3 + rhomin))
-            IF (it1(ipart).EQ.imax) THEN
+            IF (it1(ipart).EQ.itime) THEN
                deltat = (dt*isteps(ipart)/2)/imaxstep
-            ELSE
+            ELSEIF (it0(ipart).EQ.itime) THEN
                deltat = (dt*isteps(ipart))/imaxstep
+            ELSE
+               WRITE (*,*) 'ERROR - it1 AND it2 .NE. itime'
+               CALL quit
             ENDIF
-         xyzmh(5,ipart) = xyzmh(5,ipart) - dhdrhoi*divv(ipart)*deltat
+
+            hchange = - dhdrhoi*divv(ipart)*deltat
+
+c            IF (ABS(hchange/xyzmh(5,ipart)).GT.0.5) THEN
+c               print *,' LARGE ',ipart,xyzmh(5,ipart),dhdrhoi,
+c     &              divv(ipart),deltat,it1(ipart),isteps(ipart),
+c     &              imaxstep,dt,itime,xyzmh(1,ipart),xyzmh(2,ipart),
+c     &              xyzmh(3,ipart)
+c            ENDIF
+
+            IF (ABS(hchange/xyzmh(5,ipart)).LT.0.5) THEN
+               xyzmh(5,ipart) = xyzmh(5,ipart) + hchange
+            ENDIF
 
             rho(ipart) = 0.
             dumrho(ipart) = 0.
@@ -206,23 +220,23 @@ c
       inumofreturns = 0
       inumofsends = 0
       maxnneighsentback = 0
-      DO i = 1, idim
-         lblocklengths(i) = 1
-      END DO
       nneighsentanyatall = .FALSE.
+C$OMP PARALLEL DO SCHEDULE(static) default(none)
+C$OMP& shared(numproc,nneighsentany)
+C$OMP& private(i)
       DO i = 1, numproc
          nneighsentany(i) = .FALSE.
       END DO
+C$OMP END PARALLEL DO
 #endif
 
       DO iteration = 1, maxiterations
 
-c#ifdef MPIDEBUG
-      IF (itime.EQ.2097152)
-     &         print *,'DEN_ITERATE: iteration ',iteration
-c#endif
-
 #ifdef MPI
+c#ifdef MPIDEBUG
+c      IF (itime.EQ.2097152)
+c              print *,'DEN_ITERATE: iteration ',iteration
+c#endif
 c
 c--MPI: Need to get rho, gradh, numneigh contributions from other processes
 c
@@ -293,25 +307,16 @@ c     &           (iproc.EQ.1))
                WRITE (iprint, *) 'ERROR - igotnumber.NE.inumber: iphase'
                CALL quit
 	    ENDIF
-c#ifdef MPIDEBUG
+#ifdef MPIDEBUG
       IF (itime.EQ.2097152)
      &            print *,iproc,': Received iphase ',inumber
-c#endif
+#endif
 c
 c--This calculates the contributions to rhoi, gradhi, numneighreal, and 
 c     gravity forces from non-neighbours
 c
-c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
-      IF (itime.EQ.2097152)
-     &     print *,iproc,': DOING REC'
-c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
-
-            inumreturn = 0
             nptmasslocal = nptmass
             DO i = 1, inumber
-c               IF (itime.EQ.2097152 .AND. 
-c     &              nptmasstot.GE.1 .AND. iproc.LT.4) print *,iproc,
-c     &              ': DOING inumber ',i,ntot,iphase(i+ntot)
                ipart = i + ntot
                IF (ipart.GT.idim) THEN
                   WRITE (*,*) 'ipart.GT.idim'
@@ -321,49 +326,33 @@ c     &              ': DOING inumber ',i,ntot,iphase(i+ntot)
                   nptmasslocal = nptmasslocal + 1
                   listpm(nptmasslocal) = ipart
                ENDIF
-c               IF (nptmasstot.GE.1 .AND. iproc.EQ.1) print *,iproc,
-c     &              'calling densitygrad'
-c               IF (iteration.GT.45 .AND. iproc.EQ.1 .AND. 
-c     &              iteration.LT.50) THEN
-c                  ipartt = ipart + ntot + 2
-c                  print *,iproc,':ipart:',xyzmh(1,ipartt),
-c     &                 xyzmh(2,ipartt),
-c     &                 xyzmh(3,ipartt),xyzmh(5,ipartt),iphase(ipartt)
-c                  IF (ipart.EQ.2610) iproblem = 1
-c
-c               ENDIF
+            END DO
+
+            inumreturn = 0
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(inumber,ntot,npart,xyzmh,dvxyzu,inumreturn,llistrec)
+C$OMP& private(i,ipart,nneighlocal)
+            DO i = 1, inumber
+               ipart = i + ntot
+               IF (ipart.GT.idim) THEN
+                  WRITE (*,*) 'ipart.GT.idim'
+                  CALL quit
+               ENDIF
                CALL densitygradh(ipart,npart,ntot,xyzmh,nneighlocal,
      &              dvxyzu)
-c               IF (iteration.GT.45 .AND. iproc.EQ.1 .AND. 
-c     &              iteration.LT.50) THEN
-c                  print *,iproc,': NNEIGH ',ipart,nneighlocal
-c                 print *,iproc,': ',(neighlist(kk),kk=1,nneighlocal)
-c                  print *,iproc,': 808: ',xyzmh(1,808),xyzmh(2,808),
-c     &                 xyzmh(3,808),xyzmh(5,808),iphase(808)
-c                  print *,iproc,': 867: ',xyzmh(1,867),xyzmh(2,867),
-c     &                 xyzmh(3,867),xyzmh(5,867),iphase(867)
-c                  print *,iproc,': 836: ',xyzmh(1,836),xyzmh(2,836),
-c     &                 xyzmh(3,836),xyzmh(5,836),iphase(836)
-c                  print *,iproc,':ipart:',xyzmh(1,ipartt),
-c     &                 xyzmh(2,ipartt),
-c     &                 xyzmh(3,ipartt),xyzmh(5,ipartt),iphase(ipartt)
-c                  iproblem = 0
-c               ENDIF
-
 c
 c--Make a list of indices to return densities
 c
                IF (nneighlocal.GT.0) THEN
+C$OMP CRITICAL (addtollistrec)
                   inumreturn = inumreturn + 1
                   llistrec(inumreturn) = i
+C$OMP END CRITICAL (addtollistrec)
                ENDIF
             END DO
-            ntotplusinumber = ntot + inumber
+C$OMP END PARALLEL DO
 
-c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
-c      IF (itime.EQ.2097152)
-c     &     print *,iproc,': DOING REC2'
-c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+            ntotplusinumber = ntot + inumber
 
 c#ifdef MPIDEBUG
 c            IF (nptmasstot.GE.1) 
@@ -441,9 +430,13 @@ c
 c--Note - need to change values of llistrec because in C array indices
 c     start from 0 not 1 and MPI assumes C-type indexing
 c
+C$OMP PARALLEL DO SCHEDULE(static) default(none)
+C$OMP& shared(inumreturn,llistrec,ntot)
+C$OMP& private(j)
             DO j = 1, inumreturn
                llistrec(j) = llistrec(j) + ntot - 1
             END DO
+C$OMP END PARALLEL DO
 
 c            CALL MPI_TYPE_CREATE_INDEXED_BLOCK(inumreturn, 1,
 c     &           llistrec, MPI_REAL4, indexMPI1return, ierr)
@@ -456,6 +449,11 @@ c     &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
             CALL MPI_TYPE_INDEXED(inumreturn, lblocklengths,
      &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
             CALL MPI_TYPE_COMMIT(indexMPI_I1return,ierr)
+
+            IF (inumberneigh.GT.ineighproc) THEN
+               WRITE (*,*) 'ERROR - inumberneigh.GT.ineighproc'
+               CALL quit
+            ENDIF
 
             CALL MPI_SENDRECV(rho, 1, indexMPI1return, ibehind, 11,
      &           rhorec, inumberneigh, MPI_REAL4, iahead, 11,
@@ -516,13 +514,14 @@ c     &              nneighsentback(iahead+1).EQ.0) THEN
 #ifdef MPIDEBUG
             print *,iproc,': all sent'
 #endif
+
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(inumberneigh,lsendlist,llistrec,inumreturn)
+C$OMP& shared(rho,rhorec,dumrho,dumrhorec,nneigh,nneighrec)
+C$OMP& shared(iteration,llistsentback,iahead,nneighsentback)
+C$OMP& private(k,ipos)
             DO k = 1, inumberneigh
                ipos = lsendlist(llistrec(k + inumreturn)) + 1
-
-c               IF (iunique(iorig(ipos)).EQ.2757) THEN
-c                  print *,'Got ',nneigh(ipos),nneighrec(k),k,iteration,
-c     &                 iahead
-c               ENDIF
 
                rho(ipos) = rho(ipos) + rhorec(k)
                dumrho(ipos) = dumrho(ipos) + dumrhorec(k)
@@ -538,6 +537,7 @@ c               ENDIF
      &              xyzmh(2,ipos),xyzmh(3,ipos)
 #endif
             END DO
+C$OMP END PARALLEL DO
 
 #ifdef MPIDEBUG
 c      IF (itime.EQ.000)
@@ -576,6 +576,9 @@ c
                CALL quit
             ENDIF
 
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlstsend,lsendlist,ntotplusinumber,dvxyzu)
+C$OMP& private(l,ipos,jpos)
             DO l = 1, nlstsend
                ipos = lsendlist(l) + 1
                jpos = ntotplusinumber + l
@@ -583,14 +586,8 @@ c
                DO k = 1, 4
                   dvxyzu(k,ipos) = dvxyzu(k,ipos) + dvxyzu(k,jpos)
                END DO
-
-c               poten(ipos) = poten(ipos) + dvxyzu(4,jpos)
             END DO
-
-#ifdef MPIDEBUG
-c      IF (itime.EQ.000)
-         print *,iproc,' sent forces ',radkernel,xyzmh(1,1),numproc
-#endif
+C$OMP END PARALLEL DO
          END DO
          CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
          CALL MPI_TYPE_FREE(indexMPI5,ierr)
@@ -601,57 +598,6 @@ c
 c--End of MPI-only section
 c
 #endif
-
-
-         GOTO 777
-
-      IF (iproc.EQ.0) THEN
-         DO n = ntot+1, ntot+inumber
-            ipart2 = n + ntot + 2
-            ipart = n
-            write (90,99901) xyzmh(1,ipart2),xyzmh(2,ipart2),
-     &          xyzmh(3,ipart2),xyzmh(5,ipart2),rho(ipart),divv(ipart),
-c     &           gradhs(1,ipart),gradhs(2,ipart),
-     &           dvxyzu(1,ipart),dvxyzu(2,ipart),dvxyzu(3,ipart),
-     &           dvxyzu(4,ipart),poten(ipart),nneigh(ipart)
-c99901                     FORMAT (11(1PE12.5,1X),I8)
-         END DO
-      ELSE
-         DO n = ntot+1, ntot+inumber
-            ipart2 = n + ntot + 2
-            ipart = n
-            write (91,99901) xyzmh(1,ipart2),xyzmh(2,ipart2),
-     &          xyzmh(3,ipart2),xyzmh(5,ipart2),rho(ipart),divv(ipart),
-c     &           gradhs(1,ipart),gradhs(2,ipart),
-     &           dvxyzu(1,ipart),dvxyzu(2,ipart),dvxyzu(3,ipart),
-     &           dvxyzu(4,ipart),poten(ipart),nneigh(ipart)
-         END DO
-      ENDIF
-
-
-      IF (iproc.EQ.0) THEN
-         DO n = 1, nlstsend
-            ipart = lsendlist(n) + 1
-            write (92,99901) xyzmh(1,ipart),xyzmh(2,ipart),
-     &          xyzmh(3,ipart),xyzmh(5,ipart),rho(ipart),divv(ipart),
-c     &           gradhs(1,ipart),gradhs(2,ipart),
-     &           dvxyzu(1,ipart),dvxyzu(2,ipart),dvxyzu(3,ipart),
-     &           dvxyzu(4,ipart),poten(ipart),nneigh(ipart)
-c99901                     FORMAT (11(1PE12.5,1X),I8)
-         END DO
-      ELSE
-         DO n = 1, nlstsend
-            ipart = lsendlist(n) + 1
-            write (93,99901) xyzmh(1,ipart),xyzmh(2,ipart),
-     &          xyzmh(3,ipart),xyzmh(5,ipart),rho(ipart),divv(ipart),
-c     &           gradhs(1,ipart),gradhs(2,ipart),
-     &           dvxyzu(1,ipart),dvxyzu(2,ipart),dvxyzu(3,ipart),
-     &           dvxyzu(4,ipart),poten(ipart),nneigh(ipart)
-         END DO
-      ENDIF
-
-
- 777  CONTINUE
 
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 c      IF (itime.EQ.000)
@@ -679,7 +625,7 @@ C$OMP& private(index,dxx,index1,dwdx,wtij,dgrwdx,grwtij)
 C$OMP& private(projv,procurlvx,procurlvy,procurlvz)
 C$OMP& private(l,iptcur,dphi,dwdhi,dpotdh,numneighi)
 C$OMP& private(numneighreal,rhohi,dhdrhoi,omegai,func,dfdh1)
-C$OMP& private(hnew,deltat,deltarho)
+C$OMP& private(hnew,deltarho)
 C$OMP& private(dalphaxi,dalphayi,dalphazi,dbetaxi,dbetayi,dbetazi)
 C$OMP& private(denom,ddenom,bisection)
 C$OMP& private(rxxi,rxyi,rxzi,ryyi,ryzi,rzzi)
@@ -775,17 +721,17 @@ c
 c--Switch to Bisection if not converging or running into trouble
 c
             WRITE(iprint,*) 'WARNING: switching to bisection on'//
-     &           ' particle ',iorig(ipart),'(',ipart,') hi = ',hi,
+     &           ' particle ',iorig(ipart),ipart,'(',ipart,') hi = ',hi,
      &           ' hnew = ',hnew
 c            WRITE(*,*) 'WARNING: switching to bisection on'//
 c     &           ' particle ',iorig(ipart),'(',ipart,') hi = ',hi,
 c     &           ' hnew = ',hnew,nneighi,gradhi,rhoi,rhohi,dhdrhoi,
 c     &           omegai
             IF (nneighi.LE.0) THEN
-               WRITE(iprint,*) '(particle has no neighbours)'
+               WRITE(iprint,*) '(particle has no neighbours) ',nneighi
             ENDIF
             IF (omegai.LE.tiny) THEN
-               WRITE(iprint,*) '(omega < tiny)'
+               WRITE(iprint,*) '(omega < tiny) ',omegai
             ENDIF
             IF (iteration.EQ.maxitsnr) THEN
                WRITE(iprint,*) '(more than ',maxitsnr,' iterations)'
@@ -802,8 +748,11 @@ c     &           omegai
 c
 c--Otherwise check for convergence
 c
-         ELSEIF (ABS(hnew-hi)/hi_oldi.LT.htol.AND.isucceed(ipart).EQ.0
-     &           .OR. ABS(hnew-hi)/hi_oldi.LT.1.0e-6) THEN
+         ELSEIF (ABS((hnew-hi)/hi_oldi).LT.htol.AND.isucceed(ipart).EQ.0
+c     &           .AND. ABS((hnew-hi)/hi).LT.htol
+     &           .OR. ABS((hnew-hi)/hi_oldi).LT.1.0E-6
+c     &           .AND. ABS((hnew-hi)/hi).LT.htol
+     &           ) THEN
             imaxit = MAX(imaxit, iteration)
             inumit = inumit + iteration
             IF (isucceed(ipart).EQ.-1) THEN
@@ -974,18 +923,6 @@ c
          IF (isucceed(ipart).NE.1) THEN
             nlstdo = nlstdo + 1
             ldolist(nlstdo) = ipart
-
-            rho(ipart) = 0.
-            dumrho(ipart) = 0.
-            divv(ipart) = 0.
-            curlv(ipart) = 0.
-            gradhs(2,ipart) = 0.
-            nneigh(ipart) = 0
-            DO k = 1, 4
-               dvxyzu(k,ipart) = 0.
-            END DO
-            poten(ipart) = 0.
-
 #ifdef MPI
             IF (isend(ipart)) THEN
                nlstsend = nlstsend + 1
@@ -994,6 +931,29 @@ c
 #endif
          ENDIF
       END DO
+c
+c--Re-zero quantities
+c
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlstdo,ldolist,rho,dumrho,divv,curlv,gradhs,nneigh)
+C$OMP& shared(dvxyzu,poten)
+C$OMP& private(n,ipart)
+      DO n = 1, nlstdo
+         ipart = ldolist(n)
+
+         rho(ipart) = 0.
+         dumrho(ipart) = 0.
+         divv(ipart) = 0.
+         curlv(ipart) = 0.
+         gradhs(2,ipart) = 0.
+         nneigh(ipart) = 0
+         DO k = 1, 4
+            dvxyzu(k,ipart) = 0.
+         END DO
+         poten(ipart) = 0.
+      END DO
+C$OMP END PARALLEL DO
+
 #ifdef MPI
 c
 c--Need to remove those particles that are being sent back now from the lists
@@ -1035,7 +995,6 @@ c               IF (nneighsentback(i).EQ.0) inumofsends = inumofsends-1
       END DO
 #endif
 
-
 #endif      
 c
 c--End of iteration loop
@@ -1051,37 +1010,6 @@ c
       CALL quit
 
  30   CONTINUE
-
-
-      GOTO 778
-
-      IF (iproc.EQ.0) THEN
-         DO n = 1, nlstdo
-            ipart = ldolist(n)
-            write (88,99901) xyzmh(1,ipart),xyzmh(2,ipart),
-     &           xyzmh(3,ipart),xyzmh(5,ipart),rho(ipart),divv(ipart),
-c     &           gradhs(1,ipart),gradhs(2,ipart),
-     &           dvxyzu(1,ipart),dvxyzu(2,ipart),dvxyzu(3,ipart),
-     &           dvxyzu(4,ipart),poten(ipart),nneigh(ipart)
-99901              FORMAT (11(1PE12.5,1X),I8)
-         END DO
-      ELSE
-         DO n = 1, nlstdo
-            ipart = ldolist(n)
-            write (89,99901) xyzmh(1,ipart),xyzmh(2,ipart),
-     &           xyzmh(3,ipart),xyzmh(5,ipart),rho(ipart),divv(ipart),
-c     &           gradhs(1,ipart),gradhs(2,ipart),
-     &           dvxyzu(1,ipart),dvxyzu(2,ipart),dvxyzu(3,ipart),
-     &           dvxyzu(4,ipart),poten(ipart),nneigh(ipart)
-         END DO
-      ENDIF
-
-
-
-      STOP
-
- 778  CONTINUE
-
 
       ncompactlocal = ncompact
 c
@@ -1301,6 +1229,13 @@ c
 c--Calculate ONLY neighbours lists for remote particles, then contributions
 c     to divv, curlv, and Euler potential alpha and beta, etc
 c
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(inumbertotal,ntot,listp,nlst_end,iphase,hasghost)
+C$OMP& shared(npart,xyzmh,acc,nneigh,vxyzu,Bevol,gradmhd)
+C$OMP& shared(ncompact,icompact,ivar,ijvar,iscurrent)
+C$OMP& shared(iupdated,nlistupdated,listparents,iprint)
+C$OMP& private(fsx,fsy,fsz,epot,nneighlocal,ncompacthere,icompacthere)
+C$OMP& private(i,k,ipart,jpart,numberupdated)
       DO i = 1, inumbertotal
 
          ipart = ntot + i
@@ -1318,12 +1253,12 @@ c
 c--Set up compact list of neighbours within h_i and non-active neighbours
 c     within h_j
 c
-cC$OMP CRITICAL (listcompact2)
+C$OMP CRITICAL (listcompact2)
          ncompact = ncompact + 1
          ncompacthere = ncompact
          icompacthere = icompact
          icompact = icompact + nneighlocal
-cC$OMP END CRITICAL (listcompact2)
+C$OMP END CRITICAL (listcompact2)
          IF (icompacthere+nneighlocal.GT.icompactmax) THEN
             WRITE (*,*) 'ERROR - compact not large enough DI ',
      &           icompacthere, nneighlocal, icompactmax
@@ -1338,11 +1273,11 @@ cC$OMP END CRITICAL (listcompact2)
             IF (.NOT.iscurrent(jpart) .AND. .NOT.iupdated(jpart) 
      &           .AND. jpart.LE.npart) THEN
                iupdated(jpart) = .TRUE.
-cC$OMP FLUSH(iupdated)
-cC$OMP CRITICAL (listupdated)
+C$OMP FLUSH(iupdated)
+C$OMP CRITICAL (listupdated)
                nlistupdated = nlistupdated + 1
                numberupdated = nlistupdated
-cC$OMP END CRITICAL (listupdated)
+C$OMP END CRITICAL (listupdated)
                IF (numberupdated.GT.idim) THEN
                   WRITE (iprint,*) 'ERROR - numberupdated.GT.idim'
                   CALL quit
@@ -1351,6 +1286,7 @@ cC$OMP END CRITICAL (listupdated)
             ENDIF
          END DO
       END DO
+C$OMP END PARALLEL DO
 
 #ifdef MPIDEBUG
       print *,iproc,': has calculated all divvcurlgrad ',inumbertotal
@@ -1404,11 +1340,15 @@ c               ENDIF
      &              llistsentback(1,iprocrec+1)+1
 #endif
 
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nneighsentback,iprocrec,llistsentback,divv,istartrec)
+C$OMP& private(l,ipos,jpos)
                DO l = 1, nneighsentback(iprocrec+1)
                   ipos = llistsentback(l,iprocrec+1)+1
                   jpos = istartrec + l - 1
                   divv(ipos) = divv(ipos) + divv(jpos)
                END DO
+C$OMP END PARALLEL DO
 
                CALL MPI_RECV(curlv(istartrec),maxnneighsentback,
      &              MPI_REAL4,iprocrec,51,MPI_COMM_WORLD,istatus,ierr)
@@ -1422,11 +1362,15 @@ c               ENDIF
      &              xyzmh(1,1)
 #endif
 
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nneighsentback,iprocrec,llistsentback,curlv,istartrec)
+C$OMP& private(l,ipos,jpos)
                DO l = 1, nneighsentback(iprocrec+1)
                   ipos = llistsentback(l,iprocrec+1)+1
                   jpos = istartrec + l - 1
                   curlv(ipos) = curlv(ipos) + curlv(jpos)
                END DO
+C$OMP END PARALLEL DO
 
                CALL MPI_RECV(gradhs(1,istartrec),2*maxnneighsentback,
      &              MPI_REAL4,iprocrec,52,MPI_COMM_WORLD,istatus,ierr)
@@ -1440,11 +1384,16 @@ c      IF (itime.EQ.000)
                     print *,iproc,': got gradhs2 from ',iprocrec
 #endif
 
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nneighsentback,iprocrec,llistsentback,gradhs,istartrec)
+C$OMP& private(l,ipos,jpos)
                DO l = 1, nneighsentback(iprocrec+1)
                   ipos = llistsentback(l,iprocrec+1)+1
                   jpos = istartrec + l - 1
                   gradhs(2,ipos) = gradhs(2,ipos) + gradhs(2,jpos)
                END DO
+C$OMP END PARALLEL DO
+
 c
 c--Receive back quantities for MHD gradients (if required)
 c
@@ -1462,6 +1411,9 @@ c
                   print *,iproc,': got gradMHD from ',iprocrec
 #endif
 
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nneighsentback,iprocrec,llistsentback,gradmhd,istartrec)
+C$OMP& private(l,ipos,jpos)
                   DO l = 1, nneighsentback(iprocrec+1)
                      ipos = llistsentback(l,iprocrec+1)+1
                      jpos = istartrec + l - 1
@@ -1469,6 +1421,7 @@ c
                         gradmhd(k,ipos)=gradmhd(k,ipos)+gradmhd(k,jpos)
                      END DO
                   END DO
+C$OMP END PARALLEL DO
                ENDIF
 
             END DO
@@ -1562,6 +1515,19 @@ c      print *,' '
 #endif
 #endif
 
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst_end,listp,iphase,rho,divv,curlv,gradhs,xyzmh,cnormk)
+C$OMP& shared(nptmass,iptmass,listpm,gradmhd,varmhd,Bxyz,rhomin)
+C$OMP& shared(Bextx,Bexty,Bextz,radcrit2)
+C$OMP& private(j,ipart,rhoi,dhdrhoi,iptcur)
+C$OMP& private(rxxi,rxyi,rxzi,ryyi,ryzi,rzzi)
+C$OMP& private(dalphaxi,dalphayi,dalphazi,dbetaxi,dbetayi,dbetazi)
+C$OMP& private(denom,ddenom,gradalphaxi,gradalphayi,gradalphazi)
+C$OMP& private(gradbetaxi,gradbetayi,gradbetazi,term)
+C$OMP& private(dgammaxi,dgammayi,dgammazi)
+C$OMP& private(gradgammaxi,gradgammayi,gradgammazi)
+C$OMP& reduction(MAX:rhonext)
+C$OMP& reduction(+:nwarnroundoff)
       DO j = 1, nlst_end
          ipart = listp(j)
          IF (iphase(ipart).EQ.0) THEN

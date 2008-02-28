@@ -382,11 +382,11 @@ c--Default real
             READ (idisk1, END=100) (xyzmh(j,i), i=icount+1, 
      &           icount+nhydro)
          END DO
-         DO i = icount+1, icount+nhydro
-            IF (iphase(i).EQ.-1) THEN
-               print *,i,xyzmh(1,i),xyzmh(2,i)
-            ENDIF
-         END DO
+c         DO i = icount+1, icount+nhydro
+c            IF (iphase(i).EQ.-1) THEN
+c               print *,i,xyzmh(1,i),xyzmh(2,i)
+c            ENDIF
+c         END DO
          DO j = 1, 4
             READ (idisk1, END=100) (vxyzu(j,i), i=icount+1, 
      &           icount+nhydro)

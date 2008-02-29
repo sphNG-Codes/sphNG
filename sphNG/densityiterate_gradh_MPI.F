@@ -749,9 +749,9 @@ c
 c--Otherwise check for convergence
 c
          ELSEIF (ABS((hnew-hi)/hi_oldi).LT.htol.AND.isucceed(ipart).EQ.0
-c     &           .AND. ABS((hnew-hi)/hi).LT.htol
+     &           .AND. ABS((hnew-hi)/hi).LT.htol
      &           .OR. ABS((hnew-hi)/hi_oldi).LT.1.0E-6
-c     &           .AND. ABS((hnew-hi)/hi).LT.htol
+     &           .AND. ABS((hnew-hi)/hi).LT.htol
      &           ) THEN
             imaxit = MAX(imaxit, iteration)
             inumit = inumit + iteration

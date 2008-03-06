@@ -427,7 +427,7 @@ c--real*4
             iread = iread + 1
             READ (idisk1, END=100) (alphaMM(1,i), i=icount+1, 
      &           icount+nhydro)
-            IF (gt.NE.0.0) THEN
+            IF (gt.NE.0.0 .AND. ifsvi.EQ.6) THEN
                DO i = icount+1, icount+nhydro
                   IF (alphaMM(1,i).LE.0.) THEN
                      WRITE (*,*) 'ERROR in rdump - alphaMM(1,i).LE.0'
@@ -445,7 +445,7 @@ c--skip unnecessary real*4's
 c--real*8
 
 #ifdef MPIDEBUG
-         print *,iproc,': Read hydro'
+         print *,iproc,': Read hydro ',nptmass
 #endif
 c
 c--Read array type 2 arrays
@@ -763,9 +763,6 @@ c
          END DO
          DO i = 1, npart
             alphaMM(k,i) = tempsort(i)
-            IF (alphaMM(k,i).LE.0.0) THEN
-               print *,'READ ',alphaMM(k,i),k,i
-            ENDIF
          END DO
       ENDDO
       

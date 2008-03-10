@@ -307,6 +307,30 @@ ccc         CALL treef(ipart,npart,ntot,xyzmh,acc,0,fxi,fyi,fzi,poteni)
          fxyzu(4,ipart) = 0.
          dha(1,ipart) = 0.0
 
+         gravxi = 0.
+         gravyi = 0.
+         gravzi = 0.
+         poteni = 0.
+         dsoftxi = 0.
+         dsoftyi = 0.
+         dsoftzi = 0.
+
+         gradxi = 0.
+         gradyi = 0.
+         gradzi = 0.
+
+         artxi = 0.
+         artyi = 0.
+         artzi = 0.
+
+         pdvi = 0.
+         dqi = 0.
+         
+         ddvxi = 0.
+         ddvyi = 0.
+         ddvzi = 0.
+         ddvscalar = 0.
+
          IF (iphase(ipart).EQ.-1) THEN
             WRITE(iprint,*) 'Error: Force for non-existant particle'
             CALL quit
@@ -397,30 +421,6 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
             B2i = 0.
             B2j = 0.
          ENDIF
-
-         gravxi = 0.
-         gravyi = 0.
-         gravzi = 0.
-         poteni = 0.
-         dsoftxi = 0.
-         dsoftyi = 0.
-         dsoftzi = 0.
-
-         gradxi = 0.
-         gradyi = 0.
-         gradzi = 0.
-
-         artxi = 0.
-         artyi = 0.
-         artzi = 0.
-
-         pdvi = 0.
-         dqi = 0.
-         
-         ddvxi = 0.
-         ddvyi = 0.
-         ddvzi = 0.
-         ddvscalar = 0.
 c
 c--note that pressure term includes isotropic magnetic pressure         
 c         pro2i = (pr(ipart) - pext)*rho21i
@@ -1373,25 +1373,30 @@ cc     &           MIN(divv(ipart)*rho1i+0.5*vsoundi/hi,0.0)
             ENDIF
          ENDIF
 c
+c--Don't need these forces for foreign MPI particles
+c
+         IF (ipart.LE.ntot) THEN
+c
 c--Damp velocities if appropiate
 c
-         IF (damp.NE.0.) THEN
-            forcexi = forcexi - damp*vxyzu(1,ipart)
-            forceyi = forceyi - damp*vxyzu(2,ipart)
-            forcezi = forcezi - damp*vxyzu(3,ipart)
-         ENDIF
+            IF (damp.NE.0.) THEN
+               forcexi = forcexi - damp*vxyzu(1,ipart)
+               forceyi = forceyi - damp*vxyzu(2,ipart)
+               forcezi = forcezi - damp*vxyzu(3,ipart)
+            ENDIF
 c         IF (ipart.GT.ntot) print *,iprocdebug,': D7 ',n
 
 c
 c--Radiation pressure force
 c
-         IF (encal.EQ.'r') THEN
-            forcexi = forcexi -
-     &           ekcle(4,ipart)/trho(ipart)*dedxyz(1,ipart)
-            forceyi = forceyi -
-     &           ekcle(4,ipart)/trho(ipart)*dedxyz(2,ipart)
-            forcezi = forcezi -
-     &           ekcle(4,ipart)/trho(ipart)*dedxyz(3,ipart)
+            IF (encal.EQ.'r') THEN
+               forcexi = forcexi -
+     &              ekcle(4,ipart)/trho(ipart)*dedxyz(1,ipart)
+               forceyi = forceyi -
+     &              ekcle(4,ipart)/trho(ipart)*dedxyz(2,ipart)
+               forcezi = forcezi -
+     &              ekcle(4,ipart)/trho(ipart)*dedxyz(3,ipart)
+            ENDIF
          ENDIF
 c
 c--Forces that operate on both sink particles and gas from here on:
@@ -1411,7 +1416,7 @@ c
 c
 c--Homologous expansion or contraction
 c
-         IF (iexpan.GT.0) CALL homexp(ipart,realtime,vxyzu,forcexi,
+         IF (iexpan.GT.0) CALL homexp(ipart,ntot,realtime,vxyzu,forcexi,
      &        forceyi,forcezi) 
 
 c

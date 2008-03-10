@@ -43,6 +43,10 @@ c************************************************************
       INCLUDE 'COMMONS/radsink'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/logun'
+      INCLUDE 'COMMONS/delay'
+      INCLUDE 'COMMONS/divve'
+      INCLUDE 'COMMONS/eosq'
+      INCLUDE 'COMMONS/h2'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -217,6 +221,13 @@ c     &       lsendlist, i3REAL8, indexMPI3, ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI3,ierr)
 
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
+c     &       lsendlist, MPI_REAL8, indexMPIR, ierr)
+                        CALL MPI_TYPE_INDEXED(numlist(j+1), 
+     &                       lblocklengths, lsendlist, MPI_REAL8, 
+     &                       indexMPIR, ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPIR,ierr)
+
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
 c     &       lsendlist, MPI_INTEGER, indexMPI_INT, ierr)
                         CALL MPI_TYPE_INDEXED(numlist(j+1), 
      &                       lblocklengths, lsendlist, MPI_INTEGER, 
@@ -229,6 +240,13 @@ c     &       lsendlist, MPI_INTEGER1, indexMPI_INT1, ierr)
      &                       lblocklengths, lsendlist, MPI_INTEGER1, 
      &                       indexMPI_INT1, ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
+c     &       lsendlist, MPI_LOGICAL, indexMPI_L, ierr)
+                        CALL MPI_TYPE_INDEXED(numlist(j+1), 
+     &                       lblocklengths, lsendlist, MPI_LOGICAL, 
+     &                       indexMPI_L, ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI_L,ierr)
 
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
 c     &       lsendlist, i2REAL4, indexMPI2, ierr)
@@ -314,13 +332,40 @@ c
                         CALL MPI_SEND(iphase,1,indexMPI_INT1,j,108,
      &                       MPI_COMM_WORLD, ierr)
 
+                        CALL MPI_SEND(iscurrent,1,indexMPI_L,j,151,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_SEND(notacc,1,indexMPI_L,j,152,
+     &                       MPI_COMM_WORLD, ierr)
+
                         CALL MPI_SEND(iunique,1,indexMPI_INT8,j,109,
      &                       MPI_COMM_WORLD, ierr)
 
                         CALL MPI_SEND(rho,1,indexMPI1,j,110,
      &                       MPI_COMM_WORLD, ierr)
 
+                        CALL MPI_SEND(divv,1,indexMPI1,j,153,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_SEND(curlv,1,indexMPI1,j,154,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_SEND(ddv,1,indexMPI1,j,155,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_SEND(pr,1,indexMPI1,j,156,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_SEND(vsound,1,indexMPI1,j,157,
+     &                       MPI_COMM_WORLD, ierr)
+
                         CALL MPI_SEND(poten,1,indexMPI1,j,111,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_SEND(h2mol,1,indexMPIR,j,158,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_SEND(h2ratio,1,indexMPIR,j,159,
      &                       MPI_COMM_WORLD, ierr)
 
                         IF (nlmax.EQ.1) THEN
@@ -364,7 +409,9 @@ c
                         CALL MPI_TYPE_FREE(indexMPI2,ierr)
                         CALL MPI_TYPE_FREE(indexMPI_INT8,ierr)
                         CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+                        CALL MPI_TYPE_FREE(indexMPI_L,ierr)
                         CALL MPI_TYPE_FREE(indexMPI_INT,ierr)
+                        CALL MPI_TYPE_FREE(indexMPIR,ierr)
                         CALL MPI_TYPE_FREE(indexMPI3,ierr)
                         CALL MPI_TYPE_FREE(indexMPI4,ierr)
                         CALL MPI_TYPE_FREE(indexMPI5,ierr)
@@ -596,6 +643,22 @@ c
      &              ' from ',iprocrec
 #endif               
 
+               CALL MPI_RECV(iscurrent(npartnew+1), idim, MPI_LOGICAL,
+     &              iprocrec, 151, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus,MPI_LOGICAL,inumber,ierr)
+               IF (inumber.NE.igotnumber) THEN
+                  WRITE (*,*) 'ERROR - balance igotnumber iscurrent'
+                  CALL quit
+               ENDIF
+
+               CALL MPI_RECV(notacc(npartnew+1), idim, MPI_LOGICAL,
+     &              iprocrec, 152, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus,MPI_LOGICAL,inumber,ierr)
+               IF (inumber.NE.igotnumber) THEN
+                  WRITE (*,*) 'ERROR - balance igotnumber notacc'
+                  CALL quit
+               ENDIF
+
                CALL MPI_RECV(iunique(npartnew+1), idim, MPI_INTEGER8,
      &              iprocrec, 109, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, MPI_INTEGER8,inumber,ierr)
@@ -620,11 +683,67 @@ c                  END DO
                   dumrho(ipart) = rho(ipart)
                END DO
 
+               CALL MPI_RECV(divv(npartnew+1), idim, MPI_REAL4,
+     &              iprocrec, 153, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
+               IF (inumber.NE.igotnumber) THEN
+                  WRITE (*,*) 'ERROR - balance igotnumber divv'
+                  CALL quit
+               ENDIF
+
+               CALL MPI_RECV(curlv(npartnew+1), idim, MPI_REAL4,
+     &              iprocrec, 154, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
+               IF (inumber.NE.igotnumber) THEN
+                  WRITE (*,*) 'ERROR - balance igotnumber curlv'
+                  CALL quit
+               ENDIF
+
+               CALL MPI_RECV(ddv(npartnew+1), idim, MPI_REAL4,
+     &              iprocrec, 155, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
+               IF (inumber.NE.igotnumber) THEN
+                  WRITE (*,*) 'ERROR - balance igotnumber ddv'
+                  CALL quit
+               ENDIF
+
+               CALL MPI_RECV(pr(npartnew+1), idim, MPI_REAL4,
+     &              iprocrec, 156, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
+               IF (inumber.NE.igotnumber) THEN
+                  WRITE (*,*) 'ERROR - balance igotnumber pr'
+                  CALL quit
+               ENDIF
+
+               CALL MPI_RECV(vsound(npartnew+1), idim, MPI_REAL4,
+     &              iprocrec, 157, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
+               IF (inumber.NE.igotnumber) THEN
+                  WRITE (*,*) 'ERROR - balance igotnumber vsound'
+                  CALL quit
+               ENDIF
+
                CALL MPI_RECV(poten(npartnew+1), idim, MPI_REAL4,
      &              iprocrec, 111, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
+                  CALL quit
+               ENDIF
+
+               CALL MPI_RECV(h2mol(npartnew+1), idim, MPI_REAL8,
+     &              iprocrec, 158, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               IF (inumber.NE.igotnumber) THEN
+                  WRITE (*,*) 'ERROR - balance igotnumber h2mol'
+                  CALL quit
+               ENDIF
+
+               CALL MPI_RECV(h2ratio(npartnew+1), idim, MPI_REAL8,
+     &              iprocrec, 159, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               IF (inumber.NE.igotnumber) THEN
+                  WRITE (*,*) 'ERROR - balance igotnumber h2ratio'
                   CALL quit
                ENDIF
 
@@ -1406,7 +1525,8 @@ c     Moves a particle from location ifrom to ito (within   *
 c     an MPI process, not between MPI processes)            *
 c                                                           *
 c     NOTE: Does not alter listbins for timesteps or ireal  *
-c     for ghost particles.  Does not alter tree.            *
+c     or hasghost for ghost particles.                      *
+c     Does not alter tree.                                  *
 c                                                           *
 c************************************************************
 
@@ -1439,6 +1559,10 @@ c************************************************************
       INCLUDE 'COMMONS/accurpt'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/radsink'
+      INCLUDE 'COMMONS/delay'
+      INCLUDE 'COMMONS/divve'
+      INCLUDE 'COMMONS/eosq'
+      INCLUDE 'COMMONS/h2'
 
       DO i = 1, 5
          xyzmh(i,ito) = xyzmh(i,ifrom)
@@ -1473,8 +1597,16 @@ c      isort(ifrom) = 0
       iunique(ito) = iunique(ifrom)
       rho(ito) = rho(ifrom)
       dumrho(ito) = dumrho(ifrom)
+      divv(ito) = divv(ifrom)
+      curlv(ito) = curlv(ifrom)
+      ddv(ito) = ddv(ifrom)
+      pr(ito) = pr(ifrom)
+      vsound(ito) = vsound(ifrom)
       poten(ito) = poten(ifrom)
+      h2mol(ito) = h2mol(ifrom)
+      h2ratio(ito) = h2ratio(ifrom)
       iscurrent(ito) = iscurrent(ifrom)
+      notacc(ito) = notacc(ifrom)
       DO i = 1, 2
          gradhs(i,ito) = gradhs(i,ifrom)
       END DO

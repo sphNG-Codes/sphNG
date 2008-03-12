@@ -1,7 +1,10 @@
       INTEGER nptmass, nptmasstot, nptmasslocal, listpm, iptmass
       INTEGER*2 listrealpm
       REAL    spinx, spiny, spinz, hacc, haccall, ptmcrit, radcrit,
-     &	      angaddx, angaddy, angaddz, spinadx, spinady, spinadz
+     &	      angaddx, angaddy, angaddz, spinadx, spinady, spinadz,
+     &        ptmassinitial, ptmassaccrate, ptmassoldtime, ptmassold, 
+     &        stellarluminosity, stellarmass, stellarenergy, 
+     &        stellartime, stellarradius
 
       REAL*8 ptmassform
 

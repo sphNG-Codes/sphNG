@@ -256,7 +256,7 @@ c
 #ifdef MPI
       IF (nblocks.EQ.1 .OR. nblocks.NE.1 .AND. iproc.EQ.iblock-1) THEN
 #endif
-      nhydro = number8
+      nhydro = min(number8,npart)
 #ifdef MPI
       ENDIF
 #endif
@@ -288,12 +288,13 @@ c--Read array type 3 header
 c
       IF (numberarray.GE.3) THEN
          READ (idisk1, END=100) number8, (nums3(i), i=1,8)
-         IF (iradtrans.EQ.idim .AND. number8.GT.iradtrans) THEN
+         IF (iradtrans.EQ.idim .AND.
+     &      (number8.GT.iradtrans .OR. number8.LT.npart)) THEN
             WRITE (*,*) 'ERROR 9 in rdump: iradtrans wrong ',number8,
      &           iradtrans,npart
             CALL quit
          ENDIF
-         nradtrans = number8
+         nradtrans = min(number8,npart)
       ELSE
          nradtrans = 0
       ENDIF
@@ -302,12 +303,13 @@ c--Read array type 4 header
 c
       IF (numberarray.GE.4) THEN
          READ (idisk1, END=100) number8, (nums4(i), i=1,8)
-         IF (imhd.EQ.idim.AND.number8.GT.imhd) THEN
+         IF (imhd.EQ.idim.AND. 
+     &      (number8.GT.imhd .OR. number8.LT.npart)) THEN
             WRITE (*,*) 'ERROR 10 in rdump: imhd wrong ',number8,
      &           imhd,npart
             CALL quit
          ENDIF
-         nmhd = number8
+         nmhd = min(number8,npart)
       ELSE
          nmhd = 0
       ENDIF

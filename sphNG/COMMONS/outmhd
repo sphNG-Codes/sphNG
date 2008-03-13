@@ -1,7 +1,10 @@
       REAL*4 valphaBmin,valphaBmax
-      REAL*8 etaav,etamax,etamin
+      REAL*8 etaav,etamax,etamin,etarealoverartmin,etarealoverartmax
+      REAL etarealoverartav
       COMMON /outmhd/ betamhdav,betamhdmax,betamhdmin,divBmax,
      &                divBav,curlBmax,curlBav,div2curlBav,div2curlBmax,
      &                omegamhdmax,omegamhdav,fracdivBok,omegtol,
      &                fluxtot,crosshel,Bmin,Bmean,Bmax,
-     &                valphaBmin,valphaBmax,etamax,etamin,etaav
+     &                valphaBmin,valphaBmax,etamax,etamin,etaav,
+     &                etarealoverartmin,etarealoverartmax,
+     &                etarealoverartav

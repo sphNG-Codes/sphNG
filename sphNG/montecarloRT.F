@@ -1,5 +1,7 @@
       SUBROUTINE montecarloRT(npart, xyzmh,vxyzu,trho,time)
       
+      USE torus_mod, only : torus
+
       IMPLICIT NONE
 
       INCLUDE 'idim'
@@ -25,8 +27,9 @@
       REAL, INTENT(IN)    :: time
 
 ! Local variables
-      INTEGER :: i, itorus, igas, iterate, ierr
-      REAL :: temperature(idim), gaspartmass, cvold, cvnew, getcv
+      INTEGER       :: i, itorus, igas, iterate, ierr
+      REAL          :: temperature(npart), gaspartmass(npart)
+      REAL          :: cvold, cvnew, getcv
       LOGICAL, save :: ifirst = .true.
 
 ! Time interval between torus calls
@@ -37,13 +40,9 @@
       INTEGER, save   :: lastNptmass       
       INTEGER :: nptmass_all
       INTEGER :: num_gas
-c number of times to call torus; usually 1, set to 2 for testing. 
-      INTEGER, parameter :: num_torus = 1
-c     
+     
 c--Only perform radiative transfer if ptmass exist, otherwise don't modify u()
-c     
-c     
-c   
+     
 #ifdef MPI
       CALL MPI_ALLREDUCE(nptmass, nptmass_all, 1, MPI_INTEGER, 
      &                   MPI_SUM, MPI_COMM_WORLD, ierr)
@@ -57,8 +56,7 @@ c
          ifirst = .false.
       END IF
 
-! Call torus if time since last call exceeds specified limit or a new
-! pt mass has been created
+! Call torus if time since last call exceeds limit or new pt mass created
       IF ( (nptmass_all > lastNptmass .or. 
      &     time-lastRadTime >= radTimeStep) .and. nptmass_all > 0 ) THEN
 
@@ -67,15 +65,6 @@ c
      &               nptmass_all, lastNptmass, time, lastRadTime
         lastRadTime = time
         lastNptmass = nptmass_all
-c--Find mass of gas particle (assume all same mass at moment)
-         DO i = 1, npart
-            IF (iphase(i).EQ.0) THEN
-               gaspartmass = xyzmh(4,i)
-               EXIT
-            ENDIF
-         END DO
-
-         DO itorus = 1, num_torus
 
 c Pass array of sph temperatures to torus to use as initial conditions
 
@@ -86,6 +75,7 @@ c Pass array of sph temperatures to torus to use as initial conditions
                   igas = igas + 1
                   temperature(igas) = vxyzu(4,i) /
      &                  ( 3.0/2.0 * Rg/gmw/uergg ) 
+                  gaspartmass(igas) = xyzmh(4,i)
                END IF
             END DO
          ELSE
@@ -98,7 +88,7 @@ c--Call torus for Monte-Carlo radiative transfer
 c
 
          CALL torus(idim,npart,nactive,xyzmh,trho,iphase,nptmass,
-     &       listpm,udist,umass,utime,time,gaspartmass,
+     &       listpm,udist,umass,utime,time,gaspartmass(1),
      &       num_gas, temperature(1:num_gas))
 c     
 c--Set thermal energy of gas particles using torus's temperatures     
@@ -139,11 +129,7 @@ c
 
          END IF
 
-         END DO ! inumtorus
-
-
       ENDIF 
 
-      RETURN
+      END SUBROUTINE montecarloRT
 
-      END

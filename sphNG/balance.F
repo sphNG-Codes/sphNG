@@ -444,10 +444,12 @@ c
      &                          MPI_LOGICAL, indexMPI_L, ierr)
                            CALL MPI_TYPE_COMMIT(indexMPI_L,ierr)
 
-                           CALL MPI_TYPE_INDEXED(npttrans, 
-     &                          lblocklengths, listptmass, 
-     &                          iNINT, indexMPI_LIST, ierr)
-                           CALL MPI_TYPE_COMMIT(indexMPI_LIST,ierr)
+                           IF (encal.EQ.'r') THEN
+                              CALL MPI_TYPE_INDEXED(npttrans, 
+     &                             lblocklengths, listptmass, 
+     &                             iNINT, indexMPI_LIST, ierr)
+                              CALL MPI_TYPE_COMMIT(indexMPI_LIST,ierr)
+                           ENDIF
                  
                            CALL MPI_SEND(spinx,1,indexMPI1,j,122,
      &                          MPI_COMM_WORLD, ierr)

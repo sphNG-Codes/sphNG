@@ -90,9 +90,10 @@ c
       ENDIF
 
 #ifdef MPI
-      WRITE (iterm, 99016) mpitype
-99016 FORMAT (A1,'  Type of MPI decomposition ',
-     &     '(s)phere, (d)isc, (c)artesian')
+      WRITE (iterm, 99016) mpitype, xlocationmpi, ylocationmpi,
+     &     zlocationmpi, densmpi
+99016 FORMAT (A1,4(1X,1PE16.9),'  Type of MPI decomposition ',
+     &     '(s)phere, (d)isc, (c)artesian with origin')
 #else
       WRITE (iterm, 99017)
 99017 FORMAT ('d  Type of MPI decomposition ',

@@ -1360,16 +1360,69 @@ c************************************************************
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidebug'
+      INCLUDE 'COMMONS/densi'
 
       DIMENSION listtrans(idim), numlist(nummaxproc), xyzmh(5,idim)
-      INTEGER*1 iphase(idim)
       INTEGER classify_cartesian, classify_disc, classify_sphere
+      INTEGER*1 iphase(idim)
+      REAL*4 rhomaxlocal,rhomaxtot
 c
 c--Identify which MPI process each particle should belong to
 c
       DO i = 1, numproc
          numlist(i) = 0
       END DO
+
+      IF (mpitype.EQ.'r') THEN
+         rhomaxlocal = 0.
+         irhomax = 0
+         DO ipart = 1, npart
+            IF (iphase(ipart).EQ.0 .AND. rho(ipart).GT.rhomaxlocal) THEN
+               irhomax = ipart
+               rhomaxlocal = rho(ipart)
+            ENDIF
+         END DO
+         rhomaxlocal = rho(irhomax)
+         print *,iproc,': BAL found ',irhomax,rho(irhomax)
+         print *,iproc,': BAL loc ',xyzmh(1,irhomax),xyzmh(2,irhomax),
+     &        xyzmh(3,irhomax)
+         CALL MPI_ALLREDUCE(rhomaxlocal,rhomaxtot,1,MPI_REAL4,MPI_MAX,
+     &        MPI_COMM_WORLD, ierr)
+
+         IF (rhomaxtot.GT.densmpi) THEN
+            IF (rhomaxtot.EQ.rhomaxlocal) THEN
+               inum = iproc + 1
+            ELSE
+               inum = 0
+            ENDIF
+            print *,iproc,': BAL inum ',inum,rhomaxtot
+            CALL MPI_ALLREDUCE(inum,inumkeep,1,MPI_INTEGER,MPI_MAX,
+     &           MPI_COMM_WORLD, ierr)
+            inumkeep = inumkeep - 1
+            print *,iproc,': BAL inumkeep ',inumkeep
+            IF (inumkeep.LT.0 .OR. inumkeep.GE.numproc) THEN
+               WRITE (*,*) 'ERROR - Balance: Invalid inumkeep ',inumkeep
+               CALL quit
+            ENDIF
+
+            IF (inumkeep.EQ.iproc) THEN
+               xlocationmpi = xyzmh(1,irhomax)
+               ylocationmpi = xyzmh(2,irhomax)
+               zlocationmpi = xyzmh(3,irhomax)
+            ENDIF
+            CALL MPI_BCAST(xlocationmpi,1,MPI_REAL8,inumkeep,
+     &           MPI_COMM_WORLD, ierr)
+            CALL MPI_BCAST(ylocationmpi,1,MPI_REAL8,inumkeep,
+     &           MPI_COMM_WORLD, ierr)
+            CALL MPI_BCAST(zlocationmpi,1,MPI_REAL8,inumkeep,
+     &           MPI_COMM_WORLD, ierr)
+            print *,iproc,': BALANCE location ',xlocationmpi,
+     &           ylocationmpi,zlocationmpi
+         ELSE
+            print *,iproc,': BALANCE: location unchanged'
+         ENDIF
+      ENDIF
+
       DO ipart = 1, npart
          IF (iphase(ipart).GE.0) THEN
             IF (mpitype.EQ.'c') THEN
@@ -1378,6 +1431,11 @@ c
                numlist(ibelong1) = numlist(ibelong1) + 1
                listtrans(ipart) = ibelong
             ELSEIF (mpitype.EQ.'d') THEN
+               ibelong = classify_disc(ipart,xyzmh)
+               ibelong1 = ibelong + 1
+               numlist(ibelong1) = numlist(ibelong1) + 1            
+               listtrans(ipart) = ibelong
+            ELSEIF (mpitype.EQ.'r') THEN
                ibelong = classify_disc(ipart,xyzmh)
                ibelong1 = ibelong + 1
                numlist(ibelong1) = numlist(ibelong1) + 1            
@@ -1408,6 +1466,8 @@ c  Subroutine to determine which MPI process a particle     *
 c     should be on.                                         *
 c     This version is applicable to disc geometries.        *
 c     The split is done on z (assumed rotation axis) first. *
+c     The split is located at xlocationmpi, ylocationmpi,   *
+c     zlocationmpi.
 c                                                           *
 c************************************************************
 
@@ -1428,7 +1488,7 @@ c************************************************************
       ival = 0
 
 #ifdef MPI
-      IF (xyzmh(3,ipart).LT.0.0) THEN
+      IF (xyzmh(3,ipart)-zlocationmpi.LT.0.0) THEN
          ival = 1
       ELSE
          ival = 0
@@ -1436,12 +1496,16 @@ c************************************************************
 
       phiincrement = 2.0*pi/(numproc/2)
 
-      IF (xyzmh(1,ipart).EQ.0. .AND. xyzmh(2,ipart).EQ.0.) THEN
+      xcen = xyzmh(1,ipart) - xlocationmpi
+      ycen = xyzmh(2,ipart) - ylocationmpi
+
+      IF (xcen.EQ.0. .AND. ycen.EQ.0.) THEN
          ival = 0
       ELSE
          ival = ival*numproc/2 +
-     &     INT((pi + ATAN2(xyzmh(2,ipart),xyzmh(1,ipart)))/phiincrement)
+     &     INT((pi + ATAN2(ycen,xcen))/phiincrement)
       ENDIF
+      IF (ival.GT.numproc) ival = numproc
 #endif
 
       classify_disc = ival

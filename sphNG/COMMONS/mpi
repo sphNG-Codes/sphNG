@@ -6,7 +6,8 @@
       INTEGER nparttot, nactivetot, n1tot, n2tot, iproccreate,
      &	maxnneighsentback, inumofreturns, inumbertotal
 
-      REAL fmas1tot, fmas2tot
+      REAL fmas1tot, fmas2tot, xlocationmpi, ylocationmpi,
+     &     zlocationmpi, densmpi
       CHARACTER*1 mpitype
       LOGICAL nneighsentany,nneighsentanyatall
 
@@ -20,7 +21,8 @@
       COMMON /mpi / ierr, numproc, iproc
       COMMON /mpiint/ nparttot, nactivetot, n1tot, n2tot, iproccreate,
      &	     maxnneighsentback,inumofreturns, inumbertotal, inumofsends
-      COMMON /mpireal/ fmas1tot, fmas2tot
+      COMMON /mpireal/ fmas1tot, fmas2tot, xlocationmpi, ylocationmpi,
+     &     zlocationmpi, densmpi
       COMMON /mpichar/ mpitype
       COMMON /mpilog/ nneighsentany(nummaxproc),nneighsentanyatall
 

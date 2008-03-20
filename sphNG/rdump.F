@@ -941,7 +941,7 @@ c--Type of domain decomposition
 c
 c--Disc-type domain decomposition
 c
-      IF (mpitype.EQ.'d') THEN
+      IF (mpitype.EQ.'d' .OR. mpitype.EQ.'r') THEN
          DO i = icount+1, nhydro
             ibelong = classify_disc(i,xyzmh)
             IF (iproc.EQ.ibelong) THEN

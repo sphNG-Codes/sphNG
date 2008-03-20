@@ -124,7 +124,10 @@ c
       ENDIF
 
 #ifdef MPI
-      READ (iterm, 99006) mpitype
+      READ (iterm, *) mpitype, xlocationmpi, ylocationmpi, 
+     &     zlocationmpi,densmpi
+      print *,xlocationmpi, ylocationmpi,
+     &     zlocationmpi,densmpi
 #else
       READ (iterm, *)
 #endif

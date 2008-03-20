@@ -2026,7 +2026,7 @@ c
 c
 c--Needed for MPI code
 c
-#ifdef MPI
+#ifdef MPIDEBUG
       IF (iproblem.EQ.2097152) print *,iproc,' Entered ',
      &     ' densitygrad ',ipart,npart,ntot,iphase(ipart),xyzmh(1,ipart)
 #endif

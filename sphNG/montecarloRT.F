@@ -27,10 +27,13 @@
       REAL, INTENT(IN)    :: time
 
 ! Local variables
-      INTEGER       :: i, itorus, igas, iterate, ierr
+      INTEGER       :: i, igas, ierr
       REAL          :: temperature(npart), gaspartmass(npart)
-      REAL          :: cvold, cvnew, getcv
+      REAL          :: totalgasmass
       LOGICAL, save :: ifirst = .true.
+
+
+      REAL :: TempToU, uToTemp
 
 ! Time interval between torus calls
       REAL, parameter :: radTimeStep = 0.05
@@ -41,6 +44,9 @@
       INTEGER :: nptmass_all
       INTEGER :: num_gas
      
+      TempToU = 3.0/2.0 * Rg/gmw/uergg
+      uToTemp =  1.0 / TempToU
+
 c--Only perform radiative transfer if ptmass exist, otherwise don't modify u()
      
 #ifdef MPI
@@ -60,7 +66,6 @@ c--Only perform radiative transfer if ptmass exist, otherwise don't modify u()
       IF ( (nptmass_all > lastNptmass .or. 
      &     time-lastRadTime >= radTimeStep) .and. nptmass_all > 0 ) THEN
 
-        WRITE (*,*) 'Monte Carlo, icall ',icall
         WRITE (*,*) 'nptmass, lastNptmass, time, lastRadTime=', 
      &               nptmass_all, lastNptmass, time, lastRadTime
         lastRadTime = time
@@ -68,24 +73,34 @@ c--Only perform radiative transfer if ptmass exist, otherwise don't modify u()
 
 c Pass array of sph temperatures to torus to use as initial conditions
 
-         IF ( encal == 'v' ) THEN 
-            igas = 0
-            DO i=1,npart
-               IF ( iphase(i) == 0 ) THEN 
-                  igas = igas + 1
-                  temperature(igas) = vxyzu(4,i) /
-     &                  ( 3.0/2.0 * Rg/gmw/uergg ) 
-                  gaspartmass(igas) = xyzmh(4,i)
-               END IF
-            END DO
-         ELSE
+         IF ( encal /= 'v' ) THEN 
             print *, "sphtorus needs encal=v at present"
             STOP
          END IF
+
+         igas = 0
+         totalgasmass = 0.0
+         DO i=1,npart
+            IF ( iphase(i) == 0 ) THEN 
+               igas = igas + 1
+               temperature(igas) = vxyzu(4,i) * uToTemp
+               gaspartmass(igas) = xyzmh(4,i)
+               totalgasmass = totalgasmass + gaspartmass(igas)
+            END IF
+         END DO
          num_gas = igas
+
+         WRITE(*,*) 'Total number of gas particles= ', num_gas
+         WRITE(*,*) 'Total mass of gas particles=   ', totalgasmass
+
 c     
 c--Call torus for Monte-Carlo radiative transfer     
 c
+
+! Don't pass the whole array, just pass the bit that we're using
+! What does trho do?
+! Why not use mass from xyzmh variable?
+! listpm is unused
 
          CALL torus(idim,npart,nactive,xyzmh,trho,iphase,nptmass,
      &       listpm,udist,umass,utime,time,gaspartmass(1),
@@ -93,42 +108,12 @@ c
 c     
 c--Set thermal energy of gas particles using torus's temperatures     
 c     
-         IF ( encal == 'v' ) THEN 
-
-            igas=0
-            DO i=1,npart
-               IF ( iphase(i) == 0 ) THEN 
-                   igas = igas + 1
-                   vxyzu(4,i) = 3.0/2.0 * MAX(temperature(igas),10.0)
-     &                          * Rg/gmw/uergg
-               END IF
-            END DO
-
-          ELSE
-
-           igas = 0
-           DO i = 1, npart
-             iterate = 0
-             IF (iphase(i).EQ.0) THEN
-               igas = igas + 1
-               cvold = getcv(trho(i),vxyzu(4,i))
- 20            vxyzu(4,i) = cvold*MAX(temperature(igas),10.0)
-               cvnew = getcv(trho(i),vxyzu(4,i))
-               IF (ABS((cvnew-cvold)/cvold).GT.0.001) THEN
-                  cvold = cvnew
-                  iterate = iterate + 1
-                  IF (iterate.LT.100) THEN
-                     GOTO 20
-                  ELSE
-                     WRITE (iprint,*) 'ERROR - cv iteration ',
-     &                  cvold,cvnew,temperature(igas),igas
-                  ENDIF
-               ENDIF
-             ENDIF
-           END DO
-
-         END IF
-
+         DO i=1, npart
+            IF ( iphase(i) == 0 ) THEN 
+               vxyzu(4,i) =  MAX(temperature(igas),10.0) * TempToU
+            END IF
+         END DO
+         
       ENDIF 
 
       END SUBROUTINE montecarloRT

@@ -95,16 +95,13 @@ c Pass array of sph temperatures to torus to use as initial conditions
 
 c     
 c--Call torus for Monte-Carlo radiative transfer     
-c
+c  The mass on the grid is calculated using trho and gaspartmass
+c  is not used so it doesn't matter that gaspartmass varies. 
 
-! Don't pass the whole array, just pass the bit that we're using
-! What does trho do?
-! Why not use mass from xyzmh variable?
-! listpm is unused
-
-         CALL torus(idim,npart,nactive,xyzmh,trho,iphase,nptmass,
-     &       listpm,udist,umass,utime,time,gaspartmass(1),
-     &       num_gas, temperature(1:num_gas))
+         CALL torus(idim,  npart, nactive, nptmass, num_gas, 
+     &              xyzmh, trho,  iphase, 
+     &              udist, umass, utime, 
+     &              time,  gaspartmass(1), temperature(1:num_gas) )
 c     
 c--Set thermal energy of gas particles using torus's temperatures     
 c     

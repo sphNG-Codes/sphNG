@@ -2155,6 +2155,7 @@ c
          IF (iproc.EQ.0) THEN
 #else
             WRITE (iptprint) realtime/tcomp, realtime, nptmass
+            naccretetot = naccrete
 #endif
 #ifdef MPI
          ENDIF

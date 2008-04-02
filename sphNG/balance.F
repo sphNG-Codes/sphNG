@@ -539,7 +539,9 @@ c
      &               ptmsyn(listptmass(1)+1),xmomsyn(listptmass(1)+1),
      &               xmomadd(listptmass(1)+1)
 #endif
-                           CALL MPI_TYPE_FREE(indexMPI_LIST,ierr)
+                           IF (encal.EQ.'r') THEN
+                              CALL MPI_TYPE_FREE(indexMPI_LIST,ierr)
+                           ENDIF
                            CALL MPI_TYPE_FREE(indexMPI_L,ierr)
                            CALL MPI_TYPE_FREE(indexMPI_INT,ierr)
                            CALL MPI_TYPE_FREE(indexMPI1,ierr)
@@ -1324,9 +1326,9 @@ c
          nghost = 0
          ntot = npart + nghost
       ENDIF
-#ifdef MPIDEBUGT
+c#ifdef MPIDEBUGT
       print *,iproc,': Balance is making tree ',ntot, npart
-#endif
+c#endif
       CALL insulate(1, ntot, npart, dumxyzmh, f1vxyzu)
 c
 c--End of MPI-only section
@@ -1660,7 +1662,8 @@ c      iorig(ito) = ito
 c      isort(ito) = ito
 c      iorig(ifrom) = 0
 c      isort(ifrom) = 0
-      iunique(ito) = iunique(ifrom)
+      iunique(iorig(ito)) = iunique(iorig(ifrom))
+      iunique(iorig(ifrom)) = 0
       rho(ito) = rho(ifrom)
       dumrho(ito) = dumrho(ifrom)
       divv(ito) = divv(ifrom)

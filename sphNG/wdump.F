@@ -6,6 +6,7 @@ c                                                           *
 c************************************************************
 
       INCLUDE 'idim'
+      INCLUDE 'igrape'
 
 #ifdef MPI
       INCLUDE 'mpif.h'
@@ -53,6 +54,10 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/presb'
       INCLUDE 'COMMONS/xforce'
+      INCLUDE 'COMMONS/eosq'
+      INCLUDE 'COMMONS/f2'
+      INCLUDE 'COMMONS/h2'
+      INCLUDE 'COMMONS/rbnd'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -98,8 +103,14 @@ c----------------------
 c
 c--Write output file
 c
+c#ifdef MPI
+c      IF (iproc.EQ.0) THEN
+c#endif
       WRITE (idisk1, ERR=100) int1,r1,int2,i1,int1
       WRITE (idisk1, ERR=100) fileident('F')
+c#ifdef MPI
+c      ENDIF
+c#endif
 c
 c--Single values
 c
@@ -163,6 +174,10 @@ c
       ptmassintot = ptmassin
       tmagtot = tmag
 #endif
+
+c#ifdef MPI
+c      IF (iproc.EQ.0) THEN
+c#endif
 c
 c--Default int
       number = 7
@@ -205,6 +220,7 @@ c
       nblockarrays = number*nblocks
       WRITE (idisk1, ERR=100) nblockarrays
 #ifdef MPI
+c      ENDIF
       nowgo = 0
 #ifdef MPIDEBUG
       print *,iproc,': About to write'
@@ -734,51 +750,54 @@ c     must be used to index *ANY* value from an array which is written
 c     to the outside.  This requires modification to almost every output
 c     line in the code.  Done 21 Nov 2000.
 c
-c      IF (gt.EQ.0. .OR. iresort.LT.20) GOTO 777
-      GOTO 777
+      IF (timing) CALL getused(tsort1)
+
+      IF (gt.EQ.0.) GOTO 777
+c      GOTO 777
 
       iresort = 0
 
-      xminimum = 1.0E+30
-      xmaximum = -1.0E+30
-      DO i = 1, npart
-         xmaximum = MAX(xmaximum, xyzmh(1,i))
-         xminimum = MIN(xminimum, xyzmh(1,i))
-      END DO
-      xrange = xmaximum-xminimum
-      istepmin = imax
-      istepmax = 0
-      DO i = 1, npart
-         llist(i) = i
-         IF (iphase(i).EQ.-1) THEN
-            tempsort(i) = LOG(REAL(imax))/LOG(2.0)
-            istepmax = imax
-         ELSE
-            tempsort(i) = LOG(REAL(isteps(i)))/LOG(2.0) + 
-     &           (xyzmh(1,i)-xminimum)/xrange
-            istepmin = MIN(istepmin, isteps(i))
-            istepmax = MAX(istepmax, isteps(i))
-         ENDIF
-      END DO
+      IF (nptmass.GT.0) THEN
+         xminimum = 1.0E+30
+         xmaximum = -1.0E+30
+         DO i = 1, npart
+            xmaximum = MAX(xmaximum, xyzmh(1,i))
+            xminimum = MIN(xminimum, xyzmh(1,i))
+         END DO
+         xrange = xmaximum-xminimum
+         istepmin = imax
+         istepmax = 0
+         DO i = 1, npart
+            llist(i) = i
+            IF (iphase(i).EQ.-1) THEN
+               tempsort(i) = LOG(REAL(imax))/LOG(2.0)
+               istepmax = imax
+            ELSE
+               tempsort(i) = LOG(REAL(isteps(i)))/LOG(2.0) + 
+     &              (xyzmh(1,i)-xminimum)/xrange
+               istepmin = MIN(istepmin, isteps(i))
+               istepmax = MAX(istepmax, isteps(i))
+            ENDIF
+         END DO
 c
 c--Sort particles based on their individual timesteps and x
 c
-      CALL indexx(npart, llist, tempsort, itempsort)
+         CALL indexx(npart, llist, tempsort, itempsort)
 c
 c--Move into llist.  This now stores 'iorignew'
 c
-      DO i = 1, npart
-         llist(i) = itempsort(i)
-      END DO
+         DO i = 1, npart
+            llist(i) = itempsort(i)
+         END DO
+      ELSE
+c
+c--Sort particles based on a walk through the tree
+c
+         CALL treelist(npart, llist, dumxyzmh)
+      ENDIF
 c
 c--Now re-order arrays
 c
-      DO i = 1, npart
-         tempsort(i) = xyzmh(5,llist(i))
-      END DO
-      DO i = 1, npart
-         xyzmh(5,i) = tempsort(i)
-      END DO
       DO i = 1, npart
          tempsort(i) = xyzmh(1,llist(i))
       END DO
@@ -797,6 +816,21 @@ c
       DO i = 1, npart
          xyzmh(3,i) = tempsort(i)
       END DO
+      DO i = 1, npart
+         tempsort(i) = xyzmh(4,llist(i))
+      END DO
+      DO i = 1, npart
+         xyzmh(4,i) = tempsort(i)
+      END DO
+      DO i = 1, npart
+         tempsort(i) = xyzmh(5,llist(i))
+      END DO
+      DO i = 1, npart
+         xyzmh(5,i) = tempsort(i)
+      END DO
+c
+c--vxyzu
+c
       DO i = 1, npart
         tempsort(i) = vxyzu(1,llist(i))
       END DO
@@ -821,54 +855,188 @@ c
       DO i = 1, npart
          vxyzu(4,i) = tempsort(i)
       END DO
+c
+c--dumxyzmh
+c
       DO i = 1, npart
-         tempsort(i) = xyzmh(4,llist(i))
+         tempsort(i) = dumxyzmh(1,llist(i))
       END DO
       DO i = 1, npart
-         xyzmh(4,i) = tempsort(i)
+         dumxyzmh(1,i) = tempsort(i)
       END DO
+      DO i = 1, npart
+         tempsort(i) = dumxyzmh(2,llist(i))
+      END DO
+      DO i = 1, npart
+         dumxyzmh(2,i) = tempsort(i)
+      END DO
+      DO i = 1, npart
+         tempsort(i) = dumxyzmh(3,llist(i))
+       END DO
+      DO i = 1, npart
+         dumxyzmh(3,i) = tempsort(i)
+      END DO
+      DO i = 1, npart
+         tempsort(i) = dumxyzmh(4,llist(i))
+      END DO
+      DO i = 1, npart
+         dumxyzmh(4,i) = tempsort(i)
+      END DO
+      DO i = 1, npart
+         tempsort(i) = dumxyzmh(5,llist(i))
+      END DO
+      DO i = 1, npart
+         dumxyzmh(5,i) = tempsort(i)
+      END DO
+c
+c--dumvxyzu
+c
+      DO i = 1, npart
+        tempsort(i) = dumvxyzu(1,llist(i))
+      END DO
+      DO i = 1, npart
+         dumvxyzu(1,i) = tempsort(i)
+      END DO
+      DO i = 1, npart
+         tempsort(i) = dumvxyzu(2,llist(i))
+      END DO
+      DO i = 1, npart
+         dumvxyzu(2,i) = tempsort(i)
+      END DO
+      DO i = 1, npart
+         tempsort(i) = dumvxyzu(3,llist(i))
+      END DO
+      DO i = 1, npart
+         dumvxyzu(3,i) = tempsort(i)
+      END DO
+      DO i = 1, npart
+         tempsort(i) = dumvxyzu(4,llist(i))
+      END DO
+      DO i = 1, npart
+         dumvxyzu(4,i) = tempsort(i)
+      END DO
+c
+c--rho
+c
       DO i = 1, npart
          tempsort(i) = rho(llist(i))
       END DO
       DO i = 1, npart
          rho(i) = tempsort(i)
       END DO
+c
+c--divv
+c
+      DO i = 1, npart
+         tempsort(i) = divv(llist(i))
+      END DO
+      DO i = 1, npart
+         divv(i) = tempsort(i)
+      END DO
+c
+c--curlv
+c
+      DO i = 1, npart
+         tempsort(i) = curlv(llist(i))
+      END DO
+      DO i = 1, npart
+         curlv(i) = tempsort(i)
+      END DO
+c
+c--pr
+c
+      DO i = 1, npart
+         tempsort(i) = pr(llist(i))
+      END DO
+      DO i = 1, npart
+         pr(i) = tempsort(i)
+      END DO
+c
+c--vsound
+c
+      DO i = 1, npart
+         tempsort(i) = vsound(llist(i))
+      END DO
+      DO i = 1, npart
+         vsound(i) = tempsort(i)
+      END DO
+c
+c--poten
+c
+      DO i = 1, npart
+         tempsort(i) = poten(llist(i))
+      END DO
+      DO i = 1, npart
+         poten(i) = tempsort(i)
+      END DO
+c
+c--dgrav
+c
       DO i = 1, npart
          tempsort(i) = dgrav(llist(i))
       END DO
       DO i = 1, npart
          dgrav(i) = tempsort(i)
       END DO
+c
+c--gradhs
+c
+      DO k = 1, 2
+         DO i = 1, npart
+            tempsort(i) = gradhs(k,llist(i))
+         END DO
+         DO i = 1, npart
+            gradhs(k,i) = tempsort(i)
+         END DO
+      END DO
+c
+c--isteps
+c
       DO i = 1, npart
          itempsort(i) = isteps(llist(i))
       END DO
       DO i = 1, npart
          isteps(i) = itempsort(i)
       END DO
+c
+c--iphase
+c
       DO i = 1, npart
          itempsort(i) = iphase(llist(i))
       END DO
       DO i = 1, npart
          iphase(i) = itempsort(i)
       END DO
+c
+c--it0
+c
       DO i = 1, npart
          itempsort(i) = it0(llist(i))
       END DO
       DO i = 1, npart
          it0(i) = itempsort(i)
       END DO
+c
+c--it1
+c
       DO i = 1, npart
          itempsort(i) = it1(llist(i))
       END DO
       DO i = 1, npart
          it1(i) = itempsort(i)
       END DO
+c
+c--it2
+c
       DO i = 1, npart
          itempsort(i) = it2(llist(i))
       END DO
       DO i = 1, npart
          it2(i) = itempsort(i)
       END DO
+c
+c--f1vxyzu
+c
       DO i = 1, npart
          tempsort(i) = f1vxyzu(1,llist(i))
       END DO
@@ -893,18 +1061,65 @@ c
       DO i = 1, npart
          f1vxyzu(4,i) = tempsort(i)
       END DO
+c
+c--f2vxyzu
+c
       DO i = 1, npart
-         tempsort(i) = f1ha(1,llist(i))
+         tempsort(i) = f2vxyzu(1,llist(i))
       END DO
       DO i = 1, npart
-         f1ha(1,i) = tempsort(i)
+         f2vxyzu(1,i) = tempsort(i)
       END DO
+      DO i = 1, npart
+         tempsort(i) = f2vxyzu(2,llist(i))
+      END DO
+      DO i = 1, npart
+         f2vxyzu(2,i) = tempsort(i)
+      END DO
+      DO i = 1, npart
+         tempsort(i) = f2vxyzu(3,llist(i))
+      END DO
+      DO i = 1, npart
+         f2vxyzu(3,i) = tempsort(i)
+      END DO
+      DO i = 1, npart
+         tempsort(i) = f2vxyzu(4,llist(i))
+      END DO
+      DO i = 1, npart
+         f2vxyzu(4,i) = tempsort(i)
+      END DO
+c
+c--f1ha
+c
+      DO k = 1, 1+isizealphaMM
+         DO i = 1, npart
+            tempsort(i) = f1ha(k,llist(i))
+         END DO
+         DO i = 1, npart
+            f1ha(k,i) = tempsort(i)
+         END DO
+c
+c--f2ha
+c
+         DO i = 1, npart
+            tempsort(i) = f2ha(k,llist(i))
+         END DO
+         DO i = 1, npart
+            f2ha(k,i) = tempsort(i)
+         END DO
+      END DO
+c
+c--dumrho
+c
       DO i = 1, npart
          tempsort(i) = dumrho(llist(i))
       END DO
       DO i = 1, npart
          dumrho(i) = tempsort(i)
       END DO
+c
+c--alphaMM
+c
       DO k = 1, isizealphaMM
          DO i = 1, npart
             tempsort(i) = alphaMM(k,llist(i))
@@ -912,63 +1127,102 @@ c
          DO i = 1, npart
             alphaMM(k,i) = tempsort(i)
          END DO
+c
+c--dumalpha
+c
+         DO i = 1, npart
+            tempsort(i) = dumalpha(k,llist(i))
+         END DO
+         DO i = 1, npart
+            dumalpha(k,i) = tempsort(i)
+         END DO
       END DO
+c
+c--ddv
+c
       DO i = 1, npart
          tempsort(i) = ddv(llist(i))
       END DO
       DO i = 1, npart
          ddv(i) = tempsort(i)
       END DO
+c
+c--h2mol
+c
+      DO i = 1, npart
+         tempsort(i) = h2mol(llist(i))
+      END DO
+      DO i = 1, npart
+         h2mol(i) = tempsort(i)
+      END DO
+c
+c--h2ratio
+c
+      DO i = 1, npart
+         tempsort(i) = h2ratio(llist(i))
+      END DO
+      DO i = 1, npart
+         h2ratio(i) = tempsort(i)
+      END DO
+c
+c--ekcle, dumekcle
+c
       IF (encal.EQ.'r') THEN
-         DO i = 1, npart
-            tempsort(i) = ekcle(1,llist(i))
-         END DO
-         DO i = 1, npart
-            ekcle(1,i) = tempsort(i)
-         END DO
-         DO i = 1, npart
-            tempsort(i) = ekcle(2,llist(i))
-         END DO
-         DO i = 1, npart
-            ekcle(2,i) = tempsort(i)
-         END DO
-         DO i = 1, npart
-            tempsort(i) = ekcle(3,llist(i))
-         END DO
-         DO i = 1, npart
-            ekcle(3,i) = tempsort(i)
-         END DO
-         DO i = 1, npart
-            tempsort(i) = ekcle(4,llist(i))
-         END DO
-         DO i = 1, npart
-            ekcle(4,i) = tempsort(i)
-         END DO
-         DO i = 1, npart
-            tempsort(i) = ekcle(5,llist(i))
-         END DO
-         DO i = 1, npart
-            ekcle(5,i) = tempsort(i)
+         DO k = 1, 5
+            DO i = 1, npart
+               tempsort(i) = ekcle(k,llist(i))
+            END DO
+            DO i = 1, npart
+               ekcle(k,i) = tempsort(i)
+            END DO
+
+            DO i = 1, npart
+               tempsort(i) = dumekcle(k,llist(i))
+            END DO
+            DO i = 1, npart
+               dumekcle(k,i) = tempsort(i)
+            END DO
          END DO
       ENDIF
+c
+c--Bevolxyz, dumBevolxyz, Bxyz, f1Bxyz, f2Bxyz
+c
       IF (imhd.EQ.idim) THEN
-         DO i = 1, npart
-            tempsort(i) = Bevolxyz(1,llist(i))
-         END DO
-         DO i = 1, npart
-            Bevolxyz(1,i) = tempsort(i)
-         END DO
-         DO i = 1, npart
-            tempsort(i) = Bevolxyz(2,llist(i))
-         END DO
-         DO i = 1, npart
-            Bevolxyz(2,i) = tempsort(i)
-         END DO
-         DO i = 1, npart
-            tempsort(i) = Bevolxyz(3,llist(i))
-         END DO
-         DO i = 1, npart
-            Bevolxyz(3,i) = tempsort(i)
+         DO k = 1, 3
+            DO i = 1, npart
+               tempsort(i) = Bevolxyz(k,llist(i))
+            END DO
+            DO i = 1, npart
+               Bevolxyz(k,i) = tempsort(i)
+            END DO
+
+            DO i = 1, npart
+               tempsort(i) = dumBevolxyz(k,llist(i))
+            END DO
+            DO i = 1, npart
+               dumBevolxyz(k,i) = tempsort(i)
+            END DO
+
+            DO i = 1, npart
+               tempsort(i) = Bxyz(k,llist(i))
+            END DO
+            DO i = 1, npart
+               Bxyz(k,i) = tempsort(i)
+            END DO
+
+            DO i = 1, npart
+               tempsort(i) = f1Bxyz(k,llist(i))
+            END DO
+            DO i = 1, npart
+               f1Bxyz(k,i) = tempsort(i)
+            END DO
+
+            DO i = 1, npart
+               tempsort(i) = f2Bxyz(k,llist(i))
+            END DO
+            DO i = 1, npart
+               f2Bxyz(k,i) = tempsort(i)
+            END DO
          END DO
       ENDIF
 c
@@ -993,6 +1247,9 @@ c
       DO i = 1, nlstacc
          listacc(i) = itempsort(listacc(i))
       END DO
+      DO i = 1, nlistinactive
+         listinactive(i) = itempsort(listinactive(i))
+      END DO
       DO i = 1, nbinmax
          DO j = 1, nlstbins(i)
             listbins(j,i) = itempsort(listbins(j,i))
@@ -1015,8 +1272,20 @@ c
          END DO
       END DO
 
+      IF (timing) CALL getused(tsortmtree1)
+
       CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)
+
+      IF (itiming) THEN
+         CALL getused(tsortmtree2)
+         tsortmtree = tsortmtree + (tsortmtree2 - tsortmtree1)
+      ENDIF
  777  CONTINUE
+
+      IF (itiming) THEN
+         CALL getused(tsort2)
+         tsort = tsort + (tsort2 - tsort1)
+      ENDIF
 c
 c--Zero torques
 c

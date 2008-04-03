@@ -443,3 +443,95 @@ c
       END
 
 
+
+
+      SUBROUTINE treelist(npart, llist, xyzmh)
+c
+c*********************************************************************
+c                                                                    *
+c     Walks through the tree, returning a list of particles in       *
+c     order of the walk through the tree.                            *
+c     MRB:29.03.2008                                                 *
+c                                                                    *
+c*********************************************************************
+c
+      INCLUDE 'idim'
+      INCLUDE 'igrape'
+
+      DIMENSION xyzmh(5,mmax),llist(idim)
+
+      INCLUDE 'COMMONS/treecom_P'
+      INCLUDE 'COMMONS/nlim'
+      INCLUDE 'COMMONS/logun'
+      INCLUDE 'COMMONS/phase'
+      INCLUDE 'COMMONS/sort'
+      INCLUDE 'COMMONS/ptmass'
+
+      PARAMETER (istacksize=200)
+      DIMENSION nstack(istacksize)
+
+      numlist = 0
+
+      IF (iptintree.EQ.0) THEN
+         DO i = 1, nptmass
+            llist(i) = listpm(i)
+         END DO
+         numlist = numlist + nptmass
+      ENDIF
+
+      istack = 0
+      mpar = isibdaupar(2,nroot)
+      istack = istack + 1
+      nstack(istack) = mpar
+
+ 100  node = isibdaupar(1,mpar)
+      IF (node.NE.0) THEN
+         istack = istack + 1
+         nstack(istack) = node
+ 150     IF (istack.NE.0) THEN
+            n = nstack(istack)
+            istack = istack - 1
+c
+c--Decide whether to open up the node:
+c     new if structure
+c
+            IF (n.GT.natom) THEN
+               j = isibdaupar(2,n)
+               IF (istack+2.GT.istacksize) THEN
+                  WRITE(iprint,*)'ERROR: stack overflow in treelist'
+     &                 , istack+2, istacksize
+                  CALL quit
+               ENDIF
+               istack = istack + 1
+               nstack(istack) = j
+               istack = istack + 1
+               nstack(istack) = isibdaupar(1,j)
+            ELSEIF (iphase(n).EQ.0 .AND. n.LE.npart) THEN
+               numlist = numlist + 1
+               llist(numlist) = n
+            ENDIF
+            GOTO 150
+         ENDIF
+         mpar = isibdaupar(3,mpar)
+         GOTO 100
+      ENDIF
+
+      print *,'TreeList ',numlist,natom,npart,nptmass
+
+      DO i = 1, npart
+         IF (iphase(i).EQ.-1) THEN
+            numlist = numlist + 1
+            llist(numlist) = i
+         ENDIF
+      END DO
+
+      IF (numlist.NE.npart) THEN
+         WRITE(*,*)'ERROR: numlist.NE.npart in treelist ',
+     &        numlist,npart,nptmass,natom
+         WRITE(iprint,*)'ERROR: numlist.NE.npart in treelist ',
+     &        numlist,npart,nptmass,natom
+         CALL quit
+      ENDIF
+
+      RETURN
+      END

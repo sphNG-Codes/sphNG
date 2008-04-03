@@ -339,6 +339,8 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
 98039       FORMAT (' step-15      time: ', F8.3, ' min. ',F6.2,' %')
 98040       FORMAT (' step-16      time: ', F8.3, ' min. ',F6.2,' %')
 98041       FORMAT (' ass rad tran time: ', F8.3, ' min. ',F6.2,' %')
+98303       FORMAT (' sort         time: ', F8.3, ' min. ')
+98304       FORMAT (' sort - mtree time: ', F8.3, ' min. ')
          ELSE
             WRITE (iprint, 98020)
             WRITE (iprint, 98022) tsteponly/60., tsteponly/tstep*100.
@@ -388,6 +390,11 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
      &                 revtreep2*100.
               ENDIF
             ENDIF
+            WRITE (iprint, 98303) tsort/60.
+            IF (tsort.NE.0.0) THEN
+               WRITE (iprint, 98304) tsortmtree/60.
+            ENDIF
+
             tdens = 0.
             tforce = 0.
             tgforpt = 0.

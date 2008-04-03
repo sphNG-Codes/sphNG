@@ -287,6 +287,9 @@ c
          IF (encal.EQ.'r') THEN
             WRITE (iprint, 99113) tolerance
 99113       FORMAT (' Radiative transfer tolerance    : ',1PE12.3, //)
+         ELSEIF (encal.EQ.'c') THEN
+            WRITE (iprint, 99313) coolingrate
+99313       FORMAT (' Cooling Rate                    : ',1PE12.3, //)
          ELSE
             WRITE (iprint, *)
          ENDIF

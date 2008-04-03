@@ -145,9 +145,7 @@ c !! central object. If not, this is wrong.
                omega1 = 1./omega
 
 c Cooling times used by Rice et al 2003 are 5/omega and 3/omega
-c              tcool = 2.0 * omega1
-c              tcool = 3.0 * omega1
-               tcool = 5.0 * omega1
+               tcool = coolingrate * omega1
 
 c               PRINT *, dvxyzu(4,ipart),vxyzu(4,ipart)/tcool,omega
                dvxyzu(4,ipart) = dvxyzu(4,ipart) - vxyzu(4,ipart) 

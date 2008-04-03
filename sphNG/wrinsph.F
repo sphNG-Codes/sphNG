@@ -221,6 +221,11 @@ c
 
       ENDIF
 
+      IF (encal.EQ.'c') THEN
+         READ (iterm, 88049) coolingrate
+88049    FORMAT(2X,1PE12.5,'  Cooling Rate for encal.EQ.c')
+      ENDIF
+
       rzero = 0.0
       rminus1 = -1.0
       IF (ibound.EQ.1 .OR. ibound.EQ.3 .OR. ibound.EQ.8 .OR. 

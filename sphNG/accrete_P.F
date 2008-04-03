@@ -1456,8 +1456,8 @@ c
 c--Is point mass neighbour inside accretion radius and accretable?
 c
             IF (r2.LT.hacccur2 .AND. iremove(j).EQ.0) THEN
-               print *,iproc,': ACCRETION: ',jj,iunique(iorig(j)),r2,
-     &              iremove(j)
+c               print *,iproc,': ACCRETION: ',jj,iunique(iorig(j)),r2,
+c     &              iremove(j)
 c
 c--Check to ensure that the particle is actually bound to the 
 c     point mass and not just passing through its neighbourhood

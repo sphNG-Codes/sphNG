@@ -29,6 +29,11 @@ c************************************************************
       DATA where/'eospg'/
 
       gama1 = gamma - 1.
+
+      IF (vxyzu(4,ipart).LE.0) THEN
+         WRITE (*,*) 'ERROR - vxyzu(4,ipart).LE.0 ',vxyzu(4,ipart)
+         CALL quit
+      ENDIF
 c
 c--Variable is internal energy
 c

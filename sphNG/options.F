@@ -222,6 +222,10 @@ c      ENDIF
          READ (iterm, *) radcrit
          READ (iterm, *) ptmcrit
       ENDIF
+
+      IF (encal.EQ.'c') THEN
+         READ (iterm, *) coolingrate
+      ENDIF
 c
 c--Read boundaries
 c

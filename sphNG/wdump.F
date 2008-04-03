@@ -750,7 +750,7 @@ c     must be used to index *ANY* value from an array which is written
 c     to the outside.  This requires modification to almost every output
 c     line in the code.  Done 21 Nov 2000.
 c
-      IF (timing) CALL getused(tsort1)
+      IF (itiming) CALL getused(tsort1)
 
       IF (gt.EQ.0.) GOTO 777
 c      GOTO 777
@@ -1272,7 +1272,7 @@ c
          END DO
       END DO
 
-      IF (timing) CALL getused(tsortmtree1)
+      IF (itiming) CALL getused(tsortmtree1)
 
       CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)
 

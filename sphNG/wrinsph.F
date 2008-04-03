@@ -222,7 +222,7 @@ c
       ENDIF
 
       IF (encal.EQ.'c') THEN
-         READ (iterm, 88049) coolingrate
+         WRITE (iterm, 88049) coolingrate
 88049    FORMAT(2X,1PE12.5,'  Cooling Rate for encal.EQ.c')
       ENDIF
 

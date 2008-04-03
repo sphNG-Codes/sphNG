@@ -58,6 +58,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/f2'
       INCLUDE 'COMMONS/h2'
       INCLUDE 'COMMONS/rbnd'
+      INCLUDE 'COMMONS/perform'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)

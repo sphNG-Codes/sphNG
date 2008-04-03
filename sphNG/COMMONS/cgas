@@ -1,4 +1,4 @@
-      REAL gamma
-      
-      COMMON /cgas  / gamma, encal
+      REAL gamma, coolingrate
       CHARACTER*1 encal
+      
+      COMMON /cgas  / gamma, coolingrate, encal

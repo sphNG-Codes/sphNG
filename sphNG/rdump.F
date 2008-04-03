@@ -289,7 +289,7 @@ c
       IF (numberarray.GE.3) THEN
          READ (idisk1, END=100) number8, (nums3(i), i=1,8)
          IF (iradtrans.EQ.idim .AND.
-     &      (number8.GT.iradtrans .OR. number8.LT.npart)) THEN
+     &      (number8.GT.iradtrans)) THEN
             WRITE (*,*) 'ERROR 9 in rdump: iradtrans wrong ',number8,
      &           iradtrans,npart
             CALL quit

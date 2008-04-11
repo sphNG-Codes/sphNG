@@ -1643,9 +1643,10 @@ c
          f1vxi = (f1vxi*pmassi + f1vxtemp)/pmassnew
          f1vyi = (f1vyi*pmassi + f1vytemp)/pmassnew
          f1vzi = (f1vzi*pmassi + f1vztemp)/pmassnew
-         newaccel2 = f1vxi**2 + f1vyi**2 + f1vzi**2
-         oldaccel2 = f1vxyzu(1,i)**2 + f1vxyzu(2,i)**2 +f1vxyzu(3,i)**2
-         IF (ABS(newaccel2-oldaccel2)/(oldaccel2+tiny).LT.1.0E-4) THEN
+
+         accelnew2 = f1vxi**2 + f1vyi**2 + f1vzi**2
+         accelold2 = f1vxyzu(1,i)**2 + f1vxyzu(2,i)**2 +f1vxyzu(3,i)**2
+         IF (ABS(accelnew2-accelold2)/(accelold2+tiny).LT.1.0E-4) THEN
             f1vxyzu(1,i) = f1vxi
             f1vxyzu(2,i) = f1vyi
             f1vxyzu(3,i) = f1vzi
@@ -2088,15 +2089,19 @@ c
 #endif
          IF (i2list.LE.nptmassold) THEN
             tcomp = SQRT((3 * pi) / (32 * rhozero))
-            WRITE (iptprint) realtime/tcomp, realtime, -nptmasstot
-            WRITE (iptprint) imerged1, imerged2
-            CALL FLUSH(iptprint)
+
+            print *,'NOTE MERGER NOT WRITTEN'
+
+c            WRITE (iptprint) realtime/tcomp, realtime, -nptmasstot
+c            WRITE (iptprint) imerged1, imerged2
+c            CALL FLUSH(iptprint)
          ENDIF
       ENDIF
 c
 c--Consider accreted particles' effect on ghosts
 c
  1000 CONTINUE
+
       IF (iaccr.EQ.1) THEN
          DO i = 1, nghost
             j = ireal(i + npart)
@@ -2154,14 +2159,23 @@ c
 #endif
          IF (iproc.EQ.0) THEN
 #else
-            WRITE (iptprint) realtime/tcomp, realtime, nptmass
             naccretetot = naccrete
 #endif
+            print *,iproc,': Trying to open ',ptfile,' file'
+
+            OPEN (iptprint, FILE=ptfile,
+     &           FORM='unformatted',POSITION='APPEND')
+            WRITE (iptprint) realtime/tcomp, realtime, nptmasstot
+            CALL FLUSH(iptprint)
 #ifdef MPI
          ENDIF
          IF (iproc.NE.0) THEN
             CALL MPI_RECV(icango, 1, MPI_INTEGER, iproc-1, 98, 
      &           MPI_COMM_WORLD, istatus, ierr)
+
+            print *,iproc,': Trying to open ',ptfile,' file'
+            OPEN (iptprint, FILE=ptfile,
+     &           FORM='unformatted',POSITION='APPEND')
          ENDIF
 #ifdef MPIDEBUGS
          print *,iproc,': WRITING P-FILE'
@@ -2192,9 +2206,16 @@ c
 
 #ifdef MPI
          IF (iproc.NE.numproc-1) THEN
+            CLOSE(iptprint)
+            print *,iproc,': Trying to close ',iptprint
             CALL MPI_SEND(1, 1, MPI_INTEGER, iproc+1, 98,
      &           MPI_COMM_WORLD, istatus, ierr)
+         ELSE
+            CLOSE(iptprint)
+            print *,iproc,': Trying to close ',iptprint
          ENDIF
+#else
+         CLOSE(iptprint)
 #endif
 
       ENDIF

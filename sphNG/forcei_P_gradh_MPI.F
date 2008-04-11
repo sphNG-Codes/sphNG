@@ -1434,12 +1434,14 @@ c
 
          poten(ipart) = poten(ipart) + poteni 
 
-         dq(ipart) = dq(ipart) + dqi
+         IF (iphase(ipart).EQ.0) THEN
+            dq(ipart) = dq(ipart) + dqi
 
-         IF (imhd.EQ.idim) THEN
-            dBxyz(1,ipart) = dBxyz(1,ipart) + dBxyz_xi
-            dBxyz(2,ipart) = dBxyz(2,ipart) + dBxyz_yi
-            dBxyz(3,ipart) = dBxyz(3,ipart) + dBxyz_zi
+            IF (imhd.EQ.idim) THEN
+               dBxyz(1,ipart) = dBxyz(1,ipart) + dBxyz_xi
+               dBxyz(2,ipart) = dBxyz(2,ipart) + dBxyz_yi
+               dBxyz(3,ipart) = dBxyz(3,ipart) + dBxyz_zi
+            ENDIF
          ENDIF
 
 #ifdef _OPENMP

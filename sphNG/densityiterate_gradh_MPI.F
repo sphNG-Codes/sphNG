@@ -100,7 +100,7 @@ c--Initialise
 c
       iproblem = itime
 c      IF (itime.EQ.000)
-c          print *,iproc,': Entered densityiterate ',itime
+c          print *,': Entered densityiterate ',itime
 
       uradconst = radconst/uergcc
       third = 1./3.
@@ -151,7 +151,7 @@ c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none) 
 C$OMP& shared(nlstdo,ldolist,isucceed,xyzmh,hi_old,it1,isteps,imaxstep)
 C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)
-C$OMP& shared(iphase,dBxyz,it0,itime)
+C$OMP& shared(iphase,dBxyz,it0,itime,curlv,gradhs)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend)
 #endif
@@ -607,17 +607,17 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
          numsucceeded = 0
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end,npart,ntot,listp,divv,curlv,gradhs)
-C$OMP& shared(hmax,xyzmh,vxyzu,pr,vsound,rho,ekcle,rhomin)
-C$OMP& shared(nneigh,neighb,neighover,selfnormkernel)
+C$OMP& shared(xyzmh,vxyzu,pr,vsound,rho,ekcle,rhomin)
+C$OMP& shared(nneigh,selfnormkernel)
 C$OMP& shared(cnormk,radkernel,dvtable,ddvtable,wij,grwij)
 C$OMP& shared(listpm,iphase,dphidh,uradconst,icall,encal)
-C$OMP& shared(iprint,nptmass,iptmass,radcrit2,iorig,third)
-C$OMP& shared(dumrho,iscurrent,ibound,ireal,nptmastot)
+C$OMP& shared(iprint,nptmass,iptmass,iorig,third)
+C$OMP& shared(dumrho,iscurrent,ibound,ireal)
 C$OMP& shared(isteps,it0,it1,imax,imaxstep,dt,itime)
 C$OMP& shared(varmhd,Bevol,Bxyz,vsmooth,Bsmooth,nlstdo,ldolist)
 C$OMP& shared(dvxyzu,hi_old,isucceed,poten,isend,numproc,iproc,gradmhd)
 C$OMP& shared(ivar,ijvar,ncompact,icompact,iteration)
-C$OMP& shared(hminbisec,hmaxbisec)
+C$OMP& shared(hminbisec,hmaxbisec,iupdated,nlistupdated,listparents)
 C$OMP& private(n,ipart,j,k,xi,yi,zi,vxi,vyi,vzi,pmassi,hi,hj,rhoi)
 C$OMP& private(divvi,curlvxi,curlvyi,curlvzi,gradhi,gradsofti)
 C$OMP& private(pmassj,hi_oldi,hi1,hi21,hi31,hi41,hneigh)
@@ -708,6 +708,10 @@ c
             ENDIF
          ENDIF
 
+c         IF (itime.GE.142868480)
+c     &  write(*,*)'H-stuff ',hnew,hi,hi_oldi,omegai,nneighi,
+c     &        isucceed(ipart),iphase(ipart),ipart
+
          IF ((hnew.LE.0. .OR. omegai.LE.tiny .OR. 
      &        iteration.EQ.maxitsnr .OR. nneighi.LE.0) 
      &        .AND. isucceed(ipart).NE.-1) THEN
@@ -747,6 +751,7 @@ c
      &           .OR. ABS((hnew-hi)/hi_oldi).LT.1.0E-6
      &           .AND. ABS((hnew-hi)/hi).LT.htol
      &           ) THEN
+
             imaxit = MAX(imaxit, iteration)
             inumit = inumit + iteration
             IF (isucceed(ipart).EQ.-1) THEN
@@ -1780,7 +1785,6 @@ ccC$OMP END PARALLEL DO
          WRITE(iprint,*) 'WARNING: used bisection on ',nbisection,
      &       ' particles'
       ENDIF
-
 c
 c--Possible to create a point mass
 c
@@ -1990,6 +1994,7 @@ c      IF (itime.EQ.000)
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 c      CALL quit
 #endif
+c           print *,'FM: Exited densityiterate'
 
       RETURN
       END
@@ -2058,7 +2063,6 @@ c
          hi41 = hi21*hi21
 
          IF (numneighi.GT.0) THEN
-
             DO k = 1, numneighi
                j = neighlist(k)
 
@@ -2140,9 +2144,7 @@ c
 c--On sinks and gas but without gravity from gas on sinks
 c
 	 ELSEIF (iptintree.EQ.1) THEN
-            nlst = 1
-            next1(nlst) = ipart
-            CALL gforspt(nlst,next1,npart,ntot,xyzmh,dvxyzu)
+            CALL gforspt(ipart,npart,ntot,xyzmh,dvxyzu)
          ENDIF
       ENDIF
 c

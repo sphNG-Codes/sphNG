@@ -47,6 +47,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/xforce'      
+      INCLUDE 'COMMONS/perform'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -684,6 +685,8 @@ c     must be used to index *ANY* value from an array which is written
 c     to the outside.  This requires modification to almost every output
 c     line in the code.  Done 21 Nov 2000.
 c
+      IF (itiming) CALL getused(tsort1)
+
       xminimum = 1.0E+30
       xmaximum = -1.0E+30
       DO i = 1, npart
@@ -804,6 +807,12 @@ c
       DO i = 1, nptmass
          listpm(i) = isort(listpm(i))
       END DO
+
+      IF (itiming) THEN
+         CALL getused(tsort2)
+         tsort = tsort + (tsort2 - tsort1)
+         tsortmtree = 0.
+      ENDIF
 c
 c--Zero torques
 c

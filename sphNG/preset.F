@@ -49,7 +49,6 @@ c************************************************************
       INCLUDE 'COMMONS/rbnd' ! for periodic_no_ghosts
 
       CHARACTER*7 where
-      CHARACTER*25 ptfile, accfile, killfile, reassfile
 
       DATA where/'preset'/
 
@@ -84,12 +83,20 @@ c
          WRITE (accfile,99991) namerun
 99991    FORMAT ('A', A20)
 #ifdef MPI
-         CALL appendiproc(21,ptfile,iproc)
-         CALL appendiproc(21,accfile,iproc)
+c         CALL appendiproc(21,ptfile,iproc)
+c         CALL appendiproc(21,accfile,iproc)
 #endif
          IF (nptmass.NE.0 .OR. iptmass.NE.0) THEN
-            OPEN (iptprint, FILE=ptfile,STATUS='unknown',
-     &           FORM='unformatted')
+#ifdef MPI
+            print *,iproc,': Preset ',ptfile
+            IF (iproc.EQ.0) THEN
+#endif
+               OPEN (iptprint, FILE=ptfile,STATUS='unknown',
+     &              FORM='unformatted')
+               CLOSE (iptprint)
+#ifdef MPI
+            ENDIF
+#endif
             OPEN (iaccpr,FILE=accfile,STATUS='unknown',
      &           FORM='unformatted')
          ENDIF
@@ -101,8 +108,8 @@ c
          WRITE (reassfile,99993) namerun
 99993    FORMAT ('R', A20)
 #ifdef MPI
-         CALL appendiproc(21,killfile,iproc)
-         CALL appendiproc(21,reassfile,iproc)
+c         CALL appendiproc(21,killfile,iproc)
+c         CALL appendiproc(21,reassfile,iproc)
 #endif
          IF (ibound.EQ.8 .OR. ibound/10.EQ.9 .OR. ibound.EQ.100) THEN
             OPEN (ikillpr, FILE=killfile, STATUS='unknown',

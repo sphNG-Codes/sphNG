@@ -1,1 +1,4 @@
-      COMMON /binfile/ iaccpr, ikillpr, ireasspr, inotify
+      COMMON /binfile/ iaccpr, ikillpr, ireasspr, inotify,
+     &	     accfile, killfile, reassfile
+
+      CHARACTER*25 accfile, killfile, reassfile

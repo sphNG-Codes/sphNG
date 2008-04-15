@@ -29,11 +29,6 @@ c************************************************************
       DATA where/'eospg'/
 
       gama1 = gamma - 1.
-
-      IF (vxyzu(4,ipart).LE.0) THEN
-         WRITE (*,*) 'ERROR - vxyzu(4,ipart).LE.0 ',vxyzu(4,ipart)
-         CALL quit
-      ENDIF
 c
 c--Variable is internal energy
 c
@@ -146,6 +141,11 @@ c
          WRITE (iprint,99500) encal
 99500    FORMAT ('encal = ',A1)
          CALL error(where,1)
+      ENDIF
+
+      IF (vxyzu(4,ipart).LE.0) THEN
+         WRITE (*,*) 'ERROR - vxyzu(4,ipart).LE.0 ',vxyzu(4,ipart)
+         CALL quit
       ENDIF
 
       RETURN

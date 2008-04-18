@@ -285,7 +285,7 @@ TOBJRT = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o)
 TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o)
 TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o)
 TOBJGRADHRKRT = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o)
-TOBJTORUS = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCTORUS:.f=.o)
+TOBJTORUS = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCTORUS:.f=.o)
 
 OBJECTS = $(TOBJECTS:.F=.o) 
 OBJLF = $(TOBJLF:.F=.o) 
@@ -370,7 +370,7 @@ sph_tree_RT: $(OBJRT)
 
 sphtorus: $(OBJTORUS)
 	@echo ""
-	@echo "This is the TORUS code (Leapfrog by default)"
+	@echo "This is the TORUS code (Runge Kutta by default)"
 	@echo ""
 	$(FC) $(FFLAGS) -o $@ $(OBJTORUS) -L${TORUS_LIB}
 

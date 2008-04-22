@@ -542,7 +542,7 @@ c
 c--Determine whether or not there is a sink particle between i and j
 c
 c--No artificial viscosity, resistivity, pressure, or MHD between particles 
-c     across a point mass
+c     across a point mass or planet core
 c
             inosink = .TRUE.
             DO ii = 1, nptmasstot
@@ -559,6 +559,15 @@ c
                ENDIF
             END DO
  65         CONTINUE
+            IF (iexf.EQ.7) THEN
+               xii = 1.
+               yii = 0.
+               zii = 0.
+               vpos = (xii-xi)*(xii-xyzmh(1,j)) +
+     &              (yii-yi)*(yii-xyzmh(2,j)) +
+     &              (zii-zi)*(zii-xyzmh(3,j))
+               IF (vpos.LT.0.0) inosink = .FALSE.
+            ENDIF
 c
 c--Using hi
 c

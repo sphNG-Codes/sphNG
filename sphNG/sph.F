@@ -420,6 +420,7 @@ c************************************************************
       INCLUDE 'COMMONS/infor'
       INCLUDE 'COMMONS/actio'
       INCLUDE 'COMMONS/debug'
+      INCLUDE 'COMMONS/savernd'
       INCLUDE 'COMMONS/rbnd'
 
 #ifdef _OPENMP
@@ -530,6 +531,13 @@ c--Initialise starting date and time
 c  (some versions of the zz file require this)
 c
       CALL getdat(iday, imon, iyear)
+c
+c--Initialise random number generator arrays
+c
+      iyr = 0
+      DO i = 1, NTAB
+         iv(i) = 0
+      END DO
 c
 c--Execute main option
 c

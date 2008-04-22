@@ -33,7 +33,6 @@ c************************************************************
       INCLUDE 'COMMONS/cgas'
 c      INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/cylinder'
-      
 c
 c--Needed for MPI code
 c
@@ -160,18 +159,35 @@ c
 c--Radius of earth is 8.2e-6 in 5.2au code units
 c--Radius of 30 M_e solid core would be 2.5e-5 in 5.2 au code units
 c
-         rplanet = 2.5E-05
-         rplanet = 1.0E-03
-         d2 = (xi*xi + yi*yi + zi*zi + (rplanet)**2)
+c         rplanet = 2.5E-05
+c         rplanet = 1.0E-03
+c         d2 = (xi*xi + yi*yi + zi*zi + (rplanet)**2)
+c         d = SQRT(d2)
+
+         d2 = (xi*xi + yi*yi + zi*zi + tiny)
          d = SQRT(d2)
+         rp = d - (rplanet*pradfac)
+
          runix = xi/d
          runiy = yi/d
          runiz = zi/d
+c
+c--Forces relating to planet's surface
+c
+         IF (d.LE.(2.*rplanet*pradfac)) THEN
+            fsurface = (((2.*rplanet*pradfac)-d)/
+     &           (rplanet*pradfac))**4
+         ELSE
+            fsurface = 0.0
+         ENDIF
 
-         fx = fx - planetmass*runix/d2
-         fy = fy - planetmass*runiy/d2
-         fz = fz - planetmass*runiz/d2
+         ftotal = planetmass/d2*(1.0 - fsurface)
+
+         fx = fx - ftotal*runix
+         fy = fy - ftotal*runiy
+         fz = fz - ftotal*runiz
          poten(ipart) = poten(ipart) - planetmass/d
+
       ELSEIF (iexf.EQ.8) THEN
          xi = xyzmh(1,ipart)
          yi = xyzmh(2,ipart)

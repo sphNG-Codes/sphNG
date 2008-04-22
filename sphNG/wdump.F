@@ -54,6 +54,8 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/presb'
       INCLUDE 'COMMONS/xforce'
+      INCLUDE 'COMMONS/rbnd'
+      INCLUDE 'COMMONS/savernd'
       INCLUDE 'COMMONS/eosq'
       INCLUDE 'COMMONS/f2'
       INCLUDE 'COMMONS/h2'
@@ -181,24 +183,31 @@ c      IF (iproc.EQ.0) THEN
 c#endif
 c
 c--Default int
-      number = 7
+      number = 10 + NTAB
       WRITE (idisk1, ERR=100) number
       WRITE (idisk1, ERR=100) nparttot,n1tot,n2tot,nreassigntot,
-     &     naccretetot,nkilltot,nblocks
-c--int*1, int*2, int*4, int*8
+     &     naccretetot,nkilltot,nblocks,iyr,idum,
+     &     nlistinactive,(iv(i),i=1,NTAB)
+
+c--int*1, int*2, int*4
       number = 0
-      DO i = 1, 4
+      DO i = 1, 3
          WRITE (idisk1, ERR=100) number
       END DO
+c--int*8
+      number = 1
+      WRITE (idisk1, ERR=100) number
+
+      WRITE (idisk1, ERR=100) iuniquemax
 c--Default real
-      number = 20
+      number = 21
       WRITE (idisk1, ERR=100) number
 
       WRITE (idisk1, ERR=100) gt, dtmax, gamma, rhozero, RK2,
      &     escaptot, tkintot, tgravtot, ttermtot, 
      &     anglostxtot, anglostytot, anglostztot,
      &     specangtot, ptmassintot, tmagtot, Bextx, Bexty, Bextz,
-     &     hzero,uzero_n2
+     &     hzero, uzero_n2, hmass
 c--real*4
       number = 0
       WRITE (idisk1, ERR=100) number
@@ -242,7 +251,7 @@ c
 c--Array length 1 header
 c
       number8 = nprint
-      nums(1) = 1
+      nums(1) = 2
       nums(2) = 1
       nums(3) = 0
       nums(4) = 0
@@ -326,6 +335,8 @@ c--Array length 1 arrays
 c      
 c--Default int
       WRITE (idisk1, ERR=100) (isteps(isort(i)), i=1, nprint)
+      WRITE (idisk1, ERR=100) (iorig(listinactive(i)),  
+     &     i=1, nprint)
 c--int*1
       WRITE (idisk1, ERR=100) (iphase(isort(i)), i=1, nprint)
 c--int*2

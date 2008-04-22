@@ -724,7 +724,7 @@ c
 c            WRITE(*,*) 'WARNING: switching to bisection on'//
 c     &           ' particle ',iorig(ipart),'(',ipart,') hi = ',hi,
 c     &           ' hnew = ',hnew,nneighi,gradhi,rhoi,rhohi,dhdrhoi,
-c     &           omegai
+c     &           omegai,iteration
             IF (nneighi.LE.0) THEN
                WRITE(iprint,*) '(particle has no neighbours) ',nneighi
             ENDIF
@@ -781,6 +781,8 @@ c
                      ekcle(3,ipart) = getcv(rho(ipart),vxyzu(4,ipart))
                      ekcle(1,ipart) = uradconst*(vxyzu(4,ipart)/
      &                    ekcle(3,ipart))**4/rho(ipart)
+                     ekcle(2,ipart) = getkappa(vxyzu(4,ipart),
+     &                    ekcle(3,ipart),rho(ipart))
                   ENDIF
                ENDIF
 c
@@ -1678,7 +1680,7 @@ c               print*,ipart,'vsmooth = ',vsmooth(:,ipart)
 C$OMP PARALLEL default(none)
 C$OMP& shared(npart,ntot,ireal,rho,dumrho,xyzmh,pr,vsound,divv,curlv)
 C$OMP& shared(vxyzu,gradhs,Bxyz,encal,ibound,ekcle,varmhd,listp,Bevol)
-C$OMP& shared(nlst_in,nlst_end,listparents,nlistupdated,iupdated)
+C$OMP& shared(nlst_in,nlst_end,listparents,nlistupdated,iupdated,icall)
 C$OMP& shared(dt,itime)
 C$OMP& private(i,j,ipart)
 c
@@ -1716,8 +1718,15 @@ C$OMP DO SCHEDULE (runtime)
                Bxyz(3,i) = Bxyz(3,j)            
             ENDIF
          ENDIF
-         IF (encal.EQ.'r' .AND. ibound.EQ.100) 
-     &        ekcle(1,i) = ekcle(1,j)
+         IF (encal.EQ.'r' .AND. ibound.EQ.100) THEN
+            IF(icall.EQ.1) THEN
+               DO k=1,5
+                  ekcle(k,i) = ekcle(k,j)
+               END DO
+            ELSE
+               ekcle(1,i) = ekcle(1,j)
+            ENDIF
+         ENDIF
       END DO
 C$OMP END DO
 c

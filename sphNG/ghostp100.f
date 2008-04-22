@@ -153,7 +153,7 @@ c
             rho(nptot) = rhoi
             iphase(nptot) = 0
          ENDIF
-         IF (ang1.GT.phimin) THEN
+         IF (ang1.LT.phimin) THEN
             hasghost(i) = .TRUE.
             nghost = nghost + 1
             iinner = iinner + 1

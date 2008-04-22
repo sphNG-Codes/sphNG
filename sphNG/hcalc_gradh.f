@@ -100,7 +100,7 @@ c      neimax = 120
          ENDIF
       END DO    
       itime = 0
-      dt = 0.
+      dt = 0.001
       nlst_in = 1
       nlst_end = nlst
       nlst0 = nlst
@@ -122,7 +122,11 @@ c
 c
 c--Call derivi to get div B, curl B etc initially
 c
-      CALL derivi(dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,ntot,
+      DO i = 1, npart
+         ekcle(3,i) = 1.0
+      END DO
+
+      CALL derivi(dt,itime,dumxyzmh,vxyzu,f1vxyzu,f1ha,npart,ntot,
      &            ireal,alphaMM,ekcle,Bevolxyz,f1Bxyz)
 c
 c--Now set B/rho from B (ie. now that we know rho)

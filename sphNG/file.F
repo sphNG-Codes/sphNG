@@ -40,7 +40,25 @@ c
 c--If not create new file and close old
 c
 c      CLOSE (idisk1)
-      IF ((file1(5:5).GE.'0') .AND. (file1(5:5).LE.'9')) THEN
+      IF ((file1(4:4).GE.'0') .AND. (file1(4:4).LE.'9') .AND. 
+     &     (file1(5:5).GE.'0') .AND. (file1(5:5).LE.'9')) THEN
+         READ (file1, 99303) name, inum
+99303    FORMAT (A3, I4)
+         inum = inum + 1
+         iadd = 0
+         IF (inum.LE.9) THEN
+            WRITE (file1, 99311) name, iadd, iadd, iadd, inum
+99311       FORMAT (A3, I1, I1, I1, I1)
+         ELSEIF (inum.LE.99) THEN
+            WRITE (file1, 99312) name, iadd, iadd, inum
+99312       FORMAT (A3, I1, I1, I2)
+         ELSEIF (inum.LE.999) THEN
+            WRITE (file1, 99313) name, iadd, inum
+99313       FORMAT (A3, I1, I3)
+         ELSE
+            WRITE (file1, 99303) name, inum
+         ENDIF
+      ELSEIF ((file1(5:5).GE.'0') .AND. (file1(5:5).LE.'9')) THEN
          READ (file1, 99403) name, inum
 99403    FORMAT (A4, I3)
          inum = inum + 1

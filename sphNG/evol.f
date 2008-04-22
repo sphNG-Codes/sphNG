@@ -30,6 +30,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/sync'
       INCLUDE 'COMMONS/densi'
       INCLUDE 'COMMONS/typef'
+      INCLUDE 'COMMONS/gtime'
 
       CHARACTER*7 where
 
@@ -48,9 +49,11 @@ c
 c
 c--Initialise random number generator
 c
-      iseed = -4357
-      rnd = ran1(iseed)
-      WRITE(iprint,*)'Random seed: ',iseed
+      IF (gt.EQ.0.0) THEN
+         iseed = -4357
+         rnd = ran1(iseed)
+         WRITE(iprint,*)'Random seed: ',iseed
+      ENDIF
 c
 c--Set number of active particles
 c

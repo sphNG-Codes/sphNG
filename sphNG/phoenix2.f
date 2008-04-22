@@ -42,7 +42,6 @@ c
 c--Pick r and z from random standard accretion disc
 c     iflag = 0
 c--Pick from ZEUS
-c     iflag = 1
 c
       iflag = 1
 
@@ -99,14 +98,25 @@ c     &        xinjecttable(1,ipos)
      &           ABS(xinjecttable(2,iposother)))
          ENDIF
 
-         radinject = (ABS(xinjecttable(2,ipos))+
-     &      ABS(xinjecttable(2,iposother)))/2.0 + (ran1(1)-0.5)*dradius
+         radinject = ABS(xinjecttable(2,ipos)) +
+     &        (0.5*dradius) + (ran1(1)-0.5)*dradius
+
+         IF (radinject.GT.(1.0+variation).OR.radinject.LT.
+     &        (1.0-variation)) GOTO 77
+
+c         radinject = MIN(ABS(xinjecttable(2,ipos)) +
+c     &        (0.5*dradius) + (ran1(1)-0.5)*dradius,
+c     &        1.0+variation)
+
+c         radinject = MAX(ABS(xinjecttable(2,ipos)) +
+c     &        (0.5*dradius) + (ran1(1)-0.5)*dradius,
+c     &        1.0-variation)
+
          zinject = xinjecttable(3,ipos)+(ran1(1)-0.5)*radinject*dtheta
 
+         IF (radinject**2+zinject**2.LT.(1.0-variation)**2.OR.
+     &        radinject**2+zinject**2.GT.(1.0+variation)**2) GOTO 77
 
-         if(radinject**2+zinject**2.lt.(1.0-variation)**2) THEN
-            GOTO 77
-         endif
 c     
 c--Tables only occupy half of disc - need to populate above and below midplane
 c
@@ -119,15 +129,15 @@ c--Set Cartesian coordinates
 c
       IF (iflag.EQ.0) THEN
          IF (radinject.LT.1.0) THEN
-            phiinject = -0.98*phibound
+            phiinject = -0.999*phibound
          ELSE
-            phiinject = 0.98*phibound
+            phiinject = 0.999*phibound
          ENDIF
       ELSE
          IF (xinjecttable(2,ipos).LT.0.0) THEN
-            phiinject = -0.98*phibound
+            phiinject = -0.999*phibound
          ELSE
-            phiinject = 0.98*phibound
+            phiinject = 0.999*phibound
          ENDIF
       ENDIF
       cosangle = COS(phiinject)
@@ -147,9 +157,20 @@ c
 c
 c--Or velocity set from ZEUS tables of r and theta
 c
-         vxyzu(1,i) = xinjecttable(4,ipos)
-         vxyzu(2,i) = xinjecttable(5,ipos)
-         vxyzu(3,i) = xinjecttable(6,ipos)
+         lastbin = 1
+         if(iposother.LT.ipos) lastbin = -1
+
+         rtop = abs(abs(radinject) - abs(xinjecttable(2,ipos)))
+         rbot = abs(xinjecttable(2,iposother) - xinjecttable(2,ipos))
+
+         dvelx = xinjecttable(4,iposother) - xinjecttable(4,ipos)
+         vxyzu(1,i) = xinjecttable(4,ipos) + (rtop/rbot)*dvelx*lastbin
+
+         dvely = xinjecttable(5,iposother) - xinjecttable(5,ipos)
+         vxyzu(2,i) = xinjecttable(5,ipos) + (rtop/rbot)*dvely*lastbin
+
+         dvelz = xinjecttable(6,iposother) - xinjecttable(6,ipos)
+         vxyzu(3,i) = xinjecttable(6,ipos) + (rtop/rbot)*dvelz*lastbin
       ENDIF
 c
 c--Other quantities
@@ -327,51 +348,37 @@ c
       COMMON /zeustab/ xinjecttable(6,numinjectmax),dtheta,numinject
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/zeus'
 
-      PARAMETER (nradiusmax=125)
-      PARAMETER (nthetamax=36)
-      DIMENSION radii(nradiusmax),thetas(nthetamax),drad(nradiusmax)
-      DIMENSION density(nradiusmax,nthetamax,2),vr(nradiusmax,
-     &     nthetamax,2),vt(nradiusmax,nthetamax,2),
-     &     vp(nradiusmax,nthetamax,2)
+      REAL muint,interp
 c
-c--Read in from ZEUS/IDL file
+c--Find which zeus dump applies to planet's Hill mass
 c
-      OPEN (44,FILE='outputgrid.dat')
-      READ (44,*) nradius, ntheta
-      IF (nradius.GT.nradiusmax .OR. ntheta.GT.nthetamax) THEN
-         WRITE (*,*) 'Grid too big in outputgrid.dat'
-         STOP
-      ENDIF
-      READ (44,*) (radii(i), i=1, nradius)
-      READ (44,*) (thetas(i), i=1, ntheta)
-      READ (44,*) ((density(i,j,1), j=1, ntheta), i=1, nradius)
-      READ (44,*) ((vr(i,j,1), j=1, ntheta), i=1, nradius)
-      READ (44,*) ((vt(i,j,1), j=1, ntheta), i=1, nradius)
-      READ (44,*) ((vp(i,j,1), j=1, ntheta), i=1, nradius)
-      READ (44,*) ((density(i,j,2), j=1, ntheta), i=1, nradius)
-      READ (44,*) ((vr(i,j,2), j=1, ntheta), i=1, nradius)
-      READ (44,*) ((vt(i,j,2), j=1, ntheta), i=1, nradius)
-      READ (44,*) ((vp(i,j,2), j=1, ntheta), i=1, nradius)
-      CLOSE (44)
+      izeus = 1
+      DO i = 6, 1,-1
+         IF (hmass.GE.zmasses(i)) THEN
+            izeus = i
+            GOTO 200
+         ENDIF
+      END DO
+ 200  CONTINUE
 
+      muint = (hmass - zmasses(izeus))/
+     &     (zmasses(izeus+1) - zmasses(izeus))
 c
 c--Modify so that radii and thetas are zone-centred
 c
       DO i=1,nradius-1
          drad(i) = radii(i+1)-radii(i)
-         radii(i) = (radii(i+1)+radii(i))/2.0
-c         write (44,*) radii(i),vp(i,36,1),vp(i,36,2)
+         radiic(i) = (radii(i+1)+radii(i))/2.0
       END DO
-c      call flush(44)
 
-      nradius = nradius - 1 
       dtheta = thetas(2)-thetas(1)
       DO j=1,ntheta
          IF (j.EQ.ntheta) THEN
-            thetas(j) = (pi/2.0+thetas(j))/2.0
+            thetasc(j) = (pi/2.0+thetas(j))/2.0
          ELSE
-            thetas(j) = (thetas(j+1)+thetas(j))/2.0
+            thetasc(j) = (thetas(j+1)+thetas(j))/2.0
          ENDIF
       END DO
 c
@@ -381,25 +388,71 @@ c
       numinject = 0
       DO k=1,2 
          DO j=1,ntheta
-            DO i=1,nradius
-               IF (vp(i,j,k)*(k-1.5).LT.0.0) THEN
+            DO i=1,nradius-1
+c
+c--Interpolate to find values for planet's current Hill mass
+c
+               IF (izeus.GE.5) THEN
+                  densityint = extrap(0.0003,0.001,density(5,i,j,k),
+     &                 density(6,i,j,k),(hmass-0.0003))
+                  vrint = extrap(0.0003,0.001,vr(5,i,j,k),
+     &                 vr(6,i,j,k),(hmass-0.0003))
+                  vtint = extrap(0.0003,0.001,vt(5,i,j,k),
+     &                 vt(6,i,j,k),(hmass-0.0003))
+                  vpint = extrap(0.0003,0.001,vp(5,i,j,k),
+     &                 vp(6,i,j,k),(hmass-0.0003))
+               ELSEIF(izeus.LE.1) THEN
+                  densityint = extrap(0.000003,0.00001,density(1,i,j,k),
+     &                 density(2,i,j,k),(hmass-0.000003))
+                  vrint = extrap(0.000003,0.00001,vr(1,i,j,k),
+     &                 vr(2,i,j,k),(hmass-0.000003))
+                  vtint = extrap(0.000003,0.00001,vt(1,i,j,k),
+     &                 vt(2,i,j,k),(hmass-0.000003))
+                  vpint = extrap(0.000003,0.00001,vp(1,i,j,k),
+     &                 vp(2,i,j,k),(hmass-0.000003))
+
+               ELSE
+                  densityint = interp(log(density(izeus-1,i,j,k)),
+     &                 log(density(izeus,i,j,k)),
+     &                 log(density(izeus+1,i,j,k)),
+     &                 log(density(izeus+2,i,j,k)),muint)
+
+                  densityint = exp(densityint)
+
+                  vrint = interp(vr(izeus-1,i,j,k),
+     &                 vr(izeus,i,j,k),vr(izeus+1,i,j,k),
+     &                 vr(izeus+2,i,j,k),muint)
+
+                  vtint = interp(vt(izeus-1,i,j,k),
+     &                 vt(izeus,i,j,k),vt(izeus+1,i,j,k),
+     &                 vt(izeus+2,i,j,k),muint)
+
+                  vpint = interp(vp(izeus-1,i,j,k),
+     &                 vp(izeus,i,j,k),vp(izeus+1,i,j,k),
+     &                 vp(izeus+2,i,j,k),muint)
+               ENDIF
+
+               IF (vpint*(k-1.5).LT.0.0) THEN
                   numinject = numinject + 1
                   IF (numinject.GT.numinjectmax) THEN
                      WRITE (*,*) 'numinjectmax too small'
                      STOP
                   ENDIF
 
-                  cum = cum + density(i,j,k)*radii(i)*drad(i)*
-     &                 ABS(radii(i)*vp(i,j,k))
-                  sintheta = sin(thetas(j))
-                  costheta = cos(thetas(j))
+                  cum = cum + densityint*radiic(i)*drad(i)*
+     &                 ABS(vpint)
+                  IF(densityint.LT.0.0) print *, 'dens',densityint
+                  IF(radiic(i).LT.0.0) print *, 'rad', radiic(i)
+                  IF(drad(i).LT.0.0) print *, 'dr',drad(i),i
+                  sintheta = sin(thetasc(j))
+                  costheta = cos(thetasc(j))
                   xinjecttable(1,numinject) = cum
 c
 c--xinjecttable(2,*) is negative for k=1 (inner radius)
 c
-               xinjecttable(2,numinject)=2.0*(k-1.5)*radii(i)*sintheta
+              xinjecttable(2,numinject)=2.0*(k-1.5)*radiic(i)*sintheta
 
-                  xinjecttable(3,numinject) = radii(i)*costheta
+                  xinjecttable(3,numinject) = radiic(i)*costheta
                   IF (k-1.5 .LT. 0.0) THEN
                      phi = -phibound
                   ELSE
@@ -407,14 +460,14 @@ c
                   ENDIF
                   sinphi = sin(phi)
                   cosphi = cos(phi)
-                  xinjecttable(4,numinject) = vr(i,j,k)*cosphi*sintheta
-     &         - vp(i,j,k)*sinphi*sintheta + vt(i,j,k)*costheta*cosphi
-                  xinjecttable(5,numinject) = vr(i,j,k)*sinphi*sintheta
-     &         + vp(i,j,k)*cosphi*sintheta + vt(i,j,k)*costheta*sinphi
-                  xinjecttable(6,numinject) = vr(i,j,k)*costheta - 
-     &                 vt(i,j,k)*sintheta
-c                  write (*,*) xinjecttable(6,numinject),costheta,
-c     &                 radii(i),thetas(j),vr(i,j,k),vt(i,j,k)
+
+                  xinjecttable(4,numinject) = vrint*cosphi*sintheta
+     &         - vpint*sinphi*sintheta + vtint*costheta*cosphi
+                  xinjecttable(5,numinject) = vrint*sinphi*sintheta
+     &         + vpint*cosphi*sintheta + vtint*costheta*sinphi
+                  xinjecttable(6,numinject) = vrint*costheta - 
+     &                 vtint*sintheta
+
                ENDIF
             END DO
          END DO
@@ -431,3 +484,33 @@ c
 
       RETURN
       END
+c
+c--Interpolation function
+c
+      FUNCTION interp(y0,y1,y2,y3,mu)
+
+      REAL y0,y1,y2,y3,mu,a0,a1,a2,a3,interp,mu2
+
+      interp = 0.0
+
+      a0 = y3 - y2 - y0 + y1
+      a1 = y0 - y1 - a0
+      a2 = y2 - y0
+      a3 = y1
+
+      mu2 = mu*mu
+
+      interp = a0*mu*mu2+a1*mu2+a2*mu+a3
+
+      END FUNCTION interp
+c
+c--Extrapolation function
+c
+      FUNCTION extrap(x0,x1,y0,y1,mu)
+
+      REAL x0,x1,y0,y1,mu
+
+      extrap = 0.0
+      extrap = ((y1-y0)/(x1-x0))*mu + y0
+
+      END FUNCTION extrap

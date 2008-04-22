@@ -39,6 +39,9 @@ c************************************************************
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/updated'
+      INCLUDE 'COMMONS/rbnd'
+      INCLUDE 'COMMONS/xforce'
+      INCLUDE 'COMMONS/physcon'
 
       DIMENSION nsteplist(30),nsteplisttot(30)
 
@@ -91,6 +94,19 @@ c
 
       gtdouble = gtdouble + DBLE(dtmax)
       gt = REAL(gtdouble)
+
+c
+c--If modelling a planet in disk, rebuild ZEUS table 
+c     for planet including gas mass
+c
+      IF (iexf.EQ.7) THEN
+         rhillmasstemp = hillmass(planetmass)
+
+         IF(gt.GT.(2.*pi).AND.rhillmasstemp.GT.(1.1*hmass)) THEN
+            hmass = rhillmasstemp !Store new Hillmass
+            CALL zeustable
+         ENDIF
+      ENDIF
 
 #ifdef MPI
 c

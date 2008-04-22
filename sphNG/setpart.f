@@ -474,7 +474,12 @@ c
 
          hzero = rplanet/5.
          nlistinactive = 0
+         IF (rplanet.NE.0.0) THEN
          pradfac = (rplanet + (0.01*exp(-4.*gt/pi)))/rplanet
+c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
+         ELSE
+            pradfac = 0.0
+         ENDIF
          print *, 'RPLANET = ', rplanet*pradfac
          iexf = 7
       ENDIF
@@ -1350,6 +1355,7 @@ c
 55533              FORMAT (' Enter planet mass for external forces')
             READ (*,*) planetmass
             hmass = planetmass
+c            hmass = 0.0001
          ELSE
             irotref = 'n'
             planetmass = 0.
@@ -1394,7 +1400,6 @@ c Set velocity dispersion parameter
             ENDIF
             alpha = SQRT(gg2 * xmass/radius)
             vxyzu(1,i) = -alpha * ytild + xyzmh(2,i)*velsub
-c            print *, xyzmh(1,i),xyzmh(2,i),vxyzu(1,i)
             vxyzu(2,i) =  alpha * xtild - xyzmh(1,i)*velsub
             vxyzu(3,i) = 0.
          ELSEIF (iok.EQ.'s') THEN
@@ -1784,7 +1789,7 @@ c--Write options
 c
       CALL wrinsph
 
-      iuniquenext = npart
+      iuniquemax = npart
 
       IF (idebug.EQ.'setpart') THEN
          WRITE (iprint, 99058) (xyzmh(1,i), i=1, npart)

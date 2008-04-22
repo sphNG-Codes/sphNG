@@ -120,7 +120,7 @@ c
             WRITE (iprint,*) 'ERROR - iradtrans.NE.idim'
             CALL quit
          ENDIF
-         READ (iterm, *) tolerance, boundtemp, bounddens
+         READ (iterm, *) tolerance, boundtemp, bounddens, opdenom
       ENDIF
 
 #ifdef MPI
@@ -211,6 +211,7 @@ c      ENDIF
       ENDIF
       IF (iexf.EQ.7) THEN
          READ (iterm, *) planetmass
+         READ (iterm, *) rplanet
       ENDIF
 
       IF (iptmass.NE.0 .OR. initialptm.NE.0) THEN

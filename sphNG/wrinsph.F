@@ -83,10 +83,10 @@ c
       WRITE (iterm, 99006) encal
 99006 FORMAT (A1)
       IF (encal.EQ.'r') THEN
-         WRITE (iterm, 99008) tolerance, boundtemp, bounddens
-99008    FORMAT(2X,3(1PE12.5, 1X),
+         WRITE (iterm, 99008) tolerance, boundtemp, bounddens, opdenom
+99008    FORMAT(2X,4(1PE12.5, 1X),
      &    ' Implicit radiative transfer',
-     &    ' tolerance boundtemp')
+     &    ' tolerance, boundtemp, bounddens, opacity divisor')
       ENDIF
 
 #ifdef MPI
@@ -193,7 +193,7 @@ c
       IF (ibound.EQ.100) THEN
          WRITE (iterm, 88039) variation,phibound,flowrate,signorm,
      &        hoverr,partm
-88039        FORMAT(2X,6(1PE12.5,1X),
+88039    FORMAT(2X,7(1PE12.5,1X),
      &        '  Rad variation, Phi, flowrate, sigma, HoverR, partmass')
       ENDIF
 
@@ -204,6 +204,8 @@ c
       IF (iexf.EQ.7) THEN
          WRITE (iterm, 88043) planetmass
 88043    FORMAT(2X,1PE12.5,'  Planet Mass')
+         WRITE (iterm, 88045) rplanet
+88045    FORMAT(2X,1PE12.5,'  Planet Radius')
       ENDIF
 
       IF (iptmass.NE.0 .OR. nptmass.NE.0) THEN

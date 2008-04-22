@@ -235,14 +235,15 @@ c
      &           '  frac. radial    : ',1PE12.4,/)
          ELSEIF (ibound.EQ.100) THEN 
             WRITE (iprint,99533) variation,phibound,flowrate,
-     &           signorm,hoverr,planetmass
+     &           signorm,hoverr,planetmass,rplanet
 99533       FORMAT (/,' Boundary type: planet/disc  ',/,
      &           '  radius variation: ',1PE12.4,/,
      &           '  phi boundary    : ',1PE12.4,/,
      &           '  flowrate        : ',1PE12.4,/,
      &           '  sigma normal.   : ',1PE12.4,/,
      &           '  disc H/R        : ',1PE12.4,/,
-     &           '  planet mass     : ',1PE12.4,/)
+     &           '  planet mass     : ',1PE12.4,/,
+     &           '  planet radius   : ',1PE12.4,/)
          ENDIF
 c
 c--Critical densities for variable gamma
@@ -287,6 +288,8 @@ c
          IF (encal.EQ.'r') THEN
             WRITE (iprint, 99113) tolerance
 99113       FORMAT (' Radiative transfer tolerance    : ',1PE12.3, //)
+            WRITE (iprint, 99613) opdenom
+99613       FORMAT (' Opacity Denominator             : ',1PE12.3, //)
          ELSEIF (encal.EQ.'c') THEN
             WRITE (iprint, 99313) coolingrate
 99313       FORMAT (' Cooling Rate                    : ',1PE12.3, //)

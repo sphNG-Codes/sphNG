@@ -32,5 +32,6 @@
       END DO
 
       hillmass = hillm
+c      hillmass = 0.0001
 
       END FUNCTION hillmass

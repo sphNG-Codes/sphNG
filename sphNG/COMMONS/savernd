@@ -1,2 +1,5 @@
-      INTEGER idum
-      COMMON /savernd/ idum
+      INTEGER NTAB
+      PARAMETER (NTAB=32)
+
+      INTEGER idum, iyr, iv
+      COMMON /savernd/ idum, iyr, iv(NTAB)

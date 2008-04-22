@@ -47,6 +47,8 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/xforce'      
+      INCLUDE 'COMMONS/rbnd'
+      INCLUDE 'COMMONS/savernd'
       INCLUDE 'COMMONS/perform'
 
       DIMENSION itempsort(idim)
@@ -58,7 +60,7 @@ c      INCLUDE 'COMMONS/torq'
       INTEGER*8 number8
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
       DIMENSION Bxyz(3,imhd)
-      PARAMETER (idimhead = 20)
+      PARAMETER (idimhead = 21)
       DIMENSION rheader(idimhead)
 
       DATA icall/2/
@@ -111,7 +113,10 @@ c--Default int
          WRITE (*,*) 'ERROR 4 in rdump: not enough default ints'
          CALL quit
       ENDIF
-      IF (number.EQ.7) THEN
+      IF (number.EQ.10+NTAB) THEN
+         READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
+     &        nblocks,iyr,idum,nlistinactive,(iv(i), i=1,NTAB)
+      ELSEIF (number.EQ.7) THEN
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks
       ELSE
@@ -123,9 +128,13 @@ c--Default int
          CALL quit
       ENDIF
 c--int*1, int*2, int*4, int*8
-      DO i = 1, 4
+      DO i = 1, 3
          READ (idisk1, END=100) number
       END DO
+      READ (idisk1, END=100) number
+      IF (number.EQ.1) THEN
+         READ (idisk1, END=100) iuniquemax
+      ENDIF
 c--Default real
       READ (idisk1, END=100) number
       IF (number.LT.14) THEN
@@ -180,6 +189,11 @@ c  D.Price 14.5.07
          WRITE(*,*) ' read u for surrounding medium = ',uzero_n2
       ELSE
          uzero_n2 = 0.
+      ENDIF
+      IF (number.GE.21) THEN
+         hmass = rheader(21)
+      ELSE
+         hmass = 0.
       ENDIF
 
 c--real*4
@@ -363,6 +377,10 @@ c--Default int
 #ifdef MPIDEBUG
          print *,iproc,': read isteps ',isteps(1)
 #endif
+         IF (nums1(1).GE.2) THEN
+            READ (idisk1, END=100) (listinactive(i), i=icount+1, 
+     &           icount+nhydro)
+         ENDIF
 c--int*1
          READ (idisk1, END=100) (iphase(i), i=icount+1, icount+nhydro)
 c--int*2
@@ -806,6 +824,12 @@ c
       END DO
       DO i = 1, nptmass
          listpm(i) = isort(listpm(i))
+      END DO
+      DO i = 1, nlistinactive
+         itempsort(i) = listinactive(i)
+      END DO
+      DO i = 1, nlistinactive
+         listinactive(i) = isort(itempsort(i))
       END DO
 
       IF (itiming) THEN

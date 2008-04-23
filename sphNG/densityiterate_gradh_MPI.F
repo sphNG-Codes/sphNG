@@ -1718,7 +1718,7 @@ C$OMP DO SCHEDULE (runtime)
                Bxyz(3,i) = Bxyz(3,j)            
             ENDIF
          ENDIF
-         IF (encal.EQ.'r' .AND. ibound.EQ.100) THEN
+         IF (encal.EQ.'r' .AND. ibound/10.EQ.10) THEN
             IF(icall.EQ.1) THEN
                DO k=1,5
                   ekcle(k,i) = ekcle(k,j)
@@ -2003,7 +2003,6 @@ c      IF (itime.EQ.000)
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 c      CALL quit
 #endif
-c           print *,'FM: Exited densityiterate'
 
       RETURN
       END

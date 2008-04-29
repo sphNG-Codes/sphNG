@@ -321,7 +321,7 @@ C$OMP& shared(iflagtree,ipar,numberstart,nroot,iprint)
 C$OMP& shared(numberparents,listparents,numnextlevel,list)
 C$OMP& shared(nlst,nptmass,itbinupdate,nlstacc)
 C$OMP& shared(levelnum,numparentslevel,nlevelupdate,numberend)
-C$OMP& private(new,l,ll,fl,fll,emred,difx,dify,difz,rr,iparent,i)
+C$OMP& private(new,l,ll,fl,fll,emred,difx,dify,difz,rr,iparent,i,j)
 C$OMP& private(pmassl,pmassll)
 C$OMP& private(qrad1old,xold,yold,zold)
 

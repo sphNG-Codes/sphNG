@@ -938,7 +938,7 @@ c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstdo,ldolist,rho,dumrho,divv,curlv,gradhs,nneigh)
 C$OMP& shared(dvxyzu,poten)
-C$OMP& private(n,ipart)
+C$OMP& private(n,ipart,k)
       DO n = 1, nlstdo
          ipart = ldolist(n)
 
@@ -1520,7 +1520,7 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_end,listp,iphase,rho,divv,curlv,gradhs,xyzmh,cnormk)
 C$OMP& shared(nptmass,iptmass,listpm,gradmhd,varmhd,Bxyz,rhomin)
 C$OMP& shared(Bextx,Bexty,Bextz,radcrit2)
-C$OMP& private(j,ipart,rhoi,dhdrhoi,iptcur)
+C$OMP& private(j,l,ipart,rhoi,dhdrhoi,iptcur)
 C$OMP& private(rxxi,rxyi,rxzi,ryyi,ryzi,rzzi)
 C$OMP& private(dalphaxi,dalphayi,dalphazi,dbetaxi,dbetayi,dbetazi)
 C$OMP& private(denom,ddenom,gradalphaxi,gradalphayi,gradalphazi)
@@ -1682,7 +1682,7 @@ C$OMP& shared(npart,ntot,ireal,rho,dumrho,xyzmh,pr,vsound,divv,curlv)
 C$OMP& shared(vxyzu,gradhs,Bxyz,encal,ibound,ekcle,varmhd,listp,Bevol)
 C$OMP& shared(nlst_in,nlst_end,listparents,nlistupdated,iupdated,icall)
 C$OMP& shared(dt,itime)
-C$OMP& private(i,j,ipart)
+C$OMP& private(i,j,k,ipart)
 c
 c--Update density and quantities depending on density for inactive particles
 c     that are neighbours of active particles

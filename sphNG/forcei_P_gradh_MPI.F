@@ -1522,8 +1522,8 @@ c
 c--Set flag for whether a particle has been updated or not back to false
 c
 C$OMP DO SCHEDULE(runtime)
-      DO i = 1, nlistupdated
-         iupdated(listparents(i)) = .FALSE.
+      DO ipart = 1, nlistupdated
+         iupdated(listparents(ipart)) = .FALSE.
       END DO
 C$OMP END DO 
 C$OMP END PARALLEL

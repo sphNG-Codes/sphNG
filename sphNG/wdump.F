@@ -334,6 +334,9 @@ c--Array length 1 arrays
 c      
 c--Default int
       WRITE (idisk1, ERR=100) (isteps(isort(i)), i=1, nprint)
+      DO i = nlistinactive + 1, nprint
+         listinactive(i) = 1
+      END DO
       WRITE (idisk1, ERR=100) (iorig(listinactive(i)),  
      &     i=1, nprint)
 c--int*1

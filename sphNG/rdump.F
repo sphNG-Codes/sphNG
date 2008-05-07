@@ -658,9 +658,10 @@ c      GOTO 10000
 c      IF (nblocks.NE.1) THEN
 c         IF (iproc.EQ.iblock-1) THEN
             IF (nblocks.EQ.1) THEN
-               CALL split(npart,n1,icount,nhydro,isteps,iphase,xyzmh,
-     &              vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,
-     &              iunique,ekcle)
+               CALL split(npart,n1,nptmass,icount,nhydro,isteps,iphase,
+     &              xyzmh,vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,
+     &              iunique,ekcle,listpm,spinx,spiny,spinz,angaddx,
+     &              angaddy,angaddz,spinadx,spinady,spinadz)
             ELSE
                print *,iproc,': MAINTAIN PARTICLE SPLIT ',npart,nhydro
                npart = nhydro
@@ -671,7 +672,7 @@ c      ENDIF
 
 10000 CONTINUE
 
-      IF (iblock.EQ.nblocks) print *,iproc,': KEEPING ',npart
+      IF (iblock.EQ.nblocks) print *,iproc,': KEEPING ',npart,nptmass
 c
 c--End if to allow skipping of blocks of file belonging to other processes
 c
@@ -939,7 +940,9 @@ c============================================================
 
 #ifdef MPI
       SUBROUTINE split(npart,n1,icount,nhydro,isteps,iphase,xyzmh,
-     &     vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,iunique,ekcle)
+     &     vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,iunique,ekcle,
+     &     listpm,spinx,spiny,spinz,angaddx,angaddy,angaddz,
+     &     spinadx,spinady,spinadz)
 c************************************************************
 c                                                           *
 c--Splits based on spatial coordinates (x, y, z) for 2, 4   *
@@ -963,10 +966,20 @@ c************************************************************
      &     alphaMM(isizealphaMM,idim)
       DIMENSION isteps(idim), xyzmh(5,idim), vxyzu(4,idim), 
      &     Bevolxyz(3,imhd), Bxyz(3,imhd), ekcle(5,iradtrans)
+      DIMENSION listpm(iptdim),spinx(iptdim),spiny(iptdim),
+     &     spinz(iptdim),angaddx(iptdim),angaddy(iptdim),
+     &     angaddz(iptdim),spinadx(iptdim),spinady(iptdim),
+     &     spinadz(iptdim)
 
       INTEGER classify_disc,classify_sphere,classify_cartesian
 
       DIMENSION numdiv(10)
+
+      DIMENSION imap(idim)
+
+      DO i = 1, idim
+         imap(i) = 0
+      END DO
 
       icountnew = icount
 c
@@ -979,6 +992,7 @@ c
             ibelong = classify_disc(i,xyzmh)
             IF (iproc.EQ.ibelong) THEN
                icountnew = icountnew + 1
+               imap(i) = icountnew
                isteps(icountnew) = isteps(i)
                iphase(icountnew) = iphase(i)
                DO j = 1, 5
@@ -1022,6 +1036,7 @@ c
                IF (iproc.EQ.0 .AND. 
      &              xyzmh(1,i).GE.0.0) THEN
                   icountnew = icountnew + 1
+                  imap(i) = icountnew
                   isteps(icountnew) = isteps(i)
                   iphase(icountnew) = iphase(i)
                   DO j = 1, 5
@@ -1058,6 +1073,7 @@ c
                ELSEIF (iproc.EQ.1 .AND. 
      &                 xyzmh(1,i).LT.0.0) THEN
                   icountnew = icountnew + 1
+                  imap(i) = icountnew
                   isteps(icountnew) = isteps(i)
                   iphase(icountnew) = iphase(i)
                   DO j = 1, 5
@@ -1098,6 +1114,7 @@ c
                IF (iproc.EQ.0 .AND. xyzmh(3,i).GE.0.0 .AND.
      &              xyzmh(1,i).GE.0.0) THEN
                   icountnew = icountnew + 1
+                  imap(i) = icountnew
                   isteps(icountnew) = isteps(i)
                   iphase(icountnew) = iphase(i)
                   DO j = 1, 5
@@ -1134,6 +1151,7 @@ c
                ELSEIF (iproc.EQ.1 .AND. xyzmh(3,i).GE.0.0 .AND.
      &                 xyzmh(1,i).LT.0.0) THEN
                   icountnew = icountnew + 1
+                  imap(i) = icountnew
                   isteps(icountnew) = isteps(i)
                   iphase(icountnew) = iphase(i)
                   DO j = 1, 5
@@ -1170,6 +1188,7 @@ c
                ELSEIF (iproc.EQ.2 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).GE.0.0) THEN
                icountnew = icountnew + 1
+               imap(i) = icountnew
                isteps(icountnew) = isteps(i)
                iphase(icountnew) = iphase(i)
                DO j = 1, 5
@@ -1206,6 +1225,7 @@ c
             ELSEIF (iproc.EQ.3 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).LT.0.0) THEN
                icountnew = icountnew + 1
+               imap(i) = icountnew
                isteps(icountnew) = isteps(i)
                iphase(icountnew) = iphase(i)
                DO j = 1, 5
@@ -1246,6 +1266,7 @@ c
             IF (iproc.EQ.0 .AND. xyzmh(3,i).GE.0.0 .AND.
      &           xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
                icountnew = icountnew + 1
+               imap(i) = icountnew
                isteps(icountnew) = isteps(i)
                iphase(icountnew) = iphase(i)
                DO j = 1, 5
@@ -1282,6 +1303,7 @@ c
             ELSEIF (iproc.EQ.1 .AND. xyzmh(3,i).GE.0.0 .AND.
      &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
                icountnew = icountnew + 1
+               imap(i) = icountnew
                isteps(icountnew) = isteps(i)
                iphase(icountnew) = iphase(i)
                DO j = 1, 5
@@ -1318,6 +1340,7 @@ c
             ELSEIF (iproc.EQ.2 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
                icountnew = icountnew + 1
+               imap(i) = icountnew
                isteps(icountnew) = isteps(i)
                iphase(icountnew) = iphase(i)
                DO j = 1, 5
@@ -1354,6 +1377,7 @@ c
             ELSEIF (iproc.EQ.3 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).GE.0.0) THEN
                icountnew = icountnew + 1
+               imap(i) = icountnew
                isteps(icountnew) = isteps(i)
                iphase(icountnew) = iphase(i)
                DO j = 1, 5
@@ -1390,6 +1414,7 @@ c
             ELSEIF (iproc.EQ.4 .AND. xyzmh(3,i).GE.0.0 .AND.
      &           xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
                icountnew = icountnew + 1
+               imap(i) = icountnew
                isteps(icountnew) = isteps(i)
                iphase(icountnew) = iphase(i)
                DO j = 1, 5
@@ -1426,6 +1451,7 @@ c
             ELSEIF (iproc.EQ.5 .AND. xyzmh(3,i).GE.0.0 .AND.
      &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
                icountnew = icountnew + 1
+               imap(i) = icountnew
                isteps(icountnew) = isteps(i)
                iphase(icountnew) = iphase(i)
                DO j = 1, 5
@@ -1462,6 +1488,7 @@ c
             ELSEIF (iproc.EQ.6 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).GE.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
                icountnew = icountnew + 1
+               imap(i) = icountnew
                isteps(icountnew) = isteps(i)
                iphase(icountnew) = iphase(i)
                DO j = 1, 5
@@ -1498,6 +1525,7 @@ c
             ELSEIF (iproc.EQ.7 .AND. xyzmh(3,i).LT.0.0 .AND.
      &              xyzmh(1,i).LT.0.0 .AND. xyzmh(2,i).LT.0.0) THEN
                icountnew = icountnew + 1
+               imap(i) = icountnew
                isteps(icountnew) = isteps(i)
                iphase(icountnew) = iphase(i)
                DO j = 1, 5
@@ -1635,6 +1663,7 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
 
             IF (iproc.EQ.iprocvalue) THEN
                icountnew = icountnew + 1
+               imap(i) = icountnew
                isteps(icountnew) = isteps(i)
                iphase(icountnew) = iphase(i)
                DO j = 1, 5
@@ -1680,6 +1709,29 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
      &        mpitype
          CALL quit
       ENDIF
+      
+      nptmassnew = 0
+      DO i = 1, nptmass
+         IF (imap(listpm(i)).NE.0) THEN
+            nptmassnew = nptmassnew + 1
+            listpm(nptmassnew) = imap(listpm(i))
+            IF (iphase(listpm(nptmassnew)).LE.0) THEN
+               WRITE (*,*) 'ERROR - iphase(listpm(nptmassnew)).LE.0'
+               CALL quit
+            ENDIF
+            spinx(nptmassnew) = spinx(i)
+            spiny(nptmassnew) = spiny(i)
+            spinz(nptmassnew) = spinz(i)
+            angaddx(nptmassnew) = angaddx(i)
+            angaddy(nptmassnew) = angaddy(i)
+            angaddz(nptmassnew) = angaddz(i)
+            spinadx(nptmassnew) = spinadx(i)
+            spinady(nptmassnew) = spinady(i)
+            spinadz(nptmassnew) = spinadz(i)
+         ENDIF
+      END DO
+      nptmass = nptmassnew
+
       npart = icountnew
       n1 = icountnew
       icount = icountnew

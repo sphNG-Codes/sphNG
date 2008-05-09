@@ -68,7 +68,7 @@ c
          imu = MOD(i,12)
          IF (imu.EQ.4 .OR. imu.EQ.6 .OR. imu.EQ.9. .OR. imu.EQ.11) THEN
             idu = idu + 30
-         ELSEIF (im.EQ.2) THEN
+         ELSEIF (imu.EQ.2) THEN
             idu = idu + 28
          ELSE
             idu = idu + 31
@@ -95,8 +95,8 @@ c
 c
 c--Get argument on command line
 c
-      ENTRY flush(iunit)
+c      ENTRY flush(iunit)
 c      CALL FLUSH_(iunit)
-      RETURN
+c      RETURN
 
       END

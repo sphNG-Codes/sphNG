@@ -22,25 +22,33 @@ c************************************************************
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/perform'
 
+      DIMENSION listpar(idim),listparnew(idim)
+
+c#ifdef _OPENMP
+      INTEGER*8 forcei_lock,revtree_lock
+      COMMON /locks / forcei_lock(idim),revtree_lock
+c#endif
+
       natom = nnatom
 
 c
 c--REVISE ENTIRE TREE (STANDARD REVTREE)
-c  (AT PRESENT WE ALWAYS DO THIS FOR THE GRAD H VERSION (nlmax=1))
 c
-      IF (nlst.GT.nnatom/5000 .OR. ipartialrevtree.EQ.0
-     &    .OR. nlmax.EQ.1) THEN
+c      IF (nlst.GT.nnatom/5000 .OR. ipartialrevtree.EQ.0) THEN
+      IF (nlst.GT.nnatom/10000 .OR. ipartialrevtree.EQ.0) THEN
+c      IF (nlst.GT.100 .OR. ipartialrevtree.EQ.0) THEN
 
       IF (itiming) CALL getused(revtreeptemp1)
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(natom,npart,imfac)
-C$OMP& shared(nactatom,listmap,iphase)
+C$OMP& shared(nactatom,listmap,iphase,iflagtree)
 C$OMP& private(j,ipart)
 
 C$OMP DO SCHEDULE(static)
       DO j = 1, nactatom
          ipart = listmap(j)
+         iflagtree(ipart) = .FALSE.
          IF (ipart.GT.npart .OR. iphase(ipart).EQ.-1 .OR.
      &               (iphase(ipart).GE.1 .AND. iptintree.EQ.1)) THEN
             imfac(ipart) = 0
@@ -213,88 +221,25 @@ c
          revtreep1 = revtreep1 + (revtreeptemp2 - revtreeptemp1)
       ENDIF
 c
-c--ONLY REVISE PART OF THE TREE - CURRENT PARTICLES AND THEIR NEIGHBOURS
-c     AND ANY ACCRETED OR KILLED PARTICLES FROM THE LAST STEP
+c--ONLY REVISE PART OF THE TREE - PARTICLES WHOSE POSITIONS HAVE BEEN
+c     UPDATED IN STEP AND ANY ACCRETED OR KILLED PARTICLES FROM THE 
+c     LAST STEP
 c
       ELSE
 
       IF (itiming) CALL getused(revtreeptemp1)
 
-      IF (nlst.GT.nptmass) THEN
-         IF (nlst.GT.50) THEN
+      iupdatenode = 0
 
-C$OMP PARALLEL default(none)
-C$OMP& shared(nlst,llist,iflagtree,nneigh,neighb,neighover)
-C$OMP& private(i,j,k,ipart,jpart,kpart)
-C$OMP DO SCHEDULE(static)
-            DO i = 1, nlst
-               ipart = llist(i)
-C$OMP CRITICAL (flagtree)
-               iflagtree(ipart) = .TRUE.
-C$OMP END CRITICAL (flagtree)
-               DO j = 1, nneigh(ipart)
-                  IF (j.GE.nlmax) THEN
-                  jpart = neighover(j-nlmax+1,ABS(neighb(nlmax,ipart)))
-                  ELSE
-                     jpart = neighb(j,ipart)
-                  ENDIF
-C$OMP CRITICAL (flagtree)
-                  iflagtree(jpart) = .TRUE.
-C$OMP END CRITICAL (flagtree)
-                  DO k = 1, nneigh(jpart)
-                     IF (k.GE.nlmax) THEN
-                  kpart = neighover(k-nlmax+1,ABS(neighb(nlmax,jpart)))
-                     ELSE
-                        kpart = neighb(k,jpart)
-                     ENDIF
-C$OMP CRITICAL (flagtree)
-                     iflagtree(kpart) = .TRUE.
-C$OMP END CRITICAL (flagtree)
-                  END DO
-               END DO
-            END DO
-C$OMP END DO
-C$OMP END PARALLEL
+      IF (nlst.GT.nptmass) iupdatenode = 1
 
-         ELSE
 
-            DO i = 1, nlst
-               ipart = llist(i)
-               iflagtree(ipart) = .TRUE.
-               DO j = 1, nneigh(ipart)
-                  IF (j.GE.nlmax) THEN
-                  jpart = neighover(j-nlmax+1,ABS(neighb(nlmax,ipart)))
-                  ELSE
-                     jpart = neighb(j,ipart)
-                  ENDIF
-                  iflagtree(jpart) = .TRUE.
-C$OMP PARALLEL DO SCHEDULE(static) default(none)
-C$OMP& shared(jpart,nneigh,neighb,neighover,iflagtree)
-C$OMP& private(k,kpart)
-                  DO k = 1, nneigh(jpart)
-                     IF (k.GE.nlmax) THEN
-                  kpart = neighover(k-nlmax+1,ABS(neighb(nlmax,jpart)))
-                     ELSE
-                        kpart = neighb(k,jpart)
-                     ENDIF
-                     iflagtree(kpart) = .TRUE.
-                  END DO
-C$OMP END PARALLEL DO
-               END DO
-            END DO
-         ENDIF
-      ENDIF
 
-      IF (itiming) THEN
-         CALL getused(revtreeptemp2)
-         revtreep3 = revtreep3 + (revtreeptemp2 - revtreeptemp1)
-      ENDIF
 
-      IF (nlst.GT.nptmass) THEN
-         iupdatenode = 1
-      ELSE
-         iupdatenode = 0
-      ENDIF
+      GOTO 888
+
+
+
 
       IF (nptmass.GT.10) THEN
          
@@ -335,73 +280,128 @@ C$OMP END PARALLEL
 
       IF (itiming) THEN
          CALL getused(revtreeptemp2)
-         revtreep4 = revtreep4 + (revtreeptemp2 - revtreeptemp1)
+         revtreep3 = revtreep3 + (revtreeptemp2 - revtreeptemp1)
       ENDIF
 
-      iupdatenode = iupdatenode + nlstacc
-      DO i = 1, nlstacc
-         ipart = listacc(i)
-         IF (ipart.LT.1 .OR. ipart.GT.npart) THEN
-            WRITE (iprint, *) 'ERROR - revtree listacc',ipart,nlstacc,i
-            CALL quit
-         ENDIF
-         iflagtree(ipart) = .TRUE.
-      END DO
+ 888  CONTINUE
 
-      IF (itiming) THEN
-         CALL getused(revtreeptemp2)
-         revtreep5 = revtreep5 + (revtreeptemp2 - revtreeptemp1)
+      iupdatenode = iupdatenode + nlstacc
+
+      nlistpar = 0
+
+c      print *,'Revtree nlistpar ',nlistpar
+
+      IF (nlstacc.GT.0) THEN
+
+C$OMP PARALLEL default(none)
+C$OMP& shared(nlstacc,listacc,npart,iflagtree,listpar,isibdaupar)
+C$OMP& shared(iphase,imfac)
+C$OMP& private(i,ipart)
+
+C$OMP DO SCHEDULE(static)
+         DO i = 1, nlstacc
+            ipart = listacc(i)
+            IF (ipart.LT.1 .OR. ipart.GT.npart) THEN
+               WRITE (*, *) 'ERROR - revtree listacc',ipart,nlstacc,i
+               CALL quit
+            ENDIF
+            listpar(i) = isibdaupar(3,ipart)
+            IF (iphase(ipart).EQ.-1) imfac(ipart) = 0
+         END DO
+C$OMP END DO
+C$OMP END PARALLEL
+
+         nlistpar = nlstacc
+
+c         print *,'Revtree nlistpar ',nlistpar,nlstacc
+
+         IF (itiming) THEN
+            CALL getused(revtreeptemp2)
+            revtreep4 = revtreep4 + (revtreeptemp2 - revtreeptemp1)
+         ENDIF
       ENDIF
 
       IF (iupdatenode.GT.0) THEN
 
 C$OMP PARALLEL default(none)
-C$OMP& shared(natom,npart,xyzmh,imfac,isibdaupar)
-C$OMP& shared(nactatom,listmap,iflagtree,ipar,iphase)
+C$OMP& shared(natom,npart,xyzmh,imfac,isibdaupar,nlst,llist)
+C$OMP& shared(revtree_lock)
+C$OMP& shared(nactatom,listmap,iflagtree,ipar,iphase,nlistpar)
 C$OMP& private(j,ipart,iparent)
 
 C$OMP DO SCHEDULE(static)
-      DO j = 1, nactatom
-         ipart = listmap(j)
-         IF (iflagtree(ipart)) THEN
+         DO j = 1, nlst
+            ipart = llist(j)
             iflagtree(ipart) = .FALSE.
             iparent = isibdaupar(3,ipart)
-C$OMP CRITICAL (flagtree)
-            iflagtree(iparent) = .TRUE.
-C$OMP END CRITICAL (flagtree)
+
+            IF (iparent.NE.0) THEN
+c#ifdef _OPENMP
+               CALL OMP_SET_LOCK(revtree_lock)
+c#endif
+               IF (.NOT.iflagtree(iparent)) THEN
+                  iflagtree(iparent) = .TRUE.
+                  nlistpar = nlistpar + 1
+                  listpar(nlistpar) = iparent
+               ENDIF
+c#ifdef _OPENMP
+               CALL OMP_UNSET_LOCK(revtree_lock)
+c#endif
+            ENDIF
+
             IF (ipart.GT.npart .OR. iphase(ipart).EQ.-1 .OR.
-     &               (iphase(ipart).GE.1 .AND. iptintree.EQ.1)) THEN
+     &           (iphase(ipart).GE.1 .AND. iptintree.EQ.1)) THEN
                imfac(ipart) = 0
             ELSE
                imfac(ipart) = 1
             ENDIF
-         ENDIF
-      END DO
+         END DO
 C$OMP END DO
 C$OMP END PARALLEL
 
-      DO ilevel = 1, nlevel
+c         nlistpar = nlistpar + nlst
 
-         IF ((level(ilevel + 1)-level(ilevel)).GT.16) THEN
+c         print *,'Revtree nlistpar pre ',nlistpar, nlst
+
+         IF (itiming) THEN
+            CALL getused(revtreeptemp2)
+            revtreep5 = revtreep5 + (revtreeptemp2 - revtreeptemp1)
+         ENDIF
+
+ 456     CONTINUE
+
+c         print *,'Revtree nlistpar doing ',nlistpar
+
+         nlistparnew = 0
 
 C$OMP PARALLEL default(none)
-C$OMP& shared(ilevel,level,natom,isibdaupar)
-C$OMP& shared(qrad,xyzmh,imfac)
-C$OMP& shared(iflagtree,ipar,nlevel)
-C$OMP& private(new,l,ll,fl,fll,emred,difx,dify,difz,rr,iparent)
-C$OMP& private(pmassl,pmassll)
+C$OMP& shared(ilevel,level,natom,isibdaupar,revtree_lock)
+C$OMP& shared(qrad,xyzmh,imfac,listpar,listparnew)
+C$OMP& shared(iflagtree,ipar,nlevel,nlistpar,nlistparnew)
+C$OMP& private(i,new,l,ll,fl,fll,emred,difx,dify,difz,rr,iparent)
+C$OMP& private(pmassl,pmassll,oldmass,oldh,oldqrad)
 
 C$OMP DO SCHEDULE(static)
-         DO new = level(ilevel), level(ilevel + 1) - 1
+         DO i = 1, nlistpar
 
-            IF (iflagtree(new)) THEN
+c            print *,i
 
+            new = listpar(i)
             iflagtree(new) = .FALSE.
-            IF (ilevel.LT.nlevel) THEN
-               iparent = isibdaupar(3,new)
-C$OMP CRITICAL (flagtree)
-               iflagtree(iparent) = .TRUE.
-C$OMP END CRITICAL (flagtree)
+
+            iparent = isibdaupar(3,new)
+            IF (iparent.NE.0) THEN
+c#ifdef _OPENMP
+               CALL OMP_SET_LOCK(revtree_lock)
+c#endif
+               IF (.NOT.iflagtree(iparent)) THEN
+                  iflagtree(iparent) = .TRUE.
+                  nlistparnew = nlistparnew + 1
+                  listparnew(nlistparnew) = iparent
+               ENDIF
+c#ifdef _OPENMP
+               CALL OMP_UNSET_LOCK(revtree_lock)
+c#endif
             ENDIF
 
             l = isibdaupar(2,new)
@@ -417,6 +417,10 @@ C$OMP END CRITICAL (flagtree)
             ELSE
                pmassll = xyzmh(4,ll)
             ENDIF
+
+            oldmass = xyzmh(4,new)
+            oldh = xyzmh(5,new)
+
             xyzmh(4,new) = pmassl + pmassll
 
             IF (xyzmh(4,new).NE.0) THEN
@@ -443,6 +447,7 @@ c
 c--Find radius
 c
             rr = SQRT(difx**2 + dify**2 + difz**2) + tiny
+            oldqrad = qrad(1,new)
             qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr + qrad(1,ll))
             xyzmh(5,new) = MAX(xyzmh(5,l), xyzmh(5,ll))
 c
@@ -471,102 +476,31 @@ c
                qrad(7,new) = qrad(7,new) + qrad(7,ll)
             ENDIF
 
-            ENDIF
+c            IF (ilevel.LT.nlevel .OR. 
+c     &           ABS(oldmass-xyzmh(4,new))/oldmass.GT.1.0E-4 .OR.
+c     &           ABS(oldh-xyzmh(5,new))/oldh.GT.1.0E-0 .OR.
+c     &           ABS(oldqrad-qrad(1,new))/oldqrad.GT.1.0E-0) THEN
+c               iflagtree(iparent) = .TRUE.
+c            ENDIF
+
+c            ENDIF
+         END DO
+C$OMP END DO
+C$OMP DO SCHEDULE(static)
+         DO i = 1, nlistparnew
+            listpar(i) = listparnew(i)
          END DO
 C$OMP END DO
 C$OMP END PARALLEL
+         nlistpar = nlistparnew
 
-         ELSE
+         IF (nlistpar.GT.0) GOTO 456
 
-         DO new = level(ilevel), level(ilevel + 1) - 1
-
-            IF (iflagtree(new)) THEN
-
-            iflagtree(new) = .FALSE.
-            IF (ilevel.LT.nlevel) THEN
-               iparent = isibdaupar(3,new)
-               iflagtree(iparent) = .TRUE.
-            ENDIF
-
-            l = isibdaupar(2,new)
-            ll = isibdaupar(1,l)
-
-            IF (l.LE.natom) THEN
-               pmassl = imfac(l)*xyzmh(4,l)
-            ELSE
-               pmassl = xyzmh(4,l)
-            ENDIF
-            IF (ll.LE.natom) THEN
-               pmassll = imfac(ll)*xyzmh(4,ll)
-            ELSE
-               pmassll = xyzmh(4,ll)
-            ENDIF
-            xyzmh(4,new) = pmassl + pmassll
-
-            IF (xyzmh(4,new).NE.0) THEN
-               fl = pmassl/xyzmh(4,new)
-               fll = pmassll/xyzmh(4,new)
-            ELSE
-               fl = 0.5
-               fll = 0.5
-            ENDIF
-            emred = fl*fll*xyzmh(4,new)
-            difx = xyzmh(1,ll) - xyzmh(1,l)
-            dify = xyzmh(2,ll) - xyzmh(2,l)
-            difz = xyzmh(3,ll) - xyzmh(3,l)
-            IF (fl.GT.fll) THEN
-               xyzmh(1,new) = xyzmh(1,l) + fll*difx
-               xyzmh(2,new) = xyzmh(2,l) + fll*dify
-               xyzmh(3,new) = xyzmh(3,l) + fll*difz
-            ELSE
-               xyzmh(1,new) = xyzmh(1,ll) - fl*difx
-               xyzmh(2,new) = xyzmh(2,ll) - fl*dify
-               xyzmh(3,new) = xyzmh(3,ll) - fl*difz
-            ENDIF
-c
-c--Find radius
-c
-            rr = SQRT(difx**2 + dify**2 + difz**2) + tiny
-            qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr + qrad(1,ll))
-            xyzmh(5,new) = MAX(xyzmh(5,l), xyzmh(5,ll))
-c
-c--Find quadrupole moments
-c
-            qrad(2,new) = (emred*difx)*difx
-            qrad(5,new) = (emred*difx)*dify
-            qrad(7,new) = (emred*difx)*difz
-            qrad(3,new) = (emred*dify)*dify
-            qrad(6,new) = (emred*dify)*difz
-            qrad(4,new) = (emred*difz)*difz
-            IF (l.GT.natom) THEN
-               qrad(2,new) = qrad(2,new) + qrad(2,l)
-               qrad(3,new) = qrad(3,new) + qrad(3,l)
-               qrad(4,new) = qrad(4,new) + qrad(4,l)
-               qrad(5,new) = qrad(5,new) + qrad(5,l)
-               qrad(6,new) = qrad(6,new) + qrad(6,l)
-               qrad(7,new) = qrad(7,new) + qrad(7,l)
-            ENDIF
-            IF (ll.GT.natom) THEN
-               qrad(2,new) = qrad(2,new) + qrad(2,ll)
-               qrad(3,new) = qrad(3,new) + qrad(3,ll)
-               qrad(4,new) = qrad(4,new) + qrad(4,ll)
-               qrad(5,new) = qrad(5,new) + qrad(5,ll)
-               qrad(6,new) = qrad(6,new) + qrad(6,ll)
-               qrad(7,new) = qrad(7,new) + qrad(7,ll)
-            ENDIF
-
-            ENDIF
-         END DO
-
+         IF (itiming) THEN
+            CALL getused(revtreeptemp2)
+            revtreep2 = revtreep2 + (revtreeptemp2 - revtreeptemp1)
          ENDIF
 
-      END DO
-
-      ENDIF
-
-      IF (itiming) THEN
-         CALL getused(revtreeptemp2)
-         revtreep2 = revtreep2 + (revtreeptemp2 - revtreeptemp1)
       ENDIF
 
       ENDIF

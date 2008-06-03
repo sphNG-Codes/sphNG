@@ -42,6 +42,7 @@ c************************************************************
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/recor'
 
       DIMENSION nsteplist(30),nsteplisttot(30)
 
@@ -112,7 +113,10 @@ c
 c
 c--Load balance MPI processes
 c
-      CALL balance
+c      IF (iresort.EQ.0) THEN
+         IF (iproc.EQ.0) WRITE (iprint,*) 'BALANCING'
+         CALL balance
+c      ENDIF
 #endif
 
 #ifdef MPI
@@ -216,6 +220,11 @@ c
 99101 FORMAT (I2,1PE12.4,I8)
 
 #ifdef MPI
+      ELSE
+         WRITE (40+iproc,99100) npart, nactive
+         DO j = 0, 29
+            WRITE (40+iproc,99101) j, dtmax/2**j, nsteplist(j+1)
+         END DO
       ENDIF
 #endif
 c
@@ -239,6 +248,9 @@ c
       CALL MPI_REDUCE(nghost,nghosttot,1,MPI_INTEGER,MPI_SUM,0,
      &   MPI_COMM_WORLD,ierr)
       IF (iproc.EQ.0) THEN
+      ELSE
+         iprint = 40+iproc
+      ENDIF
 #endif
 
       WRITE (iprint, 98001) tstep/60., nghosttot
@@ -455,7 +467,7 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
       ENDIF
 
 #ifdef MPI
-      ENDIF
+c      ENDIF
 #endif
 
       RETURN

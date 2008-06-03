@@ -96,7 +96,7 @@ c
      &     '(s)phere, (d)isc, (c)artesian with origin')
 #else
       WRITE (iterm, 99017)
-99017 FORMAT ('d  Type of MPI decomposition ',
+99017 FORMAT ('d  0.0 0.0 0.0 0.0  Type of MPI decomposition ',
      &     '(s)phere, (d)isc, (c)artesian')
 #endif
 

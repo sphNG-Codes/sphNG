@@ -100,6 +100,7 @@ c--Initialise
 c
       iproblem = itime
 c      IF (itime.EQ.000)
+c          print *,iproc,': Entered densityiterate ',itime
 c          print *,': Entered densityiterate ',itime
 
       uradconst = radconst/uergcc
@@ -228,6 +229,20 @@ C$OMP& private(i)
          nneighsentany(i) = .FALSE.
       END DO
 C$OMP END PARALLEL DO
+
+      CALL MPI_TYPE_CONTIGUOUS(15, MPI_REAL8, i15REAL8, ierr)
+c      CALL MPI_TYPE_CONTIGUOUS(12, MPI_REAL8, i12REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
+
+      CALL MPI_TYPE_COMMIT(i15REAL8,ierr)
+c      CALL MPI_TYPE_COMMIT(i12REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
 #endif
 
       DO iteration = 1, maxiterations
@@ -244,20 +259,6 @@ c
          print *,iproc,': Start MPI densityiterate ',numproc
 #endif
          iprocdebug = iproc
-
-         CALL MPI_TYPE_CONTIGUOUS(15, MPI_REAL8, i15REAL8, ierr)
-c         CALL MPI_TYPE_CONTIGUOUS(12, MPI_REAL8, i12REAL8, ierr)
-         CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
-         CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
-         CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
-         CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
-
-         CALL MPI_TYPE_COMMIT(i15REAL8,ierr)
-c         CALL MPI_TYPE_COMMIT(i12REAL8,ierr)
-         CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
-         CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
-         CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
-         CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
 
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nlstsend, 1, lsendlist, 
 c     &       i5REAL8, indexMPI5, ierr)
@@ -291,6 +292,10 @@ c     &           (iproc.EQ.0))
      &           xyzmh(1,2*ntot+3), idim, i5REAL8, ibehind,
      &           0, MPI_COMM_WORLD, istatus, ierr)
             CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
+            IF (2*ntot+3+inumber.GE.mmax) THEN
+               WRITE (*,*) iproc,': ERROR - 2*ntot+3+inumber.GE.mmax'
+               CALL quit
+            ENDIF
 
 #ifdef MPIDEBUG
 c      IF (iteration.GT.45 .AND. iteration.LT.55 .AND.
@@ -303,6 +308,10 @@ c     &           (iproc.EQ.1))
      &           iphase(ntot+1), idim, MPI_INTEGER1, ibehind,
      &           1, MPI_COMM_WORLD, istatus, ierr)
             CALL MPI_GET_COUNT(istatus, MPI_INTEGER1, igotnumber, ierr)
+            IF (ntot+1+inumber.GE.idim) THEN
+               WRITE (*,*) iproc,': ERROR - ntot+1+inumber.GE.idim'
+               CALL quit
+            ENDIF
 	    IF (igotnumber.NE.inumber) THEN
                WRITE (iprint, *) 'ERROR - igotnumber.NE.inumber: iphase'
                CALL quit
@@ -331,6 +340,7 @@ c
             inumreturn = 0
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(inumber,ntot,npart,xyzmh,dvxyzu,inumreturn,llistrec)
+C$OMP& shared(nlst_end)
 C$OMP& private(i,ipart,nneighlocal)
             DO i = 1, inumber
                ipart = i + ntot
@@ -338,8 +348,8 @@ C$OMP& private(i,ipart,nneighlocal)
                   WRITE (*,*) 'ipart.GT.idim'
                   CALL quit
                ENDIF
-               CALL densitygradh(ipart,npart,ntot,xyzmh,nneighlocal,
-     &              dvxyzu)
+               CALL densitygradh(ipart,npart,ntot,nlst_end,xyzmh,
+     &              nneighlocal,dvxyzu)
 c
 c--Make a list of indices to return densities
 c
@@ -354,12 +364,12 @@ C$OMP END PARALLEL DO
 
             ntotplusinumber = ntot + inumber
 
-c#ifdef MPIDEBUG
+#ifdef MPIDEBUG
 c            IF (nptmasstot.GE.1) 
       IF (itime.EQ.2097152)
      &    print *,iproc,': number found neigh = ',inumreturn,numproc,
      &           inumber
-c#endif
+#endif
 
             IF (iteration.EQ.1) THEN
 c
@@ -563,8 +573,15 @@ c	particles on sinks if iptintree=1 and also sink particles if
 c       iptintree=2).
 c
 #ifdef MPIDEBUG
-            print *,iproc,' sending forces back to ',ibehind,numproc
+            print *,iproc,' sending forces back to ',ibehind,numproc,
+     &           ntot,nlstsend,ntot+nlstsend,idim
 #endif
+            IF (ntotplusinumber+nlstsend.GE.idim) THEN
+               WRITE (*,*) iproc,
+     &              ': ERROR - ntotplusinumber+nlstsend.GE.idim ',
+     &              ntotplusinumber,nlstsend,idim,npart,ntot
+               CALL quit
+            ENDIF
             CALL MPI_SENDRECV(dvxyzu(1,ntot+1),4*inumber,
      &           MPI_REAL8,ibehind,15,
      &           dvxyzu(1,ntotplusinumber+1),4*nlstsend,MPI_REAL8,
@@ -588,6 +605,7 @@ C$OMP& private(l,ipos,jpos)
                END DO
             END DO
 C$OMP END PARALLEL DO
+
          END DO
          CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
          CALL MPI_TYPE_FREE(indexMPI5,ierr)
@@ -601,7 +619,7 @@ c
 
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 c      IF (itime.EQ.000)
-c     &      print *,iproc,': DOING LOCAL'
+c         print *,iproc,': DOING LOCAL'
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
          numsucceeded = 0
@@ -638,7 +656,7 @@ c
 c--Adds on local contributions to rho, gradh, and nneigh and long-range
 c	 gravity
 c
-         CALL densitygradh(ipart,npart,ntot,xyzmh,nneighlocal,
+         CALL densitygradh(ipart,npart,ntot,nlst_end,xyzmh,nneighlocal,
      &        dvxyzu)
 
          IF (iphase(ipart).EQ.0) THEN
@@ -2004,6 +2022,8 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 c      CALL quit
 #endif
 
+c      print *,'Exited densityiterate'
+
       RETURN
       END
 
@@ -2013,7 +2033,8 @@ c=============================================================================
 c
 c--Subroutine for calculating rho, gradh and number of neighbours
 c
-      SUBROUTINE densitygradh(ipart,npart,ntot,xyzmh,numneighi,dvxyzu)
+      SUBROUTINE densitygradh(ipart,npart,ntot,nlst_doing,
+     &     xyzmh,numneighi,dvxyzu)
 
       INCLUDE 'idim'
       INCLUDE 'igrape'
@@ -2030,6 +2051,7 @@ c
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/ptmass'
+      INCLUDE 'COMMONS/gravi'
 
 #ifdef MPI
       INCLUDE 'mpif.h'
@@ -2050,7 +2072,42 @@ c
          nneighprior = nneigh(ipart)
       ENDIF
 
-      CALL treef(ipart,npart,ntot,xyzmh,acc,igphi,fsx,fsy,fsz,epot)
+#ifdef MPI
+#else
+      IF (nlst_doing.GT.nptmass .OR. ipart.GT.npart) THEN
+#endif
+         CALL treef(ipart,npart,ntot,xyzmh,acc,igphi,fsx,fsy,fsz,epot)
+#ifdef MPI
+#else
+         IF (iphase(ipart).GE.1) THEN
+            iptcur = listrealpm(ipart)
+            IF (listpm(iptcur).NE.ipart) THEN
+               WRITE (*,*) 'ERROR - listpm(iptcur).NE.ipart'
+               CALL quit
+            ENDIF
+            gravxyzstore(1,iptcur) = fsx
+            gravxyzstore(2,iptcur) = fsy
+            gravxyzstore(3,iptcur) = fsz
+            potenstore(iptcur) = epot
+         ENDIF
+      ELSE
+
+         iptcur = listrealpm(ipart)
+         IF (listpm(iptcur).NE.ipart) THEN
+            WRITE (*,*) 'ERROR - listpm(iptcur).NE.ipart'
+            CALL quit
+         ENDIF
+
+c         print *,'Using gravxyzstore ',nlst_doing,nptmass,ipart,npart
+c         print *,'Using gravxyzstore ',ipart,iptcur,
+c     &        gravxyzstore(1,iptcur)
+
+         fsx = gravxyzstore(1,iptcur)
+         fsy = gravxyzstore(2,iptcur)
+         fsz = gravxyzstore(3,iptcur)
+         epot = potenstore(iptcur)
+      ENDIF
+#endif
 
       rhoi = 0.
       gradhi = 0.

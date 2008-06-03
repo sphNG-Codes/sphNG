@@ -568,7 +568,7 @@ c
          betatotal = ABS(trot/tgrav)
          alphatot = alphapt + betatotal
          total = tterm + tgrav + tkin
-         IF(alphapt.GT.0.5) THEN
+         IF(alphapt.GT.0.5 .AND. encal.NE.'r') THEN
             WRITE(iprint,99001)
             WRITE(iprint,*)'Ptmass failed on alpha = ',alphapt
             WRITE(iprint,99003)total,tterm,tgrav,tkin,xmjeans,
@@ -577,7 +577,7 @@ c
             icreate = 0
             CALL FLUSH (iprint)
             GOTO 100
-         ELSE IF (alphatot.GT.1.0) THEN
+         ELSE IF (alphatot.GT.1.0 .AND. encal.NE.'r') THEN
             WRITE(iprint,99001)
             WRITE(iprint,*)'Ptmass failed on alpha + beta = ',
      &                     alphapt,betatotal
@@ -587,7 +587,7 @@ c
             icreate = 0
             CALL FLUSH (iprint)
             GOTO 100
-         ELSE IF(total.GE.0) THEN
+         ELSE IF(total.GE.0 .AND. encal.NE.'r') THEN
             WRITE(iprint,99001)
             WRITE(iprint,*)'Ptmass failed on total energy (pos) = ', 
      &           total
@@ -746,9 +746,9 @@ c
 c         f1vxyzu(1,irhonex) = f1vxi
 c         f1vxyzu(2,irhonex) = f1vyi
 c         f1vxyzu(3,irhonex) = f1vzi
-         f1vxyzu(1,irhonex) = 0.
-         f1vxyzu(2,irhonex) = 0.
-         f1vxyzu(3,irhonex) = 0.
+c         f1vxyzu(1,irhonex) = 0.
+c         f1vxyzu(2,irhonex) = 0.
+c         f1vxyzu(3,irhonex) = 0.
 
 
          f1vxyzu(4,irhonex) = f1ui
@@ -1646,14 +1646,14 @@ c
 
          accelnew2 = f1vxi**2 + f1vyi**2 + f1vzi**2
          accelold2 = f1vxyzu(1,i)**2 + f1vxyzu(2,i)**2 +f1vxyzu(3,i)**2
-         IF (ABS(accelnew2-accelold2)/(accelold2+tiny).LT.1.0E-4) THEN
+         IF (ABS(accelnew2-accelold2)/(accelold2+tiny).LT.1.0E-3) THEN
             f1vxyzu(1,i) = f1vxi
             f1vxyzu(2,i) = f1vyi
             f1vxyzu(3,i) = f1vzi
          ELSE
-            f1vxyzu(1,i) = 0.
-            f1vxyzu(2,i) = 0.
-            f1vxyzu(3,i) = 0.
+c            f1vxyzu(1,i) = 0.
+c            f1vxyzu(2,i) = 0.
+c            f1vxyzu(3,i) = 0.
          ENDIF
 
 c         print *,'Accrete ',i,xyzmh(4,i),vxyzu(1,i),

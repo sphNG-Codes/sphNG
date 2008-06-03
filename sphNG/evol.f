@@ -30,6 +30,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/sync'
       INCLUDE 'COMMONS/densi'
       INCLUDE 'COMMONS/typef'
+      INCLUDE 'COMMONS/recor'
       INCLUDE 'COMMONS/gtime'
 
       CHARACTER*7 where
@@ -116,6 +117,7 @@ c
       nlstacc = 0
       iptout = 0
       iptdump = 0
+      iresort = 0
       isheld = .FALSE.
       tkeep = 4.0
 ccc      tkeep = 0.0

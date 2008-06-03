@@ -1,4 +1,3 @@
-
       SUBROUTINE hcalc
 c************************************************************
 c                                                           *
@@ -80,6 +79,11 @@ c      neimax = 120
                dumxyzmh(j,i) = xyzmh(j,i)
             END DO
          END DO
+         DO i = 1, ntot
+            DO j = 1, 4
+               dumvxyzu(j,i) = vxyzu(j,i)
+            END DO
+         END DO
          WRITE(*,*) ' Making tree'
          CALL insulate(1, ntot, npart, dumxyzmh, f1vxyzu)
       ENDIF
@@ -100,7 +104,11 @@ c      neimax = 120
          ENDIF
       END DO    
       itime = 0
-      dt = 0.001
+c
+c--Needs non-zero dt for radiative transfer in derivi
+c
+      dt = 1.0E-12
+
       nlst_in = 1
       nlst_end = nlst
       nlst0 = nlst

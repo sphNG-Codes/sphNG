@@ -106,13 +106,17 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
       INCLUDE 'COMMONS/compact'
 
       CHARACTER*7 where
-      DIMENSION dedxyz(3,iradtrans),listex(idim)
+      DIMENSION dedxyz(3,iradtrans)
+#ifdef MPI
+      DIMENSION listex(idim)
+#endif
 
       DATA where/'derivi'/
 c
 c--Allow for tracing flow
 c
-c      IF (gt.GT.50.) print *,iproc,': ENTERED derivi'
+c      IF (gt.GT.50.) 
+c      print *,iproc,': ENTERED derivi'
 
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
 99001 FORMAT(' entry subroutine derivi_gradh')
@@ -150,7 +154,7 @@ c      IF (nlst_end.GT.nptmass) THEN
          IF (itiming) CALL getused(tdens1)
 
 #ifdef MPIDEBUG
-         print *,'DERIVI: calling densityiterate_gradh'
+         print *,iproc,' DERIVI: calling densityiterate_gradh'
 #endif
 
          CALL densityiterate_gradh(dt,npart,ntot,xyzmh,vxyzu,dvxyzu,
@@ -158,7 +162,7 @@ c      IF (nlst_end.GT.nptmass) THEN
      &        dBevolxyz)
 
 #ifdef MPIDEBUG
-         print *,'DERIVI: called densityiterate_gradh'
+         print *,iproc,' DERIVI: called densityiterate_gradh'
 #endif
 
          IF (itiming) THEN
@@ -290,7 +294,9 @@ c
                         inumofsends = inumofsends + 1
 #ifdef MPIDEBUG
                         print *,iproc,': sending neighbour data to ',j,
-     &                       ' starting at ',llistsentback(1,j+1),'+1'
+     &                       ' starting at ',llistsentback(1,j+1),'+1 ',
+     &                       nneighsentback(j+1),' list '
+c     &               ,(llistsentback(kkk,j+1),kkk=1,nneighsentback(j+1))
 #endif
 c
 c--Else does not need to send any particle back to this particular process.
@@ -321,6 +327,14 @@ c                        ENDIF
                         print *,iproc,' sent divv'
 #endif
                         IF (nneighsentback(j+1).GT.0) THEN
+
+                        IF (encal.EQ.'r') THEN
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI5,ierr)
+                        ENDIF
 
                         IF (imhd.EQ.idim) THEN
 c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
@@ -396,6 +410,15 @@ c     &    iorig(llistsentback(1,j+1)+1),MPI_INTEGER8,indexMPI_I8,ierr)
 #endif                           
                         ENDIF
 
+                        IF (encal.EQ.'r') THEN
+                           CALL MPI_SEND(ekcle,1,indexMPI5,j,230,
+     &                          MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                           print *,iproc,' sent ekcle to ',j
+#endif
+                           CALL MPI_TYPE_FREE(indexMPI5,ierr)
+                        ENDIF
+
                         CALL MPI_TYPE_FREE(indexMPI_I8,ierr)
                         CALL MPI_TYPE_FREE(indexMPIalpha,ierr)
                         CALL MPI_TYPE_FREE(indexMPI2,ierr)
@@ -430,6 +453,10 @@ c
      &              i, 23, MPI_COMM_WORLD, istatus, ierr)
 c     &              MPI_ANY_SOURCE, 23, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
+               IF (istart+inumber.GE.idim) THEN
+                  WRITE (*,*) iproc,' ERROR - istart+inumber.GE.idim'
+                  CALL quit
+               ENDIF
                iprocrec = istatus(MPI_SOURCE)
 
 #ifdef MPIDEBUG
@@ -526,6 +553,21 @@ c     &                 istart+inumber)
                      print *,iproc,': got alphaMM from ',iprocrec,icheck
 #endif
                   ENDIF
+
+                  IF (encal.EQ.'r') THEN
+                     CALL MPI_RECV(ekcle(1,istart),inumber,i5REAL8,
+     &                    iprocrec, 230, MPI_COMM_WORLD,istatus,ierr)
+                     CALL MPI_GET_COUNT(istatus,i5REAL8,icheck,ierr)
+                     IF (icheck.NE.inumber) THEN
+                        WRITE (*,*) 'ERROR - icheck.NE.inumber 9 ',
+     &                       iproc
+                        CALL quit
+                     ENDIF
+c#ifdef MPIDEBUG
+                     print *,iproc,': got ekcle from ',iprocrec,
+     &                    icheck,istart
+c#endif
+                  ENDIF
                ENDIF
                inumbertotal = inumbertotal + inumber
                inumberindiv(inumberreturned) = inumber
@@ -571,7 +613,8 @@ ccc         CALL treef(jpart,npart,ntot,xyzmh,acc,0,fsx,fsy,fsz,epot)
       END DO
       nlst_tot = nlst_end + inumbertotal
 
-      print *,nlst_tot,nlst_end,inumbertotal
+c      print *,'nlst_tot,nlst_end,inumbertotal ',
+c     &     nlst_tot,nlst_end,inumbertotal
 
 #ifdef MPIDEBUG
       print *,iproc,': Received all particles with remote neighbours'
@@ -587,6 +630,11 @@ ccc         CALL treef(jpart,npart,ntot,xyzmh,acc,0,fsx,fsy,fsz,epot)
      &        nlst_end
          CALL quit
       ENDIF
+      IF (nlst_end.NE.ncompactlocal) THEN
+         WRITE (*,*) 'ERROR - ncompactlocal.NE.nlst_end ',ncompactlocal,
+     &        nlst_end,nlst_tot,ncompact
+         CALL quit
+      ENDIF
 c     
 c--Compute implicit radiative transfer
 c     
@@ -594,29 +642,294 @@ c
 
       IF(encal.EQ.'r') THEN
          WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
-         WRITE(*,*) 'radiation/gradh not yet implemented'
-         STOP
 
-c        WRITE (*,*) 'nlstall is ',nlstall
+ccc         thermalenergy = 0.
+ccc         radenergy = 0.
 
-c        CALL ASS(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
-c     &           xyzmh,vxyzu,ekcle,dumrho,dedxyz,alphaMM)
+c         DO i = 1, npart
+c            IF (iphase(i).EQ.0) THEN
+c               thermalenergy = thermalenergy + xyzmh(4,i)*vxyzu(4,i)
+c               radenergy = radenergy + xyzmh(4,i)*ekcle(1,i)
+c            ENDIF
+c         END DO
 
-cC$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-cC$OMP& shared(nlstall,vxyzu,dumrho,pr,vsound,llist,iphase,ekcle)
-cC$OMP& private(i,ipart)
-c            DO i = 1, nlstall
-c               ipart = llist(i)
-c               IF (iphase(ipart).EQ.0) 
-c     &              CALL eospg(ipart,vxyzu,dumrho,pr,vsound,ekcle)
-c            END DO
-cC$OMP END PARALLEL DO
+ccc         DO n = 1, ncompactlocal
+ccc            i = ivar(3,n)
+
+c            IF (iunique(iorig(i)).EQ.79225) THEN
+c               print *,'COM ',i,iunique(iorig(i)),iproc,ivar(1,n)
+
+c            print *,' TRY ',iproc,icall,i,ekcle(1,i)
+
+ccc               thermalenergy = thermalenergy + xyzmh(4,i)*vxyzu(4,i)
+ccc               radenergy = radenergy + xyzmh(4,i)*ekcle(1,i)
+
+c               DO k = 1, ivar(1,n)
+c                  icompact = ivar(2,n) + k
+c                  j = ijvar(icompact)
+c
+c                  print *,'COM-N ',j
+c
+c                  thermalenergy = thermalenergy + xyzmh(4,j)*vxyzu(4,j)
+c                  radenergy = radenergy + xyzmh(4,j)*ekcle(1,j)
+c               END DO
+c            ELSEIF (iproc.EQ.0) THEN
+c               DO k = 1, ivar(1,n)
+c                  icompact = ivar(2,n) + k
+c                  j = ijvar(icompact)
+
+c                  IF (iunique(iorig(j)).EQ.79225) THEN
+
+c                     DO nnn = 1, ncompactlocal
+c                        IF (iunique(iorig(ivar(3,nnn))).EQ.79225) THEN
+c                           DO kkk = 1, ivar(1,nnn)
+c                              icompact2 = ivar(2,nnn) + kkk
+c                              IF (i.EQ.ijvar(icompact2)) GOTO 8911
+c                           END DO
+c                        ENDIF
+c                     END DO
+
+c                     print *,'COM-J ',j,i
+
+c                  thermalenergy = thermalenergy + xyzmh(4,i)*vxyzu(4,i)
+c                     radenergy = radenergy + xyzmh(4,i)*ekcle(1,i)
+
+c 8911                CONTINUE
+c                  ENDIF
+c               END DO
+
+c            ENDIF
+         END DO
+            
+ccc         print 99555,iproc,icall,thermalenergy,radenergy,
+ccc     &        thermalenergy+radenergy
+ccc99555    FORMAT(I2,': ENER-B ',I1,1PE14.7,1PE14.7,1PE14.7)
+
+         CALL quit
+c         CALL ASS(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
+c     &        xyzmh,vxyzu,ekcle,dumrho,dedxyz,alphaMM)
+
+ccc         thermalenergy = 0.
+ccc         radenergy = 0.
+c         DO i = 1, npart
+c            IF (iphase(i).EQ.0) THEN
+c               thermalenergy = thermalenergy + xyzmh(4,i)*vxyzu(4,i)
+c               radenergy = radenergy + xyzmh(4,i)*ekcle(1,i)
+c            ENDIF
+c         END DO
+
+ccc         DO n = 1, ncompactlocal
+ccc            i = ivar(3,n)
+
+c            IF (iunique(iorig(i)).EQ.79225) THEN
+c               print *,'COM ',i,iunique(iorig(i)),iproc,ivar(1,n)
+
+c            print *,' TRY ',iproc,icall,i,ekcle(1,i)
+
+ccc               thermalenergy = thermalenergy + xyzmh(4,i)*vxyzu(4,i)
+ccc               radenergy = radenergy + xyzmh(4,i)*ekcle(1,i)
+
+c               DO k = 1, ivar(1,n)
+c                  icompact = ivar(2,n) + k
+c                  j = ijvar(icompact)
+c
+c                  print *,'COM-N ',j
+c
+c                  thermalenergy = thermalenergy + xyzmh(4,j)*vxyzu(4,j)
+c                  radenergy = radenergy + xyzmh(4,j)*ekcle(1,j)
+c               END DO
+c            ELSEIF (iproc.EQ.0) THEN
+c               DO k = 1, ivar(1,n)
+c                  icompact = ivar(2,n) + k
+c                  j = ijvar(icompact)
+
+c                  IF (iunique(iorig(j)).EQ.79225) THEN
+
+c                     DO nnn = 1, ncompactlocal
+c                        IF (iunique(iorig(ivar(3,nnn))).EQ.79225) THEN
+c                           DO kkk = 1, ivar(1,nnn)
+c                              icompact2 = ivar(2,nnn) + kkk
+c                              IF (i.EQ.ijvar(icompact2)) GOTO 8910
+c                           END DO
+c                        ENDIF
+c                     END DO
+
+c                     print *,'COM-J ',j,i
+
+c                  thermalenergy = thermalenergy + xyzmh(4,i)*vxyzu(4,i)
+c                     radenergy = radenergy + xyzmh(4,i)*ekcle(1,i)
+
+c 8910                CONTINUE
+c                  ENDIF
+c               END DO
+
+c            ENDIF
+ccc         END DO
+
+
+ccc         print 99556,iproc,icall,thermalenergy,radenergy,thermalenergy+
+ccc     &        radenergy
+ccc99556    FORMAT(I2,': ENER-A ',I1,1PE14.7,1PE14.7,1PE14.7)
+
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst_in,nlst_end,vxyzu,dumrho,pr,vsound,llist,iphase)
+C$OMP& shared(ekcle)
+C$OMP& private(i,ipart)
+
+            DO i = nlst_in, nlst_end
+               ipart = llist(i)
+               IF (iphase(ipart).EQ.0) 
+     &              CALL eospg(ipart,vxyzu,dumrho,pr,vsound,ekcle)
+            END DO
+
+C$OMP END PARALLEL DO
+
+
+
+
+
+#ifdef MPI
+c
+c--Transfer new values of vxyzu, ekcle, pr, vsound
+c     to other MPI processes
+c
+      inumbertotallocal = 0
+      inumberreturned = 0
+      DO i = 0, numproc - 1
+         IF (iproc.EQ.i) THEN
+            IF (nneighsentanyatall) THEN
+c
+c--Otherwise this process does not need to send any particle back!
+c
+c--Send active node data to be processed by other processes.  Data from all
+c     other processes is received before any processing is done.  This
+c     is because here it is assumed that the total number of remote particles
+c     on which forces need to be calculated by this MPI process is less
+c     than idim.
+c
+               DO j = 0, numproc - 1
+                  IF (j.NE.iproc) THEN
+c
+c--Only sends anything at all to another MPI process if it needs to (the
+c     other MPI process knows when it doesn't need to expect anything)
+c
+                     IF (nneighsentany(j+1)) THEN
+
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
+                CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
+
+                        CALL MPI_SEND(vxyzu,1,indexMPI4,j,210,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_TYPE_FREE(indexMPI4,ierr)
+
+
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                llistsentback(1,j+1),i5REAL8,indexekcle,ierr)
+                        CALL MPI_TYPE_COMMIT(indexekcle,ierr)
+
+                        CALL MPI_SEND(ekcle,1,indexekcle,j,211,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_TYPE_FREE(indexekcle,ierr)
+#ifdef MPIDEBUGRT
+                        print *,iproc,' sent ekcle'
+#endif
+
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                llistsentback(1,j+1),MPI_REAL4,indexMPI_R4,ierr)
+                CALL MPI_TYPE_COMMIT(indexMPI_R4,ierr)
+
+                        CALL MPI_SEND(pr,1,indexMPI_R4,j,212,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_SEND(vsound,1,indexMPI_R4,j,213,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_TYPE_FREE(indexMPI_R4,ierr)
+
+                     ENDIF
+                  ENDIF
+               END DO
+            ENDIF
+c
+c--Other processes receive the particles being sent
+c
+         ELSE
+            IF (inumberreturned.LT.inumofreturns .AND.
+     &           nneightogetback(i+1).GT.0) THEN
+               inumberreturned = inumberreturned + 1
+#ifdef MPIDEBUGRT
+               print *,iproc,': receiving vxyzu,ekcle,pr,vsound data ',
+     &              inumberreturned,inumofreturns
+#endif
+               istart = ntot + inumbertotallocal + 1
+               CALL MPI_RECV(vxyzu(1,istart), idim, MPI_REAL8,
+     &              i, 210, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               IF (istart + inumber.GE.idim) THEN
+                  WRITE (*,*) iproc,': ERROR - istart+inumber.GE.idim'
+                  CALL quit
+               ENDIF
+               iprocrec = istatus(MPI_SOURCE)
+
+#ifdef MPIDEBUGRT
+               print *,iproc,': got vxyzu from ',iprocrec,inumber
+#endif
+               CALL MPI_RECV(ekcle(1,istart), idim, MPI_REAL8,
+     &              i, 211, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               iprocrec = istatus(MPI_SOURCE)
+
+#ifdef MPIDEBUGRT
+               print *,iproc,': got ekcle from ',iprocrec,inumber
+#endif
+               CALL MPI_RECV(pr(istart), idim, MPI_REAL4,
+     &              i, 212, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
+               iprocrec = istatus(MPI_SOURCE)
+
+               CALL MPI_RECV(vsound(istart), idim, MPI_REAL4,
+     &              i, 213, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
+               iprocrec = istatus(MPI_SOURCE)
+
+               inumbertotallocal = inumbertotallocal + inumber
+               IF (inumberindiv(inumberreturned).NE.inumber) THEN
+                  WRITE (*,*) iproc,': ERR - inumberindiv RT ',inumber,
+     &                 inumberindiv(inumberreturned),inumberreturned
+                  CALL quit
+               ENDIF
+               IF (inumbercumm(inumberreturned).NE.istart) THEN
+                  WRITE (*,*) iproc,': ERR - inumbercumm RT ',istart,
+     &                 inumbercumm(inumberreturned),inumberreturned
+                  CALL quit
+               ENDIF
+               IF (inumberproc(inumberreturned).NE.iprocrec) THEN
+                  WRITE (*,*) iproc,': ERR - inumberproc RT ',iprocrec,
+     &                 inumberproc(inumberreturned),inumberreturned
+                  CALL quit
+               ENDIF
+            ENDIF
+         ENDIF
+      END DO
+      IF (inumbertotallocal.NE.inumbertotal) THEN
+         WRITE (*,*) iproc,': inumbertotallocal.NE.inumbertotal ',
+     &        inumbertotallocal,inumbertotal
+         CALL quit
+      ENDIF
+
+#endif
+
+
       END IF
 
       IF (itiming) THEN
          CALL getused(tass2)
          tass = tass + (tass2 - tass1)
       ENDIF
+
 c
 c--Compute forces on EACH particle
 c
@@ -651,6 +964,7 @@ c     &     dedxyz,Bxyz,dBevolxyz,Bevolxyz)
          CALL getused(tforce2)
          tforce = tforce + (tforce2 - tforce1)
       ENDIF
+
 
 #ifdef MPI
 c
@@ -943,6 +1257,10 @@ c         ENDIF
 c      END DO
                    
 c      CALL quit
+
+#ifdef MPI
+      print *,iproc,': Exited derivi'
+#endif
                    
       RETURN
       END

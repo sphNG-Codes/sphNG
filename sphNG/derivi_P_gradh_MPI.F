@@ -699,7 +699,7 @@ c                  ENDIF
 c               END DO
 
 c            ENDIF
-         END DO
+ccc         END DO
             
 ccc         print 99555,iproc,icall,thermalenergy,radenergy,
 ccc     &        thermalenergy+radenergy

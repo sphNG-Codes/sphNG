@@ -76,6 +76,7 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/dissi'
       INCLUDE 'COMMONS/Bxyz'
       INCLUDE 'COMMONS/tokamak'
+      INCLUDE 'COMMONS/treecom_P'
 
       COMMON /rtpdv/ pdvvisc(idim)
 
@@ -583,10 +584,11 @@ C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle,vsmooth)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
-C$OMP& shared(pdvvisc)
+C$OMP& shared(pdvvisc,iflagtree)
 C$OMP& private(j,k,deltat)
       DO j = 1, npart
          IF (iphase(j).GE.0) THEN
+            iflagtree(j) = .TRUE.
             deltat = dt*(itime - it0(j))/imaxstep
             DO k = 1, 3
                IF (XSPH) THEN
@@ -639,11 +641,12 @@ C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle,vsmooth)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
-C$OMP& shared(pdvvisc)
+C$OMP& shared(pdvvisc,iflagtree)
 C$OMP& private(j,k,ipart,deltat)
                DO j = 1, nlstbins(i)
                   ipart = listbins(j,i)
                   IF (iphase(ipart).GE.0) THEN
+                     iflagtree(ipart) = .TRUE.
                      deltat = dt*(itime - it0(ipart))/imaxstep
                      DO k = 1, 3
                         IF (XSPH) THEN
@@ -695,10 +698,11 @@ c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nptmass,listpm,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,vsmooth)
-C$OMP& shared(dumxyzmh,dumvxyzu)
+C$OMP& shared(dumxyzmh,dumvxyzu,iflagtree)
 C$OMP& private(i,k,ipart,deltat)
             DO i = 1, nptmass
                ipart = listpm(i)
+               iflagtree(ipart) = .TRUE.
                deltat = dt*(itime - it0(ipart))/imaxstep
                DO k = 1, 3
                   IF (XSPH) THEN
@@ -722,9 +726,11 @@ C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle,vsmooth)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
+C$OMP& shared(iflagtree)
 C$OMP& private(j,k,l,deltat)
       DO j = npart + 1, npart + nghost
          IF (iphase(j).GE.0) THEN
+            iflagtree(j) = .TRUE.
             k = ireal(j)
             deltat = dt*(itime - it0(k))/imaxstep
             DO l = 1, 3
@@ -820,7 +826,6 @@ c      print *,'icall=2 ',dumvxyzu(4,llist(1))-vxyzu(4,llist(1)),
 c     &     f2vxyzu(4,llist(1)),dt*(itime - it0(llist(1)))/imaxstep,
 c     &     (dumvxyzu(4,llist(1))-vxyzu(4,llist(1)))/
 c     &     (dt*(itime - it0(llist(1)))/imaxstep)
-c      print *,' '
 c
 c--Save velocities at half time step
 c
@@ -1312,10 +1317,11 @@ C$OMP& shared(npart,nghost,dt,itime,it0,it1,imaxstep,ireal)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
-C$OMP& shared(pdvvisc)
+C$OMP& shared(pdvvisc,iflagtree)
 C$OMP& private(j,k,deltat)
       DO j = 1, npart
          IF (iphase(j).GE.0) THEN
+            iflagtree(j) = .TRUE.
             deltat = dt*(itime - it0(j))/imaxstep
             DO k = 1, 3
                IF (XSPH) THEN
@@ -1367,11 +1373,12 @@ C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,it1,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
-C$OMP& shared(pdvvisc)
+C$OMP& shared(pdvvisc,iflagtree)
 C$OMP& private(j,k,ipart,deltat)
                DO j = 1, nlstbins(i)
                   ipart = listbins(j,i)
                   IF (iphase(ipart).GE.0) THEN
+                     iflagtree(ipart) = .TRUE.
                      deltat = dt*(itime - it0(ipart))/imaxstep
                      DO k = 1, 3
                         IF (XSPH) THEN
@@ -1423,10 +1430,11 @@ c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nptmass,listpm,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha)
-C$OMP& shared(dumxyzmh,dumvxyzu,vsmooth)
+C$OMP& shared(dumxyzmh,dumvxyzu,vsmooth,iflagtree)
 C$OMP& private(i,k,ipart,deltat)
             DO i = 1, nptmass
                ipart = listpm(i)
+               iflagtree(ipart) = .TRUE.
                deltat = dt*(itime - it0(ipart))/imaxstep
                DO k = 1, 3
                   IF (XSPH) THEN
@@ -1451,9 +1459,11 @@ C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
+C$OMP& shared(iflagtree)
 C$OMP& private(j,k,l,deltat)
       DO j = npart + 1, npart + nghost
          IF (iphase(j).GE.0) THEN
+            iflagtree(j) = .TRUE.
             k = ireal(j)
             deltat = dt*(itime - it0(k))/imaxstep
             DO l = 1, 3
@@ -1847,9 +1857,13 @@ c
                print *,'ERROR - ibin.LT.0 .OR. ibin.GT.30 ',ibin,stepi,
      &              dt,isteps(i),i,rmod,rmod1,rmodcr,rmodcr2,xyzmh(5,i),
      &              vsound(i),alphaMM(1,i),denom,crstepi,iphase(i)
-c               CALL quit
+               CALL quit
             ENDIF
-
+c            IF (ibin.GT.28) THEN
+c               print *,'D ',ibin
+c               ibin=28
+c            ENDIF
+            
             isteps(i) = imaxstep/(2**ibin)
 
             IF (isteps(i).LT.2 .AND. rmod.EQ.rmod1 .AND. 
@@ -2034,6 +2048,11 @@ c--Update time
 c
       IF (itime.GE.iteighth) THEN
 #ifdef MPI
+      IF (iproc.NE.0) THEN
+         WRITE(40+iproc,253) dt*itime/imaxstep + gt,
+     &        dt*itime/imaxstep, nlst0
+      ENDIF
+
       IF (iproc.EQ.0) THEN
 #endif
          WRITE(iprint,253) dt*itime/imaxstep + gt,
@@ -2871,6 +2890,7 @@ c--Return or loop again
 c
 
 c      print *,'Pre exit step'
+c      print *,iproc,': Pre exit step'
 
       IF (itime.GE.itnext) THEN
 

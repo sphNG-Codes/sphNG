@@ -80,8 +80,8 @@ c
       REAL*4 rhotemp
 
 #ifdef _OPENMP
-      INTEGER*8 forcei_lock
-      COMMON /locks / forcei_lock(idim)
+      INTEGER*8 forcei_lock,revtree_lock
+      COMMON /locks / forcei_lock(idim),revtree_lock
 #endif
 
       DATA where/'forcei'/

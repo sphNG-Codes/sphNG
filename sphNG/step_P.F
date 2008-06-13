@@ -1507,7 +1507,7 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
             IF (ifsvi.EQ.6) THEN
                DO l = 1, isizealphaMM
                   dumalpha(l,j) = MAX(MIN(alphamax(l), alphaMM(l,k) 
-     &               + deltat*f1ha(l+1,k)),alphamax(l))
+     &               + deltat*f1ha(l+1,k)),alphamin(l))
                ENDDO
             ENDIF
             IF (imhd.EQ.idim) THEN

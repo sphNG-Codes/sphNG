@@ -584,7 +584,7 @@ C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle,vsmooth)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
-C$OMP& shared(pdvvisc,iflagtree)
+C$OMP& shared(pdvvisc,iflagtree,alphamin)
 C$OMP& private(j,k,deltat)
       DO j = 1, npart
          IF (iphase(j).GE.0) THEN
@@ -619,8 +619,8 @@ c                  dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
      &           dumvxyzu(4,j)=0.15
             IF (ifsvi.EQ.6) THEN
                DO k = 1, isizealphaMM
-                  dumalpha(k,j) = MIN(alphamax(k),alphaMM(k,j)+
-     &           deltat*f1ha(k+1,j))
+                  dumalpha(k,j) = MAX(MIN(alphamax(k),alphaMM(k,j)+
+     &           deltat*f1ha(k+1,j)),alphamin(k))
                ENDDO
             ENDIF
             IF (imhd.EQ.idim) THEN
@@ -641,7 +641,7 @@ C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle,vsmooth)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
-C$OMP& shared(pdvvisc,iflagtree)
+C$OMP& shared(pdvvisc,iflagtree,alphamin)
 C$OMP& private(j,k,ipart,deltat)
                DO j = 1, nlstbins(i)
                   ipart = listbins(j,i)
@@ -677,8 +677,9 @@ c            dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
      &           dumvxyzu(4,ipart)=0.15
                     IF (ifsvi.EQ.6) THEN
                        DO k = 1, isizealphaMM
-                          dumalpha(k,ipart) = MIN(alphamax(k),
-     &                       alphaMM(k,ipart)+deltat*f1ha(k+1,ipart))
+                          dumalpha(k,ipart) = MAX(MIN(alphamax(k),
+     &                       alphaMM(k,ipart)+deltat*f1ha(k+1,ipart)),
+     &                         alphamin(k))
                        ENDDO
                     ENDIF
                      IF (imhd.EQ.idim) THEN
@@ -726,7 +727,7 @@ C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle,vsmooth)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
-C$OMP& shared(iflagtree)
+C$OMP& shared(iflagtree,alphamin)
 C$OMP& private(j,k,l,deltat)
       DO j = npart + 1, npart + nghost
          IF (iphase(j).GE.0) THEN
@@ -769,8 +770,8 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
          IF (iener.EQ.2 .AND. dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
             IF (ifsvi.EQ.6) THEN
                DO l = 1, isizealphaMM
-                  dumalpha(l,j) = MIN(alphamax(l),alphaMM(l,k) +
-     &                                    deltat*f1ha(l+1,k))
+                  dumalpha(l,j) = MAX(MIN(alphamax(l),alphaMM(l,k) +
+     &                 deltat*f1ha(l+1,k)),alphamin(l))
                ENDDO
             ENDIF
             IF (imhd.EQ.idim) THEN
@@ -954,7 +955,7 @@ C$OMP& shared(torqv,torqc,it0,itime,imaxdens,cnormk,iener)
 C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,dumekcle,vsmooth)
 C$OMP& shared(ifsvi,alphaMM,alphamax,encal,dumBevolxyz,Bevolxyz)
-C$OMP& shared(pdvvisc)
+C$OMP& shared(pdvvisc,alphamin)
 C$OMP& private(i,j,k,dtfull,dtf21,dtf22,xold,yold,delvx,delvy,delvz)
 C$OMP& private(vxstore,vystore,dx,dy,delgx,delgy,delpx,delpy)
 C$OMP& private(delax,delay,extraxt,extrayt,extraxg,extrayg)
@@ -1122,8 +1123,8 @@ c--Update viscosity switch
 c
             IF (ifsvi.EQ.6) THEN
                DO k = 1, isizealphaMM
-                  alphaMM(k,i) = MIN(alphamax(k), alphaMM(k,i) +
-     &              dtf21*f1ha(k+1,i) + dtf22*f2ha(k+1,i))
+                  alphaMM(k,i) = MAX(MIN(alphamax(k), alphaMM(k,i) +
+     &              dtf21*f1ha(k+1,i) + dtf22*f2ha(k+1,i)),alphamin(k))
 
                   if (alphaMM(k,i).LE.0.) THEN
                      print *,' UPDATE ',i,iproc,alphaMM(k,i),k,
@@ -1317,7 +1318,7 @@ C$OMP& shared(npart,nghost,dt,itime,it0,it1,imaxstep,ireal)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
-C$OMP& shared(pdvvisc,iflagtree)
+C$OMP& shared(pdvvisc,iflagtree,alphamin)
 C$OMP& private(j,k,deltat)
       DO j = 1, npart
          IF (iphase(j).GE.0) THEN
@@ -1351,8 +1352,8 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
             IF (ifsvi.EQ.6) THEN
                DO k = 1, isizealphaMM
-                  dumalpha(k,j) = MIN(alphamax(k),alphaMM(k,j)+
-     &              deltat*f1ha(k+1,j))
+                  dumalpha(k,j) = MAX(MIN(alphamax(k),alphaMM(k,j)+
+     &              deltat*f1ha(k+1,j)),alphamin(k))
                ENDDO
             ENDIF
             IF (imhd.EQ.idim) THEN
@@ -1373,7 +1374,7 @@ C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,it1,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
-C$OMP& shared(pdvvisc,iflagtree)
+C$OMP& shared(pdvvisc,iflagtree,alphamin)
 C$OMP& private(j,k,ipart,deltat)
                DO j = 1, nlstbins(i)
                   ipart = listbins(j,i)
@@ -1409,8 +1410,9 @@ c           dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
      &                    dumvxyzu(4,ipart)=0.15
                      IF (ifsvi.EQ.6) THEN
                         DO k = 1, isizealphaMM
-                           dumalpha(k,ipart) = MIN(alphamax(k),
-     &                       alphaMM(k,ipart) + deltat*f1ha(k+1,ipart))
+                           dumalpha(k,ipart) = MAX(MIN(alphamax(k),
+     &                       alphaMM(k,ipart) + deltat*f1ha(k+1,ipart)),
+     &                          alphamin(k))
                         ENDDO
                      ENDIF
                      IF (imhd.EQ.idim) THEN
@@ -1459,7 +1461,7 @@ C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
-C$OMP& shared(iflagtree)
+C$OMP& shared(iflagtree,alphamin)
 C$OMP& private(j,k,l,deltat)
       DO j = npart + 1, npart + nghost
          IF (iphase(j).GE.0) THEN
@@ -1504,8 +1506,8 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
             IF (ifsvi.EQ.6) THEN
                DO l = 1, isizealphaMM
-                  dumalpha(l,j) = MIN(alphamax(l), alphaMM(l,k) 
-     &               + deltat*f1ha(l+1,k))
+                  dumalpha(l,j) = MAX(MIN(alphamax(l), alphaMM(l,k) 
+     &               + deltat*f1ha(l+1,k)),alphamax(l))
                ENDDO
             ENDIF
             IF (imhd.EQ.idim) THEN

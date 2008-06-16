@@ -1129,7 +1129,8 @@ c
                   if (alphaMM(k,i).LE.0.) THEN
                      print *,' UPDATE ',i,iproc,alphaMM(k,i),k,
      &                    dtf21*f1ha(k+1,i),dtf22*f2ha(k+1,i),
-     &                    f1ha(k+1,i),f2ha(k+1,i)
+     &                    f1ha(k+1,i),f2ha(k+1,i),alphamax(k),
+     &                    alphamin(k)
                      CALL quit
                   endif
                ENDDO

@@ -109,13 +109,21 @@ c--Single values
 c
 c--Default int
       READ (idisk1, END=100) number
+      print *,'number ints ',number
       IF (number.LT.6) THEN
          WRITE (*,*) 'ERROR 4 in rdump: not enough default ints'
          CALL quit
       ENDIF
+      ifix1 = 0
       IF (number.EQ.10+NTAB) THEN
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks,iyr,idum,nlistinactive,(iv(i), i=1,NTAB)
+         WRITE (*,*) 'ERROR - SERIOUS nlistinactive PROBLEM BEING FIXED'
+         ifix1 = 1
+      ELSEIF (number.EQ.9+NTAB) THEN
+         READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
+     &        nblocks,iyr,idum,(iv(i), i=1,NTAB)
+         print *,'USING 9+NTAB'
       ELSEIF (number.EQ.7) THEN
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks
@@ -130,13 +138,16 @@ c--Default int
 c--int*1, int*2, int*4, int*8
       DO i = 1, 3
          READ (idisk1, END=100) number
+         print *,'number int1,2,4 ',number
       END DO
       READ (idisk1, END=100) number
+      print *,'number int8 ',number
       IF (number.EQ.1) THEN
          READ (idisk1, END=100) iuniquemax
       ENDIF
 c--Default real
       READ (idisk1, END=100) number
+      print *,'number real ',number
       IF (number.LT.14) THEN
          WRITE (*,*) 'ERROR 5 in rdump: not enough default reals'
          CALL quit
@@ -378,11 +389,18 @@ c--Default int
          print *,iproc,': read isteps ',isteps(1)
 #endif
          IF (nums1(1).GE.2) THEN
-            READ (idisk1, END=100) (listinactive(i), i=icount+1, 
-     &           icount+nhydro)
+            IF (ifix1.EQ.1) THEN
+               READ (idisk1, END=100) (listinactive(i), i=icount+1, 
+     &              icount+nhydro)
+            ELSE
+               READ (idisk1, END=100) nlistinactive,
+     &              (listinactive(i), i=icount+1,icount+nhydro-1)
+               print *,'READ nlistinactive ',nlistinactive
+            ENDIF
          ENDIF
 c--int*1
          READ (idisk1, END=100) (iphase(i), i=icount+1, icount+nhydro)
+         print *,'iphases ',iphase(1),iphase(nhydro)
 c--int*2
 
 c--int*4
@@ -451,7 +469,8 @@ c--real*4
             IF (gt.NE.0.0 .AND. ifsvi.EQ.6) THEN
                DO i = icount+1, icount+nhydro
                   IF (alphaMM(1,i).LE.0.) THEN
-                     WRITE (*,*) 'ERROR in rdump - alphaMM(1,i).LE.0'
+                     WRITE (*,*) 'ERROR in rdump - alphaMM(1,i).LE.0 ',
+     &                    i,(alphaMM(1,j),j=1,10)
                      CALL quit
                   ENDIF
                END DO
@@ -706,6 +725,20 @@ c     line in the code.  Done 21 Nov 2000.
 c
       IF (itiming) CALL getused(tsort1)
 
+      IF (ifix1.EQ.1) THEN
+         print *,iproc,': nlistinactive read from file: ',nlistinactive
+
+         icountinactive = 0
+         DO i = 1, npart
+            IF (iphase(i).EQ.-1) icountinactive = icountinactive + 1
+         END DO
+
+         print *,iproc,': nlistinactive found ',icountinactive
+         nlistinactive = icountinactive
+      ENDIF
+c
+c--Avoid sorting (or not)
+c
       xminimum = 1.0E+30
       xmaximum = -1.0E+30
       DO i = 1, npart
@@ -831,6 +864,12 @@ c
       END DO
       DO i = 1, nlistinactive
          listinactive(i) = isort(itempsort(i))
+         IF (iphase(listinactive(i)).NE.-1) THEN
+            WRITE (*,*) 'ERROR - sorting listinactive ',i,
+     &           iphase(listinactive(i)),
+     &           listinactive(i)
+            STOP
+         ENDIF
       END DO
 
       IF (itiming) THEN
@@ -932,6 +971,10 @@ c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
       WRITE(*,*) 'END OF FILE REACHED IN RDUMP'
       ichkl = 1
 
+      DO i = 1, 10
+         print *,iproc,' alphaMM ',alphaMM(1,i)
+      END DO
+
       RETURN
       END
 
@@ -939,9 +982,9 @@ c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
 c============================================================
 
 #ifdef MPI
-      SUBROUTINE split(npart,n1,icount,nhydro,isteps,iphase,xyzmh,
-     &     vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,iunique,ekcle,
-     &     listpm,spinx,spiny,spinz,angaddx,angaddy,angaddz,
+      SUBROUTINE split(npart,n1,nptmass,icount,nhydro,isteps,iphase,
+     &     xyzmh,vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,iunique,
+     &     ekcle,listpm,spinx,spiny,spinz,angaddx,angaddy,angaddz,
      &     spinadx,spinady,spinadz)
 c************************************************************
 c                                                           *

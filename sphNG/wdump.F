@@ -182,11 +182,11 @@ c      IF (iproc.EQ.0) THEN
 c#endif
 c
 c--Default int
-      number = 10 + NTAB
+      number = 9 + NTAB
       WRITE (idisk1, ERR=100) number
       WRITE (idisk1, ERR=100) nparttot,n1tot,n2tot,nreassigntot,
      &     naccretetot,nkilltot,nblocks,iyr,idum,
-     &     nlistinactive,(iv(i),i=1,NTAB)
+     &     (iv(i),i=1,NTAB)
 
 c--int*1, int*2, int*4
       number = 0
@@ -337,8 +337,8 @@ c--Default int
       DO i = nlistinactive + 1, nprint
          listinactive(i) = 1
       END DO
-      WRITE (idisk1, ERR=100) (iorig(listinactive(i)),  
-     &     i=1, nprint)
+      WRITE (idisk1, ERR=100) nlistinactive,(iorig(listinactive(i)),  
+     &     i=1, nprint-1)
 c--int*1
       WRITE (idisk1, ERR=100) (iphase(isort(i)), i=1, nprint)
 c--int*2
@@ -766,8 +766,9 @@ c     line in the code.  Done 21 Nov 2000.
 c
       IF (itiming) CALL getused(tsort1)
 
+c      IF (gt.EQ.0. .OR. iresort.LT.2) GOTO 777
       IF (gt.EQ.0.) GOTO 777
-c      GOTO 777
+      GOTO 777
 
       iresort = 0
 

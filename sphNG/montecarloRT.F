@@ -73,11 +73,6 @@ c--Only perform radiative transfer if ptmass exist, otherwise don't modify u()
 
 c Pass array of sph temperatures to torus to use as initial conditions
 
-         IF ( encal /= 'v' ) THEN 
-            print *, "sphtorus needs encal=v at present"
-            STOP
-         END IF
-
          igas = 0
          totalgasmass = 0.0
          DO i=1,npart
@@ -95,13 +90,11 @@ c Pass array of sph temperatures to torus to use as initial conditions
 
 c     
 c--Call torus for Monte-Carlo radiative transfer     
-c  The mass on the grid is calculated using trho and gaspartmass
-c  is not used so it doesn't matter that gaspartmass varies. 
 
          CALL torus(idim,  npart, nactive, nptmass, num_gas, 
      &              xyzmh, trho,  iphase, 
      &              udist, umass, utime, 
-     &              time,  gaspartmass(1), temperature(1:num_gas) )
+     &              time,  temperature(1:num_gas) )
 c     
 c--Set thermal energy of gas particles using torus's temperatures     
 c     

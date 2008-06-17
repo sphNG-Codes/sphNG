@@ -27,12 +27,13 @@
       REAL, INTENT(IN)    :: time
 
 ! Local variables
-      INTEGER       :: i, igas, ierr
-      REAL          :: temperature(npart), gaspartmass(npart)
-      REAL          :: totalgasmass
-      LOGICAL, save :: ifirst = .true.
+      INTEGER         :: i, igas, ierr
+      REAL            :: temperature(npart)
+      REAL            :: totalgasmass
+      REAL, PARAMETER :: temp_min=10.0 ! Minimum allowed temperature
+      LOGICAL, save   :: ifirst = .true.
 
-
+! For conversion between internal energy and temperature
       REAL :: TempToU, uToTemp
 
 ! Time interval between torus calls
@@ -79,8 +80,7 @@ c Pass array of sph temperatures to torus to use as initial conditions
             IF ( iphase(i) == 0 ) THEN 
                igas = igas + 1
                temperature(igas) = vxyzu(4,i) * uToTemp
-               gaspartmass(igas) = xyzmh(4,i)
-               totalgasmass = totalgasmass + gaspartmass(igas)
+               totalgasmass = totalgasmass + xyzmh(4,i)
             END IF
          END DO
          num_gas = igas
@@ -94,13 +94,15 @@ c--Call torus for Monte-Carlo radiative transfer
          CALL torus(idim,  npart, nactive, nptmass, num_gas, 
      &              xyzmh, trho,  iphase, 
      &              udist, umass, utime, 
-     &              time,  temperature(1:num_gas) )
+     &              time,  temperature(1:num_gas), temp_min )
 c     
 c--Set thermal energy of gas particles using torus's temperatures     
 c     
+         igas = 0
          DO i=1, npart
             IF ( iphase(i) == 0 ) THEN 
-               vxyzu(4,i) =  MAX(temperature(igas),10.0) * TempToU
+               igas = igas + 1
+               vxyzu(4,i) =  MAX(temperature(igas),temp_min) * TempToU
             END IF
          END DO
          

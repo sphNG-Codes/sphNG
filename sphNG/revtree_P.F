@@ -24,10 +24,10 @@ c************************************************************
 
       DIMENSION listpar(idim),listparnew(idim)
 
-c#ifdef _OPENMP
+#ifdef _OPENMP
       INTEGER*8 forcei_lock,revtree_lock
       COMMON /locks / forcei_lock(idim),revtree_lock
-c#endif
+#endif
 
       natom = nnatom
 
@@ -336,17 +336,17 @@ C$OMP DO SCHEDULE(static)
             iparent = isibdaupar(3,ipart)
 
             IF (iparent.NE.0) THEN
-c#ifdef _OPENMP
+#ifdef _OPENMP
                CALL OMP_SET_LOCK(revtree_lock)
-c#endif
+#endif
                IF (.NOT.iflagtree(iparent)) THEN
                   iflagtree(iparent) = .TRUE.
                   nlistpar = nlistpar + 1
                   listpar(nlistpar) = iparent
                ENDIF
-c#ifdef _OPENMP
+#ifdef _OPENMP
                CALL OMP_UNSET_LOCK(revtree_lock)
-c#endif
+#endif
             ENDIF
 
             IF (ipart.GT.npart .OR. iphase(ipart).EQ.-1 .OR.
@@ -391,17 +391,17 @@ c            print *,i
 
             iparent = isibdaupar(3,new)
             IF (iparent.NE.0) THEN
-c#ifdef _OPENMP
+#ifdef _OPENMP
                CALL OMP_SET_LOCK(revtree_lock)
-c#endif
+#endif
                IF (.NOT.iflagtree(iparent)) THEN
                   iflagtree(iparent) = .TRUE.
                   nlistparnew = nlistparnew + 1
                   listparnew(nlistparnew) = iparent
                ENDIF
-c#ifdef _OPENMP
+#ifdef _OPENMP
                CALL OMP_UNSET_LOCK(revtree_lock)
-c#endif
+#endif
             ENDIF
 
             l = isibdaupar(2,new)

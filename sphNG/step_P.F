@@ -602,9 +602,7 @@ C$OMP& private(j,k,deltat)
             DO k = 1, 3
                dumvxyzu(k,j) = vxyzu(k,j) + deltat*f1vxyzu(k,j)
             END DO
-            IF (encal.NE.'r' .AND. encal.NE.'m') THEN 
-               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
-            ELSE
+            IF (encal.EQ.'r') THEN 
                dumvxyzu(4,j) = vxyzu(4,j)
 
                pdvvisc(j) = deltat*f1vxyzu(4,j)
@@ -614,6 +612,10 @@ c                  dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
                DO k = 1, 5
                   dumekcle(k,j) = ekcle(k,j)
                END DO
+            ELSEIF (encal.EQ.'m') THEN
+               dumvxyzu(4,j) = vxyzu(4,j)
+            ELSE
+               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
             ENDIF
             IF (iener.EQ.2 .AND. dumvxyzu(4,j).LT.0.0) 
      &           dumvxyzu(4,j)=0.15
@@ -660,9 +662,7 @@ C$OMP& private(j,k,ipart,deltat)
                      DO k = 1, 3
             dumvxyzu(k,ipart) = vxyzu(k,ipart) + deltat*f1vxyzu(k,ipart)
                      END DO
-                     IF (encal.NE.'r' .AND. encal.NE.'m') THEN
-            dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
-                     ELSE
+                     IF (encal.EQ.'r') THEN
                         dumvxyzu(4,ipart) = vxyzu(4,ipart)
 
                         pdvvisc(ipart) = deltat*f1vxyzu(4,ipart)
@@ -672,6 +672,10 @@ c            dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                         DO k = 1, 5
                            dumekcle(k,ipart) = ekcle(k,ipart)
                         END DO
+                     ELSEIF (encal.EQ.'m') THEN
+                        dumvxyzu(4,ipart) = vxyzu(4,ipart)
+                     ELSE
+            dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                      ENDIF
             IF (iener.EQ.2 .AND. dumvxyzu(4,ipart).LT.0.0) 
      &           dumvxyzu(4,ipart)=0.15
@@ -746,9 +750,7 @@ C$OMP& private(j,k,l,deltat)
             DO l = 1, 3
                dumvxyzu(l,j) = vxyzu(l,j)
             END DO
-            IF (encal.NE.'r' .AND. encal.NE.'m') THEN
-               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
-            ELSE
+            IF (encal.EQ.'r') THEN
                dumvxyzu(4,j) = vxyzu(4,j)
 
 
@@ -766,6 +768,10 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                DO l = 1, 5
                   dumekcle(l,j) = ekcle(l,j)
                END DO
+            ELSEIF (encal.EQ.'m') THEN
+               dumvxyzu(4,j) = vxyzu(4,j)
+            ELSE
+               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
             ENDIF
          IF (iener.EQ.2 .AND. dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
             IF (ifsvi.EQ.6) THEN
@@ -1094,18 +1100,18 @@ c     &              dtf22*f2vxyzu(4,i),dumvxyzu(4,i)- vxyzu(4,i)
 c               print *,' '
 c            ENDIF
 
-            IF (encal.NE.'r' .AND. encal.NE.'m') THEN
-               vxyzu(4,i) = vxyzu(4,i) + 
-     &           dtf21*f1vxyzu(4,i) + dtf22*f2vxyzu(4,i)
-            ELSE
-
+            IF (encal.EQ.'r') THEN
                pdvvisc(i) = dtf21*f1vxyzu(4,i) + dtf22*f2vxyzu(4,i)
 
 cccc               vxyzu(4,i) = dumvxyzu(4,i)
 
 cc               vxyzu(4,i) = vxyzu(4,i) + 
 cc     &           dtf21*f1vxyzu(4,i) + dtf22*f2vxyzu(4,i)
-
+            ELSEIF (encal.EQ.'m') THEN
+               vxyzu(4,i) = dumvxyzu(4,i)
+            ELSE
+               vxyzu(4,i) = vxyzu(4,i) + 
+     &           dtf21*f1vxyzu(4,i) + dtf22*f2vxyzu(4,i)
             ENDIF
 
             IF (iener.EQ.2 .AND. vxyzu(4,i).LT.0.0) vxyzu(4,i)=0.15
@@ -1126,7 +1132,7 @@ c
                   alphaMM(k,i) = MAX(MIN(alphamax(k), alphaMM(k,i) +
      &              dtf21*f1ha(k+1,i) + dtf22*f2ha(k+1,i)),alphamin(k))
 
-                  if (alphaMM(k,i).LE.0.) THEN
+                  if (alphaMM(k,i).LT.0.) THEN
                      print *,' UPDATE ',i,iproc,alphaMM(k,i),k,
      &                    dtf21*f1ha(k+1,i),dtf22*f2ha(k+1,i),
      &                    f1ha(k+1,i),f2ha(k+1,i),alphamax(k),
@@ -1337,9 +1343,7 @@ C$OMP& private(j,k,deltat)
             DO k = 1, 3
                dumvxyzu(k,j) = vxyzu(k,j) + deltat*f1vxyzu(k,j)
             END DO
-            IF (encal.NE.'r' .AND. encal.NE.'m') THEN
-               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
-            ELSE
+            IF (encal.EQ.'r') THEN
                dumvxyzu(4,j) = vxyzu(4,j)
 
                IF (it1(j).EQ.itime) pdvvisc(j) = deltat*f1vxyzu(4,j)
@@ -1349,6 +1353,10 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
                DO k = 1, 5
                   dumekcle(k,j) = ekcle(k,j)
                END DO
+            ELSEIF (encal.EQ.'m') THEN
+               dumvxyzu(4,j) = vxyzu(4,j)
+            ELSE
+               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
             ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
             IF (ifsvi.EQ.6) THEN
@@ -1394,9 +1402,7 @@ C$OMP& private(j,k,ipart,deltat)
                      DO k = 1, 3
            dumvxyzu(k,ipart) = vxyzu(k,ipart) + deltat*f1vxyzu(k,ipart)
                      END DO
-                     IF (encal.NE.'r' .AND. encal.NE.'m') THEN
-           dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
-                     ELSE
+                     IF (encal.EQ.'r') THEN
                         dumvxyzu(4,ipart) = vxyzu(4,ipart)
 
        IF (it1(ipart).EQ.itime) pdvvisc(ipart) = deltat*f1vxyzu(4,ipart)
@@ -1406,6 +1412,10 @@ c           dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                         DO k = 1, 5
                            dumekcle(k,ipart) = ekcle(k,ipart)
                         END DO
+                     ELSEIF (encal.EQ.'m') THEN
+                        dumvxyzu(4,ipart) = vxyzu(4,ipart)
+                     ELSE
+           dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                      ENDIF
                      IF (iener.EQ.2 .AND. dumvxyzu(4,ipart).LT.0.0) 
      &                    dumvxyzu(4,ipart)=0.15
@@ -1481,9 +1491,7 @@ C$OMP& private(j,k,l,deltat)
             DO l = 1, 3
                dumvxyzu(l,j) = vxyzu(l,j)
             END DO
-            IF (encal.NE.'r' .AND. encal.NE.'m') THEN
-               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
-            ELSE
+            IF (encal.EQ.'r') THEN
                dumvxyzu(4,j) = vxyzu(4,j)
 
 
@@ -1503,6 +1511,10 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                DO l = 1, 5
                   dumekcle(l,j) = ekcle(l,j)
                END DO
+            ELSEIF (encal.EQ.'m') THEN
+               dumvxyzu(4,j) = vxyzu(4,j)
+            ELSE
+               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
             ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
             IF (ifsvi.EQ.6) THEN
@@ -2293,13 +2305,15 @@ c
                   DO l = 1, 3
                      dumvxyzu(l,j) = vxyzu(l,j)
                   END DO
-                  IF (encal.NE.'r' .AND. encal.NE.'m') THEN
-                     dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
-                  ELSE
+                  IF (encal.EQ.'r') THEN
                      dumvxyzu(4,j) = vxyzu(4,j)
                      DO l = 1, 5
                         dumekcle(l,j) = ekcle(l,j)
                      END DO
+                  ELSEIF (encal.EQ.'m') THEN
+                     dumvxyzu(4,j) = vxyzu(4,j)
+                  ELSE
+                     dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                   ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                   IF (ifsvi.EQ.6) THEN
@@ -2516,13 +2530,15 @@ c
                   DO l = 1, 3
                      dumvxyzu(l,j) = vxyzu(l,j)
                   END DO
-                  IF (encal.NE.'r' .AND. encal.NE.'m') THEN
-                     dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
-                  ELSE
+                  IF (encal.EQ.'r') THEN
                      dumvxyzu(4,j) = vxyzu(4,j)
                      DO l = 1, 5
                         dumekcle(l,j) = ekcle(l,j)
                      END DO
+                  ELSEIF (encal.EQ.'m') THEN
+                     dumvxyzu(4,j) = vxyzu(4,j)
+                  ELSE
+                     dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                   ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                   IF (ifsvi.EQ.6) THEN

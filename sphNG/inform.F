@@ -269,7 +269,6 @@ c
             trcen1 = (ekcle(1,imin)*rocen1/uradconst)**0.25
          ELSEIF (encal.EQ.'m') THEN
             tgcen1 = vxyzu(4,imin)/getcv(rho(imin),vxyzu(4,imin))
-            trcen1 = (ekcle(1,imin)*rocen1/uradconst)**0.25
          ENDIF
       ENDIF
 

@@ -265,7 +265,7 @@ SRCNONGRADH= densityi_P.f derivi_P.f forcei_P.F hcalc.f
 
 # these are the extra routines required for the radiative transfer code to compile
         
-SRCRT= ass.f newgsimpl_MPI.f quartic_gs1t.f
+SRCRT= ass.f RT/newgsimpl_MPI.f quartic_gs1t.f
 
 # these are the extra routines required for Monte-Carlo radiative transfer
         
@@ -273,7 +273,7 @@ SRCTORUS= montecarloRT.F
 
 # timestepping routine
 
-SRCRK = step_P.F revtree_P.f
+SRCRK = step_P.F revtree_P.F
 SRCLF = step_P_lf_fast2_gradh.F revtree_P_fast3.f timestep.F
 
 # construct object files

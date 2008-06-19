@@ -21,7 +21,7 @@ SHELL = /bin/sh
 
 # can comment out the following lines and instead set
 # the parameters as environment variables
-#DEBUG= no
+DEBUG= no
 DOUBLEPRECISION= yes
 #openmp = yes
 #mpi = yes
@@ -266,6 +266,7 @@ SRCNONGRADH= densityi_P.f derivi_P.f forcei_P.F hcalc.f
 # these are the extra routines required for the radiative transfer code to compile
         
 SRCRT= ass.f RT/newgsimpl_MPI.f quartic_gs1t.f
+SRCNORT = ass_dummy.f
 
 # these are the extra routines required for Monte-Carlo radiative transfer
         
@@ -282,10 +283,10 @@ TOBJECTS = $(SOURCES:.f=.o) $(ZZFILE:.f=.o)
 TOBJLF = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCLF:.f=.o)
 TOBJRK = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o)
 TOBJRT = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o)
-TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o)
-TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o)
+TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRNORT:.f=.o)
+TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRNORT:.f=.o)
 TOBJGRADHRKRT = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o)
-TOBJTORUS = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCTORUS:.f=.o)
+TOBJTORUS = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRNORT:.f=.o) $(SRCTORUS:.f=.o)
 
 OBJECTS = $(TOBJECTS:.F=.o) 
 OBJLF = $(TOBJLF:.F=.o) 

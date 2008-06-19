@@ -889,7 +889,11 @@ c
 99012       FORMAT (' Enter total mass of system in units of ',1pe14.5,
      &           ' solar masses')
             READ (*, *) totmas
-            partm = totmas/(npart - nptmass)
+            IF (igeomorig.EQ.8) THEN
+               partm = totmas/(n1 - nptmass)
+            ELSE
+               partm = totmas/(npart - nptmass)
+            ENDIF
          ELSEIF (ichmass.EQ.2) THEN
             WRITE (*, 99013) umassr
 99013       FORMAT (' Enter particle masses in units of ',1pe14.5,

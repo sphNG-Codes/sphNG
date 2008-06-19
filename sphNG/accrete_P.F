@@ -914,7 +914,7 @@ c--Update initialptm
 c
          CALL MPI_ALLREDUCE(initialptm,initialnew,1,MPI_INTEGER,MPI_MAX,
      &        MPI_COMM_WORLD,ierr)
-         initialnew = initialptm
+         initialptm = initialnew
       ENDIF
 #ifdef MPIDEBUGS
       print *,iproc,': CREATE FINISHED: nptmass, numberacclocal ',

@@ -1,0 +1,3 @@
+      COMMON /rad2/ dlnTdlnP(iradtrans),adiabaticgradient(iradtrans)
+
+      REAL*4 dlnTdlnP,adiabaticgradient

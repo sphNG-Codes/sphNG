@@ -30,7 +30,7 @@
       INTEGER         :: i, igas, ierr
       REAL            :: temperature(npart)
       REAL            :: totalgasmass
-      REAL, PARAMETER :: temp_min=10.0 ! Minimum allowed temperature
+      REAL, PARAMETER :: temp_min=3.0 ! Minimum allowed temperature
       LOGICAL, save   :: ifirst = .true.
 
 ! For conversion between internal energy and temperature

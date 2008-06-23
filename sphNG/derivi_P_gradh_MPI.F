@@ -706,9 +706,9 @@ ccc         print 99555,iproc,icall,thermalenergy,radenergy,
 ccc     &        thermalenergy+radenergy
 ccc99555    FORMAT(I2,': ENER-B ',I1,1PE14.7,1PE14.7,1PE14.7)
 
-         CALL quit
-c         CALL ASS(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
-c     &        xyzmh,vxyzu,ekcle,dumrho,dedxyz,alphaMM)
+c         CALL quit
+         CALL ASS(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
+     &        xyzmh,vxyzu,ekcle,dumrho,dedxyz,alphaMM)
 
 ccc         thermalenergy = 0.
 ccc         radenergy = 0.

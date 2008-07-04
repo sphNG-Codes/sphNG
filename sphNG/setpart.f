@@ -145,6 +145,8 @@ c
             iphase(2) = ipttype
             listpm(1) = 1
             listpm(2) = 2
+            listrealpm(1) = 1
+            listrealpm(2) = 2
             ra = semiaxis*(1.0+eccent)
             xyzmh(4,1) = bmass/qratio1
             xyzmh(4,2) = qratio*xyzmh(4,1)
@@ -182,6 +184,7 @@ c
                npart = npart + 1
                iphase(npart) = ipttype
                listpm(i) = npart
+               listrealpm(npart) = i
                WRITE (*, 99087) 
 99087          FORMAT (' Enter positions (x,y,z)')
                READ (*,*) tx,ty,tz

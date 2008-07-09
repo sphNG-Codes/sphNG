@@ -1558,7 +1558,7 @@ c      CALL quit
       END
 
 
-      SUBROUTINE extrapolate(j,dt,itime,trho,vxyzu,pr,vsound,iphase,
+      SUBROUTINE extrapolate(j,dt,itime,trho,vxyzu,pr,vsound,
      &                       ekcle,Bxyz,Bevolxyz)
 c************************************************************
 c                                                           *

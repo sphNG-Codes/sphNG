@@ -2105,7 +2105,7 @@ c
          CALL treef(ipart,npart,ntot,xyzmh,acc,igphi,fsx,fsy,fsz,epot)
 #ifdef MPI
 #else
-         IF (iphase(ipart).GE.1) THEN
+         IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
             iptcur = listrealpm(ipart)
             IF (listpm(iptcur).NE.ipart) THEN
                WRITE (*,*) 'ERROR - listpm(iptcur).NE.ipart'

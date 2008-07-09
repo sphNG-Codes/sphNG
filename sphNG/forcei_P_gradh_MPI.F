@@ -334,11 +334,15 @@ ccc         CALL treef(ipart,npart,ntot,xyzmh,acc,0,fxi,fyi,fzi,poteni)
          IF (iphase(ipart).EQ.-1) THEN
             WRITE(iprint,*) 'Error: Force for non-existant particle'
             CALL quit
-         ELSEIF (iphase(ipart).GE.1) THEN
+c
+c--For sink particles do not need pressure, viscous & gravity softening forces
+c
+         ELSEIF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
             GOTO 80
          ENDIF
 
-         IF (icall.EQ.3 .AND. n.LE.nlst_end) THEN
+         IF (iphase(ipart).EQ.0 .AND. icall.EQ.3 .AND. 
+     &        n.LE.nlst_end) THEN
 ccc            numneigh = nneigh(ipart)
             numneigh = ivar(1,n)
             inmin = MIN(inmin,numneigh)
@@ -376,7 +380,7 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
          sqrtrho1i = SQRT(rho1i)
          rho21i = rho1i*rho1i         
 
-         IF (imhd.EQ.idim) THEN
+         IF (imhd.EQ.idim .AND. iphase(ipart).EQ.0) THEN
             Bxi = Bxyz(1,ipart)
             Byi = Bxyz(2,ipart)
             Bzi = Bxyz(3,ipart)
@@ -450,7 +454,7 @@ c            ENDIF
 
 c         IF (ipart.GT.ntot) print *,iprocdebug,': D4 ',n,k
 
-            IF (iphase(j).GE.1) GOTO 70
+            IF (iphase(j).GE.1 .AND. iphase(j).LT.10) GOTO 70
 
             IF (iphase(j).EQ.-1) THEN
                WRITE(iprint,*)'ERROR - Accreted particle as neighbour!'
@@ -466,7 +470,7 @@ c
             dy = yi - xyzmh(2,j)
             dz = zi - xyzmh(3,j)
 #ifdef PERIODIC_NO_GHOSTS
-            IF (imhd.EQ.idim) THEN
+            IF (imhd.EQ.idim .AND, iphase(j).EQ.0) THEN
                IF (varmhd.EQ.'eulr') THEN
                   dBevolx = Bevolxi - Bevolxyz(1,j)
                   dBevoly = Bevolyi - Bevolxyz(2,j)
@@ -506,7 +510,8 @@ c
             rhoj = trho(j)
             rho1j = 1./rhoj
             robar1 = 2./(rhoi + rhoj)
-            IF (imhd.EQ.idim) THEN
+            IF (imhd.EQ.idim .AND. iphase(ipart).EQ.0 .AND. 
+     &                                            iphase(j).EQ.0) THEN
                Bxj = Bxyz(1,j)
                Byj = Bxyz(2,j)
                Bzj = Bxyz(3,j)
@@ -605,7 +610,8 @@ c
                   dsoftterm = 0.5*grkerni*gradsofti
                ENDIF
 
-               IF (imhd.EQ.idim) THEN
+               IF (imhd.EQ.idim .AND. iphase(ipart).EQ.0 .AND.
+     &                                           iphase(j).EQ.0) THEN
 c
 c--time derivative terms
 c
@@ -655,7 +661,8 @@ c     &                               (dBx*runiy - dBy*runix)
 c
 c--If i and j are not across a sink particle
 c
-               IF (inosink) THEN
+               IF (inosink .AND. iphase(ipart).EQ.0 .AND. 
+     &              iphase(j).EQ.0) THEN
 c
 c--Add terms to particle i
 c-------------------------
@@ -1039,7 +1046,8 @@ c
 c
 c--If i and j are not across a sink particle
 c
-                  IF (inosink) THEN
+                  IF (inosink .AND. iphase(ipart).EQ.0 .AND.
+     &                                        iphase(j).EQ.0) THEN
 c
 c--Add terms to particle i
 c-------------------------
@@ -1266,6 +1274,10 @@ c
             dgrav(ipart) = 0.
          ENDIF
 c
+c--The force contributions below only apply to gas particles
+c
+         IF (iphase(ipart).EQ.0) THEN
+c
 c--Pressure gradients
 c
          IF (igrp.NE.0) THEN
@@ -1408,6 +1420,11 @@ c
             ENDIF
          ENDIF
 c
+c--END for: force contributions that only apply to gas particles
+c
+         ENDIF
+
+c
 c--Forces that operate on both sink particles and gas from here on:
 c
  80      CONTINUE
@@ -1542,7 +1559,7 @@ c      CALL quit
 
 
       SUBROUTINE extrapolate(j,dt,itime,trho,vxyzu,pr,vsound,ekcle,
-     &                       Bxyz,Bevolxyz)
+     &                       Bxyz,Bevolxyz,iphase)
 c************************************************************
 c                                                           *
 c  This subroutine extrapolates the density and quantities  *
@@ -1562,6 +1579,7 @@ c************************************************************
       DIMENSION ekcle(5,iradtrans)
       DIMENSION Bxyz(3,imhd)
       DIMENSION Bevolxyz(3,imhd)
+      DIMENSION iphase(idim)
       
       IF (it1(j).EQ.imax) THEN
          deltat = dt*(itime - it0(j) - isteps(j)/2)/imaxstep
@@ -1579,29 +1597,32 @@ c
 
       trho(j) = rho(j) + deltarho
       
-      IF (imhd.EQ.idim) THEN
+      IF (iphase(j).EQ.0) THEN
+
+         IF (imhd.EQ.idim) THEN
 c
 c--use interpolated density to update B from B/rho if necessary
 c  (NB the equivalent is not done for the Euler potentials as this
 c   would involve too much work - so they are slightly wrong but
 c   hopefully not much)
 c
-         IF (varmhd.EQ.'Brho') THEN
-            Bxyz(1,j) = Bevolxyz(1,j)*trho(j)
-            Bxyz(2,j) = Bevolxyz(2,j)*trho(j)
-            Bxyz(3,j) = Bevolxyz(3,j)*trho(j)
+            IF (varmhd.EQ.'Brho') THEN
+               Bxyz(1,j) = Bevolxyz(1,j)*trho(j)
+               Bxyz(2,j) = Bevolxyz(2,j)*trho(j)
+               Bxyz(3,j) = Bevolxyz(3,j)*trho(j)
+            ENDIF
          ENDIF
-      ENDIF
 c
 c--For radiative transfer, need to update extrapolated cv and kappa
 c
-      IF (encal.EQ.'r') THEN
-         ekcle(3,j) = GETCV(trho(j),vxyzu(4,j))
-         ekcle(2,j) = GETKAPPA(vxyzu(4,j),ekcle(3,j),trho(j))
+         IF (encal.EQ.'r') THEN
+            ekcle(3,j) = GETCV(trho(j),vxyzu(4,j))
+            ekcle(2,j) = GETKAPPA(vxyzu(4,j),ekcle(3,j),trho(j))
+         ENDIF
+
+         CALL eospg(j, vxyzu, trho, pr, vsound, ekcle)
       ENDIF
 
-      CALL eospg(j, vxyzu, trho, pr, vsound, ekcle)
-
       RETURN
-      
+
       END

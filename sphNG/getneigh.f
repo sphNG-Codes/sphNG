@@ -14,7 +14,7 @@ c
 ccc      nlist = 0
 
       DO i = 1, ntot
-         IF (iphase(i).EQ.0) THEN
+         IF (iphase(i).EQ.0 .OR. iphase(i).GE.10) THEN
             dx = xyzmh(1,ipart) - xyzmh(1,i)
             dy = xyzmh(2,ipart) - xyzmh(2,i)
             dz = xyzmh(3,ipart) - xyzmh(3,i)

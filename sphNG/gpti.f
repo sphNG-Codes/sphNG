@@ -69,11 +69,12 @@ c--Add forces
 c
 c--The force definition:
 c
-         IF(iphase(ipart).EQ.0 .OR. iptsoft.EQ.0) THEN 
+         IF(iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10
+     &        .OR. iptsoft.EQ.0) THEN 
             rr05 = SQRT(rr)
             fff = pmassipt/(rr*rr05)
             potn = pmassipt/rr05
-         ELSEIF (iphase(ipart).GE.1) THEN
+         ELSEIF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
 c
 c--Non-pointmass force
 c

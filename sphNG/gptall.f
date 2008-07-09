@@ -55,7 +55,7 @@ c
          hipt = xyzmh(5,ipt)
          neigh = 0
          DO 101 j = 1, npart
-            IF(iphase(j).GE.1 .AND. j.LE.ipt 
+            IF(iphase(j).GE.1 .AND. iphase(j).LT.10 .AND. j.LE.ipt 
      &                                .OR. iphase(j).EQ.-1) GOTO 101
             pmassj = xyzmh(4,j)
      
@@ -84,7 +84,7 @@ c
                rr05 = SQRT(rr)
                fff = pmassj/(rr*rr05)
                potn = pmassj/rr05
-            ELSEIF (iphase(j).GE.1) THEN
+            ELSEIF (iphase(j).GE.1 .AND. iphase(j).LT.10) THEN
 c
 c--Non-pointmass force
 c

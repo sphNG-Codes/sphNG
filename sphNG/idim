@@ -2,7 +2,7 @@
       INTEGER mmax, iradtrans, imhd, imhdxsph, isizealphaMM
       REAL tiny
 
-      PARAMETER (idim=201000)
+      PARAMETER (idim=7501000)
 c#ifdef MPI
       PARAMETER (idim2 = 2*idim)
 c#else
@@ -14,11 +14,11 @@ c#endif
       PARAMETER (mmax=2*idim + 2)
 
 c--Flag for using grad-h version of code is nlmax=1
-      PARAMETER (nlmax = 90)
-c      PARAMETER (nlmax = 1)
+c      PARAMETER (nlmax = 90)
+      PARAMETER (nlmax = 1)
 
-c      PARAMETER (iradtrans=idim)
-      PARAMETER (iradtrans=1)
+      PARAMETER (iradtrans=idim)
+c      PARAMETER (iradtrans=1)
 
 c      PARAMETER (imhd=idim)
       PARAMETER (imhd=1)

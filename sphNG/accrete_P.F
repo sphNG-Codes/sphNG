@@ -2055,7 +2055,7 @@ c
             iaccr = 1
             DO iii = 1, nptmass
                iptm = listpm(iii)
-               IF (iphase(iptm).GE.1) THEN
+               IF (iphase(iptm).GE.1 .AND. iphase(iptm).LT.10) THEN
                   icount = icount + 1
                   listpm(icount) = listpm(iii)
                   listrealpm(iptm) = icount

@@ -64,9 +64,10 @@ c
 c
 c--Point masses no longer in tree - gravity and neighbours done in gforspt.f
 c
-      IF (iphase(m).GE.1 .AND. iptintree.EQ.0) GOTO 900
+      IF (iphase(m).GE.1 .AND. iphase(m).LT.10 .AND. 
+     &                                     iptintree.EQ.0) GOTO 900
 
-      IF (iphase(m).GE.1) THEN
+      IF (iphase(m).GE.1 .AND. iphase(m).LT.10) THEN
          nptmasssearch = nptmass
          IF (m.GT.npart) nptmasssearch = nptmasslocal
          DO i = 1, nptmasssearch
@@ -167,7 +168,8 @@ c
                   nstack(istack) = isibdaupar(1,j)
                ELSEIF (
 c     &         (icall.EQ.1 .OR. m.GT.ntot) .AND. 
-     &         (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iptintree.EQ.1))
+     &         (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iphase(m).LT.10
+     &                 .AND. iptintree.EQ.1))
      &                 .AND. accpar*rr.LT.qrr) THEN
                   j = isibdaupar(2,n)
                   istack = istack + 1
@@ -175,7 +177,8 @@ c     &         (icall.EQ.1 .OR. m.GT.ntot) .AND.
                   istack = istack + 1
                   nstack(istack) = isibdaupar(1,j)
 c               ELSEIF (icall.NE.1 .AND. (m.LE.ntot) .AND.
-c     &         (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iptintree.EQ.1))
+c     &         (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iphase(m).LT.10
+c     &         .AND. iptintree.EQ.1))
 c     &                 .AND. 
 cc--Quadrupole
 cc     &                 0.005*gravmag*rr**3.LT.
@@ -217,8 +220,8 @@ c
                ELSE
                   rcut2 = ((hm + hn)*radkernel/2.0)**2
                ENDIF
-               IF (rr.LT.rcut2 .AND. iphase(n).EQ.0 .AND.
-     &                                         iphase(m).EQ.0) THEN
+               IF (rr.LT.rcut2 .AND. (iphase(n).EQ.0.OR.iphase(n).GE.10)
+     &              .AND. (iphase(m).EQ.0 .OR. iphase(m).GE.10)) THEN
                   nneigh(m) = nneigh(m) + 1
 
                   IF (nlmax.EQ.1) THEN
@@ -277,7 +280,8 @@ C$OMP END CRITICAL (neighlistoverflow)
                ENDIF
 
                IF (iptintree.GT.0) THEN
-                  IF (iphase(m).GE.1 .AND. iphase(n).EQ.0) THEN
+                  IF (iphase(m).GE.1 .AND. iphase(m).LT.10 .AND. 
+     &                 iphase(n).EQ.0) THEN
                      hmean2 = hm*hm
 ccc                  hmean2 = rcut2
                      IF (rr.LT.hmean2) THEN
@@ -290,7 +294,7 @@ ccc                  hmean2 = rcut2
                         ENDIF
                      ENDIF
                   ENDIF
-               ELSEIF (iphase(n).GE.1) THEN
+               ELSEIF (iphase(n).GE.1 .AND. iphase(n).LT.10) THEN
                   print *,'iphase(n).GE.1 ',m,n,iphase(m),iphase(n)
                   CALL error(where,2)
                ENDIF
@@ -311,7 +315,8 @@ c      END DO
 c
 c--Calculate gravity forces if needed
 c
-      IF (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iptintree.EQ.1)) THEN
+      IF (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iphase(m).LT.10 .AND.
+     &     iptintree.EQ.1)) THEN
 c
 c--Get force from the atomic list
 c
@@ -365,7 +370,8 @@ c--find neighbours within rcut       *
 c*************************************
       numneigh = 0
 
-      IF (iphase(m).EQ.-1 .OR. iphase(m).GE.1 .AND. iptintree.EQ.0) THEN
+      IF (iphase(m).EQ.-1 .OR. iphase(m).GE.1 .AND. iphase(m).LT.10
+     &     .AND. iptintree.EQ.0) THEN
          WRITE (iprint,*) 'ERROR: getneighi with iphase ',iphase(m)
          CALL quit
       ENDIF
@@ -421,7 +427,7 @@ c
                   nstack(istack) = isibdaupar(1,j)
                ENDIF
             ELSE
-               IF (iphase(n).EQ.0) THEN
+               IF (iphase(n).EQ.0 .OR. iphase(n).GE.10) THEN
                   IF (rr.LT.rcut2) THEN
                      numneigh = numneigh + 1
                      IF (numneigh.LE.nneighmax) THEN
@@ -506,7 +512,8 @@ c
                nstack(istack) = j
                istack = istack + 1
                nstack(istack) = isibdaupar(1,j)
-            ELSEIF (iphase(n).EQ.0 .AND. n.LE.npart) THEN
+            ELSEIF ((iphase(n).EQ.0 .OR. iphase(n).GE.10) .AND. 
+     &              n.LE.npart) THEN
                numlist = numlist + 1
                llist(numlist) = n
             ENDIF

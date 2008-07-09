@@ -41,7 +41,7 @@ c99001 FORMAT (' entry subroutine mtree')
       nactatom = 0
       DO j = 1, natom
          IF (iphase(j).EQ.0 .OR. (iphase(j).GE.1 .AND. 
-     &                                     iptintree.GT.0)) THEN
+     &                    iphase(j).LT.10 .AND. iptintree.GT.0)) THEN
             nactatom = nactatom + 1
             listmap(nactatom) = j
          ENDIF
@@ -72,7 +72,8 @@ C$OMP DO SCHEDULE(runtime)
          ipart = listmap(j)
          list(j) = ipart
          IF (ipart.GT.npart .OR. 
-     &               (iphase(ipart).GE.1 .AND. iptintree.EQ.1)) THEN
+     &        (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10 
+     &        .AND. iptintree.EQ.1)) THEN
             imfac(ipart) = 0
          ELSE
             imfac(ipart) = 1

@@ -44,7 +44,8 @@ c
             rr = difx**2 + dify**2 + difz**2 + tiny
          ENDIF
 
-         IF (iphase(m).GE.1 .AND. rr.LT.ptsoft**2) THEN
+         IF (iphase(m).GE.1 .AND. iphase(m).LT.10 .AND. 
+     &        rr.LT.ptsoft**2) THEN
             WRITE (*,*) 'ptsoft gforsn ',m,rr,ptsoft
             STOP
          ENDIF

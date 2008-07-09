@@ -637,7 +637,7 @@ c
 c
 c--Update momentum of sink particles
 c
-         IF (iphase(i).GE.1) THEN
+         IF (iphase(i).GE.1 .AND. iphase(i).LT.10) THEN
 c            DO iii = 1, nptmass
 c               IF (listpm(iii).EQ.i) GOTO 444
 c            END DO
@@ -777,7 +777,7 @@ c
                      dumBevolxyz(k,j) = Bevolxyz(k,j)+deltat*f1Bxyz(k,j)
                   END DO
                ENDIF
-            ELSEIF (iphase(j).GE.1) THEN
+            ELSEIF (iphase(j).GE.1 .AND. iphase(j).LT.10) THEN
                dumxyzmh(5,j) = xyzmh(5,j)
             ENDIF
          ENDIF
@@ -838,7 +838,8 @@ c
      &                         Bevolxyz(k,ipart)+deltat*f1Bxyz(k,ipart)
                         END DO
                      ENDIF
-                  ELSEIF (iphase(ipart).GE.1) THEN
+                  ELSEIF (iphase(ipart).GE.1 .AND. 
+     &                    iphase(ipart).LT.10) THEN
                      dumxyzmh(5,ipart) = xyzmh(5,ipart)
                   ENDIF
                ENDIF
@@ -867,7 +868,8 @@ c
 c--Set flag to state that parent node in tree needs to be recalculated
 c                  
                   IF (irevise .AND.
-     &         (iphase(ipart).EQ.0 .OR. iptintree.GE.1)) THEN
+     &                 (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10 .OR.
+     &                 iptintree.GE.1)) THEN
                      iparent = isibdaupar(3,ipart)
 C$OMP CRITICAL (parentlist1)
                      IF (.NOT.iflagtree(iparent)) THEN
@@ -881,7 +883,8 @@ C$OMP CRITICAL (parentlist1)
                      ENDIF
 C$OMP END CRITICAL (parentlist1)
                      IF (ipart.GT.npart .OR.
-     &                  (iphase(ipart).GE.1 .AND. iptintree.EQ.1)) THEN
+     &                  (iphase(ipart).GE.1 .AND. 
+     &                  iphase(ipart).LT.10 .AND. iptintree.EQ.1)) THEN
                         imfac(ipart) = 0
                      ELSE
                         imfac(ipart) = 1
@@ -929,7 +932,8 @@ c
      &                        Bevolxyz(k,ipart)+deltat*f1Bxyz(k,ipart)
                         END DO
                      ENDIF
-                  ELSEIF (iphase(ipart).GE.1) THEN
+                  ELSEIF (iphase(ipart).GE.1 .AND. 
+     &                                 iphase(ipart).LT.10) THEN
                      dumxyzmh(5,ipart) = xyzmh(5,ipart)
                   ENDIF
                ENDIF
@@ -1134,7 +1138,7 @@ c    &        print *,'f2 ',i,f1vxyzu(2,i),vxyzu(1,i),vxyzu(2,i)
          vxyzu(2,i) = vxyzu(2,i) + delvy
          vxyzu(3,i) = vxyzu(3,i) + delvz
 
-         IF (iphase(i).GE.1) THEN
+         IF (iphase(i).GE.1 .AND. iphase(i).LT.10) THEN
 c            DO iii = 1, nptmass
 c               IF (listpm(iii).EQ.i) GOTO 445
 c            END DO

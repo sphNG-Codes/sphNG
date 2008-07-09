@@ -46,7 +46,8 @@ C$OMP DO SCHEDULE(static)
       DO j = 1, nactatom
          ipart = listmap(j)
          IF (ipart.GT.npart .OR. iphase(ipart).EQ.-1 .OR.
-     &               (iphase(ipart).GE.1 .AND. iptintree.EQ.1)) THEN
+     &        (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10 .AND. 
+     &        iptintree.EQ.1)) THEN
             imfac(ipart) = 0
          ELSE
             imfac(ipart) = 1

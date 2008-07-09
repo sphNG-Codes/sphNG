@@ -48,7 +48,8 @@ c
 c
 c--If one of the particles is a point mass, then soften interaction via ptsoft
 c
-         IF (iphase(m).GE.1 .OR. iphase(n).GE.1) THEN
+         IF (iphase(m).GE.1 .AND. iphase(m).LT.10 .OR. 
+     &        iphase(n).GE.1 .AND. iphase(n).LT.10) THEN
             IF (iptsoft.EQ.0) THEN 
                rr05 = SQRT(rr)
                fff = pmassn/(rr*rr05)

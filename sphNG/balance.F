@@ -164,7 +164,8 @@ c
                               listinactive(nlistinactive) = ipart
 c                                 IF (ipos.LE.5) print *,'To ',
 c     &                              ipart,iunique(iorig(ipart))
-                              IF (iphase(ipart).GT.0) THEN
+                              IF (iphase(ipart).GT.0 .AND. 
+     &                             iphase(ipart).LT.10) THEN
                                  npttrans = npttrans + 1
                                  DO k = 1, nptmass
                                     IF (listpm(k).EQ.ipart) THEN
@@ -1200,7 +1201,7 @@ c
          DO ipart = 1, npart
             IF (listtrans(ipart).GE.0 .AND. 
      &           listtrans(ipart).NE.iproc) THEN
-               IF (iphase(ipart).GE.1) THEN
+               IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
                   npttrans = npttrans + 1
                   listpm(listrealpm(ipart)) = 0
                   listrealpm(ipart) = 0
@@ -1557,8 +1558,8 @@ c************************************************************
 c                                                           *
 c  Subroutine to determine which MPI process a particle     *
 c     should be on.                                         *
-c     This version is applicable to disc geometries.        *
-c     The split is done on z (assumed rotation axis) first. *
+c     This version is applicable to cartesian geometries.   *
+c     The split is done on x then y then z, then back to x. *
 c                                                           *
 c************************************************************
 
@@ -1576,8 +1577,53 @@ c************************************************************
 
       INTEGER classify_cartesian
 
+      DIMENSION div_cartesian(21)
+
       ival = 0
 
+      xpow = LOG(REAL(numproc))/LOG(2.0)
+      IF (xpow/INT(xpow).LT.0.9999 .OR. xpow/INT(xpow).GT.1.0001) THEN
+         WRITE (*,*) 'ERROR - classify_cartesian ',xpow,numproc
+         CALL quit
+      ENDIF
+
+#ifdef MPI
+      IF (xyzmh(1,ipart).LT.div_cartesian(1)) THEN
+         ival = ival + 0
+      ELSE
+         ival = ival + 1
+      ENDIF
+      IF (numproc.EQ.2) GOTO 100
+      ival = ival*2
+
+      IF (xyzmh(2,ipart).LT.div_cartesian(2)) THEN
+         ival = ival + 0
+      ELSE
+         ival = ival + 1
+      ENDIF
+      IF (numproc.EQ.4) GOTO 100
+      ival = ival*2
+
+      IF (xyzmh(3,ipart).LT.div_cartesian(3)) THEN
+         ival = ival + 0
+      ELSE
+         ival = ival + 1
+      ENDIF
+      IF (numproc.EQ.8) GOTO 100
+
+      ival = ival + 4
+      iremain = MOD(ival,4)
+
+      IF (xyzmh(1,ipart).LT.div_cartesian(4)) THEN
+         ival = iremain
+      ELSEIF (xyzmh(1,ipart).GT.div_cartesian(5)) THEN
+         ival = 12 + iremain
+      ENDIF
+      IF (numproc.EQ.16) GOTO 100
+
+
+ 100   IF (ival.GT.numproc) ival = numproc
+#endif
 
       classify_cartesian = ival
 
@@ -1647,7 +1693,7 @@ c************************************************************
       it1(ito) = it1(ifrom)
       it2(ito) = it2(ifrom)
       iphase(ito) = iphase(ifrom)
-      IF (iphase(ifrom).GE.1) THEN
+      IF (iphase(ifrom).GE.1 .AND. iphase(ifrom).LT.10) THEN
          ipt = listrealpm(ifrom)
          IF (ipt.LE.0 .OR. ipt.GT.nptmass) THEN
             WRITE (*,*) 'ERROR - ipt.LE.0 .OR. ipt.GT.nptmass'

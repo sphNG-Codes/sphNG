@@ -352,7 +352,7 @@ c
          rhomaxsync = 0.
          DO i = 1, npart
             iscurrent(i) = .FALSE.
-            IF (iphase(i).GE.0) rhomaxsync = MAX(rhomaxsync, rho(i))
+            IF (iphase(i).EQ.0) rhomaxsync = MAX(rhomaxsync, rho(i))
 
             IF (encal.EQ.'r') THEN
                DO k = 1, 5
@@ -873,7 +873,7 @@ c--BEGIN: Find maximum density for calculating torques
       imaxdens = 0
 c      densmax = 0.
 c      DO i = 1, npart
-c         IF (iphase(i).GE.0 .AND. rho(i).GT.densmax) THEN
+c         IF (iphase(i).EQ.0 .AND. rho(i).GT.densmax) THEN
 c            densmax = rho(i)
 c            imaxdens = i
 c         ENDIF
@@ -1016,7 +1016,7 @@ c
             vxyzu(1,i) = vxyzu(1,i) + delvx
             vxyzu(2,i) = vxyzu(2,i) + delvy
             vxyzu(3,i) = vxyzu(3,i) + delvz
-            IF (iphase(i).GE.1) THEN
+            IF (iphase(i).GE.1 .AND. iphase(i).LT.10) THEN
                DO iii = 1, nptmass
                   IF (listpm(iii).EQ.i) GOTO 444
                END DO
@@ -1683,7 +1683,7 @@ C$OMP END CRITICAL (killparticle)
 c
 c--Follow point masses with greater accuracy than the gas particles 
 c
-         IF (iphase(i).GE.1) THEN
+         IF (iphase(i).GE.1 .AND. iphase(i).LT.10) THEN
             tolpart = tolptm
          ELSE
             tolpart = tol

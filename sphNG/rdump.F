@@ -709,6 +709,8 @@ c
      &     MPI_COMM_WORLD,ierr)
 #endif
 
+      print *,iproc,' FINISHED READ ',npart,nptmass,nptmasstot
+
       IF (iskip.EQ.1) RETURN
 c
 c--End reading of dump file
@@ -773,7 +775,8 @@ c
          END DO
       ELSEIF (individualtimesteps.EQ.1) THEN
          DO i = 1, npart
-            IF (iphase(i).GE.1 .AND. isteps(i).GT.istepmin) 
+            IF (iphase(i).GE.1 .AND. iphase(i).LT.10 .AND. 
+     &           isteps(i).GT.istepmin) 
      &           isteps(i) = istepmin
          END DO
       ENDIF
@@ -891,6 +894,7 @@ c
 c--Check units in file the same as in the code!
 c
       IF (udisti.LT.0.99999*udist .OR. udisti.GT.1.00001*udist) THEN
+         print *,udisti,udist
          CALL error(where,1)
       ELSEIF (umassi.LT.0.99999*umass .OR.umassi.GT.1.00001*umass) THEN
          CALL error(where,2)
@@ -962,6 +966,8 @@ c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
       END DO
       print *,iproc,': CLOSEST z=-0.0 ',ipos2,xxmin
 #endif
+
+      print *,iproc,' EXITED RDUMP'
 
       IF (itrace.EQ.'all') WRITE (*, 99002)
 99002 FORMAT (' exit subroutine rdump')
@@ -1758,8 +1764,10 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
          IF (imap(listpm(i)).NE.0) THEN
             nptmassnew = nptmassnew + 1
             listpm(nptmassnew) = imap(listpm(i))
-            IF (iphase(listpm(nptmassnew)).LE.0) THEN
-               WRITE (*,*) 'ERROR - iphase(listpm(nptmassnew)).LE.0'
+            IF (iphase(listpm(nptmassnew)).LE.0 .OR. 
+     &           iphase(listpm(nptmassnew)).GE.10) THEN
+               WRITE (*,*) 'ERROR - iphase(listpm(nptmassnew)).LE.0 ',
+     &              nptmassnew,iphase(listpm(nptmassnew))
                CALL quit
             ENDIF
             spinx(nptmassnew) = spinx(i)

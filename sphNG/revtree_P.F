@@ -50,7 +50,8 @@ C$OMP DO SCHEDULE(static)
          ipart = listmap(j)
          iflagtree(ipart) = .FALSE.
          IF (ipart.GT.npart .OR. iphase(ipart).EQ.-1 .OR.
-     &               (iphase(ipart).GE.1 .AND. iptintree.EQ.1)) THEN
+     &        (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10 .AND. 
+     &        iptintree.EQ.1)) THEN
             imfac(ipart) = 0
          ELSE
             imfac(ipart) = 1
@@ -350,7 +351,8 @@ C$OMP DO SCHEDULE(static)
             ENDIF
 
             IF (ipart.GT.npart .OR. iphase(ipart).EQ.-1 .OR.
-     &           (iphase(ipart).GE.1 .AND. iptintree.EQ.1)) THEN
+     &           (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10 .AND. 
+     &           iptintree.EQ.1)) THEN
                imfac(ipart) = 0
             ELSE
                imfac(ipart) = 1

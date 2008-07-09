@@ -104,7 +104,8 @@ C$OMP& private(i,ipart,fsx,fsy,fsz,epot)
 C$OMP DO SCHEDULE(runtime)
          DO 100 i = 1, nlst
             ipart = llist(i)
-            IF (iphase(ipart).GE.1 .AND. iptintree.EQ.0) GOTO 100
+            IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10 .AND. 
+     &           iptintree.EQ.0) GOTO 100
             IF (ireset) neighb(nlmax,ipart) = 0
 c
 c--Walk through the tree to get the neighbours, the acceleration
@@ -114,7 +115,7 @@ c
      &           epot)
 
             IF (igphi.NE.0 .OR. (iphase(ipart).GE.1 .AND. 
-     &                                         iptintree.EQ.1)) THEN
+     &               iphase(ipart).LT.10 .AND. iptintree.EQ.1)) THEN
                fxyzu(1,ipart) = fsx
                fxyzu(2,ipart) = fsy
                fxyzu(3,ipart) = fsz
@@ -186,7 +187,8 @@ C$OMP& private(i,ipart,fsx,fsy,fsz,epot)
 C$OMP DO SCHEDULE(runtime)
          DO 200 i = 1, nlst
             ipart = llist(i)
-            IF (iphase(ipart).GE.1 .AND. iptintree.EQ.0) GOTO 200
+            IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10 .AND. 
+     &           iptintree.EQ.0) GOTO 200
 c
 c--Walk through the tree to get the neighbours, the acceleration
 c     and the potential due to outside 2h particles

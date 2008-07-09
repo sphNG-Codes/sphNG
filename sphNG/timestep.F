@@ -81,13 +81,14 @@ c--Compute timestep from force condition
 c
          force2 = fxyzu(1,i)**2 + fxyzu(2,i)**2 + fxyzu(3,i)**2
          IF (force2.NE.0.0) THEN
-            IF (iphase(i).GT.0 .AND. iptsoft.EQ.1) THEN
+            IF (iphase(i).GT.0 .AND. iphase(i).LT.10 .AND. 
+     &           iptsoft.EQ.1) THEN
                softrad = ptsoft
             ELSE
                softrad = xyzmh(5,i)
             ENDIF
             rmod = Courant*SQRT(softrad/SQRT(force2))
-            IF (iphase(i).GT.0) rmod = rmod/1000.0
+            IF (iphase(i).GT.0 .AND. iphase(i).LT.10) rmod = rmod/1000.0
             rmod = rmod/(dt*isteps(i)/imaxstep)
          ELSE
             rmod = 1.0E+30
@@ -96,7 +97,7 @@ c         write (13,*) rmod, 'print2',force2
 c
 c--For sink particles, also use velocity criterion
 c
-c         IF (iphase(i).GT.0) THEN
+c         IF (iphase(i).GT.0 .AND. iphase(i).LT.10) THEN
 c            vel2 = vxyzu(1,i)**2 + vxyzu(2,i)**2 + vxyzu(3,i)**2
 c            IF (vel2.NE.0.0) THEN
 c               rmodvel = 0.1*xyzmh(5,i)/SQRT(vel2)
@@ -249,7 +250,7 @@ c
 c--Report if time steps are too small
 c
          IF (isteps(i).LT.2) THEN
-            IF (iphase(i).GE.1) THEN
+            IF (iphase(i).GE.1 .AND. iphase(i).LT.10) THEN
 C$OMP CRITICAL (writeiprint)
                WRITE (iprint, 99301)
 99301          FORMAT ('STEP : Sink allowed to break TIme step')

@@ -35,9 +35,9 @@ c      fnbtot = 0.2
 c
 c--Specify distance unit (cm)
 c
-      udist = 1.e16
+c      udist = 1.e16
 c      udist = 1.e15
-c      udist = 0.1*pc
+      udist = 0.1*pc
 c      udist = pc
 c      udist = 1.e14
 c      udist = 1.e13
@@ -78,8 +78,8 @@ c      gamdh = 1.05
 c
 c--Critical density for changing gamma from 1.1 to 5/3 for variable e.o.s.
 c
-c      rhocrit3 = 1.0e-0
-      rhocrit3 = 1.0e-3
+      rhocrit3 = 1.0e-0
+c      rhocrit3 = 1.0e-3
 c      rhocrit3 = 1.0e-10
 c      rhocrit3 = 1.0e-11
 c      rhocrit3 = 1.0e-12

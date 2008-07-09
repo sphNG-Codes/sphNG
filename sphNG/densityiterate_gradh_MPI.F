@@ -100,7 +100,7 @@ c--Initialise
 c
       iproblem = itime
 c      IF (itime.EQ.000)
-c          print *,iproc,': Entered densityiterate ',itime
+          print *,iproc,': Entered densityiterate ',itime
 c          print *,': Entered densityiterate ',itime
 
       uradconst = radconst/uergcc
@@ -165,7 +165,7 @@ C$OMP& private(n,ipart,pmassi,hi,dhdrhoi,deltat,k,hchange)
          lsendlist(n) = ipart - 1
          isend(n) = .TRUE.
 #endif
-         IF (iphase(ipart).EQ.0) THEN
+         IF (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10) THEN
             pmassi = xyzmh(4,ipart)
             hi = xyzmh(5,ipart)
             hi_old(ipart) = hi
@@ -250,7 +250,7 @@ c      CALL MPI_TYPE_COMMIT(i12REAL8,ierr)
 #ifdef MPI
 c#ifdef MPIDEBUG
 c      IF (itime.EQ.2097152)
-c              print *,'DEN_ITERATE: iteration ',iteration
+              print *,iproc,'DEN_ITERATE: iteration ',iteration
 c#endif
 c
 c--MPI: Need to get rho, gradh, numneigh contributions from other processes
@@ -331,7 +331,7 @@ c
                   WRITE (*,*) 'ipart.GT.idim'
                   CALL quit
                ENDIF
-               IF (iphase(ipart).GE.1) THEN
+               IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
                   nptmasslocal = nptmasslocal + 1
                   listpm(nptmasslocal) = ipart
                ENDIF
@@ -659,7 +659,7 @@ c
          CALL densitygradh(ipart,npart,ntot,nlst_end,xyzmh,nneighlocal,
      &        dvxyzu)
 
-         IF (iphase(ipart).EQ.0) THEN
+         IF (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10) THEN
 
          IF (nneighlocal.GT.nneighmax) THEN
             WRITE (iprint,*) 'ERROR: nneighlocal exceeds nneighmax'
@@ -790,23 +790,26 @@ c
                gradhs(1,ipart) = 1./omegai
 
                poten(ipart) = dvxyzu(4,ipart)
+
+               IF (iphase(ipart).EQ.0) THEN
 c
 c--Set e(i) for the first time around because density only set here
 c     This sets radiation and matter to have same initial temperature
 c
-               IF (icall.EQ.1 .AND. encal.EQ.'r') THEN
-                  IF (ekcle(1,ipart).EQ.0.0) THEN
-                     ekcle(3,ipart) = getcv(rho(ipart),vxyzu(4,ipart))
-                     ekcle(1,ipart) = uradconst*(vxyzu(4,ipart)/
-     &                    ekcle(3,ipart))**4/rho(ipart)
-                     ekcle(2,ipart) = getkappa(vxyzu(4,ipart),
-     &                    ekcle(3,ipart),rho(ipart))
+                  IF (icall.EQ.1 .AND. encal.EQ.'r') THEN
+                     IF (ekcle(1,ipart).EQ.0.0) THEN
+                       ekcle(3,ipart) = getcv(rho(ipart),vxyzu(4,ipart))
+                        ekcle(1,ipart) = uradconst*(vxyzu(4,ipart)/
+     &                      ekcle(3,ipart))**4/rho(ipart)
+                        ekcle(2,ipart) = getkappa(vxyzu(4,ipart),
+     &                       ekcle(3,ipart),rho(ipart))
+                     ENDIF
                   ENDIF
-               ENDIF
 c
 c--Pressure and sound velocity from ideal gas law...
 c
-               CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
+                  CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
+               ENDIF
 c
 c--Calculate other quantities using the interaction list from local process
 c
@@ -1128,6 +1131,21 @@ c     &                  1,llistsentback(1,j+1),MPI_REAL4,indexMPI1,ierr)
 #endif
                            CALL MPI_TYPE_FREE(indexMPI1,ierr)
 
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),MPI_INTEGER1,
+c     &                  indexMPI_INT1,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                          llistsentback(1,j+1),MPI_INTEGER1,
+     &                          indexMPI_INT1,ierr)
+                           CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+
+                           CALL MPI_SEND(iphase,1,indexMPI_INT1,j,43,
+     &                          MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                           print *,iproc,' sent iphase'
+#endif
+                           CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+
                            IF (imhd.EQ.idim) THEN
 c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
 c     &                  1,llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
@@ -1135,7 +1153,7 @@ c     &                  1,llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
      &                  llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI3,ierr)
 
-                              CALL MPI_SEND(Bevol,1,indexMPI3,j,43,
+                              CALL MPI_SEND(Bevol,1,indexMPI3,j,44,
      &                             MPI_COMM_WORLD, ierr)
 #ifdef MPIDEBUG
                               print *,iproc,' sent Bevol'
@@ -1201,12 +1219,21 @@ c      ENDIF
                      CALL quit
                   ENDIF
 
+                  CALL MPI_RECV(iphase(istart),inumber,MPI_INTEGER1,
+     &                 iprocrec, 43, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_INTEGER1,icheck,ierr)
+                  IF (icheck.NE.inumber) THEN
+                     WRITE (*,*) 'ERROR - icheck.NE.inumber 3 ',
+     &                    iproc
+                     CALL quit
+                  ENDIF
+
                   IF (imhd.EQ.idim) THEN
                      CALL MPI_RECV(Bevol(1,istart),inumber,i3REAL8,
-     &                    iprocrec, 43, MPI_COMM_WORLD, istatus, ierr)
+     &                    iprocrec, 44, MPI_COMM_WORLD, istatus, ierr)
                      CALL MPI_GET_COUNT(istatus, i3REAL8, icheck, ierr)
                      IF (icheck.NE.inumber) THEN
-                        WRITE (*,*) 'ERROR - icheck.NE.inumber 3 ',
+                        WRITE (*,*) 'ERROR - icheck.NE.inumber 4 ',
      &                       iproc
                         CALL quit
                      ENDIF
@@ -1259,7 +1286,6 @@ C$OMP& private(i,k,ipart,jpart,numberupdated)
 
          ipart = ntot + i
          listp(nlst_end + i) = ipart
-         iphase(ipart) = 0
          hasghost(ipart) = .FALSE.
 
          CALL treef(ipart,npart,ntot,xyzmh,acc,0,fsx,fsy,fsz,epot)
@@ -1549,7 +1575,7 @@ C$OMP& reduction(MAX:rhonext)
 C$OMP& reduction(+:nwarnroundoff)
       DO j = 1, nlst_end
          ipart = listp(j)
-         IF (iphase(ipart).EQ.0) THEN
+         IF (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10) THEN
 c
 c--Need to complete calculations of divv, curlv, and gradhs(2,*)
 c
@@ -1699,7 +1725,7 @@ C$OMP PARALLEL default(none)
 C$OMP& shared(npart,ntot,ireal,rho,dumrho,xyzmh,pr,vsound,divv,curlv)
 C$OMP& shared(vxyzu,gradhs,Bxyz,encal,ibound,ekcle,varmhd,listp,Bevol)
 C$OMP& shared(nlst_in,nlst_end,listparents,nlistupdated,iupdated,icall)
-C$OMP& shared(dt,itime)
+C$OMP& shared(dt,itime,iphase)
 C$OMP& private(i,j,k,ipart)
 c
 c--Update density and quantities depending on density for inactive particles
@@ -1710,7 +1736,7 @@ C$OMP DO SCHEDULE (runtime)
          j = listparents(i)
          iupdated(j) = .FALSE.
          CALL extrapolate(j,dt,itime,dumrho,vxyzu,pr,vsound,
-     &                    ekcle,Bxyz,Bevol)
+     &                    ekcle,Bxyz,Bevol,iphase)
       END DO
 C$OMP END DO
 c
@@ -2112,7 +2138,7 @@ c     &        gravxyzstore(1,iptcur)
       rhoi = 0.
       gradhi = 0.
       numneighi = 0
-      IF (iphase(ipart).EQ.0) THEN
+      IF (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10) THEN
          numneighi = nneigh(ipart)
 c
 c--Calculate density contribution by looping over interacting neighbors
@@ -2131,39 +2157,42 @@ c
             DO k = 1, numneighi
                j = neighlist(k)
 
-               dx = xi - xyzmh(1,j)
-               dy = yi - xyzmh(2,j)
-               dz = zi - xyzmh(3,j)
+               IF (iphase(j).EQ.iphase(ipart)) THEN
+
+                  dx = xi - xyzmh(1,j)
+                  dy = yi - xyzmh(2,j)
+                  dz = zi - xyzmh(3,j)
 #ifdef PERIODIC_NO_GHOSTS
-               CALL modbound(dx,dy,dz)
+                  CALL modbound(dx,dy,dz)
 #endif
-               pmassj = xyzmh(4,j)
+                  pmassj = xyzmh(4,j)
 
-               rij2 = dx*dx + dy*dy + dz*dz + tiny
-               v2 = rij2*hi21
+                  rij2 = dx*dx + dy*dy + dz*dz + tiny
+                  v2 = rij2*hi21
 
-               IF (v2.LT.radkernel**2) THEN
-                  rij1 = SQRT(rij2)
+                  IF (v2.LT.radkernel**2) THEN
+                     rij1 = SQRT(rij2)
 c
 c--Get kernel quantities from interpolation in table
 c
-                  index = v2*ddvtable
-                  dxx = v2 - index*dvtable
-                  index1 = index + 1
-                  IF (index1.GT.itable) index1 = itable
-                  dwdx = (wij(index1) - wij(index))*ddvtable
-                  wtij = (wij(index) + dwdx*dxx)*hi31
-                  dgrwdx = (grwij(index1) - grwij(index))*ddvtable
-                  grwtij = (grwij(index) + dgrwdx*dxx)*hi41/rij1
+                     index = v2*ddvtable
+                     dxx = v2 - index*dvtable
+                     index1 = index + 1
+                     IF (index1.GT.itable) index1 = itable
+                     dwdx = (wij(index1) - wij(index))*ddvtable
+                     wtij = (wij(index) + dwdx*dxx)*hi31
+                     dgrwdx = (grwij(index1) - grwij(index))*ddvtable
+                     grwtij = (grwij(index) + dgrwdx*dxx)*hi41/rij1
 c
 c--Derivative w.r.t. h for grad h correction terms (and dhdrho)
 c
-                  dwdhi = (-rij2*grwtij - 3.*wtij)*hi1
-                  gradhi = gradhi + pmassj*dwdhi
+                     dwdhi = (-rij2*grwtij - 3.*wtij)*hi1
+                     gradhi = gradhi + pmassj*dwdhi
 c
 c--Compute density
 c
-                  rhoi = rhoi + pmassj*wtij
+                     rhoi = rhoi + pmassj*wtij
+                  ENDIF
                ENDIF
             END DO
          ENDIF
@@ -2172,7 +2201,7 @@ c
 c--Needed for MPI code
 c
       IF (ipart.GT.npart) THEN
-         IF (iphase(ipart).EQ.0) THEN
+         IF (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10) THEN
             rho(ipart) = cnormk*rhoi
             dumrho(ipart) = cnormk*gradhi
             nneigh(ipart) = numneighi
@@ -2182,7 +2211,7 @@ c
          dvxyzu(3,ipart) = fsz
          dvxyzu(4,ipart) = epot
       ELSE
-         IF (iphase(ipart).EQ.0) THEN
+         IF (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10) THEN
             rho(ipart) = rho(ipart) +
      &           cnormk*(rhoi + selfnormkernel*pmassi*hi31)
             dumrho(ipart) = dumrho(ipart) + cnormk*(gradhi +
@@ -2215,7 +2244,8 @@ c
 c
 c--Add gravity on sink particles from gas
 c
-      IF (iptintree.EQ.0 .AND. iphase(ipart).GE.1) THEN
+      IF (iptintree.EQ.0 .AND. 
+     &     iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
          CALL gptfromgas(ipart, npart, ntot, xyzmh, dvxyzu)
       ENDIF
 
@@ -2244,6 +2274,7 @@ c
       INCLUDE 'COMMONS/divve'
       INCLUDE 'COMMONS/gradhterms'
       INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/phase'
 c
 c--Needed for MPI code
 c
@@ -2270,7 +2301,7 @@ c
       curlvzi = 0.
       gradsofti = 0.
 
-      IF (imhd.EQ.idim) THEN
+      IF (imhd.EQ.idim .AND. iphase(ipart).EQ.0) THEN
          DO k = 1, 15
             gradmhd(k,ipart) = 0.
          END DO
@@ -2289,16 +2320,18 @@ c      Bbarzi = 0.
 c
 c--Calculate B from the evolved magnetic field variable
 c
-      IF (imhd.EQ.idim) THEN
+      IF (imhd.EQ.idim .AND. iphase(ipart).EQ.0) THEN
          IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
             alphai= Bevol(1,ipart)
             betai= Bevol(2,ipart)
             gammai = Bevol(3,ipart)
          ENDIF
       ENDIF
-                  
+
       DO k = 1, numneighi
          j = neighlist(k)
+
+         IF (iphase(j).EQ.iphase(ipart)) THEN
 
          dx = xi - xyzmh(1,j)
          dy = yi - xyzmh(2,j)
@@ -2344,46 +2377,48 @@ c
             dpotdh = (dphidh(index1) - dphidh(index))*ddvtable
             dphi = (dphidh(index) + dpotdh*dxx)*hi21
 c
+c--Derivative of gravitational potential w.r.t. h
+c
+            gradsofti = gradsofti - pmassj*dphi
+c
 c--Velocity divergence times density
 c
             projv = grwtij*(dvx*dx + dvy*dy + dvz*dz)
             divvi = divvi - pmassj*projv
+
+            IF (iphase(ipart).EQ.0) THEN
 c
 c--Velocity curl in 3D times density
 c
-            procurlvz = grwtij*(dvy*dx - dvx*dy)
-            procurlvy = grwtij*(dvx*dz - dvz*dx)
-            procurlvx = grwtij*(dvz*dy - dvy*dz)
+               procurlvz = grwtij*(dvy*dx - dvx*dy)
+               procurlvy = grwtij*(dvx*dz - dvz*dx)
+               procurlvx = grwtij*(dvz*dy - dvy*dz)
 
-            curlvxi = curlvxi - pmassj*procurlvx
-            curlvyi = curlvyi - pmassj*procurlvy
-            curlvzi = curlvzi - pmassj*procurlvz
-c
-c--Derivative of gravitational potential w.r.t. h
-c
-            gradsofti = gradsofti - pmassj*dphi
+               curlvxi = curlvxi - pmassj*procurlvx
+               curlvyi = curlvyi - pmassj*procurlvy
+               curlvzi = curlvzi - pmassj*procurlvz
 c
 c--get B from the evolved Euler potentials
 c
 c
 c--grad alpha and grad beta (Euler potentials)
 c
-            IF (imhd.EQ.idim) THEN
-               IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
-                  grpmi= pmassj*grwtij
+               IF (imhd.EQ.idim) THEN
+                  IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
+                     grpmi= pmassj*grwtij
 c
 c--rxx, rxy, rxz, ryy, ryz, rzz
 c
-                  gradmhd(1,ipart) = gradmhd(1,ipart) - grpmi*dx*dx
-                  gradmhd(2,ipart) = gradmhd(2,ipart) - grpmi*dx*dy
-                  gradmhd(3,ipart) = gradmhd(3,ipart) - grpmi*dx*dz
-                  gradmhd(4,ipart) = gradmhd(4,ipart) - grpmi*dy*dy
-                  gradmhd(5,ipart) = gradmhd(5,ipart) - grpmi*dy*dz
-                  gradmhd(6,ipart) = gradmhd(6,ipart) - grpmi*dz*dz
+                     gradmhd(1,ipart) = gradmhd(1,ipart) - grpmi*dx*dx
+                     gradmhd(2,ipart) = gradmhd(2,ipart) - grpmi*dx*dy
+                     gradmhd(3,ipart) = gradmhd(3,ipart) - grpmi*dx*dz
+                     gradmhd(4,ipart) = gradmhd(4,ipart) - grpmi*dy*dy
+                     gradmhd(5,ipart) = gradmhd(5,ipart) - grpmi*dy*dz
+                     gradmhd(6,ipart) = gradmhd(6,ipart) - grpmi*dz*dz
 #ifndef PERIODIC_NO_GHOSTS
-                  dalpha= alphai - Bevol(1,j)
-                  dbeta= betai - Bevol(2,j)
-                  dgamma = gammai - Bevol(3,j)
+                     dalpha= alphai - Bevol(1,j)
+                     dbeta= betai - Bevol(2,j)
+                     dgamma = gammai - Bevol(3,j)
 #endif
 c
 c--dalpha(x,y,z) and dbeta(x,y,z)
@@ -2414,9 +2449,12 @@ c
 c                  Bbarxi = Bbarxi + weight*Bevol(1,j)*wkern
 c                  Bbaryi = Bbaryi + weight*Bevol(2,j)*wkern
 c                  Bbarzi = Bbarzi + weight*Bevol(3,j)*wkern
+                  ENDIF
                ENDIF
             ENDIF
          ENDIF
+         ENDIF
+
       END DO
 c
 c--Need for MPI

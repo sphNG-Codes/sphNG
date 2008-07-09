@@ -129,6 +129,7 @@ c
 #endif
 
       ENDIF
+      print *,iproc,': Preset B'
 c
 c--check ibound = 11 for periodic no ghosts
 c
@@ -148,7 +149,8 @@ c
       ENDIF
       
       DO i = 1, npart
-         IF (ifsvi.EQ.6 .AND. abs(gt).LT.tiny) THEN
+         IF (ifsvi.EQ.6 .AND. abs(gt).LT.tiny .OR. 
+     &        alphaMM(1,i).EQ.0.0) THEN
             DO k = 1, isizealphaMM
                alphaMM(k,i) = alphamin(k)
             ENDDO
@@ -160,6 +162,7 @@ c
             alphaMM(2,i) = alphamin(2)
          ENDIF
       END DO
+      print *,iproc,': Preset C'
 c
 c--Set constant for artificial viscosity
 c
@@ -217,7 +220,10 @@ c
 c
 c--Standardise point mass types and accretion radii
 c
+      print *,iproc,': Preset D ',nptmass,initialptm
       DO i = 1, nptmass
+         print *,iproc,': Preset Ds ',nptmass,i
+         print *,iproc,': Preset Ds ',listpm(i)
          iptcur = listpm(i)
          IF (initialptm.LT.1 .OR. initialptm.GT.4) CALL error(where, 2)
 c         iphase(iptcur) = initialptm
@@ -227,6 +233,7 @@ c
 c--For Massive Accretion, only accrete mass and change ptmass properties
 c     for certain particles - exclude these:
 c
+      print *,iproc,': Preset Da '
       DO i = 1, idim
          notacc(i) = .FALSE.
          iupdated(i) = .FALSE.
@@ -243,7 +250,8 @@ c
 c--Gravitational softening for ptmass-ptmass interactions
 c
       iptsoft = 1
-      ptsoft = 1.000E-05
+      ptsoft = 1.000E-06
+      print *,iproc,': Preset Db '
 c
 c--Set psoft for softening the gravitational potential when the 1/(r+psoft)
 c     potential law is used (i.e. when igrape=1, or isoft=1).
@@ -260,6 +268,7 @@ c      hmin = 0.01
 c
 c--Compute tables for kernel quantities
 c
+      print *,iproc,': Preset E'
       CALL ktable
 c
 c--Load in tables of opacity and cv
@@ -304,6 +313,7 @@ c
       ENDIF 
       IF (itrace.EQ.'all') WRITE(iprint,250)
  250  FORMAT(' exit subroutine preset')
+      print *,iproc,': Preset F'
 
       RETURN
       END

@@ -1558,8 +1558,8 @@ c      CALL quit
       END
 
 
-      SUBROUTINE extrapolate(j,dt,itime,trho,vxyzu,pr,vsound,ekcle,
-     &                       Bxyz,Bevolxyz,iphase)
+      SUBROUTINE extrapolate(j,dt,itime,trho,vxyzu,pr,vsound,iphase,
+     &                       ekcle,Bxyz,Bevolxyz)
 c************************************************************
 c                                                           *
 c  This subroutine extrapolates the density and quantities  *
@@ -1573,13 +1573,13 @@ c************************************************************
       INCLUDE 'COMMONS/divve'
       INCLUDE 'COMMONS/timei'
       INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/phase'
       
       DIMENSION vxyzu(4,idim)
       REAL*4 trho(idim), pr(idim), vsound(idim)
       DIMENSION ekcle(5,iradtrans)
       DIMENSION Bxyz(3,imhd)
       DIMENSION Bevolxyz(3,imhd)
-      DIMENSION iphase(idim)
       
       IF (it1(j).EQ.imax) THEN
          deltat = dt*(itime - it0(j) - isteps(j)/2)/imaxstep

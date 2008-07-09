@@ -281,7 +281,7 @@ C$OMP END CRITICAL (neighlistoverflow)
 
                IF (iptintree.GT.0) THEN
                   IF (iphase(m).GE.1 .AND. iphase(m).LT.10 .AND. 
-     &                 iphase(n).EQ.0) THEN
+     &                 (iphase(n).EQ.0 .OR. iphase(n).GE.10) THEN
                      hmean2 = hm*hm
 ccc                  hmean2 = rcut2
                      IF (rr.LT.hmean2) THEN

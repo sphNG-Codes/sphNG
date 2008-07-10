@@ -96,7 +96,8 @@ c
       n1new = 0
       n2new = 0.
       DO i = 1, npart
-         IF (iorig(i).LE.n1 .AND. iphase(i).EQ.0) THEN
+         IF (iorig(i).LE.n1 .AND. 
+     &                    (iphase(i).EQ.0 .OR. iphase(i).GE.10)) THEN
             n1new = n1new + 1
             pmassi = xyzmh(4,i)
             fmas1 = fmas1 + pmassi
@@ -255,7 +256,8 @@ c
             d2 = (xyzmh(1,i) - cmx1)**2 + (xyzmh(2,i) - cmy1)**2 +dz*dz
             dmax1 = MAX(dmax1, d2)
             zmax1 = MAX(zmax1, ABS(dz))
-            IF (d2.LT.rmin2 .AND. iphase(i).EQ.0) THEN
+            IF (d2.LT.rmin2 .AND. 
+     &                      (iphase(i).EQ.0 .OR. iphase(i).GE.10)) THEN
                imin = i
                rmin2 = d2
             ENDIF
@@ -283,7 +285,8 @@ c
             d2 = (xyzmh(1,i) - cmx2)**2 + (xyzmh(2,i) - cmy2)**2 +dz*dz
             dmax2 = MAX(dmax2, d2)
             zmax2 = MAX(zmax2, ABS(dz))
-            IF (d2.LT.rmin2 .AND. iphase(i).EQ.0) THEN
+            IF (d2.LT.rmin2 .AND. 
+     &                      (iphase(i).EQ.0 .OR. iphase(i).GE.10)) THEN
                imin = i
                rmin2 = d2
             ENDIF

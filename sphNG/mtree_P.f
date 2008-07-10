@@ -40,7 +40,7 @@ c99001 FORMAT (' entry subroutine mtree')
       natom = nnatom
       nactatom = 0
       DO j = 1, natom
-         IF (iphase(j).EQ.0 .OR. iphase(j).EQ.10 .OR. 
+         IF (iphase(j).EQ.0 .OR. iphase(j).GE.10 .OR. 
      &        (iphase(j).GE.1 .AND. iphase(j).LT.10 .AND. 
      &        iptintree.GT.0)) THEN
             nactatom = nactatom + 1

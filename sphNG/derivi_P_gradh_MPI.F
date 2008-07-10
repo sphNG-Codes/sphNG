@@ -597,7 +597,7 @@ c
          iorig(jpart) = jpart
 
          llist(nlst_end + j) = jpart
-         iphase(jpart) = 0
+ccc         iphase(jpart) = 0
 
 ccc         CALL treef(jpart,npart,ntot,xyzmh,acc,0,fsx,fsy,fsz,epot)
 

@@ -199,9 +199,9 @@ c
 c--Check resistive diffusion time
 c
          IF (imhd.EQ.idim) THEN
-            IF (iresist.EQ.2) THEN
+            IF (iphase(i).EQ.0) THEN
+               IF (iresist.EQ.2) THEN
 c           resistivity which is a function of density
-               IF (iphase(i).EQ.0) THEN
                   etai = etafunc(rho(i),vxyzu(4,i))
                   IF (etai.GT.tiny) THEN
                      dteta = 0.5*xyzmh(5,i)**2/etai
@@ -209,21 +209,21 @@ c           resistivity which is a function of density
                      IF (rmodeta.LT.rmod) THEN
                         istepeta = istepeta + 1
                         etafac = etafac 
-     &                         + rmod*(dt*isteps(i)/imaxstep)/dteta
+     &                       + rmod*(dt*isteps(i)/imaxstep)/dteta
                         rmod = MIN(rmod, rmodeta)
                      ENDIF
-                  ENDIF        
-               ENDIF            
-            ELSEIF (iresist.EQ.1) THEN
+                  ENDIF
+               ELSEIF (iresist.EQ.1) THEN
 c           constant resistivity
-               IF (iphase(i).EQ.0 .AND.etamhd.GT.tiny) THEN
-                  dteta = 0.5*xyzmh(5,i)**2/etamhd
-                  rmodeta = dteta/(dt*isteps(i)/imaxstep)
-                  IF (rmodeta.LT.rmod) THEN
-                     istepeta = istepeta + 1
-                     etafac = etafac 
-     &                      + rmod*(dt*isteps(i)/imaxstep)/dteta
-                     rmod = MIN(rmod, rmodeta)
+                  IF (etamhd.GT.tiny) THEN
+                     dteta = 0.5*xyzmh(5,i)**2/etamhd
+                     rmodeta = dteta/(dt*isteps(i)/imaxstep)
+                     IF (rmodeta.LT.rmod) THEN
+                        istepeta = istepeta + 1
+                        etafac = etafac 
+     &                       + rmod*(dt*isteps(i)/imaxstep)/dteta
+                        rmod = MIN(rmod, rmodeta)
+                     ENDIF
                   ENDIF
                ENDIF
             ENDIF

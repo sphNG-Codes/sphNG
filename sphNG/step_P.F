@@ -1702,15 +1702,14 @@ c       but the derivi call doesn't alter them, so putting them back
 c       into u(i) again changes nothing.
 c
 cTEST
-         vxyzu(4,i) = dumvxyzu(4,i)
+         IF (iphase(i).EQ.0) THEN
+            vxyzu(4,i) = dumvxyzu(4,i)
 
-
-
-
-         IF (encal.EQ.'r') THEN
-            DO l = 1, 5
-               ekcle(l,i) = dumekcle(l,i)
-            END DO
+            IF (encal.EQ.'r') THEN
+               DO l = 1, 5
+                  ekcle(l,i) = dumekcle(l,i)
+               END DO
+            ENDIF
          ENDIF
 c
 c--nlmax=1 is the sign that code is running using 'grad-h' so that h is set
@@ -1726,7 +1725,11 @@ c
          errvx = ABS(f1vxyzu(1,i) - f2vxyzu(1,i))
          errvy = ABS(f1vxyzu(2,i) - f2vxyzu(2,i))
          errvz = ABS(f1vxyzu(3,i) - f2vxyzu(3,i))
-         erru = ABS(f1vxyzu(4,i) - f2vxyzu(4,i))
+         IF (iphase(i).EQ.0) THEN
+            erru = ABS(f1vxyzu(4,i) - f2vxyzu(4,i))
+         ELSE
+            erru = 0.
+         ENDIF
          errh = 3.0*ABS(f1ha(1,i) - f2ha(1,i))
 c
 c--Find maximum error
@@ -1746,6 +1749,20 @@ c--Compute ratio of present to next timestep
 c
          rap = dt*isteps(i)/imaxstep*errdivtol*e1 + small
          rmod1 = 1./SQRT(rap)
+c
+c--Compute the time step from the force condition
+c
+         IF (iphase(i).EQ.0 .OR. iphase(i).GE.10) THEN
+            force21 = f1vxyzu(1,i)**2 + f1vxyzu(2,i)**2 + 
+     &                                              f1vxyzu(3,i)**2
+            force22 = f2vxyzu(1,i)**2 + f2vxyzu(2,i)**2 + 
+     &                                              f2vxyzu(3,i)**2
+            force2 = MAX(force21, force22)
+            rmodcr2 = 0.3*SQRT(xyzmh(5,i)/SQRT(force2))
+            rmodcr2 = rmodcr2/(dt*isteps(i)/imaxstep)
+         ELSE
+            rmodcr2 = 1.0E+30
+         ENDIF
 c
 c--Compute the time step for the gas from the Courant condition
 c
@@ -1802,13 +1819,6 @@ c     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
      &                   + 1.2*(aux1 + aux2)
             crstepi = 0.3*xyzmh(5,i)/denom
             rmodcr = crstepi/(dt*isteps(i)/imaxstep)
-            force21 = f1vxyzu(1,i)**2 + f1vxyzu(2,i)**2 + 
-     &                                              f1vxyzu(3,i)**2
-            force22 = f2vxyzu(1,i)**2 + f2vxyzu(2,i)**2 + 
-     &                                              f2vxyzu(3,i)**2
-            force2 = MAX(force21, force22)
-            rmodcr2 = 0.3*SQRT(xyzmh(5,i)/SQRT(force2))
-            rmodcr2 = rmodcr2/(dt*isteps(i)/imaxstep)
 c
 c--Decide which time step to take
 c
@@ -1825,6 +1835,8 @@ c
                rmodcool = rmodcool/(dt*isteps(i)/imaxstep)
                rmod = MIN(rmod, rmodcool)
             ENDIF
+         ELSEIF (iphase(i).GE.10) THEN
+            rmod = MIN(rmod1, rmodcr2)
          ELSE
             rmod = rmod1
          ENDIF
@@ -1832,9 +1844,9 @@ c
 c--Check resistive diffusion time
 c
          IF (imhd.EQ.idim) THEN
-            IF (iresist.EQ.2) THEN
-c           resistivity which is a function of density
-               IF (iphase(i).EQ.0) THEN
+            IF (iphase(i).EQ.0) THEN
+               IF (iresist.EQ.2) THEN
+c--Resistivity which is a function of density
                   etai = etafunc(rho(i),vxyzu(4,i))
                   IF (etai.GT.tiny) THEN
                      dteta = 0.5*xyzmh(5,i)**2/etai
@@ -1842,21 +1854,21 @@ c           resistivity which is a function of density
                      IF (rmodeta.LT.rmod) THEN
                         istepeta = istepeta + 1
                         etafac = etafac 
-     &                         + rmod*(dt*isteps(i)/imaxstep)/dteta
+     &                       + rmod*(dt*isteps(i)/imaxstep)/dteta
                         rmod = MIN(rmod, rmodeta)
                      ENDIF
-                  ENDIF        
-               ENDIF            
-            ELSEIF (iresist.EQ.1) THEN
-c           constant resistivity
-               IF (iphase(i).EQ.0 .AND.etamhd.GT.tiny) THEN
-                  dteta = 0.5*xyzmh(5,i)**2/etamhd
-                  rmodeta = dteta/(dt*isteps(i)/imaxstep)
-                  IF (rmodeta.LT.rmod) THEN
-                     istepeta = istepeta + 1
-                     etafac = etafac 
-     &                      + rmod*(dt*isteps(i)/imaxstep)/dteta
-                     rmod = MIN(rmod, rmodeta)
+                  ENDIF            
+               ELSEIF (iresist.EQ.1) THEN
+c--Constant resistivity
+                  IF (etamhd.GT.tiny) THEN
+                     dteta = 0.5*xyzmh(5,i)**2/etamhd
+                     rmodeta = dteta/(dt*isteps(i)/imaxstep)
+                     IF (rmodeta.LT.rmod) THEN
+                        istepeta = istepeta + 1
+                        etafac = etafac 
+     &                       + rmod*(dt*isteps(i)/imaxstep)/dteta
+                        rmod = MIN(rmod, rmodeta)
+                     ENDIF
                   ENDIF
                ENDIF
             ENDIF

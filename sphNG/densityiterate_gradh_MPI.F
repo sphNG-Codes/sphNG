@@ -1604,7 +1604,7 @@ c
 c
 c--calculate B from the evolved Euler potentials
 c
-            IF (imhd.EQ.idim) THEN
+            IF (imhd.EQ.idim .AND. iphase(ipart).EQ.0) THEN
                IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
                   rxxi = gradmhd(1,ipart)
                   rxyi = gradmhd(2,ipart)
@@ -1776,7 +1776,7 @@ C$OMP END DO
 c
 c--Calculate B from the evolved magnetic field variable
 c
-      IF (imhd.EQ.idim) THEN
+      IF (imhd.EQ.idim .AND. iphase(ipart).EQ.0) THEN
          IF (varmhd.eq.'Bvol') THEN
 C$OMP DO SCHEDULE (runtime)
             DO i=nlst_in,nlst_end
@@ -2301,7 +2301,7 @@ c
       curlvzi = 0.
       gradsofti = 0.
 
-      IF (imhd.EQ.idim .AND. iphase(ipart).EQ.0) THEN
+      IF (imhd.EQ.idim) THEN
          DO k = 1, 15
             gradmhd(k,ipart) = 0.
          END DO

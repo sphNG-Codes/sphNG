@@ -1725,7 +1725,7 @@ C$OMP PARALLEL default(none)
 C$OMP& shared(npart,ntot,ireal,rho,dumrho,xyzmh,pr,vsound,divv,curlv)
 C$OMP& shared(vxyzu,gradhs,Bxyz,encal,ibound,ekcle,varmhd,listp,Bevol)
 C$OMP& shared(nlst_in,nlst_end,listparents,nlistupdated,iupdated,icall)
-C$OMP& shared(dt,itime)
+C$OMP& shared(dt,itime,iphase)
 C$OMP& private(i,j,k,ipart)
 c
 c--Update density and quantities depending on density for inactive particles

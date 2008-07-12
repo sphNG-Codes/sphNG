@@ -73,6 +73,7 @@ c
 
       ichkl = 0
       icount = 0
+      nhydrocumulative = 0
 c
 c--Dump file
 c-------------
@@ -144,6 +145,8 @@ c--int*1, int*2, int*4, int*8
       print *,'number int8 ',number
       IF (number.EQ.1) THEN
          READ (idisk1, END=100) iuniquemax
+      ELSE
+         iuniquemax = npart
       ENDIF
 c--Default real
       READ (idisk1, END=100) number
@@ -284,6 +287,8 @@ c
 #endif
       nhydro = min(number8,npart)
 #ifdef MPI
+      ELSE
+         nhydrocumulative = nhydrocumulative + number8
       ENDIF
 #endif
 
@@ -413,7 +418,7 @@ c--int*8
          IF (nums1(5).LT.1 .OR. iunique(icount+1).EQ.0) THEN
             print *,'Read iunique ',(iunique(i), i=icount+1,icount+10)
             DO i=icount+1,icount+nhydro
-               iunique(i) = i
+               iunique(i) = nhydrocumulative + i
             END DO
          ENDIF
 c--Default real

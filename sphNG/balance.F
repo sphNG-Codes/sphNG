@@ -643,9 +643,9 @@ c
                   CALL quit
                ENDIF
 #ifdef MPIDEBUGT
-               print *,iproc,': iPHASE ',(iphase(ipart),
-     &              ipart= npartnew + 1, npartnew + igotnumber),
-     &              ' from ',iprocrec
+c               print *,iproc,': iPHASE ',(iphase(ipart),
+c     &              ipart= npartnew + 1, npartnew + igotnumber),
+c     &              ' from ',iprocrec
 #endif               
 
                CALL MPI_RECV(iscurrent(npartnew+1), idim, MPI_LOGICAL,
@@ -1359,23 +1359,31 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
+      LOGICAL ifirst
+      DATA ifirst/.TRUE./
+
 #ifdef MPI
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidebug'
       INCLUDE 'COMMONS/densi'
+      INCLUDE 'COMMONS/active'
 
       DIMENSION listtrans(idim), numlist(nummaxproc), xyzmh(5,idim)
       INTEGER classify_cartesian, classify_disc, classify_sphere
       INTEGER*1 iphase(idim)
       REAL*4 rhomaxlocal,rhomaxtot
+
 c
 c--Identify which MPI process each particle should belong to
 c
       DO i = 1, numproc
          numlist(i) = 0
       END DO
-
+c
+c--For balance type 'r' need to find maximum density (rho) particle across all
+c     MPI processes because this is where the domain decomposition is centred.
+c
       IF (mpitype.EQ.'r') THEN
          rhomaxlocal = 0.
          irhomax = 0
@@ -1426,6 +1434,206 @@ c
          ENDIF
       ENDIF
 
+
+
+
+c
+c--For Cartesian geometry, process 0 finds out how many particles are on each
+c     node so that it can figure out where the new boundaries should be.  It 
+c     then broadcasts the new node boundaries to the other MPI processes.
+c
+      IF (mpitype.EQ.'c') THEN
+         print *,iproc,' BAL entered mpitype.EQ.c'
+
+         xtemp = LOG(REAL(numproc))/LOG(2.0)
+         IF (xtemp - INT(xtemp+1.0E-4).GT.1.0E-4) THEN
+            WRITE (*,*) 'ERROR - numproc is not a power of two ',
+     &           numproc,xtemp
+            CALL quit
+         ENDIF
+c
+c--Find total number of active particles on all MPI processes
+c
+         CALL MPI_ALLREDUCE(nactive,nactivetot,1,MPI_INTEGER,MPI_SUM,
+     &        MPI_COMM_WORLD,ierr)
+
+         print *,iproc,' BAL nactivetot ',nactivetot
+c
+c--Determine number of divisions in x, y, z
+c
+         nsplit(1) = (INT(((REAL(numproc)-0.1)**(1.0/3.0))/2.0)+1)*2
+         nsplit(2) = (INT(((REAL(numproc/nsplit(1))-0.1)**(1.0/2.0))/
+     &        2.0)+1)*2
+         nsplit(3) = numproc/nsplit(1)/nsplit(2)
+
+         print *,iproc,' BAL nsplit ',(nsplit(i),i=1,3)
+
+         DO idimension = 1, 3
+            nsplittemp = nsplit(idimension)
+            CALL MPI_BCAST(nsplittemp,1,MPI_INTEGER,0,
+     &           MPI_COMM_WORLD,ierr)
+            nsplit(idimension) = nsplittemp
+         END DO
+c
+c--Need to find extent of particle distribution if not done before or if
+c     numproc is less than 64 (since then x,y, or z will have only 2 domains
+c     and the code below won't know how to change the split coords).
+c
+         DO idimension = 1, 3
+            xyzmax(idimension) = -1.0E-30
+            xyzmin(idimension) = 1.0E-30
+            DO i = 1, npart
+               xyzmax(idimension) = MAX(xyzmax(idimension),
+     &              xyzmh(idimension,i))
+               xyzmin(idimension) = MIN(xyzmin(idimension),
+     &              xyzmh(idimension,i))
+            END DO
+         END DO
+c
+c--Find global bounds of active particles
+c
+         DO idimension = 1, 3
+            xsend = xyzmax(idimension)
+            CALL MPI_ALLREDUCE(xsend,xsendtot,1,MPI_REAL8,MPI_MAX,
+     &           MPI_COMM_WORLD, ierr)
+            xyzmax(idimension) = xsendtot
+            splitcoords(nsplit(idimension),idimension) = 
+     &           xyzmax(idimension)
+
+            xsend = xyzmin(idimension)
+            CALL MPI_ALLREDUCE(xsend,xsendtot,1,MPI_REAL8,MPI_MIN,
+     &           MPI_COMM_WORLD, ierr)
+            xyzmin(idimension) = xsendtot
+         END DO
+c
+c--If not done before, need to guess splitcoords()
+c
+         IF (ifirst) THEN
+            DO idimension = 1, 3
+               DO number = 1, nsplit(idimension) - 1
+                  splitcoords(number,idimension) = xyzmin(idimension) +
+     &                 ((xyzmax(idimension)-xyzmin(idimension))/
+     &                 nsplit(idimension))*number
+               END DO
+            END DO
+            print *,iproc,' BAL: Guess coords ',
+     &           ((splitcoords(number,idimension),
+     &           number=1,nsplit(idimension)), idimension=1,3)
+         ENDIF
+c
+c--Determine new coordinates of MPI domains
+c
+         DO idimension = 1, 3
+            DO number = 1, nsplit(idimension) - 1
+               idone = 0
+               nfoundlast = 0
+               fractiondxlast = 1.0E+30
+
+c
+c--Target value for all processes and the number of x,y,z splits
+c
+               IF (iproc.EQ.0) THEN
+                  ntarget = nactivetot/nsplit(idimension)
+
+                  print *,iproc,' BAL ntarget ',ntarget
+c
+c--Use bisection
+c
+                  IF (number.EQ.1) THEN
+                     dx = (splitcoords(number,idimension) -
+     &                    xyzmin(idimension))/2.0
+                  ELSE
+                     dx = (splitcoords(number,idimension) - 
+     &                    splitcoords(number-1,idimension))/2.
+                  ENDIF
+               ENDIF
+
+ 500           splitpos = splitcoords(number,idimension)
+               CALL MPI_BCAST(splitpos,1,MPI_REAL8,0,
+     &              MPI_COMM_WORLD,ierr)
+               splitcoords(number,idimension) = splitpos
+
+               IF (idone.EQ.1) GOTO 600
+c
+c--All MPI processes need to find how many active particles are in the 
+c     specified zone
+c
+               nfound = 0
+               IF (number.EQ.1) THEN
+                  DO i = 1, npart
+                     IF (iphase(i).GE.0 .AND. 
+     & xyzmh(idimension,i).LT.splitcoords(number,idimension)) THEN
+                        nfound = nfound + 1
+                     ENDIF
+                  END DO
+               ELSEIF (number.EQ.nsplit(idimension)-1) THEN
+                  DO i = 1, npart
+                     IF (iphase(i).GE.0 .AND. 
+     & xyzmh(idimension,i).GE.splitcoords(number,idimension)) THEN
+                        nfound = nfound + 1
+                     ENDIF
+                  END DO
+               ELSE
+                  DO i = 1, npart
+                     IF (iphase(i).GE.0 .AND. 
+     & xyzmh(idimension,i).GE.splitcoords(number-1,idimension) .AND.
+     & xyzmh(idimension,i).LT.splitcoords(number,idimension)) THEN
+                        nfound = nfound + 1
+                     ENDIF
+                  END DO
+               ENDIF
+
+               print *,iproc,' BAL found ',nfound,' for ',number,
+     &              idimension
+c
+c--Find total actual number of particles in this zone
+c
+               IF (iproc.EQ.0) THEN
+                  DO i = 1, numproc-1
+                     CALL MPI_RECV(nfoundremote, 1, MPI_INTEGER,
+     &                    MPI_ANY_SOURCE, 161, MPI_COMM_WORLD, 
+     &                    istatus, ierr)
+                     nfound = nfound + nfoundremote
+                  END DO
+
+                  print *,iproc,' BAL nfound tot ',nfound,nfoundlast,dx
+               ELSE
+                  CALL MPI_SEND(nfound,1,MPI_INTEGER,0,161,
+     &                 MPI_COMM_WORLD,ierr)
+               ENDIF
+c
+c--Modify region to try and get closer to target
+c
+               IF (iproc.EQ.0) THEN
+                  IF (nfound.GT.ntarget) THEN
+                     splitcoords(number,idimension) = 
+     &                    splitcoords(number,idimension) - dx
+                  ELSE
+                     splitcoords(number,idimension) =
+     &                    splitcoords(number,idimension) + dx
+                  ENDIF
+                  dx = dx/2.0
+
+                  IF ((nfound-nfoundlast).EQ.0) idone = 1
+                  nfoundlast = nfound
+
+                  print *,iproc,' BAL new ',splitcoords(number,
+     &                 idimension),number,idimension
+               ENDIF
+
+               CALL MPI_BCAST(idone,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+
+               GOTO 500
+
+ 600           CONTINUE
+            END DO
+         END DO
+
+         print *,iproc,' BAL: New coords ',
+     &        ((splitcoords(number,idimension),
+     &        number=1,nsplit(idimension)), idimension=1,3)
+      ENDIF
+
       DO ipart = 1, npart
          IF (iphase(ipart).GE.0) THEN
             IF (mpitype.EQ.'c') THEN
@@ -1434,6 +1642,11 @@ c
                numlist(ibelong1) = numlist(ibelong1) + 1
                listtrans(ipart) = ibelong
             ELSEIF (mpitype.EQ.'d') THEN
+               ibelong = classify_disc(ipart,xyzmh)
+               ibelong1 = ibelong + 1
+               numlist(ibelong1) = numlist(ibelong1) + 1            
+               listtrans(ipart) = ibelong
+            ELSEIF (mpitype.EQ.'p') THEN
                ibelong = classify_disc(ipart,xyzmh)
                ibelong1 = ibelong + 1
                numlist(ibelong1) = numlist(ibelong1) + 1            
@@ -1457,6 +1670,11 @@ c
 c--End of MPI-only section
 c
 #endif
+
+      IF (ifirst) THEN
+         ifirst = .FALSE.
+      ENDIF
+
       RETURN
       END
 
@@ -1483,6 +1701,7 @@ c************************************************************
       INCLUDE 'COMMONS/mpidebug'
 #endif
       INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/rbnd'
 
       DIMENSION xyzmh(5,idim)
 
@@ -1491,7 +1710,15 @@ c************************************************************
       ival = 0
 
 #ifdef MPI
-      IF (xyzmh(3,ipart)-zlocationmpi.LT.0.0) THEN
+      xcen = xyzmh(1,ipart) - xlocationmpi
+      ycen = xyzmh(2,ipart) - ylocationmpi
+      zcen = xyzmh(3,ipart) - zlocationmpi
+
+      IF (mpitype.EQ.'p') THEN
+         IF (xcen**2+ycen**2+zcen**2.GT.(0.5*phibound)**2) GOTO 100
+      ENDIF
+
+      IF (zcen.LT.0.0) THEN
          ival = 1
       ELSE
          ival = 0
@@ -1499,16 +1726,14 @@ c************************************************************
 
       phiincrement = 2.0*pi/(numproc/2)
 
-      xcen = xyzmh(1,ipart) - xlocationmpi
-      ycen = xyzmh(2,ipart) - ylocationmpi
-
       IF (xcen.EQ.0. .AND. ycen.EQ.0.) THEN
          ival = 0
       ELSE
          ival = ival*numproc/2 +
      &     INT((pi + ATAN2(ycen,xcen))/phiincrement)
       ENDIF
-      IF (ival.GT.numproc) ival = numproc
+
+ 100  IF (ival.GT.numproc) ival = numproc
 #endif
 
       classify_disc = ival
@@ -1577,52 +1802,25 @@ c************************************************************
 
       INTEGER classify_cartesian
 
-      DIMENSION div_cartesian(21)
-
       ival = 0
 
-      xpow = LOG(REAL(numproc))/LOG(2.0)
-      IF (xpow/INT(xpow).LT.0.9999 .OR. xpow/INT(xpow).GT.1.0001) THEN
-         WRITE (*,*) 'ERROR - classify_cartesian ',xpow,numproc
+#ifdef MPI
+      DO idimension = 1, 3
+         DO number = 1, nsplit(idimension) - 1
+            IF (xyzmh(idimension,ipart).LT.
+     &           splitcoords(number,idimension)) THEN
+               ival = ival + number - 1
+               GOTO 100
+            ENDIF
+            ival = ival + nsplit(idimension) - 1
+         END DO
+ 100     IF (idimension.LT.3) ival = ival*nsplit(idimension)
+      END DO
+
+      IF (ival.GT.numproc) THEN
+         WRITE (*,*) 'ERROR - classify_cartesian ',numproc,ival
          CALL quit
       ENDIF
-
-#ifdef MPI
-      IF (xyzmh(1,ipart).LT.div_cartesian(1)) THEN
-         ival = ival + 0
-      ELSE
-         ival = ival + 1
-      ENDIF
-      IF (numproc.EQ.2) GOTO 100
-      ival = ival*2
-
-      IF (xyzmh(2,ipart).LT.div_cartesian(2)) THEN
-         ival = ival + 0
-      ELSE
-         ival = ival + 1
-      ENDIF
-      IF (numproc.EQ.4) GOTO 100
-      ival = ival*2
-
-      IF (xyzmh(3,ipart).LT.div_cartesian(3)) THEN
-         ival = ival + 0
-      ELSE
-         ival = ival + 1
-      ENDIF
-      IF (numproc.EQ.8) GOTO 100
-
-      ival = ival + 4
-      iremain = MOD(ival,4)
-
-      IF (xyzmh(1,ipart).LT.div_cartesian(4)) THEN
-         ival = iremain
-      ELSEIF (xyzmh(1,ipart).GT.div_cartesian(5)) THEN
-         ival = 12 + iremain
-      ENDIF
-      IF (numproc.EQ.16) GOTO 100
-
-
- 100   IF (ival.GT.numproc) ival = numproc
 #endif
 
       classify_cartesian = ival

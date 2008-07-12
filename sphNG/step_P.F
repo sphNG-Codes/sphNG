@@ -2451,6 +2451,12 @@ c
 c--Create NEW particles in box surrounding planet in disc (ibound=100)
 c
       IF (ibound.EQ.100) THEN
+#ifdef MPI
+c
+c--If MPI code, particles are only injected by MPI process 0
+c
+         IF (iproc.NE.0) GOTO 777
+#endif
 c
 c--Work out how many particles to add
 c
@@ -2479,6 +2485,8 @@ c
                ELSE
                   icountaddnpart = icountaddnpart + 1
                   nnew = npart + icountaddnpart
+                  iunique(nnew) = iuniquemax + 1
+                  iuniquemax = iuniquemax + 1
                   IF (nnew.GT.idim) CALL error(where,3)
                ENDIF
                llist(i) = nnew
@@ -2698,6 +2706,7 @@ c
 
             naddedplanet = naddedplanet + nlst0
          ENDIF
+ 777     CONTINUE
 c
 c--End creation of NEW particles for Embedded Planet (ibound=100)
 c

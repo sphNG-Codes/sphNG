@@ -31,7 +31,7 @@
      &	     istatus_array(MPI_STATUS_SIZE,nummaxproc),
      &       nneighfull(idim)
 
-      COMMON /mpiarr/ lsendlist(idim), llistrec(idim), 
+      COMMON /mpiarri/ lsendlist(idim), llistrec(idim), 
      &     nneighsentback(nummaxproc),
      &     nneightogetback(nummaxproc),
      &     nneighsink(nummaxproc),
@@ -41,8 +41,10 @@
      &     inumberindiv(nummaxproc),
      &     inumbercumm(nummaxproc),
      &     inumberproc(nummaxproc),
-     &	   lblocklengths(idim)
+     &	   lblocklengths(idim),
+     &	   nsplit(3)
 
+       COMMON /mpiarrr/ splitcoords(31,3),xyzmax(3),xyzmin(3)
 
 c
 c--Notes:

@@ -94,7 +94,8 @@ c--Call torus for Monte-Carlo radiative transfer
          CALL torus(idim,  npart, nactive, nptmass, num_gas, 
      &              xyzmh, trho,  iphase, 
      &              udist, umass, utime, 
-     &              time,  temperature(1:num_gas), temp_min )
+     &              time,  temperature(1:num_gas), temp_min,
+     &              totalgasmass                             )
 c     
 c--Set thermal energy of gas particles using torus's temperatures     
 c     

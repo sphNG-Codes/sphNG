@@ -18,6 +18,7 @@
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/files'
 
 ! Arguments
       INTEGER, INTENT(IN) :: npart
@@ -95,7 +96,8 @@ c--Call torus for Monte-Carlo radiative transfer
      &              xyzmh, trho,  iphase, 
      &              udist, umass, utime, 
      &              time,  temperature(1:num_gas), temp_min,
-     &              totalgasmass                             )
+     &              totalgasmass, file1                       )
+
 c     
 c--Set thermal energy of gas particles using torus's temperatures     
 c     

@@ -449,5 +449,5 @@ updatedepends:
 include .depends
         
 clean:
-	\rm -f *.o *.mod sph_tree_lf_gradh sph_tree_lf sph_tree_rk_gradh sph_tree_rk ./utils/*.o
+	\rm -f *.o *.mod RT/*.o RT/*.mod sph_tree_lf_gradh sph_tree_lf sph_tree_rk_gradh sph_tree_rk ./utils/*.o
 # DO NOT DELETE

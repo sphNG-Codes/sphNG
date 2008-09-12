@@ -1,5 +1,8 @@
       SUBROUTINE QUARTIC_GS1T(u1term,u0term,uold,soln,moresweep)
       
+      REAL tiny
+      PARAMETER (tiny=1.0E-30)
+
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/physcon'
@@ -22,6 +25,7 @@
       REAL  f1,f2,f3,f4,f5,g0,g1,g2,g3,g4,laeg,la1,lg1,le1,vhgr,vlwr
       LOGICAL  swapg,swape,NR,moresweep
       DIMENSION z1(2),z2(2),z3(2),z4(2)
+
                                 !QUARTIC4 - solver for trapezoidal T^4
       lightspeed = c /udist * utime
       uradconst = radconst / uergcc
@@ -241,23 +245,28 @@ c      if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3'
 c         if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3a',
 c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
 
-         IF(ABS((a3/2.0)-SQRT(ub))/ABS(a3/2.0).LT.1d-6) THEN
+         IF (ABS(a3).GE.tiny) THEN
+            IF(ABS((a3/2.0)-SQRT(ub))/ABS(a3/2.0).LT.1d-6) THEN
          PRINT *,"QUARTIC4: Error, big - big / big too big for co-eff b"
-            STOP
-         END IF
+               STOP
+            END IF
+         ENDIF
 
-         z2(1)=0.5*((-ub2)-SQRT(ub2**2-4.0*uc2))
-         z1(1)=0.5*((-ub2)+SQRT(ub2**2-4.0*uc2))
-      
-         z2(2)=1
-         z1(2)=1
-         
+            z2(1)=0.5*((-ub2)-SQRT(ub2**2-4.0*uc2))
+            z1(1)=0.5*((-ub2)+SQRT(ub2**2-4.0*uc2))
+
+            z2(2)=1
+            z1(2)=1
       ELSE IF(ub2**2-4.0*uc2.LT.0.0.AND.ub1**2-4.0*uc1.GT.0.0) THEN
 c         if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3b',
 c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
 
          IF(ABS(2.0*a0/(y1**2)).LT.1d-6) THEN
 
+            IF (ABS(a3).LT.tiny) THEN
+               PRINT *,"a3 < tiny at position 1 ",a3
+               STOP
+            ELSE
             IF(ABS((2.0*a0/y1)/(((a3/2.0)+SQRT((a3**2/4.0)+y1-a2))**2)).
      $           GT.1d-6) THEN
             PRINT *,"QUARTIC4: Second Taylor expansion no longer valid"
@@ -268,6 +277,7 @@ c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
 
 
             z4(1)=-1.0*((a0/y1)/((a3/2.0)+SQRT((a3**2/4.0)+y1-a2)))
+            ENDIF
 
          ELSE
             z4(1)=0.5*((-ub1)+SQRT(ub1**2-4.0*uc1))
@@ -300,14 +310,16 @@ c      PRINT *,"soln:",soln
 c         if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3c',
 c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
 
-         
-         IF(ABS((a3/2.0)-SQRT(ub))/ABS(a3/2.0).LT.1d-6) THEN
+         IF (ABS(a3).GE.tiny) THEN
+            IF(ABS((a3/2.0)-SQRT(ub))/ABS(a3/2.0).LT.1d-6) THEN
          PRINT *,"QUARTIC4: Error, big - big / big too big for co-eff b"
-            STOP
-         END IF
+               STOP
+            END IF
+         ENDIF
 
          IF(ABS(2.0*a0/(y1**2)).LT.1d-6) THEN
 
+            IF (ABS(a3).GE.tiny) THEN
             IF((ABS(2.0*a0/y1)/(((a3/2.0)+SQRT((a3**2/4.0)+y1-a2))**2)).
      $           GT.1d-6) THEN
             PRINT *,"QUARTIC4: Second Taylor expansion no longer valid"
@@ -317,6 +329,9 @@ c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
             END IF
 
             z4(1)=-1.0*((a0/y1)/((a3/2.0)+SQRT((a3**2/4.0)+y1-a2)))
+            ELSE
+               PRINT *,"QUARTIC4: a3<tiny at position 2 ",a3
+            ENDIF
 
          ELSE
             z4(1)=0.5*((-ub1)+SQRT(ub1**2-4.0*uc1))

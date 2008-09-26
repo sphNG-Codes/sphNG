@@ -261,12 +261,8 @@ c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
 c         if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3b',
 c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
 
-         IF(ABS(2.0*a0/(y1**2)).LT.1d-6) THEN
+         IF(ABS(2.0*a0/(y1**2)).LT.1d-6 .AND. ABS(a3).GE.tiny) THEN
 
-            IF (ABS(a3).LT.tiny) THEN
-               PRINT *,"a3 < tiny at position 1 ",a3
-               STOP
-            ELSE
             IF(ABS((2.0*a0/y1)/(((a3/2.0)+SQRT((a3**2/4.0)+y1-a2))**2)).
      $           GT.1d-6) THEN
             PRINT *,"QUARTIC4: Second Taylor expansion no longer valid"
@@ -277,7 +273,6 @@ c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
 
 
             z4(1)=-1.0*((a0/y1)/((a3/2.0)+SQRT((a3**2/4.0)+y1-a2)))
-            ENDIF
 
          ELSE
             z4(1)=0.5*((-ub1)+SQRT(ub1**2-4.0*uc1))

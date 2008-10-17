@@ -60,7 +60,7 @@ c************************************************************
       INCLUDE 'COMMONS/hagain'
       INCLUDE 'COMMONS/crpart'
       INCLUDE 'COMMONS/bodys'
-      INCLUDE 'COMMONS/torq'
+c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/ptbin'
       INCLUDE 'COMMONS/out1'
       INCLUDE 'COMMONS/rbnd'
@@ -2330,8 +2330,8 @@ c
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                   IF (ifsvi.EQ.6) THEN
                      DO l=1,isizealphaMM
-                        dumalpha(l,j) = MIN(alphamax(l),
-     &                    alphaMM(l,k) + deltat*f1ha(1+l,k))
+                        dumalpha(l,j) = MAX(MIN(alphamax(l),
+     &                   alphaMM(l,k) + deltat*f1ha(1+l,k)),alphamin(l))
                      ENDDO
                   ENDIF
                ENDIF
@@ -2563,8 +2563,8 @@ c
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                   IF (ifsvi.EQ.6) THEN
                      DO l=1,isizealphaMM
-                        dumalpha(l,j) = MIN(alphamax(l),
-     &                     alphaMM(l,k) + deltat*f1ha(l+1,k))
+                        dumalpha(l,j) = MAX(MIN(alphamax(l),
+     &                   alphaMM(l,k) + deltat*f1ha(l+1,k)),alphamin(l))
                      ENDDO
                   ENDIF
                   IF (imhd.EQ.idim) THEN

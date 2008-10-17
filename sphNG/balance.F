@@ -363,11 +363,13 @@ c
                         CALL MPI_SEND(poten,1,indexMPI1,j,111,
      &                       MPI_COMM_WORLD, ierr)
 
-                        CALL MPI_SEND(h2mol,1,indexMPIR,j,158,
-     &                       MPI_COMM_WORLD, ierr)
+                        IF (idim_h2.EQ.idim) THEN
+                           CALL MPI_SEND(h2mol,1,indexMPIR,j,158,
+     &                          MPI_COMM_WORLD, ierr)
 
-                        CALL MPI_SEND(h2ratio,1,indexMPIR,j,159,
-     &                       MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(h2ratio,1,indexMPIR,j,159,
+     &                          MPI_COMM_WORLD, ierr)
+                        ENDIF
 
                         IF (nlmax.EQ.1) THEN
                            CALL MPI_SEND(gradhs,1,indexMPI2,j,112,
@@ -736,20 +738,22 @@ c                  END DO
                   CALL quit
                ENDIF
 
-               CALL MPI_RECV(h2mol(npartnew+1), idim, MPI_REAL8,
-     &              iprocrec, 158, MPI_COMM_WORLD, istatus, ierr)
-               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
-               IF (inumber.NE.igotnumber) THEN
-                  WRITE (*,*) 'ERROR - balance igotnumber h2mol'
-                  CALL quit
-               ENDIF
+               IF (idim_h2.EQ.idim) THEN
+                  CALL MPI_RECV(h2mol(npartnew+1), idim, MPI_REAL8,
+     &                 iprocrec, 158, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber h2mol'
+                     CALL quit
+                  ENDIF
 
-               CALL MPI_RECV(h2ratio(npartnew+1), idim, MPI_REAL8,
-     &              iprocrec, 159, MPI_COMM_WORLD, istatus, ierr)
-               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
-               IF (inumber.NE.igotnumber) THEN
-                  WRITE (*,*) 'ERROR - balance igotnumber h2ratio'
-                  CALL quit
+                  CALL MPI_RECV(h2ratio(npartnew+1), idim, MPI_REAL8,
+     &                 iprocrec, 159, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber h2ratio'
+                     CALL quit
+                  ENDIF
                ENDIF
 
                IF (nlmax.EQ.1) THEN
@@ -1271,6 +1275,7 @@ c
       IF (iproc.EQ.0) WRITE (iprint,*) 'MOVE ',npart-npartold,
      &     nlistinactive,npart
       nlistinactiveold = nlistinactive
+
       DO i = npart, npartold + 1, -1
          IF (nlistinactive.GT.0) THEN
             CALL move_particle(i,listinactive(nlistinactive))
@@ -1323,13 +1328,35 @@ c--Need to re-make ghosts and re-make tree
 c
       IF (ibound.GT.0) THEN
          CALL ghostp(ntot,npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+
+         DO i = npart+1, ntot
+            DO k = 1, 5
+               dumxyzmh(k,i) = xyzmh(k,i)
+            END DO
+            DO k = 1, 3
+               dumvxyzu(k,i) = vxyzu(k,i)
+            END DO
+            DO k = 1, isizealphaMM
+               dumalpha(k,i) = alphaMM(k,i)
+            END DO
+            IF (encal.EQ.'r') THEN
+               DO k = 1, 5
+                  dumekcle(k,i) = ekcle(k,i)
+               END DO
+            ENDIF
+            IF (imhd.EQ.idim) THEN
+               DO k = 1, 3
+                  dumBevolxyz(k,i) = Bevolxyz(k,i)
+               END DO
+            ENDIF
+         END DO
       ELSE
          nghost = 0
          ntot = npart + nghost
       ENDIF
-c#ifdef MPIDEBUGT
+#ifdef MPIDEBUGT
       print *,iproc,': Balance is making tree ',ntot, npart
-c#endif
+#endif
       CALL insulate(1, ntot, npart, dumxyzmh, f1vxyzu)
 c
 c--End of MPI-only section
@@ -1370,8 +1397,9 @@ c************************************************************
       INCLUDE 'COMMONS/active'
 
       DIMENSION listtrans(idim), numlist(nummaxproc), xyzmh(5,idim)
-      INTEGER classify_cartesian, classify_disc, classify_sphere
-      INTEGER*1 iphase(idim)
+      INTEGER classify_cartesian, classify_disc, classify_sphere,
+     &     classify_binary
+      INTEGER*1 iphase(idim2)
       REAL*4 rhomaxlocal,rhomaxtot
 
 c
@@ -1527,8 +1555,6 @@ c
             DO number = 1, nsplit(idimension) - 1
                idone = 0
                nfoundlast = 0
-               fractiondxlast = 1.0E+30
-
 c
 c--Target value for all processes and the number of x,y,z splits
 c
@@ -1634,34 +1660,215 @@ c
      &        number=1,nsplit(idimension)), idimension=1,3)
       ENDIF
 
+c
+c--For successive binary splitting, process 0 controls the process of defining
+c     where the new boundaries should be.
+c     It broadcasts the new node boundaries to the other MPI processes.
+c
+      IF (mpitype.EQ.'b') THEN
+         print *,iproc,' BAL entered mpitype.EQ.b'
+
+         xtemp = LOG(REAL(numproc))/LOG(2.0)
+         IF (xtemp - INT(xtemp+1.0E-4).GT.1.0E-4) THEN
+            WRITE (*,*) 'ERROR - numproc is not a power of two ',
+     &           numproc,xtemp
+            CALL quit
+         ENDIF
+         nsplits = INT(xtemp+1.0E-4)
+
+         print *,iproc,': BAL number of splits is ',nsplits
+c
+c--Find total number of active particles on all MPI processes
+c
+         CALL MPI_ALLREDUCE(nactive,nactivetot,1,MPI_INTEGER,MPI_SUM,
+     &        MPI_COMM_WORLD,ierr)
+
+         print *,iproc,' BAL nactivetot ',nactivetot
+c
+c--Need to find extent of particle distribution.
+c
+         DO idimension = 1, 3
+            xyzmax(idimension) = -1.0E-30
+            xyzmin(idimension) = 1.0E-30
+            DO i = 1, npart
+               xyzmax(idimension) = MAX(xyzmax(idimension),
+     &              xyzmh(idimension,i))
+               xyzmin(idimension) = MIN(xyzmin(idimension),
+     &              xyzmh(idimension,i))
+            END DO
+         END DO
+c
+c--Find global bounds of active particles
+c
+         DO idimension = 1, 3
+            xsend = xyzmax(idimension)
+            CALL MPI_ALLREDUCE(xsend,xsendtot,1,MPI_REAL8,MPI_MAX,
+     &           MPI_COMM_WORLD, ierr)
+            xyzmax(idimension) = xsendtot
+
+            xsend = xyzmin(idimension)
+            CALL MPI_ALLREDUCE(xsend,xsendtot,1,MPI_REAL8,MPI_MIN,
+     &           MPI_COMM_WORLD, ierr)
+            xyzmin(idimension) = xsendtot
+         END DO
+c
+c--Determine new coordinates of MPI domains
+c
+         nsplitbeingdone = 0
+         DO i = 1, nsplits
+            DO number = 1, 2**(i-1)
+               nsplitbeingdone = nsplitbeingdone + 1
+               idone = 0
+               nfoundlast = 0
+c
+c--Find direction (x,y,z) of split
+c
+               idimension_now = MOD(i-1,3)+1
+c
+c--Set search space
+c
+               DO idimension = 1,3
+                  searchxyzmax(idimension) = xyzmax(idimension)
+                  searchxyzmin(idimension) = xyzmin(idimension)
+               END DO
+
+               DO i2 = 1, i-1
+                  idimension = MOD(i2-1,3)+1
+
+                  ipos = MOD( (nsplitbeingdone - 2**i2), 2**(i2-1)) + 
+     &                 2**(i2-1)
+                  
+                  zeroorone = MOD((nsplitbeingdone-2**i2)/(2**(i2-1)),2)
+
+                  IF (zeroorone.EQ.0) THEN
+                     searchxyzmax(idimension) = binarysplits(ipos)
+                  ELSE
+                     searchxyzmin(idimension) = binarysplits(ipos)
+                  ENDIF
+               END DO
+c
+c--Set starting limits for bisection and dx value
+c
+               IF (iproc.EQ.0) THEN
+                  boundupper = searchxyzmax(idimension_now)
+                  boundlower = searchxyzmin(idimension_now)
+                  dx = (boundupper - boundlower)/2.0
+                  searchxyzmin(idimension_now) = boundlower + dx
+                  dx = dx/2.0
+c
+c--Target value for all processes and the number of x,y,z splits
+c
+                  ntarget = nactivetot/(2**i)
+
+                  print *,iproc,' BAL ntarget ',ntarget, 
+     &                 idimension_now, dx, boundupper, boundlower
+               ENDIF
+
+ 700           binarysplits(nsplitbeingdone) = 
+     &              searchxyzmin(idimension_now)
+               splitpos = binarysplits(nsplitbeingdone)
+               CALL MPI_BCAST(splitpos,1,MPI_REAL8,0,
+     &              MPI_COMM_WORLD,ierr)
+               binarysplits(nsplitbeingdone) = splitpos
+               searchxyzmin(idimension_now) = splitpos
+
+               IF (iproc.EQ.0) THEN
+                  print *,iproc,' BAL splitpos ',splitpos
+
+                  print *,iproc,' BAL search ',searchxyzmin(1),
+     &                 searchxyzmax(1),searchxyzmin(2),searchxyzmax(2),
+     &                 searchxyzmin(3),searchxyzmax(3)
+               ENDIF
+
+               IF (idone.EQ.1) GOTO 800
+c
+c--All MPI processes need to find how many active particles are in the 
+c     specified zone
+c
+               nfound = 0
+               DO ipart = 1, npart
+                  IF (iphase(ipart).GE.0) THEN
+                     DO idimension = 1, 3
+                        IF (xyzmh(idimension,ipart).LT.
+     &                       searchxyzmin(idimension) .OR. 
+     &                       xyzmh(idimension,ipart).GE.
+     &                       searchxyzmax(idimension)) GOTO 750
+                     END DO
+                     nfound = nfound + 1
+                  ENDIF
+ 750              CONTINUE
+               END DO
+
+               print *,iproc,' BAL found ',nfound,' for ',number,
+     &              idimension
+c
+c--Find total actual number of particles in this zone
+c
+               IF (iproc.EQ.0) THEN
+                  DO iloop = 1, numproc-1
+                     CALL MPI_RECV(nfoundremote, 1, MPI_INTEGER,
+     &                    MPI_ANY_SOURCE, 161, MPI_COMM_WORLD, 
+     &                    istatus, ierr)
+                     nfound = nfound + nfoundremote
+                  END DO
+
+                  print *,iproc,' BAL nfound tot ',nfound,nfoundlast,dx
+               ELSE
+                  CALL MPI_SEND(nfound,1,MPI_INTEGER,0,161,
+     &                 MPI_COMM_WORLD,ierr)
+               ENDIF
+c
+c--Modify region to try and get closer to target
+c
+               IF (iproc.EQ.0) THEN
+                  IF (nfound.GT.ntarget) THEN
+                     searchxyzmin(idimension_now) = 
+     &                    searchxyzmin(idimension_now) + dx
+                  ELSE
+                     searchxyzmin(idimension_now) = 
+     &                    searchxyzmin(idimension_now) - dx
+                  ENDIF
+                  dx = dx/2.0
+
+                  IF (nfound.EQ.ntarget .OR. dx.LT.1.0E-10) idone = 1
+                  nfoundlast = nfound
+
+                  print *,iproc,' BAL new',
+     &                 searchxyzmin(idimension_now),idimension_now
+               ENDIF
+
+               CALL MPI_BCAST(idone,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+
+               GOTO 700
+
+ 800           CONTINUE
+            END DO
+         END DO
+
+         print *,iproc,' BAL: New coords ',
+     &        (binarysplits(i), i=1,nsplitbeingdone)
+      ENDIF
+c
+c--Now classify every particle as to which MPI process it should belong to
+c
       DO ipart = 1, npart
          IF (iphase(ipart).GE.0) THEN
-            IF (mpitype.EQ.'c') THEN
+            IF (mpitype.EQ.'b') THEN
+               ibelong = classify_binary(ipart,xyzmh)
+            ELSEIF (mpitype.EQ.'c') THEN
                ibelong = classify_cartesian(ipart,xyzmh)
-               ibelong1 = ibelong + 1
-               numlist(ibelong1) = numlist(ibelong1) + 1
-               listtrans(ipart) = ibelong
             ELSEIF (mpitype.EQ.'d') THEN
                ibelong = classify_disc(ipart,xyzmh)
-               ibelong1 = ibelong + 1
-               numlist(ibelong1) = numlist(ibelong1) + 1            
-               listtrans(ipart) = ibelong
             ELSEIF (mpitype.EQ.'p') THEN
                ibelong = classify_disc(ipart,xyzmh)
-               ibelong1 = ibelong + 1
-               numlist(ibelong1) = numlist(ibelong1) + 1            
-               listtrans(ipart) = ibelong
             ELSEIF (mpitype.EQ.'r') THEN
                ibelong = classify_disc(ipart,xyzmh)
-               ibelong1 = ibelong + 1
-               numlist(ibelong1) = numlist(ibelong1) + 1            
-               listtrans(ipart) = ibelong
             ELSEIF (mpitype.EQ.'s') THEN
                ibelong = classify_sphere(ipart,xyzmh)
-               ibelong1 = ibelong + 1
-               numlist(ibelong1) = numlist(ibelong1) + 1
-               listtrans(ipart) = ibelong
             ENDIF
+            ibelong1 = ibelong + 1
+            numlist(ibelong1) = numlist(ibelong1) + 1
+            listtrans(ipart) = ibelong
          ELSE
             listtrans(ipart) = -1
          ENDIF
@@ -1812,9 +2019,9 @@ c************************************************************
                ival = ival + number - 1
                GOTO 100
             ENDIF
-            ival = ival + nsplit(idimension) - 1
          END DO
- 100     IF (idimension.LT.3) ival = ival*nsplit(idimension)
+         ival = ival + nsplit(idimension) - 1
+ 100     IF (idimension.LT.3) ival = ival*nsplit(idimension+1)
       END DO
 
       IF (ival.GT.numproc) THEN
@@ -1824,6 +2031,61 @@ c************************************************************
 #endif
 
       classify_cartesian = ival
+
+      RETURN
+      END
+
+c---------------------------------------------------------------------------
+
+      FUNCTION classify_binary(ipart,xyzmh)
+c************************************************************
+c                                                           *
+c  Subroutine to determine which MPI process a particle     *
+c     should be on.                                         *
+c     This version is applicable to cartesian geometries.   *
+c     It does binary splits.                                *
+c     The splits are done on x then y, z, then back to x.   *
+c                                                           *
+c************************************************************
+
+      INCLUDE 'idim'
+      INCLUDE 'igrape'
+
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpidebug'
+#endif
+      INCLUDE 'COMMONS/physcon'
+
+      DIMENSION xyzmh(5,idim)
+
+      INTEGER classify_binary
+
+      ival = 0
+
+#ifdef MPI
+      nsplits = INT(LOG(REAL(numproc)+0.1)/LOG(2.0))
+      DO i = 1, nsplits
+         idimension = MOD(i-1,3)+1
+
+         IF (i.EQ.1) THEN
+            ipos = 1
+         ELSE
+            ipos = MOD(ival,2**(i-1)) + 2**(i-1)
+         ENDIF
+
+         IF (xyzmh(idimension,ipart).GE.binarysplits(ipos))
+     &        ival = ival + 2**(i-1)
+      END DO
+
+      IF (ival.GT.numproc) THEN
+         WRITE (*,*) 'ERROR - classify_binary ',numproc,ival
+         CALL quit
+      ENDIF
+#endif
+
+      classify_binary = ival
 
       RETURN
       END
@@ -1840,7 +2102,7 @@ c     NOTE: Does not alter listbins for timesteps or ireal  *
 c     or hasghost for ghost particles.                      *
 c     Does not alter tree.                                  *
 c                                                           *
-c************************************************************
+c*************************`***********************************
 
       INCLUDE 'idim'
       INCLUDE 'igrape'
@@ -1916,8 +2178,10 @@ c      isort(ifrom) = 0
       pr(ito) = pr(ifrom)
       vsound(ito) = vsound(ifrom)
       poten(ito) = poten(ifrom)
-      h2mol(ito) = h2mol(ifrom)
-      h2ratio(ito) = h2ratio(ifrom)
+      IF (idim_h2.EQ.idim) THEN
+         h2mol(ito) = h2mol(ifrom)
+         h2ratio(ito) = h2ratio(ifrom)
+      ENDIF
       iscurrent(ito) = iscurrent(ifrom)
       notacc(ito) = notacc(ifrom)
       DO i = 1, 2

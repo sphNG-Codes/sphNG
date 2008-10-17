@@ -84,6 +84,21 @@ c      neimax = 120
                dumvxyzu(j,i) = vxyzu(j,i)
             END DO
          END DO
+         DO i = 1, ntot
+            DO j = 1, isizealphaMM
+               dumalpha(j,i) = alphaMM(j,i)
+            END DO
+         END DO
+         DO i = 1, ntot
+            DO j = 1, 3
+               dumBevolxyz(j,i) = Bevolxyz(j,i)
+            END DO
+         END DO
+         DO i = 1, ntot
+            DO j = 1, 5
+               dumekcle(j,i) = ekcle(j,i)
+            END DO
+         END DO
          WRITE(*,*) ' Making tree'
          CALL insulate(1, ntot, npart, dumxyzmh, f1vxyzu)
       ENDIF
@@ -130,12 +145,12 @@ c
 c
 c--Call derivi to get div B, curl B etc initially
 c
-      DO i = 1, npart
-         ekcle(3,i) = 1.0
+      DO i = 1, ntot
+         dumekcle(3,i) = 1.0
       END DO
 
-      CALL derivi(dt,itime,dumxyzmh,vxyzu,f1vxyzu,f1ha,npart,ntot,
-     &            ireal,alphaMM,ekcle,Bevolxyz,f1Bxyz)
+      CALL derivi(dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,ntot,
+     &            ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz)
 c
 c--Now set B/rho from B (ie. now that we know rho)
 c

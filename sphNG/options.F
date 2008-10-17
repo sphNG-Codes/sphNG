@@ -144,11 +144,11 @@ c
       ELSE
          READ (iterm, *) ifsvi, alpha, beta
          READ (iterm, *)
+      ENDIF
 c      IF (ifsvi.EQ.6) THEN
          alphamin(1) = alpha
          alphamax(1) = beta
 c      ENDIF
-      ENDIF
       READ (iterm, *) ifcor
       READ (iterm, *) ichoc
       READ (iterm, *) iener

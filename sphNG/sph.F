@@ -425,7 +425,7 @@ c************************************************************
 
 #ifdef _OPENMP
       INTEGER*8 forcei_lock,revtree_lock
-      COMMON /locks / forcei_lock(idim),revtree_lock
+      COMMON /locks / forcei_lock(idim2/10+1),revtree_lock
 #endif
 
 #ifdef MPI
@@ -511,7 +511,7 @@ c
       ENDIF
 
 #ifdef _OPENMP
-      DO i = 1, idim
+      DO i = 1, idim2/10+1
          CALL OMP_INIT_LOCK(forcei_lock(i))
       END DO
       CALL OMP_INIT_LOCK(revtree_lock)

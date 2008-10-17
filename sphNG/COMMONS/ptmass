@@ -19,7 +19,7 @@
      &                spinx(iptdim),spiny(iptdim),spinz(iptdim),
      &                angaddx(iptdim),angaddy(iptdim),angaddz(iptdim),
      &                spinadx(iptdim),spinady(iptdim),spinadz(iptdim),
-     &                stellarenergy(iradtrans),
+     &                stellarenergy(iradtrans2),
      &		      listpm(iptdim),listrealpm(idim),
      &                nptmass,nptmasstot,nptmasslocal,iptmass,hacc,
      &		      haccall,ptmcrit,radcrit

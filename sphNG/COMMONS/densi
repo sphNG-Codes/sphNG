@@ -1,3 +1,3 @@
       REAL*4 rho
 
-      COMMON /densi / rho(idim)
+      COMMON /densi / rho(idim2)

@@ -16,15 +16,15 @@ c************************************************************
       INCLUDE 'COMMONS/mpidebug'
 #endif
 
-      DIMENSION xyzmh(5,mmax), vxyzu(4,idim)
-      REAL*4 trho(idim),pr(idim),vsound(idim),dha(1+isizealphaMM,idim)
-      REAL*4 alphaMMpass(isizealphaMM,idim)
-      DIMENSION listp(idim)
-      DIMENSION fxyzu(4,idim)
-      DIMENSION ekcle(5,iradtrans)
-      DIMENSION dedxyz(3,iradtrans)
-      DIMENSION Bxyz(3,imhd),dBxyz(3,imhd)
-      DIMENSION Bevolxyz(3,imhd) ! needed for prediction only
+      DIMENSION xyzmh(5,mmax2), vxyzu(4,idim2)
+      REAL*4 trho(idim2),pr(idim2),vsound(idim2)
+      REAL*4 dha(1+isizealphaMM,idim2),alphaMMpass(isizealphaMM,idim2)
+      DIMENSION listp(idim2)
+      DIMENSION fxyzu(4,idim3)
+      DIMENSION ekcle(5,iradtrans2)
+      DIMENSION dedxyz(3,iradtrans2)
+      DIMENSION Bxyz(3,imhd2),dBxyz(3,imhd2)
+      DIMENSION Bevolxyz(3,imhd3) ! needed for prediction only
 c--this weight is equivalent to m/(rho*h^3) in the grad h version
       PARAMETER (hfact = 1.2)
       PARAMETER (weight = 1./hfact**3)
@@ -81,7 +81,7 @@ c
 
 #ifdef _OPENMP
       INTEGER*8 forcei_lock,revtree_lock
-      COMMON /locks / forcei_lock(idim),revtree_lock
+      COMMON /locks / forcei_lock(idim2/10+1),revtree_lock
 #endif
 
       DATA where/'forcei'/
@@ -146,9 +146,9 @@ c
                CALL quit
             ENDIF
             IF (2*ntot+2+inumbertotal+nptmasslocal+nptmassrec-
-     &           nptmass.GT.mmax) THEN
-               WRITE (*,*) 'ERROR mmax not large enough for all sinks',
-     &              nptmasslocal,nptmassrec,nptmass,ntot,mmax
+     &           nptmass+1.GT.mmax2) THEN
+               WRITE (*,*) 'ERROR mmax2 not large enough for all sinks',
+     &              nptmasslocal,nptmassrec,nptmass,ntot,mmax2
                CALL quit
             ENDIF
 c
@@ -220,7 +220,7 @@ c--Calculate forces
 c
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst_in,nlst_end,npart,ntot,listp,nneigh,neimin,neimax)
-C$OMP& shared(nlst_tot,icall,dt,itime,imaxstep,isteps)
+C$OMP& shared(nlst_tot,icall,dt,itime,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,dha,fxyzu,trho,pr,vsound,dq,gradhs)
 C$OMP& shared(neighb,neighover,dvtable,ddvtable,psoft)
 C$OMP& shared(fmass,fpoten,part2kernel,part1kernel,radkernel)
@@ -228,7 +228,7 @@ C$OMP& shared(part2potenkernel,part1potenkernel,grwij)
 C$OMP& shared(divv,curlv,beta,alpha,poten,dgrav,nlst0)
 C$OMP& shared(cnormk,epsil,epsil2,where,pext)
 C$OMP& shared(iphase,listpm,iprint,nptmasstot,iorig)
-C$OMP& shared(alphaMMpass,alphamin)
+C$OMP& shared(alphaMMpass,alphamin,iproc)
 C$OMP& shared(igrp,igphi,ifsvi,iexf)
 C$OMP& shared(ifcor,iexpan,iener,damp)
 C$OMP& shared(realtime,ekcle,encal,dedxyz,acc)
@@ -237,7 +237,7 @@ C$OMP& shared(gravxyzstore,potenstore,varmhd,iupdated,listparents)
 C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug)
 C$OMP& shared(ivar,ijvar,Bextx,Bexty,Bextz,etamhd,iresist)
 C$OMP& shared(forcei_lock)
-C$OMP& private(n,ipart,iparttree,stepsi)
+C$OMP& private(n,ipart,iparttree)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(fxi,fyi,fzi,numneigh,hmin)
 C$OMP& private(poteni,dphiti,gradxi,gradyi,gradzi,artxi,artyi,artzi)
@@ -287,7 +287,7 @@ c         ipart = listp(n)
             call quit
          endif
 
-c         IF (ipart.GT.ntot) print *,iprocdebug,': D ',n
+c         IF (ipart.GT.idim) print *,iproc,': F ',n,ipart
 
 c
 c--Needed for MPI code
@@ -431,8 +431,6 @@ c         pro2i = (pr(ipart) - pext)*rho21i
          pro2i = max((pr(ipart) - pext + 0.5*(B2i-B2ext)),0.0)*rho21i
          vsoundi = vsound(ipart)
          vs2i = vsoundi**2 + B2i*rho1i
-
-         stepsi = dt*isteps(ipart)/imaxstep
 
 c         IF (ipart.GT.ntot) print *,iprocdebug,': D3 ',n
 c
@@ -897,7 +895,7 @@ c--Note: C$OMP ATOMIC would be the best way to do these IF the compiler was
 c     written properly, but ifort isn't
 c
 #ifdef _OPENMP
-                     CALL OMP_SET_LOCK(forcei_lock(j))
+                     CALL OMP_SET_LOCK(forcei_lock(j/10+1))
 #endif
                      fxyzu(1,j) = fxyzu(1,j) + forcex
                      fxyzu(2,j) = fxyzu(2,j) + forcey
@@ -912,7 +910,7 @@ c
                      ENDIF
 
 #ifdef _OPENMP
-                     CALL OMP_UNSET_LOCK(forcei_lock(j))
+                     CALL OMP_UNSET_LOCK(forcei_lock(j/10+1))
 #endif
                   ENDIF
 c
@@ -992,7 +990,7 @@ c--Note: C$OMP ATOMIC would be the best way to do these IF the compiler was
 c     written properly, but ifort isn't
 c
 #ifdef _OPENMP
-                  CALL OMP_SET_LOCK(forcei_lock(j))
+                  CALL OMP_SET_LOCK(forcei_lock(j/10+1))
 #endif
                   fxyzu(1,j) = fxyzu(1,j) + xmasi*dx + dsofttermi*runix
                   fxyzu(2,j) = fxyzu(2,j) + xmasi*dy + dsofttermi*runiy
@@ -1000,7 +998,7 @@ c
 
                   poten(j) = poten(j) + phi*pmassi
 #ifdef _OPENMP
-                  CALL OMP_UNSET_LOCK(forcei_lock(j))
+                  CALL OMP_UNSET_LOCK(forcei_lock(j/10+1))
 #endif
                ENDIF
             ENDIF
@@ -1270,8 +1268,8 @@ c--Add self contribution to potential
 c
             IF (ipart.LE.npart) THEN
                poteni = poteni+xyzmh(4,ipart)*fpoten(0)*hi1
+               dgrav(ipart) = 0.
             ENDIF
-            dgrav(ipart) = 0.
          ENDIF
 c
 c--The force contributions below only apply to gas particles
@@ -1297,18 +1295,20 @@ c
             forcexi = forcexi + fanisoxi
             forceyi = forceyi + fanisoyi
             forcezi = forcezi + fanisozi
-            divcurlB(1,ipart) = divBi !!*rho1i
-            curlBxi = curlBxi*rho1i
-            curlByi = curlByi*rho1i
-            curlBzi = curlBzi*rho1i
-            divcurlB(2,ipart) = curlBxi
-            divcurlB(3,ipart) = curlByi
-            divcurlB(4,ipart) = curlBzi
+            IF (ipart.LE.npart) THEN
+               divcurlB(1,ipart) = divBi !!*rho1i
+               curlBxi = curlBxi*rho1i
+               curlByi = curlByi*rho1i
+               curlBzi = curlBzi*rho1i
+               divcurlB(2,ipart) = curlBxi
+               divcurlB(3,ipart) = curlByi
+               divcurlB(4,ipart) = curlBzi
+            ENDIF
 c
 c--get contributions to dBxyz and force from an external B field
 c  (get force only using iexf=9, so do not add another contribution here)
 c
-            IF (iBext.GT.0 .AND. iexf.NE.9) THEN
+            IF (iBext.GT.0 .AND. iexf.NE.9 .AND. ipart.LE.npart) THEN
                CALL externBfield(xi,yi,zi,hi,vxi,vyi,vzi,rhoi,
      &          Bxi,Byi,Bzi,curlBxi,curlByi,curlBzi,Beqxi,Beqyi,Beqzi,
      &          fextx,fexty,fextz,advBx,advBy,advBz,'all')
@@ -1380,7 +1380,7 @@ cc         dha(2,ipart) = (alphamin(1)-alphaMMpass(1,ipart))*tdecay1 -
 cc     &           MIN(divv(ipart)*rho1i+0.5*vsoundi/hi,0.0)
             dha(2,ipart) = (alphamin(1)-alphaMMpass(1,ipart))*tdecay1 -
      &             MIN(divv(ipart)*rho1i,0.0) !!*fi
-            IF (imhd.EQ.idim) THEN
+            IF (imhd.EQ.idim .AND. ipart.LE.ntot) THEN
                dB2 = divcurlB(1,ipart)**2 + divcurlB(2,ipart)**2
      &             + divcurlB(3,ipart)**2 + divcurlB(4,ipart)**2
                IF (B2i.GT.tiny) THEN
@@ -1428,6 +1428,7 @@ c
 c--Forces that operate on both sink particles and gas from here on:
 c
  80      CONTINUE
+
 c
 c--External forces
 c       
@@ -1451,8 +1452,9 @@ c
 c--Note: C$OMP ATOMIC would be the best way to do these IF the compiler was
 c     written properly, but ifort isn't
 c
+c         IF (ipart.GT.idim) print *,iproc,': Fx ',ipart
 #ifdef _OPENMP
-         CALL OMP_SET_LOCK(forcei_lock(ipart))
+         CALL OMP_SET_LOCK(forcei_lock(ipart/10+1))
 #endif
          fxyzu(1,ipart) = fxyzu(1,ipart) + forcexi
          fxyzu(2,ipart) = fxyzu(2,ipart) + forceyi
@@ -1471,10 +1473,14 @@ c
          ENDIF
 
 #ifdef _OPENMP
-         CALL OMP_UNSET_LOCK(forcei_lock(ipart))
+         CALL OMP_UNSET_LOCK(forcei_lock(ipart/10+1))
 #endif
+c         IF (ipart.GT.idim) print *,iproc,': Fx2 ',ipart
       END DO
 C$OMP END DO
+
+c      IF (iproc.EQ.0) print *,iproc,' is here in force'
+
 C$OMP DO SCHEDULE(runtime)
       DO n = nlst_in, nlst_tot
          ipart = listp(n)
@@ -1550,6 +1556,14 @@ c
       IF (itrace.EQ.'all') WRITE (iprint, 255)
  255  FORMAT(' exit subroutine forcei')
 
+c      DO i = 1, npart
+c         IF (iphase(i).EQ.0) THEN
+c            WRITE (55,*) SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2+
+c     &           xyzmh(3,i)**2), SQRT(fxyzu(1,i)**2+fxyzu(2,i)**2+
+c     &           fxyzu(3,i)**2)
+c         ENDIF
+c      END DO
+
 c      print *,iproc,': Exited forcei'
 
 c      CALL quit
@@ -1575,11 +1589,11 @@ c************************************************************
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/phase'
       
-      DIMENSION vxyzu(4,idim)
-      REAL*4 trho(idim), pr(idim), vsound(idim)
-      DIMENSION ekcle(5,iradtrans)
-      DIMENSION Bxyz(3,imhd)
-      DIMENSION Bevolxyz(3,imhd)
+      DIMENSION vxyzu(4,idim2)
+      REAL*4 trho(idim2), pr(idim2), vsound(idim2)
+      DIMENSION ekcle(5,iradtrans2)
+      DIMENSION Bxyz(3,imhd2)
+      DIMENSION Bevolxyz(3,imhd3)
       
       IF (it1(j).EQ.imax) THEN
          deltat = dt*(itime - it0(j) - isteps(j)/2)/imaxstep

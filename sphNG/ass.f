@@ -3,12 +3,12 @@
 
       INCLUDE 'idim'
       
-      DIMENSION xyzmh(5,idim)
-      DIMENSION vxyzu(4,idim)
-      DIMENSION ekcle(5,iradtrans)
-      REAL*4 trho(idim),alphaMM(idim)
-      DIMENSION list(idim)
-      DIMENSION dedxyz(3,iradtrans)
+      DIMENSION xyzmh(5,mmax2)
+      DIMENSION vxyzu(4,idim2)
+      DIMENSION ekcle(5,iradtrans2)
+      REAL*4 trho(idim2),alphaMM(isizealphaMM,idim2)
+      DIMENSION list(idim2)
+      DIMENSION dedxyz(3,iradtrans2)
 
       INCLUDE 'COMMONS/call'
       INCLUDE 'COMMONS/logun'
@@ -17,7 +17,7 @@
       INCLUDE 'COMMONS/curlist'
       INCLUDE 'COMMONS/timei'
 
-      DIMENSION EUsave(2,iradtrans)
+      DIMENSION EUsave(2,iradtrans2)
 
       LOGICAL moresweep
 

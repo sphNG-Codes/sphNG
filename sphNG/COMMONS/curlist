@@ -1,1 +1,1 @@
-      COMMON /curlist/llist(idim), nlst, nlst0
+      COMMON /curlist/llist(idim2), nlst, nlst0

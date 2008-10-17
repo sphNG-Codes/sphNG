@@ -16,7 +16,7 @@ c************************************************************
 
       PARAMETER (bigno=1.E30, ncbrt=330, hashfac=1.0)
 
-      DIMENSION xyzmh(5,mmax)
+      DIMENSION xyzmh(5,mmax2)
 
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/logun'

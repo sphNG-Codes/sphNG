@@ -1,3 +1,3 @@
       REAL*4 dumrho
 
-      COMMON /dumderivi/ dumrho(idim)
+      COMMON /dumderivi/ dumrho(idim2)

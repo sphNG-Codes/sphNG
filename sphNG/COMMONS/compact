@@ -1,4 +1,4 @@
-      PARAMETER (icompactmax=60*idim)
+      PARAMETER (icompactmax=60*idim2)
 
-      COMMON /compact/ ivar(3,idim),ijvar(icompactmax), ncompact, 
+      COMMON /compact/ ivar(3,idim2),ijvar(icompactmax), ncompact, 
      &                 ncompactlocal

@@ -16,7 +16,7 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,mmax)
+      DIMENSION xyzmh(5,mmax2)
 
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/nlim'
@@ -79,8 +79,9 @@ c
          END DO
       ENDIF
 
- 50   gravmag = SQRT(gravxyzstore(1,m)**2 + gravxyzstore(2,m)**2 + 
-     &     gravxyzstore(3,m)**2)
+ 50   CONTINUE
+c      gravmag = SQRT(gravxyzstore(1,m)**2 + gravxyzstore(2,m)**2 + 
+c     &     gravxyzstore(3,m)**2)
       accpar = acc**2
       nlistga = 0
       nlistgn = 0
@@ -352,7 +353,7 @@ c
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,mmax),neighb(idim)
+      DIMENSION xyzmh(5,mmax2),neighb(idim)
 
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/nlim'
@@ -464,7 +465,7 @@ c
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,mmax),llist(idim)
+      DIMENSION xyzmh(5,mmax2),llist(idim)
 
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/nlim'

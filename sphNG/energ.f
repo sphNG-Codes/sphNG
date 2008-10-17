@@ -13,8 +13,8 @@ c************************************************************
 
       INCLUDE 'idim'
 
-      DIMENSION vxyzu(4,idim), dvxyzu(4,idim), xyzmh(5,mmax)
-      REAL*4 trho(idim)
+      DIMENSION vxyzu(4,idim2), dvxyzu(4,idim3), xyzmh(5,mmax2)
+      REAL*4 trho(idim2)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/eosq'

@@ -9,11 +9,11 @@
       INCLUDE 'COMMONS/mpi'
 #endif
 
-      DIMENSION ekcle(5,iradtrans)
-      DIMENSION xyzmh(5,idim)
-      DIMENSION vxyzu(4,idim)
-      DIMENSION dedxyz(3,iradtrans)
-      REAL*4 rho(idim),alphaMMpass(idim)
+      DIMENSION ekcle(5,iradtrans2)
+      DIMENSION xyzmh(5,mmax2)
+      DIMENSION vxyzu(4,idim2)
+      DIMENSION dedxyz(3,iradtrans2)
+      REAL*4 rho(idim2),alphaMMpass(isizealphaMM,idim2)
 
 c
 c--Type of stellar evolution and feedback
@@ -45,7 +45,7 @@ c      PARAMETER (istellarfeedback=3)
       INCLUDE 'COMMONS/curlist'
       INCLUDE 'COMMONS/typef'
       INCLUDE 'COMMONS/vsmooth'
-      INCLUDE 'COMMONS/rad2'
+c      INCLUDE 'COMMONS/rad2'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/radsink'
@@ -62,23 +62,36 @@ c      PARAMETER (istellarfeedback=3)
 
       COMMON /getkap/ iflag
 
-      DIMENSION EU0(2,iradtrans)
+      COMMON /rtvarr6/  EU0(2,iradtrans2)
       REAL U1i,E1i
 
-      DIMENSION dvdx(9,iradtrans)
+      REAL*4 dvdx
+      COMMON /rtvarr5/ dvdx(9,iradtrans2)
 
       INTEGER nosweep,lwst,hgst,stepa
       LOGICAL moresweep, ikick
       LOGICAL moresweep2
       REAL dx,dy,dz,dvz,dvx,dvy,lightspeed
 
-      DIMENSION vari(2,iradtrans),varij(4,icompactmax)
-      DIMENSION varij2(3,icompactmax)
-c      DIMENSION oneovermu(iradtrans)
-      DIMENSION varinew(2,iradtrans),varijnew(icompactmax)
+      COMMON /rtvarr1/ vari(2,iradtrans2),varinew(2,iradtrans2),
+     &     transfer(iradtrans2),addenergyparticle(iradtrans2)
+      COMMON /rtvarr2/ varij(4,icompactmax),varij2(3,icompactmax)
+      REAL*4 varij,varij2
+c      COMMON /rtvarr3/ varijnew(icompactmax)
+      COMMON /rtvarr3/ varijnew(iradtrans2)
 
-      DIMENSION neighblock(iradtrans), addenergyparticle(iradtrans)
-      DIMENSION fractionexposed(nmaxexposed)
+c      DIMENSION vari(2,iradtrans)
+c      REAL*4 varij(4,icompactmax),varij2(3,icompactmax)
+cc      DIMENSION oneovermu(iradtrans)
+c      DIMENSION varinew(2,iradtrans)
+cc      DIMENSION varijnew(icompactmax)
+c      DIMENSION varijnew(iradtrans)
+c      DIMENSION transfer(iradtrans)
+
+      COMMON /rtvari/ neighblock(iradtrans)
+c      DIMENSION neighblock(iradtrans), addenergyparticle(iradtrans)
+      COMMON /rtvarr4/ fractionexposed(nmaxexposed)
+c      DIMENSION fractionexposed(nmaxexposed)
 
       REAL*8 ptmasstime,dtstep,ptmassmodel,ptmassradius,ptmasstemp,
      &     accrate,starradius,starluminosity,startime,starmass
@@ -92,9 +105,6 @@ c      DIMENSION oneovermu(iradtrans)
       REAL maxerrE2tot, maxerrU2tot
       LOGICAL moresweeptot
 #endif
-
-
-      DIMENSION transfer(iradtrans)
 
       LOGICAL ifirst
       DATA ifirst/.TRUE./
@@ -181,6 +191,8 @@ C$OMP DO SCHEDULE(runtime)
       END DO
 C$OMP END DO
 C$OMP END PARALLEL
+
+c      print *,iproc,' IN RT a'
 
 c      rrmin = 1.0e+30
 c      DO n = 1, ncompactlocal
@@ -682,6 +694,8 @@ c
 
  888  CONTINUE
 
+c      print *,iproc,' IN RT aa'
+
       ihasghostcount = 0
       ihasghost = 0
 
@@ -730,7 +744,7 @@ c
 c--Note that CV and Kappa have already been done in ASS
 c
             cv_effective = ekcle(3,i)/GET1OVERMU(rho(i),vxyzu(4,i))
-            adiabaticgradient(i) = Rg/(cv_effective*uergg + Rg)
+c            adiabaticgradient(i) = Rg/(cv_effective*uergg + Rg)
 
             IF (n.LE.ncompactlocal) THEN
                IF(hasghost(i)) THEN
@@ -779,7 +793,7 @@ c
 c--Note that CV and Kappa have already been done in ASS
 c
                cv_effective = ekcle(3,j)/GET1OVERMU(rho(j),vxyzu(4,j))
-               adiabaticgradient(j) = Rg/(cv_effective*uergg + Rg)
+c               adiabaticgradient(j) = Rg/(cv_effective*uergg + Rg)
 c
 c--Calculate other quantities
 c
@@ -930,6 +944,8 @@ c               varij(10,icompact) = pmj*dWi
 C$OMP END DO
 C$OMP END PARALLEL
 
+c      print *,iproc,' IN RT b'
+
 #ifdef MPI
 c
 c--Need to add in non-local contributions to dvdx from particles on other 
@@ -1024,13 +1040,13 @@ C$OMP END PARALLEL DO
 c
 c--Begin iterating
 c
-c      print *, 'begin iterations',ekcle(2,22)
+c      print *,iproc, 'begin iterations '
  45   CONTINUE
       maxerrE2last = 1.0E+30
       maxerrU2last = 1.0E+30
 
       DO nosweep = 1, nswmax
-         IF (itime.EQ.221904896) print *, 'it ',nosweep
+c         print *,iproc, 'it ',nosweep
 c
 c--Set error to zero for this iteration    
 c
@@ -1046,7 +1062,8 @@ C$OMP& shared(nosweep,boundtemp,bounddens)
 C$OMP& shared(npart,nghost,ihasghost,ireal,dvdx,ncompact)
 C$OMP& shared(origEU,moresweep,xyzmh,gamma,alpha,beta,Rg,gmw)
 C$OMP& shared(udens,radconst,iflag,icall,ifsvi,alphaMMpass)
-C$OMP& shared(dlnTdlnP,adiabaticgradient,iphase,maxerrU2last)
+cC$OMP& shared(dlnTdlnP,adiabaticgradient)
+C$OMP& shared(iphase,maxerrU2last)
 C$OMP& shared(stellarenergy,addenergyparticle,maxerrE2last,varinew)
 C$OMP& shared(ncompactlocal,iscurrent)
 C$OMP& shared(iiimax,xxmaxerrU2,xorigEU,xdUcomb,xdti,xU1i)
@@ -1412,8 +1429,10 @@ c
                   IF (ifsvi.EQ.7) THEN
 c                     vsig = cs - 2.0*dvdWmj05/pmjdW
                      vsig = cs
-                     convection = (dlnTdlnP(i)-adiabaticgradient(i) + 
-     &                    dlnTdlnP(j)-adiabaticgradient(j))/2.0
+c                     convection = (dlnTdlnP(i)-adiabaticgradient(i) + 
+c     &                    dlnTdlnP(j)-adiabaticgradient(j))/2.0
+                     WRITE (*,*) 'ERROR - dlnTdlnP not impl'
+                     CALL quit
 
 c  should make gradient sub-adiabatic and really stop convection
                      convection = convection + 0.1
@@ -1862,6 +1881,7 @@ C$OMP CRITICAL (moresweepset)
      &              stellarradiation,diffusion_denominator,
      &              radpresdenom,EU0(1,I)
 C$OMP END CRITICAL (moresweepset)               
+               GOTO 200
             ENDIF
 
             E1i = (origEU(1,i)+dti*diffusion_numerator+gammaval*dti*
@@ -2474,7 +2494,8 @@ c
 c--And that done, return everything to ASS
 c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(ncompactlocal,ivar,vxyzu,EU0,iflag,adiabaticgradient)
+C$OMP& shared(ncompactlocal,ivar,vxyzu,EU0,iflag)
+cC$OMP& shared(adiabaticgradient)
 C$OMP& shared(Rg,gmw,uergg,boundtemp,uradconst,rho,ekcle)
 C$OMP& shared(iphase,bounddens)
 C$OMP& private(n,i)
@@ -2499,7 +2520,7 @@ c               oneovermu(i) = GET1OVERMU(rho(i),vxyzu(4,i))
             ENDIF
 
             cv_effective = ekcle(3,i)/GET1OVERMU(rho(i),vxyzu(4,i))
-            adiabaticgradient(i) = Rg/(cv_effective*uergg + Rg)
+c            adiabaticgradient(i) = Rg/(cv_effective*uergg + Rg)
 
          ENDIF
       END DO

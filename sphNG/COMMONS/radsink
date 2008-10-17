@@ -1,4 +1,4 @@
-      PARAMETER (nmaxexposed=10000)
+      PARAMETER (nmaxexposed=1000)
       
       COMMON /radsinki/ nexposed(iptdim), nexposedold(iptdim),
      &	     listexposed(nmaxexposed,iptdim), 

@@ -9,7 +9,7 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,mmax)
+      DIMENSION xyzmh(5,mmax2)
 
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/curlist'
@@ -26,7 +26,7 @@ c************************************************************
 
 #ifdef _OPENMP
       INTEGER*8 forcei_lock,revtree_lock
-      COMMON /locks / forcei_lock(idim),revtree_lock
+      COMMON /locks / forcei_lock(idim2/10+1),revtree_lock
 #endif
 
       natom = nnatom

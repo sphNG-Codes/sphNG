@@ -10,7 +10,7 @@ c************************************************************
 
       DIMENSION listp(nactive), next1p(nactive), next2p(nactive), 
      &     next3p(nactive)
-      DIMENSION xyzmh(5,mmax)
+      DIMENSION xyzmh(5,mmax2)
 
       PARAMETER (nmaxthreads = 64)
       DIMENSION indexs(nmaxthreads),indexe(nmaxthreads),

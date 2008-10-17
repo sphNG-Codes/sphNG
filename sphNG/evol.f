@@ -24,7 +24,6 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/debugit'
       INCLUDE 'COMMONS/secret'
       INCLUDE 'COMMONS/accrem'
-      INCLUDE 'COMMONS/avail'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/current'
       INCLUDE 'COMMONS/sync'
@@ -73,7 +72,6 @@ c         torqp(i) = 0.0
 c         torqv(i) = 0.0
 c         torqc(i) = 0.0
          iremove(i) = -1
-         iavail(i) = 0
          iscurrent(i) = .FALSE.
          it1(i) = 0
          listrealpm(i) = 0

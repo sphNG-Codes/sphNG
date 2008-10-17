@@ -11,7 +11,7 @@ c************************************************************
 
       INCLUDE 'idim'
 
-      DIMENSION xyzmh(5,mmax)
+      DIMENSION xyzmh(5,mmax2)
       DIMENSION fxyzu(4,idim)
 
       INCLUDE 'COMMONS/phase'

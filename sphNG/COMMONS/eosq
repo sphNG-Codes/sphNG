@@ -1,4 +1,4 @@
       REAL*4 pr, vsound
       REAL vsmax
 
-      COMMON /eosq  / pr(idim), vsound(idim), vsmax
+      COMMON /eosq  / pr(idim2), vsound(idim2), vsmax

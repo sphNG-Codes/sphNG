@@ -1001,7 +1001,7 @@ c
      &           nptmasslocal,nptmassrec,iptdim
             CALL quit
          ENDIF
-         IF (ntot+nptmasslocal+nptmassrec-nptmass.GT.idim2) THEN
+         IF (ntot+nptmasslocal+nptmassrec-nptmass.GT.idim) THEN
             WRITE (*,*) 'ERROR idim not large enough for all sinks',
      &           nptmasslocal,nptmassrec,nptmass,ntot,idim
             CALL quit
@@ -1722,6 +1722,11 @@ c
          CALL MPI_TYPE_COMMIT(indexMPIU,ierr)
 
          istore = ntot+nptmasstot+numberbackcumm+1
+         IF (istore+nneighsentback(ibehind+1).GT.idim) THEN
+         WRITE (*,*) 'ERROR - istore+nneighsentback(ibehind+1).GT.idim',
+     &           istore,nneighsentback(ibehind+1),idim
+            CALL quit
+         ENDIF
          CALL MPI_SENDRECV(iunique, 1, indexMPIU, iahead, 91, 
      &        iunique(istore), 
      &        nneighsentback(ibehind+1), MPI_INTEGER8,

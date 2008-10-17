@@ -57,11 +57,11 @@ c************************************************************
       INCLUDE 'COMMONS/mpidebug'
 #endif
 
-      DIMENSION xyzmh(5,mmax),vxyzu(4,idim),dvxyzu(4,idim)
-      REAL*4 dha(1+isizealphaMM,idim),alphaMM(isizealphaMM,idim)
+      DIMENSION xyzmh(5,mmax2),vxyzu(4,idim2),dvxyzu(4,idim3)
+      REAL*4 dha(1+isizealphaMM,idim2),alphaMM(isizealphaMM,idim2)
       DIMENSION ireal(idim)
-      DIMENSION ekcle(5,iradtrans)
-      DIMENSION Bevolxyz(3,imhd),dBevolxyz(3,imhd)
+      DIMENSION ekcle(5,iradtrans2)
+      DIMENSION Bevolxyz(3,imhd2),dBevolxyz(3,imhd3)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -89,7 +89,6 @@ c************************************************************
       INCLUDE 'COMMONS/current'
       INCLUDE 'COMMONS/hagain'
       INCLUDE 'COMMONS/curlist'
-      INCLUDE 'COMMONS/avail'
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/dumderivi'
@@ -106,7 +105,7 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
       INCLUDE 'COMMONS/compact'
 
       CHARACTER*7 where
-      DIMENSION dedxyz(3,iradtrans)
+      DIMENSION dedxyz(3,iradtrans2)
 #ifdef MPI
       DIMENSION listex(idim)
 #endif
@@ -453,7 +452,7 @@ c
      &              i, 23, MPI_COMM_WORLD, istatus, ierr)
 c     &              MPI_ANY_SOURCE, 23, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
-               IF (istart+inumber.GE.idim) THEN
+               IF (istart+inumber.GE.idim2) THEN
                   WRITE (*,*) iproc,' ERROR - istart+inumber.GE.idim ',
      &                 istart,inumber,idim,ntot,inumbertotal
                   CALL quit
@@ -870,9 +869,9 @@ c
      &              i, 210, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
                icheck = inumber/4
-               IF (istart + icheck.GE.idim) THEN
-                  WRITE (*,*) iproc,': ERROR - istart+icheck.GE.idim ',
-     &                 istart,icheck,idim,ntot,inumbertotallocal,
+               IF (istart + icheck.GE.idim2) THEN
+                  WRITE (*,*) iproc,': ERROR - istart+icheck.GE.idim2 ',
+     &                 istart,icheck,idim2,ntot,inumbertotallocal,
      &                 inumberreturned,inumofreturns,
      &                 nneightogetback(i+1)
                   CALL quit
@@ -989,8 +988,8 @@ c--Now need to return forcei contributions from neighbours on remote nodes.
 c
       istart = ntot + 1
       istartrec = istart + inumbertotal
-      IF (istartrec + maxnneighsentback.GT.2*idim) THEN
-         WRITE (*,*) 'ERROR - istartrec + maxnneighsentback.GT.2*idim'
+      IF (istartrec + maxnneighsentback.GT.idim3) THEN
+         WRITE (*,*) 'ERROR - istartrec + maxnneighsentback.GT.idim3'
          CALL quit
       ENDIF
       inumberreturned = 0
@@ -1015,6 +1014,11 @@ c
      &              MPI_REAL8,iprocrec,30,MPI_COMM_WORLD,istatus,
      &              ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL8, ireturned, ierr)
+               IF (istartrec+ireturned.GT.idim3) THEN
+                  WRITE (*,*) 'ERROR - istartrec+ireturned.GT.idim3 ',
+     &                 istartrec,ireturned,idim3
+                  CALL quit
+               ENDIF
 c               iprocrec = istatus(MPI_SOURCE)
                IF (ireturned.NE.4*nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.4*nnsentback dvxyzu'
@@ -1047,6 +1051,13 @@ c     &     print *,'called forcei PRE3 ',dvxyzu(1,68),
 c     &              dvxyzu(2,68),dvxyzu(3,68),dvxyzu(1,2325),
 c     &              dvxyzu(2,2325),dvxyzu(3,2325)
 #endif
+
+               IF (istartrec+nneighsentback(iprocrec+1).GT.idim2) THEN
+                  WRITE (*,*) 'ERROR - istartrec+nneighsentback',
+     &                 '(iprocrec+1).GT.idim2 ',istartrec,
+     &                 nneighsentback(iprocrec+1),idim2
+                  CALL quit
+               ENDIF
 
                CALL MPI_RECV(poten(istartrec),maxnneighsentback,
      &              MPI_REAL4,iprocrec,31,MPI_COMM_WORLD,istatus,ierr)
@@ -1275,7 +1286,7 @@ c      END DO
                    
 c      CALL quit
 
-#ifdef MPI
+#ifdef MPIDEBUG
       print *,iproc,': Exited derivi'
 #endif
                    

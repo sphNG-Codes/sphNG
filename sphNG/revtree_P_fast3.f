@@ -9,7 +9,7 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,mmax)
+      DIMENSION xyzmh(5,mmax2)
 
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/curlist'

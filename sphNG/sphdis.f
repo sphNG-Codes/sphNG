@@ -198,8 +198,9 @@ c
       INCLUDE 'idim'
 
       INCLUDE 'COMMONS/rbnd'
+      INCLUDE 'COMMONS/setlocal'
 
-      REAL*4 vel(64,64,64)
+      REAL*4 vel(nvelmax,nvelmax,nvelmax)
       
       deli = 1.0/REAL(nspace/2)
 

@@ -13,7 +13,7 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,mmax), fxyzu(4,idim)
+      DIMENSION xyzmh(5,mmax2), fxyzu(4,idim3)
 
       INCLUDE 'COMMONS/btree'
       INCLUDE 'COMMONS/gravi'

@@ -26,10 +26,10 @@ c************************************************************
       INCLUDE 'COMMONS/mpidebug'
 #endif
 
-      DIMENSION xyzmh(5,mmax), vxyzu(4,idim), dvxyzu(4,idim)
-      DIMENSION listp(idim)
-      DIMENSION ekcle(5,iradtrans)
-      DIMENSION Bevol(3,imhd),Bxyz(3,imhd),dBxyz(3,imhd)
+      DIMENSION xyzmh(5,mmax2), vxyzu(4,idim2), dvxyzu(4,idim3)
+      DIMENSION listp(idim2)
+      DIMENSION ekcle(5,iradtrans2)
+      DIMENSION Bevol(3,imhd3),Bxyz(3,imhd2),dBxyz(3,imhd2)
 
 c--Neides=INT(4./3.*pi*8.*hfact**3))
       PARAMETER (hfact = 1.2)
@@ -86,7 +86,7 @@ c      INCLUDE 'COMMONS/vsmooth'
       REAL*4 hminbisec(idim),hmaxbisec(idim)
 
       DIMENSION ldolist(idim),hi_old(idim)
-      DIMENSION gradmhd(15,imhd)
+      DIMENSION gradmhd(15,imhd2)
 #ifdef MPI
       DIMENSION nneighrec(ineighproc),nneighsentbackold(nummaxproc)
       REAL*4 rhorec(ineighproc), dumrhorec(ineighproc), rhonextmax
@@ -292,8 +292,8 @@ c     &           (iproc.EQ.0))
      &           xyzmh(1,2*ntot+3), idim, i5REAL8, ibehind,
      &           0, MPI_COMM_WORLD, istatus, ierr)
             CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
-            IF (2*ntot+3+inumber.GE.mmax) THEN
-               WRITE (*,*) iproc,': ERROR - 2*ntot+3+inumber.GE.mmax'
+            IF (2*ntot+3+inumber.GE.mmax2) THEN
+               WRITE (*,*) iproc,': ERROR - 2*ntot+3+inumber.GE.mmax2'
                CALL quit
             ENDIF
 
@@ -308,7 +308,7 @@ c     &           (iproc.EQ.1))
      &           iphase(ntot+1), idim, MPI_INTEGER1, ibehind,
      &           1, MPI_COMM_WORLD, istatus, ierr)
             CALL MPI_GET_COUNT(istatus, MPI_INTEGER1, igotnumber, ierr)
-            IF (ntot+1+inumber.GE.idim) THEN
+            IF (ntot+1+inumber.GE.idim2) THEN
                WRITE (*,*) iproc,': ERROR - ntot+1+inumber.GE.idim'
                CALL quit
             ENDIF
@@ -327,8 +327,8 @@ c
             nptmasslocal = nptmass
             DO i = 1, inumber
                ipart = i + ntot
-               IF (ipart.GT.idim) THEN
-                  WRITE (*,*) 'ipart.GT.idim'
+               IF (ipart.GT.idim2) THEN
+                  WRITE (*,*) 'ipart.GT.idim2'
                   CALL quit
                ENDIF
                IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
@@ -344,8 +344,8 @@ C$OMP& shared(nlst_end)
 C$OMP& private(i,ipart,nneighlocal)
             DO i = 1, inumber
                ipart = i + ntot
-               IF (ipart.GT.idim) THEN
-                  WRITE (*,*) 'ipart.GT.idim'
+               IF (ipart.GT.idim2) THEN
+                  WRITE (*,*) 'ipart.GT.idim2'
                   CALL quit
                ENDIF
                CALL densitygradh(ipart,npart,ntot,nlst_end,xyzmh,
@@ -429,6 +429,10 @@ c      IF (itime.EQ.000)
      &           10, llistrec(inumreturn+1), nlstsend, MPI_INTEGER, 
      &           iahead, 10, MPI_COMM_WORLD, istatus, ierr)
             CALL MPI_GET_COUNT(istatus,MPI_INTEGER,inumberneigh,ierr)
+            IF (inumreturn+inumberneigh.GT.ineighproc) THEN
+               WRITE (*,*) 'ERROR - inumreturn+inumberneigh.GT.ineighp'
+               CALL quit
+            ENDIF
 
 #ifdef MPIDEBUG
             print *,iproc,': returned indices to ',ibehind,' and got ',
@@ -469,6 +473,10 @@ c     &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
      &           rhorec, inumberneigh, MPI_REAL4, iahead, 11,
      &           MPI_COMM_WORLD, istatus, ierr)
             CALL MPI_GET_COUNT(istatus,MPI_REAL4,icheck,ierr)
+            IF (icheck.GT.ineighproc) THEN
+               WRITE (*,*) 'ERROR - icheck.GT.ineighproc 1 ',icheck
+               CALL quit
+            ENDIF
             IF (icheck.NE.inumberneigh) THEN
                WRITE (*,*) 'ERROR - icheck.NE.inumberneigh 1 ',
      &              iproc
@@ -576,7 +584,7 @@ c
             print *,iproc,' sending forces back to ',ibehind,numproc,
      &           ntot,nlstsend,ntot+nlstsend,idim
 #endif
-            IF (ntotplusinumber+nlstsend.GE.idim) THEN
+            IF (ntotplusinumber+nlstsend.GE.idim3) THEN
                WRITE (*,*) iproc,
      &              ': ERROR - ntotplusinumber+nlstsend.GE.idim ',
      &              ntotplusinumber,nlstsend,idim,npart,ntot
@@ -1188,6 +1196,10 @@ c      IF (itime.EQ.000)
      &              i, 40, MPI_COMM_WORLD, istatus, ierr)
 c     &              MPI_ANY_SOURCE, 40, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
+               IF (istart+ntot+2+inumber.GT.mmax2) THEN
+                  WRITE (*,*) 'ERROR - istart+ntot+2+inumber.GT.mmax2'
+                  CALL quit
+               ENDIF
                iprocrec = istatus(MPI_SOURCE)
 
 #ifdef MPIDEBUG
@@ -1199,6 +1211,11 @@ c      IF (itime.EQ.000) THEN
      &              xyzmh(2,istart+ntot+2),xyzmh(3,istart+ntot+2)
 c      ENDIF
 #endif
+               IF (istart+inumber.GT.idim2) THEN
+                  WRITE (*,*) 'ERROR - istart+inumber.GT.idim2 ',
+     &                 istart,inumber
+                  CALL quit
+               ENDIF
 
                IF (inumber.GT.0) THEN
                   CALL MPI_RECV(vxyzu(1,istart),inumber,i4REAL8,
@@ -1253,8 +1270,12 @@ c      ENDIF
             ENDIF
          ENDIF
       END DO
+#ifdef MPIDEBUG
+      print *,iproc,' inumbertotal is ',inumbertotal
+#endif
       IF (inumbertotal.GT.idim) THEN
-         WRITE (*,*) 'ERROR - inumbertotal.GT.idim ', iproc
+         WRITE (*,*) 'ERROR - inumbertotal.GT.idim ', iproc,
+     &        inumbertotal,idim,(inumberindiv(ix),ix=1,8)
          CALL quit
       ENDIF
       IF (inumberreturned.NE.inumofreturns) THEN
@@ -1374,6 +1395,11 @@ c               ENDIF
      &              MPI_REAL4,MPI_ANY_SOURCE,50,MPI_COMM_WORLD,istatus,
      &              ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, ireturned, ierr)
+               IF (istartrec+ireturned.GT.idim2) THEN
+                  WRITE (*,*) 'ERROR - istartrec+ireturned.GT.idim2 ',
+     &                 istartrec,ireturned
+                  CALL quit
+               ENDIF
                iprocrec = istatus(MPI_SOURCE)
                IF (ireturned.NE.nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.nnsentback divv ',
@@ -1776,7 +1802,7 @@ C$OMP END DO
 c
 c--Calculate B from the evolved magnetic field variable
 c
-      IF (imhd.EQ.idim .AND. iphase(ipart).EQ.0) THEN
+      IF (imhd.EQ.idim) THEN
          IF (varmhd.eq.'Bvol') THEN
 C$OMP DO SCHEDULE (runtime)
             DO i=nlst_in,nlst_end
@@ -1984,8 +2010,8 @@ c
 c--Expect to get particle which has neighbours on this process
 c
                itest = 2*ntot+inumbertotal+3
-               IF (itest.GT.mmax) THEN
-                  WRITE (*,*) 'ERROR - itest.GT.mmax ',itest,mmax
+               IF (itest.GT.mmax2) THEN
+                  WRITE (*,*) 'ERROR - itest.GT.mmax2 ',itest,mmax2
                   CALL quit
                ENDIF
                CALL MPI_RECV(xyzmh(1,itest), 5, MPI_REAL8,
@@ -2002,7 +2028,7 @@ c	being evolved on the current step
 c
                nlist = 0
                CALL getneigh(itest,npart,xyzmh(5,itest),xyzmh,
-     &              mmax,nlist,iptneigh,nearl)
+     &              mmax2,nlist,iptneigh,nearl)
 
                iokay = 1
                DO n = 1, nlist
@@ -2065,7 +2091,7 @@ c
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,mmax), dvxyzu(4,idim)
+      DIMENSION xyzmh(5,mmax2), dvxyzu(4,idim2)
 
       INCLUDE 'COMMONS/nlim'
       INCLUDE 'COMMONS/btree'
@@ -2265,8 +2291,8 @@ c
 
       INCLUDE 'idim'
 
-      DIMENSION xyzmh(5,mmax), vxyzu(4,idim), Bevol(3,imhd),
-     &     gradmhd(15,imhd)
+      DIMENSION xyzmh(5,mmax2), vxyzu(4,idim2), Bevol(3,imhd3),
+     &     gradmhd(15,imhd2)
 
       INCLUDE 'COMMONS/nlim'
       INCLUDE 'COMMONS/kerne'

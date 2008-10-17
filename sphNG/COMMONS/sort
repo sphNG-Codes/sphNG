@@ -1,4 +1,4 @@
       INTEGER*8 iunique, iuniquemax
 
-      COMMON /sort  / tempsort(idim), iorig(idim), isort(idim)
-      COMMON /unique/ iunique(idim), iuniquemax
+      COMMON /sort  / tempsort(idim), iorig(idim2), isort(idim)
+      COMMON /unique/ iunique(idim2), iuniquemax

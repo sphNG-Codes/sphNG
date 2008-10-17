@@ -3,7 +3,7 @@
 
       INTEGER*8 nneightot
 
-      COMMON /nlim  / nneigh(idim), nneightot, neimin, neimax, nrange
+      COMMON /nlim  / nneigh(idim2), nneightot, neimin, neimax, nrange
 
       COMMON /neighi/ neighlist(nneighmax)
 C$OMP THREADPRIVATE(/neighi/)

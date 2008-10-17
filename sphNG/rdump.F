@@ -85,6 +85,19 @@ c
 c
 c--Read ouput file
 c
+#ifdef MPI
+      nowgo = 0
+#ifdef MPIDEBUG
+      print *,iproc,': About to read file'
+#endif
+      IF (iproc.GT.0) THEN
+         CALL MPI_RECV(nowgo,1,MPI_INTEGER,iproc-1,99,MPI_COMM_WORLD,
+     &        istatus,ierr)
+#ifdef MPIDEBUG
+         print *,iproc,': Reading file'
+#endif
+      ENDIF
+#endif
 
       print *,'reading header'
 
@@ -473,10 +486,12 @@ c--real*4
      &           icount+nhydro)
             IF (gt.NE.0.0 .AND. ifsvi.EQ.6) THEN
                DO i = icount+1, icount+nhydro
-                  IF (alphaMM(1,i).LE.0.) THEN
-                     WRITE (*,*) 'ERROR in rdump - alphaMM(1,i).LE.0 ',
-     &                    i,(alphaMM(1,j),j=1,10)
-                     CALL quit
+                  IF (alphaMM(1,i).LT.alphamin(1) .OR. 
+     &                 alphaMM(1,i).GT.alphamax(1)) THEN
+                     alphaMM(1,i) = alphamin(1)
+c                     WRITE (*,*) 'ERROR in rdump - alphaMM(1,i).LE.0 ',
+c     &                    i,(alphaMM(1,j),j=1,10)
+c                     CALL quit
                   ENDIF
                END DO
             ENDIF
@@ -682,10 +697,12 @@ c      GOTO 10000
 c      IF (nblocks.NE.1) THEN
 c         IF (iproc.EQ.iblock-1) THEN
             IF (nblocks.EQ.1) THEN
-               CALL split(npart,n1,nptmass,icount,nhydro,isteps,iphase,
+               CALL split(npart,n1,nptmass,icount,nhydro,
+     &              nlistinactive,isteps,iphase,
      &              xyzmh,vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,
      &              iunique,ekcle,listpm,spinx,spiny,spinz,angaddx,
-     &              angaddy,angaddz,spinadx,spinady,spinadz)
+     &              angaddy,angaddz,spinadx,spinady,spinadz,
+     &              listinactive)
             ELSE
                print *,iproc,': MAINTAIN PARTICLE SPLIT ',npart,nhydro
                npart = nhydro
@@ -707,6 +724,18 @@ c--End loop over blocks
 c
       END DO
 #ifdef MPI
+      IF (iproc.LT.numproc-1) THEN
+#ifdef MPIDEBUG
+         print *,iproc,' Finished reading'
+#endif
+         nowgo = 1
+         CALL MPI_SEND(nowgo,1,MPI_INTEGER,iproc+1,99,MPI_COMM_WORLD,
+     &        ierr)
+      ELSE
+#ifdef MPIDEBUG
+         print *,iproc,' Finished reading'
+#endif
+      ENDIF
 c
 c--Set global number of sink particles
 c
@@ -993,10 +1022,11 @@ c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
 c============================================================
 
 #ifdef MPI
-      SUBROUTINE split(npart,n1,nptmass,icount,nhydro,isteps,iphase,
+      SUBROUTINE split(npart,n1,nptmass,icount,nhydro,nlistinactive,
+     &     isteps,iphase,
      &     xyzmh,vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,iunique,
      &     ekcle,listpm,spinx,spiny,spinz,angaddx,angaddy,angaddz,
-     &     spinadx,spinady,spinadz)
+     &     spinadx,spinady,spinadz,listinactive)
 c************************************************************
 c                                                           *
 c--Splits based on spatial coordinates (x, y, z) for 2, 4   *
@@ -1014,7 +1044,7 @@ c************************************************************
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpi'
 
-      INTEGER*1 iphase(idim)
+      INTEGER*1 iphase(idim2)
       INTEGER*8 iunique(idim)
       REAL*4 rho(idim), dgrav(idim), gradhs(2,idim),
      &     alphaMM(isizealphaMM,idim)
@@ -1024,6 +1054,7 @@ c************************************************************
      &     spinz(iptdim),angaddx(iptdim),angaddy(iptdim),
      &     angaddz(iptdim),spinadx(iptdim),spinady(iptdim),
      &     spinadz(iptdim)
+      DIMENSION listinactive(idim)
 
       INTEGER classify_disc,classify_sphere,classify_cartesian
 
@@ -1041,7 +1072,7 @@ c--Type of domain decomposition
 c
 c--Disc-type domain decomposition
 c
-      IF (mpitype.EQ.'d' .OR. mpitype.EQ.'r') THEN
+      IF (mpitype.EQ.'d' .OR. mpitype.EQ.'r' .OR. mpitype.EQ.'p') THEN
          DO i = icount+1, nhydro
             ibelong = classify_disc(i,xyzmh)
             IF (iproc.EQ.ibelong) THEN
@@ -1787,6 +1818,22 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
          ENDIF
       END DO
       nptmass = nptmassnew
+
+      nlistinactivenew = 0
+      DO i = 1, nlistinactive
+         IF (imap(listinactive(i)).NE.0) THEN
+            nlistinactivenew = nlistinactivenew + 1
+            listinactive(nlistinactivenew) = imap(listinactive(i))
+            IF (iphase(listinactive(nlistinactivenew)).NE.-1) THEN
+               WRITE (*,*) 'ERROR - iphase(listinactive(',
+     &              'nlistinactivenew)).NE.-1 ',
+     &              nlistinactivenew,listinactive(nlistinactivenew),
+     &              iphase(listinactive(nlistinactivenew))
+               CALL quit
+            ENDIF
+         ENDIF
+      END DO
+      nlistinactive = nlistinactivenew
 
       npart = icountnew
       n1 = icountnew

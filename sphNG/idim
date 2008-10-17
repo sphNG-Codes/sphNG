@@ -1,10 +1,10 @@
       INTEGER idim, idim2, idim3, iptdim, iptneigh, nlmax
       INTEGER mmax, mmax2, iradtrans, iradtrans2
       INTEGER imhd, imhd2, imhd3, imhdxsph, isizealphaMM
-      INTEGER idim_h2
+      INTEGER idim_h2, idim_h2_2
       REAL tiny
 
-      PARAMETER (idim=7501000)
+      PARAMETER (idim=1201000)
 
       PARAMETER (iptdim=1000)
       PARAMETER (iptneigh=10000)
@@ -50,3 +50,4 @@ c      PARAMETER (mmax2=mmax)
       PARAMETER (imhd2 = imhd*2)
       PARAMETER (imhd3 = imhd*3)
       PARAMETER (iradtrans2 = iradtrans*2)
+      PARAMETER (idim_h2_2 = idim_h2*2)

@@ -44,7 +44,8 @@
      &	   lblocklengths(idim),
      &	   nsplit(3)
 
-       COMMON /mpiarrr/ splitcoords(31,3),xyzmax(3),xyzmin(3)
+       COMMON /mpiarrr/ splitcoords(31,3),binarysplits(16384),
+     &     xyzmax(3),xyzmin(3),searchxyzmax(3),searchxyzmin(3)
 
 c
 c--Notes:

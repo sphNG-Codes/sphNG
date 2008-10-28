@@ -1800,7 +1800,7 @@ c
                gradvPi = 0.0
             ELSE
                rpdiag=0.5*(1.0-ekcle(5,i))
-               rpall=0.5*(3.0-ekcle(5,i))/gradEi2
+               rpall=0.5*(3.0*ekcle(5,i)-1.0)/gradEi2
                gradvPi=(((rpdiag+rpall*dedxyz(1,i)**2)*dvdx(1,i))+
      $              ((rpall*dedxyz(1,i)*dedxyz(2,i))*dvdx(2,i))+
      $              ((rpall*dedxyz(1,i)*dedxyz(3,i))*dvdx(3,i))+
@@ -1812,7 +1812,7 @@ c
      $              ((rpdiag+rpall*dedxyz(3,i)**2)*dvdx(9,i)))
             ENDIF
 
-            radpresdenom = gradvPi/rhoi * EU0(1,i)
+            radpresdenom = gradvPi * EU0(1,i)
 
 c         radpresdenom=0.0
 

@@ -89,16 +89,20 @@ c      neimax = 120
                dumalpha(j,i) = alphaMM(j,i)
             END DO
          END DO
-         DO i = 1, ntot
-            DO j = 1, 3
-               dumBevolxyz(j,i) = Bevolxyz(j,i)
+         IF (imhd.EQ.idim) THEN
+            DO i = 1, ntot
+               DO j = 1, 3
+                  dumBevolxyz(j,i) = Bevolxyz(j,i)
+               END DO
             END DO
-         END DO
-         DO i = 1, ntot
-            DO j = 1, 5
-               dumekcle(j,i) = ekcle(j,i)
+         ENDIF
+         IF (iradtrans.EQ.idim) THEN
+            DO i = 1, ntot
+               DO j = 1, 5
+                  dumekcle(j,i) = ekcle(j,i)
+               END DO
             END DO
-         END DO
+         ENDIF
          WRITE(*,*) ' Making tree'
          CALL insulate(1, ntot, npart, dumxyzmh, f1vxyzu)
       ENDIF

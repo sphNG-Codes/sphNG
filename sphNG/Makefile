@@ -451,6 +451,12 @@ checkparams: updatedepends
    ifeq ($(ENDIAN), LITTLE)
 	@echo "Flags set for conversion to LITTLE endian"
    endif
+   ifeq ($(openmp), yes)
+	@echo "openMP flags are ON"
+   endif
+   ifeq ($(mpi), yes)
+	@echo "MPI is ON"
+   endif
 
 # this is a way of making all files depend on their INCLUDEd files
 # (creates a file called .depends which contain the appropriate dependency lines

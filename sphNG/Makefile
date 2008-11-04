@@ -33,6 +33,7 @@ DOUBLEPRECISION= yes
 # (uncomment as necessary)
 #
 FPPFLAGS=
+FPP_SEP=
 #
 # This one is for periodic boundary conditions without using
 # ghost particles
@@ -46,9 +47,7 @@ FPPFLAGS=
 ifeq ($(SYSTEM), ompi)
     FC= mpif90
     FFLAGS= -DMPI -O3 -march=pentium4 -mtune=pentium4 -malign-double -Wno=155
-    ifeq ($(mpidebug), yes)
-        FFLAGS += -DMPIDEBUG
-    endif
+    OMPFLAG= -openmp
     DBLFLAG= -r8
     DEBUGFLAG= -g -ftrace=full -fbounds-check
     KNOWN_SYSTEM=yes
@@ -81,24 +80,7 @@ ifeq ($(SYSTEM), zen)
     FFLAGS= -O3 -xT -mcmodel=medium -i-dynamic -WB -Vaxlib \
             -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source\
             -warn interfaces -gen-interfaces
-    ifeq ($(openmp), yes)
-        FFLAGS += -openmp
-    endif
-    ifeq ($(mpi), yes)
-        FFLAGS += -DMPI
-    endif
-    ifeq ($(mpidebug), yes)
-        FFLAGS += -DMPIDEBUG
-    endif
-    ifeq ($(mpidebugt), yes)
-        FFLAGS += -DMPIDEBUGT
-    endif
-    ifeq ($(mpidebugs), yes)
-        FFLAGS += -DMPIDEBUGS
-    endif
-    ifeq ($(mpidebugrt), yes)
-        FFLAGS += -DMPIDEBUGRT
-    endif
+    OMPFLAG= -openmp
     DBLFLAG= -r8
     DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
     KNOWN_SYSTEM=yes
@@ -116,21 +98,33 @@ ifeq ($(SYSTEM), ukaff1a)
     endif
 #    FFLAGS= -O3 -q64 -qextname -qsmp=noauto 
     FFLAGS= -O3 -q64
-    ifeq ($(openmp), yes)
-    FFLAGS += -qsmp=noauto
-    endif
+    OMPFLAG= -qsmp=noauto
     DBLFLAG= -qrealsize=8
 #    DEBUGFLAG= -qflttrap=enable:invalid:zerodivide -g -C -qsigtrap -qfloat=nans 
 #    DEBUGFLAG= -C
     KNOWN_SYSTEM=yes
-ifeq ($(mpi), yes)
-    FPPFLAGS=-DMPI
-ifeq ($(mpidebug), yes)
-    FPPFLAGS=-DMPI,-DMPIDEBUG
-endif
-endif
+    FPP_SEP=','
     FPP_PREFIX=-d -WF,
 #    ZZFILE= zzsun_f77_double1.f zzsun_f77_double2.f
+    ZZFILE= zzibm.f
+endif
+
+ifeq ($(SYSTEM), apac)
+    ifeq ($(mpi), yes)
+       FC= mpif90
+    else
+       FC= ifort
+    endif
+    FFLAGS= -O3 -i-dynamic -WB \
+            -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source\
+            -warn interfaces -gen-interfaces
+    OMPFLAG= -openmp
+    DBLFLAG= -r8
+    DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -convert big_endian
+    ENDIANFLAGLITTLE= -convert little_endian
+# or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
     ZZFILE= zzibm.f
 endif
 
@@ -138,6 +132,7 @@ ifeq ($(SYSTEM), sunf95)
     FC= sunf95
     FFLAGS= -fast -w4 -errtags -erroff=COMMENT_1582,COMMENT_1744
     DBLFLAG= -xtypemap=real:64,double:64
+    OMPFLAG= -xopenmp
     DEBUGFLAG= -g -C -ftrap=%all
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -xfilebyteorder=big16:%all ##:45
@@ -173,6 +168,7 @@ ifeq ($(SYSTEM), gfortran)
     FC= gfortran
     FFLAGS= -O3 -Wall -fopenmp
     DBLFLAG= -fdefault-real-8
+    OMPFLAG= -fopenmp
     DEBUGFLAG= -g ##-ftrace=full -fbounds-check
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -fconvert=big-endian
@@ -183,6 +179,7 @@ endif
 ifeq ($(SYSTEM), ifc)
     FC= ifc
     FFLAGS= -O3 -WB -Vaxlib -w90 -w95 -cm
+    OMPFLAG= -openmp
     DBLFLAG= -r8
     DEBUGFLAG= -C -g
     KNOWN_SYSTEM=yes
@@ -195,6 +192,7 @@ endif
 ifeq ($(SYSTEM), ifort)
     FC= ifort
     FFLAGS= -O3 -WB -Vaxlib -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source 
+    OMPFLAG= -openmp
     DBLFLAG= -r8
     DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
     KNOWN_SYSTEM=yes
@@ -216,6 +214,30 @@ endif
 
 ifeq ($(ENDIAN), LITTLE)
     FFLAGS += ${ENDIANFLAGLITTLE}
+endif
+
+ifeq ($(openmp), yes)
+    FFLAGS += ${OMPFLAG}
+endif
+
+ifeq ($(mpi), yes)
+    FPPFLAGS+=${FPP_SEP}-DMPI
+endif
+
+ifeq ($(mpidebug), yes)
+    FPPFLAGS+=${FPP_SEP}-DMPIDEBUG
+endif
+
+ifeq ($(mpidebugt), yes)
+    FPPFLAGS+=${FPP_SEP}-DMPIDEBUGT
+endif
+
+ifeq ($(mpidebugs), yes)
+    FPPFLAGS+=${FPP_SEP}-DMPIDEBUGS
+endif
+
+ifeq ($(mpidebugrt), yes)
+    FPPFLAGS+=${FPP_SEP}-DMPIDEBUGRT
 endif
 
 # do double precision flag last (append only to FFLAGS)

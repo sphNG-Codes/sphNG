@@ -26,6 +26,7 @@ c************************************************************
       REAL specang, ptmassin, pmassinitial, totmass
       REAL*8 umassi, udisti, utimei
       REAL, PARAMETER :: pi=3.1415926536
+      INTEGER*8 :: iuniquedum
 
       nfiles = iargc()
       IF (nfiles.LE.0) THEN
@@ -100,7 +101,7 @@ c
                ELSE
                   pmass = 0.
                   DO i=1,nptmass
-                     READ(idisk1,iostat=ierr) ipart,dumi,dumi,dumi,
+                     READ(idisk1,iostat=ierr) iuniquedum,dumi,dumi,dumi,
      &                                       dumi,dumi,dumi,pmass(i)
                      !PRINT*,ipart,pmass(i)
                   ENDDO

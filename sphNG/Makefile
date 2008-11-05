@@ -111,10 +111,9 @@ endif
 
 ifeq ($(SYSTEM), apac)
     ifeq ($(mpi), yes)
-       FC= mpif90
-    else
-       FC= ifort
+       LDFLAGS+= -lmpi
     endif
+    FC=ifort
     FFLAGS= -O3 -i-dynamic -WB \
             -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source\
             -warn interfaces -gen-interfaces
@@ -319,6 +318,9 @@ OBJGRADHRK = $(TOBJGRADHRK:.F=.o)
 OBJGRADHRKRT = $(TOBJGRADHRKRT:.F=.o) 
 OBJTORUS = $(TOBJTORUS:.F=.o) 
 
+# default action for "make"
+default: gradhrk
+
 # specific rules to make MPI object files
 
 #mpif.h :
@@ -359,43 +361,43 @@ sph_tree_lf_gradh: $(OBJGRADHLF)
 	@echo ""
 	@echo "This is the gradh, leapfrog version"
 	@echo ""
-	$(FC) $(FFLAGS) -o $@ $(OBJGRADHLF)
+	$(FC) $(FFLAGS) -o $@ $(OBJGRADHLF) $(LDFLAGS)
 
 sph_tree_rk_gradh: $(OBJGRADHRK)
 	@echo ""
 	@echo "This is the gradh, Runge Kutta version"
 	@echo ""
-	$(FC) $(FFLAGS) -o $@ $(OBJGRADHRK)
+	$(FC) $(FFLAGS) -o $@ $(OBJGRADHRK) $(LDFLAGS)
 
 sph_tree_rk_gradh_RT: $(OBJGRADHRKRT)
 	@echo ""
 	@echo "This is the gradh, Runge Kutta, radiative transfer version"
 	@echo ""
-	$(FC) $(FFLAGS) -o $@ $(OBJGRADHRKRT)
+	$(FC) $(FFLAGS) -o $@ $(OBJGRADHRKRT) $(LDFLAGS)
 
 sph_tree_lf: $(OBJLF)
 	@echo ""
 	@echo "This is the non-gradh, leapfrog version"
 	@echo ""
-	$(FC) $(FFLAGS) -o $@ $(OBJLF)
+	$(FC) $(FFLAGS) -o $@ $(OBJLF) $(LDFLAGS)
 
 sph_tree_rk: $(OBJRK)
 	@echo ""
 	@echo "This is the non-gradh, Runge-Kutta version"
 	@echo ""
-	$(FC) $(FFLAGS) -o $@ $(OBJRK)
+	$(FC) $(FFLAGS) -o $@ $(OBJRK) $(LDFLAGS)
         
 sph_tree_RT: $(OBJRT)
 	@echo ""
 	@echo "This is the Radiative transfer code (Runge Kutta by default)"
 	@echo ""
-	$(FC) $(FFLAGS) -o $@ $(OBJRT)
+	$(FC) $(FFLAGS) -o $@ $(OBJRT) $(LDFLAGS)
 
 sphtorus: $(OBJTORUS)
 	@echo ""
 	@echo "This is the TORUS code (Runge Kutta by default)"
 	@echo ""
-	$(FC) $(FFLAGS) -o $@ $(OBJTORUS) -L${TORUS_LIB}
+	$(FC) $(FFLAGS) -o $@ $(OBJTORUS) -L${TORUS_LIB} $(LDFLAGS)
 
 util: binary convert ptmass massvsangmom
 

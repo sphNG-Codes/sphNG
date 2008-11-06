@@ -71,9 +71,9 @@ c
      &        FORM='formatted')
          ENDIF
       ENDIF
-      nfiles = 1000
+!      nfiles = 1000
       print*,'nfiles = ',nfiles 
-      
+
       maxptmass = 0
       DO j=1,nfiles
 c         print*,'enter file ',1
@@ -93,10 +93,10 @@ c
 c--get sink properties from sink P file
 c
                READ(idisk1,iostat=ierr) timeff,time,nptmass
-               maxptmass = max(nptmass,maxptmass)
+               if (nptmass.lt.100000) maxptmass = max(nptmass,maxptmass)
                PRINT*,' t_ff= ',timeff,' t= ',time,' nptmass= ',nptmass
      &                 ,maxptmass
-               IF (ierr /= 0) THEN
+               IF (ierr /= 0 .or. nptmass.gt.100000) THEN
                   PRINT*,'ERROR READING TIME FROM FILE'
                ELSE
                   pmass = 0.
@@ -183,7 +183,7 @@ c--Default int
          CLOSE(idisk1)
 
       ENDDO
- 100  CONTINUE     
+ 100  CONTINUE
       DO i=1,nout
          IF (i.GT.maxptmass) THEN
       !--delete empty files

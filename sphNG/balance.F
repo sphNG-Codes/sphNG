@@ -135,7 +135,8 @@ c
 #endif
 
       IF (npartnew + numrecvtotal.GT.idim) THEN
-         WRITE (*,*) 'ERROR - npartnew + numrecvtotal.GT.idim'
+         WRITE (*,*) 'ERROR - npartnew + numrecvtotal.GT.idim ',
+     &        npartnew, numrecvtotal, idim
          CALL quit
       ENDIF
 c

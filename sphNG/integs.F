@@ -188,9 +188,9 @@ c
          ENDIF
          IF (iphase(j).GE.0) THEN
             dttime = dtmax*isteps(j)/imaxstep
-            ipos = INT((LOG10(dtmax/dttime) * 3.3219281) + 1.01)
-            IF ((ipos.GE.1) .AND. (ipos.LE.29)) THEN
-               nsteplist(ipos) = nsteplist(ipos) + 1
+            ipostime = INT((LOG10(dtmax/dttime) * 3.3219281) + 1.01)
+            IF ((ipostime.GE.1) .AND. (ipostime.LE.29)) THEN
+               nsteplist(ipostime) = nsteplist(ipostime) + 1
             ELSE
                nsteplist(30) = nsteplist(30) + 1
             ENDIF

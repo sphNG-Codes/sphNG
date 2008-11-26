@@ -1164,12 +1164,14 @@ c
 c
 c--h2mol
 c
-      DO i = 1, npart
-         tempsort(i) = h2mol(llist(i))
-      END DO
-      DO i = 1, npart
-         h2mol(i) = tempsort(i)
-      END DO
+      IF (idim_h2.EQ.idim) THEN
+         DO i = 1, npart
+            tempsort(i) = h2mol(llist(i))
+         END DO
+         DO i = 1, npart
+            h2mol(i) = tempsort(i)
+         END DO
+      ENDIF
 c
 c--h2ratio
 c

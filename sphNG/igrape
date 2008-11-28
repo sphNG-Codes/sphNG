@@ -73,3 +73,11 @@ c
       LOGICAL XSPH
        PARAMETER (XSPH=.FALSE.)
 c      PARAMETER (XSPH=.TRUE.)
+c
+c--Allows control over how MPI is done in densityiterate.  For well load
+c	  balance problems the best is probably ideniteratebal = .TRUE.
+c	  however, for other jobs it is probably ideniteratebal = .FALSE.
+c
+       LOGICAL ideniteratebal
+c       PARAMETER (ideniteratebal = .FALSE.)
+       PARAMETER (ideniteratebal = .TRUE.)

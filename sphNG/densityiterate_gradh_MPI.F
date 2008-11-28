@@ -334,7 +334,6 @@ c
 c--IMPLEMENTATION USING SEND
 c
                IF (ii.EQ.iproc+1) THEN
-                  inumrequests = 0
                   DO jj = 0, numproc - 1
                      IF (iproc.NE.jj) THEN
 #ifdef MPIDEBUG
@@ -343,15 +342,11 @@ c
      &                       iphase(lsendlist(1)+1)
 #endif
 
-                        inumrequests = inumrequests + 1
-                        CALL MPI_ISEND(xyzmh,1,indexMPI5,jj,0,
-     &                       MPI_COMM_WORLD, 
-     &                       irequest_array(inumrequests), ierr)
+                        CALL MPI_SEND(xyzmh,1,indexMPI5,jj,0,
+     &                       MPI_COMM_WORLD, ierr)
 
-                        inumrequests = inumrequests + 1
-                        CALL MPI_ISEND(iphase,1,indexMPI_INT1,jj,1,
-     &                       MPI_COMM_WORLD, 
-     &                       irequest_array(inumrequests), ierr)
+                        CALL MPI_SEND(iphase,1,indexMPI_INT1,jj,1,
+     &                       MPI_COMM_WORLD, ierr)
                      ENDIF
                   END DO
                   inumber = 0
@@ -361,17 +356,9 @@ c
 c
 c--Receive data
 c
-                  CALL MPI_IRECV(xyzmh(1,2*ntot+3),idim,i5REAL8,ibehind,
-     &                 0,MPI_COMM_WORLD, irequest_array(1), ierr)
-
-                  CALL MPI_IRECV(iphase(ntot+1),idim,MPI_INTEGER1,
-     &                 ibehind,1,MPI_COMM_WORLD,irequest_array(2),ierr)
-
-                  CALL MPI_WAITALL(2, irequest_array, istatus_array,
-     &                 ierr)
-
-                  CALL MPI_GET_COUNT(istatus_array(1,1), i5REAL8, 
-     &                 inumber, ierr)
+                  CALL MPI_RECV(xyzmh(1,2*ntot+3),idim,i5REAL8,ibehind,
+     &                 0,MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
                   IF (2*ntot+3+inumber.GE.mmax2) THEN
                  WRITE (*,*) iproc,': ERROR - 2*ntot+3+inumber.GE.mmax2'
                      CALL quit
@@ -382,8 +369,10 @@ c
      &              xyzmh(1,2*ntot+3),numproc
 #endif
 
-                  CALL MPI_GET_COUNT(istatus_array(1,2), MPI_INTEGER1,
-     &                 igotnumber, ierr)
+                  CALL MPI_RECV(iphase(ntot+1),idim,MPI_INTEGER1,
+     &                 ibehind,1,MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_INTEGER1,igotnumber,
+     &                 ierr)
                   IF (ntot+1+inumber.GE.idim2) THEN
                   WRITE (*,*) iproc,': ERROR - ntot+1+inumber.GE.idim2'
                      CALL quit
@@ -676,10 +665,6 @@ c
 c--Receive data
 c
                IF (ii.EQ.iproc+1) THEN
-
-                  CALL MPI_WAITALL(inumrequests, irequest_array, 
-     &                 istatus_array, ierr)
-
                   DO jj = 0 , numproc - 1
                      IF (iproc.NE.jj) THEN
                         CALL MPI_RECV(llistrec, nlstsend, 

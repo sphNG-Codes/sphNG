@@ -2172,7 +2172,7 @@ c
 #else
             naccretetot = naccrete
 #endif
-            print *,iproc,': Trying to open ',ptfile,' file'
+c            print *,iproc,': Trying to open ',ptfile,' file'
 
             OPEN (iptprint, FILE=ptfile,
      &           FORM='unformatted',POSITION='APPEND')
@@ -2184,7 +2184,7 @@ c
             CALL MPI_RECV(icango, 1, MPI_INTEGER, iproc-1, 98, 
      &           MPI_COMM_WORLD, istatus, ierr)
 
-            print *,iproc,': Trying to open ',ptfile,' file'
+c            print *,iproc,': Trying to open ',ptfile,' file'
             OPEN (iptprint, FILE=ptfile,
      &           FORM='unformatted',POSITION='APPEND')
          ENDIF
@@ -2218,12 +2218,12 @@ c
 #ifdef MPI
          IF (iproc.NE.numproc-1) THEN
             CLOSE(iptprint)
-            print *,iproc,': Trying to close ',iptprint
+c            print *,iproc,': Trying to close ',iptprint
             CALL MPI_SEND(1, 1, MPI_INTEGER, iproc+1, 98,
      &           MPI_COMM_WORLD, istatus, ierr)
          ELSE
             CLOSE(iptprint)
-            print *,iproc,': Trying to close ',iptprint
+c            print *,iproc,': Trying to close ',iptprint
          ENDIF
 #else
          CLOSE(iptprint)

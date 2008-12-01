@@ -68,6 +68,7 @@ C$OMP PARALLEL default(none)
 C$OMP& shared(ilevel,level,natom,isibdaupar)
 C$OMP& shared(qrad,xyzmh,imfac)
 C$OMP& private(new,l,ll,fl,fll,emred,difx,dify,difz,rr,pmassl,pmassll)
+C$OMP& private(xll,yll,zll,smoothingll)
 
 C$OMP DO SCHEDULE(static)
          DO new = level(ilevel), level(ilevel + 1) - 1
@@ -80,10 +81,22 @@ C$OMP DO SCHEDULE(static)
             ELSE
                pmassl = xyzmh(4,l)
             ENDIF
-            IF (ll.LE.natom) THEN
-               pmassll = imfac(ll)*xyzmh(4,ll)
+            IF (ll.EQ.0) THEN
+               xll = 0.
+               yll = 0.
+               zll = 0.
+               pmassll = 0.
+               smoothingll = 0.
             ELSE
-               pmassll = xyzmh(4,ll)
+               IF (ll.LE.natom) THEN
+                  pmassll = imfac(ll)*xyzmh(4,ll)
+               ELSE
+                  pmassll = xyzmh(4,ll)
+               ENDIF
+               xll = xyzmh(1,ll)
+               yll = xyzmh(2,ll)
+               zll = xyzmh(3,ll)
+               smoothingll = xyzmh(5,ll)
             ENDIF
             xyzmh(4,new) = pmassl + pmassll
 
@@ -95,24 +108,28 @@ C$OMP DO SCHEDULE(static)
                fll = 0.5
             ENDIF
             emred = fl*fll*xyzmh(4,new)
-            difx = xyzmh(1,ll) - xyzmh(1,l)
-            dify = xyzmh(2,ll) - xyzmh(2,l)
-            difz = xyzmh(3,ll) - xyzmh(3,l)
+            difx = xll - xyzmh(1,l)
+            dify = yll - xyzmh(2,l)
+            difz = zll - xyzmh(3,l)
             IF (fl.GT.fll) THEN
                xyzmh(1,new) = xyzmh(1,l) + fll*difx
                xyzmh(2,new) = xyzmh(2,l) + fll*dify
                xyzmh(3,new) = xyzmh(3,l) + fll*difz
             ELSE
-               xyzmh(1,new) = xyzmh(1,ll) - fl*difx
-               xyzmh(2,new) = xyzmh(2,ll) - fl*dify
-               xyzmh(3,new) = xyzmh(3,ll) - fl*difz
+               xyzmh(1,new) = xll - fl*difx
+               xyzmh(2,new) = yll - fl*dify
+               xyzmh(3,new) = zll - fl*difz
             ENDIF
 c
 c--Find radius
 c
             rr = SQRT(difx**2 + dify**2 + difz**2) + tiny
-            qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr + qrad(1,ll))
-            xyzmh(5,new) = MAX(xyzmh(5,l), xyzmh(5,ll))
+            IF (ll.EQ.0) THEN
+               qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr)
+            ELSE
+               qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr + qrad(1,ll))
+            ENDIF
+            xyzmh(5,new) = MAX(xyzmh(5,l), smoothingll)
 c
 c--Find quadrupole moments
 c
@@ -154,10 +171,22 @@ C$OMP END PARALLEL
             ELSE
                pmassl = xyzmh(4,l)
             ENDIF
-            IF (ll.LE.natom) THEN
-               pmassll = imfac(ll)*xyzmh(4,ll)
+            IF (ll.EQ.0) THEN
+               xll = 0.
+               yll = 0.
+               zll = 0.
+               pmassll = 0.
+               smoothingll = 0.
             ELSE
-               pmassll = xyzmh(4,ll)
+               IF (ll.LE.natom) THEN
+                  pmassll = imfac(ll)*xyzmh(4,ll)
+               ELSE
+                  pmassll = xyzmh(4,ll)
+               ENDIF
+               xll = xyzmh(1,ll)
+               yll = xyzmh(2,ll)
+               zll = xyzmh(3,ll)
+               smoothingll = xyzmh(5,ll)
             ENDIF
             xyzmh(4,new) = pmassl + pmassll
 
@@ -169,24 +198,28 @@ C$OMP END PARALLEL
                fll = 0.5
             ENDIF
             emred = fl*fll*xyzmh(4,new)
-            difx = xyzmh(1,ll) - xyzmh(1,l)
-            dify = xyzmh(2,ll) - xyzmh(2,l)
-            difz = xyzmh(3,ll) - xyzmh(3,l)
+            difx = xll - xyzmh(1,l)
+            dify = yll - xyzmh(2,l)
+            difz = zll - xyzmh(3,l)
             IF (fl.GT.fll) THEN
                xyzmh(1,new) = xyzmh(1,l) + fll*difx
                xyzmh(2,new) = xyzmh(2,l) + fll*dify
                xyzmh(3,new) = xyzmh(3,l) + fll*difz
             ELSE
-               xyzmh(1,new) = xyzmh(1,ll) - fl*difx
-               xyzmh(2,new) = xyzmh(2,ll) - fl*dify
-               xyzmh(3,new) = xyzmh(3,ll) - fl*difz
+               xyzmh(1,new) = xll - fl*difx
+               xyzmh(2,new) = yll - fl*dify
+               xyzmh(3,new) = zll - fl*difz
             ENDIF
 c
 c--Find radius
 c
             rr = SQRT(difx**2 + dify**2 + difz**2) + tiny
-            qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr + qrad(1,ll))
-            xyzmh(5,new) = MAX(xyzmh(5,l), xyzmh(5,ll))
+            IF (ll.EQ.0) THEN
+               qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr)
+            ELSE
+               qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr + qrad(1,ll))
+            ENDIF
+            xyzmh(5,new) = MAX(xyzmh(5,l), smoothingll)
 c
 c--Find quadrupole moments
 c
@@ -382,6 +415,7 @@ C$OMP& shared(qrad,xyzmh,imfac,listpar,listparnew)
 C$OMP& shared(iflagtree,ipar,nlevel,nlistpar,nlistparnew)
 C$OMP& private(i,new,l,ll,fl,fll,emred,difx,dify,difz,rr,iparent)
 C$OMP& private(pmassl,pmassll,oldmass,oldh,oldqrad)
+C$OMP& private(xll,yll,zll,smoothingll)
 
 C$OMP DO SCHEDULE(static)
          DO i = 1, nlistpar
@@ -414,10 +448,22 @@ c            print *,i
             ELSE
                pmassl = xyzmh(4,l)
             ENDIF
-            IF (ll.LE.natom) THEN
-               pmassll = imfac(ll)*xyzmh(4,ll)
+            IF (ll.EQ.0) THEN
+               xll = 0.
+               yll = 0.
+               zll = 0.
+               pmassll = 0.
+               smoothingll = 0.
             ELSE
-               pmassll = xyzmh(4,ll)
+               IF (ll.LE.natom) THEN
+                  pmassll = imfac(ll)*xyzmh(4,ll)
+               ELSE
+                  pmassll = xyzmh(4,ll)
+               ENDIF
+               xll = xyzmh(1,ll)
+               yll = xyzmh(2,ll)
+               zll = xyzmh(3,ll)
+               smoothingll = xyzmh(5,ll)
             ENDIF
 
             oldmass = xyzmh(4,new)
@@ -433,25 +479,29 @@ c            print *,i
                fll = 0.5
             ENDIF
             emred = fl*fll*xyzmh(4,new)
-            difx = xyzmh(1,ll) - xyzmh(1,l)
-            dify = xyzmh(2,ll) - xyzmh(2,l)
-            difz = xyzmh(3,ll) - xyzmh(3,l)
+            difx = xll - xyzmh(1,l)
+            dify = yll - xyzmh(2,l)
+            difz = zll - xyzmh(3,l)
             IF (fl.GT.fll) THEN
                xyzmh(1,new) = xyzmh(1,l) + fll*difx
                xyzmh(2,new) = xyzmh(2,l) + fll*dify
                xyzmh(3,new) = xyzmh(3,l) + fll*difz
             ELSE
-               xyzmh(1,new) = xyzmh(1,ll) - fl*difx
-               xyzmh(2,new) = xyzmh(2,ll) - fl*dify
-               xyzmh(3,new) = xyzmh(3,ll) - fl*difz
+               xyzmh(1,new) = xll - fl*difx
+               xyzmh(2,new) = yll - fl*dify
+               xyzmh(3,new) = zll - fl*difz
             ENDIF
 c
 c--Find radius
 c
             rr = SQRT(difx**2 + dify**2 + difz**2) + tiny
             oldqrad = qrad(1,new)
-            qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr + qrad(1,ll))
-            xyzmh(5,new) = MAX(xyzmh(5,l), xyzmh(5,ll))
+            IF (ll.EQ.0) THEN
+               qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr)
+            ELSE
+               qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr + qrad(1,ll))
+            ENDIF
+            xyzmh(5,new) = MAX(xyzmh(5,l), smoothingll)
 c
 c--Find quadrupole moments
 c

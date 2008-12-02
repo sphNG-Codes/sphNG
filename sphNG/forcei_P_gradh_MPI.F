@@ -34,7 +34,6 @@ c--this weight is equivalent to m/(rho*h^3) in the grad h version
       INCLUDE 'COMMONS/tlist'
       INCLUDE 'COMMONS/btree'
       INCLUDE 'COMMONS/numpa'
-      INCLUDE 'COMMONS/gravi'
       INCLUDE 'COMMONS/ener1'
       INCLUDE 'COMMONS/ener3'
       INCLUDE 'COMMONS/kerne'
@@ -233,7 +232,7 @@ C$OMP& shared(igrp,igphi,ifsvi,iexf)
 C$OMP& shared(ifcor,iexpan,iener,damp)
 C$OMP& shared(realtime,ekcle,encal,dedxyz,acc)
 C$OMP& shared(Bxyz,dBxyz,Bextxi,Bextyi,Bextzi,B2ext,divcurlB,Bevolxyz)
-C$OMP& shared(gravxyzstore,potenstore,varmhd,iupdated,listparents)
+C$OMP& shared(varmhd,iupdated,listparents)
 C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug)
 C$OMP& shared(ivar,ijvar,Bextx,Bexty,Bextz,etamhd,iresist)
 C$OMP& shared(forcei_lock)

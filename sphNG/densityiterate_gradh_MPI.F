@@ -81,6 +81,7 @@ c      INCLUDE 'COMMONS/vsmooth'
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/updated'
       INCLUDE 'COMMONS/presb'
+      INCLUDE 'COMMONS/perform'
 
       INTEGER*1 isucceed(idim)
       REAL*4 hminbisec(idim),hmaxbisec(idim)
@@ -218,6 +219,9 @@ c
 c--Iterate density calculation for particle ipart
 c
 #ifdef MPI
+
+      IF (itiming) CALL getused(td11)
+
       inumofreturns = 0
       inumofsends = 0
       maxnneighsentback = 0
@@ -1107,8 +1111,8 @@ c
 c
 c--Calculate other quantities using the interaction list from local process
 c
-               CALL divvcurlvgrad(ipart,npart,ntot,xyzmh,vxyzu,Bevol,
-     &              nneighlocal,gradmhd)
+c               CALL divvcurlvgrad(ipart,npart,ntot,xyzmh,vxyzu,Bevol,
+c     &              nneighlocal,neighlist,gradmhd)
 c
 c--Set up compact list of neighbours within h_i and non-active neighbours
 c     within h_j
@@ -1326,13 +1330,56 @@ c
       CALL quit
 
  30   CONTINUE
-
       ncompactlocal = ncompact
+
+#ifdef MPI
+      IF (itiming) THEN
+         CALL getused(td12)
+         td1 = td1 + (td12 - td11)
+      ENDIF
+#endif MPI
+c
+c--FINISHED CALCULATION OF NEIGHBOURS, DENSITY, AND LONG-RANGE GRAVITY
+c
+c
+c--Now calculated local contributions to divv, curlv, etc
+c
+      IF (itiming) CALL getused(td31)
+
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst_in,nlst_end)
+C$OMP& shared(xyzmh,vxyzu,pr,vsound,rho,ekcle)
+C$OMP& shared(iphase,uradconst,icall,encal)
+C$OMP& shared(numproc,iproc,gradmhd)
+C$OMP& shared(ivar,ijvar)
+C$OMP& private(n,ipart,k)
+C$OMP& private(nneighlocal)
+      DO n = nlst_in, nlst_end
+         ipart = ivar(3,n)
+         IF (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10) THEN
+c
+c--Calculate other quantities using the interaction list from local process
+c
+            nneighlocal = ivar(1,n)
+
+            CALL divvcurlvgrad(ipart,npart,ntot,xyzmh,vxyzu,Bevol,
+     &           nneighlocal,ijvar(ivar(2,n)+1),gradmhd)
+         ENDIF
+      END DO
+C$OMP END PARALLEL DO
+
+      IF (itiming) THEN
+         CALL getused(td32)
+         td3 = td3 + (td32 - td31)
+      ENDIF
 c
 c--For MPI job, need to add contributions to other quantities (such as divv,
 c     curlv, etc) from other MPI processes
 c
 #ifdef MPI
+
+      IF (itiming) CALL getused(td21)
+
 #ifdef MPIDEBUG
 c      IF (itime.EQ.000) THEN
          print *,iproc,': HERE '
@@ -1600,7 +1647,7 @@ C$OMP& private(i,k,ipart,jpart,numberupdated)
          nneighlocal = nneigh(ipart)
 
          CALL divvcurlvgrad(ipart,npart,ntot,xyzmh,vxyzu,Bevol,
-     &        nneighlocal,gradmhd)
+     &        nneighlocal,neighlist,gradmhd)
 c
 c--Set up compact list of neighbours within h_i and non-active neighbours
 c     within h_j
@@ -1870,6 +1917,11 @@ c     &        dvxyzu(2,25646),dvxyzu(3,25646),xyzmh(1,25646),
 c     &        xyzmh(2,25646),xyzmh(3,25646)
 c      print *,' '
 #endif
+
+           IF (itiming) THEN
+              CALL getused(td22)
+              td2 = td2 + (td22 - td21)
+           ENDIF
 #endif
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -2573,14 +2625,14 @@ c--Also now updates the densities
 c
 c
       SUBROUTINE divvcurlvgrad(ipart,npart,ntot,xyzmh,vxyzu,Bevol,
-     &     numneighi,gradmhd)
+     &     numneighi,neighbourslist,gradmhd)
 
       INCLUDE 'idim'
 
       DIMENSION xyzmh(5,mmax2), vxyzu(4,idim2), Bevol(3,imhd3),
      &     gradmhd(15,imhd2)
+      DIMENSION neighbourslist(numneighi)
 
-      INCLUDE 'COMMONS/nlim'
       INCLUDE 'COMMONS/kerne'
       INCLUDE 'COMMONS/table'
       INCLUDE 'COMMONS/divve'
@@ -2641,7 +2693,7 @@ c
       ENDIF
 
       DO k = 1, numneighi
-         j = neighlist(k)
+         j = neighbourslist(k)
 
          IF (iphase(j).EQ.iphase(ipart)) THEN
 
@@ -2776,14 +2828,12 @@ c
          curlv(ipart) = cnormk*SQRT(curlvxi**2+curlvyi**2+curlvzi**2)
          gradhs(2,ipart) = gradsofti
       ELSE
-         divv(ipart) = divv(ipart) + cnormk*divvi
-         curlv(ipart) = curlv(ipart) + 
-     &        cnormk*SQRT(curlvxi**2+curlvyi**2+curlvzi**2)
+         divv(ipart) = cnormk*divvi
+         curlv(ipart) = cnormk*SQRT(curlvxi**2+curlvyi**2+curlvzi**2)
 c
 c--Add self contribution
 c
-         gradhs(2,ipart) = gradhs(2,ipart) +  gradsofti 
-     &        - pmassi*dphidh(0)*hi21
+         gradhs(2,ipart) = gradsofti - pmassi*dphidh(0)*hi21
       ENDIF
 
       RETURN

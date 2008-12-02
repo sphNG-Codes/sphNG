@@ -359,6 +359,7 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
 98031       FORMAT (' step-9       time: ', F8.3, ' min. ',F6.2,' %')
 98032       FORMAT (' derivi-1     time: ', F8.3, ' min. ',F6.2,' %')
 98033       FORMAT (' derivi-2     time: ', F8.3, ' min. ',F6.2,' %')
+98042       FORMAT (' derivi-3     time: ', F8.3, ' min. ',F6.2,' %')
 98034       FORMAT (' derivi-tot   time: ', F8.3, ' min. ',F6.2,' %')
 98035       FORMAT (' step-kick1/2 time: ', F8.3, ' min. ',F6.2,' %')
 98036       FORMAT (' timestep     time: ', F8.3, ' min. ',F6.2,' %')
@@ -379,8 +380,9 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
             WRITE (iprint, 98016) tgforpt/60., tgforpt/tstep*100.
             WRITE (iprint, 98021) taccrete/60., taccrete/tstep*100.
             WRITE (iprint, 98034) ts10/60.,    ts10/tstep*100.
-            WRITE (iprint, 98032) td1/60.,     td1/tstep*100.
-            WRITE (iprint, 98033) td2/60.,     td2/tstep*100.
+            WRITE (iprint, 98032) td1/60.,     td1/tdens*100.
+            WRITE (iprint, 98033) td2/60.,     td2/tdens*100.
+            WRITE (iprint, 98042) td3/60.,     td3/tdens*100.
             WRITE (iprint, 98023) ts1/60.,     ts1/tstep*100.
             WRITE (iprint, 98024) ts2/60.,     ts2/tstep*100.
             WRITE (iprint, 98025) ts3/60.,     ts3/tstep*100.
@@ -429,6 +431,7 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
             taccrete = 0.
             td1 = 0.
             td2 = 0.
+            td3 = 0.
             ts1 = 0.
             ts2 = 0.
             ts3 = 0.

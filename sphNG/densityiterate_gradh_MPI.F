@@ -82,6 +82,7 @@ c      INCLUDE 'COMMONS/vsmooth'
       INCLUDE 'COMMONS/updated'
       INCLUDE 'COMMONS/presb'
       INCLUDE 'COMMONS/perform'
+      INCLUDE 'COMMONS/gravi'
 
       INTEGER*1 isucceed(idim)
       REAL*4 hminbisec(idim),hmaxbisec(idim)
@@ -92,6 +93,7 @@ c      INCLUDE 'COMMONS/vsmooth'
       DIMENSION nneighrec(ineighproc),nneighsentbackold(nummaxproc)
       REAL*4 rhorec(ineighproc), dumrhorec(ineighproc), rhonextmax
       LOGICAL*1 isend(idim)
+      INTEGER*8 iuniquesend(iptdim)
 #endif
 
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
@@ -140,13 +142,27 @@ c     that it will contain fewer and fewer particles as gas particles have
 c     their correct smoothing length and density set.
 c
       nlstdo = 0
+      nptmasssend = 0
       DO n = nlst_in, nlst_end
          ipart = listp(n)
          IF (iphase(ipart).GE.0) THEN
             nlstdo = nlstdo + 1
             ldolist(nlstdo) = listp(n)
+#ifdef MPI
+            IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
+               nptmasssend = nptmasssend + 1
+               iuniquesend(nptmasssend) = iunique(iorig(ipart))
+            ENDIF
+#endif
          ENDIF
       END DO
+#ifdef MPI
+      IF (nptmasssend.NE.nptmass) THEN
+         WRITE (*,*) 'ERROR - nptmasssend.NE.nptmass ',nptmasssend,
+     &        nptmass
+         CALL quit
+      ENDIF
+#endif
 
       nlstsend = nlstdo
 
@@ -247,6 +263,11 @@ c      CALL MPI_TYPE_COMMIT(i12REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
+
+      CALL MPI_ALLREDUCE(nlstdo,nlstdo_tot,1,MPI_INTEGER,MPI_SUM,
+     &     MPI_COMM_WORLD,ierr)
+#else
+      nlstdo_tot = nlstdo
 #endif
 
       DO iteration = 1, maxiterations
@@ -284,6 +305,8 @@ c     &       MPI_INTEGER1, indexMPI_INT1, ierr)
 c
 c--There are two implementations, one for balanced jobs, one for unbalanced
 c
+         nptmasslocal = nptmass
+         nptmasslocal2 = nptmass
          DO ii = 1, numproc
             IF (ideniteratebal) THEN
                IF (ii.EQ.numproc) GOTO 444
@@ -333,6 +356,23 @@ c
                IF (itime.EQ.2097152)
      &              print *,iproc,': Received iphase ',inumber
 #endif
+
+               IF (iteration.EQ.1) THEN
+                  CALL MPI_SENDRECV(iuniquesend, nptmass, MPI_INTEGER8,
+     &                 iahead, 9,
+     &                 iuniquestore(nptmasslocal2+1), iptdim, 
+     &                 MPI_INTEGER8, ibehind, 9, 
+     &                 MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_INTEGER8,igotnumber,
+     &                 ierr)
+                  nptmasslocal2 = nptmasslocal2 + igotnumber
+                  IF (nptmasslocal2.GT.iptdim) THEN
+                     WRITE (*,*) 'ERROR - nptmasslocal2.GT.iptdim ',
+     &                    nptmasslocal2, igotnumber
+                     CALL quit
+                  ENDIF
+               ENDIF
+
             ELSE
 c
 c--IMPLEMENTATION USING SEND
@@ -351,6 +391,11 @@ c
 
                         CALL MPI_SEND(iphase,1,indexMPI_INT1,jj,1,
      &                       MPI_COMM_WORLD, ierr)
+
+                        IF (iteration.EQ.1) THEN
+                           CALL MPI_SEND(iuniquesend,nptmass,
+     &                          MPI_INTEGER8,jj,9,MPI_COMM_WORLD, ierr)
+                        ENDIF
                      ENDIF
                   END DO
                   inumber = 0
@@ -390,13 +435,26 @@ c
                   print *,iproc,': Received iphase ',inumber,
      &                 ' from ',ibehind,iphase(ntot+1)
 #endif
+
+                  IF (iteration.EQ.1) THEN
+                     CALL MPI_RECV(iuniquestore(nptmasslocal2+1), 
+     &                 iptdim, MPI_INTEGER8,
+     &                 ibehind, 9, MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_INTEGER8,igotnumber,
+     &                    ierr)
+                     nptmasslocal2 = nptmasslocal2 + igotnumber
+                     IF (nptmasslocal2.GT.iptdim) THEN
+                        WRITE (*,*) 'ERROR - nptmasslocal2.GT.iptdim ',
+     &                       nptmasslocal2, igotnumber
+                        CALL quit
+                     ENDIF
+                  ENDIF
                ENDIF
             ENDIF
 c
 c--This calculates the contributions to rhoi, gradhi, numneighreal, and 
 c     gravity forces from non-neighbours
 c
-            nptmasslocal = nptmass
             DO i = 1, inumber
                ipart = i + ntot
                IF (ipart.GT.idim2) THEN
@@ -404,15 +462,36 @@ c
                   CALL quit
                ENDIF
                IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
+                  IF (iteration.NE.1) THEN
+                     WRITE (*,*) 'ERROR - iteration.NE.1'
+                     CALL quit
+                  ENDIF
                   nptmasslocal = nptmasslocal + 1
                   listpm(nptmasslocal) = ipart
+                  listrealpm(ipart) = nptmasslocal
+                  IF (iuniquestore(nptmasslocal).NE.
+     &                 iuniquestoreold(nptmasslocal)) nptmasstotlast=-1
+
+c                  WRITE (*,*) iproc,' Trans ',ipart,
+c     &                 iuniquestore(nptmasslocal),
+c     &                 iuniquestoreold(nptmasslocal),nptmasstotlast
+
+                  iuniquestoreold(nptmasslocal) = 
+     &                 iuniquestore(nptmasslocal)
                ENDIF
             END DO
+            IF (iteration.EQ.1) THEN
+               IF (nptmasslocal2.NE.nptmasslocal) THEN
+                  WRITE (*,*) 'ERROR - nptmasslocal2.NE.nptmasslocal ',
+     &                 nptmasslocal2,nptmasslocal
+                  CALL quit
+               ENDIF
+            ENDIF
 
             inumreturn = 0
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(inumber,ntot,npart,xyzmh,dvxyzu,inumreturn,llistrec)
-C$OMP& shared(nlst_end)
+C$OMP& shared(nlstdo_tot)
 C$OMP& private(i,ipart,nneighlocal)
             DO i = 1, inumber
                ipart = i + ntot
@@ -420,7 +499,7 @@ C$OMP& private(i,ipart,nneighlocal)
                   WRITE (*,*) 'ipart.GT.idim2'
                   CALL quit
                ENDIF
-               CALL densitygradh(ipart,npart,ntot,nlst_end,xyzmh,
+               CALL densitygradh(ipart,npart,ntot,nlstdo_tot,xyzmh,
      &              nneighlocal,dvxyzu)
 c
 c--Make a list of indices to return densities
@@ -910,6 +989,13 @@ c
          END DO
  444     CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
          CALL MPI_TYPE_FREE(indexMPI5,ierr)
+         IF (iteration.EQ.1) THEN
+            IF (nptmasslocal2.NE.nptmasstot) THEN
+               WRITE (*,*) 'ERROR - nptmasslocal2.NE.nptmasstot ',
+     &              nptmasslocal2, nptmasstot
+               CALL quit
+            ENDIF
+         ENDIF
 c
 c--End of MPI-only section
 c
@@ -922,7 +1008,7 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
          numsucceeded = 0
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(nlst_in,nlst_end,npart,ntot,listp,divv,curlv,gradhs)
+C$OMP& shared(nlstdo_tot,npart,ntot,listp,divv,curlv,gradhs)
 C$OMP& shared(xyzmh,vxyzu,pr,vsound,rho,ekcle,rhomin)
 C$OMP& shared(nneigh,selfnormkernel)
 C$OMP& shared(cnormk,radkernel,dvtable,ddvtable,wij,grwij)
@@ -954,8 +1040,8 @@ c
 c--Adds on local contributions to rho, gradh, and nneigh and long-range
 c	 gravity
 c
-         CALL densitygradh(ipart,npart,ntot,nlst_end,xyzmh,nneighlocal,
-     &        dvxyzu)
+         CALL densitygradh(ipart,npart,ntot,nlstdo_tot,xyzmh,
+     &        nneighlocal,dvxyzu)
 
          IF (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10) THEN
 
@@ -1331,6 +1417,7 @@ c
 
  30   CONTINUE
       ncompactlocal = ncompact
+      nptmasstotlast = nptmasstot
 
 #ifdef MPI
       IF (itiming) THEN
@@ -2451,10 +2538,13 @@ c
 c
 c--Needed for MPI code
 c
+#ifdef MPI
 #ifdef MPIDEBUG
       IF (iproblem.EQ.2097152) print *,iproc,' Entered ',
      &     ' densitygrad ',ipart,npart,ntot,iphase(ipart),xyzmh(1,ipart)
 #endif
+#endif
+
       IF (ipart.GT.npart) THEN
          iparttree = ipart + ntot + 2
       ELSE
@@ -2462,42 +2552,34 @@ c
          nneighprior = nneigh(ipart)
       ENDIF
 
-#ifdef MPI
-#else
-      IF (nlst_doing.GT.nptmass .OR. ipart.GT.npart) THEN
-#endif
+      IF (nlst_doing.GT.nptmasstot .OR. nptmasstot.NE.nptmasstotlast
+     &     .OR. iptintree.EQ.2) THEN
          CALL treef(ipart,npart,ntot,xyzmh,acc,igphi,fsx,fsy,fsz,epot)
-#ifdef MPI
-#else
-         IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
-            iptcur = listrealpm(ipart)
-            IF (listpm(iptcur).NE.ipart) THEN
-               WRITE (*,*) 'ERROR - listpm(iptcur).NE.ipart'
-               CALL quit
+
+         IF (iptintree.NE.2) THEN
+            IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
+               iptcur = listrealpm(ipart)
+               IF (listpm(iptcur).NE.ipart) THEN
+                  WRITE (*,*) 'ERROR - listpm(iptcur).NE.ipart'
+                  CALL quit
+               ENDIF
+               gravxyzpstore(1,iptcur) = fsx
+               gravxyzpstore(2,iptcur) = fsy
+               gravxyzpstore(3,iptcur) = fsz
+               gravxyzpstore(4,iptcur) = epot
             ENDIF
-            gravxyzstore(1,iptcur) = fsx
-            gravxyzstore(2,iptcur) = fsy
-            gravxyzstore(3,iptcur) = fsz
-            potenstore(iptcur) = epot
          ENDIF
       ELSE
-
          iptcur = listrealpm(ipart)
          IF (listpm(iptcur).NE.ipart) THEN
             WRITE (*,*) 'ERROR - listpm(iptcur).NE.ipart'
             CALL quit
          ENDIF
-
-c         print *,'Using gravxyzstore ',nlst_doing,nptmass,ipart,npart
-c         print *,'Using gravxyzstore ',ipart,iptcur,
-c     &        gravxyzstore(1,iptcur)
-
-         fsx = gravxyzstore(1,iptcur)
-         fsy = gravxyzstore(2,iptcur)
-         fsz = gravxyzstore(3,iptcur)
-         epot = potenstore(iptcur)
+         fsx = gravxyzpstore(1,iptcur)
+         fsy = gravxyzpstore(2,iptcur)
+         fsz = gravxyzpstore(3,iptcur)
+         epot = gravxyzpstore(4,iptcur)
       ENDIF
-#endif
 
       rhoi = 0.
       gradhi = 0.

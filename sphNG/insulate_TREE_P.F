@@ -99,7 +99,7 @@ c      END DO
 
 C$OMP PARALLEL default(none), shared(nlst,npart,ntot,acc,igphi)
 C$OMP& shared(llist,xyzmh,fxyzu,poten,iphase)
-C$OMP& shared(gravxyzstore,potenstore,ireset,neighb)
+C$OMP& shared(gravxyzpstore,ireset,neighb)
 C$OMP& private(i,ipart,fsx,fsy,fsz,epot)
 C$OMP DO SCHEDULE(runtime)
          DO 100 i = 1, nlst
@@ -128,10 +128,10 @@ c
             ENDIF
 
 c            CALL treef(ipart,npart,ntot,xyzmh,0.0,igphi,fsx,fsy,fsz,epot)
-            gravxyzstore(1,ipart) = fsx
-            gravxyzstore(2,ipart) = fsy
-            gravxyzstore(3,ipart) = fsz
-            potenstore(ipart) = epot
+            gravxyzpstore(1,ipart) = fsx
+            gravxyzpstore(2,ipart) = fsy
+            gravxyzpstore(3,ipart) = fsz
+            gravxyzpstore(4,ipart) = epot
  100     CONTINUE
 C$OMP END DO
 C$OMP END PARALLEL

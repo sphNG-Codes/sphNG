@@ -1,4 +1,6 @@
-      REAL*4 gravxyzstore,potenstore
+      REAL*4 gravxyzpstore
       LOGICAL itreeupdate
+      INTEGER*8 iuniquestore,iuniquestoreold
 
-      COMMON /gravi/ gravxyzstore(3,idim),potenstore(idim),itreeupdate
+      COMMON /gravi/ gravxyzpstore(4,iptdim),
+     &	     itreeupdate, iuniquestore(iptdim),iuniquestoreold(iptdim)

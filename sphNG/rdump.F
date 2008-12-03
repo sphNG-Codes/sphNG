@@ -741,6 +741,8 @@ c--Set global number of sink particles
 c
       CALL MPI_ALLREDUCE(nptmass,nptmasstot,1,MPI_INTEGER,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
+#else
+      nptmasstot = nptmass
 #endif
 
       print *,iproc,' FINISHED READ ',npart,nptmass,nptmasstot

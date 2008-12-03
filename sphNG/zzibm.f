@@ -32,13 +32,15 @@ c
          ihour = ivalues(5)
          imins = ivalues(6)
          isec = ivalues(7)
+         imilli = ivalues(8)
          istarttime(1) = iy
          istarttime(2) = im
          istarttime(3) = id
          istarttime(4) = ihour
          istarttime(5) = imins
          istarttime(6) = isec
-         starttime = id*86400. + ihour*3600. + imins*60. + isec
+         starttime = id*86400. + ihour*3600. + imins*60. + isec +
+     &        imilli*0.001
       ENDIF
       RETURN
 c
@@ -60,6 +62,7 @@ c
       ihu = ivalues(5)
       iminu = ivalues(6)
       isu = ivalues(7)
+      imilliu = ivalues(8)
 
       IF (ivalues(2).LT.istarttime(2)) THEN
          ivalues(2) = ivalues(2) + 12
@@ -74,7 +77,8 @@ c
             idu = idu + 31
          ENDIF
       END DO
-      tused = idu*86400. + ihu*3600. + iminu*60. + isu - starttime
+      tused = idu*86400. + ihu*3600. + iminu*60. + isu + imilliu*0.001
+     &     - starttime
       RETURN
 c
 c--Check for file status

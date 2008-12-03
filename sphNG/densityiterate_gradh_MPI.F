@@ -102,9 +102,11 @@ c
 c--Initialise
 c
       iproblem = itime
-c      IF (itime.EQ.000)
-c          print *,iproc,': Entered densityiterate ',itime
-c          print *,': Entered densityiterate ',itime
+#ifdef MPI
+c      print *,iproc,': Entered densityiterate ',itime
+#else
+c      print *,': Entered densityiterate ',itime
+#endif
 
       uradconst = radconst/uergcc
       third = 1./3.

@@ -1081,9 +1081,6 @@ c
 
       CALL MPI_TYPE_FREE(i4REAL8,ierr)
       CALL MPI_TYPE_FREE(i5REAL8,ierr)
-      nptmasstotal = nptmasslocal
-#else
-      nptmasstotal = nptmass
 #endif
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 c      STOP

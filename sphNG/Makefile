@@ -254,12 +254,13 @@ FFLAGS += ${FPP_PREFIX}${FPPFLAGS}
 SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f \
 	chekopt.f condense.f constan.f coolcurve.f coriol.f \
-	cyldis.f cylmas.f cylpres.f cylvel.f endrun.f energ.f \
+	cyldis.f cylmas.f cylpres.f cylvel.f discboundary.f endrun.f energ.f \
 	eospg.f error.f evol.f externf.f externBfield.f extract.f \
-        file.f getneigh.f \
+        file.f gapfactor.f getneigh.f \
 	getcv.f get1overmu.f getkappa.f \
 	gforsa_P.f gforsn_P.f gforspt_P.f \
 	ghostp.f ghostp1.f ghostp2.f ghostp3.F ghostp11.f ghostp100.f \
+	ghostp102.f \
         gptall.f gptfromgas.f gpti.f hdot_P.f header.F hillmass.f \
 	homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
 	inopts.f insulate_TREE_P.F integs.F ktable.f labrun.f lunit_double.f \
@@ -268,7 +269,8 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	place.f potential.f preset.F \
 	prout.F ran1.f rdump.F reduce.f \
         resistivity.f save.f setup_torus.f \
-        scaling.f secmes.f setBfield_mhd.f setpart.f smoothd_P.f \
+        scaling.f secmes.f setBfield_mhd.f setpart.f sinksurface.f \
+	smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f thermeq.f \
 	toten.f treef_P.F unifdis.f unit.f \
 	wdump.f wrinsph.F zeusread.f

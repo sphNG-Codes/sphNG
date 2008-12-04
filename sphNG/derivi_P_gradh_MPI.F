@@ -134,6 +134,16 @@ c
       nlst_in = 1
       nlst_end = nlst
 
+      IF (iexf.EQ.7 .OR. ibound.EQ.102) THEN
+         IF (rplanet.NE.0.0) THEN
+            pradfac = (rplanet + (0.01*exp(-4.*gt/pi)))/rplanet
+            IF (pradfac.LT.1.001) pradfac = 1.0
+         ELSE
+            pradfac = 0.0
+         ENDIF
+      ENDIF
+
+
       IF (itrace.EQ.'all') WRITE (iprint, 99002) nlst_in, nlst_end
 99002 FORMAT(' derivi_gradh ',I8, I8)
 c
@@ -640,8 +650,7 @@ c--Compute implicit radiative transfer
 c     
       IF (itiming) CALL getused(tass1)
 
-      IF(encal.EQ.'r') THEN
-         WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
+      IF(encal.EQ.'r' .OR. (encal.EQ.'i' .AND. ibound.EQ.102)) THEN
 
 ccc         thermalenergy = 0.
 ccc         radenergy = 0.
@@ -706,8 +715,24 @@ ccc     &        thermalenergy+radenergy
 ccc99555    FORMAT(I2,': ENER-B ',I1,1PE14.7,1PE14.7,1PE14.7)
 
 c         CALL quit
-         CALL ASS(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
-     &        xyzmh,vxyzu,ekcle,dumrho,dedxyz,alphaMM)
+
+         IF (encal.EQ.'r') THEN
+            WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
+            CALL ASS(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
+     &           xyzmh,vxyzu,ekcle,dumrho,dedxyz,alphaMM)
+         ELSE
+c--Added for Isothermal disc case
+            rho0 = 0.2
+            DO i = 1, npart
+               IF (iphase(i).EQ.0) THEN
+                  vxyzu(4,i)=hoverr**2/(SQRT(xyzmh(1,i)**2+
+     &                 xyzmh(2,i)**2)*gamma*(gamma-1.0))
+                  IF (rho(i).GT.rho0) THEN
+                     vxyzu(4,i) = vxyzu(4,i)*(rho(i)/rho0)**0.8
+                  ENDIF
+               ENDIF
+            END DO
+         ENDIF
 
 ccc         thermalenergy = 0.
 ccc         radenergy = 0.

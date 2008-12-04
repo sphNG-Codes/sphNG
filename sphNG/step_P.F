@@ -77,6 +77,7 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/Bxyz'
       INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/treecom_P'
+      INCLUDE 'COMMONS/diskbd'
 
       COMMON /rtpdv/ pdvvisc(idim)
 
@@ -1616,6 +1617,9 @@ C$OMP& shared(iprint,xyzmh,poten,nneigh,iphase,ikillpr)
 C$OMP& shared(pmass,ikilled,nactive,nkill,time,iorig,nlstacc,listacc)
 C$OMP& shared(anglostx,anglosty,anglostz,istminold,listpm,coolingrate)
 C$OMP& shared(ifsvi,alphaMM,dumekcle,ekcle,iresist,etamhd,nptmass)
+C$OMP& shared(phibound,nlistinactive,listinactive,variation,npart,rmind)
+C$OMP& shared(rcyl)
+C$OMP& private(phiparticle)
 C$OMP& private(i,j,l,tolpart,errBx,errBy,errBz)
 C$OMP& private(errx,erry,errz,errvx,errvy,errvz,erru,errh,errm)
 C$OMP& private(errdivtol,rap,rmod1,divvi,aux1,aux2,aux3,denom,valfven2)
@@ -1680,6 +1684,74 @@ C$OMP END CRITICAL (killparticle)
                GOTO 855
             ENDIF
          ENDIF
+
+c
+c--Dead particle boundaries - planet embedded in disc
+c
+         IF (ibound.EQ.100 .AND. iexf.EQ.7) THEN
+            phiparticle = ATAN2(xyzmh(2,i),xyzmh(1,i))
+            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
+            IF (r2.LT.(1.0-variation)**2 .OR. r2.GT.(1.0+variation)**2
+     &           .OR. ABS(phiparticle).GT.phibound) THEN
+               iphase(i) = -1
+C$OMP CRITICAL (killparticle)
+               ikilled = 1
+
+               nlstacc = nlstacc + 1
+               IF (nlstacc.GT.nlstaccmax) THEN
+                  WRITE (iprint,*) 'ERROR step nlstacc'
+                  CALL quit
+               ENDIF
+               listacc(nlstacc) = i
+
+               nlistinactive = nlistinactive + 1
+               IF (nlistinactive.GT.idim) THEN
+                  WRITE (iprint,*) 'ERROR step nlistinactive'
+                  CALL quit
+               ENDIF
+               listinactive(nlistinactive) = i
+
+               nactive = nactive - 1
+               nkill = nkill + 1
+               WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
+     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
+     &              poten(i),dgrav(i)
+               CALL FLUSH(ikillpr)
+C$OMP END CRITICAL (killparticle)
+               GOTO 855
+            ENDIF
+         ENDIF
+
+c
+c--Dead particle boundaries - planet embedded in whole disc
+c
+c         GOTO 723
+         IF (ibound.EQ.102 .AND. iexf.EQ.5) THEN
+            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
+            IF (r2.GT.rcyl**2) THEN
+               iphase(i) = -1
+C$OMP CRITICAL (killparticle)
+               ikilled = 1
+
+               nlstacc = nlstacc + 1
+               IF (nlstacc.GT.nlstaccmax) THEN
+                  WRITE (iprint,*) 'ERROR step nlstacc'
+                  CALL quit
+               ENDIF
+               listacc(nlstacc) = i
+
+               nactive = nactive - 1
+               nkill = nkill + 1
+               WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
+     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
+     &              poten(i),dgrav(i)
+               CALL FLUSH(ikillpr)
+C$OMP END CRITICAL (killparticle)
+               GOTO 855
+            ENDIF
+         ENDIF
+ 723     continue
+
 c
 c--Follow point masses with greater accuracy than the gas particles 
 c
@@ -2582,6 +2654,10 @@ c
                CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)
             ENDIF
 c
+c--Smoothing lengths now set in densityiterate, skip this or crash.
+c
+            GOTO 678
+c
 c--Set smoothing lengths of new particles
 c
             neighmean = (neimax + neimin)/2
@@ -2634,7 +2710,7 @@ c
 c
 c--Set accelerations on new particles using call to derivi
 c
-            icall = 4
+ 678        icall = 4
             PRINT *,"icall 4 triggered"
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
      &      f1ha,npart,ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz)

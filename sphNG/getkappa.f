@@ -5,6 +5,7 @@
       INCLUDE 'idim'
 
       INCLUDE 'COMMONS/optbl'
+      INCLUDE 'COMMONS/dusttbl'
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/rbnd'
 
@@ -13,6 +14,7 @@
       REAL*4 rho2
       REAL lTg,lrho,getkappa,u2,u,cv,cv2,rho
       REAL rkappa,y1,y2,y3,y4,w,v
+      REAL minop, mu, mintemp, maxtemp, maxop
       INTEGER nkrho1,nkrho2,nktg1,nktg2,iflag
       LOGICAL y1alex,y2alex,y3alex,y4alex,tryalex
 
@@ -157,10 +159,42 @@ c
       rkappa=(10.0**rkappa)*umass/udist**2
 !     PRINT *,getkappa,umass,udist,rkappa,v,w
 
+      IF (opdenom.NE.1.0) THEN
+         mu = (lrho-dusttable(nkrho1,1))/
+     &        (dusttable(nkrho1-1,1) - dusttable(nkrho1,1))
+
+         minop = log10(dusttable(nkrho1,3)) + mu*(log10(
+     &        dusttable(nkrho1-1,3)) -
+     &        log10(dusttable(nkrho1,3)))
+
+         mintemp = dusttable(nkrho1,2) + mu*(dusttable(nkrho1-1,2) -
+     &        dusttable(nkrho1,2))
+
+         maxop = log10(dusttable(nkrho1,5)) + mu*(log10(
+     &        dusttable(nkrho1-1,5)) -
+     &        log10(dusttable(nkrho1,5)))
+
+         maxtemp = dusttable(nkrho1,4) + mu*(dusttable(nkrho1-1,4) -
+     &        dusttable(nkrho1,4))
+
+         minop = 10**(minop)
+         minop = minop*umass/udist**2
+         maxop = 10**(maxop)
+         maxop = maxop*umass/udist**2
+
+         IF (ltg.le.mintemp .AND. ltg.ge.maxtemp) THEN
+            rkappa = MAX(rkappa/opdenom, minop)
+         ELSEIF (ltg.le.mintemp) THEN
+            rkappa = rkappa/opdenom
+         ELSE
+            rkappa = rkappa
+         ENDIF
+      ENDIF
 
  666  CONTINUE
 
-      getkappa=rkappa!/1000.0
+      getkappa=rkappa
+!      getkappa=rkappa!/1000.0
 !      getkappa=MAX(rkappa,1.0/(10.0*rmax*rho2))
 !      getkappa=MAX(rkappa,1.0/(rmax*4.0*0.01))
 !      getkappa=15.0*umass/udist**2

@@ -1097,6 +1097,8 @@ c                   (a) smoothing length corrections
 c                   (b) local density gradient correction of density
 c                   (c) local pressure gradient correction to pressure force
 c                   (d) local shear viscosity correction
+c              5  Point mass with a surface that prevents sink accretion.
+c                 The surface is applied in externf by calling sinksurface.f
 c
 c     hacc    = outer radius at which particle's accretion begins
 c     haccall = radius at which all particles are accreted without test
@@ -2169,8 +2171,12 @@ c
 #else
             naccretetot = naccrete
 #endif
-c            print *,iproc,': Trying to open ',ptfile,' file'
 
+#ifdef MPI
+#ifdef MPIDEBUG
+            print *,iproc,': Trying to open ',ptfile,' file'
+#endif
+#endif
             OPEN (iptprint, FILE=ptfile,
      &           FORM='unformatted',POSITION='APPEND')
             WRITE (iptprint) realtime/tcomp, realtime, nptmasstot

@@ -197,6 +197,11 @@ c
      &        '  Rad variation, Phi, flowrate, sigma, HoverR, partmass')
       ENDIF
 
+      IF (ibound.EQ.102) THEN
+         WRITE (iterm, 88073) signorm, hoverr,partm
+88073        FORMAT(2X,3(1PE12.5,1X),'  sigma, HoverR, partmass')
+      ENDIF
+
       IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7) THEN
          WRITE (iterm, 88040) xmass
 88040    FORMAT(2X,1PE12.5,'  External Forces Mass')
@@ -206,6 +211,10 @@ c
 88043    FORMAT(2X,1PE12.5,'  Planet Mass')
          WRITE (iterm, 88045) rplanet
 88045    FORMAT(2X,1PE12.5,'  Planet Radius')
+      ENDIF
+
+      IF (ibound.EQ.102) THEN
+         WRITE (iterm, 88045) rplanet
       ENDIF
 
       IF (iptmass.NE.0 .OR. nptmass.NE.0) THEN

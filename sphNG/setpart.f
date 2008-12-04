@@ -116,7 +116,7 @@ c
          READ (*,*) numpt
 
          WRITE (*, 99091) 
-99091    FORMAT (' Enter type of point mass (1,2,3,4)')
+99091    FORMAT (' Enter type of point mass (1,2,3,4,5)')
          READ (*,*) ipttype
          initialptm = ipttype
 
@@ -245,19 +245,21 @@ c
                hacc = xyzmh(5,2)
                haccall = xyzmh(5,2)
             ELSE
- 555           WRITE (*, 99090) 
-99090          FORMAT (' Enter Outer Accretion radius')
-               READ (*,*) hacc
-               WRITE (*, 99092) 
-99092          FORMAT (' Enter Inner Accretion radius')
-               READ (*,*) haccall
-               IF (haccall.GT.hacc) THEN
-                  WRITE(*,*) 'Inner <= Outer Radius'
-                  GOTO 555
+               IF (ipttype.NE.5) THEN
+ 555              WRITE (*, 99090) 
+99090             FORMAT (' Enter Outer Accretion radius')
+                  READ (*,*) hacc
+                  WRITE (*, 99092) 
+99092             FORMAT (' Enter Inner Accretion radius')
+                  READ (*,*) haccall
+                  IF (haccall.GT.hacc) THEN
+                     WRITE(*,*) 'Inner <= Outer Radius'
+                     GOTO 555
+                  ENDIF
+                  DO i = 1, numpt
+                     xyzmh(5,i) = hacc
+                  END DO
                ENDIF
-               DO i = 1, numpt
-                  xyzmh(5,i) = hacc
-               END DO
             ENDIF
          ELSE
  556        WRITE (*, 99090) 
@@ -327,9 +329,10 @@ c
      &        '  constant angular momentum : 6 ',/,
      &        '           sphere with hole : 7 ',/,
      &        '            sphere in a box : 8 ',/,
-     &        '             planet in disc : 9 ')
+     &        '             planet in disc : 9 ',/,
+     &        '       planet in whole disc : 10 ')
       READ (*, *) igeom
-      IF (igeom.LT.1 .OR. igeom.GT.9) GOTO 50
+      IF (igeom.LT.1 .OR. igeom.GT.10) GOTO 50
 c
 c--Specify Box Size
 c
@@ -485,6 +488,49 @@ c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
          ENDIF
          print *, 'RPLANET = ', rplanet*pradfac
          iexf = 7
+      ELSE IF (igeom.EQ.10) THEN
+         WRITE (*, 89003) udist
+         READ (*, *) rcyl, rmind, faclod
+
+         hoverr = faclod
+         zmax = rcyl * faclod
+         zmin = - zmax
+         xmax = rcyl
+         ymax = rcyl
+         xmin = - xmax
+         ymin = - ymax
+         rmax = SQRT(rcyl*rcyl + zmax*zmax)
+
+         WRITE (*,89002)
+         READ (*,*) rplanet
+
+         IF (nptmass.EQ.1) THEN
+
+c            WRITE (*,89001)
+c89001       FORMAT ('Sink with surface (s) or sink accretion (a)?')
+c            READ (*,*) iacc
+c            IF (iacc.EQ.'s') THEN
+
+            IF (iphase(listpm(1)).EQ.5) THEN
+               hacc = 1.0E-8
+               haccall = 1.0E-8
+            ELSE
+               hacc = rplanet
+               haccall = rplanet
+               rplanet = 0.0
+            ENDIF
+         ENDIF
+
+         xyzmh(5,listpm(1)) = hacc
+         hzero = rplanet/5.
+         nlistinactive = 0
+         IF (rplanet.NE.0.0) THEN
+            pradfac = (rplanet + (0.01*exp(-4.*gt/pi)))/rplanet
+         ELSE
+            pradfac = 0.0
+         ENDIF
+         print *, 'RPLANET = ', rplanet*pradfac
+         iexf = 5
       ENDIF
 
       deltax = xmax - xmin
@@ -512,10 +558,12 @@ c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
      &     ' constant angular momentum',/,
      &  '                              91 : constant N infall,',
      &     ' constant omega',/,
-     &  '                             100 : planet in disc')
+     &  '                             100 : planet in disc',/,
+     &  '                             102 : planet in whole disc')
       READ (*, *) ibound
-      IF (ibound.LT.0 .OR. (ibound.GT.11 .AND. ibound.NE.90 .AND. 
-     &     ibound.NE.91 .AND. ibound.NE.100)) GOTO 150
+      IF (ibound.LT.0 .OR. (ibound.GT.11 .AND. ibound.NE.90 .AND.
+     &     ibound.NE.91 .AND. ibound.NE.100 .AND.
+     &     ibound.NE.102)) GOTO 150
       IF (ibound.EQ.7) THEN
          WRITE(*,88111)
 88111    FORMAT(/,'   What is the external temperature (units K) ',/,
@@ -596,6 +644,7 @@ c
          ELSE
             h1 = (deltax*deltay*deltaz/np) ** (1./3.)
          ENDIF
+
          WRITE (*,*) 'Particle spacing, h1 = ', h1
          GOTO 320
 
@@ -707,7 +756,7 @@ c           move the outer boundaries to ensure periodicity of the lattice
          totvol = (pi * deltaz * rcyl2)
       ELSEIF (igeom.EQ.3) THEN
          totvol = (4.0 * pi * rmax2 * rmax / 3.0) 
-      ELSEIF (igeom.EQ.4) THEN
+      ELSEIF (igeom.EQ.4 .OR. igeom.EQ.10) THEN
          totvol = (pi * deltaz * (rcyl2 - rmind2))
       ELSEIF (igeom.EQ.5) THEN
          totvol = (4.0*pi/3.0*(rcyl2*zmax - rmind2*rmind))
@@ -881,7 +930,7 @@ c
 c--Set Total Mass
 c
       umassr = umass/solarm
-      IF (igeom.NE.9) THEN
+      IF (igeom.NE.9 .AND. igeom.NE.10) THEN
          WRITE (*, 99011)
 99011    FORMAT (' Do you want to enter: Total mass of the system (1)',
      &        /,'                       Particle mass            (2)', 
@@ -912,6 +961,20 @@ c
          ELSE
             GOTO 500
          ENDIF
+      ELSE IF (igeom.EQ.10) THEN
+         WRITE (*,99114)
+         READ (*, *) signorm
+         totmas = 4.0/3.0*pi*75.0*signorm*(5.2*au)**2*
+     &        (rcyl**1.5-rmind**1.5)/umass
+         partm = totmas/(npart - nptmass)
+
+         DO i = nptmass + 1, npart
+            rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2)
+            rhotemp = (75.*signorm*sqrt(1./rtemp)*udist**2/umass)/
+     &           (6.*0.05*rtemp)
+            xyzmh(5,i) = 1.2*(partm/rhotemp)**(1./3.)
+         END DO
+
       ELSE
          WRITE (*,99114)
 99114    FORMAT(' Enter signorm (units of 75 g/cm^2) ')
@@ -978,6 +1041,11 @@ c
 c
 c--Set e.o.s. related quantities
 c
+      IF (ibound.EQ.102) THEN
+         varsta = 'intener'
+         GOTO 603
+      ENDIF
+
       WRITE (*, 99022)
 99022 FORMAT (' What is the equation of state variable:', /,
      &        ' specific internal energy :  intener (i)', /,
@@ -1017,6 +1085,7 @@ c
             GOTO 99027
          ENDIF
       ENDIF
+ 603  continue
       rhocrt = rhocrit * udens
       rhocrt2 = rhocrit2 * udens
       rhocrt3 = rhocrit3 * udens
@@ -1031,7 +1100,9 @@ c
      &        '   Variable gamma, p=A*rho^gamma (v)',/,
      &        '      critical rho (s) = ', 1PE14.5, 1PE14.5, 1PE14.5)
          READ (*, 99004) encal
-         IF (encal.EQ.'p') THEN
+         IF (encal.EQ.'i' .AND. ibound.EQ.102) THEN
+            gamma = 5.0/3.0
+         ELSE IF (encal.EQ.'p') THEN
             WRITE (*,99032)
 99032       FORMAT (' Enter gamma')
             READ (*,*) gamma
@@ -1096,11 +1167,17 @@ c
             IF (ien.EQ.'s') thermal = vsoundin2/(gamma*gm1)
             RK2 = thermal/(rhozero**gm1)
 
-            WRITE (*,99035)
-99035       FORMAT('Enter radiative transfer tolerance, boundary'//
-     &      ' temperature, and scale height at which disk becomes'//
-     &      ' optically thin:')
-            READ(*,*) tolerance, boundtemp, bounddens
+            IF (ibound/10.EQ.10 .AND. ibound.NE.100) THEN
+               WRITE (*,99053)
+99053          FORMAT('Enter radiative transfer tolerance: ')
+               READ(*,*) tolerance
+            ELSE
+               WRITE (*,99035)
+99035          FORMAT('Enter radiative transfer tolerance, boundary'//
+     &        ' temperature, and scale height at which disk becomes'//
+     &              ' optically thin:')
+               READ(*,*) tolerance, boundtemp, bounddens
+            ENDIF
 
             WRITE (*, 89019)
 89019       FORMAT ('Choose an opacity denominator')
@@ -1170,7 +1247,7 @@ c            print*,'rho(medium) = ',rhozero/rhocontrast,rhozero
          ELSE
             DO i = 1, npart
                vxyzu(4,i) = thermal
-               IF (igeom.EQ.9) THEN
+               IF (igeom.EQ.9 .OR. igeom.EQ.10) THEN
                   vxyzu(4,i)=hoverr**2/
      &            (SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2)*gamma*(gamma-1.0))
                ENDIF
@@ -1782,6 +1859,11 @@ c
       READ (*, 99004) iok
 
       CALL preset(1)
+
+      IF (ibound.EQ.100) THEN
+         gapfac = 0.0
+         CALL gapfactor(variation, hmass, gapfac)
+      ENDIF
 
       IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim) CALL hcalc
       IF (imhd.NE.idim) THEN      

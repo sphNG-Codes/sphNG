@@ -244,6 +244,16 @@ c
      &           '  disc H/R        : ',1PE12.4,/,
      &           '  planet mass     : ',1PE12.4,/,
      &           '  planet radius   : ',1PE12.4,/)
+         ELSEIF (ibound.EQ.102) THEN
+            WRITE (iprint,99534) rcyl,rmind,
+     &           signorm,hoverr,xyzmh(4,listpm(1)),rplanet
+99534       FORMAT (/,' Boundary type: whole disc  ',/,
+     &           '  outer radius    : ',1PE12.4,/,
+     &           '  inner radius    : ',1PE12.4,/,
+     &           '  sigma normal.   : ',1PE12.4,/,
+     &           '  disc H/R        : ',1PE12.4,/,
+     &           '  planet mass     : ',1PE12.4,/,
+     &           '  planet radius   : ',1PE12.4,/)
          ENDIF
 c
 c--Critical densities for variable gamma

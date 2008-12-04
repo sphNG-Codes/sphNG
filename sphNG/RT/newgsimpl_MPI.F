@@ -54,6 +54,8 @@ c      INCLUDE 'COMMONS/rad2'
       INCLUDE 'COMMONS/radstore'
       INCLUDE 'COMMONS/gradhterms'
       INCLUDE 'COMMONS/current'
+      INCLUDE 'COMMONS/boundheight'
+      INCLUDE 'COMMONS/diskbd'
 
       COMMON /rtpdv/ pdvvisc(idim)
 
@@ -71,6 +73,7 @@ c      INCLUDE 'COMMONS/rad2'
       INTEGER nosweep,lwst,hgst,stepa
       LOGICAL moresweep, ikick
       LOGICAL moresweep2
+      LOGICAL boundaryparticle
       REAL dx,dy,dz,dvz,dvx,dvy,lightspeed
 
       COMMON /rtvarr1/ vari(2,iradtrans2),varinew(2,iradtrans2),
@@ -105,6 +108,8 @@ c      DIMENSION fractionexposed(nmaxexposed)
       REAL maxerrE2tot, maxerrU2tot
       LOGICAL moresweeptot
 #endif
+
+      REAL mu
 
       LOGICAL ifirst
       DATA ifirst/.TRUE./
@@ -1069,6 +1074,8 @@ C$OMP& shared(ncompactlocal,iscurrent)
 C$OMP& shared(iiimax,xxmaxerrU2,xorigEU,xdUcomb,xdti,xU1i)
 C$OMP& shared(xpres_numerator,xpres_denominator,xtfour,ikick)
 C$OMP& shared(pdvvisc)
+C$OMP& shared(hoverr,ibound)
+C$OMP& shared(rmind,deltar,zoverh)
 #ifdef MPI
 C$OMP& shared(istart,ntot,istartrec,inumbertotal,inumberreturned)
 C$OMP& shared(numproc,iproc,inumofsends,maxnneighsentback,istatus)
@@ -1077,6 +1084,8 @@ C$OMP& shared(llistsentback,inumofreturns,jjj,inumberproc,iprocsend)
 C$OMP& shared(inumbertotallocal,nneighsentanyatall,nneighsentany)
 C$OMP& shared(transfer,nneightogetback,inumberindiv,inumbercumm)
 #endif
+C$OMP& private(boundaryparticle,boundtest,radu)
+C$OMP& private(bounddenslocal,izoverh,mu)
 C$OMP& private(i,j,k,n,dedxi,dedyi,dedzi,rhoi,pmj1,rhoj)
 C$OMP& private(icompact,dti,pres_denominator,diffusion_numerator)
 C$OMP& private(diffusion_denominator,pres_numerator,tfour)
@@ -1360,7 +1369,29 @@ c         testit2 = 0.
 C$OMP DO SCHEDULE(runtime)
          DO n = 1, ncompact
             i = ivar(3,n)
-            IF (iphase(i).EQ.0 .AND. rho(i).GT.bounddens) THEN
+
+            IF (iphase(i).EQ.0) THEN
+
+            IF (ibound.EQ.100) THEN
+               boundtest = ABS(xyzmh(3,i)/(hoverr*SQRT(
+     &              xyzmh(1,i)**2 + xyzmh(2,i)**2)))
+               boundaryparticle = boundtest.GT.bounddens
+            ELSEIF (ibound/10.EQ.10) THEN
+               radu = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+               izoverh = INT((radu - rmind)/deltar + 1)
+               IF (izoverh.LT.1) izoverh = 1
+               IF (izoverh.GT.1000) izoverh = 1000
+               mu = (radu - (rmind + (izoverh-1.0)*deltar))/deltar
+               bounddenslocal = (zoverh(izoverh+1) - 
+     &              zoverh(izoverh))*mu + zoverh(izoverh)
+               boundtest = ABS(xyzmh(3,i)/(hoverr*SQRT(xyzmh(1,i)**2 +
+     &              xyzmh(2,i)**2)))
+               boundaryparticle = boundtest.GT.bounddenslocal
+            ELSE
+               boundaryparticle = rho(i).LT.bounddens
+            ENDIF
+
+            IF (.NOT.boundaryparticle) THEN
 
                rhoi = vari(2,n)
 c
@@ -1568,6 +1599,8 @@ c     &          print *,'PRE ',iunique(iorig(i)),diffusion_numerator,
 c     &              diffusion_denominator,ivar(1,n),iproc
 
             ENDIF
+
+            ENDIF
          END DO
 C$OMP END DO
 
@@ -1710,7 +1743,29 @@ c
 C$OMP DO SCHEDULE(runtime)
          DO n = 1, ncompactlocal
             i = ivar(3,n)
-            IF (iphase(i).EQ.0 .AND. rho(i).GT.bounddens) THEN
+
+            IF (iphase(i).EQ.0) THEN
+
+            IF (ibound.EQ.100) THEN
+               boundtest = ABS(xyzmh(3,i)/(hoverr*SQRT(xyzmh(1,i)**2 +
+     &              xyzmh(2,i)**2)))
+               boundaryparticle = boundtest.GT.bounddens
+            ELSE IF (ibound/10.EQ.10) THEN
+               radu = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+               izoverh = INT((radu - rmind)/deltar + 1)
+               IF (izoverh.LT.1) izoverh = 1
+               IF (izoverh.GT.1000) izoverh = 1000
+               mu = (radu - (rmind + (izoverh-1)*deltar))/deltar
+               bounddenslocal = (zoverh(izoverh+1) - zoverh(izoverh))*
+     &              mu + zoverh(izoverh)
+               boundtest = ABS(xyzmh(3,i)/(hoverr*SQRT(xyzmh(1,i)**2 +
+     &              xyzmh(2,i)**2)))
+               boundaryparticle = boundtest.GT.bounddenslocal
+            ELSE
+               boundaryparticle = rho(i).LT.bounddens
+            ENDIF
+
+            IF (.NOT.boundaryparticle) THEN
 
             dti = vari(1,n)
             rhoi = vari(2,n)
@@ -2143,6 +2198,8 @@ c            endif
 
  200        CONTINUE
             ENDIF
+
+            ENDIF
          END DO ! I-loop
 C$OMP END DO
 
@@ -2498,18 +2555,49 @@ C$OMP& shared(ncompactlocal,ivar,vxyzu,EU0,iflag)
 cC$OMP& shared(adiabaticgradient)
 C$OMP& shared(Rg,gmw,uergg,boundtemp,uradconst,rho,ekcle)
 C$OMP& shared(iphase,bounddens)
+C$OMP& shared(hoverr,ibound,xyzmh)
+C$OMP& shared(rmind,deltar,zoverh)
+C$OMP& private(boundaryparticle, boundtest,radu)
+C$OMP& private(bounddenslocal,izoverh,mu)
 C$OMP& private(n,i)
 C$OMP& private(cvcold,ucold,ecold,cv_effective)
       DO n = 1, ncompactlocal
          i = ivar(3,n)
          IF (iphase(i).EQ.0) THEN
-            IF (rho(i).GT.bounddens) THEN
+            IF (ibound.EQ.100) THEN
+               boundtest = ABS(xyzmh(3,i)/(hoverr*SQRT(xyzmh(1,i)**2 +
+     &              xyzmh(2,i)**2)))
+               boundaryparticle = boundtest.GT.bounddens
+            ELSE IF (ibound/10.EQ.10) THEN
+               radu = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+               izoverh = INT((radu - rmind)/deltar + 1)
+               IF (izoverh.LT.1) izoverh = 1
+               IF (izoverh.GT.1000) izoverh = 1000
+               mu = (radu - (rmind + (izoverh-1)*deltar))/deltar
+               bounddenslocal = (zoverh(izoverh+1) - zoverh(izoverh))*
+     &              mu + zoverh(izoverh)
+               boundtest = ABS(xyzmh(3,i)/(hoverr*SQRT(xyzmh(1,i)**2 +
+     &              xyzmh(2,i)**2)))
+               boundaryparticle = boundtest.GT.bounddenslocal
+            ELSE
+               boundaryparticle = rho(i).LT.bounddens
+            ENDIF
+
+            IF (.NOT.boundaryparticle) THEN
                ekcle(1,i) = EU0(1,i)
                vxyzu(4,i) = EU0(2,i)
             ELSE
                cvcold = 1.5*Rg/(gmw*uergg)
-               ucold = boundtemp*cvcold
-               ecold = uradconst*(boundtemp)**4/rho(i)
+
+               IF (ibound/10.EQ.10) THEN
+                  radu = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+                  ucold = hoverr**2/(radu*gamma*(gamma-1.0))
+                  ecold = uradconst*(ucold/GETCV(rho(i),ucold))**4/
+     &                 rho(i)
+               ELSE
+                  ucold = boundtemp*cvcold
+                  ecold = uradconst*(boundtemp)**4/rho(i)
+               ENDIF
 
 c         IF (ekcle(1,i).LT.ecold .OR. vxyzu(4,i).LT.ucold) THEN
                ekcle(1,i) = ecold
@@ -2781,6 +2869,8 @@ C$OMP& shared(origEU,moresweep,xyzmh,gamma,alpha,beta,Rg,gmw)
 C$OMP& shared(udens,radconst,iflag,icall,ifsvi,alphaMMpass)
 C$OMP& shared(dlnTdlnP,adiabaticgradient,varinew,varijnew)
 C$OMP& shared(iscurrent,transfer,ncompactlocal)
+C$OMP& shared(ibound,hoverr)
+C$OMP& shared(rmind,deltar,zoverh)
 #ifdef MPI
 C$OMP& shared(istart,ntot,istartrec,inumbertotal,inumberreturned)
 C$OMP& shared(numproc,iproc,inumofsends,maxnneighsentback,istatus)
@@ -2789,6 +2879,8 @@ C$OMP& shared(llistsentback,inumofreturns,jjj,inumberproc,iprocsend)
 C$OMP& shared(inumbertotallocal,nneighsentanyatall,nneighsentany)
 C$OMP& shared(nneightogetback,inumberindiv,inumbercumm)
 #endif
+C$OMP& private(boundaryparticle,boundtest,radu)
+C$OMP& private(bounddenslocal,izoverh,mu)
 C$OMP& private(i,j,k,n,dedxi,dedyi,dedzi,rhoi,pmj,rhoj)
 C$OMP& private(icompact,dti,pres_denominator,diffusion_numerator)
 C$OMP& private(diffusion_denominator,pres_numerator,tfour)
@@ -2804,7 +2896,29 @@ C$OMP& reduction(MAX:maxerrE2)
 C$OMP DO SCHEDULE(runtime)
          DO n = 1, ncompact
             i = ivar(3,n)
-            IF (iphase(i).EQ.0 .AND. rho(i).GT.bounddens) THEN
+
+            IF (iphase(i).EQ.0) THEN
+
+            IF (ibound.EQ.100) THEN
+               boundtest = ABS(xyzmh(3,i)/(hoverr*SQRT(xyzmh(1,i)**2 +
+     &              xyzmh(2,i)**2)))
+               boundaryparticle = boundtest.GT.bounddens
+            ELSE IF (ibound/10.EQ.10) THEN
+               radu = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+               izoverh = INT((radu - rmind)/deltar + 1)
+               IF (izoverh.LT.1) izoverh = 1
+               IF (izoverh.GT.1000) izoverh = 1000
+               mu = (radu - (rmind + (izoverh-1)*deltar))/deltar
+               bounddenslocal = (zoverh(izoverh+1) - zoverh(izoverh))*
+     &              mu + zoverh(izoverh)
+               boundtest = ABS(xyzmh(3,i)/(hoverr*SQRT(xyzmh(1,i)**2 +
+     &              xyzmh(2,i)**2)))
+               boundaryparticle = boundtest.GT.bounddenslocal
+            ELSE
+               boundaryparticle = rho(i).LT.bounddens
+            ENDIF
+
+            IF (.NOT.boundaryparticle) THEN
 
 c            dti = vari(1,n)
 c            rhoi = vari(2,n)
@@ -2847,6 +2961,8 @@ c                  ADD CONT transfer
                ENDIF
             END DO              !J-loop
             transfer(i) = diffusion_numerator
+            ENDIF
+
             ENDIF
          END DO
 C$OMP END DO
@@ -2928,7 +3044,29 @@ C$OMP END SINGLE
 C$OMP DO SCHEDULE(runtime)
          DO n = 1, ncompactlocal
             i = ivar(3,n)
-            IF (iphase(i).EQ.0 .AND. rho(i).GT.bounddens) THEN
+
+            IF (iphase(i).EQ.0) THEN
+
+            IF (ibound.EQ.100) THEN
+               boundtest = ABS(xyzmh(3,i)/(hoverr*SQRT(xyzmh(1,i)**2 +
+     &              xyzmh(2,i)**2)))
+               boundaryparticle = boundtest.GT.bounddens
+            ELSE IF (ibound/10.EQ.10) THEN
+               radu = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+               izoverh = INT((radu - rmind)/deltar + 1)
+               IF (izoverh.LT.1) izoverh = 1
+               IF (izoverh.GT.1000) izoverh = 1000
+               mu = (radu - (rmind + (izoverh-1)*deltar))/deltar
+               bounddenslocal = (zoverh(izoverh+1) - zoverh(izoverh))*
+     &              mu + zoverh(izoverh)
+               boundtest = ABS(xyzmh(3,i)/(hoverr*SQRT(xyzmh(1,i)**2 +
+     &              xyzmh(2,i)**2)))
+               boundaryparticle = boundtest.GT.bounddenslocal
+            ELSE
+               boundaryparticle = rho(i).LT.bounddens
+            ENDIF
+
+            IF (.NOT.boundaryparticle) THEN
 
             diffusion_numerator = transfer(i)
 c
@@ -3012,6 +3150,8 @@ c
 c--Copy values
 c
             EU0(1,I) = E1i
+
+            ENDIF
 
             ENDIF
          END DO ! I-loop

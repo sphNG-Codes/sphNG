@@ -35,12 +35,17 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/presb'
       INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/actio'
+      INCLUDE 'COMMONS/files'
+      INCLUDE 'COMMONS/initpt'
+      INCLUDE 'COMMONS/rbnd'
 
       CHARACTER*40 ifile(10), ofile
-      CHARACTER*1 iok, iok2, iokm, iaddmhd
+      CHARACTER*1 iok, iok2, iokm, iaddmhd, iexs
       
 1000  FORMAT (A40)
 1001  FORMAT (A1)
+1002  FORMAT (A11)
 
       nfile = 1
 c
@@ -58,6 +63,10 @@ c
       PRINT *, 'name of reduced file ?'
       READ (*, 1000) ofile
       OPEN (UNIT = 7, FILE = ofile, FORM = 'unformatted')
+
+      PRINT *, 'name of corresponding ifile ?'
+      READ (*, 1002) inname
+
 
       PRINT *, 'dump to be extracted'
       READ *, ireduct
@@ -84,9 +93,13 @@ c
 c
 c--Read dump file
 c
+            CALL options
+
+            file1 = ofile
+            print *, 'Name0=', file1
+
             CALL rdump(8,ichkl,1)
             IF (ichkl.EQ.1) PRINT*, 'ERROR READING DUMP FILE'
-
 c
 c--End reading of dump file
 c--------------------------
@@ -135,30 +148,126 @@ c
          READ (*,1001) iok2
 
          IF (iok2.EQ.'y') THEN
-            PRINT *, ' reading from file externcluster '
-            OPEN (UNIT=13, FILE='externcluster')
-            READ (13,*) nptmassnew
-            DO in = 1, nptmassnew
-               inew = in + npart
-               READ(13,*) xyzmh(1,inew), xyzmh(2,inew), 
-     &                    xyzmh(3,inew), xyzmh(4,inew),
-     &                    vxyzu(1,inew), vxyzu(2,inew), vxyzu(3,inew), 
-     &                    xyzmh(5,inew)
-               iphase(inew) = 1
-               listpm(nptmass+in) = inew
-               spinx(nptmass+in) = 0.
-               spiny(nptmass+in) = 0.
-               spinz(nptmass+in) = 0.
-               vxyzu(4,inew) = tiny
-               rho(inew) = tiny
-               dgrav(inew) = 0.
-            END DO
-            n2 = nptmassnew
-            hacc = xyzmh(5,inew)
-            haccall = 0.2*hacc
-            npart = npart + nptmassnew
-            nptmass = nptmass + nptmassnew
+            PRINT *, ' from file ? '
+            READ (*,1001) iok2
+            IF (iok2.EQ.'y') THEN
+               PRINT *, ' reading from file externcluster '
+               OPEN (UNIT=13, FILE='externcluster')
+               READ (13,*) nptmassnew
+               DO in = 1, nptmassnew
+                  inew = in + npart
+                  READ(13,*) xyzmh(1,inew), xyzmh(2,inew), 
+     &                 xyzmh(3,inew), xyzmh(4,inew),
+     &                 vxyzu(1,inew), vxyzu(2,inew), vxyzu(3,inew), 
+     &                 xyzmh(5,inew)
+                  iphase(inew) = 1
+                  listpm(nptmass+in) = inew
+                  spinx(nptmass+in) = 0.
+                  spiny(nptmass+in) = 0.
+                  spinz(nptmass+in) = 0.
+                  vxyzu(4,inew) = tiny
+                  rho(inew) = tiny
+                  dgrav(inew) = 0.
+               END DO
+               n2 = nptmassnew
+               hacc = xyzmh(5,inew)
+               haccall = 0.2*hacc
+               npart = npart + nptmassnew
+               nptmass = nptmass + nptmassnew
+            ELSE
+               WRITE (*, 99765)
+99765          FORMAT (' Are there any existing sink particles? (y/n)')
+               READ (*, 1001) iexs
+               totptmass = 0.
+               IF (iexs.EQ.'y') THEN
+                  DO i = 1, nptmass
+                     totptmass = totptmass + xyzmh(4,listpm(i))
+                  END DO
+               ELSE
+                  nptmass = 0
+               ENDIF
+               npttemp = nptmass
+               WRITE (*, 99086)
+99086          FORMAT (' Enter number of point masses')
+               READ (*,*) numpt
+               WRITE (*, 99091)
+99091          FORMAT (' Enter type of point mass (1,2,3,4,5)')
+               READ (*,*) ipttype
+               initialptm = ipttype
+              
+               DO i = 1, numpt
+                  npart = npart + 1
+                  iphase(npart) = ipttype
+                  listpm(nptmass+i) = npart
+                  listrealpm(npart) = i+nptmass
+                  WRITE (*, 99087)
+99087             FORMAT (' Enter positions (x,y,z)')
+                  READ (*,*) tx,ty,tz
+                  xyzmh(1,npart) = tx
+                  xyzmh(2,npart) = ty
+                  xyzmh(3,npart) = tz
+                  WRITE (*, 99088)
+99088             FORMAT (' Enter velocities (vx,vy,vz)')
+                  READ (*,*) tvx,tvy,tvz
+                  vxyzu(1,npart) = tvx
+                  vxyzu(2,npart) = tvy
+                  vxyzu(3,npart) = tvz
+                  WRITE (*, 99089)
+99089             FORMAT (' Enter mass')
+                  READ (*,*) tmass
+                  xyzmh(4,npart) = tmass
+                  totptmass = totptmass + tmass
+                  spinx(nptmass+i) = 0.
+                  spiny(nptmass+i) = 0.
+                  spinz(nptmass+i) = 0.
+                  angaddx(nptmass+i) = 0.
+                  angaddy(nptmass+i) = 0.
+                  angaddz(nptmass+i) = 0.
+                  IF (iexs.EQ.'n' .AND. ipttype.NE.5) THEN
+99090                FORMAT (' Enter Outer Accretion radius')
+ 556                 WRITE (*, 99090)
+                     READ (*,*) hacc
+99092                FORMAT (' Enter Inner Accretion radius')
+                     WRITE (*, 99092)
+                     READ (*,*) haccall
+                     IF (haccall.GT.hacc) THEN
+                        WRITE(*,*) 'Inner <= Outer Radius'
+                        GOTO 556
+                     ENDIF
+                     xyzmh(5,npart) = hacc
+                     print *, 'h = ',xyzmh(5, npart)
+                  ENDIF
+               END DO
+               specang = SQRT(totptmass)
+               ptmassin = totptmass
+               nptmass = nptmass + numpt
+c--Moves particles near new and existing point masses to avoid the
+c--disc struggling to adapt to the sudden addition.
+               IF (ibound.EQ.102 .AND. ipttype.EQ.5) THEN
+                  print *, 'Enter a radius for the planet surface'
+                  READ (*,*) rplanet
+                  hacc = 1.0E-8
+                  haccall = 1.0E-8
+                  xyzmh(5,npart) = hacc
+                  print *, 'h = ',xyzmh(5, npart)
+                  DO j = npttemp, nptmass
+                     DO i = 1, npart
+                        IF (i.NE.listpm(j)) THEN
+ 789                    rloc = sqrt((xyzmh(1,i)-xyzmh(1,listpm(j)))**2 +
+     &                       (xyzmh(2,i)-xyzmh(2,listpm(j)))**2 +
+     &                       (xyzmh(3,i)-xyzmh(3,listpm(j)))**2)
+                        IF (rloc.LT.2.1*(rplanet+0.01)) THEN
+                  print *, i, rloc, xyzmh(1,i),xyzmh(2,i),xyzmh(3,i)
+                           xyzmh(3,i) = xyzmh(3,i)*1.5
+                           GOTO 789
+                        ENDIF
+                        ENDIF
+                     END DO
+                  END DO
+               ENDIF
+            ENDIF
          ENDIF
+
          PRINT *, ' do you want to change masses and temps ? '
          READ (*,1001) iok2
          IF (iok2.EQ.'y') THEN
@@ -178,17 +287,20 @@ c                        vxyzu(4,ii) = vxyzu(4,ii) * howmuch
 c               CALL hcalc ! to get B/rho from B
             ENDIF
          ENDIF               
+
+         CALL wrinsph
+
 c
 c--Dump new file
 c
-      ifulldump = 0
-      DO i = 1, npart
-         isort(i) = i
-         iorig(i) = i
-      END DO
-      nfullstep = 1
-      PRINT *,'writing dump file'
-      CALL wdump(7)
+         ifulldump = 0
+         DO i = 1, npart
+            isort(i) = i
+            iorig(i) = i
+         END DO
+         nfullstep = 1
+         PRINT *,'writing dump file'
+         CALL wdump(7)
 c
 c--End writing of full dump file
 c-------------------------------

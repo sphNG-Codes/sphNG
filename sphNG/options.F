@@ -205,12 +205,20 @@ c      ENDIF
      &        hoverr,partm
       ENDIF
 
+      IF (ibound.EQ.102) THEN
+         READ (iterm, *) signorm,hoverr,partm
+      ENDIF
+
       xmass = 0.
       IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7) THEN
          READ (iterm, *) xmass
       ENDIF
       IF (iexf.EQ.7) THEN
          READ (iterm, *) planetmass
+         READ (iterm, *) rplanet
+      ENDIF
+
+      IF (ibound.EQ.102) THEN
          READ (iterm, *) rplanet
       ENDIF
 

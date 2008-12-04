@@ -1,4 +1,4 @@
-      SUBROUTINE externf(ipart,ntot,ti,xyzmh,fx,fy,fz,rho,iexf)
+      SUBROUTINE externf(ipart,ntot,ti,xyzmh,fx,fy,fz,rho,iexf,ibound)
 c************************************************************
 c                                                           *
 c  This subroutine computes the effect of an external       *
@@ -33,6 +33,9 @@ c************************************************************
       INCLUDE 'COMMONS/cgas'
 c      INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/cylinder'
+      INCLUDE 'COMMONS/ptmass'
+      INCLUDE 'COMMONS/diskbd'
+      INCLUDE 'COMMONS/phase'
 c
 c--Needed for MPI code
 c
@@ -116,6 +119,30 @@ c
          fy = fy - xmass*runiy/d2
          fz = fz - xmass*runiz/d2
          poten(ipart) = poten(ipart) - xmass/d
+
+         IF (ibound.EQ.102) THEN
+            range = 0.005
+            rlmin = rmind - (2.*range)
+            
+            IF (d-rlmin.LE.2.*range) THEN
+               fsurface = (((2.*range) + rlmin - d)/(range))**4
+            ELSE
+               fsurface = 0.0
+            ENDIF
+            
+            ftotal = -fsurface/d2
+            
+            fx = fx - ftotal*runix
+            fy = fy - ftotal*runiy
+            fz = fz - ftotal*runiz
+         ENDIF
+
+         IF (ibound.EQ.102 .AND. ipart.NE.listpm(1) .AND.
+     &        nptmass.EQ.1 .AND. iphase(listpm(1)).EQ.5 ) THEN
+            
+            CALL sinksurface(ipart,xyzmh,rplanet*pradfac,fx,fy,fz)
+
+         ENDIF
 c
 c--Distant point mass
 c

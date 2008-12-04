@@ -43,10 +43,13 @@ c************************************************************
       INCLUDE 'COMMONS/optbl'
       INCLUDE 'COMMONS/tgtbl'
       INCLUDE 'COMMONS/mutbl'
+      INCLUDE 'COMMONS/dusttbl'
+      INCLUDE 'COMMONS/gaptbl'
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/updated'
       INCLUDE 'COMMONS/rbnd' ! for periodic_no_ghosts
+      INCLUDE 'COMMONS/boundheight'
 
       CHARACTER*7 where
 
@@ -129,7 +132,11 @@ c
 #endif
 
       ENDIF
+
+#ifdef MPI
       print *,iproc,': Preset B'
+#endif
+
 c
 c--check ibound = 11 for periodic no ghosts
 c
@@ -162,7 +169,9 @@ c
             alphaMM(2,i) = alphamin(2)
          ENDIF
       END DO
+#ifdef MPI
       print *,iproc,': Preset C'
+#endif
 c
 c--Set constant for artificial viscosity
 c
@@ -220,12 +229,17 @@ c
 c
 c--Standardise point mass types and accretion radii
 c
+#ifdef MPI
       print *,iproc,': Preset D ',nptmass,initialptm
+#endif
       DO i = 1, nptmass
+
+#ifdef MPI
          print *,iproc,': Preset Ds ',nptmass,i
          print *,iproc,': Preset Ds ',listpm(i)
+#endif
          iptcur = listpm(i)
-         IF (initialptm.LT.1 .OR. initialptm.GT.4) CALL error(where, 2)
+         IF (initialptm.LT.1 .OR. initialptm.GT.5) CALL error(where, 2)
 c         iphase(iptcur) = initialptm
 cccc         xyzmh(5,iptcur) = hacc
       END DO
@@ -233,7 +247,9 @@ c
 c--For Massive Accretion, only accrete mass and change ptmass properties
 c     for certain particles - exclude these:
 c
+#ifdef MPI
       print *,iproc,': Preset Da '
+#endif
       DO i = 1, idim
          notacc(i) = .FALSE.
          iupdated(i) = .FALSE.
@@ -251,7 +267,10 @@ c--Gravitational softening for ptmass-ptmass interactions
 c
       iptsoft = 1
       ptsoft = 1.000E-06
+
+#ifdef MPI
       print *,iproc,': Preset Db '
+#endif
 c
 c--Set psoft for softening the gravitational potential when the 1/(r+psoft)
 c     potential law is used (i.e. when igrape=1, or isoft=1).
@@ -268,7 +287,9 @@ c      hmin = 0.01
 c
 c--Compute tables for kernel quantities
 c
+#ifdef MPI
       print *,iproc,': Preset E'
+#endif
       CALL ktable
 c
 c--Load in tables of opacity and cv
@@ -294,7 +315,29 @@ c      IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
             READ(8) (mutable(i,j), j=1, mumxrh)
          ENDDO
          CLOSE(8)
+
+         OPEN(UNIT=8,FILE='/home/mrbate/tables/dusttbl')
+         DO i=1, duslen
+            READ(8,*) (dusttable(i,j), j=1, duswid)
+         ENDDO
+         CLOSE(8)
+
       ENDIF
+
+      IF (ibound.EQ.100) THEN
+         OPEN(UNIT=8,FILE='/home/mrbate/tables/gaptbl')
+         DO i=1, gaplen
+            READ(8,*) (gaptable(i,j), j=1, gapwid)
+         ENDDO
+         CLOSE(8)
+      ENDIF
+
+
+      IF ((ibound.EQ.101 .OR. ibound.EQ.102) .AND. encal.EQ.'r') THEN
+         CALL discboundary(ibound)
+         print *, 'Disc optically thin boundary set'
+      ENDIF
+
 
       IF (ihopin.NE.1) THEN
 c
@@ -313,7 +356,9 @@ c
       ENDIF 
       IF (itrace.EQ.'all') WRITE(iprint,250)
  250  FORMAT(' exit subroutine preset')
+#ifdef MPI
       print *,iproc,': Preset F'
+#endif
 
       RETURN
       END

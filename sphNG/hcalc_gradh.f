@@ -149,12 +149,25 @@ c
 c
 c--Call derivi to get div B, curl B etc initially
 c
-      DO i = 1, ntot
-         dumekcle(3,i) = 1.0
-      END DO
+      IF (iradtrans.EQ.idim) THEN
+         DO i = 1, ntot
+            dumekcle(3,i) = 1.0
+         END DO
+      ENDIF
 
       CALL derivi(dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,ntot,
      &            ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz)
+
+c
+c--Copy dumekcle values back into ekcle
+c
+      IF (iradtrans.EQ.idim) THEN
+         DO i = 1, ntot
+            DO j = 1, 5
+               ekcle(j,i) = dumekcle(j,i)
+            END DO
+         END DO
+      ENDIF
 c
 c--Now set B/rho from B (ie. now that we know rho)
 c

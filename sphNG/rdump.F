@@ -60,7 +60,7 @@ c      INCLUDE 'COMMONS/torq'
       INTEGER*8 number8
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
       DIMENSION Bxyz(3,imhd)
-      PARAMETER (idimhead = 21)
+      PARAMETER (idimhead = 22)
       DIMENSION rheader(idimhead)
 
       DATA icall/2/
@@ -221,6 +221,11 @@ c  D.Price 14.5.07
          hmass = rheader(21)
       ELSE
          hmass = 0.
+      ENDIF
+      IF (number.GE.22) THEN
+         gapfac = rheader(22)
+      ELSE
+         gapfac = 0.
       ENDIF
 
 c--real*4
@@ -416,6 +421,7 @@ c--Default int
                print *,'READ nlistinactive ',nlistinactive
             ENDIF
          ENDIF
+
 c--int*1
          READ (idisk1, END=100) (iphase(i), i=icount+1, icount+nhydro)
          print *,'iphases ',iphase(1),iphase(nhydro)
@@ -439,6 +445,13 @@ c--Default real
             READ (idisk1, END=100) (xyzmh(j,i), i=icount+1, 
      &           icount+nhydro)
          END DO
+
+         IF (gt.EQ.0.0.AND.ibound.EQ.100) THEN
+            DO i = icount+1, icount+nhydro
+               xyzmh(4,i) = xyzmh(4,i)/gapfac
+            END DO
+         ENDIF
+
 c         DO i = icount+1, icount+nhydro
 c            IF (iphase(i).EQ.-1) THEN
 c               print *,i,xyzmh(1,i),xyzmh(2,i)
@@ -741,11 +754,11 @@ c--Set global number of sink particles
 c
       CALL MPI_ALLREDUCE(nptmass,nptmasstot,1,MPI_INTEGER,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
+      print *,iproc,' FINISHED READ ',npart,nptmass,nptmasstot
 #else
       nptmasstot = nptmass
+      print *,' FINISHED READ ',npart,nptmass
 #endif
-
-      print *,iproc,' FINISHED READ ',npart,nptmass,nptmasstot
 
       IF (iskip.EQ.1) RETURN
 c
@@ -764,16 +777,28 @@ c
       IF (itiming) CALL getused(tsort1)
 
       IF (ifix1.EQ.1) THEN
+#ifdef MPI
          print *,iproc,': nlistinactive read from file: ',nlistinactive
+#else
+         print *,'nlistinactive read from file: ',nlistinactive
+#endif
 
          icountinactive = 0
          DO i = 1, npart
-            IF (iphase(i).EQ.-1) icountinactive = icountinactive + 1
+            IF (iphase(i).EQ.-1) THEN
+               icountinactive = icountinactive + 1
+               listinactive(icountinactive) = i
+            ENDIF
          END DO
 
+#ifdef MPI
          print *,iproc,': nlistinactive found ',icountinactive
+#else
+         print *,'nlistinactive found ',icountinactive
+#endif
          nlistinactive = icountinactive
       ENDIF
+
 c
 c--Avoid sorting (or not)
 c
@@ -901,6 +926,7 @@ c
       DO i = 1, nlistinactive
          itempsort(i) = listinactive(i)
       END DO
+
       DO i = 1, nlistinactive
          listinactive(i) = isort(itempsort(i))
          IF (iphase(listinactive(i)).NE.-1) THEN
@@ -1003,7 +1029,11 @@ c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
       print *,iproc,': CLOSEST z=-0.0 ',ipos2,xxmin
 #endif
 
+#ifdef MPI
       print *,iproc,' EXITED RDUMP'
+#else
+      print *,' EXITED RDUMP'
+#endif
 
       IF (itrace.EQ.'all') WRITE (*, 99002)
 99002 FORMAT (' exit subroutine rdump')
@@ -1013,9 +1043,15 @@ c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
       WRITE(*,*) 'END OF FILE REACHED IN RDUMP'
       ichkl = 1
 
+#ifdef MPI
       DO i = 1, 10
          print *,iproc,' alphaMM ',alphaMM(1,i)
       END DO
+#else
+      DO i = 1, 10
+         print *,' alphaMM ',alphaMM(1,i)
+      END DO
+#endif
 
       RETURN
       END

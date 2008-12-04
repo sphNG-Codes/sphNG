@@ -363,8 +363,10 @@ c
       END DO
  200  CONTINUE
 
-      muint = (hmass - zmasses(izeus))/
-     &     (zmasses(izeus+1) - zmasses(izeus))
+      IF (izeus.NE.6) THEN
+         muint = (hmass - zmasses(izeus))/
+     &        (zmasses(izeus+1) - zmasses(izeus))
+      ENDIF
 c
 c--Modify so that radii and thetas are zone-centred
 c

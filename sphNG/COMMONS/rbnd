@@ -2,7 +2,7 @@
       REAL rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl,
      &	     boundtemp, bounddens, dxbound,dybound,dzbound,
      &       variation,phibound,flowrate,signorm,hoverr,partm,
-     &	     rplanet,opdenom,hmass,pradfac
+     &	     rplanet,opdenom,hmass,pradfac,gapfac
       
       COMMON /rbnd  / rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl,
      &	     boundtemp, bounddens, opdenom, hmass
@@ -15,4 +15,4 @@ c--Note: flowrate is the number of particles (floating point) per code time
 c
       COMMON /inactive/ listinactive(idim),nlistinactive
       COMMON /planet2/ variation,phibound,flowrate,signorm,hoverr,
-     &       partm,rplanet,pradfac
+     &       partm,rplanet,pradfac,gapfac

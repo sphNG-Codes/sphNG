@@ -1433,7 +1433,7 @@ c--External forces
 c       
          IF (iexf.GE.1) 
      &        CALL externf(ipart,ntot,realtime,xyzmh,forcexi,forceyi,
-     &        forcezi,trho,iexf)
+     &        forcezi,trho,iexf,ibound)
 c
 c--Coriolis and centrifugal forces
 c

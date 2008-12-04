@@ -115,8 +115,6 @@ c
 c--Radiative transfer equation of state
 c
       ELSEIF (encal.EQ.'r') THEN
-c           pr(ipart)= Rg*rho(ipart)*(vxyzu(4,ipart)/ekcle(3,ipart))*
-c     &        get1overmu(rho(ipart),vxyzu(4,ipart))/uergg
          pr(ipart)= Rg*rho(ipart)*(vxyzu(4,ipart)/
      &        getcv(rho(ipart),vxyzu(4,ipart)))*
      &        get1overmu(rho(ipart),vxyzu(4,ipart))/uergg

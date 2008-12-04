@@ -414,6 +414,10 @@ c
             WRITE (iprint, 99408, ERR=100) rplanet*pradfac
 99408       FORMAT (' radius of planet surface      : ', 1PE14.5)
          ENDIF
+         
+         IF (ibound.EQ.102) THEN
+            WRITE (iprint, 99408, ERR=100) rplanet*pradfac
+         ENDIF
 
 c         IF (iaccevol.EQ.'v' .OR. iaccevol.EQ.'s') THEN
 c            WRITE (iprint, 88006, ERR=100)

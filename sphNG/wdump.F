@@ -199,14 +199,14 @@ c--int*8
 
       WRITE (idisk1, ERR=100) iuniquemax
 c--Default real
-      number = 21
+      number = 22
       WRITE (idisk1, ERR=100) number
 
       WRITE (idisk1, ERR=100) gt, dtmax, gamma, rhozero, RK2,
      &     escaptot, tkintot, tgravtot, ttermtot, 
      &     anglostxtot, anglostytot, anglostztot,
      &     specangtot, ptmassintot, tmagtot, Bextx, Bexty, Bextz,
-     &     hzero, uzero_n2, hmass
+     &     hzero, uzero_n2, hmass, gapfac
 c--real*4
       number = 0
       WRITE (idisk1, ERR=100) number
@@ -1171,16 +1171,16 @@ c
          DO i = 1, npart
             h2mol(i) = tempsort(i)
          END DO
-      ENDIF
 c
 c--h2ratio
 c
-      DO i = 1, npart
-         tempsort(i) = h2ratio(llist(i))
-      END DO
-      DO i = 1, npart
-         h2ratio(i) = tempsort(i)
-      END DO
+         DO i = 1, npart
+            tempsort(i) = h2ratio(llist(i))
+         END DO
+         DO i = 1, npart
+            h2ratio(i) = tempsort(i)
+         END DO
+      ENDIF
 c
 c--ekcle, dumekcle
 c

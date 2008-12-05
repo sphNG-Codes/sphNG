@@ -26,6 +26,7 @@ c************************************************************
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/delay'
       INCLUDE 'COMMONS/mpidebug'
+      INCLUDE 'COMMONS/rbnd'
 
       CHARACTER*7 where
 
@@ -61,7 +62,7 @@ c
      
          difx = xyzmh(1,j) - rrx
          dify = xyzmh(2,j) - rry
-         difz = xyzmh(3,j) - rrz     
+         difz = xyzmh(3,j) - rrz
 
          rr = difx**2 + dify**2 + difz**2 + tiny
 c
@@ -69,9 +70,22 @@ c--Add forces
 c
 c--The force definition:
 c
-         rr05 = SQRT(rr)
-         fff = pmassj/(rr*rr05)
-         potn = pmassj/rr05
+         IF (iphase(iparttree).NE.5) THEN
+            rr05 = SQRT(rr)
+            fff = pmassj/(rr*rr05)
+            potn = pmassj/rr05
+         ELSE
+            rr05 = SQRT(rr)
+            rsurface = rplanet*pradfac
+            IF (rr05.LE.(2.*rsurface)) THEN
+               fsurface = (((2.*rsurface)-rr05)/
+     &              (rsurface))**4
+            ELSE
+               fsurface = 0.0
+            ENDIF
+            fff = (1.0-fsurface)*pmassj/(rr*rr05)
+            potn = pmassj/rr05
+         ENDIF
 c
 c--End force definition
 c

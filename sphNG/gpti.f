@@ -23,6 +23,7 @@ c************************************************************
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/delay'
+      INCLUDE 'COMMONS/rbnd'
 
       LOGICAL icalc
       CHARACTER*7 where
@@ -71,9 +72,22 @@ c--The force definition:
 c
          IF(iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10
      &        .OR. iptsoft.EQ.0) THEN 
-            rr05 = SQRT(rr)
-            fff = pmassipt/(rr*rr05)
-            potn = pmassipt/rr05
+            IF (iphase(ipt).NE.5) THEN   
+               rr05 = SQRT(rr)
+               fff = pmassipt/(rr*rr05)
+               potn = pmassipt/rr05
+            ELSE
+               rr05 = SQRT(rr)
+               rsurface = rplanet*pradfac
+               IF (rr05.LE.(2.*rsurface)) THEN
+                  fsurface = (((2.*rsurface)-rr05)/
+     &                 (rsurface))**4
+               ELSE
+                  fsurface = 0.0
+               ENDIF
+               fff = (1.0-fsurface)*pmassipt/(rr*rr05)
+               potn = pmassipt/rr05
+            ENDIF
          ELSEIF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
 c
 c--Non-pointmass force

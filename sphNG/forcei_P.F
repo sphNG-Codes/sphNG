@@ -731,7 +731,7 @@ c
 c--Coriolis and centrifugal forces
 c
            IF (ifcor.NE.0) CALL coriol(ipart,ntot,realtime,xyzmh,vxyzu,
-     &           fxyzu)
+     &           fxyzu(1,ipart), fxyzu(2,ipart), fxyzu(3,ipart))
 c
 c--Homologous expansion or contraction
 c

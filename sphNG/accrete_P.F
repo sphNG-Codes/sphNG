@@ -1098,7 +1098,8 @@ c                   (b) local density gradient correction of density
 c                   (c) local pressure gradient correction to pressure force
 c                   (d) local shear viscosity correction
 c              5  Point mass with a surface that prevents sink accretion.
-c                 The surface is applied in externf by calling sinksurface.f
+c                 The surface is applied in gpti, gptfromgas.
+c                 Requires that iptintree=0.
 c
 c     hacc    = outer radius at which particle's accretion begins
 c     haccall = radius at which all particles are accreted without test

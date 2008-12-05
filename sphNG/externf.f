@@ -137,12 +137,6 @@ c
             fz = fz - ftotal*runiz
          ENDIF
 
-         IF (ibound.EQ.102 .AND. ipart.NE.listpm(1) .AND.
-     &        nptmass.EQ.1 .AND. iphase(listpm(1)).EQ.5 ) THEN
-            
-            CALL sinksurface(ipart,xyzmh,rplanet*pradfac,fx,fy,fz)
-
-         ENDIF
 c
 c--Distant point mass
 c

@@ -73,6 +73,10 @@ c--The force definition:
 c
 c               IF (iphase(ipart).EQ.0 .OR. iptsoft.EQ.0) THEN 
             IF (iptsoft.EQ.0) THEN 
+               IF (iphase(jpt).EQ.5) THEN
+             print *, 'ERROR: Sink with surface must use iptintree=0'
+                  STOP
+               ENDIF
                rr05 = SQRT(rr)
                fff = pmassj/(rr*rr05)
                potn = pmassj/rr05

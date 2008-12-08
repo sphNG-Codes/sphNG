@@ -269,7 +269,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	place.f potential.f preset.F \
 	prout.F ran1.f rdump.F reduce.f \
         resistivity.f save.f setup_torus.f \
-        scaling.f secmes.f setBfield_mhd.f setpart.f sinksurface.f \
+        scaling.f secmes.f setBfield_mhd.f setpart.f \
 	smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f thermeq.f \
 	toten.f treef_P.F unifdis.f unit.f \

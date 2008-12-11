@@ -106,6 +106,8 @@ c
          IF(gt.GT.(2.*pi).AND.rhillmasstemp.GT.(1.1*hmass)) THEN
             hmass = rhillmasstemp !Store new Hillmass
             CALL zeustable
+            gapfac = 0.0
+            CALL gapfactor(variation, hmass, gapfac)
          ENDIF
       ENDIF
 

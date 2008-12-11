@@ -413,6 +413,8 @@ c
 99407       FORMAT (' mass for zeus table           : ', 1PE14.5)
             WRITE (iprint, 99408, ERR=100) rplanet*pradfac
 99408       FORMAT (' radius of planet surface      : ', 1PE14.5)
+            WRITE (iprint, 99409, ERR=100) gapfac
+99409       FORMAT (' injection adjustment factor   : ', 1PE14.5)
          ENDIF
          
          IF (ibound.EQ.102) THEN

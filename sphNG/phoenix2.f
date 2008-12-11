@@ -196,7 +196,7 @@ c
 
       xyzmh(5,i) = (4.0*hoverr*phibound*variation/(FLOAT(npart)))**
      &     (1.0/3.0)
-      xyzmh(4,i) = partm
+      xyzmh(4,i) = partm/gapfac
 
       DO j = 1, 5
          dumxyzmh(j,i) = xyzmh(j,i)

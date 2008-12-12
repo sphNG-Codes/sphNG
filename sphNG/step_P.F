@@ -2557,13 +2557,15 @@ c
                ELSE
                   icountaddnpart = icountaddnpart + 1
                   nnew = npart + icountaddnpart
+                  IF (nnew.GT.idim) CALL error(where,3)
+c--isort and iorig must be here, else there appear to be too many
+c--injected particles, because they are pointed to twice.
+                  isort(nnew) = nnew
+                  iorig(nnew) = nnew
                   iunique(nnew) = iuniquemax + 1
                   iuniquemax = iuniquemax + 1
-                  IF (nnew.GT.idim) CALL error(where,3)
                ENDIF
                llist(i) = nnew
-               isort(nnew) = nnew
-               iorig(nnew) = nnew
                CALL phoenix2(nnew, idtsyn, itime)
                nactive = nactive + 1
             END DO

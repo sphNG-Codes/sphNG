@@ -1173,7 +1173,7 @@ c
          DO k = 1, 5
             dumxyzmh(k,i) = xyzmh(k,i)
          END DO
-         DO k = 1, 3
+         DO k = 1, 4
             dumvxyzu(k,i) = vxyzu(k,i)
          END DO
          DO k = 1, isizealphaMM
@@ -1334,7 +1334,7 @@ c
             DO k = 1, 5
                dumxyzmh(k,i) = xyzmh(k,i)
             END DO
-            DO k = 1, 3
+            DO k = 1, 4
                dumvxyzu(k,i) = vxyzu(k,i)
             END DO
             DO k = 1, isizealphaMM

@@ -70,7 +70,7 @@ c--Add forces
 c
 c--The force definition:
 c
-         IF (iphase(iparttree).NE.5) THEN
+         IF (iphase(ipart).NE.5) THEN
             rr05 = SQRT(rr)
             fff = pmassj/(rr*rr05)
             potn = pmassj/rr05

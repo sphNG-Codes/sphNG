@@ -2523,18 +2523,27 @@ c
 c--Create NEW particles in box surrounding planet in disc (ibound=100)
 c
       IF (ibound.EQ.100) THEN
-#ifdef MPI
-c
-c--If MPI code, particles are only injected by MPI process 0
-c
-         IF (iproc.NE.0) GOTO 777
-#endif
 c
 c--Work out how many particles to add
 c
          timelocal = dt*itime/imaxstep
          nlst0 = INT(timelocal*flowrate) - naddedplanet
+#ifdef MPI
+c
+c--Need to broadcast whether MPI process 0 is adding particles or not
+c
+         CALL MPI_BCAST(nlst0,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+#endif
          IF (nlst0.GT.10) THEN
+#ifdef MPI
+c
+c--If MPI code, particles are only injected by MPI process 0
+c
+            IF (iproc.NE.0) THEN
+               nlst0 = 0
+               nlst = 0
+            ELSE
+#endif
             nlst = nlst0
             WRITE (iprint,*) 'Add ',nlst0,' recyc ',nlistinactive,
      &           ' npart ',npart,' nkill ',nkill
@@ -2712,14 +2721,25 @@ c
 c
 c--Set accelerations on new particles using call to derivi
 c
+#ifdef MPI
+            ENDIF
+#endif
  678        icall = 4
             PRINT *,"icall 4 triggered"
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
      &      f1ha,npart,ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz)
+#ifdef MPI
+c
+c--If MPI code, particles are only injected by MPI process 0
+c
+            IF (iproc.EQ.0) THEN
+#endif
 c
 c--Write new particles to file
 c
             time = dt*itime/imaxstep + gt
+#ifdef MPI
+#else
             DO j = 1, nlst0
                i = llist(j)
                WRITE (ireasspr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
@@ -2727,6 +2747,7 @@ c
                iscurrent(i) = .FALSE.
             END DO
             CALL FLUSH (ireasspr)
+#endif
 c
 c--Restore values for neighbours output
 c
@@ -2783,8 +2804,10 @@ c
             END DO
 
             naddedplanet = naddedplanet + nlst0
+#ifdef MPI
          ENDIF
- 777     CONTINUE
+#endif
+         ENDIF
 c
 c--End creation of NEW particles for Embedded Planet (ibound=100)
 c

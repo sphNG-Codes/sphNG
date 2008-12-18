@@ -43,6 +43,7 @@ c************************************************************
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/recor'
+      INCLUDE 'COMMONS/gaptbl'
 
       DIMENSION nsteplist(30),nsteplisttot(30)
 

@@ -2205,7 +2205,7 @@ c      isort(ifrom) = 0
             f2Bxyz(i,ito) = f2Bxyz(i,ifrom)
          END DO
       ENDIF
-      IF (encal.EQ.'r') THEN
+      IF (iradtrans.EQ.idim) THEN
          DO i = 1, 5
             ekcle(i,ito) = ekcle(i,ifrom)
             dumekcle(i,ito) = dumekcle(i,ifrom)

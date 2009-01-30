@@ -430,9 +430,9 @@ c--int*8
      &           icount+nhydro)
          ENDIF
 
-         DO ijk = icount+1, icount+nhydro
-            WRITE (45,*) iunique(ijk), iphase(ijk)
-         END DO
+c         DO ijk = icount+1, icount+nhydro
+c            WRITE (45,*) iunique(ijk), iphase(ijk)
+c         END DO
 
          IF (nums1(5).LT.1 .OR. iunique(icount+1).EQ.0) THEN
             print *,'Read iunique ',(iunique(i), i=icount+1,icount+10)

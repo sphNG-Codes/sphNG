@@ -412,8 +412,8 @@ convert: checksystem checkparams utils/convert.o utils/readdump_sphNG.o utils/wr
 
 # convert from full to small dump file
 
-convertfs: checksystem checkparams utils/convert_full_small.o wdump.o rdump.o error.o
-	$(FC) $(FFLAGS) -o $@ utils/convert_full_small.o wdump.o rdump.o error.o
+convertfs: checksystem checkparams utils/convert_full_small.o wdump.o rdump.o error.o balance.o
+	$(FC) $(FFLAGS) -o $@ utils/convert_full_small.o wdump.o rdump.o error.o balance.o
 
 # convert from old dump file to new full dump file
 

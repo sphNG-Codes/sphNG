@@ -14,6 +14,8 @@ c************************************************************
 #endif
 
       REAL*8 umassi, udisti, utimei, umagfdi
+      COMMON /unitsin/ umassi, udisti, utimei, umagfdi
+      COMMON /dtmaxin/ dtmaxdp
 
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/part'
@@ -51,16 +53,13 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/savernd'
       INCLUDE 'COMMONS/perform'
 
-      DIMENSION itempsort(idim)
-      EQUIVALENCE (itempsort, next1)
-
       CHARACTER*7 where
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
       INTEGER*8 number8
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
       DIMENSION Bxyz(3,imhd)
-      PARAMETER (idimhead = 22)
+      PARAMETER (idimhead = 23)
       DIMENSION rheader(idimhead)
 
       DATA icall/2/
@@ -73,6 +72,7 @@ c
 
       ichkl = 0
       icount = 0
+      icountsink = 0
       nhydrocumulative = 0
 c
 c--Dump file
@@ -128,13 +128,7 @@ c--Default int
          WRITE (*,*) 'ERROR 4 in rdump: not enough default ints'
          CALL quit
       ENDIF
-      ifix1 = 0
-      IF (number.EQ.10+NTAB) THEN
-         READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
-     &        nblocks,iyr,idum,nlistinactive,(iv(i), i=1,NTAB)
-         WRITE (*,*) 'ERROR - SERIOUS nlistinactive PROBLEM BEING FIXED'
-         ifix1 = 1
-      ELSEIF (number.EQ.9+NTAB) THEN
+      IF (number.EQ.9+NTAB) THEN
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks,iyr,idum,(iv(i), i=1,NTAB)
          print *,'USING 9+NTAB'
@@ -265,7 +259,7 @@ c
 c--Expected
 c
       numberexp = 2
-      IF (encal.EQ.'r') numberexp = 3
+      IF (iradtrans.EQ.idim) numberexp = 3
       IF (imhd.EQ.idim) numberexp = 4
 
       IF (number.LT.2 .OR. number/nblocks.LT.2 .OR. 
@@ -304,6 +298,10 @@ c
       IF (nblocks.EQ.1 .OR. nblocks.NE.1 .AND. iproc.EQ.iblock-1) THEN
 #endif
       nhydro = min(number8,npart)
+      IF (iskip.EQ.1 .AND. icount + nhydro.GT.idim) THEN
+         WRITE (*,*) 'ERROR - idim exceeded'
+         CALL quit
+      ENDIF
 #ifdef MPI
       ELSE
          nhydrocumulative = nhydrocumulative + number8
@@ -337,6 +335,7 @@ c--Read array type 3 header
 c
       IF (numberarray.GE.3) THEN
          READ (idisk1, END=100) number8, (nums3(i), i=1,8)
+         print *,'nums3 ',(nums3(i),i=1,8)
          IF (iradtrans.EQ.idim .AND.
      &      (number8.GT.iradtrans)) THEN
             WRITE (*,*) 'ERROR 9 in rdump: iradtrans wrong ',number8,
@@ -352,6 +351,7 @@ c--Read array type 4 header
 c
       IF (numberarray.GE.4) THEN
          READ (idisk1, END=100) number8, (nums4(i), i=1,8)
+         print *,'nums4 ',(nums4(i),i=1,8)
          IF (imhd.EQ.idim.AND. 
      &      (number8.GT.imhd)) THEN
             WRITE (*,*) 'ERROR 10 in rdump: imhd wrong ',number8,
@@ -412,14 +412,9 @@ c--Default int
          print *,iproc,': read isteps ',isteps(1)
 #endif
          IF (nums1(1).GE.2) THEN
-            IF (ifix1.EQ.1) THEN
-               READ (idisk1, END=100) (listinactive(i), i=icount+1, 
-     &              icount+nhydro)
-            ELSE
-               READ (idisk1, END=100) nlistinactive,
-     &              (listinactive(i), i=icount+1,icount+nhydro-1)
-               print *,'READ nlistinactive ',nlistinactive
-            ENDIF
+            READ (idisk1, END=100) nlistinactive,
+     &           (listinactive(i), i=icount+1,icount+nhydro-1)
+            print *,'READ nlistinactive ',nlistinactive
          ENDIF
 
 c--int*1
@@ -434,6 +429,11 @@ c--int*8
             READ (idisk1, END=100) (iunique(i), i=icount+1,
      &           icount+nhydro)
          ENDIF
+
+         DO ijk = icount+1, icount+nhydro
+            WRITE (45,*) iunique(ijk), iphase(ijk)
+         END DO
+
          IF (nums1(5).LT.1 .OR. iunique(icount+1).EQ.0) THEN
             print *,'Read iunique ',(iunique(i), i=icount+1,icount+10)
             DO i=icount+1,icount+nhydro
@@ -446,17 +446,6 @@ c--Default real
      &           icount+nhydro)
          END DO
 
-         IF (gt.EQ.0.0.AND.ibound.EQ.100) THEN
-            DO i = icount+1, icount+nhydro
-               xyzmh(4,i) = xyzmh(4,i)/gapfac
-            END DO
-         ENDIF
-
-c         DO i = icount+1, icount+nhydro
-c            IF (iphase(i).EQ.-1) THEN
-c               print *,i,xyzmh(1,i),xyzmh(2,i)
-c            ENDIF
-c         END DO
          DO j = 1, 4
             READ (idisk1, END=100) (vxyzu(j,i), i=icount+1, 
      &           icount+nhydro)
@@ -524,14 +513,8 @@ c
 c--Read array type 2 arrays
 c
 c--Default int
-         READ (idisk1, END=100) (listpm(i), i=1,nptmass)
-
-         DO i = 1, nptmass
-            write (*,*) 'Setting ',i,listpm(i),xyzmh(5,listpm(i)),hacc,
-     &           iphase(listpm(i))
-            xyzmh(5,listpm(i)) = hacc
-         END DO
-
+         READ (idisk1, END=100) (listpm(i), i=icountsink+1,
+     &        icountsink+nptmass)
 
 c--int*1
 
@@ -542,21 +525,35 @@ c--int*4
 c--int*8
 
 c--Default real
-         READ (idisk1, END=100) (spinx(i),i=1,nptmass)
-         READ (idisk1, END=100) (spiny(i),i=1,nptmass)
-         READ (idisk1, END=100) (spinz(i),i=1,nptmass)
-         READ (idisk1, END=100) (angaddx(i),i=1,nptmass)
-         READ (idisk1, END=100) (angaddy(i),i=1,nptmass)
-         READ (idisk1, END=100) (angaddz(i),i=1,nptmass)
-         READ (idisk1, END=100) (spinadx(i),i=1,nptmass)
-         READ (idisk1, END=100) (spinady(i),i=1,nptmass)
-         READ (idisk1, END=100) (spinadz(i),i=1,nptmass)
+         READ (idisk1, END=100) (spinx(i),i=icountsink+1,
+     &        icountsink+nptmass)
+         READ (idisk1, END=100) (spiny(i),i=icountsink+1,
+     &        icountsink+nptmass)
+         READ (idisk1, END=100) (spinz(i),i=icountsink+1,
+     &        icountsink+nptmass)
+         READ (idisk1, END=100) (angaddx(i),i=icountsink+1,
+     &        icountsink+nptmass)
+         READ (idisk1, END=100) (angaddy(i),i=icountsink+1,
+     &        icountsink+nptmass)
+         READ (idisk1, END=100) (angaddz(i),i=icountsink+1,
+     &        icountsink+nptmass)
+         READ (idisk1, END=100) (spinadx(i),i=icountsink+1,
+     &        icountsink+nptmass)
+         READ (idisk1, END=100) (spinady(i),i=icountsink+1,
+     &        icountsink+nptmass)
+         READ (idisk1, END=100) (spinadz(i),i=icountsink+1,
+     &        icountsink+nptmass)
 c--real*4
 
 c--real*8
+         DO i = 1, nums2(8)
+            READ (idisk1, END=100)
+         END DO
 
          IF (numberarray.GE.3 .AND. nradtrans.EQ.nhydro 
-     &        .AND. encal.EQ.'r') THEN
+     &        .AND. iradtrans.GE.nradtrans) THEN
+
+            print *,'reading RT ',(nums3(i),i=1,8)
 c
 c--Array length 3 arrays
 c      
@@ -565,7 +562,9 @@ c--Default int
 c--int*1
 
 c--int*2
-
+            DO i = 1, nums3(3)
+               READ (idisk1, END=100)
+            END DO
 c--int*4
 
 c--int*8
@@ -664,7 +663,12 @@ c
                   ENDDO
                ENDDO
             ELSE
-               STOP 'unknown MHD variable in rdump'
+               WRITE (*,*) 'unknown MHD variable in rdump'
+               DO j = 4, MIN(nums4(6),6)
+                  READ (idisk1, END=100) (Bevolxyz(j,i), i=icount+1,
+     &                 icount+nmhd)
+               END DO
+               IF (iskip.EQ.0) CALL quit
             ENDIF
 c--real*4
             iread = 0
@@ -731,6 +735,28 @@ c
 c--End if to allow skipping of blocks of file belonging to other processes
 c
       ENDIF
+#else
+c
+c--If not MPI calculation, then increment icount so that next block can be read
+c
+      IF (nblocks.NE.1) THEN
+         DO i = icountsink+1, icountsink+nptmass
+            listpm(i) = listpm(i) + icount
+         END DO
+      ENDIF
+      icount = icount + nhydro
+      icountsink = icountsink + nptmass
+      print *,'Totals at this point npart, nptmass ',icount,icountsink
+      IF (nblocks.NE.1) THEN
+         IF (iblock.EQ.nblocks) THEN
+            IF (icount.NE.npart) THEN
+               WRITE (*,*) 'ERROR - rdump: icount.NE.npart ',
+     &              icount,npart,nblocks,iblock
+               CALL quit
+            ENDIF
+            nptmass = icountsink
+         ENDIF
+      ENDIF
 #endif
 c
 c--End loop over blocks
@@ -765,276 +791,6 @@ c
 c--End reading of dump file
 c--------------------------
 c
-      gtdouble = DBLE(gt)
-c
-c--Sort particles to ensure most efficient running.  Note that this 
-c     should not be visible to the outside observer.  In other words,
-c     an array must be kept of original list of particles and this
-c     must be used to index *ANY* value from an array which is written 
-c     to the outside.  This requires modification to almost every output
-c     line in the code.  Done 21 Nov 2000.
-c
-      IF (itiming) CALL getused(tsort1)
-
-      IF (ifix1.EQ.1) THEN
-#ifdef MPI
-         print *,iproc,': nlistinactive read from file: ',nlistinactive
-#else
-         print *,'nlistinactive read from file: ',nlistinactive
-#endif
-
-         icountinactive = 0
-         DO i = 1, npart
-            IF (iphase(i).EQ.-1) THEN
-               icountinactive = icountinactive + 1
-               listinactive(icountinactive) = i
-            ENDIF
-         END DO
-
-#ifdef MPI
-         print *,iproc,': nlistinactive found ',icountinactive
-#else
-         print *,'nlistinactive found ',icountinactive
-#endif
-         nlistinactive = icountinactive
-      ENDIF
-
-c
-c--Avoid sorting (or not)
-c
-      xminimum = 1.0E+30
-      xmaximum = -1.0E+30
-      DO i = 1, npart
-         xmaximum = MAX(xmaximum, xyzmh(1,i))
-         xminimum = MIN(xminimum, xyzmh(1,i))
-      END DO
-      xrange = xmaximum-xminimum
-      istepmin = imax
-      istepmax = 0
-      DO i = 1, npart
-         llist(i) = i
-         IF (iphase(i).EQ.-1) THEN
-            tempsort(i) = LOG(REAL(imax))/LOG(2.0)
-            istepmax = imax
-         ELSE
-            IF (gt.EQ.0.0 .OR. isteps(i).EQ.0) THEN
-               tempsort(i) = (xyzmh(1,i)-xminimum)/xrange
-            ELSE
-               tempsort(i) = LOG(REAL(isteps(i)))/LOG(2.0) +
-     &           (xyzmh(1,i)-xminimum)/xrange
-            ENDIF
-            istepmin = MIN(istepmin, isteps(i))
-            istepmax = MAX(istepmax, isteps(i))
-         ENDIF
-      END DO
-c
-c--Initialise timesteps to be consistent with integration method
-c
-      IF (individualtimesteps.EQ.0) THEN
-         DO i = 1, npart
-            isteps(i) = istepmin
-         END DO
-      ELSEIF (individualtimesteps.EQ.1) THEN
-         DO i = 1, npart
-            IF (iphase(i).GE.1 .AND. iphase(i).LT.10 .AND. 
-     &           isteps(i).GT.istepmin) 
-     &           isteps(i) = istepmin
-         END DO
-      ENDIF
-c
-c--Sort particles based on their individual timesteps and x
-c
-
-      CALL indexx(npart, llist, tempsort, iorig)
-
-      DO i = 1, npart
-         isort(iorig(i)) = i
-      ENDDO
-      DO k = 1, 5
-         DO i = 1, npart
-            tempsort(i) = xyzmh(k,iorig(i))
-         END DO
-         DO i = 1, npart
-            xyzmh(k,i) = tempsort(i)
-         END DO
-      ENDDO
-      DO k = 1, 4
-         DO i = 1, npart
-            tempsort(i) = vxyzu(k,iorig(i))
-         END DO
-         DO i = 1, npart
-            vxyzu(k,i) = tempsort(i)
-         END DO
-      ENDDO
-      DO i = 1, npart
-         tempsort(i) = rho(iorig(i))
-      END DO
-      DO i = 1, npart
-         rho(i) = tempsort(i)
-      END DO
-      DO i = 1, npart
-         tempsort(i) = dgrav(iorig(i))
-      END DO
-      DO i = 1, npart
-         dgrav(i) = tempsort(i)
-      END DO
-      DO k = 1, isizealphaMM
-         DO i = 1, npart
-            tempsort(i) = alphaMM(k,iorig(i))
-         END DO
-         DO i = 1, npart
-            alphaMM(k,i) = tempsort(i)
-         END DO
-      ENDDO
-      
-      IF (encal.EQ.'r') THEN
-         DO k = 1, 5
-            DO i = 1, npart
-               tempsort(i) = ekcle(k,iorig(i))
-            END DO
-            DO i = 1, npart
-               ekcle(k,i) = tempsort(i)
-            END DO
-         ENDDO
-      ENDIF
-      IF (imhd.EQ.idim) THEN
-         DO k = 1, 3
-            DO i = 1, npart
-               tempsort(i) = Bevolxyz(k,iorig(i))
-            END DO
-            DO i = 1, npart
-               Bevolxyz(k,i) = tempsort(i)
-            END DO
-         ENDDO
-      ENDIF
-
-      DO i = 1, npart
-         itempsort(i) = isteps(iorig(i))
-      END DO
-      DO i = 1, npart
-         isteps(i) = itempsort(i)
-      END DO
-      DO i = 1, npart
-         itempsort(i) = iphase(iorig(i))
-      END DO
-      DO i = 1, npart
-         iphase(i) = itempsort(i)
-      END DO
-      DO i = 1, nptmass
-         listpm(i) = isort(listpm(i))
-      END DO
-      DO i = 1, nlistinactive
-         itempsort(i) = listinactive(i)
-      END DO
-
-      DO i = 1, nlistinactive
-         listinactive(i) = isort(itempsort(i))
-         IF (iphase(listinactive(i)).NE.-1) THEN
-            WRITE (*,*) 'ERROR - sorting listinactive ',i,
-     &           iphase(listinactive(i)),
-     &           listinactive(i)
-            STOP
-         ENDIF
-      END DO
-
-      IF (itiming) THEN
-         CALL getused(tsort2)
-         tsort = tsort + (tsort2 - tsort1)
-         tsortmtree = 0.
-      ENDIF
-c
-c--Zero torques
-c
-c      DO i = 1, idim
-c         torqt(i) = 0.
-c         torqg(i) = 0.
-c         torqp(i) = 0.
-c         torqv(i) = 0.
-c         torqc(i) = 0.
-c      END DO
-c
-c--Check units in file the same as in the code!
-c
-      IF (udisti.LT.0.99999*udist .OR. udisti.GT.1.00001*udist) THEN
-         print *,udisti,udist
-         CALL error(where,1)
-      ELSEIF (umassi.LT.0.99999*umass .OR.umassi.GT.1.00001*umass) THEN
-         CALL error(where,2)
-      ELSEIF (imhd.EQ.idim) THEN
-         IF (umagfdi.LT.0.9999*umagfd 
-     &      .OR.umagfdi.GT.1.00001*umagfd) THEN
-            CALL error(where,4)
-         ENDIF
-      ENDIF
-      IF (npart.GT.idim) THEN
-         CALL error(where,3)
-      ENDIF
-c
-c--Check that dtmax times are the same.  If not, modify isteps(i) as in mesop.f
-c
-ccc      GOTO 50
-
-      IF (gt.NE.0.0 .AND. 
-     &     (dtmaxdp.LT.0.9999*dtmax .OR. dtmaxdp.GT.1.0001*dtmax)) THEN
-         ipower = INT(LOG10(dtmax/dtmaxdp)/LOG10(2.0))
-
-         ifactor = 2**ABS(ipower)
-         imaxnew = imaxstep/ifactor
-         iminnew = 2*ifactor
-
-         IF (ipower.LT.0) THEN
-            DO j = 1, npart
-               IF (iphase(j).NE.-1) THEN
-                  isteps(j) = MIN(isteps(j), imaxnew)
-                  isteps(j) = isteps(j)*ifactor
-               ENDIF
-            END DO
-         ELSEIF (ipower.GT.0) THEN
-            DO j = 1, npart
-               IF (iphase(j).NE.-1) THEN
-                  IF (isteps(j)/ifactor .LT. 2) CALL error(where, 4)
-                  isteps(j) = isteps(j)/ifactor
-               ENDIF
-            END DO
-         ENDIF
-      ENDIF
-c
-c--Change reference frame
-c
-c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
-      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2)) THEN
-         CALL chanref(icall)
-      ELSEIF (ifcor.GT.2) THEN
-         ifcor = ifcor - 2
-      ENDIF
-
-#ifdef MPIDEBUG
-      xxmin = 1.0E+30
-      DO i = 1, npart
-         xxnew = xyzmh(1,i)**2 + xyzmh(2,i)**2 + (xyzmh(3,i)-0.0)**2
-         IF (xxnew.LT.xxmin) THEN
-            xxmin = xxnew
-            ipos1 = i
-         ENDIF
-      END DO
-      print *,iproc,': CLOSEST z=+0.0 ',ipos1,xxmin
-      xxmin = 1.0E+30
-      DO i = 1, npart
-         xxnew = xyzmh(1,i)**2 + xyzmh(2,i)**2 + (xyzmh(3,i)+0.0)**2
-         IF (xxnew.LT.xxmin) THEN
-            xxmin = xxnew
-            ipos2 = i
-         ENDIF
-      END DO
-      print *,iproc,': CLOSEST z=-0.0 ',ipos2,xxmin
-#endif
-
-#ifdef MPI
-      print *,iproc,' EXITED RDUMP'
-#else
-      print *,' EXITED RDUMP'
-#endif
-
       IF (itrace.EQ.'all') WRITE (*, 99002)
 99002 FORMAT (' exit subroutine rdump')
       RETURN

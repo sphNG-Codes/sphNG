@@ -320,7 +320,7 @@ c         IF (nbuild.EQ.1 .OR. MOD(ncount, nstep).EQ.0 .OR.
 #else
             CALL file
 #endif
-            CALL wdump(idisk1)
+            CALL wdump_wrapper(idisk1)
          ENDIF
 c
 c--Write global results on listing

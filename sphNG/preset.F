@@ -75,7 +75,7 @@ c
 c
 c--Read dump
 c
-         CALL rdump(idisk1, ichkl, 0)
+         CALL rdump_wrapper(idisk1, ichkl, 0)
          CLOSE (idisk1)
          IF (ichkl.EQ.1) CALL error(where, ichkl)
 c

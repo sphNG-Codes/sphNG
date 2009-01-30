@@ -152,7 +152,7 @@ c
 c--Start transfering
 c
       DO i = ibegin, iend
-         CALL rdump(idisk1, ichkl, 1)
+         CALL rdump_wrapper(idisk1, ichkl, 1)
          IF (ichkl.EQ.1) CALL error(where, ichkl)
 c
 c--Allow for modifications
@@ -164,7 +164,7 @@ c
          IF (smooth.EQ.'y') CALL smoothd
 
          nfullstep = 1
-         CALL wdump(idisk2)
+         CALL wdump_wrapper(idisk2)
 
       END DO
 c

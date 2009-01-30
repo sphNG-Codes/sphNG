@@ -345,7 +345,7 @@ c     &           dy*gradpx(i))*cnormk
 c            torqv(i)= - (dx*artviy(i) - 
 c     &           dy*artvix(i))*cnormk
 c         END DO
-c         CALL wdump(idisk1)
+c         CALL wdump_wrapper(idisk1)
 c         STOP
 c
 c--END: For calculating instantaneous torques about density maximum

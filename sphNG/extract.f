@@ -98,7 +98,7 @@ c
             file1 = ofile
             print *, 'Name0=', file1
 
-            CALL rdump(8,ichkl,1)
+            CALL rdump_wrapper(8,ichkl,1)
             IF (ichkl.EQ.1) PRINT*, 'ERROR READING DUMP FILE'
 c
 c--End reading of dump file
@@ -300,7 +300,7 @@ c
          END DO
          nfullstep = 1
          PRINT *,'writing dump file'
-         CALL wdump(7)
+         CALL wdump_wrapper(7)
 c
 c--End writing of full dump file
 c-------------------------------

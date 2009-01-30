@@ -74,6 +74,7 @@ endif
 ifeq ($(SYSTEM), zen)
     ifeq ($(mpi), yes)
        FC= mpif90
+#       FC= ifort -lmpi
     else
        FC= ifort
     endif
@@ -267,13 +268,13 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
 	newrun.f options.f phoenix.f phoenix2.f \
 	place.f potential.f preset.F \
-	prout.F ran1.f rdump.F reduce.f \
+	prout.F ran1.f rdump.F rdump_wrapper.F reduce.f \
         resistivity.f save.f setup_torus.f \
         scaling.f secmes.f setBfield_mhd.f setpart.f \
 	smoothd_P.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f thermeq.f \
 	toten.f treef_P.F unifdis.f unit.f \
-	wdump.f wrinsph.F zeusread.f
+	wdump.F wdump_wrapper.F wrinsph.F zeusread.f
 
 # these are the sources required for the gradh code to compile
 
@@ -401,13 +402,23 @@ sphtorus: $(OBJTORUS)
 	@echo ""
 	$(FC) $(FFLAGS) -o $@ $(OBJTORUS) -L${TORUS_LIB} $(LDFLAGS)
 
-util: binary convert ptmass massvsangmom
+util: binary convert convertfs convertof ptmass massvsangmom
 
 binary: checksystem checkparams utils/binary.o
 	$(FC) $(FFLAGS) -o $@ utils/binary.o
 
 convert: checksystem checkparams utils/convert.o utils/readdump_sphNG.o utils/writedump_ascii.o
 	$(FC) $(FFLAGS) -o $@ utils/convert.o utils/writedump_ascii.o utils/readdump_sphNG.o
+
+# convert from full to small dump file
+
+convertfs: checksystem checkparams utils/convert_full_small.o wdump.o rdump.o error.o
+	$(FC) $(FFLAGS) -o $@ utils/convert_full_small.o wdump.o rdump.o error.o
+
+# convert from old dump file to new full dump file
+
+convertof: checksystem checkparams utils/convert_old_full.o wdump.o error.o
+	$(FC) $(FFLAGS) -o $@ utils/convert_old_full.o wdump.o error.o
 
 ptmass: utils/ptmassmerge.o
 	$(FC) $(FFLAGS) -o $@ utils/ptmassmerge.o

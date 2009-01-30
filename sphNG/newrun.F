@@ -68,7 +68,7 @@ c
             iorig(i) = i
          END DO
          nfullstep = 1
-         CALL wdump(idisk1)
+         CALL wdump_wrapper(idisk1)
 c         CLOSE (idisk1)
       ENDIF
 c
@@ -98,7 +98,7 @@ c
             iorig(i) = i
          END DO
          nfullstep = 1
-         CALL wdump(idisk3)
+         CALL wdump_wrapper(idisk3)
          CLOSE (idisk3)
          CLOSE (idisk2)
          CLOSE (idisk1)

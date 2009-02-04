@@ -2,11 +2,12 @@
       
       USE torus_mod, only : torus
 
-      IMPLICIT NONE
+!      IMPLICIT NONE
 
       INCLUDE 'idim'
 #ifdef MPI
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpi'
 #endif      
 
       INCLUDE 'COMMONS/call'
@@ -22,14 +23,15 @@
 
 ! Arguments
       INTEGER, INTENT(IN) :: npart
-      REAL, INTENT(IN)    :: xyzmh(5,idim)
-      REAL, INTENT(INOUT) :: vxyzu(4,idim)
+      REAL, INTENT(IN)    :: xyzmh(5,mmax2)
+      REAL, INTENT(INOUT) :: vxyzu(4,idim2)
       REAL*4, INTENT(IN)  :: trho(idim)
       REAL, INTENT(IN)    :: time
 
 ! Local variables
-      INTEGER         :: i, ierr, num_gas
+      INTEGER         :: i, num_gas, num_gas_all !, ierr
       REAL            :: temperature(idim)
+      REAL            :: sum_tem, sum_tem_all 
       REAL            :: totalgasmass
       REAL, PARAMETER :: temp_min=10.0 ! Minimum allowed temperature
       LOGICAL, save   :: ifirst = .true.
@@ -38,7 +40,7 @@
       REAL :: TempToU, uToTemp
 
 ! Time interval between torus calls
-      REAL, parameter :: radTimeStep = 0.01
+      REAL, parameter :: radTimeStep = 1.0
 ! Time of previous torus call
       REAL, save      :: lastRadTime      
 ! No. of pt mass on prev torus call
@@ -73,26 +75,51 @@ c--Only perform radiative transfer if ptmass exist, otherwise don't modify u()
       IF ( (nptmass_all > lastNptmass .or. 
      &     time-lastRadTime >= radTimeStep) .and. nptmass_all > 0 ) THEN
 
-        WRITE (*,*) 'nptmass, lastNptmass, time, lastRadTime=', 
-     &               nptmass_all, lastNptmass, time, lastRadTime
         lastRadTime = time
         lastNptmass = nptmass_all
 
-c Find total gas mass and number of gas particles. 
-         num_gas = 0
-         totalgasmass = 0.0
-         DO i=1,npart
-            IF ( iphase(i) == 0 ) THEN 
-               num_gas      = num_gas + 1
-               totalgasmass = totalgasmass + xyzmh(4,i)
-            END IF
-         END DO
-         WRITE(*,*) 'Total mass of gas particles=   ', totalgasmass
-
-c Pass array of sph temperatures to torus to use as initial conditions
+! Find total gas mass and number of gas particles. 
+        num_gas = 0
+        totalgasmass = 0.0
         DO i=1,npart
-           temperature(i) = vxyzu(4,i) * uToTemp
+           IF ( iphase(i) == 0 ) THEN 
+              num_gas      = num_gas + 1
+              totalgasmass = totalgasmass + xyzmh(4,i)
+           END IF
         END DO
+
+! Pass array of sph temperatures to torus to use as initial conditions
+        sum_tem = 0.0
+        DO i=1,npart
+           IF ( iphase(i) == 0 ) THEN
+              temperature(i) = vxyzu(4,i) * uToTemp
+              sum_tem = sum_tem + temperature(i)
+           ELSE
+              temperature(i) = temp_min
+           END IF
+        END DO
+
+! Calculate mean temperature prior to Torus call
+#ifdef MPI
+        CALL MPI_ALLREDUCE(sum_tem, sum_tem_all, 1, MPI_REAL8, 
+     &       MPI_SUM, MPI_COMM_WORLD, ierr) 
+
+        CALL MPI_ALLREDUCE(num_gas, num_gas_all, 1, MPI_INTEGER, 
+     &       MPI_SUM, MPI_COMM_WORLD, ierr) 
+
+#else
+        sum_tem_all = sum_tem
+        num_gas_all = num_gas
+#endif
+
+#ifdef MPI
+        if (iproc == 0) then
+#endif
+           write(*,*) "Mean gas temperature before torus=", 
+     &          sum_tem_all / real(num_gas_all) 
+#ifdef MPI
+        end if
+#endif
 
 c--Call torus for Monte-Carlo radiative transfer     
 
@@ -116,12 +143,45 @@ c--Call torus for Monte-Carlo radiative transfer
 
         end if
 
+c$$$#ifdef MPI
+c$$$        if (iproc == 0) then
+c$$$#endif
+c$$$        write(*,*) "Fixing T=20, u=", 20.0*TempToU
+c$$$#ifdef MPI
+c$$$        end if
+c$$$#endif
+c$$$        temperature(:) = 20.0
+
+
 c     
 c--Set thermal energy of gas particles using torus's temperatures     
 c
+        sum_tem = 0.0
          DO i=1,npart
-            vxyzu(4,i) =  max(temperature(i), temp_min) * TempToU 
+            IF ( iphase(i) == 0 ) THEN 
+               vxyzu(4,i) =  max(temperature(i), temp_min) * TempToU 
+               sum_tem = sum_tem + temperature(i)
+            END IF
          END DO
+
+! Calculate mean temperature after Torus call. 
+#ifdef MPI
+        CALL MPI_ALLREDUCE(sum_tem, sum_tem_all, 1, MPI_REAL8, 
+     &       MPI_SUM, MPI_COMM_WORLD, ierr) 
+
+#else
+        sum_tem_all = sum_tem
+#endif
+
+#ifdef MPI
+        if (iproc == 0) then
+#endif
+           write(*,*) "Mean gas temperature after torus=", 
+     &          sum_tem_all / real(num_gas_all) 
+#ifdef MPI
+        end if
+#endif
+
 
       ENDIF 
 

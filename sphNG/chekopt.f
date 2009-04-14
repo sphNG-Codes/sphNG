@@ -9,6 +9,7 @@
 *************************************************************
 
       INCLUDE 'idim'
+      INCLUDE 'igrape'
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/typef'
@@ -28,6 +29,8 @@
       INCLUDE 'COMMONS/actio'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/debug'
+      INCLUDE 'COMMONS/ptmass'
+      INCLUDE 'COMMONS/initpt'
 
       CHARACTER*7 where
 
@@ -48,6 +51,9 @@ c
 
       IF ((encal.EQ.'p' .OR. encal.EQ.'v' .OR. encal.EQ.'x') .AND.  
      &     (iener.EQ.1 .OR. ichoc.EQ.1)) CALL error(where,5)
+
+      IF (igphi.EQ.0 .AND. iptintree.EQ.2 .AND. 
+     &     (iptmass .NE.0 .OR. initialptm.NE.0)) CALL error(where,6)
 
       RETURN
       END

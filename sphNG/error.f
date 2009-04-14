@@ -131,6 +131,10 @@ c
          IF (iwhat.EQ.5) WRITE (iprint, 99104)
 99104    FORMAT (' polytropic eos cannot have shock or work',
      &           ' contributions')
+         IF (iwhat.EQ.6) WRITE (iprint, 99105)
+99105    FORMAT (' iptintree = 2 cannot be used with point masses',
+     &           ' without self-gravity')
+
          CALL quit
       ENDIF
 c

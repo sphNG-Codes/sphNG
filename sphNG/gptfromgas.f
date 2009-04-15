@@ -56,7 +56,8 @@ c
       rry = xyzmh(2,iparttree)
       rrz = xyzmh(3,iparttree)
       DO 101 j = 1, npart
-         IF(iphase(j).GE.1 .AND. iphase(j).LT.10) GOTO 101
+         IF(iphase(j).LT.0 .OR. 
+     &        iphase(j).GE.1 .AND. iphase(j).LT.10) GOTO 101
 
          pmassj = xyzmh(4,j)
      

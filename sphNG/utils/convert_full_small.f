@@ -13,6 +13,7 @@ c
       INCLUDE '../COMMONS/phase'
       INCLUDE '../COMMONS/part'
       INCLUDE '../COMMONS/ptmass'
+      INCLUDE '../COMMONS/varmhd'
 
       REAL*8 umassi, udisti, utimei, umagfdi
       COMMON /unitsin/ umassi, udisti, utimei, umagfdi
@@ -31,6 +32,23 @@ c
       WRITE (*,*) 'Do you wish to remove inactive particles ',
      &     '(iphase=-1)?'
       READ (*,88001) ianswer2
+
+      IF (imhd.EQ.idim) THEN
+50    WRITE(*, 88002)
+88002 FORMAT (/,' Which MHD variable did you evolve?', /,
+     &   ' B     (flux density per unit volume)         : Bvol b)', /,
+     &   ' B/rho (flux density per unit mass)           : Brho r)', /,
+     &   ' Euler potentials (B = grad alpha x grad beta): eulr e)', /,
+     &   ' Vector potential (B = curl A)                : vecp v)')
+      READ (*, 88003) varmhd
+88003 FORMAT (A4)
+      IF (varmhd.EQ.'b' .or. varmhd.EQ.'B') varmhd = 'Bvol'
+      IF (varmhd.EQ.'r') varmhd = 'Brho'
+      IF (varmhd.EQ.'e') varmhd = 'eulr'
+      IF (varmhd.EQ.'v') varmhd = 'vecp'
+      IF (varmhd.NE.'Bvol' .and. varmhd.NE.'Brho'
+     &    .and. varmhd.NE.'eulr' .and. varmhd.NE.'vecp') GOTO 50
+      END IF
 
       WRITE (*,*) 'How many full dumps?'
       READ (*,*) numfulldumps
@@ -58,9 +76,9 @@ c      READ (*,*) fullname
          ELSE
             smallname = fullname(iloop) // '.s'
          ENDIF
-
-         OPEN (11,FILE=fullname,FORM='unformatted')
-
+          
+         OPEN (11,FILE=fullname(iloop),FORM='unformatted')
+         
          CALL rdump(11,ichkl,1)
 
          CLOSE (11)

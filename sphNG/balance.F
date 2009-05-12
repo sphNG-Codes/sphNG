@@ -132,6 +132,8 @@ c
       END DO
 #ifdef MPIDEBUGT
       print *,iproc,': inumtoget ',inumtoget,(numrecv(i),i=1,numproc)
+
+      print *,iproc,': test values ',npartnew,numrecvtotal,idim
 #endif
 
       IF (npartnew + numrecvtotal.GT.idim) THEN
@@ -139,6 +141,10 @@ c
      &        npartnew, numrecvtotal, idim
          CALL quit
       ENDIF
+
+#ifdef MPIDEBUGT
+      print *,iproc,': test done'
+#endif
 c
 c--Now transfer particles
 c
@@ -573,10 +579,19 @@ c
 #endif
 
                CALL MPI_RECV(xyzmh(1,npartnew+1), idim, i5REAL8, 
-     &              MPI_ANY_SOURCE, 100, MPI_COMM_WORLD, istatus, ierr)
+     &              ii, 100, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
                iprocrec = istatus(MPI_SOURCE)
+               IF (ii.NE.iprocrec) THEN
+                  WRITE (*,*) 'ERROR - ii.NE.iprocrec ',ii,iprocrec
+                  CALL quit
+               ENDIF
                igotnumber = inumber
+               IF (inumber.NE.numrecv(ii+1)) THEN
+                  WRITE (*,*) 'ERROR - inumber.NE.numrecv(ii+1) ',
+     &                 inumber,numrecv(ii+1),ii,iprocrec
+                  CALL quit
+               ENDIF
 
 #ifdef MPIDEBUGT
                print *,iproc,': Received transfer of ',igotnumber,

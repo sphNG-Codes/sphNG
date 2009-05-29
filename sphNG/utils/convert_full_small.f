@@ -115,7 +115,7 @@ c      READ (*,*) fullname
 
          OPEN (11,FILE=smallname,FORM='unformatted')
 
-         nfullstep = 100
+         nfullstep = 100000
          CALL wdump(11)
       
          CLOSE (11)

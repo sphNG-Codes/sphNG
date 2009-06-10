@@ -217,7 +217,7 @@ c
          WRITE (iterm, 88045) rplanet
       ENDIF
 
-      IF (iptmass.NE.0 .OR. nptmass.NE.0) THEN
+      IF (iptmass.NE.0 .OR. nptmasstot.NE.0) THEN
          WRITE (iterm, 88042) hacc
 88042    FORMAT(2X,1PE12.5,'  Outer Accretion Radius')
          WRITE (iterm, 88044) haccall

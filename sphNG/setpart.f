@@ -282,6 +282,7 @@ c
          nptmass = 0
          iptmass = 0
       ENDIF
+      nptmasstot = nptmass
 
       DO i = 1, nptmass
          rho(i) = 0.

@@ -52,6 +52,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/savernd'
       INCLUDE 'COMMONS/perform'
+      INCLUDE 'COMMONS/abundances'
 
       CHARACTER*7 where
       CHARACTER*100 fileident
@@ -453,9 +454,30 @@ c--Default real
 #ifdef MPIDEBUG
          print *,iproc,': Read xyzmh, vxyzu'
 #endif
+         iwanted = 9
+         IF (iener.EQ.4) THEN
+            iwanted = iwanted + 5
+ 
+            IF (nums1(6).LT.iwanted) THEN
+               WRITE (iprint,*) 'ERROR - nums1(6).LT.iwanted ',
+     &              nums1(6),iwanted
+               CALL quit
+            ENDIF
+
+            READ (idisk1, END=100) (h2ratio(i), i=icount+1,
+     &	         icount+nhydro)
+            READ (idisk1, END=100) (abHIq(i), i=icount+1,
+     &           icount+nhydro)
+            READ (idisk1, END=100) (abhpq(i), i=icount+1,
+     &           icount+nhydro)
+            READ (idisk1, END=100) (abeq(i), i=icount+1,
+     &           icount+nhydro)
+            READ (idisk1, END=100) (abco(i), i=icount+1,
+     &           icount+nhydro)
+          ENDIF
 c--skip unnecessary reals
-         IF (nums1(6).GT.9) THEN
-            DO j=1,nums1(6)-9
+         IF (nums1(6).GT.iwanted) THEN
+            DO j=1,nums1(6)-iwanted
                READ (idisk1, END=100)
             ENDDO
          ENDIF

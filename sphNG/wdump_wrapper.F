@@ -58,7 +58,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/savernd'
       INCLUDE 'COMMONS/eosq'
       INCLUDE 'COMMONS/f2'
-      INCLUDE 'COMMONS/h2'
+      INCLUDE 'COMMONS/abundances'
       INCLUDE 'COMMONS/perform'
 
       DIMENSION itempsort(idim)
@@ -487,23 +487,47 @@ c
          ddv(i) = tempsort(i)
       END DO
 c
-c--h2mol
+c--chemistry
 c
       IF (idim_h2.EQ.idim) THEN
          DO i = 1, npart
-            tempsort(i) = h2mol(llist(i))
-         END DO
-         DO i = 1, npart
-            h2mol(i) = tempsort(i)
-         END DO
-c
-c--h2ratio
-c
-         DO i = 1, npart
             tempsort(i) = h2ratio(llist(i))
          END DO
+
          DO i = 1, npart
             h2ratio(i) = tempsort(i)
+         END DO
+
+         DO i = 1, npart
+            tempsort(i) = abHIq(llist(i))
+         END DO
+
+         DO i = 1, npart
+            abHIq(i) = tempsort(i)
+         END DO
+
+         DO i = 1, npart
+            tempsort(i) = abhpq(llist(i))
+         END DO
+
+         DO i = 1, npart
+            abhpq(i) = tempsort(i)
+         END DO
+
+         DO i = 1, npart
+            tempsort(i) = abeq(llist(i))
+         END DO
+
+         DO i = 1, npart
+            abeq(i) = tempsort(i)
+         END DO
+ 
+         DO i = 1, npart
+            tempsort(i) = abco(llist(i))
+         END DO
+
+         DO i = 1, npart
+            abco(i) = tempsort(i)
          END DO
       ENDIF
 c

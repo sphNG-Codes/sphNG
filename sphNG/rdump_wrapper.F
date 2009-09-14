@@ -52,6 +52,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/savernd'
       INCLUDE 'COMMONS/perform'
+      INCLUDE 'COMMONS/abundances'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -173,6 +174,38 @@ c
       DO i = 1, npart
          dgrav(i) = tempsort(i)
       END DO
+      IF (iener.EQ.4) THEN
+         DO i = 1, npart
+            tempsort(i) = h2ratio(iorig(i))
+         END DO
+         DO i = 1, npart
+            h2ratio(i) = tempsort(i)
+         END DO
+         DO i = 1, npart
+            tempsort(i) = abHIq(iorig(i))
+         END DO
+         DO i = 1, npart
+            abHIq(i) = tempsort(i)
+         END DO
+         DO i = 1, npart
+            tempsort(i) = abhpq(iorig(i))
+         END DO
+         DO i = 1, npart
+            abhpq(i) = tempsort(i)
+         END DO
+         DO i = 1, npart
+            tempsort(i) = abeq(iorig(i))
+         END DO
+         DO i = 1, npart
+            abeq(i) = tempsort(i)
+         END DO
+         DO i = 1, npart
+            tempsort(i) = abco(iorig(i))
+         END DO
+         DO i = 1, npart
+            abco(i) = tempsort(i)
+         END DO
+      END IF
       DO k = 1, isizealphaMM
          DO i = 1, npart
             tempsort(i) = alphaMM(k,iorig(i))

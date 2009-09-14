@@ -69,6 +69,7 @@ c--this weight is equivalent to m/(rho*h^3) in the grad h version
       INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/cylinder'
       INCLUDE 'COMMONS/compact'
+      INCLUDE 'COMMONS/abundances'
 c
 c--Used for listparents list to keep a list of iupdated
 c
@@ -219,7 +220,7 @@ c--Calculate forces
 c
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst_in,nlst_end,npart,ntot,listp,nneigh,neimin,neimax)
-C$OMP& shared(nlst_tot,icall,dt,itime,imaxstep)
+C$OMP& shared(nlst_tot,icall,dt,itime,imaxstep,isteps)
 C$OMP& shared(xyzmh,vxyzu,dha,fxyzu,trho,pr,vsound,dq,gradhs)
 C$OMP& shared(neighb,neighover,dvtable,ddvtable,psoft)
 C$OMP& shared(fmass,fpoten,part2kernel,part1kernel,radkernel)
@@ -228,15 +229,16 @@ C$OMP& shared(divv,curlv,beta,alpha,poten,dgrav,nlst0)
 C$OMP& shared(cnormk,epsil,epsil2,where,pext)
 C$OMP& shared(iphase,listpm,iprint,nptmasstot,iorig)
 C$OMP& shared(alphaMMpass,alphamin,iproc)
+C$OMP& shared(h2ratio,abhpq,abeq,abHIq,abco)
 C$OMP& shared(igrp,igphi,ifsvi,iexf)
 C$OMP& shared(ifcor,iexpan,iener,damp)
-C$OMP& shared(realtime,ekcle,encal,dedxyz,acc)
+C$OMP& shared(realtime,ekcle,encal,dedxyz,acc,it1,imax)
 C$OMP& shared(Bxyz,dBxyz,Bextxi,Bextyi,Bextzi,B2ext,divcurlB,Bevolxyz)
 C$OMP& shared(varmhd,iupdated,listparents)
 C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug)
 C$OMP& shared(ivar,ijvar,Bextx,Bexty,Bextz,etamhd,iresist)
 C$OMP& shared(forcei_lock)
-C$OMP& private(n,ipart,iparttree)
+C$OMP& private(n,ipart,iparttree,stepsi,dtime)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(fxi,fyi,fzi,numneigh,hmin)
 C$OMP& private(poteni,dphiti,gradxi,gradyi,gradzi,artxi,artyi,artzi)
@@ -1492,7 +1494,23 @@ c            IF (iunique(iorig(ipart)).EQ.2757) THEN
 c               print *,iproc,': F ',ipart,fxyzu(4,ipart),dq(ipart),
 c     &              nlst_in,nlst_end,nlst_tot
 c            ENDIF
-         CALL energ(ipart,npart,ntot,realtime,vxyzu,fxyzu,xyzmh,trho)
+         IF (idim_h2.EQ.1) THEN
+
+           CALL energ(ipart,npart,ntot,realtime,vxyzu,fxyzu,xyzmh,trho)
+
+         ELSE
+
+           IF (it1(ipart).EQ.imax) THEN
+             dtime = (dt*isteps(ipart)/2)/imaxstep
+           ELSE
+             dtime = (dt*isteps(ipart))/imaxstep
+           ENDIF 
+
+
+           CALL energ_cooling(ipart,npart,ntot,realtime,vxyzu,fxyzu,
+     &           xyzmh,h2ratio,dtime,abhpq,abeq,abHIq,abco,trho)
+
+         END IF 
 c            IF (iunique(iorig(ipart)).EQ.2757) THEN
 c               print *,iproc,': F2 ',ipart,fxyzu(4,ipart)
 c            ENDIF

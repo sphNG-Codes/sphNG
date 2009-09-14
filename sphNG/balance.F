@@ -46,7 +46,7 @@ c************************************************************
       INCLUDE 'COMMONS/delay'
       INCLUDE 'COMMONS/divve'
       INCLUDE 'COMMONS/eosq'
-      INCLUDE 'COMMONS/h2'
+      INCLUDE 'COMMONS/abundances'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -370,9 +370,9 @@ c
                         CALL MPI_SEND(poten,1,indexMPI1,j,111,
      &                       MPI_COMM_WORLD, ierr)
 
-                        IF (idim_h2.EQ.idim) THEN
-                           CALL MPI_SEND(h2mol,1,indexMPIR,j,158,
-     &                          MPI_COMM_WORLD, ierr)
+c                        IF (idim_h2.EQ.idim) THEN
+c                           CALL MPI_SEND(h2mol,1,indexMPIR,j,158,
+c     &                          MPI_COMM_WORLD, ierr)
 
                            CALL MPI_SEND(h2ratio,1,indexMPIR,j,159,
      &                          MPI_COMM_WORLD, ierr)
@@ -755,13 +755,13 @@ c                  END DO
                ENDIF
 
                IF (idim_h2.EQ.idim) THEN
-                  CALL MPI_RECV(h2mol(npartnew+1), idim, MPI_REAL8,
-     &                 iprocrec, 158, MPI_COMM_WORLD, istatus, ierr)
-                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
-                  IF (inumber.NE.igotnumber) THEN
-                     WRITE (*,*) 'ERROR - balance igotnumber h2mol'
-                     CALL quit
-                  ENDIF
+c                  CALL MPI_RECV(h2mol(npartnew+1), idim, MPI_REAL8,
+c     &                 iprocrec, 158, MPI_COMM_WORLD, istatus, ierr)
+c                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+c                  IF (inumber.NE.igotnumber) THEN
+c                     WRITE (*,*) 'ERROR - balance igotnumber h2mol'
+c                     CALL quit
+c                  ENDIF
 
                   CALL MPI_RECV(h2ratio(npartnew+1), idim, MPI_REAL8,
      &                 iprocrec, 159, MPI_COMM_WORLD, istatus, ierr)
@@ -2152,7 +2152,7 @@ c*************************`***********************************
       INCLUDE 'COMMONS/delay'
       INCLUDE 'COMMONS/divve'
       INCLUDE 'COMMONS/eosq'
-      INCLUDE 'COMMONS/h2'
+      INCLUDE 'COMMONS/abundances'
 
       DO i = 1, 5
          xyzmh(i,ito) = xyzmh(i,ifrom)
@@ -2195,7 +2195,7 @@ c      isort(ifrom) = 0
       vsound(ito) = vsound(ifrom)
       poten(ito) = poten(ifrom)
       IF (idim_h2.EQ.idim) THEN
-         h2mol(ito) = h2mol(ifrom)
+c         h2mol(ito) = h2mol(ifrom)
          h2ratio(ito) = h2ratio(ifrom)
       ENDIF
       iscurrent(ito) = iscurrent(ifrom)

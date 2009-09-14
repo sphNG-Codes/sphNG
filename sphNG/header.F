@@ -48,6 +48,7 @@ c************************************************************
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/h2'
 
       REAL*8 angmom
 
@@ -306,6 +307,22 @@ c
          ELSE
             WRITE (iprint, *)
          ENDIF
+c
+c--Simon's chemistry
+c
+         IF (iener.EQ.4) THEN
+         WRITE (iprint,99401)dphot/pc,dlq/pc,dchem/pc,
+     &           Rconst,sigma,rate_diss0,rate_cr,phrates
+99401    FORMAT('Heating/cooling and H2 formation is ON',/,
+     &           ' photoionisation distance (pc)       : ', 1PE12.3, /,
+     &           ' dist. for heating/cooling (pc)      : ', 1PE12.3, /,
+     &           ' dist. for HI col. density (pc)      : ', 1PE12.3, /,
+     &           ' Rconst, rate of formation parameter : ', 1PE12.3, /,
+     &           ' extinction (cm-2)                   : ', 1PE12.3, /,
+     &           ' unshielded dissociation rate        : ', 1PE12.3, /,
+     &           ' cosmic ray rate                     : ', 1PE12.3, /,
+     &           ' dissociation parameter for CO       : ', 1PE12.3, //)
+          ENDIF
 c
 c--Magnetic field details
 c

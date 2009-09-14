@@ -1613,7 +1613,7 @@ C$OMP& shared(tol,tolh,tolptm,dt,isteps,imaxstep,e1,small,divv,rho)
 C$OMP& shared(alpha,beta,vsound,xlog2,gravx,gravy,gravz,gradpx,gradpy)
 C$OMP& shared(gradpz,artvix,artviy,artviz,gravx1,gravy1,gradpx1,gradpy1)
 C$OMP& shared(artvix1,artviy1,it0,idtsyn,ibound,deadbound)
-C$OMP& shared(iprint,xyzmh,poten,nneigh,iphase,ikillpr)
+C$OMP& shared(iprint,xyzmh,poten,nneigh,iphase,ikillpr,iener)
 C$OMP& shared(pmass,ikilled,nactive,nkill,time,iorig,nlstacc,listacc)
 C$OMP& shared(anglostx,anglosty,anglostz,istminold,listpm,coolingrate)
 C$OMP& shared(ifsvi,alphaMM,dumekcle,ekcle,iresist,etamhd,nptmass)
@@ -1624,7 +1624,7 @@ C$OMP& private(i,j,l,tolpart,errBx,errBy,errBz)
 C$OMP& private(errx,erry,errz,errvx,errvy,errvz,erru,errh,errm)
 C$OMP& private(errdivtol,rap,rmod1,divvi,aux1,aux2,aux3,denom,valfven2)
 C$OMP& private(crstepi,rmodcr,force21,force22,force2,rmodcr2,rmod)
-C$OMP& private(stepi,ibin,factor,istep2,irat,r2,pmassi)
+C$OMP& private(stepi,ibin,factor,istep2,irat,r2,pmassi,rmodsg1,rmodsg2)
 C$OMP& private(Bxi,Byi,Bzi,xi,yi,zi,dti,dteta,rmodeta,etai,rmodcool)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin,istepmingas)
@@ -1895,6 +1895,18 @@ c
 c--Decide which time step to take
 c
             rmod = MIN(rmod1, rmodcr, rmodcr2)
+
+c Timestep for ISM heating / cooling (from Simon Glover)
+
+            IF (iener.EQ.4) THEN
+                rmodsg1=(0.05*ABS(vxyzu(4,i)/f1vxyzu(4,i)))
+     &          /(dt*isteps(i)/imaxstep)
+                rmodsg2=(0.05*ABS(vxyzu(4,i)/f2vxyzu(4,i)))
+     &          /(dt*isteps(i)/imaxstep)
+               rmod=MIN(rmod,rmodsg1,rmodsg2)
+           END IF 
+
+
 
             IF (encal.EQ.'c') THEN
                IF (nptmass.LE.0) THEN

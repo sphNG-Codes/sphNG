@@ -1,4 +1,4 @@
-      REAL nmol, mp, nH2
-      COMMON /h2 / h2mol(idim_h2_2), h2ratio(idim_h2_2), Rconst, mp,
-     &    rate_diss0, sigma, rate_cr, cdensH2, cdens, rate, nH2, 
-     &    rate_diss, temp, nmol
+      REAL mp
+      COMMON /h2 /  Rconst, mp, rate_diss0, dlq, 
+     &    sigma, rate_cr, abc, dphot, dchem, 
+     &    phrates, cdensH2, cdens, rate, nH2

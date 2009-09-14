@@ -1,0 +1,6 @@
+c
+c     these are the abundances of electrons, CO, protons, HI
+c     and H2
+c
+      COMMON /abundances/ abeq(idim_h2),abco(idim_h2),    
+     &     abhpq(idim_h2), abHIq(idim_h2),h2ratio(idim_h2)

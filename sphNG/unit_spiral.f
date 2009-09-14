@@ -199,10 +199,13 @@ c Rate of dissociation
       rate_diss0=4.17e-11
 
 c Extinction
-      sigma=2.e-22
+      sigma=2.e-21
 
 c Cosmic ray ionization rate
       rate_cr=1.2e-17  
+
+c Parameter for CO dissociation
+      phrates=1.56d-10
 
       IF (idebug(1:4).EQ.'unit') THEN
          WRITE (iprint, 99002) umass, udist, udens, utime, uergg, uergcc

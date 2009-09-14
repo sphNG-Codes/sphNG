@@ -31,6 +31,8 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/typef'
       INCLUDE 'COMMONS/recor'
       INCLUDE 'COMMONS/gtime'
+      INCLUDE 'COMMONS/h2'
+      INCLUDE 'COMMONS/abundances'
 
       CHARACTER*7 where
 
@@ -98,6 +100,24 @@ c Initialise quantities for cooling curve if required
        CALL thermeq
 
       END IF
+
+      IF (iener.EQ.4) THEN
+c Initialise abundances for Simon's cooling
+ 
+c Electron abundance
+
+       abc=2d-4
+
+       CALL coolinmo
+
+c Distance measurements needed for chemistry 
+
+       dlq = 3.086d19
+       dphot = 1.0801d20
+       dchem = 3.086d20
+ 
+      END IF
+
 
 c
 c--Write all quantities on listings

@@ -52,6 +52,7 @@ c************************************************************
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/integ'
+      INCLUDE 'COMMONS/abundances'
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
@@ -1858,6 +1859,18 @@ c
 99044 FORMAT(' Do you want to adjust smoothing length',/,
      + ' to have similar number of neighbours ? (y/n) ')
       READ (*, 99004) iok
+
+c Set abundances of main species
+      IF (iener.EQ.4) THEN
+      PRINT*,'entering in abundances'
+      DO i=1,npart
+        h2ratio(i)=0.
+        abhpq(i)=0.
+        abeq(i)=0.
+        abHIq(i)=1.
+        abco(i)=0.
+      END DO
+      END IF
 
       CALL preset(1)
 

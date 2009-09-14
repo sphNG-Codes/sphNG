@@ -58,7 +58,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/savernd'
       INCLUDE 'COMMONS/eosq'
       INCLUDE 'COMMONS/f2'
-      INCLUDE 'COMMONS/h2'
+      INCLUDE 'COMMONS/abundances'
       INCLUDE 'COMMONS/perform'
 
       DIMENSION itempsort(idim)
@@ -310,6 +310,11 @@ c
       nums(4) = 0
       nums(5) = 1
       nums(6) = 9
+c
+c--For Clare's chemistry
+c
+      IF (iener.EQ.4) nums(6) = nums(6) + 5
+
       IF (nlmax.EQ.1) THEN
          nums(7) = 4
       ELSE
@@ -402,7 +407,14 @@ c--Default real
       END DO
       DO j = 1, 4
          WRITE (idisk1, ERR=100) (vxyzu(j,isort(i)), i=1, nprint)
-      END DO      
+      END DO     
+      IF (iener.EQ.4) THEN
+         WRITE (idisk1, ERR=100) (h2ratio(isort(i)), i=1, nprint)
+         WRITE (idisk1, ERR=100) (abHIq(isort(i)), i=1, nprint)
+         WRITE (idisk1, ERR=100) (abhpq(isort(i)), i=1, nprint)
+         WRITE (idisk1, ERR=100) (abeq(isort(i)), i=1, nprint)
+         WRITE (idisk1, ERR=100) (abco(isort(i)), i=1, nprint)         
+      ENDIF       
 c--real*4
       WRITE (idisk1, ERR=100) (rho(isort(i)), i=1, nprint)
       IF (nlmax.EQ.1) THEN

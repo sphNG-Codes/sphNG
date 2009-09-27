@@ -1,5 +1,5 @@
       COMMON /ptdump/ iptcreat, iptout, iptprint, iptoutnum,
-     &	     ptfile
+     &       ptfile
 
       CHARACTER*25 ptfile
 

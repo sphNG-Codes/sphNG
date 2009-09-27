@@ -1,11 +1,11 @@
       INTEGER listinactive,nlistinactive
-      REAL rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl,
-     &	     boundtemp, bounddens, dxbound,dybound,dzbound,
-     &       variation,phibound,flowrate,signorm,hoverr,partm,
-     &	     rplanet,opdenom,hmass,pradfac,gapfac
+      REAL rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl
+      REAL boundtemp, bounddens, dxbound,dybound,dzbound
+      REAL variation,phibound,flowrate,signorm,hoverr,partm
+      REAL rplanet,opdenom,hmass,pradfac,gapfac
       
       COMMON /rbnd  / rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl,
-     &	     boundtemp, bounddens, opdenom, hmass
+     &                boundtemp, bounddens, opdenom, hmass
 c
 c--these are used in the modbound subroutine for periodic without ghosts
 c

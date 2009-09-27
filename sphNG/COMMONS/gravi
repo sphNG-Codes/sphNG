@@ -2,5 +2,5 @@
       LOGICAL itreeupdate
       INTEGER*8 iuniquestore,iuniquestoreold
 
-      COMMON /gravi/ gravxyzpstore(4,iptdim),
-     &	     itreeupdate, iuniquestore(iptdim),iuniquestoreold(iptdim)
+      COMMON /gravi/ iuniquestore(iptdim),iuniquestoreold(iptdim),
+     &       itreeupdate,gravxyzpstore(4,iptdim)

@@ -12,10 +12,10 @@ c
       COMMON /parms / natom, nlevel, nactatom, nroot
      &               ,numberparents
       COMMON /datums/ qrad(7,mmax),isibdaupar(3,mmax),
-     &		      next1(idim),next2(idim),next3(idim),
+     &                next1(idim),next2(idim),next3(idim),
      &                key(idim), ihash(mmax), 
-     &		      list(mmax), nay(mmax), 
-     &		      listmap(idim), level(nmaxlevel)
-     &		      ,listparents(idim)
-     &		      ,iflagtree(mmax),imfac(idim)
-     &		      ,levelnum(mmax)
+     &                list(mmax), nay(mmax), 
+     &                listmap(idim), level(nmaxlevel)
+     &                ,listparents(idim)
+     &                ,iflagtree(mmax),imfac(idim)
+     &                ,levelnum(mmax)

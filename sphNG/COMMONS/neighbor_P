@@ -4,5 +4,5 @@
       PARAMETER (nlovermax = 150*nlmax)
 
       COMMON /neighbor/ neighb(nlmax,idim),
-     &	                neighover(nlovermax,noverflow),numoverflow,
-     &			numoverflowmax
+     &                  neighover(nlovermax,noverflow),numoverflow,
+     &                  numoverflowmax

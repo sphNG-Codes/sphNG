@@ -1,15 +1,16 @@
       INTEGER nptmass, nptmasstot, nptmasstotlast, nptmasslocal, 
-     &	      listpm, iptmass
+     &        listpm, iptmass
       INTEGER*2 listrealpm
       REAL    spinx, spiny, spinz, hacc, haccall, ptmcrit, radcrit,
-     &	      angaddx, angaddy, angaddz, spinadx, spinady, spinadz,
+     &        angaddx, angaddy, angaddz, spinadx, spinady, spinadz,
      &        ptmassinitial, ptmassaccrate, ptmassoldtime, ptmassold, 
      &        stellarluminosity, stellarmass, stellarenergy, 
      &        stellartime, stellarradius
 
       REAL*8 ptmassform
 
-      COMMON /ptmass/ ptmassform(iptdim),stellarmass(iptdim),
+      COMMON /ptmass/ hacc,haccall,ptmcrit,radcrit,
+     &                ptmassform(iptdim),stellarmass(iptdim),
      &                stellarradius(iptdim),
      &                stellarluminosity(iptdim),
      &                stellartime(iptdim),
@@ -21,6 +22,6 @@
      &                angaddx(iptdim),angaddy(iptdim),angaddz(iptdim),
      &                spinadx(iptdim),spinady(iptdim),spinadz(iptdim),
      &                stellarenergy(iradtrans2),
-     &		      listpm(iptdim),listrealpm(idim),
+     &                listpm(iptdim),listrealpm(idim),
      &                nptmass,nptmasstot,nptmasstotlast,nptmasslocal,
-     &		      iptmass,hacc,haccall,ptmcrit,radcrit
+     &                iptmass

@@ -619,10 +619,10 @@ c--NOTE: iunique is not sorted
 c     NOTE: For small dumps this is ASSUMED to fit within INT*4
 c
       DO i = 1, npart
-         IF (iunique(i).LT.2147483648) THEN
+         IF (iunique(i).LT.huge(i)) THEN
             itempsort(i) = iunique(i)
          ELSE
-            WRITE (*,*) 'ERROR - iunique(i).GE.2147483648'
+            WRITE (*,*) 'ERROR - iunique(i).GE.',huge(i)
             CALL quit
          ENDIF
       END DO

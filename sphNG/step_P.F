@@ -954,7 +954,7 @@ c      ENDIF
       IF (itiming) CALL getused(ts71)
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst0,llist,iscurrent,dt,isteps,imaxstep,f21,f22)
-C$OMP& shared(xyzmh,vxyzu,dum2vxyz,iproc)
+C$OMP& shared(xyzmh,vxyzu,dum2vxyz,dumvxyzu,iproc)
 C$OMP& shared(f1vxyzu,f1ha,f2vxyzu,f2ha,f1Bxyz,f2Bxyz)
 C$OMP& shared(gravx,gravy,gradpx,gradpy,artvix,artviy,gravx1,gravy1)
 C$OMP& shared(gradpx1,gradpy1,artvix1,artviy1,torqt,torqg,torqp)

@@ -1403,7 +1403,7 @@ c               IF (nneighsentback(i).EQ.0) inumofsends = inumofsends-1
       END DO
 #endif
 
-#endif      
+#endif
 c
 c--End of iteration loop
 c
@@ -1426,7 +1426,7 @@ c
          CALL getused(td12)
          td1 = td1 + (td12 - td11)
       ENDIF
-#endif MPI
+#endif
 c
 c--FINISHED CALCULATION OF NEIGHBOURS, DENSITY, AND LONG-RANGE GRAVITY
 c
@@ -1437,9 +1437,9 @@ c
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end)
-C$OMP& shared(xyzmh,vxyzu,pr,vsound,rho,ekcle)
+C$OMP& shared(xyzmh,vxyzu,pr,vsound,rho,ekcle,Bevol)
 C$OMP& shared(iphase,uradconst,icall,encal)
-C$OMP& shared(numproc,iproc,gradmhd)
+C$OMP& shared(numproc,iproc,gradmhd,npart,ntot)
 C$OMP& shared(ivar,ijvar)
 C$OMP& private(n,ipart,k)
 C$OMP& private(nneighlocal)

@@ -701,7 +701,7 @@ c
                         termeta = etamhd*grpmi*rho1j*rho1i  !times rhoi below
                         dBxdissi = dBxdissi + termeta*2.*dBx
                         dBydissi = dBydissi + termeta*2.*dBy
-                        dBzdissi = dBzdissi + termeta*2.*dBz                       
+                        dBzdissi = dBzdissi + termeta*2.*dBz
 c                        dBxdissi = dBxdissi + termeta*
 c     &                             (5.*runix*projdB-3.*dBx)
 c                        dBydissi = dBydissi + 

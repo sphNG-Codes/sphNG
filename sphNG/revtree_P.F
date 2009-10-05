@@ -359,7 +359,7 @@ c         print *,'Revtree nlistpar ',nlistpar,nlstacc
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(natom,npart,xyzmh,imfac,isibdaupar,nlst,llist)
-C$OMP& shared(revtree_lock)
+C$OMP& shared(revtree_lock,listpar)
 C$OMP& shared(nactatom,listmap,iflagtree,ipar,iphase,nlistpar)
 C$OMP& private(j,ipart,iparent)
 

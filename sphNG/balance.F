@@ -370,7 +370,7 @@ c
                         CALL MPI_SEND(poten,1,indexMPI1,j,111,
      &                       MPI_COMM_WORLD, ierr)
 
-c                        IF (idim_h2.EQ.idim) THEN
+                        IF (idim_h2.EQ.idim) THEN
 c                           CALL MPI_SEND(h2mol,1,indexMPIR,j,158,
 c     &                          MPI_COMM_WORLD, ierr)
 

@@ -423,16 +423,34 @@ c************************************************************
       INCLUDE 'COMMONS/savernd'
       INCLUDE 'COMMONS/rbnd'
 
+#ifdef ZEN
+      INTEGER (4)        :: clist(8)
+      INTEGER :: mpi_ppn, omp_get_thread_num,omp_get_num_threads
+#endif
 #ifdef _OPENMP
       INTEGER*8 forcei_lock,revtree_lock
       COMMON /locks / forcei_lock(idim2/10+1),revtree_lock
 #endif
-
+#ifdef ZEN
+      clist(1:8) = (/ 0, 1, 4, 5, 2, 3, 6, 7 /)
+#endif
 #ifdef MPI
       iloop = 0
       CALL MPI_INIT(ierr)
       CALL MPI_COMM_RANK(MPI_COMM_WORLD, iproc, ierr)
       CALL MPI_COMM_SIZE(MPI_COMM_WORLD, numproc, ierr)
+#ifdef ZEN
+!$OMP PARALLEL
+!$OMP.  DEFAULT (none)
+!$OMP.  SHARED  (iproc, clist)
+!$OMP.  PRIVATE (j,mpi_ppn)
+      mpi_ppn=8/omp_get_num_threads() 
+      j = MOD (iproc, mpi_ppn) + omp_get_thread_num() * mpi_ppn 
+      if (iproc==0 .or. iproc == 1) print*,'iproc j mpi_ppn',iproc,j,
+     .mpi_ppn
+      CALL place_me (j, clist)
+!$OMP END PARALLEL        
+#endif
       IF (numproc.GT.nummaxproc) THEN
          WRITE (*,*) 'ERROR - numproc.GT.nummaxproc'
          CALL quit
@@ -440,6 +458,16 @@ c************************************************************
       DO i = 1, idim
          lblocklengths(i) = 1
       END DO      
+#else
+#ifdef ZEN
+!$OMP PARALLEL
+!$OMP.  DEFAULT (none)
+!$OMP.  SHARED  (clist)
+!$OMP.  PRIVATE (j)
+      j = omp_get_thread_num()
+      CALL place_me (j, clist)
+!$OMP END PARALLEL      
+#endif
 #endif
 c
 c--Version - date is date last updated with other code version changes

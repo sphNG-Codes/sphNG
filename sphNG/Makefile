@@ -73,20 +73,22 @@ endif
 
 ifeq ($(SYSTEM), zen)
     ifeq ($(mpi), yes)
-       FC= mpif90
+       FC= mpiifort
 #       FC= ifort -lmpi
     else
        FC= ifort
     endif
     FFLAGS= -O3 -xT -mcmodel=medium -i-dynamic -WB -Vaxlib \
-            -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source\
+            -w90 -w95 -cm -warn uninitialized -warn unused \
+#            -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source\
             -warn interfaces -gen-interfaces
-    OMPFLAG= -openmp
+    OMPFLAG= -openmp -DZEN
     DBLFLAG= -r8
     DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -convert big_endian
     ENDIANFLAGLITTLE= -convert little_endian
+    ZEN_PIN = pin_to_cpu.o
 # or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
     ZZFILE= zzibm.f
 endif
@@ -250,6 +252,8 @@ endif
 # add preprocessor flags (and prefix required for some compilers)
 FFLAGS += ${FPP_PREFIX}${FPPFLAGS}
 
+FFLAGSKEEP := ${FFLAGS}
+
 # these are the sources common to all compilations
 
 SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
@@ -289,7 +293,7 @@ SRCNONGRADH= densityi_P.f derivi_P.f forcei_P.F hcalc.f
 
 # these are the extra routines required for the radiative transfer code to compile
         
-SRCRT= ass.f RT/newgsimpl_MPI.f quartic_gs1t.f
+SRCRT= ass.f RT/getblock.f RT/newgsimpl_MPI.f quartic_gs1t.f
 SRCNORT = ass_dummy.f
 
 # these are the extra routines required for Monte-Carlo radiative transfer
@@ -301,16 +305,35 @@ SRCTORUS= montecarloRT.F
 SRCRK = step_P.F revtree_P.F
 SRCLF = step_P_lf_fast2_gradh.F revtree_P_fast3.f timestep.F
 
+# these are the extra routines required for the stellar evolution code
+
+SRCBAR = RT/Baraffe/1.f RT/Baraffe/gasrad.f RT/Baraffe/sr_all.f \
+	RT/Baraffe/2pz.f RT/Baraffe/sr_r.f \
+	RT/Baraffe/3libeb.f RT/Baraffe/interNEG.f RT/Baraffe/sr_rx.f \
+	RT/Baraffe/blodat0.f RT/Baraffe/kapz2.f RT/Baraffe/sr_x.f \
+	RT/Baraffe/new4.f RT/Baraffe/evol.f RT/Baraffe/screenchab99.f
+TOBJBAR = $(SRCBAR:.f=.o)
+OBJBAR = $(TOBJBAR:.F=.o)
+
+#FFLAGS := -save ${ZZFFLAGS}
+
+# these routines compiled single precision and with -save
+
+#makebaraffe: $(OBJBAR)
+#	$(FC) $(FFLAGS) -o RT/Baraffe/testevol $(OBJBAR)
+
+
 # construct object files
 
 TOBJECTS = $(SOURCES:.f=.o) $(ZZFILE:.f=.o)
 TOBJLF = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCLF:.f=.o)
 TOBJRK = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o)
 TOBJRT = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o)
-TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCNORT:.f=.o)
-TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCNORT:.f=.o)
-TOBJGRADHRKRT = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o)
-TOBJTORUS = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCNORT:.f=.o) $(SRCTORUS:.f=.o)
+TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
+TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
+TOBJGRADHRKRT = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o) $(ZEN_PIN)
+TOBJGRADHRKRTBAR = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o) $(SRCBAR:.f=.o) $(ZEN_PIN)
+TOBJTORUS = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCNORT:.f=.o) $(SRCTORUS:.f=.o) $(ZEN_PIN)
 
 OBJECTS = $(TOBJECTS:.F=.o) 
 OBJLF = $(TOBJLF:.F=.o) 
@@ -319,6 +342,7 @@ OBJRT = $(TOBJRT:.F=.o)
 OBJGRADHLF = $(TOBJGRADHLF:.F=.o) 
 OBJGRADHRK = $(TOBJGRADHRK:.F=.o) 
 OBJGRADHRKRT = $(TOBJGRADHRKRT:.F=.o) 
+OBJGRADHRKRTBAR = $(TOBJGRADHRKRTBAR:.F=.o) 
 OBJTORUS = $(TOBJTORUS:.F=.o) 
 
 # default action for "make"
@@ -342,6 +366,9 @@ default: gradhrk
 #	endif
 #	$(FC) $(FFLAGS) -c sph.f
 
+pin_to_cpu.o: pin_to_cpu.c
+	icc -c pin_to_cpu.c -openmp
+
 lf: checksystem checkparams sph_tree_lf
 
 rk: checksystem checkparams sph_tree_rk
@@ -357,6 +384,8 @@ gradhlf: checksystem checkparams sph_tree_lf_gradh
 gradhrk: checksystem checkparams sph_tree_rk_gradh 
 
 gradhrkrt: checksystem checkparams sph_tree_rk_gradh_RT
+
+gradhrkrtbar: checksystem checkparams sph_tree_rk_gradh_RT_BAR
 
 all: lf rk RT gradhlf gradhrk
 
@@ -377,6 +406,13 @@ sph_tree_rk_gradh_RT: $(OBJGRADHRKRT)
 	@echo "This is the gradh, Runge Kutta, radiative transfer version"
 	@echo ""
 	$(FC) $(FFLAGS) -o $@ $(OBJGRADHRKRT) $(LDFLAGS)
+
+sph_tree_rk_gradh_RT_BAR: $(OBJGRADHRKRT) $(OBJBAR)
+	@echo ""
+	@echo "This is the gradh, Runge Kutta, radiative transfer version"
+	@echo "It includes the Baraffe stellar evolution code"
+	@echo ""
+	$(FC) $(FFLAGS) -o $@ $(OBJGRADHRKRT) $(OBJBAR) $(LDFLAGS)
 
 sph_tree_lf: $(OBJLF)
 	@echo ""
@@ -436,7 +472,7 @@ getdeltat: checksystem checkparams utils/getdeltat.o utils/readdump_sphNG.o idim
 
 zzsun_f77_double2.o: zzsun_f77_double2.f
 	$(FC) -c $(ZZFFLAGS) zzsun_f77_double2.f -o zzsun_f77_double2.o
-        
+
 checksystem:
    ifeq ($(KNOWN_SYSTEM), yes)
 	@echo ""
@@ -492,5 +528,5 @@ updatedepends:
 include .depends
         
 clean:
-	\rm -f *.o *.mod RT/*.o RT/*.mod sph_tree_lf_gradh sph_tree_lf sph_tree_rk_gradh sph_tree_rk ./utils/*.o
+	\rm -f *.o *.mod RT/Baraffe/*.o RT/Baraffe/*.mod RT/*.o RT/*.mod sph_tree_lf_gradh sph_tree_lf sph_tree_rk_gradh sph_tree_rk ./utils/*.o
 # DO NOT DELETE

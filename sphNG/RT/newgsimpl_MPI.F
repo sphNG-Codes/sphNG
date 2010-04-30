@@ -23,11 +23,11 @@ c     2: Baraffe stellar evolution code
 c     3: Constant luminosity
 c     4: Constant radius
 c
-c      PARAMETER (istellarfeedback=0)
+      PARAMETER (istellarfeedback=0)
 c      PARAMETER (istellarfeedback=1)
 c      PARAMETER (istellarfeedback=2)
 c      PARAMETER (istellarfeedback=3)
-      PARAMETER (istellarfeedback=4)
+c      PARAMETER (istellarfeedback=4)
 
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/physcon'

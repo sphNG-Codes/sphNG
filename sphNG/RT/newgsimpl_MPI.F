@@ -21,11 +21,13 @@ c     0: No stellar feedback
 c     1: Tout stellar evolution code
 c     2: Baraffe stellar evolution code
 c     3: Constant luminosity
+c     4: Constant radius
 c
-      PARAMETER (istellarfeedback=0)
+c      PARAMETER (istellarfeedback=0)
 c      PARAMETER (istellarfeedback=1)
 c      PARAMETER (istellarfeedback=2)
 c      PARAMETER (istellarfeedback=3)
+      PARAMETER (istellarfeedback=4)
 
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/physcon'
@@ -254,9 +256,12 @@ c     &            ptmassradius, ptmasstemp)
 
             ELSEIF (istellarfeedback.EQ.2) THEN
                nflag = 1
-               accrate = 1.0E-3
+               accrate = 1.0E-4
+               ptmassaccrate(iptn) = accrate
 
-               CALL evollyon(nflag,iptn,ptmasstime,accrate,starradius,
+               evolveto = 10.0
+
+               CALL evollyon(nflag,iptn,evolveto,accrate,starradius,
      &              starluminosity,startime,starmass)
                stellartime(iptn) = startime
                stellarmass(iptn) = starmass
@@ -276,6 +281,21 @@ c     &            ptmassradius, ptmasstemp)
             ELSEIF (istellarfeedback.EQ.3) THEN
                print *,'New star noted ',iptn,ptmasstime,
      &              ptmassform(iptn)
+            ELSEIF (istellarfeedback.EQ.4) THEN
+               ptmassinitial(iptn) = xyzmh(4,listpm(iptn))
+               ptmassrecord(1,iptn) = ptmassinitial(iptn)
+               ptaccrecord(1,iptn) = ptmassform(iptn)
+               iptmassrecord(iptn) = 1
+c
+c--Note that for istellarfeedback=4, the stellar mass is precisely this - the
+c     estimated mass of the stellar core, excluding the estimated mass of
+c     the disc within the sink particle accretion radius
+c     (i.e. stellarmass << xyzmh(4,listpm(iptn)) )
+c
+               stellarmass(iptn) = 0.006*solarm/umass
+
+               print *,'New star noted ',iptn,ptmasstime,
+     &              ptmassform(iptn),ptmassinitial(iptn)
             ELSE
                WRITE (iprint,*) 'ERROR - istellarfeedback ',
      &              istellarfeedback
@@ -342,7 +362,7 @@ c         ptmassluminosity(iptn) = 1.0E+04*3.827E+33/(uergg*umass/utime)
 
          ELSEIF (istellarfeedback.EQ.2) THEN
 
-            iacclimit = 0
+            iacclimit = 2
             IF (iacclimit.EQ.1) THEN
 c
 c--Time starts from when sink particle exceeds start mass
@@ -361,7 +381,7 @@ c     to make sure stellar
 c     evolution code does not break, another for the accretion rate)
 c
                accrate = MAX(0.9*diffmass/dtstep,1.0E-8)
-               accrate = MIN(accrate,1.0E-3)
+               accrate = MIN(accrate,1.0E-5)
 
                print *,'YYYY ',accrate,ifullstep(listpm(iptn))
 c
@@ -377,6 +397,29 @@ c
 c--End section
 c
             
+            ELSEIF (iacclimit.EQ.2) THEN
+               IF (0.99*xyzmh(4,listpm(iptn))*umass/solarm
+     &              - stellarmass(iptn).GT.
+     &              ptmassinitial(iptn)) THEN
+                  ptmassinitial(iptn) = 0.99*xyzmh(4,listpm(iptn))*
+     &                 umass/solarm - stellarmass(iptn)
+               ENDIF
+
+               diffmass = MAX(0.0,xyzmh(4,listpm(iptn)) - 
+     &              stellarmass(iptn) -
+     &              ptmassinitial(iptn))
+
+               accrate = MAX(1.0*diffmass/dtstep,1.0E-8)
+               accrate = MIN(accrate,1.0E-4)
+c
+c--Limit change in accrate
+c
+               IF (accrate/ptmassaccrate(iptn).GT.1.1) THEN
+                  accrate = 1.5*ptmassaccrate(iptn)
+               ELSEIF (accrate/ptmassaccrate(iptn).LT.0.9) THEN
+                  accrate = 0.5*ptmassaccrate(iptn)
+               ENDIF
+
             ELSE
 c
 c--Allow initial sink particle's mass to be that AFTER it has accreted all
@@ -424,8 +467,8 @@ c--Try to fix 90% of mass deficit during this timestep (one timescale
 c     to make sure stellar
 c     evolution code does not break, another for the accretion rate)
 c
-               accrate = MAX(0.7*diffmass/dtstep,1.0E-8)
-               accrate = MIN(accrate,1.0E-3)
+               accrate = MAX(1.0*diffmass/dtstep,1.0E-8)
+               accrate = MIN(accrate,1.0E-4)
 
                print *,'YYYY ',accrate,ifullstep(listpm(iptn))
 c
@@ -433,10 +476,11 @@ c--Forgets about 90% of the mass deficit over some timescale
 c
                timescalefix = 1.0
 
-c               IF (ifullstep(listpm(iptn))) THEN
+               IF (ifullstep(listpm(iptn))) THEN
 c                  ptmassinitial(iptn) = ptmassinitial(iptn) + 
+c     &                 0.9*(diffmass-accrate*dtstep)
 c     &              MAX(0.0,0.7*(diffmass-accrate*dtstep)/timescalefix)
-c               ENDIF
+               ENDIF
 
 
             ENDIF
@@ -445,11 +489,16 @@ c--New time required for stellar model
 c
             ptmasstime = ptmasstime + dtstep
 
+c     &           (stellarmass(iptn)*
+c     &           umass/solarm/accrate)/10.*0.0)
+
             IF (ifullstep(listpm(iptn)) .AND.
-     &           ptmasstime.GT.stellartime(iptn) + 
-     &           0.016
+     &           ptmasstime.GT.stellartime(iptn)
+c     &           + 0.016
 c     &           *(1.0E-3/accrate)
      &           ) THEN
+
+               evolveto = stellartime(iptn) + MAX(10.0,dtstep)
 
                nflag = 99
 c               IF (dtstep.NE.0.0) THEN
@@ -462,7 +511,6 @@ c                  accrate = 1.0E-8
 c               ENDIF
 c               accrate = 7.0E-4
 
-
                print *,' '
                print *,' '
                print *,'CALLING EvolLyon ',iptn,ptmasstime,dtstep,
@@ -470,13 +518,18 @@ c               accrate = 7.0E-4
                print *,' '
                print *,' '
 
-               CALL evollyon(nflag,iptn,ptmasstime,accrate,starradius,
+               CALL evollyon(nflag,iptn,evolveto,accrate,starradius,
      &              starluminosity,startime,starmass)
 
                stellartime(iptn) = startime
                stellarmass(iptn) = starmass
                stellarradius(iptn) = starradius/solarr
                stellarluminosity(iptn) = starluminosity/solarl
+
+               WRITE (54,78779) iptn,ptmasstime,stellartime(iptn),
+     &              accrate,ptmassaccrate(iptn)
+78779          FORMAT(I3,1X,4(1PE12.5,1X))
+               ptmassaccrate(iptn) = accrate
 
                ptmassluminosity(iptn) = starluminosity/
      &              (uergg*umass/utime)
@@ -489,17 +542,18 @@ c               accrate = 7.0E-4
      &              startime,ptmassluminosity(iptn),
      &              accluminosity
 
-               WRITE(52,*) iptn,ptmasstime,dtstep,
+               WRITE(52,78780) iptn,ptmasstime,dtstep,
      &              accrate,xyzmh(4,listpm(iptn)),starmass,
      &              starradius/solarr,starluminosity/solarl,
      &              startime,ptmassluminosity(iptn),
      &              accluminosity,ptmassinitial(iptn),
      &              ptmassinitial(iptn)+starmass
+78780          FORMAT(I3,1X,12(1PE12.5))
                CALL FLUSH(52)
                CALL FLUSH(20)
 
-c             ptmassluminosity(iptn)=ptmassluminosity(iptn)+accluminosity
-            ptmassluminosity(iptn) = 0.0
+             ptmassluminosity(iptn)=ptmassluminosity(iptn)+accluminosity
+c            ptmassluminosity(iptn) = 0.0
             ELSE
                print *,' '
                print *,' '
@@ -516,11 +570,126 @@ c             ptmassluminosity(iptn)=ptmassluminosity(iptn)+accluminosity
      &              (uergg*umass/utime)
                accluminosity = (((gg*starmass*solarm*accrate*solarm)/
      &              31557600.0)/(starradius*solarr))/(uergg*umass/utime)
+
+             ptmassluminosity(iptn)=ptmassluminosity(iptn)+accluminosity
+c            ptmassluminosity(iptn) = 0.0
             ENDIF
 
          ELSEIF (istellarfeedback.EQ.3) THEN
             ptmassluminosity(iptn)=1.0E+02*solarl/(uergg*umass/utime)
 c            ptmassluminosity(iptn) = 0.0
+         ELSEIF (istellarfeedback.EQ.4) THEN
+            realtime = gt + (dtmax*itime)/imaxstep
+c
+c--Accretion rate since last recorded time in M_sun/yr
+c
+            accrate = (xyzmh(4,listpm(iptn)) - ptmassrecord(1,iptn))*
+     &           umass/solarm/
+     &           ((realtime - ptaccrecord(1,iptn))*utime/31557600.0)
+c
+c--Save time is minimum of 0.1 years and max of 100 years, but is set by
+c     accretion rate (lower accretion rate gives longer period between
+c     saves)
+c
+            savetime = MIN(100.,MAX(0.1,(xyzmh(4,listpm(iptn))*
+     &           umass/solarm)/accrate/1000.0))
+
+c
+c--If sink particle is doing a full step
+c
+            IF (ifullstep(listpm(iptn))) THEN
+c
+c--If there is only one recorded value and the sink particle mass is still
+c     changing rapidly, then over-write the 'first' record.
+c
+               IF (iptmassrecord(iptn).EQ.1 .AND. 
+     &              ABS(xyzmh(4,listpm(iptn))/ptmassrecord(1,iptn))
+     &              .GT.1.1) THEN
+                  idonevalue = 0
+                  ptmassrecord(1,iptn) = xyzmh(4,listpm(iptn))
+                  ptaccrecord(1,iptn) = realtime
+ccc                  stellarmass(iptn) = xyzmh(4,listpm(iptn))
+c
+c--Else see whether the current time is more than savetime from the last
+c     saved point mass data
+c
+               ELSEIF ((realtime - ptaccrecord(iptmassrecord(iptn),
+     &                 iptn))*utime/31557600.0.GT.savetime) THEN
+c
+c--Only iaccrec values are saved (e.g. 10 past values).  If there are less
+c     values than this currently, simply add new record of the point mass's
+c     mass and the time it had that mass.
+c
+                  IF (iptmassrecord(iptn).LT.iaccrec) THEN
+                     idonevalue = 1
+                     iptmassrecord(iptn) = iptmassrecord(iptn) + 1
+
+                     ptmassrecord(iptmassrecord(iptn),iptn) = 
+     &                    xyzmh(4,listpm(iptn))
+                     ptaccrecord(iptmassrecord(iptn),iptn) = realtime
+c
+c--If already have iaccrec records, then delete the oldest record and store
+c     the new one.
+c
+                  ELSE
+                     idonevalue = 2
+                     DO iloop = 1, iaccrec-1
+                     ptmassrecord(iloop,iptn)=ptmassrecord(iloop+1,iptn)
+                     ptaccrecord(iloop,iptn) = ptaccrecord(iloop+1,iptn)
+                     END DO
+                     ptmassrecord(iaccrec,iptn) = xyzmh(4,listpm(iptn))
+                     ptaccrecord(iaccrec,iptn) = realtime
+                  ENDIF
+               ENDIF
+            ENDIF
+c
+c--Set accretion rate based on the current time and mass and the oldest
+c     recorded value of the point mass's mass.  Accretion rate is in
+c     Msun/yr.
+c
+            IF (realtime - ptaccrecord(1,iptn).GT.0.0) THEN
+               accrate = (xyzmh(4,listpm(iptn)) - ptmassrecord(1,iptn))*
+     &              umass/solarm/
+     &              ((realtime - ptaccrecord(1,iptn))*utime/31557600.0)
+            ELSE
+               accrate = 0.0
+            ENDIF
+c
+c--Place limits on accrate
+c
+            IF (accrate.LT.0.0) accrate = 0.0
+            IF (accrate.GT.1.0E-5) accrate = 1.0E-5
+c
+c--Ignore intrinsic protostellar luminosity
+c
+            ptmassluminosity(iptn) = 0.0
+c
+c--Set accretion luminosity using the total mass of the point mass and
+c     a fixed radius.
+c
+            accluminosity = (((gg*stellarmass(iptn)*umass*
+     &           accrate*solarm)/
+     &           31557600.0)/(2.0*solarr))/(uergg*umass/utime)
+
+            ptmassluminosity(iptn)=ptmassluminosity(iptn)+accluminosity
+c            ptmassluminosity(iptn) = 0.0
+
+c
+c--Record the stellar mass as given based on the accretion rate
+c     Output to a file.
+c
+            IF (ifullstep(listpm(iptn))) THEN
+               stellarmass(iptn) = stellarmass(iptn) + accrate*dtstep
+
+               WRITE(52,78789) iptn,ptmasstime,dtstep,
+     &              accrate,xyzmh(4,listpm(iptn)),stellarmass(iptn),
+     &              ptmassluminosity(iptn),
+     &              accluminosity,ptaccrecord(1,iptn),
+     &              ptmassrecord(1,iptn),idonevalue
+78789          FORMAT(I3,1X,9(1PE12.5),1X,I2)
+               CALL FLUSH(52)
+            ENDIF
+            
          ELSE
             WRITE (iprint,*) 'ERROR - istellarfeedback ',
      &           istellarfeedback
@@ -594,6 +763,8 @@ c
             i = listexposed(n,iptn)
             rad = SQRT((xyzmh(1,i)-xipt)**2 + (xyzmh(2,i)-yipt)**2 +
      &           (xyzmh(3,i)-zipt)**2)
+c            fractionexposed(n) = (1.0-COS(ASIN(MIN(1.0,MIN(
+c     &           2*xyzmh(5,i),rad)/rad))))/rho(i)
             fractionexposed(n) = (1.0-COS(ASIN(MIN(1.0,MIN(
      &           2*xyzmh(5,i),rad)/rad))))
 c            fractionexposed(n) = (1.0-COS(ASIN(MIN(1.0,MIN(

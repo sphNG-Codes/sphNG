@@ -96,7 +96,7 @@ c**************************************c
 
 
       IMPLICIT NONE
-      real*8 inverf, inverfnew, x, pi, c, difference
+      real*8 inverf, inverfnew, x, pi, c_func, difference
       integer k, kmax
       parameter (kmax=1000000)
 
@@ -110,7 +110,7 @@ c      write(*,*)'x = ',x
 c Sum the Maclaurins series for erf
       do k=0, kmax 
 
-         inverfnew = inverf+c(k)/(2*k+1)*(sqrt(pi)/2*x)**(2*k+1)
+         inverfnew = inverf+c_func(k)/(2*k+1)*(sqrt(pi)/2*x)**(2*k+1)
 c         write(*,*) 'inverf, inverfnew = ', inverf, inverfnew
 
          if (inverfnew-inverf .LT. 1e-7) then
@@ -136,11 +136,11 @@ c      write(*,*)'kmax reached: increase kmax'
 
 c-------------------
 
-      FUNCTION c(k)
+      FUNCTION c_func(k)
 
       integer k, kmax, m
       parameter (kmax=1000000)
-      real*8 c
+      real*8 c_func
       real, save :: cdummy(0:kmax)
 
       cdummy(k) = 0.0
@@ -154,7 +154,7 @@ c-------------------
          end do
       end if
 
-      c = cdummy(k)
+      c_func = cdummy(k)
 
       RETURN
       END

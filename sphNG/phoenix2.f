@@ -350,7 +350,7 @@ c
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/zeus'
 
-      REAL muint,interp
+      REAL muint,interp_func
 c
 c--Find which zeus dump applies to planet's Hill mass
 c
@@ -414,22 +414,22 @@ c
      &                 vp(2,i,j,k),(hmass-0.000003))
 
                ELSE
-                  densityint = interp(log(density(izeus-1,i,j,k)),
+                  densityint = interp_func(log(density(izeus-1,i,j,k)),
      &                 log(density(izeus,i,j,k)),
      &                 log(density(izeus+1,i,j,k)),
      &                 log(density(izeus+2,i,j,k)),muint)
 
                   densityint = exp(densityint)
 
-                  vrint = interp(vr(izeus-1,i,j,k),
+                  vrint = interp_func(vr(izeus-1,i,j,k),
      &                 vr(izeus,i,j,k),vr(izeus+1,i,j,k),
      &                 vr(izeus+2,i,j,k),muint)
 
-                  vtint = interp(vt(izeus-1,i,j,k),
+                  vtint = interp_func(vt(izeus-1,i,j,k),
      &                 vt(izeus,i,j,k),vt(izeus+1,i,j,k),
      &                 vt(izeus+2,i,j,k),muint)
 
-                  vpint = interp(vp(izeus-1,i,j,k),
+                  vpint = interp_func(vp(izeus-1,i,j,k),
      &                 vp(izeus,i,j,k),vp(izeus+1,i,j,k),
      &                 vp(izeus+2,i,j,k),muint)
                ENDIF
@@ -489,11 +489,11 @@ c
 c
 c--Interpolation function
 c
-      FUNCTION interp(y0,y1,y2,y3,mu)
+      FUNCTION interp_func(y0,y1,y2,y3,mu)
 
-      REAL y0,y1,y2,y3,mu,a0,a1,a2,a3,interp,mu2
+      REAL y0,y1,y2,y3,mu,a0,a1,a2,a3,interp_func,mu2
 
-      interp = 0.0
+      interp_func = 0.0
 
       a0 = y3 - y2 - y0 + y1
       a1 = y0 - y1 - a0
@@ -502,9 +502,9 @@ c
 
       mu2 = mu*mu
 
-      interp = a0*mu*mu2+a1*mu2+a2*mu+a3
+      interp_func = a0*mu*mu2+a1*mu2+a2*mu+a3
 
-      END FUNCTION interp
+      END FUNCTION interp_func
 c
 c--Extrapolation function
 c

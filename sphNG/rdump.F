@@ -53,13 +53,13 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/savernd'
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/abundances'
+      INCLUDE 'COMMONS/Bxyz'
 
       CHARACTER*7 where
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
       INTEGER*8 number8
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
-      DIMENSION Bxyz(3,imhd)
       PARAMETER (idimhead = 23)
       DIMENSION rheader(idimhead)
 

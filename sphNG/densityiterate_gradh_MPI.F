@@ -159,10 +159,12 @@ c
          ENDIF
       END DO
 #ifdef MPI
-      IF (nptmasssend.NE.nptmass) THEN
-         WRITE (*,*) 'ERROR - nptmasssend.NE.nptmass ',nptmasssend,
-     &        nptmass
-         CALL quit
+      IF (individualtimesteps.NE.2) THEN
+         IF (nptmasssend.NE.nptmass) THEN
+            WRITE (*,*) 'ERROR - nptmasssend.NE.nptmass ',nptmasssend,
+     &           nptmass
+            CALL quit
+         ENDIF
       ENDIF
 #endif
 
@@ -360,8 +362,8 @@ c
 #endif
 
                IF (iteration.EQ.1) THEN
-                  CALL MPI_SENDRECV(iuniquesend, nptmass, MPI_INTEGER8,
-     &                 iahead, 9,
+                  CALL MPI_SENDRECV(iuniquesend, nptmasssend, 
+     &                 MPI_INTEGER8, iahead, 9,
      &                 iuniquestore(nptmasslocal2+1), iptdim, 
      &                 MPI_INTEGER8, ibehind, 9, 
      &                 MPI_COMM_WORLD, istatus, ierr)
@@ -395,7 +397,7 @@ c
      &                       MPI_COMM_WORLD, ierr)
 
                         IF (iteration.EQ.1) THEN
-                           CALL MPI_SEND(iuniquesend,nptmass,
+                           CALL MPI_SEND(iuniquesend,nptmasssend,
      &                          MPI_INTEGER8,jj,9,MPI_COMM_WORLD, ierr)
                         ENDIF
                      ENDIF
@@ -991,11 +993,13 @@ c
          END DO
  444     CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
          CALL MPI_TYPE_FREE(indexMPI5,ierr)
-         IF (iteration.EQ.1) THEN
-            IF (nptmasslocal2.NE.nptmasstot) THEN
-               WRITE (*,*) 'ERROR - nptmasslocal2.NE.nptmasstot ',
-     &              nptmasslocal2, nptmasstot
-               CALL quit
+         IF (individualtimesteps.NE.2) THEN
+            IF (iteration.EQ.1) THEN
+               IF (nptmasslocal2.NE.nptmasstot) THEN
+                  WRITE (*,*) 'ERROR - nptmasslocal2.NE.nptmasstot ',
+     &                 nptmasslocal2, nptmasstot
+                  CALL quit
+               ENDIF
             ENDIF
          ENDIF
 c

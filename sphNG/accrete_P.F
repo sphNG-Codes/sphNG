@@ -106,7 +106,7 @@ c
       print *,iproc,': ACCRETE: idoittot, numproc ',idoittot, numproc,
      &     icreate, icreatetot
 #endif
-      IF (idoittot.EQ.numproc) idoaccrete = .TRUE.
+      IF (idoittot.GT.0) idoaccrete = .TRUE.
 #else
       IF (nlst0.GT.nptmass) idoaccrete = .TRUE.
 #endif
@@ -2237,6 +2237,12 @@ c            print *,iproc,': Trying to close ',iptprint
 
       IF (icreate.EQ.1) iaccr = 1
       icreatetot = 0
+
+#ifdef MPI
+#ifdef MPIDEBUGS
+            print *,iproc,': Exiting accrete'
+#endif
+#endif
 
       RETURN
       END

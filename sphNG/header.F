@@ -48,6 +48,7 @@ c************************************************************
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/initpt'
       INCLUDE 'COMMONS/h2'
 
       REAL*8 angmom
@@ -148,7 +149,7 @@ c
      &           '   self-gravity     : ', I2, /,
      &           ' artificial viscosity   : ', I2,
      &           '   coriolis         : ', I2, /,
-     &           ' boundary type          : ', I2,
+     &           ' boundary type          : ', I3,
      &           '   external force   : ', I2, /,
      &           ' energy conservation    : ', I2,
      &           '   shock heating    : ', I2, /,
@@ -246,15 +247,32 @@ c
      &           '  planet mass     : ',1PE12.4,/,
      &           '  planet radius   : ',1PE12.4,/)
          ELSEIF (ibound.EQ.102) THEN
-            WRITE (iprint,99534) rcyl,rmind,
-     &           signorm,hoverr,xyzmh(4,listpm(1)),rplanet
-99534       FORMAT (/,' Boundary type: whole disc  ',/,
-     &           '  outer radius    : ',1PE12.4,/,
-     &           '  inner radius    : ',1PE12.4,/,
-     &           '  sigma normal.   : ',1PE12.4,/,
-     &           '  disc H/R        : ',1PE12.4,/,
-     &           '  planet mass     : ',1PE12.4,/,
-     &           '  planet radius   : ',1PE12.4,/)
+            IF (initialptm.EQ.5) THEN
+               WRITE (iprint,99535) rcyl,rmind,
+     &              signorm,hoverr,xyzmh(4,listpm(1)),rplanet,
+     &              uniformtslim
+99535          FORMAT (/,' Boundary type: whole disc  ',/,
+     &              '  outer radius    : ',1PE12.4,/,
+     &              '  inner radius    : ',1PE12.4,/,
+     &              '  sigma normal.   : ',1PE12.4,/,
+     &              '  disc H/R        : ',1PE12.4,/,
+     &              '  planet mass     : ',1PE12.4,/,
+     &              '  planet radius   : ',1PE12.4,/,
+     &              '  uniform ts rad  : ',1PE12.4,/)
+            ELSEIF (initialptm.EQ.0) THEN
+               WRITE (iprint,99534) rcyl,rmind,
+     &              signorm,hoverr,planetmass,rplanet
+            ELSE
+               WRITE (iprint,99534) rcyl,rmind,
+     &              signorm,hoverr,xyzmh(4,listpm(1)),rplanet
+99534          FORMAT (/,' Boundary type: whole disc  ',/,
+     &              '  outer radius    : ',1PE12.4,/,
+     &              '  inner radius    : ',1PE12.4,/,
+     &              '  sigma normal.   : ',1PE12.4,/,
+     &              '  disc H/R        : ',1PE12.4,/,
+     &              '  planet mass     : ',1PE12.4,/,
+     &              '  planet radius   : ',1PE12.4,/)
+            ENDIF
          ENDIF
 c
 c--Critical densities for variable gamma

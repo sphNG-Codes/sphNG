@@ -64,6 +64,7 @@ c************************************************************
       DIMENSION Bevolxyz(3,imhd2),dBevolxyz(3,imhd3)
 
       INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/table'
       INCLUDE 'COMMONS/tlist'
       INCLUDE 'COMMONS/btree'
@@ -135,8 +136,11 @@ c
       nlst_end = nlst
 
       IF (iexf.EQ.7 .OR. ibound.EQ.102) THEN
+         realtime = dt*itime/imaxstep+gt
          IF (rplanet.NE.0.0) THEN
-            pradfac = (rplanet + (0.01*exp(-4.*gt/pi)))/rplanet
+            pradfac = (rplanet + (0.01*exp(-4.*realtime/pi)))/rplanet
+c--Double shrink time.
+c            pradfac = (rplanet + (0.01*exp(-2.*realtime/pi)))/rplanet
             IF (pradfac.LT.1.001) pradfac = 1.0
          ELSE
             pradfac = 0.0
@@ -650,7 +654,8 @@ c--Compute implicit radiative transfer
 c     
       IF (itiming) CALL getused(tass1)
 
-      IF(encal.EQ.'r' .OR. (encal.EQ.'i' .AND. ibound.EQ.102)) THEN
+      IF(encal.EQ.'r' .OR. (encal.EQ.'i' .AND. ibound.EQ.102) 
+     &     .OR. (encal.EQ.'i' .AND. ibound.EQ.100)) THEN
 
 ccc         thermalenergy = 0.
 ccc         radenergy = 0.
@@ -717,11 +722,25 @@ ccc99555    FORMAT(I2,': ENER-B ',I1,1PE14.7,1PE14.7,1PE14.7)
 c         CALL quit
 
          IF (encal.EQ.'r') THEN
-            WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
+c            WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
             CALL ASS(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
      &           xyzmh,vxyzu,ekcle,dumrho,dedxyz,alphaMM)
-         ELSE
-c--Added for Isothermal disc case
+         ELSEIF (ibound.EQ.102 .AND. use_tprof) THEN
+c-- Added for Isothermal whole disc case with t-profile
+            rho0 = 0.2
+            DO i = 1, npart
+               IF (iphase(i).EQ.0) THEN
+                  radius = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+                  boundtempl =  gmw*hoverr**2*radius**
+     &                 (tprof+1)/((Rg/uergg)*gamma*radius)
+                  vxyzu(4,i) = getu(rho(i), boundtempl)
+                  IF (rho(i).GT.rho0) THEN
+                     vxyzu(4,i) = vxyzu(4,i)*(rho(i)/rho0)**0.8
+                  ENDIF
+               ENDIF
+            END DO
+         ELSEIF (ibound.EQ.100 .OR. ibound.EQ.102) THEN
+c--Added for Isothermal disc section case and whole disc with u profile
             rho0 = 0.2
             DO i = 1, npart
                IF (iphase(i).EQ.0) THEN
@@ -733,7 +752,7 @@ c--Added for Isothermal disc case
                ENDIF
             END DO
          ENDIF
-
+         
 ccc         thermalenergy = 0.
 ccc         radenergy = 0.
 c         DO i = 1, npart

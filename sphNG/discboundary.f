@@ -29,51 +29,44 @@ c FM: produce array of the boundary height for radii from rmin to rcyl
       do i=1, nsteps+1
 
          cv = 1.5*Rg/(gmw*uergg)         
-         rhocold = 1.0E-15/udens  !convert from cgs to code units
+         rhocold = 1.0E-15*udist**3/umass  !convert cgs to code units
 
          IF (ibound.EQ.101) boundtempl = (gmw/(gamma*Rg/uergg))
      &        *hoverr**2*G*Mstar_init/R_o*(R_o/radius)**0.5
-         radius = 1.0
 
-         IF (ibound.EQ.102) boundtempl = gmw*hoverr**2/((Rg/uergg)*
-     &        gamma*radius)
+         IF (ibound.EQ.102 .AND. use_tprof) THEN
+            boundtempl = gmw*hoverr**2*radius**
+     &           (tprof+1)/((Rg/uergg)*gamma*radius)
+         ELSEIF (ibound.EQ.102) THEN
+            boundtempl = gmw*hoverr**2/((Rg/uergg)*
+     &           gamma*radius)
+         ELSE
+            print *, 'You should not be in discboundary.f'
+            STOP
+         ENDIF
 
-         ucold = boundtempl*cv
-         icounter = 0
-         do
-            cv = GETCV(rhocold,ucold)
-            T_iterative = ucold/cv
-            icounter = icounter+1
+         ucold = getu(rhocold, boundtempl)
+         cv = getcv(rhocold,ucold)
 
-            IF (abs(boundtempl-T_iterative) .le. 1.0) THEN
-               GOTO 102
-            ELSE
-               fraction = T_iterative/boundtempl
-               ucold = ucold/fraction
-            ENDIF
-
-            IF (icounter .gt. 1000000) THEN
-               GOTO 101
-            ENDIF
-         enddo
-
- 101     write(*,*)'icount exceeded: ',boundtempl,T_iterative,icounter 
-         STOP
- 102     continue
-         
          kappa = getkappa(ucold, cv, rhocold)
 
          IF (ibound.EQ.101) sigma_init = hoverr/(2*pi)*Mstar_init/
      &        (R_o*R_out**3)**0.25*(R_o/radius)
-         IF (ibound.EQ.102) sigma_init = 75.0*udist**2/umass*
+         IF (ibound.EQ.102) sigma_init = (75.0*udist**2/umass)*
      &        signorm/radius**0.5
 
          x = 1.0-2.0/(kappa*sigma_init)
-         zoverh(i) = sqrt(2.0)*abs(inverf(x))
+         zoverh(i) = 0.0
+         IF (x .gt. 0.0 .AND. x.lt. 1.0) THEN
+            zoverh(i) = sqrt(2.0)*abs(inverf(x))
+         ENDIF
+         zoverh(i) = MAX(1.5, zoverh(i))
+c--This should be in H as above, NOT the value of H as below.
+c   zoverh(i) = MAX(hoverr*radius**(0.5*(tprof+3))*1.5, zoverh(i))
 
-c         write(36,12345) radius, zoverh(i), sigma_init,boundtempl,
-c     &        x,inverf(x),kappa,zoverh(i)*0.05*radius
-12345    FORMAT(8(2X,1PE12.5))
+c      write(36,12345) radius, zoverh(i), sigma_init,boundtempl,
+c     &  x,kappa,zoverh(i)*hoverr*radius**(0.5*(tprof+3)),ucold/cv
+c12345    FORMAT(8(2X,1PE12.5))
 
          radius = rmind + (i-1)*deltar
 
@@ -97,27 +90,30 @@ c**************************************c
 
       IMPLICIT NONE
       real*8 inverf, inverfnew, x, pi, c_func, difference
-      integer k, kmax
-      parameter (kmax=1000000)
+      integer k, kmax, sign
+      parameter (kmax=1000001)
 
-c DEFINE VARIABLES ETC HERE
+      sign = 1
+      IF (x.ge.1.0 .OR. x.le.-1.0) THEN
+         print *, 'ERROR: Invalid x value for InvErf'
+         STOP
+      ENDIF
+      IF (x .lt. 0.0) then
+         sign = -1
+      ENDIF
 
       inverf = 0.0
       pi = acos(-1.0)
-
-c      write(*,*)'x = ',x
-
+      
 c Sum the Maclaurins series for erf
       do k=0, kmax 
-
-         inverfnew = inverf+c_func(k)/(2*k+1)*(sqrt(pi)/2*x)**(2*k+1)
+         inverfnew = inverf+c_func(k)/(2*k+1)*(abs(x)*sqrt(pi)/2.0)
+     &        **(2*k+1)
 c         write(*,*) 'inverf, inverfnew = ', inverf, inverfnew
 
          if (inverfnew-inverf .LT. 1e-7) then
             difference = inverfnew-inverf
             inverf = inverfnew
-c            write(*,*) 'k, inverf = ', k, inverf
-c            write(*,*) 'difference = ', difference
             go to 100
          else
             inverf = inverfnew
@@ -125,11 +121,11 @@ c            write(*,*) 'difference = ', difference
 
       end do
 
-c      write(*,*)'kmax reached: increase kmax'
       stop
 
- 100    continue
+ 100  continue
 
+      inverf = inverf*real(sign)
 
       RETURN
       END

@@ -2535,6 +2535,7 @@ c
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/gravi'
+      INCLUDE 'COMMONS/initpt'
 
 #ifdef MPI
       INCLUDE 'mpif.h'
@@ -2559,7 +2560,7 @@ c
       ENDIF
 
       IF (nlst_doing.GT.nptmasstot .OR. nptmasstot.NE.nptmasstotlast
-     &     .OR. iptintree.EQ.2) THEN
+     &     .OR. iptintree.EQ.2 .OR. initialptm.EQ.5) THEN
          CALL treef(ipart,npart,ntot,xyzmh,acc,igphi,fsx,fsy,fsz,epot)
 
          IF (iptintree.NE.2) THEN

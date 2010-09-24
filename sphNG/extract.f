@@ -264,6 +264,9 @@ c--disc struggling to adapt to the sudden addition.
                         ENDIF
                      END DO
                   END DO
+                  print *, 'Enter a uniform timestep limit (in RHill)'
+                  READ (*,*) uniformtslim
+                  uniformtslim2 = uniformtslim*uniformtslim
                ENDIF
             ENDIF
          ENDIF

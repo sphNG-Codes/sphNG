@@ -160,22 +160,28 @@ c
 !     PRINT *,getkappa,umass,udist,rkappa,v,w
 
       IF (opdenom.NE.1.0) THEN
-         mu = (lrho-dusttable(nkrho1,1))/
-     &        (dusttable(nkrho1-1,1) - dusttable(nkrho1,1))
+c--New index, ndrho, required for new dusttbl now with different
+c  dimensions to optable.
+         ndrho = INT(((lrho + 14)/0.014)+2)
+         IF (ndrho.LE.1) ndrho = 2
+         IF (ndrho.GT.duslen) ndrho = 1001
 
-         minop = log10(dusttable(nkrho1,3)) + mu*(log10(
-     &        dusttable(nkrho1-1,3)) -
-     &        log10(dusttable(nkrho1,3)))
+         mu = (lrho-dusttable(ndrho,1))/
+     &        (dusttable(ndrho-1,1) - dusttable(ndrho,1))
 
-         mintemp = dusttable(nkrho1,2) + mu*(dusttable(nkrho1-1,2) -
-     &        dusttable(nkrho1,2))
+         minop = log10(dusttable(ndrho,3)) + mu*(log10(
+     &        dusttable(ndrho-1,3)) -
+     &        log10(dusttable(ndrho,3)))
 
-         maxop = log10(dusttable(nkrho1,5)) + mu*(log10(
-     &        dusttable(nkrho1-1,5)) -
-     &        log10(dusttable(nkrho1,5)))
+         mintemp = dusttable(ndrho,2) + mu*(dusttable(ndrho-1,2) -
+     &        dusttable(ndrho,2))
 
-         maxtemp = dusttable(nkrho1,4) + mu*(dusttable(nkrho1-1,4) -
-     &        dusttable(nkrho1,4))
+         maxop = log10(dusttable(ndrho,5)) + mu*(log10(
+     &        dusttable(ndrho-1,5)) -
+     &        log10(dusttable(ndrho,5)))
+
+         maxtemp = dusttable(ndrho,4) + mu*(dusttable(ndrho-1,4) -
+     &        dusttable(ndrho,4))
 
          minop = 10**(minop)
          minop = minop*umass/udist**2

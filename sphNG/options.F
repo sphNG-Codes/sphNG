@@ -79,7 +79,7 @@ c
      &           namenextrun(j:j).LE.'9')) THEN
                READ (namenextrun(j:j),88001) number
                number = number + icarry
-               WRITE (namenextrun(j:j),88001) number               
+               WRITE (namenextrun(j:j),88001) number
             ENDIF
             GOTO 100
          ELSEIF (namenextrun(i:i).NE.' ') THEN
@@ -206,6 +206,8 @@ c      ENDIF
       ENDIF
 
       IF (ibound.EQ.102) THEN
+         READ (iterm, *) use_tprof
+         IF (use_tprof) READ (iterm, *) tprof
          READ (iterm, *) signorm,hoverr,partm
       ENDIF
 
@@ -218,8 +220,12 @@ c      ENDIF
          READ (iterm, *) rplanet
       ENDIF
 
-      IF (ibound.EQ.102) THEN
+      IF (ibound.EQ.102 .AND. iexf.NE.7) THEN
          READ (iterm, *) rplanet
+         IF (initialptm.EQ.5) THEN
+            READ (iterm, *) uniformtslim
+            uniformtslim2 = uniformtslim*uniformtslim
+         ENDIF
       ENDIF
 
       IF (iptmass.NE.0 .OR. initialptm.NE.0) THEN

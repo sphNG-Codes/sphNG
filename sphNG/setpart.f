@@ -56,7 +56,7 @@ c************************************************************
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
-      CHARACTER*1 ien, irotref
+      CHARACTER*1 ien, irotref, uort
 c
 c--Initialise time
 c
@@ -117,7 +117,7 @@ c
          READ (*,*) numpt
 
          WRITE (*, 99091) 
-99091    FORMAT (' Enter type of point mass (1,2,3,4,5)')
+99091    FORMAT (' Enter type of point mass (1,2,3,4,5,6)')
          READ (*,*) ipttype
          initialptm = ipttype
 
@@ -263,17 +263,19 @@ c
                ENDIF
             ENDIF
          ELSE
- 556        WRITE (*, 99090) 
-            READ (*,*) hacc
-            WRITE (*, 99092) 
-            READ (*,*) haccall
-            IF (haccall.GT.hacc) THEN
-               WRITE(*,*) 'Inner <= Outer Radius'
-               GOTO 556
+            IF (ipttype.NE.5) THEN
+ 556           WRITE (*, 99090) 
+               READ (*,*) hacc
+               WRITE (*, 99092) 
+               READ (*,*) haccall
+               IF (haccall.GT.hacc) THEN
+                  WRITE(*,*) 'Inner <= Outer Radius'
+                  GOTO 556
+               ENDIF
+               DO i = 1, numpt
+                  xyzmh(5,i) = hacc
+               END DO
             ENDIF
-            DO i = 1, numpt
-               xyzmh(5,i) = hacc
-            END DO
          ENDIF
          specang = SQRT(totptmass)
          ptmassin = totptmass
@@ -494,6 +496,22 @@ c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
          WRITE (*, 89003) udist
          READ (*, *) rcyl, rmind, faclod
 
+         use_tprof = .false.
+77001    FORMAT (' Use standard u propto r^-0.5 initial disc',/
+     &        ' (u) or set a specific temperature profile (t)?')
+ 174     WRITE (*, 77001)
+         READ (*,99004) uort
+         IF (uort.EQ.'t') THEN
+            use_tprof = .true.
+            WRITE (*, 99023)
+            READ (*,*) tprof
+         ELSEIF (uort.NE.'u') THEN
+            goto 174
+         ENDIF
+
+99023    FORMAT ('Please choose a temperature profile for the disc',/
+     &        'i.e. T propto r^tprof, where tprog = -1')
+
          hoverr = faclod
          zmax = rcyl * faclod
          zmin = - zmax
@@ -507,12 +525,6 @@ c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
          READ (*,*) rplanet
 
          IF (nptmass.EQ.1) THEN
-
-c            WRITE (*,89001)
-c89001       FORMAT ('Sink with surface (s) or sink accretion (a)?')
-c            READ (*,*) iacc
-c            IF (iacc.EQ.'s') THEN
-
             IF (iphase(listpm(1)).EQ.5) THEN
                hacc = 1.0E-8
                haccall = 1.0E-8
@@ -521,9 +533,9 @@ c            IF (iacc.EQ.'s') THEN
                haccall = rplanet
                rplanet = 0.0
             ENDIF
+            xyzmh(5,listpm(1)) = hacc
          ENDIF
 
-         xyzmh(5,listpm(1)) = hacc
          hzero = rplanet/5.
          nlistinactive = 0
          IF (rplanet.NE.0.0) THEN
@@ -971,7 +983,7 @@ c
          partm = totmas/(npart - nptmass)
 
          DO i = nptmass + 1, npart
-            rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2)
+            rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2) + xyzmh(3,i)**2)
             rhotemp = (75.*signorm*sqrt(1./rtemp)*udist**2/umass)/
      &           (6.*0.05*rtemp)
             xyzmh(5,i) = 1.2*(partm/rhotemp)**(1./3.)
@@ -1044,10 +1056,20 @@ c
 c--Set e.o.s. related quantities
 c
       IF (ibound.EQ.102) THEN
+         IF (initialptm.EQ.5) THEN
+99021 FORMAT ('For migration with a planet surface, momentum',/
+     &           'conservation near the sink particle is key.',/
+     &           'This is improved by setting a uniform timestep',/
+     &           'for particles in the region.',/
+     &           'Please choose the fraction of the Hill radius',/
+     &           'out to which timesteps will all be the minimum:')
+            WRITE (*, 99021)
+            READ (*,*) uniformtslim
+            uniformtslim2 = uniformtslim*uniformtslim
+         ENDIF
          varsta = 'intener'
          GOTO 603
       ENDIF
-
       WRITE (*, 99022)
 99022 FORMAT (' What is the equation of state variable:', /,
      &        ' specific internal energy :  intener (i)', /,
@@ -1102,7 +1124,7 @@ c
      &        '   Variable gamma, p=A*rho^gamma (v)',/,
      &        '      critical rho (s) = ', 1PE14.5, 1PE14.5, 1PE14.5)
          READ (*, 99004) encal
-         IF (encal.EQ.'i' .AND. ibound.EQ.102) THEN
+         IF (encal.EQ.'i' .AND. (ibound.EQ.102.OR.ibound.EQ.100)) THEN
             gamma = 5.0/3.0
          ELSE IF (encal.EQ.'p') THEN
             WRITE (*,99032)
@@ -1249,9 +1271,14 @@ c            print*,'rho(medium) = ',rhozero/rhocontrast,rhozero
          ELSE
             DO i = 1, npart
                vxyzu(4,i) = thermal
-               IF (igeom.EQ.9 .OR. igeom.EQ.10) THEN
+               IF (igeom.EQ.10 .AND. use_tprof) THEN
+                  radius = SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2)
+                  vxyzu(4,i)=(hoverr**2*radius**tprof)/
+     &                 (gamma*(gamma-1.0))
+               ELSEIF (igeom.EQ.9 .OR. igeom.EQ.10) THEN
                   vxyzu(4,i)=hoverr**2/
-     &            (SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2)*gamma*(gamma-1.0))
+     &                 (SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2)*gamma*
+     &                 (gamma-1.0))
                ENDIF
             END DO
          ENDIF
@@ -1880,7 +1907,13 @@ c Set abundances of main species
       ENDIF
 
       IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim) CALL hcalc
-      IF (imhd.NE.idim) THEN      
+
+      print *, xyzmh(1,100), xyzmh(1, 1000), xyzmh(2, 3000)
+      print *, vxyzu(4,100), vxyzu(1,1000), vxyzu(4,3000)
+
+      IF (igeom.EQ.10 .AND. use_tprof) CALL uset
+
+      IF (imhd.NE.idim) THEN
          Bextx = 0.
          Bexty = 0.
          Bextz = 0.

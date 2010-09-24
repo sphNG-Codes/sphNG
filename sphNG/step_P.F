@@ -351,7 +351,13 @@ c
 c--END: For calculating instantaneous torques about density maximum
 c
          rhomaxsync = 0.
-         DO i = 1, npart
+c
+c--This was changed from npart to ntot to ensure ekcle(2,i) is set
+c  for the ghost particles, thus avoiding a Four solutions error
+c  in newgsimpl when it call quartic.
+c
+c         DO i = 1, npart
+         DO i = 1, ntot
             iscurrent(i) = .FALSE.
             IF (iphase(i).EQ.0) rhomaxsync = MAX(rhomaxsync, rho(i))
 
@@ -1726,7 +1732,7 @@ c
 c--Dead particle boundaries - planet embedded in whole disc
 c
 c         GOTO 723
-         IF (ibound.EQ.102 .AND. iexf.EQ.5) THEN
+         IF (ibound.EQ.102) THEN
             r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
             IF (r2.GT.rcyl**2) THEN
                iphase(i) = -1
@@ -1798,7 +1804,11 @@ c
          errvy = ABS(f1vxyzu(2,i) - f2vxyzu(2,i))
          errvz = ABS(f1vxyzu(3,i) - f2vxyzu(3,i))
          IF (iphase(i).EQ.0) THEN
-            erru = ABS(f1vxyzu(4,i) - f2vxyzu(4,i))
+            IF (encal.EQ.'r') THEN
+               erru = 0.
+            ELSE
+               erru = ABS(f1vxyzu(4,i) - f2vxyzu(4,i))
+            ENDIF
          ELSE
             erru = 0.
          ENDIF
@@ -2117,6 +2127,29 @@ c
                it2(iptcur) = it0(iptcur) + isteps(iptcur)
             ENDIF
          END DO
+c
+c--Additional constraint for planet with surface for migration
+c
+         IF (ibound.EQ.102 .AND. nptmass.EQ.1) THEN
+            IF (iphase(listpm(1)).EQ.5) THEN
+               radiushill2 = (xyzmh(4,listpm(1))/3.0)**(2./3.)
+               DO i = 1, npart
+                  IF ((iphase(i).LT.1 .OR. iphase(i).GT.10) .AND.
+     &                 it0(i).EQ.itime) THEN
+                     dx = xyzmh(1,i) - xyzmh(1,listpm(1))
+                     dy = xyzmh(2,i) - xyzmh(2,listpm(1))
+                     dz = xyzmh(3,i) - xyzmh(3,listpm(1))
+                     radius = dx*dx + dy*dy + dz*dz
+                     IF (radius.LT.uniformtslim2*radiushill2) THEN
+                        isteps(i) = istepmin
+                        it1(i) = it0(i) + isteps(i)/2
+                        it2(i) = it0(i) + isteps(i)
+                     ENDIF
+                  ENDIF
+               END DO
+            ENDIF
+         ENDIF
+
       ELSEIF (individualtimesteps.EQ.2) THEN
 c
 c--All particles can have individual timesteps (including sink particles)

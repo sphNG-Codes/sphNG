@@ -44,6 +44,7 @@ c************************************************************
       INCLUDE 'COMMONS/tgtbl'
       INCLUDE 'COMMONS/mutbl'
       INCLUDE 'COMMONS/dusttbl'
+      INCLUDE 'COMMONS/utbl'
       INCLUDE 'COMMONS/gaptbl'
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/cgas'
@@ -239,8 +240,8 @@ c
          print *,iproc,': Preset Ds ',listpm(i)
 #endif
          iptcur = listpm(i)
-         IF (initialptm.LT.1 .OR. initialptm.GT.5) CALL error(where, 2)
-c         iphase(iptcur) = initialptm
+         IF (initialptm.LT.1 .OR. initialptm.GT.6) CALL error(where, 2)
+         iphase(iptcur) = initialptm
 cccc         xyzmh(5,iptcur) = hacc
       END DO
 c
@@ -295,17 +296,24 @@ c
 c--Load in tables of opacity and cv
 c
 c      IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
-      IF (encal.EQ.'r') THEN
+      IF (encal.EQ.'r' .OR. (encal.EQ.'i' .AND. ibound.EQ.102)) THEN
          OPEN(UNIT=8,FILE='/home/mrbate/tables/opacitytbl')
          DO i=1, opmxtg
             READ(8,*) (optable(i,j), j=1, opmxrh)
          ENDDO
          CLOSE(8)
-      
+
          OPEN(UNIT=8,FILE='/home/mrbate/tables/gasttbl',
      &        FORM='unformatted')
          DO i=1, tgmxu
             READ(8) (tgtable(i,j), j=1, tgmxrh)
+         ENDDO
+         CLOSE(8)
+
+         OPEN(UNIT=8,FILE='/home/mrbate/tables/utbl',
+     &        FORM='unformatted')
+         DO i=1, umxrh
+            READ(8) (utable(j,i), j=1, umxt)
          ENDDO
          CLOSE(8)
  
@@ -316,7 +324,7 @@ c      IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
          ENDDO
          CLOSE(8)
 
-         OPEN(UNIT=8,FILE='/home/mrbate/tables/dusttbl')
+         OPEN(UNIT=8,FILE='/home/mrbate/tables/dusttbl2')
          DO i=1, duslen
             READ(8,*) (dusttable(i,j), j=1, duswid)
          ENDDO

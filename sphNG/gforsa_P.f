@@ -15,6 +15,7 @@ c************************************************************
       INCLUDE 'COMMONS/soft'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/ptsoft'
+      INCLUDE 'COMMONS/rbnd'
 
       DIMENSION listga(idim), xyzmh(5,mmax2)
 
@@ -50,7 +51,21 @@ c--If one of the particles is a point mass, then soften interaction via ptsoft
 c
          IF (iphase(m).GE.1 .AND. iphase(m).LT.10 .OR. 
      &        iphase(n).GE.1 .AND. iphase(n).LT.10) THEN
-            IF (iptsoft.EQ.0) THEN 
+c
+c--Point mass with surface.
+c
+            IF (iphase(m).EQ.5 .OR. iphase(n).EQ.5) THEN
+               rr05 = SQRT(rr)
+               rsurface = rplanet*pradfac
+               IF (rr05.LE.(2.*rsurface)) THEN
+                  fsurface = (((2.*rsurface)-rr05)/
+     &                 (rsurface))**4
+               ELSE
+                  fsurface = 0.0
+               ENDIF
+               fff = (1.0-fsurface)*pmassn/(rr*rr05)
+               potn = pmassn/rr05
+            ELSE IF (iptsoft.EQ.0) THEN 
                rr05 = SQRT(rr)
                fff = pmassn/(rr*rr05)
                potn = pmassn/rr05

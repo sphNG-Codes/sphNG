@@ -27,6 +27,7 @@ c************************************************************
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/delay'
       INCLUDE 'COMMONS/mpidebug'
+      INCLUDE 'COMMONS/rbnd'
 
       CHARACTER*7 where
 
@@ -72,11 +73,22 @@ c
 c--The force definition:
 c
 c               IF (iphase(ipart).EQ.0 .OR. iptsoft.EQ.0) THEN 
-            IF (iptsoft.EQ.0) THEN 
-               IF (iphase(jpt).EQ.5) THEN
-             print *, 'ERROR: Sink with surface must use iptintree=0'
-                  STOP
+
+c
+c--Point mass with surface.
+c
+            IF (iphase(jpt).EQ.5) THEN
+               rr05 = SQRT(rr)
+               rsurface = rplanet*pradfac
+               IF (rr05.LE.(2.*rsurface)) THEN
+                  fsurface = (((2.*rsurface)-rr05)/
+     &                 (rsurface))**4
+               ELSE
+                  fsurface = 0.0
                ENDIF
+               fff = (1.0-fsurface)*pmassj/(rr*rr05)
+               potn = pmassj/rr05
+            ELSE IF (iptsoft.EQ.0) THEN 
                rr05 = SQRT(rr)
                fff = pmassj/(rr*rr05)
                potn = pmassj/rr05

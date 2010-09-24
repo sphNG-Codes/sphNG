@@ -121,10 +121,10 @@ c
          ENDIF
  234     continue
 c
-c--Z axis does not have a boundary.  Do not worry about corners - assume
-c     flow near corners is supersonic so pressure boundaries shouldn't
-c     matter much.
-c
+c--Z axis does not have a boundary.  Do not worry about corners,
+c  assume flow near corners is supersonic so pressure boundaries
+c  shouldn't matter much.
+
          IF (nghostold.NE.nghost) THEN
             DO k=nptot-(nghost-nghostold)+1,nptot
                IF (encal.EQ.'r') THEN
@@ -133,7 +133,12 @@ c
                   END DO
                   rad = SQRT(xyzmh(1,k)**2 + xyzmh(2,k)**2 +
      &                 xyzmh(3,k)**2)
-                  vxyzu(4,k) = hoverr**2/(rad*gamma*(gamma-1.0))
+                  IF (use_tprof) THEN
+                     vxyzu(4,k) = (hoverr**2*rad**tprof)/(gamma*
+     &                    (gamma-1.0))
+                  ELSE
+                     vxyzu(4,k) = hoverr**2/(rad*gamma*(gamma-1.0))
+                  ENDIF
                ENDIF
                IF (imhd.EQ.idim) THEN
                   DO j=1,3

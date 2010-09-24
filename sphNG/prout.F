@@ -47,6 +47,7 @@ c************************************************************
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/physeos'
       INCLUDE 'COMMONS/outmhd'
+      INCLUDE 'COMMONS/xforce'
 
 #ifdef MPI
       REAL*4 romax1tot, romax2tot, valphamin1tot, valphamax1tot,
@@ -420,6 +421,15 @@ c
          IF (ibound.EQ.102) THEN
             WRITE (iprint, 99408, ERR=100) rplanet*pradfac
          ENDIF
+         
+         IF (initialptm.NE.0 .AND. ibound.EQ.102) THEN
+            WRITE (iprint, 99410, ERR=100)
+     &           hillmass(xyzmh(4,listpm(1)), 1)
+         ELSEIF (ibound.EQ.100 .AND. iexf.EQ.7) THEN
+            WRITE (iprint, 99410, ERR=100) hillmass(planetmass, 0)
+         ENDIF
+99410    FORMAT ('mass within planet hill radius : ', 1PE14.5)
+
 
 c         IF (iaccevol.EQ.'v' .OR. iaccevol.EQ.'s') THEN
 c            WRITE (iprint, 88006, ERR=100)

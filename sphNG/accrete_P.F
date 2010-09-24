@@ -1100,6 +1100,7 @@ c                   (d) local shear viscosity correction
 c              5  Point mass with a surface that prevents sink accretion.
 c                 The surface is applied in gpti, gptfromgas.
 c                 Requires that iptintree=0.
+c              6  Removes gas but doesn't absorb any of its properties.
 c
 c     hacc    = outer radius at which particle's accretion begins
 c     haccall = radius at which all particles are accreted without test
@@ -1535,7 +1536,9 @@ c
                      numberacc(iii) = numberacc(iii) + 1
                      pmassj = xyzmh(4,j)
                      pmassjn = xyzmh(4,j)
-                     ptminner(iii) = ptminner(iii) + pmassj
+                     IF (iphase(i).NE.6) THEN
+                        ptminner(iii) = ptminner(iii) + pmassj
+                     ENDIF
                      IF (iphase(i).EQ.3) THEN
                         WRITE(iprint,*)'accreted ',iorig(j),r1,
      &                    pmassj/pmassleast, pmassleast
@@ -1582,7 +1585,7 @@ c      angular momentum
 c      linear momentum
 c
                   IF (notacc(j)) GOTO 888
-
+                  IF (iphase(i).EQ.6) GOTO 888
                   pmiold = ptmsyn(iii) + ptmadd(iii)
                   ptmadd(iii) = ptmadd(iii) + pmassj
                   totalmass = ptmsyn(iii) + ptmadd(iii)

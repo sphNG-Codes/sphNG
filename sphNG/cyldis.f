@@ -53,7 +53,11 @@ c************************************************************
             phi = 2.0*(ran1(1)-0.5)*pi
             xyzmh(1,i) = radius*COS(phi)
             xyzmh(2,i) = radius*SIN(phi)
-            xyzmh(3,i) = radius*hoverr*gasdev(1)
+            IF (use_tprof) THEN
+               xyzmh(3,i) = radius**(0.5*(tprof+1)+1)*hoverr*gasdev(1)
+            ELSE
+               xyzmh(3,i) = radius*hoverr*gasdev(1)
+            ENDIF
 
             rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2 +
      &           xyzmh(3,i)**2)

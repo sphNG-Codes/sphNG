@@ -29,6 +29,7 @@ c************************************************************
       INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/current'
+      INCLUDE 'COMMONS/rbnd'
 
       INCLUDE 'COMMONS/gravi'
       INCLUDE 'COMMONS/call'
@@ -193,6 +194,20 @@ c                  istack = istack + 1
 c                  nstack(istack) = j
 c                  istack = istack + 1
 c                  nstack(istack) = isibdaupar(1,j)
+
+
+c
+c--Added to ensure node opening near planet surface.
+c
+               ELSEIF ((iphase(m).EQ.5) .AND.
+     &                 (rr.LE.((2.*rplanet*pradfac) +
+     &                 qrad(1,n))**2) .AND.
+     &                 iptintree.EQ.1) THEN
+                  j = isibdaupar(2,n)
+                  istack = istack + 1
+                  nstack(istack) = j
+                  istack = istack + 1
+                  nstack(istack) = isibdaupar(1,j)
                ELSE
                   nlistgn = nlistgn + 1
                   IF (nlistgn.GT.idim) THEN

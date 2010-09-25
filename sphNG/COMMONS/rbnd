@@ -1,8 +1,12 @@
       INTEGER listinactive,nlistinactive
+
       REAL rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl
       REAL boundtemp, bounddens, dxbound,dybound,dzbound
       REAL variation,phibound,flowrate,signorm,hoverr,partm
       REAL rplanet,opdenom,hmass,pradfac,gapfac
+      REAL uniformtslim,uniformtslim2,tprof
+
+      LOGICAL use_tprof
       
       COMMON /rbnd  / rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl,
      &                boundtemp, bounddens, opdenom, hmass
@@ -15,4 +19,5 @@ c--Note: flowrate is the number of particles (floating point) per code time
 c
       COMMON /inactive/ listinactive(idim),nlistinactive
       COMMON /planet2/ variation,phibound,flowrate,signorm,hoverr,
-     &       partm,rplanet,pradfac,gapfac
+     &       partm,rplanet,pradfac,gapfac,uniformtslim,uniformtslim2,
+     &       tprof,use_tprof

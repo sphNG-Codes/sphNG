@@ -1,0 +1,66 @@
+
+##########################################################################
+
+Use ./maketables to create the two essential tables for using RT in sphNG;
+these are molmasstbl, and gasttbl.
+
+This routine also creates utbl, which can be used with routine uset.f to
+obtain the internal energy that matches a given temperature.
+
+
+If you wish to avoid recompilling for some reason, just run these routines:
+
+run: ./specheat
+run: ./goinvert
+run: ./gomass
+
+##########################################################################
+
+Notes about these tables
+------------------------
+
+22/09/2010 - Ben Ayliffe
+
+We noticed a strange discontinuity in the tables at log(rho) = -2. This
+has been found to be the result of a switch in specificheat.f which has
+been commented out and labelled. Essentially the degree of dissociation
+of H2 was being calculated by two different equations either side of
+this point, and they did not match at the interface for a range of
+energies around log(u) = 12. We have now extended the use of the equation
+previously employed only for log(rho) < -2 to the higher density regime.
+
+There were also two different ways of setting ltg1 & ltg2 in invert.f.
+Both can be seen in invert.old. I think that the N-1, N option was
+introduced by me for some or other reason, but for the sake of
+consistency with previous tables and calculations that use those tables,
+and because it makes bugger all difference, we will stick with using N,
+and N+1.
+
+
+
+
+Other routines in this directory
+--------------------------------
+
+22/09/2010 - Ben Ayliffe
+
+There are a few routines in this directory that you are unlikely to need.
+
+testmuandcv.f - Stuart's tool for testing the heat capacity tables.
+testkappa.f - Stuart's tool for testing the opacity tables.
+converttoascii.f - My tool to output the tables in ascii format so you
+		   can plot them, i.e. in IDL.
+
+
+Tables in this directory
+------------------------
+
+22/09/2010 - Ben Ayliffe
+
+The only pre-made table included in this directory is gaptbl. This is only
+used for models which involve a planet in a disc section using the injection
+boundary derived from previous isothermal global models. The code used to
+produce the table is not included in the repository because it relies on HDF
+dump files from the isothermal global model, which are too large to include
+here. It has been packaged into an archive which should be obtainable from
+me, or once I have disappeared, from Matthew Bate.

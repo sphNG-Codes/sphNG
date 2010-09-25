@@ -134,7 +134,7 @@ c
       uradconst = radconst / uergcc
       dtimax = dtdo/imaxstep
 
-      print *,'entry gsimpl',dtdo
+c      print *,'entry gsimpl',dtdo
 c     &  ,npart,ekcle(1,1),ekcle(2,1),xyzmh(5,1),vxyzu(1,1),
 c     &     isteps(1)
 
@@ -149,7 +149,7 @@ c
       numcomp = 0
       ipos = 1
       iphase1 = 0
-      print *,' ENTERED GSIMPLS ',nptmass, nptmasslast, itime
+c      print *,' ENTERED GSIMPLS ',nptmass, nptmasslast, itime
 
 c
 c--Sink particles radiate energy
@@ -1246,7 +1246,7 @@ C$OMP& shared(iiimax,xxmaxerrU2,xorigEU,xdUcomb,xdti,xU1i)
 C$OMP& shared(xpres_numerator,xpres_denominator,xtfour,ikick)
 C$OMP& shared(pdvvisc)
 C$OMP& shared(hoverr,ibound)
-C$OMP& shared(rmind,deltar,zoverh)
+C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)
 #ifdef MPI
 C$OMP& shared(istart,ntot,istartrec,inumbertotal,inumberreturned)
 C$OMP& shared(numproc,iproc,inumofsends,maxnneighsentback,istatus)
@@ -1555,9 +1555,15 @@ C$OMP DO SCHEDULE(runtime)
                mu = (radu - (rmind + (izoverh-1.0)*deltar))/deltar
                bounddenslocal = (zoverh(izoverh+1) - 
      &              zoverh(izoverh))*mu + zoverh(izoverh)
-               boundtest = ABS(xyzmh(3,i)/(hoverr*SQRT(xyzmh(1,i)**2 +
-     &              xyzmh(2,i)**2)))
+               IF (use_tprof) THEN
+                  boundtest = ABS(xyzmh(3,i)/(hoverr*radu**
+     &                 (0.5*(tprof+3))))
+               ELSE
+                  boundtest = ABS(xyzmh(3,i)/(hoverr*radu))
+               ENDIF
                boundaryparticle = boundtest.GT.bounddenslocal
+               IF (radu.LT.0.385 .AND. use_tprof)
+     &              boundaryparticle = .TRUE.
             ELSE
                boundaryparticle = rho(i).LT.bounddens
             ENDIF
@@ -1929,9 +1935,15 @@ C$OMP DO SCHEDULE(runtime)
                mu = (radu - (rmind + (izoverh-1)*deltar))/deltar
                bounddenslocal = (zoverh(izoverh+1) - zoverh(izoverh))*
      &              mu + zoverh(izoverh)
-               boundtest = ABS(xyzmh(3,i)/(hoverr*SQRT(xyzmh(1,i)**2 +
-     &              xyzmh(2,i)**2)))
+               IF (use_tprof) THEN
+                  boundtest = ABS(xyzmh(3,i)/(hoverr*radu**
+     &                 (0.5*(tprof+3))))
+               ELSE
+                  boundtest = ABS(xyzmh(3,i)/(hoverr*radu))
+               ENDIF
                boundaryparticle = boundtest.GT.bounddenslocal
+               IF (radu.LT.0.385 .AND. use_tprof)
+     &              boundaryparticle = .TRUE.
             ELSE
                boundaryparticle = rho(i).LT.bounddens
             ENDIF
@@ -2416,7 +2428,7 @@ c
          IF (iproc.EQ.0) THEN
 #endif
 c         IF (MOD(nosweep,1).EQ.0) THEN
-           PRINT 97001,nosweep,nswmax2,maxerrE2,maxerrU2
+c           PRINT 97001,nosweep,nswmax2,maxerrE2,maxerrU2
 97001      FORMAT('GSIMPL: Finished iteration ',I4,' of ',I4,' (',
      &        1PE12.5,1PE12.5,')')
 c         ENDIF
@@ -2709,7 +2721,7 @@ c
 #ifdef MPI
       IF (iproc.EQ.0) THEN
 #endif
-      PRINT *,"Succeeded with ",nosweep," iterations ",maxerrE2,maxerrU2
+c      PRINT *,"Succeeded with ",nosweep," iterations ",maxerrE2,maxerrU2
 #ifdef MPI
       ENDIF
 #endif
@@ -2727,7 +2739,9 @@ cC$OMP& shared(adiabaticgradient)
 C$OMP& shared(Rg,gmw,uergg,boundtemp,uradconst,rho,ekcle)
 C$OMP& shared(iphase,bounddens)
 C$OMP& shared(hoverr,ibound,xyzmh)
-C$OMP& shared(rmind,deltar,zoverh,gamma)
+C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)
+C$OMP& shared(gamma)
+C$OMP& private(temp, rho0)
 C$OMP& private(boundaryparticle, boundtest,radu)
 C$OMP& private(bounddenslocal,izoverh,mu)
 C$OMP& private(n,i)
@@ -2747,9 +2761,15 @@ C$OMP& private(cvcold,ucold,ecold,cv_effective)
                mu = (radu - (rmind + (izoverh-1)*deltar))/deltar
                bounddenslocal = (zoverh(izoverh+1) - zoverh(izoverh))*
      &              mu + zoverh(izoverh)
-               boundtest = ABS(xyzmh(3,i)/(hoverr*SQRT(xyzmh(1,i)**2 +
-     &              xyzmh(2,i)**2)))
+               IF (use_tprof) THEN
+                  boundtest = ABS(xyzmh(3,i)/(hoverr*radu**
+     &                 (0.5*(tprof+3))))
+               ELSE
+                  boundtest = ABS(xyzmh(3,i)/(hoverr*radu))
+               ENDIF
                boundaryparticle = boundtest.GT.bounddenslocal
+               IF (radu.LT.0.385 .AND. use_tprof)
+     &              boundaryparticle = .TRUE.
             ELSE
                boundaryparticle = rho(i).LT.bounddens
             ENDIF
@@ -2762,7 +2782,13 @@ C$OMP& private(cvcold,ucold,ecold,cv_effective)
 
                IF (ibound/10.EQ.10) THEN
                   radu = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2)
-                  ucold = hoverr**2/(radu*gamma*(gamma-1.0))
+                  IF (use_tprof) THEN
+                     temp = gmw*hoverr**2*radu**
+     &                    (tprof+1)/((Rg/uergg)*gamma*radu)
+                     ucold = getu(rho(i), temp)
+                  ELSE
+                     ucold = hoverr**2/(radu*gamma*(gamma-1.0))
+                  ENDIF
                   ecold = uradconst*(ucold/GETCV(rho(i),ucold))**4/
      &                 rho(i)
                ELSE
@@ -2772,7 +2798,14 @@ C$OMP& private(cvcold,ucold,ecold,cv_effective)
 
 c         IF (ekcle(1,i).LT.ecold .OR. vxyzu(4,i).LT.ucold) THEN
                ekcle(1,i) = ecold
-               vxyzu(4,i) = ucold
+
+               rho0 = 0.05
+               IF(ibound/10.EQ.10 .AND. radu.LT.0.385 .AND.
+     &              rho(i).GT.rho0 .AND. use_tprof) THEN
+                  vxyzu(4,i) = ucold*(rho(i)/rho0)**0.8
+               ELSE
+                  vxyzu(4,i) = ucold
+               ENDIF
                ekcle(3,i) = GETCV(rho(i),vxyzu(4,i))
 c               oneovermu(i) = GET1OVERMU(rho(i),vxyzu(4,i))
                ekcle(2,i) = GETKAPPA(vxyzu(4,i),ekcle(3,i),rho(i))
@@ -3041,7 +3074,7 @@ C$OMP& shared(udens,radconst,iflag,icall,ifsvi,alphaMMpass)
 C$OMP& shared(dlnTdlnP,adiabaticgradient,varinew,varijnew)
 C$OMP& shared(iscurrent,transfer,ncompactlocal)
 C$OMP& shared(ibound,hoverr)
-C$OMP& shared(rmind,deltar,zoverh)
+C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)
 #ifdef MPI
 C$OMP& shared(istart,ntot,istartrec,inumbertotal,inumberreturned)
 C$OMP& shared(numproc,iproc,inumofsends,maxnneighsentback,istatus)
@@ -3082,9 +3115,15 @@ C$OMP DO SCHEDULE(runtime)
                mu = (radu - (rmind + (izoverh-1)*deltar))/deltar
                bounddenslocal = (zoverh(izoverh+1) - zoverh(izoverh))*
      &              mu + zoverh(izoverh)
-               boundtest = ABS(xyzmh(3,i)/(hoverr*SQRT(xyzmh(1,i)**2 +
-     &              xyzmh(2,i)**2)))
+               IF (use_tprof) THEN
+                  boundtest = ABS(xyzmh(3,i)/(hoverr*radu**
+     &                 (0.5*(tprof+3))))
+               ELSE
+                  boundtest = ABS(xyzmh(3,i)/(hoverr*radu))
+               ENDIF
                boundaryparticle = boundtest.GT.bounddenslocal
+               IF (radu.LT.0.385 .AND. use_tprof)
+     &              boundaryparticle = .TRUE.
             ELSE
                boundaryparticle = rho(i).LT.bounddens
             ENDIF
@@ -3230,9 +3269,15 @@ C$OMP DO SCHEDULE(runtime)
                mu = (radu - (rmind + (izoverh-1)*deltar))/deltar
                bounddenslocal = (zoverh(izoverh+1) - zoverh(izoverh))*
      &              mu + zoverh(izoverh)
-               boundtest = ABS(xyzmh(3,i)/(hoverr*SQRT(xyzmh(1,i)**2 +
-     &              xyzmh(2,i)**2)))
+               IF (use_tprof) THEN
+                  boundtest = ABS(xyzmh(3,i)/(hoverr*radu**
+     &                 (0.5*(tprof+3))))
+               ELSE
+                  boundtest = ABS(xyzmh(3,i)/(hoverr*radu))
+               ENDIF
                boundaryparticle = boundtest.GT.bounddenslocal
+               IF (radu.LT.0.385 .AND. use_tprof)
+     &              boundaryparticle = .TRUE.
             ELSE
                boundaryparticle = rho(i).LT.bounddens
             ENDIF

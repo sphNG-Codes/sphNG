@@ -1,3 +1,226 @@
+      REAL FUNCTION GETCV(rho2,u2)
+
+      IMPLICIT NONE
+
+      REAL*4 rho2
+      REAL rho,u2,u,lrho,lu,rhoval1,rhoval2,uval1,uval2
+      REAL y1,y2,y3,y4,w,v,rtg
+      INTEGER nkrho1,nkrho2,nku1,nku2
+
+      INCLUDE '../COMMONS/tgtbl'
+      INCLUDE '../COMMONS/units'
+      INCLUDE '../COMMONS/physcon'      
+
+      umass = 1.0
+      udist = 1.0
+      udens = 1.0
+      utime = 1.0
+      uergg = 1.0
+      uergcc = 1.0
+
+
+c      getcv = 1.5*Rg/uergg     
+c      RETURN
+      
+      rho=rho2*umass/udist**3!udens
+      u=u2*uergg
+
+      lrho = log10(rho)
+c
+c--If goes to very high density, use last values in table
+c
+      IF (lrho.GT.3.0) lrho = 3.0
+
+      lu=log10(u)
+
+      nkrho1=INT(lrho/0.005)+4001
+      IF(lrho.LT.0.0) nkrho1=nkrho1-1
+      IF(nkrho1.GE.tgmxrh) nkrho1 = tgmxrh - 1
+      nku1=INT(lu/0.005)-1545
+      IF(nkrho1.LT.1) nkrho1=1
+      IF(nku1.LT.1) nku1=1
+      
+      nkrho2=nkrho1+1
+      nku2=nku1+1
+
+      rhoval1=(nkrho1-4001)*0.005
+      rhoval2=(nkrho2-4001)*0.005
+      uval1=(nku1+1545)*0.005
+      uval2=(nku2+1545)*0.005
+
+
+
+c      IF(nkrho1.LT.1.0.OR.nkrho1.GE.tgmxrh.OR.nku1.LT.1)
+      IF(nkrho1.LT.1.0.OR.nku1.LT.1)
+     $     CALL FAILED2(0,lu,lrho,nkrho1,nkrho2,nku1,nku2)
+      
+      IF(nku2.GE.tgmxu) THEN
+!It's reached the stage where c_v is constant for all rho at high T
+			getcv = 198561558.8045447/uergg
+			RETURN
+		ENDIF
+
+!     Bilinear interpolation from Numerical Recipes
+!     Interpolation is in log T_g
+       
+ 
+      !Interpolation in log10 space
+         y1=(tgtable(nku1,nkrho1))
+         y2=(tgtable(nku2,nkrho1))
+         y3=(tgtable(nku2,nkrho2))
+         y4=(tgtable(nku1,nkrho2))
+       
+       
+         w=(lrho-rhoval1)/(rhoval2-rhoval1)
+         v=(lu-uval1)/(uval2-uval1)
+
+         !     Final value of log10 temperature
+         rtg=(1.0-v)*(1.0-w)*y1+v*(1.0-w)*y2+w*v*y3+(1.0-v)*w*y4
+!			PRINT *,u,rtg
+c         print *, nku1, nku2, nkrho1, nkrho2
+c         PRINT *,'i',y1,y2,y3,y4,rtg
+         getcv=u/(10.0**rtg)/uergg
+	
+
+         IF(getcv.EQ.0.00) CALL FAILED2(5,lu,lrho,nkrho1,nkrho2,
+     $        nku1,nku2)
+
+         END
+
+      SUBROUTINE FAILED2(i,ltg,lrho,nkrho1,nkrho2,nktg1,nktg2)
+ 
+      INTEGER i
+      REAL ltg,lrho
+  
+ 
+      IF(i.EQ.0) THEN
+         PRINT *,"GETCV: Error. Estimated array locations"
+         PRINT *,"outside bounds. Ending."
+         PRINT *,"Log gas specific energy is ",ltg,10.0**ltg
+         PRINT *,"Log density is ",lrho,10.0**lrho
+         PRINT *,nkrho1,nkrho2,nktg1,nktg2
+      ELSE
+         PRINT *,"GETCV: Specific heat capacity returned is zero!"
+         PRINT *,"Log gas temperature is ",ltg
+         PRINT *,"Log density is ",lrho
+      END IF
+       
+
+      STOP
+      END
+      
+
+
+      FUNCTION GET1OVERMU(rho2,u2)
+
+!      IMPLICIT NONE
+
+      INCLUDE '../COMMONS/tgtbl'
+      INCLUDE '../COMMONS/mutbl'
+      INCLUDE '../COMMONS/units'
+      REAL*4 rho2
+      REAL rho,u2,u,lrho,lu,rhoval1,rhoval2,uval1,uval2
+      REAL y1,y2,y3,y4,w,v,rmu,get1overmu
+      INTEGER nkrho1,nkrho2,nku1,nku2
+      REAL K
+      
+      umass = 1.0
+      udist = 1.0
+      udens = 1.0
+      utime = 1.0
+      uergg = 1.0
+      uergcc = 1.0
+      
+      
+c      get1overmu = 1.0/gmw     
+c      RETURN
+      
+      rho=rho2*umass/udist**3!udens
+      u=u2*uergg
+
+
+      lrho = log10(rho)
+c
+c--If goes to very high density, use last values in table
+c
+      IF (lrho.GT.3.0) lrho = 3.0
+
+      lu=log10(u)
+
+      nkrho1=INT(lrho/0.005)+4001
+      IF(lrho.LT.0.0) nkrho1=nkrho1-1
+      IF(nkrho1.GE.mumxrh) nkrho1 = mumxrh - 1
+      nku1=INT(lu/0.005)-1545
+      IF(nkrho1.LT.1.0) nkrho1=1
+      IF(nku1.LT.1.0) nku1=1
+      
+      nkrho2=nkrho1+1
+      nku2=nku1+1
+
+      rhoval1=(nkrho1-4001)*0.005
+      rhoval2=(nkrho2-4001)*0.005
+      uval1=(nku1+1545)*0.005
+      uval2=(nku2+1545)*0.005
+
+
+
+c      IF(nkrho1.LT.1.0.OR.nkrho1.GE.mumxrh.OR.nku1.LT.1)
+      IF(nkrho1.LT.1.0.OR.nku1.LT.1)
+     $     CALL FAILED3(0,lu,lrho,nkrho1,nkrho2,nku1,nku2)
+      
+      IF(nku2.GE.mumxu) THEN
+				get1overmu = 1.61
+				RETURN
+		ENDIF
+
+!     Bilinear interpolation from Numerical Recipes
+!     Interpolation is in log T_g
+       
+ 
+      !Interpolation in log10 space
+         y1=(mutable(nku1,nkrho1))
+         y2=(mutable(nku2,nkrho1))
+         y3=(mutable(nku2,nkrho2))
+         y4=(mutable(nku1,nkrho2))
+       
+       
+         w=(lrho-rhoval1)/(rhoval2-rhoval1)
+         v=(lu-uval1)/(uval2-uval1)
+
+         !     Final value of log10 temperature
+         rmu=(1.0-v)*(1.0-w)*y1+v*(1.0-w)*y2+w*v*y3+(1.0-v)*w*y4
+
+         get1overmu=(10.0**rmu)
+
+
+         IF(get1overmu.EQ.0.00) CALL FAILED3(5,lu,lrho,nkrho1,nkrho2,
+     $        nku1,nku2)
+
+         END
+
+      SUBROUTINE FAILED3(i,ltg,lrho,nkrho1,nkrho2,nktg1,nktg2)
+ 
+      INTEGER i
+      REAL ltg,lrho
+  
+ 
+      IF(i.EQ.0) THEN
+         PRINT *,"GET1OVERMU: Error. Estimated array locations"
+         PRINT *,"outside bounds. Ending."
+         PRINT *,"Log gas specific energy is ",ltg,10.0**ltg
+         PRINT *,"Log density is ",lrho,10.0**lrho
+         PRINT *,nkrho1,nkrho2,nktg1,nktg2
+         PRINT *,i
+      ELSE
+         PRINT *,"GET1OVERMU: Molecular mass returned is zero!"
+         PRINT *,"Log gas temperature is ",ltg
+         PRINT *,"Log density is ",lrho
+      END IF
+       
+
+      STOP
+      END
+      
       
       FUNCTION MU(rho,tm)!,delta)
 
@@ -43,12 +266,12 @@
       nH2=X*rho/(2.0*mH)!*(umass)
 
       !Right Hand Side of B&B1975 eqn 10
-		IF(rho.LT.1.0d-2) THEN
+cc		IF(rho.LT.1.0d-2) THEN
       	rhsy=2.11/(rho*X)*exp(-MIN(200.,52490.0/tm))
-		ELSE
-      	rhsy=1.0/(nH2*h**3)*(2*pi*mH*k*tm)**1.5*(exp(-MIN(200.,IH2/
-     $     (k*tm))))
-		ENDIF
+cc		ELSE
+cc      rhsy=1.0/(nH2*h**3)*(2*pi*mH*k*tm)**1.5*(exp(-MIN(200.,IH2/
+cc     $     (k*tm))))
+cc		ENDIF
 !      PRINT *,rhsy
       !Which makes degree of dissocation of molecular hydrogen 
       !"y" equal to either
@@ -306,20 +529,16 @@
          PRINT *,mutable(I,4600),muu(4600,I)			
          y1=get1overmu(rho,u)
          y2=getcv(rho,u)
-         WRITE(57,*)  u/y2,y2,1.0/y1
+c         WRITE(57,*)  u/y2,y2,1.0/y1
          rho = 0.9
          y1=get1overmu(rho,u)
          y2=getcv(rho,u)
-         WRITE(58,*)  u/y2,y2,1.0/y1
+c         WRITE(58,*)  u/y2,y2,1.0/y1
       ENDDO
 
 	
 
       CLOSE(10)
 
-      END 
-            
-            
-         
+      END
 
-      

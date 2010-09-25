@@ -61,13 +61,20 @@ c
 c
 c--Right Hand Side of B&B1975 eqn 10
 c
-      IF(rho.LT.1.0d-2) THEN
-         rhsy=2.11/(rho*X)*exp(-MIN(200.,52490.0/tm))
-      ELSE
-         rhsy=1.0/(nH2*h**3)*(2*pi*mH*k*tm)**1.5*(exp(-MIN(200.,IH2/
-     $        (k*tm))))
-      ENDIF
-!      PRINT *,rhsy
+c--This switch caused a discontinuity at log(rho) = -2.0 for lowish
+c  temperatures. Left here intact for reference.
+
+c      IF(rho.LT.1.0d-2) THEN
+c         rhsy=2.11/(rho*X)*exp(-MIN(200.,52490.0/tm))
+c      ELSE
+c         rhsy=1.0/(nH2*h**3)*(2*pi*mH*k*tm)**1.5*(exp(-MIN(200.,IH2/
+c     $        (k*tm))))
+c      ENDIF
+
+c--Instead use the equation previously reserved for rho < 0.01,
+c  throughout the density space.
+
+      rhsy=2.11/(rho*X)*exp(-MIN(200.,52490.0/tm))
 c
 c--Which makes degree of dissocation of molecular hydrogen "y" equal to either
 c
@@ -401,7 +408,7 @@ c-------------------------------------------------------------------------
             j=ntm/5+1
             tm=10.0**ltm
             CALL GENERATEU(rho,tm,specific,uoverT,mu)
-            write (95,99001) tm,specific/Rg,uoverT/Rg,mu
+c            write (95,99001) tm,specific/Rg,uoverT/Rg,mu
 99001       FORMAT(4(1PE12.5,1X))
             cvv(I,J)=log10(uoverT)
             muu(I,J)=log10(mu)
@@ -420,7 +427,7 @@ c         STOP
          WRITE(8) (cvv(i,j), i=1, 4601)
 !         WRITE(10) (muu(i,j), i=1, 4601)
          PRINT *,cvv(2096,j),muu(2096,j)
-         WRITE(66,*) cvv(4600,j)
+c         WRITE(66,*) cvv(4600,j)
       END DO
 !      PRINT *,cvv(20,50)
       PRINT *,"Complete"

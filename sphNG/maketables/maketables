@@ -1,0 +1,33 @@
+echo ''
+echo 'Compiling specificheat.f, invert.f, and molecmass.f'
+echo ''
+ifort -r8 -o specheat specificheat.f
+ifort -r8 -o goinvert invert.f
+ifort -r8 -o gomass molecmass.f
+
+echo 'Running specheat - takes about 4 minutes'
+./specheat > spec.log
+
+echo 'Running goinver - takes less than a minute'
+./goinvert > invert.log
+
+echo 'Running gomass - takes less than a minute'
+./gomass > mass.log
+
+echo ''
+echo '###############################################'
+echo '# The output from these routines can be seen  #'
+echo '# in the logs respectively called spec.log,   #'
+echo '# invert.log, and mass.log.                   #'
+echo '#                                             #'
+echo '# The tables produced are gasttbl, utbl, and  #'
+echo '# molmasstbl. utbl is used for cases in which #'
+echo '# the temperature of the gas is given and is  #'
+echo '# used to determine the internal energy. This #'
+echo '# is the inverse of the usual case, and so    #'
+echo '# may not be needed.                          #'
+echo '#                                             #'
+echo '# specheattbl is used to produce gasttbl, but #'
+echo '# is not needed by sphNG.                     #'
+echo '###############################################'
+echo ''

@@ -983,7 +983,8 @@ c
          partm = totmas/(npart - nptmass)
 
          DO i = nptmass + 1, npart
-            rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2) + xyzmh(3,i)**2)
+            rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2 +
+     &           xyzmh(3,i)**2)
             rhotemp = (75.*signorm*sqrt(1./rtemp)*udist**2/umass)/
      &           (6.*0.05*rtemp)
             xyzmh(5,i) = 1.2*(partm/rhotemp)**(1./3.)
@@ -1388,6 +1389,16 @@ c
 c--Get input file options
 c
       CALL inopts
+c
+c--Check planet hasn't been made incorrectly
+c      
+      IF (iexf.EQ.5 .AND. ibound.EQ.102 .AND. nptmass.EQ.0) THEN
+         WRITE (*, 77234)
+77234    FORMAT ('ERROR: You cannot represent a planet with iexf = 5',/
+     &        ' without a sink particle. Either change to a',/
+     &        ' a potential (iexf = 7) or add a sink.')
+         STOP
+      ENDIF
 c
 c--Set Velocities
 c

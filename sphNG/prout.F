@@ -48,6 +48,7 @@ c************************************************************
       INCLUDE 'COMMONS/physeos'
       INCLUDE 'COMMONS/outmhd'
       INCLUDE 'COMMONS/xforce'
+      INCLUDE 'COMMONS/initpt'
 
 #ifdef MPI
       REAL*4 romax1tot, romax2tot, valphamin1tot, valphamax1tot,

@@ -1,0 +1,6 @@
+	REAL*8 utable
+        INTEGER umxt,umxrh
+	PARAMETER (umxt=1801)
+	PARAMETER (umxrh=4601)
+	
+	COMMON /utbl/ utable(umxt,umxrh)

@@ -1919,9 +1919,6 @@ c Set abundances of main species
 
       IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim) CALL hcalc
 
-      print *, xyzmh(1,100), xyzmh(1, 1000), xyzmh(2, 3000)
-      print *, vxyzu(4,100), vxyzu(1,1000), vxyzu(4,3000)
-
       IF (igeom.EQ.10 .AND. use_tprof) CALL uset
 
       IF (imhd.NE.idim) THEN

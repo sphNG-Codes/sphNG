@@ -4,6 +4,7 @@ echo ''
 ifort -r8 -o specheat specificheat.f
 ifort -r8 -o goinvert invert.f
 ifort -r8 -o gomass molecmass.f
+ifort -r8 -o gomass molecmass.f ../getcv.f ../get1overmu.f
 
 echo 'Running specheat - takes about 4 minutes'
 ./specheat > spec.log

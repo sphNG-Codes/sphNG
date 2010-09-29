@@ -277,7 +277,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
         scaling.f secmes.f setBfield_mhd.f setpart.f \
 	smoothd_P.f \
 	sphdis.f sphmas.f spline.F sphpres.f sphvel.f thermeq.f \
-	toten.f treef_P.F unifdis.f unit.f \
+	toten.f treef_P.F unifdis.f unit.f uset.f \
 	wdump.F wdump_wrapper.F wrinsph.F zeusread.f
 
 # these are the sources required for the gradh code to compile
@@ -293,7 +293,7 @@ SRCNONGRADH= densityi_P.f derivi_P.f forcei_P.F hcalc.f
 
 # these are the extra routines required for the radiative transfer code to compile
         
-SRCRT= ass.f RT/getblock.f RT/newgsimpl_MPI.f quartic_gs1t.f
+SRCRT= ass.f RT/newgsimpl_MPI.f quartic_gs1t.f RT/getblock.f
 SRCNORT = ass_dummy.f
 
 # these are the extra routines required for Monte-Carlo radiative transfer
@@ -526,7 +526,7 @@ updatedepends:
 	@rm -f .dependsold
 
 include .depends
-        
+
 clean:
 	\rm -f *.o *.mod RT/Baraffe/*.o RT/Baraffe/*.mod RT/*.o RT/*.mod sph_tree_lf_gradh sph_tree_lf sph_tree_rk_gradh sph_tree_rk ./utils/*.o
 # DO NOT DELETE

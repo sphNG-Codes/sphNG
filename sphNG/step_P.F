@@ -10,8 +10,11 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
+#endif
+#ifdef MPI
       INCLUDE 'COMMONS/mpi'
 #endif
 
@@ -78,6 +81,10 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/diskbd'
+#ifdef MPICOPY
+      INCLUDE 'COMMONS/compact'
+      INCLUDE 'COMMONS/mpicopy'
+#endif
 
       COMMON /rtpdv/ pdvvisc(idim)
 
@@ -122,7 +129,7 @@ c
       f22 = 255./256.
       e1 = 1./512.
 
-c      print *,'Entered step'
+      print *,'Entered step'
 c
 c--Integration
 c
@@ -131,7 +138,7 @@ c
       IF (ifirst) THEN
          ifirst = .FALSE.
 
-#ifdef MPI
+#ifdef MPIALL
       IF (iproc.EQ.0) THEN
 #endif
          IF (integrator.EQ.0) THEN
@@ -141,7 +148,7 @@ c
             WRITE (iprint,*) 'Integrator miss-match'
             CALL quit
          ENDIF
-#ifdef MPI
+#ifdef MPIALL
       ENDIF
 #endif
 
@@ -413,7 +420,7 @@ c            itime0new = MIN(itime0new, it2bin(i))
          ENDIF
       END DO
 
-c      print *,iproc,': TIMES local ',itime0,itime1
+      print *,iproc,': TIMES local ',itime0,itime1
 
 
 cC$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -498,7 +505,11 @@ c      END DO
 #else
       itime0global = itime0
       itime1global = itime1
-c      print *,iproc,': TIMES ',itime0global, itime1global
+#endif
+#ifdef MPICOPY
+#ifdef MPIDEBUG
+      print *,iproc,': TIMES ',itime0global, itime1global
+#endif
 #endif
 
 c
@@ -506,9 +517,11 @@ c--Check if predictions at half time step are needed
 c
       IF (itime1global.GE.itime0global) THEN
          itime = itime0global
+c         WRITE (iprint,*) 'Doing ',itime
          GOTO 101
       ELSE
          itime = itime1global
+c         WRITE (iprint,*) 'Doing ',itime
       ENDIF
 c
 c--Allow for tracing flow
@@ -1123,7 +1136,7 @@ cc     &           dtf21*f1vxyzu(4,i) + dtf22*f2vxyzu(4,i)
 
             IF (iener.EQ.2 .AND. vxyzu(4,i).LT.0.0) vxyzu(4,i)=0.15
             xyzmh(5,i) = xyzmh(5,i) + dtf21*f1ha(1,i) + dtf22*f2ha(1,i)
-            IF (xyzmh(5,i).LT.0) WRITE(iprint,*) 'error in h ', 
+            IF (xyzmh(5,i).LT.0) WRITE(iprint,*) 'error in h ',i, 
      &           xyzmh(5,i),f1ha(1,i),dtf21,f2ha(1,i),dtf22,nneigh(i)
             IF (hmaximum.GT.0.0) THEN
                IF (xyzmh(5,i).GT.hmaximum) THEN
@@ -1590,6 +1603,37 @@ c     &     f2vxyzu(4,llist(1)),dt*(isteps(llist(1)))/imaxstep,
 c     &     (dumvxyzu(4,llist(1))-vxyzu(4,llist(1)))/
 c     &     (dt*(isteps(llist(1)))/imaxstep)
 c      print *,' '
+
+#ifdef MPICOPY
+#ifdef MPIDEBUG
+      print *,iproc,': bcast xyzmh ',itime,nlst0
+#endif
+c
+c--Need to make sure timesteps for all particles are the same on different
+c     MPI processes (otherwise different processes will get out of sync)
+c
+c      IF (iproc.EQ.0) THEN
+c         DO j = 1, nlst0
+c            DO k = 1,5
+c               realtransfer5to15((j-1)*5+k) = xyzmh(k,llist(j))
+c            END DO
+c         END DO
+c      ENDIF
+c      CALL MPI_BCAST(realtransfer5to15,nlst0*5,MPI_REAL8,0,
+c     &     MPI_COMM_WORLD,ierr)
+c      IF (iproc.NE.0) THEN
+c         DO j = 1, nlst0
+c            i = llist(j)
+c            DO k = 1, 5
+c               xyzmh(k,i) = realtransfer5to15((j-1)*5 + k)
+c            END DO
+c         END DO
+c      ENDIF
+#ifdef MPIDEBUG
+      print *,iproc,': bcasted xyzmh ',itime,nlst0
+#endif
+#endif
+
 c
 c--Synchronization time
 c
@@ -1978,7 +2022,12 @@ c
                print *,'ERROR - ibin.LT.0 .OR. ibin.GT.30 ',ibin,stepi,
      &              dt,isteps(i),i,rmod,rmod1,rmodcr,rmodcr2,xyzmh(5,i),
      &              vsound(i),alphaMM(1,i),denom,crstepi,iphase(i)
-               CALL quit
+               IF (ibin.LT.0) THEN
+                  CALL quit
+               ELSE
+                  ibin = 30
+               ENDIF
+c               CALL quit
             ENDIF
 c            IF (ibin.GT.28) THEN
 c               print *,'D ',ibin
@@ -1987,35 +2036,48 @@ c            ENDIF
             
             isteps(i) = imaxstep/(2**ibin)
 
-            IF (isteps(i).LT.2 .AND. rmod.EQ.rmod1 .AND. 
-     &           errdivtol.GT.0.999*errh/tolh .AND.
-     &           errdivtol.LT.1.001*errh/tolh) THEN
-               factor = 2.0*(dt/imaxstep)/stepi
+            IF (isteps(i).LT.2 .AND. rmod.EQ.rmod1) THEN
+               IF (
+     &              errdivtol.GT.0.999*errh/tolh .AND.
+     &              errdivtol.LT.1.001*errh/tolh) THEN
+                  factor = 2.0*(dt/imaxstep)/stepi
 C$OMP CRITICAL (writeiprint)
-               WRITE(iprint,99200)
+                  WRITE(iprint,99200)
 C$OMP END CRITICAL (writeiprint)
 99200 FORMAT('**** R-K TOLERANCE TEMPORALLY INCREASED FOR dh ****')
-               IF (factor.GT.4.0) THEN
+                  IF (factor.GT.4.0) THEN
 C$OMP CRITICAL (writeiprint)
-                  WRITE (iprint,*) ' Tolerance increase too high'
+                     WRITE (iprint,*) ' Tolerance increase too high'
+C$OMP END CRITICAL (writeiprint)
+                     GOTO 7777
+                  ENDIF
+C$OMP CRITICAL (writeiprint)
+                  WRITE(iprint,*)' Increased by:',factor*factor
+                  WRITE(iprint,*) '  part. i x,y,z',i,iorig(i),
+     &                 xyzmh(1,i),xyzmh(2,i),xyzmh(3,i)       
+                  WRITE(iprint,*) '    vx,vy,vz',vxyzu(1,i),vxyzu(2,i),
+     &                 vxyzu(3,i)
+                  WRITE(iprint,*) '    h,rho',xyzmh(5,i),rho(i)
+                  WRITE(iprint,*) '    rm1,rmc,rmc2',rmod1,rmodcr,
+     &                 rmodcr2
+                  WRITE(iprint,*) '    neigh ',nneigh(i)
+                  WRITE(iprint,*) '    divv ',divv(i)
+                  WRITE(iprint,*) '    f1h,f2h ',f1ha(1,i),f2ha(1,i)
+                  WRITE(iprint,*) '    tryst,omin ',isteps(i),istminold
+C$OMP END CRITICAL (writeiprint)
+                  isteps(i) = 2
+                  GOTO 7777
+               ELSE
+                  isteps(i) = 2
+C$OMP CRITICAL (writeiprint)
+                  WRITE(iprint,*)' R-K tolerance increased: ',
+     &                 (2.0*(dt/imaxstep)/stepi)**2,i,iorig(i)
+                  WRITE(iprint,*) '    rm1,rmc,rmc2',rmod1,rmodcr,
+     &                 rmodcr2
+                  WRITE(iprint,*) '    errs ',errvx,errvy,errvz,erru
 C$OMP END CRITICAL (writeiprint)
                   GOTO 7777
                ENDIF
-C$OMP CRITICAL (writeiprint)
-               WRITE(iprint,*)' Increased by:',factor*factor
-               WRITE(iprint,*) '  part. i x,y,z',i,iorig(i),
-     &              xyzmh(1,i),xyzmh(2,i),xyzmh(3,i)       
-               WRITE(iprint,*) '    vx,vy,vz',vxyzu(1,i),vxyzu(2,i),
-     &              vxyzu(3,i)
-               WRITE(iprint,*) '    h,rho',xyzmh(5,i),rho(i)
-               WRITE(iprint,*) '    rm1,rmc,rmc2',rmod1,rmodcr,rmodcr2
-               WRITE(iprint,*) '    neigh ',nneigh(i)
-               WRITE(iprint,*) '    divv ',divv(i)
-               WRITE(iprint,*) '    f1h,f2h ',f1ha(1,i),f2ha(1,i)
-               WRITE(iprint,*) '    tryst,omin ',isteps(i),istminold
-C$OMP END CRITICAL (writeiprint)
-               isteps(i) = 2
-               GOTO 7777
             ENDIF
          ENDIF
 c
@@ -2099,6 +2161,35 @@ c
       CALL MPI_ALLREDUCE(istepmax,istepmaxglobal,1,MPI_INTEGER,MPI_MAX,
      &     MPI_COMM_WORLD,ierr)
       istepmax = istepmaxglobal
+#endif
+#ifdef MPICOPY
+#ifdef MPIDEBUG
+      print *,iproc,': bcast steps ',itime,nlst0
+#endif
+c
+c--Need to make sure timesteps for all particles are the same on different
+c     MPI processes (otherwise different processes will get out of sync)
+c
+      IF (iproc.EQ.0) THEN
+         DO j = 1, nlst0
+            itransfer3(j) = isteps(llist(j))
+         END DO
+      ENDIF
+      CALL MPI_BCAST(itransfer3,nlst0,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+      CALL MPI_BCAST(istepmin,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+      CALL MPI_BCAST(istepmax,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+      CALL MPI_BCAST(istepmingas,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+      IF (iproc.NE.0) THEN
+         DO j = 1, nlst0
+            i = llist(j)
+            isteps(i) = itransfer3(j)
+            it1(i) = it0(i) + isteps(i)/2
+            it2(i) = it0(i) + isteps(i)
+         END DO
+      ENDIF
+#ifdef MPIDEBUG
+      print *,iproc,': bcasted steps ',itime,nlst0
+#endif
 #endif
 
       IF (itiming) THEN
@@ -2196,7 +2287,9 @@ c
          WRITE(40+iproc,253) dt*itime/imaxstep + gt,
      &        dt*itime/imaxstep, nlst0
       ENDIF
+#endif
 
+#ifdef MPIALL
       IF (iproc.EQ.0) THEN
 #endif
          WRITE(iprint,253) dt*itime/imaxstep + gt,
@@ -2259,7 +2352,7 @@ c         IF (nptmass.EQ.0) GOTO 700
  700     CONTINUE
          CALL FLUSH (iprint)
          CALL FLUSH (iptprint)
-#ifdef MPI
+#ifdef MPIALL
       ENDIF
 #endif
          iteighth = itime + imaxstep/8
@@ -2313,7 +2406,12 @@ c            WRITE (iprint,*) ' t-2 ',i,it2bin(i),itime
 c
 c--Update the lists of particles in each bin
 c
-c      WRITE (*,*) 'Updating ',nlst0
+#ifdef MPIALL
+#ifdef MPIDEBUG
+      print *,iproc,': Updating ',nlst0,nptmass,llist(1),
+     &     iphase(llist(1)),isteps(llist(1)),istepmin,istepmingas
+#endif
+#endif
 c      WRITE (iprint,*) 'Updating ',nlst0
       DO j = 1, nlst0
          i = llist(j)
@@ -2371,6 +2469,11 @@ c            ENDIF
             ENDIF
          ENDIF
       END DO
+#ifdef MPIALL
+#ifdef MPIDEBUG
+      print *,iproc,': Finished Updating ',nlst0
+#endif
+#endif
 c
 c--Create NEW particles to keep number of particles within a shell
 c     constant.  
@@ -2591,9 +2694,9 @@ c
 #endif
             nlst = nlst0
             WRITE (iprint,*) 'Add ',nlst0,' recyc ',nlistinactive,
-     &           ' npart ',npart,' nkill ',nkill
+     &           ' npart ',npart,' nkill ',nkill,itime
             WRITE (*,*) 'Add ',nlst0,' recyc ',nlistinactive,
-     &           ' npart ',npart,' nkill ',nkill
+     &           ' npart ',npart,' nkill ',nkill,itime
 c
 c--Set values
 c
@@ -2771,6 +2874,7 @@ c
 #endif
  678        icall = 4
             PRINT *,"icall 4 triggered"
+
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
      &      f1ha,npart,ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz)
 #ifdef MPI
@@ -2783,15 +2887,25 @@ c
 c--Write new particles to file
 c
             time = dt*itime/imaxstep + gt
-#ifdef MPI
-#else
+
             DO j = 1, nlst0
                i = llist(j)
+#ifdef MPICOPY
+               IF (iproc.EQ.0) THEN
+#endif
                WRITE (ireasspr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
      &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),poten(i)
+#ifdef MPICOPY
+               ENDIF
+#endif
                iscurrent(i) = .FALSE.
             END DO
+#ifdef MPICOPY
+            IF (iproc.EQ.0) THEN
+#endif
             CALL FLUSH (ireasspr)
+#ifdef MPICOPY
+            ENDIF
 #endif
 c
 c--Restore values for neighbours output
@@ -3076,8 +3190,11 @@ c--Return or loop again
 c
 
 c      print *,'Pre exit step'
-c      print *,iproc,': Pre exit step'
-
+#ifdef MPIALL
+#ifdef MPIDEBUG
+      print *,iproc,': Pre exit step'
+#endif
+#endif
       IF (itime.GE.itnext) THEN
 
 c         WRITE (*,*) 'itime.GE.itnext'
@@ -3122,7 +3239,7 @@ c         WRITE (iprint,*) 'itime.GE.itnext'
             END DO
          ENDIF
 
-#ifdef MPI
+#ifdef MPIALL
          print *,iproc,': END OF STEP ',nptmasstot
 #else
 c         print *,': END OF STEP ',nptmasstot
@@ -3141,7 +3258,11 @@ c         print *,': END OF STEP ',nptmasstot
          CALL secmes
       ENDIF
 
-c      print *,'End of step goto 100'
+#ifdef MPIALL
+#ifdef MPIDEBUG
+      print *,iproc,': End of step goto 100'
+#endif
+#endif
 
       GOTO  100
 

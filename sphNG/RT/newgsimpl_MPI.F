@@ -4,8 +4,11 @@
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
+#endif
+#ifdef MPI
       INCLUDE 'COMMONS/mpi'
 #endif
 
@@ -59,6 +62,10 @@ c      INCLUDE 'COMMONS/rad2'
       INCLUDE 'COMMONS/boundheight'
       INCLUDE 'COMMONS/diskbd'
 
+#ifdef MPICOPY
+      INCLUDE 'COMMONS/mpicopy'
+#endif
+
       COMMON /rtpdv/ pdvvisc(idim)
 
       PARAMETER (nswmax = 200)
@@ -106,7 +113,7 @@ c      DIMENSION fractionexposed(nmaxexposed)
       REAL xmaxerr2old(ntests),xmaxerrcomp2(ntests)
 
       REAL maxerrE2,maxerrE2last,maxerrU2,maxerrU2last,maxerrU2old
-#ifdef MPI
+#ifdef MPIALL
       REAL maxerrE2tot, maxerrU2tot
       LOGICAL moresweeptot
 #endif
@@ -120,7 +127,7 @@ c      DIMENSION fractionexposed(nmaxexposed)
       nkick = 0
       nkickcount = 0
 
-#ifdef MPI
+#ifdef MPIALL
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL8, i2REAL8, ierr)
       CALL MPI_TYPE_COMMIT(i2REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
@@ -134,7 +141,7 @@ c
       uradconst = radconst / uergcc
       dtimax = dtdo/imaxstep
 
-c      print *,'entry gsimpl',dtdo
+      print *,'entry gsimpl ',rho(2550),rho(30788),rho(30789)
 c     &  ,npart,ekcle(1,1),ekcle(2,1),xyzmh(5,1),vxyzu(1,1),
 c     &     isteps(1)
 
@@ -870,7 +877,7 @@ c
 
  888  CONTINUE
 
-c      print *,iproc,' IN RT aa'
+      print *,iproc,' IN RT aa'
 
       ihasghostcount = 0
       ihasghost = 0
@@ -883,6 +890,9 @@ C$OMP& shared(rho,vari,ivar,ijvar,varij,ijvar2,varij2,bounddens)
 C$OMP& shared(xyzmh,dvtable,grwij,cnormk,adiabaticgradient)
 C$OMP& shared(dvdx,ihasghost,iflag,origEU,vsmooth,iphase,ifullstep)
 C$OMP& shared(ntot,ncompactlocal,radkernel,gradhs,ncompact)
+#ifdef MPICOPY
+C$OMP& shared(numberstart,numberend)
+#endif
 C$OMP& private(n,i,j,k,rhoi,icompact,pmi)
 C$OMP& private(dvxdxi,dvxdyi,dvxdzi,dvydxi,dvydyi,dvydzi)
 C$OMP& private(dvzdxi,dvzdyi,dvzdzi,dti,dx,dy,dz)
@@ -899,7 +909,11 @@ c
 c--Set up values that don't change during sweeps
 c
 C$OMP DO SCHEDULE(runtime)
+#ifdef MPICOPY
+      DO n = numberstart, numberend
+#else
       DO n = 1, ncompact
+#endif
          i = ivar(3,n)
 c
 c--Needed for MPI code
@@ -1101,6 +1115,18 @@ c               varij(10,icompact) = pmj*dWi
                varij2(1,icompact) = pmjdWrunix
                varij2(2,icompact) = pmjdWruniy
                varij2(3,icompact) = pmjdWruniz
+
+               IF (i.EQ.0008 .AND. itime.EQ.117440512) THEN
+               print *,iproc,': P0008v ',icompact,varij(1,icompact)
+               print *,iproc,': P0008v ',icompact,varij(2,icompact)
+               print *,iproc,': P0008v ',icompact,varij(3,icompact)
+               print *,iproc,': P0008v ',icompact,varij(4,icompact)
+               print *,iproc,': P0008v ',icompact,varij2(1,icompact)
+               print *,iproc,': P0008v ',icompact,varij2(2,icompact)
+               print *,iproc,': P0008v ',icompact,varij2(3,icompact)
+               ENDIF
+
+
             END DO
 
             dvdx(1,i) = dvxdxi
@@ -1115,12 +1141,19 @@ c               varij(10,icompact) = pmj*dWi
 
             vari(1,n) = dti
             vari(2,n) = rhoi
+
+               IF (i.EQ.0008 .AND. itime.EQ.117440512) THEN
+               print *,iproc,': P0008w ',dvdx(1,i)
+               print *,iproc,': P0008x ',vari(1,n)
+               print *,iproc,': P0008y ',vari(2,n)
+               ENDIF
+
          ENDIF
       END DO
 C$OMP END DO
 C$OMP END PARALLEL
 
-c      print *,iproc,' IN RT b'
+      print *,iproc,' IN RT b'
 
 #ifdef MPI
 c
@@ -1221,6 +1254,27 @@ c      print *,iproc, 'begin iterations '
       maxerrE2last = 1.0E+30
       maxerrU2last = 1.0E+30
 
+c      IF (itime.EQ.136314880) THEN
+c         WRITE (40+iproc,*) 'vedv ',(vxyzu(kkk,123246),kkk=1,4),
+c     &        (ekcle(kkk,123246),kkk=1,5),(dvdx(kkk,123246),kkk=1,9)
+c         DO n=1, ncompact
+c            IF (ivar(3,n).EQ.123246) THEN
+c               WRITE (40+iproc,*) 'compact ',
+c     &              (ivar(kkk,n),kkk=1,3),vari(1,n),vari(2,n)
+c               WRITE (40+iproc,*) 'neigh '
+c               DO k = 1, ivar(1,n)
+c                  icompact = ivar(2,n) + k
+c                  j = ijvar(icompact)
+c                  WRITE (40+iproc,*) j,(varij(kkk,icompact),kkk=1,4),
+c     &                 (varij2(kkk,icompact),kkk=1,3),
+c     &                 (vxyzu(kkk,j),kkk=1,4),(ekcle(kkk,j),kkk=1,5),
+c     &                 (gradhs(kkk,j),kkk=1,2)
+c               END DO
+c            ENDIF
+c         END DO
+c      ENDIF
+
+
       DO nosweep = 1, nswmax
 c         print *,iproc, 'it ',nosweep
 c
@@ -1255,6 +1309,9 @@ C$OMP& shared(llistsentback,inumofreturns,jjj,inumberproc,iprocsend)
 C$OMP& shared(inumbertotallocal,nneighsentanyatall,nneighsentany)
 C$OMP& shared(transfer,nneightogetback,inumberindiv,inumbercumm)
 #endif
+#ifdef MPICOPY
+C$OMP& shared(numberstart,numberend)
+#endif
 C$OMP& private(boundaryparticle,boundtest,radu)
 C$OMP& private(bounddenslocal,izoverh,mu)
 C$OMP& private(i,j,k,n,dedxi,dedyi,dedzi,rhoi,pmj1,rhoj)
@@ -1275,7 +1332,27 @@ C$OMP& private(l)
 C$OMP& reduction(MAX:maxerrU2)
 C$OMP& reduction(MAX:maxerrE2)
 C$OMP DO SCHEDULE(runtime)
+c#ifdef MPICOPY
+c         DO n = numberstart, numberend
+c#else
          DO n = 1, ncompact
+c#endif
+            i = ivar(3,n)
+
+            varinew(1,i) = 0.
+            varinew(2,i) = 0.
+c            varinew(3,i) = 0.
+
+
+
+         END DO
+C$OMP END DO
+C$OMP DO SCHEDULE(runtime)
+#ifdef MPICOPY
+         DO n = numberstart, numberend
+#else
+         DO n = 1, ncompact
+#endif
             i = ivar(3,n)
 
             varinew(1,i) = 0.
@@ -1288,6 +1365,11 @@ c            varinew(3,i) = 0.
                dedzi = 0.
 
                rhoi = vari(2,n)
+
+
+               IF (i.EQ.0008 .AND. itime.EQ.117440512) THEN
+                  print *,iproc,': P0008i ',rhoi,EU0(1,i)
+               ENDIF
 
                DO k = 1, ivar(1,n)
                   icompact = ivar(2,n) + k
@@ -1302,14 +1384,31 @@ c--Calculates the gradient of E (where E=rho*e)
 c
                   Eij1 = rhoi*EU0(1,i) - rhoj*EU0(1,j)
 
+               IF (i.EQ.0008 .AND. itime.EQ.117440512) THEN
+                  print *,iproc,': P0008dej ',j,rhoj,EU0(1,j)
+                  print *,iproc,': P0008dex ',j,pmjdWrunix,pmjdWruniy
+                  print *,iproc,': P0008dez ',j,EU0(1,i),rhoi
+                  print *,iproc,': P0008deq ',j,Eij1
+               ENDIF
+
                   dedxi = dedxi - Eij1*pmjdWrunix
                   dedyi = dedyi - Eij1*pmjdWruniy
                   dedzi = dedzi - Eij1*pmjdWruniz
+               IF (i.EQ.0008 .AND. itime.EQ.117440512) THEN
+                  print *,iproc,': P0008dec ',j,dedxi
+               ENDIF
+
                END DO
 
                dedxyz(1,i) = dedxi
                dedxyz(2,i) = dedyi
                dedxyz(3,i) = dedzi
+
+
+c      IF (itime.EQ.136314880 .AND. i.EQ.123246) THEN
+c         WRITE (40+iproc,*) 'dedxyz ',(dedxyz(kkk,i),kkk=1,3)
+c      ENDIF
+
             ENDIF
          END DO
 C$OMP END DO
@@ -1318,7 +1417,7 @@ C$OMP END DO
 C$OMP SINGLE
 c
 c--Need to add in non-local contributions to dedxyz from particles on other
-c     MPI processes (not - only needed on local process, so don't need to 
+c     MPI processes (note - only needed on local process, so don't need to 
 c     transfer total values back again)
 c
       istart = ntot + 1
@@ -1395,7 +1494,11 @@ C$OMP END SINGLE
 #endif
 
 C$OMP DO SCHEDULE(runtime)
+#ifdef MPICOPY
+         DO n = numberstart, numberend
+#else
          DO n = 1, ncompactlocal
+#endif
             i = ivar(3,n)
             IF (iphase(i).EQ.0) THEN
 
@@ -1415,9 +1518,64 @@ c               IF (rhoi.GT.10000.0) THEN
 c                  ekcle(4,i) = 1.0/3.0
 c                  ekcle(5,i) = 1.0/3.0
 c               ENDIF
+
+c      IF (itime.EQ.136314880 .AND. i.EQ.123246) THEN
+c         WRITE (40+iproc,*) 'ekcle45 ',(ekcle(kkk,i),kkk=1,5)
+c      ENDIF
+
             ENDIF
          END DO
 C$OMP END DO
+
+c      GOTO 4567
+
+#ifdef MPICOPY
+C$OMP SINGLE
+c
+c--For MPICOPY job, need to transfer ekcle(4,i) values (only).
+c
+c--Transfer ekcle(4,i)
+c
+      DO i = numberstart, numberstart + numbertodoherekeep - 1
+          llisttrans(i) = llisttrans(i)*5 + 3
+      END DO
+
+      CALL MPI_TYPE_INDEXED(numbertodoherekeep,
+     &     lblocklengths, llisttrans(numberstart),
+     &     MPI_REAL8, indexMPI_INT1, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+
+      DO i = numberstart, numberstart + numbertodoherekeep - 1
+         llisttrans(i) = llisttrans(i)/5
+      END DO
+c
+c--All processes transfer their ekcle(4,i) data
+c
+      CALL MPI_ALLGATHERV(ekcle,1,indexMPI_INT1,
+     &     realtransfer5to15,irecvcounti,idisplacementsi,MPI_REAL8,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put ekcle(4,i) data into correct places in ekcle
+c
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               ekcle(4,llisttrans(i) + 1) = realtransfer5to15(i)
+            END DO
+         ENDIF
+      END DO
+#ifdef MPIDEBUG
+      print *,iproc,': ekcle(4,i) move ',numbertodoherekeep
+#endif
+
+      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+C$OMP END SINGLE
+#endif
+
+
+ 4567  CONTINUE 
+
 
 #ifdef MPI
 C$OMP SINGLE
@@ -1523,11 +1681,18 @@ C$OMP END SINGLE
 C$OMP DO SCHEDULE(runtime)
          DO i = npart + 1, npart + nghost*ihasghost
             j = ireal(i)
+
             ekcle(4,i) = ekcle(4,j)
             ekcle(5,i) = ekcle(5,j)
             dedxyz(1,i) = dedxyz(1,j)
             dedxyz(2,i) = dedxyz(2,j)
             dedxyz(3,i) = dedxyz(3,j)
+
+c      IF (itime.EQ.136314880 .AND. j.EQ.123246) THEN
+c         WRITE (40+iproc,*) 'ghost ',i,(dedxyz(kkk,i),kkk=1,3),
+c     &        (ekcle(kkk,i),kkk=1,5)
+c      ENDIF
+
          END DO
 C$OMP END DO
 
@@ -1538,8 +1703,15 @@ c         testit1 = 0.
 c         testit2 = 0.
 
 C$OMP DO SCHEDULE(runtime)
+#ifdef MPICOPY
+         DO n = numberstart, numberend
+#else
          DO n = 1, ncompact
+#endif
             i = ivar(3,n)
+c      IF (itime.EQ.136314880) THEN
+c         WRITE (55+iproc,*) 'looping ',nosweep,n,i,iscurrent(i)
+c      ENDIF
 
             IF (iphase(i).EQ.0) THEN
 
@@ -1682,6 +1854,22 @@ c     &                 THEN
                   diffusion_denominator = diffusion_denominator +
      &                 0.5*dWidrlightrhorhom*b1*rhoi
 
+c      IF (itime.EQ.136314880 .AND. i.EQ.123246) THEN
+c         WRITE (44+iproc,*) 'varinew-i-i ',nosweep,j,
+c     &        dWidrlightrhorhom,b1,EU0(1,j),bi,bj,
+c     &        ekcle(4,i),ekcle(2,i),rhoi,
+c     &        ekcle(4,j),ekcle(2,j),rhoj
+c     &        diffusion_numerator,diffusion_denominator,
+c     &        0.5*dWidrlightrhorhom*b1*EU0(1,J)*rhoj,
+c     &        iscurrent(j)
+c      ENDIF
+
+
+c            IF (i.EQ.2497 .OR. i.EQ.2494) THEN
+c               print *,'tempval2 ',rhoj,b1,dWiidrlightrhorhom,rhoi,j
+c            ENDIF
+
+
 c      print *,'PAIR-I ',i,j,-0.5*dWidrlightrhorhom*b1*EU0(1,J)*rhoj,
 c     &                 0.5*dWidrlightrhorhom*b1*rhoi*EU0(1,I)
 
@@ -1723,6 +1911,17 @@ C$OMP ATOMIC
 C$OMP ATOMIC
                      varinew(2,j) = varinew(2,j) + tempval2
 
+c      IF (itime.EQ.136314880 .AND. j.EQ.123246) THEN
+c         WRITE (44+iproc,*) 'varinew-j ',(varinew(kkk,123246),kkk=1,2),
+c     &        tempval1,tempval2,dWiidrlightrhorhom,b1,rhoj,
+c     &        EU0(1,i),rhoi
+c      ENDIF
+
+c                     IF (j.EQ.2494 .OR. j.EQ.2497) THEN
+c                        print *,'tempval4 ',j,tempval2,rhoj,
+c     &                       dWiidrlightrhorhom,b1
+c                     ENDIF
+
 c      print *,'PAIR-J ',j,i,-0.5*dWiidrlightrhorhom*b1*EU0(1,i)*rhoi,
 c     &                    0.5*dWiidrlightrhorhom*b1*rhoj*EU0(1,J)
 
@@ -1750,6 +1949,21 @@ c     &                    THEN
                      diffusion_denominator = diffusion_denominator +
      &                    0.5*dWjdrlightrhorhom*b1*rhoi
 
+c      IF (itime.EQ.136314880 .AND. i.EQ.123246) THEN
+c         WRITE (44+iproc,*) 'varinew-i-j ',nosweep,j,
+c     &        dWjdrlightrhorhom,b1,EU0(1,j),bi,bj,
+c     &        ekcle(4,i),ekcle(2,i),rhoi,
+c     &        ekcle(4,j),ekcle(2,j),rhoj
+c     &        diffusion_numerator,diffusion_denominator,
+c     &        0.5*dWjdrlightrhorhom*b1*EU0(1,J)*rhoj
+c      ENDIF
+
+
+c                     IF (i.EQ.2494 .OR. i.EQ.2497) THEN
+c                        print *,' tempval3 ',dWjdrlightrhorhom,
+c     &                       b1,rhoi
+c                     ENDIF
+
 c      print *,'PAIR-N ',j,i,0.5*dWjdrlightrhorhom*b1*rhoi
 
 c      ENDIF
@@ -1762,6 +1976,17 @@ C$OMP ATOMIC
                varinew(1,i) = varinew(1,i) + diffusion_numerator
 C$OMP ATOMIC
                varinew(2,i) = varinew(2,i) + diffusion_denominator
+
+
+c      IF (itime.EQ.136314880 .AND. i.EQ.123246) THEN
+c         WRITE (44+iproc,*) 'varinew-i ',(varinew(kkk,123246),kkk=1,2),
+c     &        diffusion_numerator,diffusion_denominator
+c      ENDIF
+
+c               IF (i.EQ.2494 .OR. i.EQ.2497) THEN
+c                  print *,'tempval6 ',diffusion_denominator,
+c     &                 varinew(2,i)
+c               ENDIF
 
 c               varinew(3,i) = varinew(3,i) + pres_numerator
 c               varinew(4,i) = pres_denominator
@@ -1781,7 +2006,51 @@ c     &              diffusion_denominator,ivar(1,n),iproc
          END DO
 C$OMP END DO
 
-c         IF (iproc.EQ.0) print *,'DCOMB-TEST ',testit1
+c         GOTO 9876
+
+#ifdef MPICOPY
+C$OMP SINGLE
+c
+c--For MPICOPY job, unfortunately need to do MPI reduce because in the above
+c     loop particle 'i' gives varinew contributions to particle 'j'.
+c
+c--Transfer varinew(1-2,i)
+c
+         DO n = 1, ncompact
+            i = ivar(3,n)
+            DO k = 1, 2
+               realtransfer5to15((n-1)*2+k) = varinew(k,i)
+               realtransfer5to15(3*idim+(n-1)*2+k) = 0.
+            END DO
+         END DO
+c
+c--All processes reduce the fxyzu(1-3) data
+c
+         CALL MPI_ALLREDUCE(realtransfer5to15,
+     &        realtransfer5to15(3*idim+1),2*ncompact,
+     &        MPI_REAL8,MPI_SUM,
+     &        MPI_COMM_WORLD,ierr)
+c
+c--Now do reduction of varinew(1-2)
+c
+         DO n = 1, ncompact
+            i = ivar(3,n)
+            DO k = 1, 2
+               varinew(k,i) = realtransfer5to15(3*idim+(n-1)*2 + k)
+            END DO
+         END DO
+#ifdef MPIDEBUG
+         print *,iproc,': varinew(1-2) reduce ',ncompact
+#endif
+
+C$OMP END SINGLE
+#endif
+
+ 9876    CONTINUE
+
+c      IF (itime.EQ.136314880) THEN
+c         WRITE (40+iproc,*) 'varinew ',(varinew(kkk,123246),kkk=1,2)
+c      ENDIF
 
 #ifdef MPI
 c
@@ -1918,7 +2187,11 @@ c
 c--Particle I loop for calculating I only quantities
 c
 C$OMP DO SCHEDULE(runtime)
+#ifdef MPICOPY
+         DO n = numberstart, numberend
+#else
          DO n = 1, ncompactlocal
+#endif
             i = ivar(3,n)
 
             IF (iphase(i).EQ.0) THEN
@@ -2095,15 +2368,26 @@ C$OMP END CRITICAL (moresweepset)
                GOTO 200
             ENDIF
 
+            IF (i.EQ.0008 .AND. itime.EQ.117440512) THEN
+c            IF (i.EQ.3159 .OR. i.EQ.3159) THEN
+               write (*,*) iproc,': u1,u0,u4 ', u1term, u0term, u4term,
+     &              EU0(1,i),EU0(2,i),ekcle(1,i),ekcle(2,i),ekcle(3,i),
+     &              ekcle(4,i),ekcle(5,i),origEU(1,i),origEU(2,i)
+            write (*,*) iproc,': rhoi ',rhoi,dti,diffusion_denominator,
+     &              radpresdenom,gammaval,chival,pres_numerator,
+     &              lightspeed
+            ENDIF
+
             u1term = u1term/u4term
             u0term = u0term/u4term
 
             moresweep2 = .FALSE.
 
+
 c            u1term = u1term/1.0E+12
 c            u0term = u0term/1.0E+16
 
-            CALL quartic_gs1t(u1term,u0term,EU0(2,I),U1i,moresweep2)
+            CALL quartic_gs1t(u1term,u0term,EU0(2,I),U1i,moresweep2,i)
 
 c            U1i = U1i*1.0E+4
 
@@ -2125,6 +2409,10 @@ C$OMP END CRITICAL (moresweepset)
             E1i = (origEU(1,i)+dti*diffusion_numerator+gammaval*dti*
      &           U1i**4 + stellarradiation)/(1.0-chival)
 
+
+c      IF (itime.EQ.136314880 .AND. i.EQ.123246) THEN
+c         WRITE (40+iproc,*) 'E1i,U1i ',E1i,U1i
+c      ENDIF
 
 
 cDIFF            E1i = (origEU(1,i)+dti*diffusion_numerator)/
@@ -2342,6 +2630,10 @@ c            IF (iproc.EQ.1 .AND. i.EQ.1) print *,' TEST ',EU0(1,I),E1i
             ENDIF
             EU0(2,I) = U1i
 
+c            IF (itime.GE.100663296) THEN
+c               WRITE (40+iproc,*) '418uE1i ',nosweep,i,E1i,U1i
+c 6789          FORMAT ('418uE1i ',I2,1X,I6,1X,1PE12.5,1X,1PE12.5)
+c            ENDIF
 
 cc            EU0(1,I) = uradconst*(EU0(2,I)/
 cc     &                    ekcle(3,i))**4/rho(i)
@@ -2388,6 +2680,91 @@ C$OMP END DO
 
 c         IF (iproc.EQ.0) print *,'DIFF-T ',diffkeep
 
+c         WRITE (40+iproc,*) 'itime fin ',itime
+
+c         GOTO 5678
+
+#ifdef MPICOPY
+c
+c--Need to transfer ekcle(2,i) around MPI processes.  Need to do it
+c         here to make sure that the right ekcle(2,i) values are stored
+c         on exit, and transferred to ghosts.
+c
+c         Also need to transfer ekcle(3,i) if another iteration is to be
+c         done, so do it here at the same time.
+c
+c         And need to transfer EU0(1-2,i) so that when exits, can load
+c         into ekcle and vxyzu, or, if another iteration is do, so that
+c         the latest values for all particles are used.
+c
+      CALL MPI_TYPE_INDEXED(numbertodoherekeep,
+     &     lblocklengths, llisttrans(numberstart),
+     &     i5REAL8, indexMPI_INT1, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+c
+c--All processes transfer their ekcle(1-5) data
+c
+      CALL MPI_ALLGATHERV(ekcle,1,indexMPI_INT1,
+     &     realtransfer5to15,irecvcounti,idisplacementsi,i5REAL8,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put ekcle(1-5) data into correct places in ekcle
+c
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               DO k = 1, 5
+                  ekcle(k,llisttrans(i) + 1) =
+     &                 realtransfer5to15((i-1)*5 + k)
+               END DO
+            END DO
+         ENDIF
+      END DO
+#ifdef MPIDEBUG
+      print *,iproc,': ekcle(1-5) move ',numbertodoherekeep
+#endif
+      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+c
+c--Transfer EU0(1-2,i)
+c
+      CALL MPI_TYPE_INDEXED(numbertodoherekeep,
+     &     lblocklengths, llisttrans(numberstart),
+     &     i2REAL8, indexMPI_INT1, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+c
+c--All processes transfer their EU0(1-2) data
+c
+      CALL MPI_ALLGATHERV(EU0,1,indexMPI_INT1,
+     &     realtransfer5to15,irecvcounti,idisplacementsi,i2REAL8,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put EU0(1-2) data into correct places in EU0
+c
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               DO k = 1, 2
+                 EU0(k,llisttrans(i) + 1) =
+     &                 realtransfer5to15((i-1)*2 + k)
+c                  IF (EU0(k,llisttrans(i) + 1).NE.
+c     &                 realtransfer5to15((i-1)*2 + k)) THEN
+c                     WRITE (90+iproc,*) itime,i,llisttrans(i) + 1,
+c     &                    nosweep,EU0(k,llisttrans(i) + 1),
+c     &                    realtransfer5to15((i-1)*2 + k)
+c                  ENDIF
+               END DO
+            END DO
+         ENDIF
+      END DO
+#ifdef MPIDEBUG
+      print *,iproc,': EU0(1-2) move ',numbertodoherekeep
+#endif
+      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+#endif
+
+ 5678 CONTINUE
 
 C$OMP DO SCHEDULE(runtime)
          DO i = npart + 1, npart + nghost*ihasghost
@@ -2408,10 +2785,12 @@ c     &        xxmaxerrU2,xorigEU,xdUcomb, xdti, xU1i, xpres_numerator,
 c     &        xpres_denominator, xtfour
  
 
-#ifdef MPI
+#ifdef MPIALL
 c
 c--Need to do global check for moresweep, and for maxerrE2, maxerrU2 to check
 c     for errors and convergence across all MPI processes
+c
+c--Applies to BOTH MPI and MPICOPY
 c
          CALL MPI_ALLREDUCE(moresweep,moresweeptot,1,MPI_LOGICAL,
      &        MPI_LAND,MPI_COMM_WORLD,ierr)
@@ -2422,9 +2801,16 @@ c
          CALL MPI_ALLREDUCE(maxerrU2,maxerrU2tot,1,MPI_REAL8,MPI_MAX,
      &        MPI_COMM_WORLD,ierr)
          maxerrU2 = maxerrU2tot
+
+         IF (moresweep.NE.moresweeptot .OR. maxerrE2.NE.maxerrE2tot
+     &        .OR. maxerrU2.NE.maxerrU2tot) THEN
+            WRITE (80+iproc,*) itime,maxerrE2,maxerrE2tot,
+     &           maxerrU2,maxerrU2tot,moresweep,moresweeptot
+         ENDIF
 #endif
 
-#ifdef MPI
+
+#ifdef MPIALL
          IF (iproc.EQ.0) THEN
 #endif
 c         IF (MOD(nosweep,1).EQ.0) THEN
@@ -2432,7 +2818,7 @@ c           PRINT 97001,nosweep,nswmax2,maxerrE2,maxerrU2
 97001      FORMAT('GSIMPL: Finished iteration ',I4,' of ',I4,' (',
      &        1PE12.5,1PE12.5,')')
 c         ENDIF
-#ifdef MPI
+#ifdef MPIALL
          ENDIF
 #endif
 
@@ -2486,7 +2872,7 @@ c               PRINT *,"GSIMPL: Oscillating1 ",maxerrE2,
 c     &              (xmaxerr1old(ii),ii=1,ntests),numoscillations1,
 c     &              numoscillations2
 c               moresweep = .TRUE.
-c               RETURN
+c               GOTO 999
 c            ENDIF
 c         ENDIF
 
@@ -2497,7 +2883,7 @@ c               PRINT *,"GSIMPL: Oscillating2 ",maxerrU2,
 c     &              (xmaxerr2old(ii),ii=1,ntests),numoscillations1,
 c     &              numoscillations2
 c               moresweep = .TRUE.
-c               RETURN
+c               GOTO 999
 c            ENDIF
 c         ENDIF
 c
@@ -2824,7 +3210,7 @@ c      CALL quit
 
  999  CONTINUE
 
-#ifdef MPI
+#ifdef MPIALL
       CALL MPI_TYPE_FREE(i2REAL8,ierr)
       CALL MPI_TYPE_FREE(i5REAL8,ierr)
 #endif
@@ -2843,7 +3229,7 @@ C$OMP PARALLEL default(none)
 C$OMP& shared(lwst,hgst,stepa,vari,ivar,ijvar,varij,uergg)
 C$OMP& shared(dedxyz,ekcle,EU0,uradconst,lightspeed,rho)
 C$OMP& shared(nosweep,ipos,boundtemp,bounddens,iphase)
-C$OMP& shared(npart,nghost,ihasghost,ireal,dvdx,ncompact)
+C$OMP& shared(npart,nghost,ireal,dvdx,ncompact)
 C$OMP& shared(origEU,moresweep,xyzmh,gamma,alpha,beta,Rg,gmw)
 C$OMP& shared(udens,radconst,iflag,icall,ifsvi,alphaMMpass)
 C$OMP& shared(dlnTdlnP,adiabaticgradient,varinew,varijnew)
@@ -2981,7 +3367,7 @@ C$OMP PARALLEL default(none)
 C$OMP& shared(lwst,hgst,stepa,vari,ivar,ijvar,varij,uergg)
 C$OMP& shared(dedxyz,ekcle,EU0,uradconst,lightspeed,rho)
 C$OMP& shared(nosweep,ipos,boundtemp,bounddens,iphase)
-C$OMP& shared(npart,nghost,ihasghost,ireal,dvdx,ncompact)
+C$OMP& shared(npart,nghost,ireal,dvdx,ncompact)
 C$OMP& shared(origEU,moresweep,xyzmh,gamma,alpha,beta,Rg,gmw)
 C$OMP& shared(udens,radconst,iflag,icall,ifsvi,alphaMMpass)
 C$OMP& shared(dlnTdlnP,adiabaticgradient,varinew,varijnew)
@@ -3068,7 +3454,7 @@ C$OMP PARALLEL default(none)
 C$OMP& shared(lwst,hgst,stepa,vari,ivar,ijvar,varij,uergg)
 C$OMP& shared(dedxyz,ekcle,EU0,uradconst,lightspeed,rho)
 C$OMP& shared(nosweep,boundtemp,bounddens,iphase)
-C$OMP& shared(npart,nghost,ihasghost,ireal,dvdx,ncompact)
+C$OMP& shared(npart,nghost,ireal,dvdx,ncompact)
 C$OMP& shared(origEU,moresweep,xyzmh,gamma,alpha,beta,Rg,gmw)
 C$OMP& shared(udens,radconst,iflag,icall,ifsvi,alphaMMpass)
 C$OMP& shared(dlnTdlnP,adiabaticgradient,varinew,varijnew)

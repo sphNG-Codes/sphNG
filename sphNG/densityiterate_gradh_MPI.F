@@ -20,10 +20,13 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
-      INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpidebug'
+#endif
+#ifdef MPI
+      INCLUDE 'COMMONS/mpi'
 #endif
 
       DIMENSION xyzmh(5,mmax2), vxyzu(4,idim2), dvxyzu(4,idim3)
@@ -84,8 +87,13 @@ c      INCLUDE 'COMMONS/vsmooth'
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/gravi'
 
+#ifdef MPICOPY
+      INCLUDE 'COMMONS/mpicopy'
+#endif
+
       INTEGER*1 isucceed(idim)
       REAL*4 hminbisec(idim),hmaxbisec(idim)
+      LOGICAL iprintout
 
       DIMENSION ldolist(idim),hi_old(idim)
       DIMENSION gradmhd(15,imhd2)
@@ -96,14 +104,22 @@ c      INCLUDE 'COMMONS/vsmooth'
       INTEGER*8 iuniquesend(iptdim)
 #endif
 
+
+      iprintout = .FALSE.
+
+
+
+
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
 99001 FORMAT ('entry subroutine densityiterate')
 c
 c--Initialise
 c
       iproblem = itime
-#ifdef MPI
-c      print *,iproc,': Entered densityiterate ',itime
+#ifdef MPIALL
+#ifdef MPIDEBUG
+      print *,iproc,': Entered densityiterate ',itime
+#endif
 #else
 c      print *,': Entered densityiterate ',itime
 #endif
@@ -167,6 +183,58 @@ c
          ENDIF
       ENDIF
 #endif
+#ifdef MPICOPY
+
+      print *,iproc,' nlstdo ',nlstdo
+
+      numbertodo = nlstdo/numproc
+      numbertodohere = numbertodo
+      IF (MOD(nlstdo,numproc).GT.iproc) 
+     &     numbertodohere = numbertodohere + 1
+      idisplacementsi(1) = 0
+      DO i = 1, numproc
+         irecvcounti(i) = numbertodo
+         IF (MOD(nlstdo,numproc).GT.i-1)
+     &        irecvcounti(i) = irecvcounti(i) + 1
+      END DO
+      idisplacementsi(1) = 0
+      DO i = 1, numproc - 1
+         idisplacementsi(i+1) = idisplacementsi(i) + irecvcounti(i)
+      END DO
+
+      print *,iproc,': recv ',(irecvcounti(i),i=1,numproc)
+      print *,iproc,': disp ',(idisplacementsi(i),i=1,numproc)
+
+      numberstart = idisplacementsi(iproc+1) + 1
+      numberend = numberstart + numbertodohere - 1
+      numberendkeep = numberend
+
+      IF (MOD(nlstdo,numproc).NE.0) THEN
+         numbertodomax = numbertodo + 1
+      ELSE
+         numbertodomax = numbertodo
+      ENDIF
+
+      print *,iproc,': numbertodomax ',numbertodo,numbertodomax,
+     &     numberstart,numberend,numbertodohere
+
+      numbertodoherekeep = numbertodohere
+C$OMP PARALLEL DO SCHEDULE(static) default(none)
+C$OMP& shared(nlstdo,ldolist,llisttrans)
+C$OMP& private(i)
+      DO i = 1, nlstdo
+         llisttrans(i) = ldolist(i) - 1
+      END DO
+C$OMP END PARALLEL DO
+c      DO i = nlstdo+1 , numproc*numbertodo
+c         llisttrans(i) = ldolist(nlstdo) - 1
+c      END DO
+#ifdef MPIDEBUG
+      print *,iproc,': nlstdo,todo,start,end ',
+     &     nlstdo,numbertodo,numberstart,numberend
+#endif
+      ncompact = ncompact + numberstart - 1
+#endif
 
       nlstsend = nlstdo
 
@@ -177,8 +245,16 @@ C$OMP& shared(iphase,dBxyz,it0,itime,curlv,gradhs)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend)
 #endif
+#ifdef MPICOPY
+C$OMP& shared(numberstart,numberend)
+#endif
 C$OMP& private(n,ipart,pmassi,hi,dhdrhoi,deltat,k,hchange)
+#ifdef MPICOPY
+c      DO n = numberstart, numberend
       DO n = 1, nlstdo
+#else
+      DO n = 1, nlstdo
+#endif
          ipart = ldolist(n)
          isucceed(ipart) = 0
 
@@ -238,10 +314,10 @@ C$OMP END PARALLEL DO
 c
 c--Iterate density calculation for particle ipart
 c
-#ifdef MPI
-
+#ifdef MPIALL
       IF (itiming) CALL getused(td11)
-
+#endif
+#ifdef MPI
       inumofreturns = 0
       inumofsends = 0
       maxnneighsentback = 0
@@ -1026,6 +1102,9 @@ C$OMP& shared(varmhd,Bevol,Bxyz,vsmooth,Bsmooth,nlstdo,ldolist)
 C$OMP& shared(dvxyzu,hi_old,isucceed,poten,isend,numproc,iproc,gradmhd)
 C$OMP& shared(ivar,ijvar,ncompact,icompact,iteration)
 C$OMP& shared(hminbisec,hmaxbisec,iupdated,nlistupdated,listparents)
+#ifdef MPICOPY
+C$OMP& shared(numberstart,numberend,ijvartemp,listparentstemp)
+#endif
 C$OMP& private(n,ipart,j,k,xi,yi,zi,vxi,vyi,vzi,pmassi,hi,hj,rhoi)
 C$OMP& private(divvi,curlvxi,curlvyi,curlvzi,gradhi,gradsofti)
 C$OMP& private(pmassj,hi_oldi,hi1,hi21,hi31,hi41,hneigh)
@@ -1040,7 +1119,11 @@ C$OMP& private(numberupdated)
 C$OMP& reduction(MAX:rhonext,imaxit)
 C$OMP& reduction(+:inumit,inumfixed,inumrecalc,nwarnup,nwarndown)
 C$OMP& reduction(+:nwarnroundoff,nbisection,numsucceeded)
+#ifdef MPICOPY
+      DO n = numberstart, numberend
+#else
       DO n = 1, nlstdo
+#endif
          ipart = ldolist(n)
 c
 c--Adds on local contributions to rho, gradh, and nneigh and long-range
@@ -1119,6 +1202,11 @@ c
 c         IF (itime.GE.142868480)
 c     &  write(*,*)'H-stuff ',hnew,hi,hi_oldi,omegai,nneighi,
 c     &        isucceed(ipart),iphase(ipart),ipart
+
+         IF (ipart.EQ.3159) THEN
+            WRITE (*,*) iproc,': P3159 ',itime,hnew,hi,hi_oldi,omegai,
+     &           nneighi,isucceed(ipart)
+         ENDIF
 
          IF ((hnew.LE.0. .OR. omegai.LE.tiny .OR. 
      &        iteration.EQ.maxitsnr .OR. nneighi.LE.0) 
@@ -1225,7 +1313,15 @@ C$OMP END CRITICAL (listcompact)
                ivar(3,ncompacthere) = ipart
                DO k = 1, nneighlocal
                   j = neighlist(k)
+#ifdef MPICOPY
+c
+c--For MPICOPY need to store neighbours in temp array that is combined
+c     into ijvar() across all processes later
+c
+                  ijvartemp(icompacthere + k) = j
+#else
                   ijvar(icompacthere + k) = j
+#endif
                   IF (.NOT.iscurrent(j) .AND. .NOT.iupdated(j) 
      &                 .AND. j.LE.npart) THEN
                      iupdated(j) = .TRUE.
@@ -1238,7 +1334,15 @@ C$OMP END CRITICAL (listupdated)
                         WRITE (iprint,*) 'ERROR - numberupdated.GT.idim'
                         CALL quit
                      ENDIF
+#ifdef MPICOPY
+c
+c--For MPICOPY need to store parents list in temp array that is combined
+c     across all processes later
+c
+                     listparentstemp(numberupdated) = j
+#else
                      listparents(numberupdated) = j
+#endif
                   ENDIF
                END DO
 
@@ -1286,11 +1390,18 @@ c
 c--Check to see whether all particles have converged
 c
 #ifdef MPIDEBUG
-c      IF (itime.EQ.000)
-           print *,'numsucceeded ',numsucceeded,nlstdo,htol,numproc
+#ifdef MPI
+      print *,'numsucceeded ',numsucceeded,nlstdo,htol,numproc
+#else
+      print *,'numsucc ',numsucceeded,htol,iproc,numbertodohere
+#endif
 #endif
 
+#ifdef MPICOPY
+      IF (numsucceeded.EQ.numbertodohere) THEN
+#else
       IF (numsucceeded.EQ.nlstdo) THEN
+#endif
 #ifdef MPI
          iscore = 1
 #else
@@ -1327,6 +1438,18 @@ c      ENDIF
 c
 c--Otherwise, make new list of particles that are still to converge
 c
+#ifdef MPICOPY
+      numberend_old = numberend
+      numberend = numberstart - 1
+      DO n = numberstart, numberend_old
+         ipart = ldolist(n)
+         IF (isucceed(ipart).NE.1) THEN
+            numberend = numberend + 1
+            ldolist(numberend) = ipart
+         ENDIF
+      END DO
+      numbertodohere = numberend - numberstart + 1
+#else
       nlstsend = 0
       nlstdo_old = nlstdo
       nlstdo = 0
@@ -1343,14 +1466,22 @@ c
 #endif
          ENDIF
       END DO
+#endif
 c
 c--Re-zero quantities
 c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstdo,ldolist,rho,dumrho,divv,curlv,gradhs,nneigh)
 C$OMP& shared(dvxyzu,poten)
+#ifdef MPICOPY
+C$OMP& shared(numberstart,numberend)
+#endif
 C$OMP& private(n,ipart,k)
+#ifdef MPICOPY
+      DO n = numberstart, numberend
+#else
       DO n = 1, nlstdo
+#endif
          ipart = ldolist(n)
 
          rho(ipart) = 0.
@@ -1412,20 +1543,604 @@ c
 c--End of iteration loop
 c
       END DO
+#ifdef MPICOPY
+      WRITE (iprint,*) 'ERROR: density iteration failed for ',
+     &     numberend-numberstart,' particles ',ifinished,iproc
+      WRITE (*,*) 'ERROR: density iteration failed for ',
+     &     numberend-numberstart,' particles ',ifinished,iproc
+#else
       WRITE (iprint,*) 'ERROR: density iteration failed for ',nlstdo,
      &     ' particles ',ifinished,iproc
       WRITE (*,*) 'ERROR: density iteration failed for ',nlstdo,
      &     ' particles ',ifinished,iproc
-#ifdef MPI
+#endif
+#ifdef MPIALL
       CALL MPI_BARRIER(MPI_COMM_WORLD,ierr)
 #endif
       CALL quit
 
  30   CONTINUE
+
+      IF (itiming) THEN
+         CALL getused(td12)
+         td2 = td2 + (td12 - td11)
+      ENDIF
+
+c      DO i = numberstart,numberstart+numbertodoherekeep-1
+c         WRITE (90+iproc,*) rho(llisttrans(i) + 1),
+c     &        dumrho(llisttrans(i) + 1)
+c      END DO
+c
+c--Now for MPICOPY parallelisation, need to share all the neighbours lists
+c     and gravitational forces, gradhs, etc between MPI processes.
+c     Need to share: rho(),dumrho(),nneigh(),
+c     dumvxyzu(1-3),xyzmh(5),gradhs(1),poten()
+c
+c     Need to call eospg for shared particles (not done locally)
+c
+c     Need to set ivar(1-3), store neighbours in ijvar() and need
+c     to get listparents()
+c
+c     For RT:  Need to share start values of ekcle(1-3) if undefined
+c
+#ifdef MPICOPY
+      numberend = numberendkeep
+c
+c--Send around rho, dumrho, and poten
+c
+      CALL MPI_TYPE_INDEXED(numbertodoherekeep, 
+     &     lblocklengths, llisttrans(numberstart),
+     &     MPI_REAL4, indexMPI_INT1, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+
+      IF (iproc.NE.numproc-1) THEN
+c         DO i = numberstart,numberstart + numbertodo - 1
+c            real4transfer2(i) = rho(llisttrans(i))
+c         END DO
+#ifdef MPIDEBUG
+         print *,iproc,': real4transfer2 load ',numberstart,
+     &        numberstart + numbertodo - 1
+#endif
+      ELSE
+c         DO i = numberstart,nlstdo_tot
+c            real4transfer2(i) = rho(llisttrans(i))
+c         END DO
+c
+c-Padding to make block sizes equal
+c
+c         DO i = nlstdo_tot + 1, numbertodo
+c            real4transfer2(i) = 0.0
+c         END DO
+#ifdef MPIDEBUG
+         print *,iproc,': real4transfer2 load ',numberstart,
+     &        nlstdo_tot, numbertodo
+#endif
+      ENDIF
+c      DO i = numberstart,numberstart+numbertodoherekeep-1
+c         WRITE (80+iproc,*) rho(llisttrans(i) + 1),
+c     &        dumrho(llisttrans(i) + 1)
+c      END DO
+
+      print *,iproc,' rho,dumrho(2550) ',rho(2550),dumrho(2550)
+c
+c--All processes transfer their rho data
+c
+      CALL MPI_ALLGATHERV(rho,1,indexMPI_INT1,
+     &     real4transfer2,irecvcounti,idisplacementsi,MPI_REAL4,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put rho data into correct places in rho
+c
+c      DO i = 1, nlstdo_tot
+c         WRITE (70+iproc,*) real4transfer2(i)
+c      END DO
+
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1) 
+               rho(llisttrans(i) + 1) = real4transfer2(i)
+            END DO
+         ENDIF
+      END DO
+
+#ifdef MPIDEBUG
+      print *,iproc,': rho move ',1,numbertodo*iproc,
+     &     numbertodo*(iproc+1)+1, nlstdo_tot
+#endif
+
+      IF (iprintout) THEN
+      DO i = 1, nlstdo_tot
+         WRITE (40+iproc,*) rho(llisttrans(i) + 1)
+      END DO
+      ENDIF
+
+      print *,iproc,': dumrho pre move ',dumrho(2550)
+
+c
+c--All processes transfer their dumrho data
+c
+      CALL MPI_ALLGATHERV(dumrho,1,indexMPI_INT1,
+     &     real4transfer2,irecvcounti,idisplacementsi,MPI_REAL4,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put rho data into correct places in rho
+c
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               dumrho(llisttrans(i) + 1) = real4transfer2(i)
+            END DO
+         ENDIF
+      END DO
+
+#ifdef MPIDEBUG
+      print *,iproc,': dumrho move ',1,numbertodo*iproc,
+     &     numbertodo*(iproc+1)+1, nlstdo_tot
+#endif
+
+      print *,iproc,': dumrho post move ',dumrho(2550)
+      IF (iprintout) THEN
+      DO i = 1, nlstdo_tot
+         WRITE (45+iproc,*) dumrho(llisttrans(i) + 1)
+      END DO
+      ENDIF
+c
+c--All processes transfer their poten data
+c
+      CALL MPI_ALLGATHERV(poten,1,indexMPI_INT1,
+     &     real4transfer2,irecvcounti,idisplacementsi,MPI_REAL4,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put rho data into correct places in rho
+c
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+cTEST               poten(llisttrans(i) + 1) = real4transfer2(i)
+            END DO
+         ENDIF
+      END DO
+#ifdef MPIDEBUG
+      print *,iproc,': poten move ',1,numbertodo*iproc,
+     &     numbertodo*(iproc+1)+1, nlstdo_tot
+#endif
+      IF (iprintout) THEN
+      DO i = 1, nlstdo_tot
+         WRITE (50+iproc,*) poten(llisttrans(i) + 1)
+      END DO
+      ENDIF
+      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+c
+c--Send around nneigh
+c
+      CALL MPI_TYPE_INDEXED(numbertodoherekeep, 
+     &     lblocklengths, llisttrans(numberstart),
+     &     MPI_INTEGER, indexMPI_INT1, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+c
+c--All processes transfer their nneigh data
+c
+      CALL MPI_ALLGATHERV(nneigh,1,indexMPI_INT1,
+     &     itransfer3,irecvcounti,idisplacementsi,MPI_INTEGER,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put nneigh data into correct places in nneigh
+c
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               nneigh(llisttrans(i) + 1) = itransfer3(i)
+            END DO
+         ENDIF
+      END DO
+#ifdef MPIDEBUG
+      print *,iproc,': nneigh move ',1,numbertodo*iproc,
+     &     numbertodo*(iproc+1)+1, nlstdo_tot
+#endif
+      IF (iprintout) THEN
+      DO i = 1, nlstdo_tot
+         WRITE (55+iproc,*) nneigh(llisttrans(i) + 1)
+      END DO
+      ENDIF
+
+      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+
+c      DO i = numberstart,numberstart+numbertodoherekeep-1
+c         WRITE (80+iproc,*) nneigh(llisttrans(i) + 1)
+c      END DO
+c      DO i = 1, nlstdo_tot
+c         WRITE (60+iproc,*) nneigh(llisttrans(i) + 1)
+c      END DO
+
+c
+c--Send around xyzmh(5)
+c
+      DO i = numberstart, numberstart + numbertodoherekeep - 1
+         llisttrans(i) = llisttrans(i)*5 + 4
+      END DO
+      CALL MPI_TYPE_INDEXED(numbertodoherekeep, 
+     &     lblocklengths, llisttrans(numberstart),
+     &     MPI_REAL8, indexMPI_INT1, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+      DO i = numberstart, numberstart + numbertodoherekeep - 1
+         llisttrans(i) = llisttrans(i)/5
+      END DO
+
+
+c      DO i = numberstart,numberstart+numbertodoherekeep-1
+c         WRITE (80+iproc,*) xyzmh(5,llisttrans(i) + 1)
+c      END DO
+c
+c--All processes transfer their xyzmh(5) data
+c
+      CALL MPI_ALLGATHERV(xyzmh,1,indexMPI_INT1,
+     &     realtransfer5to15,irecvcounti,idisplacementsi,MPI_REAL8,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put xyzmh(5) data into correct places in xyzmh(5)
+c
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               xyzmh(5,llisttrans(i) + 1) = realtransfer5to15(i)
+            END DO
+         ENDIF
+      END DO
+
+      DO i = 1, nlstdo_tot
+         j = llisttrans(i)+1
+         IF (xyzmh(5,j).LE.0.0) THEN
+            print *,iproc,': xyzmh error ',j,i,xyzmh(5,j)
+         ENDIF
+      END DO
+
+      IF (iprintout) THEN
+      DO i = 1, nlstdo_tot
+         WRITE (60+iproc,*) xyzmh(5,llisttrans(i) + 1)
+      END DO
+      ENDIF
+#ifdef MPIDEBUG
+      print *,iproc,': xyzmh(5) move ',1,numbertodo*iproc,
+     &     numbertodo*(iproc+1)+1, nlstdo_tot
+#endif
+
+      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+c
+c--Send around dvxyzu(1-4)
+c
+      CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
+      CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
+
+      CALL MPI_TYPE_INDEXED(numbertodoherekeep, 
+     &     lblocklengths, llisttrans(numberstart),
+     &     i4REAL8, indexMPI_INT1, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+
+c      DO i = numberstart,numberstart+numbertodoherekeep-1
+c         WRITE (80+iproc,*) dvxyzu(1,llisttrans(i) + 1),
+c     &        dvxyzu(3,llisttrans(i) + 1)
+c      END DO
+c
+c--All processes transfer their dvxyzu(1-4) data
+c
+      CALL MPI_ALLGATHERV(dvxyzu,1,indexMPI_INT1,
+     &     realtransfer5to15,irecvcounti,idisplacementsi,i4REAL8,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put dvxyzu(1-4) data into correct places in dvxyzu(1-4)
+c
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               DO k = 1, 4
+cTEST                  dvxyzu(k,llisttrans(i) + 1) = 
+cTEST     &                 realtransfer5to15((i-1)*4 + k)
+               END DO
+            END DO
+         ENDIF
+      END DO
+
+c      DO i = 1, numbertodo*iproc
+c         DO j = 1, 4
+c            dvxyzu(j,llisttrans(i) + 1) = realtransfer5to15((i-1)*4 + j)
+c         END DO
+c      END DO
+c      DO i = numbertodo*(iproc+1)+1, nlstdo_tot
+c         DO j = 1, 4
+c            dvxyzu(j,llisttrans(i) + 1) = realtransfer5to15((i-1)*4 + j)
+c         END DO
+c      END DO
+#ifdef MPIDEBUG
+      print *,iproc,': dvxyzu(1-4) move ',1,numbertodo*iproc,
+     &     numbertodo*(iproc+1)+1, nlstdo_tot
+#endif
+
+      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+      CALL MPI_TYPE_FREE(i4REAL8,ierr)
+
+c      DO i = numberstart,numberstart+numbertodoherekeep-1
+c         WRITE (80+iproc,*) dvxyzu(1,llisttrans(i) + 1),
+c     &        dvxyzu(3,llisttrans(i) + 1)
+c      END DO
+
+      IF (iprintout) THEN
+      DO i = 1, nlstdo_tot
+         WRITE (65+iproc,*) dvxyzu(1,llisttrans(i) + 1),
+     &        dvxyzu(4,llisttrans(i) + 1)
+      END DO
+      ENDIF
+c
+c--Send around ivar(1-3) values
+c
+      DO i = 1, numproc
+         irecvcounti(i) = irecvcounti(i)*3
+         idisplacementsi(i) = idisplacementsi(i)*3
+
+         print *,iproc,': mod irecv ',i,irecvcounti(i),
+     &        idisplacementsi(i)
+      END DO
+
+      print *,iproc,': check ncompact ',ncompact,numbertodo*numproc
+
+      print *,iproc,': numbertodokeephere ',numbertodoherekeep
+
+
+c      DO i = 1,ncompact
+c         WRITE (80+iproc,*) ivar(1,i),ivar(2,i),ivar(3,i)
+c      END DO
+
+      CALL MPI_ALLGATHERV(ivar(1,numberstart),numbertodoherekeep*3,
+     &     MPI_INTEGER,itransfer3,irecvcounti,idisplacementsi,
+     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+c
+c--Put ivar(1-3) data into correct places in ivar(1-3)
+c
+      DO i = 1, numproc
+         irecvcounti(i) = irecvcounti(i)/3
+         idisplacementsi(i) = idisplacementsi(i)/3
+      END DO
+
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               DO k = 1, 3
+                  ivar(k,i) = itransfer3((i-1)*3 + k)
+               END DO
+            END DO
+         ENDIF
+      END DO
+
+c      DO i = 1, numbertodo*iproc
+c         DO j = 1, 3
+c            ivar(j,i) = itransfer3((i-1)*3 + j)
+c         END DO
+c      END DO
+c      DO i = numbertodo*(iproc+1)+1, nlstdo_tot
+c         DO j = 1, 3
+c            ivar(j,i) = itransfer3((i-1)*3 + j)
+c         END DO
+c      END DO
+
+      ncompact = nlstdo_tot
+
+#ifdef MPIDEBUG
+      print *,iproc,': ivar(1-3) move ',1,numbertodo*iproc,
+     &     numbertodo*(iproc+1)+1, nlstdo_tot, ncompact
+#endif
+
+c      DO i = 1, nlstdo_tot
+c         WRITE (70+iproc,*) ivar(1,i),ivar(2,i),ivar(3,i)
+c      END DO
+
+      print *,iproc,': icompact ',icompact
+c
+c--Transfer neighbours arrary ijvar.  Need to use ALLGATHERV since
+c     each group of particles will have a different number of neighbours.
+c
+c--First need each process to determine how many neighbours it is expecting
+c     to receive from other nodes
+c
+c
+      irecvcountn(iproc) = icompact
+      CALL MPI_ALLGATHER(irecvcountn(iproc),1,
+     &     MPI_INTEGER,irecvcountn,1,MPI_INTEGER,
+     &     MPI_COMM_WORLD,ierr)
+
+      print *,iproc,': irecvcountn ',(irecvcountn(i),i=1,numproc)
+
+      idisplacementsn(1) = 0
+      DO i = 1, numproc-1
+         idisplacementsn(i+1) = idisplacementsn(i) + irecvcountn(i)
+      END DO
+
+      CALL MPI_ALLGATHERV(ijvartemp,icompact,MPI_INTEGER,
+     &        ijvar,irecvcountn,idisplacementsn,MPI_INTEGER,
+     &        MPI_COMM_WORLD,ierr)
+
+c      DO i = 1, icompact
+c         write (80+iproc,*) ijvartemp(i)
+c      END DO
+
+c      DO i = 1, idisplacementsn(numproc)+irecvcountn(numproc)
+c         write (90+iproc,*) ijvar(i)
+c      END DO
+
+      print *,' recvcount ',(irecvcountn(i),i=1,numproc)
+      print *,' idisplacements ',(idisplacementsn(i),i=1,numproc)
+c
+c--Now need to update ivar(2) to point to the correct neighbours by adding
+c     displacements
+c
+      DO i = 1, numproc
+         DO j = 1, irecvcounti(i)
+            jlocal = idisplacementsi(i) + j
+            ivar(2,jlocal) = ivar(2,jlocal) + idisplacementsn(i)
+         END DO
+      END DO
+
+      IF (iprintout) THEN
+      DO i = 1, nlstdo_tot
+         WRITE (70+iproc,*) ivar(1,i),ivar(2,i),ivar(3,i)
+      END DO
+      DO i = 1, nlstdo_tot
+         DO j = ivar(2,i) + 1, ivar(2,i) + ivar(1,i)
+            WRITE (75+iproc,*) ijvar(j)
+         END DO
+      END DO
+      ENDIF
+c
+c--Now need to transfer the list of parents of updated particles
+c     Need to set iupdated=.TRUE. for all in list as well.
+c
+c
+c--First need each process to determine how many parents it is expecting
+c     to receive from other nodes
+c
+c
+      irecvcountn(iproc) = nlistupdated
+      CALL MPI_ALLGATHER(irecvcountn(iproc),1,
+     &     MPI_INTEGER,irecvcountn,1,MPI_INTEGER,
+     &     MPI_COMM_WORLD,ierr)
+
+      print *,iproc,': irecvcountn updated',
+     &     (irecvcountn(i),i=1,numproc)
+
+      idisplacementsn(1) = 0
+      DO i = 1, numproc-1
+         idisplacementsn(i+1) = idisplacementsn(i) + irecvcountn(i)
+      END DO
+
+      CALL MPI_ALLGATHERV(listparentstemp(1),nlistupdated,MPI_INTEGER,
+     &        listparents,irecvcountn,idisplacementsn,MPI_INTEGER,
+     &        MPI_COMM_WORLD,ierr)
+c
+c--Unset local
+c
+      print *,iproc,': nlistupdated ',nlistupdated
+
+      DO i = 1, nlistupdated
+         iupdated(listparentstemp(i)) = .FALSE.
+      END DO
+      nlistupdated = idisplacementsn(numproc) + irecvcountn(numproc)
+c
+c--Need to make sure no duplicates and all are set
+c
+      itemp = 0
+      DO i = 1, nlistupdated
+         IF (.NOT.iupdated(listparents(i))) THEN
+            iupdated(listparents(i))=.TRUE.
+            itemp = itemp + 1
+            listparents(itemp) = listparents(i)
+         ENDIF
+      END DO
+      nlistupdated = itemp
+
+      IF (iprintout) THEN
+      DO i = 1, nlistupdated
+         WRITE (80+iproc,*) listparents(i)
+      END DO
+      ENDIF
+c
+c--Calculate eospg values for particles done on other processes
+c
+c--Pressure and sound velocity from ideal gas law...
+c
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               ipart = llisttrans(i) + 1
+               CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
+            END DO
+         ENDIF
+      END DO
+
+      IF (iprintout) THEN
+      DO i = 1, nlstdo_tot
+         WRITE (90+iproc,*) pr(llisttrans(i) + 1),
+     &        vsound(llisttrans(i) + 1)
+      END DO
+      ENDIF
+c      DO i = 1, numbertodo*iproc
+c         ipart = llisttrans(i) + 1
+c         CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
+c      END DO
+c      DO i = numbertodo*(iproc+1)+1, nlstdo_tot
+c         ipart = llisttrans(i) + 1
+c         CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
+c      END DO
+
+      print *,'rhoj is ',rho(30788)
+
+
+c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+c      CALL quit
+
+
+
+#endif
       ncompactlocal = ncompact
       nptmasstotlast = nptmasstot
 
-#ifdef MPI
+      
+      IF (iprintout) THEN
+      DO i = 1, nlstdo_tot
+         WRITE (40+iproc,*) rho(listp(i))
+      END DO
+      DO i = 1, nlstdo_tot
+         WRITE (45+iproc,*) dumrho(listp(i))
+      END DO
+      DO i = 1, nlstdo_tot
+         WRITE (50+iproc,*) poten(listp(i))
+      END DO
+      DO i = 1, nlstdo_tot
+         WRITE (55+iproc,*) nneigh(listp(i))
+      END DO
+      DO i = 1, nlstdo_tot
+         WRITE (60+iproc,*) xyzmh(5,listp(i))
+      END DO
+      DO i = 1, nlstdo_tot
+         WRITE (65+iproc,*) dvxyzu(1,listp(i)),dvxyzu(4,listp(i))
+      END DO
+      DO i = 1, nlstdo_tot
+         WRITE (70+iproc,*) ivar(1,listp(i)),ivar(2,listp(i)),
+     &        ivar(3,listp(i))
+      END DO
+
+      DO i = 1, nlstdo_tot
+         DO j = ivar(2,i) + 1, ivar(2,i) + ivar(1,i)
+            WRITE (75+iproc,*) ijvar(j)
+         END DO
+      END DO
+
+      DO i = 1, nlistupdated
+         WRITE (80+iproc,*) listparents(i)
+      END DO
+      DO i = 1, nlstdo_tot
+         WRITE (85+iproc,*) gradhs(1,listp(i)),gradhs(2,listp(i))
+      END DO
+      DO i = 1, nlstdo_tot
+         WRITE (90+iproc,*) pr(listp(i)),vsound(listp(i))
+      END DO
+
+      CALL quit
+      ENDIF
+
+c      IF (itime.EQ.100663296 .AND. icall.EQ.3) THEN
+c         DO i = nlst_in, nlst_end
+c            WRITE (80+iproc,*) 'gradh ',i,listp(i),gradhs(1,listp(i)),
+c     &           gradhs(2,listp(i))
+c         END DO
+c      ENDIF
+
+#ifdef MPIALL
       IF (itiming) THEN
          CALL getused(td12)
          td1 = td1 + (td12 - td11)
@@ -1445,9 +2160,16 @@ C$OMP& shared(xyzmh,vxyzu,pr,vsound,rho,ekcle,Bevol)
 C$OMP& shared(iphase,uradconst,icall,encal)
 C$OMP& shared(numproc,iproc,gradmhd,npart,ntot)
 C$OMP& shared(ivar,ijvar)
+#ifdef MPICOPY
+C$OMP& shared(numberstart,numberend)
+#endif
 C$OMP& private(n,ipart,k)
 C$OMP& private(nneighlocal)
+#ifdef MPICOPY
+      DO n = numberstart, numberend
+#else
       DO n = nlst_in, nlst_end
+#endif
          ipart = ivar(3,n)
          IF (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10) THEN
 c
@@ -1465,14 +2187,182 @@ C$OMP END PARALLEL DO
          CALL getused(td32)
          td3 = td3 + (td32 - td31)
       ENDIF
+#ifdef MPICOPY
+c
+c--For MPICOPY job, need to transfer gradhs(1-2) between processes.  This 
+c     needs to be done here because gradhs(1) is required for calculating
+c     the final values of divv and curlv
+c
+c     Also need to transfer the other products of divvcurlvgrad which
+c     are: divv(), curlv(), and gradmhd(1-15,i)
+c
+c--Transfer gradhs(1-2)
+c
+      CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
+      CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
+
+      CALL MPI_TYPE_INDEXED(numbertodoherekeep, 
+     &     lblocklengths, llisttrans(numberstart),
+     &     i2REAL4, indexMPI_INT1, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+c
+c--All processes transfer their gradhs(1-2) data
+c
+      CALL MPI_ALLGATHERV(gradhs,1,indexMPI_INT1,
+     &     real4transfer2,irecvcounti,idisplacementsi,i2REAL4,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put gradhs(1-2) data into correct places in gradhs(1-2)
+c
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               DO k = 1, 2
+                  gradhs(k,llisttrans(i) + 1) = 
+     &                 real4transfer2((i-1)*2 + k)
+               END DO
+            END DO
+         ENDIF
+      END DO
+#ifdef MPIDEBUG
+      print *,iproc,': gradhs(1-2) move ',1,numbertodo*iproc,
+     &     numbertodo*(iproc+1)+1, nlstdo_tot
+#endif
+
+      IF (iprintout) THEN
+      DO i = 1, nlstdo_tot
+         WRITE (85+iproc,*) gradhs(1,llisttrans(i) + 1),
+     &        gradhs(2,llisttrans(i) + 1)
+      END DO
+      ENDIF
+
+      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+      CALL MPI_TYPE_FREE(i2REAL4,ierr)
+c
+c--Transfer divv() and curlv()
+c
+      CALL MPI_TYPE_INDEXED(numbertodoherekeep, 
+     &     lblocklengths, llisttrans(numberstart),
+     &     MPI_REAL4, indexMPI_INT1, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+c
+c--All processes transfer their divv() data
+c
+      CALL MPI_ALLGATHERV(divv,1,indexMPI_INT1,
+     &     real4transfer2,irecvcounti,idisplacementsi,MPI_REAL4,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put divv() data into correct places in divv()
+c
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               divv(llisttrans(i) + 1) = 
+     &              real4transfer2(i)
+            END DO
+         ENDIF
+      END DO
+#ifdef MPIDEBUG
+      print *,iproc,': divv() move ',1,numbertodo*iproc,
+     &     numbertodo*(iproc+1)+1, nlstdo_tot
+#endif
+
+      IF (iprintout) THEN
+      DO i = 1, nlstdo_tot
+         WRITE (85+iproc,*) divv(llisttrans(i) + 1)
+      END DO
+      ENDIF
+c
+c--All processes transfer their curlv() data
+c
+      CALL MPI_ALLGATHERV(curlv,1,indexMPI_INT1,
+     &     real4transfer2,irecvcounti,idisplacementsi,MPI_REAL4,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put curlv() data into correct places in curlv()
+c
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               curlv(llisttrans(i) + 1) = 
+     &              real4transfer2(i)
+            END DO
+         ENDIF
+      END DO
+#ifdef MPIDEBUG
+      print *,iproc,': curlv() move ',1,numbertodo*iproc,
+     &     numbertodo*(iproc+1)+1, nlstdo_tot
+#endif
+
+      IF (iprintout) THEN
+      DO i = 1, nlstdo_tot
+         WRITE (85+iproc,*) curlv(llisttrans(i) + 1)
+      END DO
+      ENDIF
+
+      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+
+      IF (imhd.EQ.idim) THEN
+         IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
+c
+c--Transfer gradmhd(1-15)
+c
+      CALL MPI_TYPE_CONTIGUOUS(15, MPI_REAL8, i15REAL8, ierr)
+      CALL MPI_TYPE_COMMIT(i15REAL8,ierr)
+
+      CALL MPI_TYPE_INDEXED(numbertodoherekeep, 
+     &     lblocklengths, llisttrans(numberstart),
+     &     i15REAL8, indexMPI_INT1, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+c
+c--All processes transfer their gradmhd(1-15) data
+c
+      CALL MPI_ALLGATHERV(gradmhd,1,indexMPI_INT1,
+     &     realtransfer5to15,irecvcounti,idisplacementsi,i15REAL8,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put gradmhd(1-15) data into correct places in gradmhd(1-15)
+c
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               DO k = 1, 15
+                  gradmhd(k,llisttrans(i) + 1) = 
+     &                 realtransfer5to15((i-1)*15 + k)
+               END DO
+            END DO
+         ENDIF
+      END DO
+#ifdef MPIDEBUG
+      print *,iproc,': gradmhd(1-15) move ',1,numbertodo*iproc,
+     &     numbertodo*(iproc+1)+1, nlstdo_tot
+#endif
+
+      IF (iprintout) THEN
+      DO i = 1, nlstdo_tot
+         WRITE (70+iproc,*) gradmhd(1,llisttrans(i) + 1),
+     &        gradmhd(2,llisttrans(i) + 1)
+      END DO
+      ENDIF
+
+      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+      CALL MPI_TYPE_FREE(i15REAL8,ierr)
+
+         ENDIF
+      ENDIF
+#endif
 c
 c--For MPI job, need to add contributions to other quantities (such as divv,
 c     curlv, etc) from other MPI processes
 c
-#ifdef MPI
-
+#ifdef MPIALL
       IF (itiming) CALL getused(td21)
-
+#endif
+#ifdef MPI
 #ifdef MPIDEBUG
 c      IF (itime.EQ.000) THEN
          print *,iproc,': HERE '
@@ -2010,11 +2900,12 @@ c     &        dvxyzu(2,25646),dvxyzu(3,25646),xyzmh(1,25646),
 c     &        xyzmh(2,25646),xyzmh(3,25646)
 c      print *,' '
 #endif
-
-           IF (itiming) THEN
-              CALL getused(td22)
-              td2 = td2 + (td22 - td21)
-           ENDIF
+#endif
+#ifdef MPIALL
+c           IF (itiming) THEN
+c              CALL getused(td22)
+c              td2 = td2 + (td22 - td21)
+c           ENDIF
 #endif
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -2177,6 +3068,7 @@ c               print*,ipart,'vsmooth = ',vsmooth(:,ipart)
             ENDIF
          ENDIF
       END DO
+C$OMP END PARALLEL DO
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(npart,ntot,ireal,rho,dumrho,xyzmh,pr,vsound,divv,curlv)
@@ -2507,6 +3399,13 @@ c      CALL quit
 
 c      print *,'Exited densityiterate'
 
+c      IF (itime.EQ.100663296 .AND. icall.EQ.3) THEN
+c         DO i = nlst_in, nlst_end
+c            WRITE (90+iproc,*) 'gradhend ',i,gradhs(1,listp(i)),
+c     &           gradhs(2,listp(i))
+c         END DO
+c      ENDIF
+
       RETURN
       END
 
@@ -2539,6 +3438,7 @@ c
 
 #ifdef MPI
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidebug'
 #endif
@@ -2641,6 +3541,10 @@ c--Derivative w.r.t. h for grad h correction terms (and dhdrho)
 c
                      dwdhi = (-rij2*grwtij - 3.*wtij)*hi1
                      gradhi = gradhi + pmassj*dwdhi
+
+                     IF (iparttree.EQ.3159) THEN
+                     WRITE (*,*) 'P3159 ',j,pmassj,dwdhi
+                     ENDIF
 c
 c--Compute density
 c

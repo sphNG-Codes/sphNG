@@ -51,10 +51,13 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
-      INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpidebug'
+#endif
+#ifdef MPI
+      INCLUDE 'COMMONS/mpi'
 #endif
 
       DIMENSION xyzmh(5,mmax2),vxyzu(4,idim2),dvxyzu(4,idim3)
@@ -116,7 +119,9 @@ c
 c--Allow for tracing flow
 c
 c      IF (gt.GT.50.) 
-c      print *,iproc,': ENTERED derivi'
+#ifdef MPIDEBUG
+      print *,iproc,': ENTERED derivi ',nlst
+#endif
 
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
 99001 FORMAT(' entry subroutine derivi_gradh')
@@ -996,7 +1001,7 @@ c
       IF (itiming) CALL getused(tforce1)
 
 #ifdef MPIDEBUG
-      print *,iproc,': calling forcei'
+      print *,iproc,': calling forcei ',itime
 #endif
 
 
@@ -1017,7 +1022,7 @@ c     &     dedxyz,Bxyz,dBevolxyz,Bevolxyz)
      &     dedxyz,Bxyz,dBevolxyz,Bevolxyz)
 
 #ifdef MPIDEBUG
-      print *,iproc,': called forcei '
+      print *,iproc,': called forcei ',itime
 #endif
 
       IF (itiming) THEN
@@ -1331,7 +1336,7 @@ c      END DO
 c      CALL quit
 
 #ifdef MPIDEBUG
-      print *,iproc,': Exited derivi'
+      print *,iproc,': Exited derivi ',itime
 #endif
                    
       RETURN

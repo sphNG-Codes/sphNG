@@ -21,8 +21,7 @@
 
       LOGICAL moresweep
 
-      WRITE (*,*) 'ASS, icall ',icall,nlst_end
-c     &     ,xyzmh(5,1),xyzmh(5,2),xyzmh(5,3),xyzmh(5,4)
+c      WRITE (*,*) 'ASS, icall ',icall,nlst_end
 c
 c--Keep original versions of U and E and set cv and kappa
 c

@@ -228,9 +228,9 @@ c                                                           *
 c************************************************************
       INCLUDE 'idim'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
-      INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpiall'
 
       CALL MPI_FINALIZE(ierr)
 #endif

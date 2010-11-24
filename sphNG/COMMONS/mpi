@@ -1,8 +1,3 @@
-      INTEGER nummaxproc, ineighproc
-      PARAMETER (nummaxproc = 128)
-      PARAMETER (ineighproc = idim/2)
-
-      INTEGER ierr, numproc, iproc
       INTEGER nparttot, nactivetot, n1tot, n2tot, iproccreate,
      &	maxnneighsentback, inumofreturns, inumbertotal
 
@@ -16,9 +11,8 @@
       INTEGER lsendlist, llistrec, nneighsentback, nneightogetback, 
      &        nneighsink, nneighforeignsink, ibelongptmass,
      &        llistsentback, inumberindiv, inumbercumm, 
-     &        inumberproc, lblocklengths
+     &        inumberproc
 
-      COMMON /mpi / ierr, numproc, iproc
       COMMON /mpiint/ nparttot, nactivetot, n1tot, n2tot, iproccreate,
      &	     maxnneighsentback,inumofreturns, inumbertotal, inumofsends
       COMMON /mpireal/ fmas1tot, fmas2tot, xlocationmpi, ylocationmpi,
@@ -41,7 +35,6 @@
      &     inumberindiv(nummaxproc),
      &     inumbercumm(nummaxproc),
      &     inumberproc(nummaxproc),
-     &	   lblocklengths(idim),
      &	   nsplit(3)
 
        COMMON /mpiarrr/ splitcoords(31,3),binarysplits(16384),

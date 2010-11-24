@@ -9,9 +9,9 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
-      INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpiall'
 #endif
 
       INCLUDE 'COMMONS/part'
@@ -91,14 +91,14 @@ c         CALL appendiproc(21,ptfile,iproc)
 c         CALL appendiproc(21,accfile,iproc)
 #endif
          IF (nptmass.NE.0 .OR. iptmass.NE.0) THEN
-#ifdef MPI
+#ifdef MPIALL
             print *,iproc,': Preset ',ptfile
             IF (iproc.EQ.0) THEN
 #endif
                OPEN (iptprint, FILE=ptfile,STATUS='unknown',
      &              FORM='unformatted')
                CLOSE (iptprint)
-#ifdef MPI
+#ifdef MPIALL
             ENDIF
 #endif
             OPEN (iaccpr,FILE=accfile,STATUS='unknown',
@@ -124,17 +124,17 @@ c         CALL appendiproc(21,reassfile,iproc)
 c
 c--Open notify file
 c
-#ifdef MPI
+#ifdef MPIALL
          IF (iproc.EQ.0) THEN
 #endif
             OPEN (inotify,FILE='notify')
-#ifdef MPI
+#ifdef MPIALL
          ENDIF
 #endif
 
       ENDIF
 
-#ifdef MPI
+#ifdef MPIALL
       print *,iproc,': Preset B'
 #endif
 
@@ -170,7 +170,7 @@ c
             alphaMM(2,i) = alphamin(2)
          ENDIF
       END DO
-#ifdef MPI
+#ifdef MPIALL
       print *,iproc,': Preset C'
 #endif
 c
@@ -230,12 +230,12 @@ c
 c
 c--Standardise point mass types and accretion radii
 c
-#ifdef MPI
+#ifdef MPIALL
       print *,iproc,': Preset D ',nptmass,initialptm
 #endif
       DO i = 1, nptmass
 
-#ifdef MPI
+#ifdef MPIALL
          print *,iproc,': Preset Ds ',nptmass,i
          print *,iproc,': Preset Ds ',listpm(i)
 #endif
@@ -248,7 +248,7 @@ c
 c--For Massive Accretion, only accrete mass and change ptmass properties
 c     for certain particles - exclude these:
 c
-#ifdef MPI
+#ifdef MPIALL
       print *,iproc,': Preset Da '
 #endif
       DO i = 1, idim
@@ -269,7 +269,7 @@ c
       iptsoft = 1
       ptsoft = 1.000E-06
 
-#ifdef MPI
+#ifdef MPIALL
       print *,iproc,': Preset Db '
 #endif
 c
@@ -288,7 +288,7 @@ c      hmin = 0.01
 c
 c--Compute tables for kernel quantities
 c
-#ifdef MPI
+#ifdef MPIALL
       print *,iproc,': Preset E'
 #endif
       CALL ktable
@@ -364,7 +364,7 @@ c
       ENDIF 
       IF (itrace.EQ.'all') WRITE(iprint,250)
  250  FORMAT(' exit subroutine preset')
-#ifdef MPI
+#ifdef MPIALL
       print *,iproc,': Preset F'
 #endif
 

@@ -8,8 +8,11 @@ c************************************************************
 
       INCLUDE 'idim'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
+#endif
+#ifdef MPI
       INCLUDE 'COMMONS/mpi'
 #endif
 
@@ -180,11 +183,11 @@ c              find nearest power of two to the change ratio required
                   ibin = INT(LOG10(REAL(isteps(j)))/xlog2+0.5)
                   IF (ibin.GT.nbinmax .OR. ibin.GT.30) THEN
                      WRITE (*,*) 'ERROR - ibin.GT.nbinmax mes'
-#ifdef MPI
+#ifdef MPIALL
                      IF (iproc.EQ.0) THEN
 #endif
                      WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax mes'
-#ifdef MPI
+#ifdef MPIALL
                      ENDIF
 #endif
                      CALL quit
@@ -226,7 +229,7 @@ c
 c--Erase message file
 c
  400  CONTINUE
-#ifdef MPI
+#ifdef MPIALL
       CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
       IF (iproc.NE.0) THEN
          CLOSE (idisk2)
@@ -239,7 +242,7 @@ c
       ELSE
          CLOSE (idisk2)
       ENDIF
-#ifdef MPI
+#ifdef MPIALL
       ENDIF
 #endif
 c
@@ -251,11 +254,11 @@ c
       IF (string(i)(1:4).EQ.'auto') THEN
          READ (string(i)(6:20),*) fffac
          WRITE (*, 99016) fffac
-#ifdef MPI
+#ifdef MPIALL
          IF (iproc.EQ.0) THEN
 #endif
          WRITE (iprint, 99016) fffac
-#ifdef MPI
+#ifdef MPIALL
          ENDIF
 #endif
 99016    FORMAT (' Synctcontrol : ', 1PE12.5)
@@ -278,11 +281,11 @@ c
          IF (dtmax.GT.timemax) THEN
             ipower = - (INT(LOG10(dtmax/timemax)/0.30103) + 1)
             WRITE (*, 99009) ipower, freefalltime, rhomax
-#ifdef MPI
+#ifdef MPIALL
             IF (iproc.EQ.0) THEN
 #endif
             WRITE (iprint, 99009) ipower, fffac, freefalltime, rhomax
-#ifdef MPI
+#ifdef MPIALL
             ENDIF
 #endif
 99009       FORMAT (' Synct autochange : ', I2,' fffac ',1PE12.5,
@@ -338,11 +341,11 @@ c
                   ibin = INT(LOG10(REAL(isteps(j)))/xlog2+0.5)
                   IF (ibin.GT.nbinmax .OR. ibin.GT.30) THEN
                      WRITE (*,*) 'ERROR - ibin.GT.nbinmax mes'
-#ifdef MPI
+#ifdef MPIALL
                      IF (iproc.EQ.0) THEN
 #endif
                      WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax mes'
-#ifdef MPI
+#ifdef MPIALL
                      ENDIF
 #endif
                      CALL quit
@@ -400,23 +403,23 @@ c
 
          WRITE (*, 99017) dtmaxsync, 10**contrast, 
      &        rhomaxsync/rhomaxsyncold, ipower
-#ifdef MPI
+#ifdef MPIALL
          IF (iproc.EQ.0) THEN
 #endif
          WRITE (iprint, 99017) dtmaxsync, 10**contrast, 
      &        rhomaxsync/rhomaxsyncold, ipower
-#ifdef MPI
+#ifdef MPIALL
          ENDIF
 #endif
 99017    FORMAT (' Dtmaxsync : ', 1PE12.5,' contrast ',1PE12.5,
      &        ' ratio ',1PE12.5,' ipower ',I2)
 
          IF (ipower.GE.0 .AND. tstep/60.0.GT.720.0) THEN
-#ifdef MPI
+#ifdef MPIALL
          IF (iproc.EQ.0) THEN
 #endif
             WRITE (iprint,99034) tstep/60.0
-#ifdef MPI
+#ifdef MPIALL
          ENDIF
 #endif
             WRITE (*,99034) tstep/60.0
@@ -427,11 +430,11 @@ c
             tempvar = gt/(2.0*dtmax)
             diff = tempvar-INT(tempvar)
             IF (diff.GT.0.25 .AND. diff.LT.0.75) THEN
-#ifdef MPI
+#ifdef MPIALL
                IF (iproc.EQ.0) THEN
 #endif
                WRITE (iprint,99035) diff
-#ifdef MPI
+#ifdef MPIALL
                ENDIF
 #endif
                WRITE (*,99035) diff
@@ -447,11 +450,11 @@ c
 
             IF (ipower.LT.0) THEN
                WRITE (*, 99021) ipower
-#ifdef MPI
+#ifdef MPIALL
                IF (iproc.EQ.0) THEN
 #endif
                WRITE (iprint, 99021) ipower
-#ifdef MPI
+#ifdef MPIALL
                ENDIF
 #endif
 99021          FORMAT ('  Synct autochange : ', I2)
@@ -478,11 +481,11 @@ c
                   GOTO 500
                ENDIF
                WRITE (*, 99021) ipower
-#ifdef MPI
+#ifdef MPIALL
                IF (iproc.EQ.0) THEN
 #endif
                WRITE (iprint, 99021) ipower
-#ifdef MPI
+#ifdef MPIALL
                ENDIF
 #endif
 
@@ -500,21 +503,21 @@ c
                END DO
             ELSE
                IF (dtmax*FLOAT(ifactor).GT.dtmaxsync) THEN
-#ifdef MPI
+#ifdef MPIALL
                   IF (iproc.EQ.0) THEN
 #endif
                   WRITE (iprint,99040)
-#ifdef MPI
+#ifdef MPIALL
                   ENDIF
 #endif
                   WRITE (*,99040)             
 99040       FORMAT('  Synct autochange attempt, but dtmaxsync reached')
                ELSEIF (tstep/60.*FLOAT(ifactor).GT.720.) THEN
-#ifdef MPI
+#ifdef MPIALL
                   IF (iproc.EQ.0) THEN
 #endif
                   WRITE (iprint,99041)
-#ifdef MPI
+#ifdef MPIALL
                   ENDIF
 #endif
                   WRITE (*,99041)             
@@ -533,11 +536,11 @@ c
                   ibin = INT(LOG10(REAL(isteps(j)))/xlog2+0.5)
                   IF (ibin.GT.nbinmax .OR. ibin.GT.30) THEN
                      WRITE (*,*) 'ERROR - ibin.GT.nbinmax mes'
-#ifdef MPI
+#ifdef MPIALL
                      IF (iproc.EQ.0) THEN
 #endif
                      WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax mes'
-#ifdef MPI
+#ifdef MPIALL
                      ENDIF
 #endif
                      CALL quit

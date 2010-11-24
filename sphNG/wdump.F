@@ -8,8 +8,11 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
+#endif
+#ifdef MPI
       INCLUDE 'COMMONS/mpi'
 #endif
 
@@ -105,18 +108,18 @@ c----------------------
 c
 c--Write output file
 c
-c#ifdef MPI
-c      IF (iproc.EQ.0) THEN
-c#endif
+#ifdef MPICOPY
+      IF (iproc.EQ.0) THEN
+#endif
       WRITE (idisk1, ERR=100) int1,r1,int2,i1,int1
       IF (ifulldump.EQ.0) THEN
          WRITE (idisk1, ERR=100) fileident('F')
       ELSE
          WRITE (idisk1, ERR=100) fileident('S')
       ENDIF
-c#ifdef MPI
-c      ENDIF
-c#endif
+#ifdef MPICOPY
+      ENDIF
+#endif
 c
 c--Single values
 c
@@ -181,9 +184,9 @@ c
       tmagtot = tmag
 #endif
 
-c#ifdef MPI
-c      IF (iproc.EQ.0) THEN
-c#endif
+#ifdef MPICOPY
+      IF (iproc.EQ.0) THEN
+#endif
 c
 c--Default int
       number = 9 + NTAB
@@ -762,6 +765,9 @@ c
 #ifdef MPIDEBUG
          print *,iproc,' Finished writing'
 #endif
+      ENDIF
+#endif
+#ifdef MPICOPY
       ENDIF
 #endif
 c

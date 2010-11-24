@@ -1,4 +1,5 @@
-      SUBROUTINE QUARTIC_GS1T(u1term,u0term,uold,soln,moresweep)
+      SUBROUTINE QUARTIC_GS1T(u1term,u0term,uold,soln,moresweep,
+     &     ipartin)
       
       REAL tiny
       PARAMETER (tiny=1.0E-30)
@@ -173,7 +174,7 @@ c     !     y^3 -4 a0 y - a1^2 = 0
          PRINT *,"q1 ",quantity1
 !        moresweep=.TRUE.
       ELSE IF(quantity1.LT.0.0) THEN
-         PRINT *,"QUARTIC4: Quantity1 is negative. "
+         PRINT *,"QUARTIC4: Quantity1 is negative. ",ipartin
          PRINT *,"Quantity1:",quantity1,biggest_term
          PRINT *,"Returning to TRAP with moresweep2=.TRUE."
          moresweep=.TRUE.
@@ -392,7 +393,8 @@ c     &     z1(2),z2(2),z3(2),z4(2)
          ELSEIF (z1(1).LE.0.0 .AND. z2(1).GT.0.0) THEN
             soln = z2(1)
          ELSEIF (z1(1).LE.0.0 .AND. z2(1).LE.0.0) THEN
-            PRINT *,"Failed 1 ",z1(1),z2(1),z3(1),z4(1),uold
+            PRINT *,"Failed 1 ",z1(1),z2(1),z3(1),z4(1),uold,
+     &              ipartin
             PRINT *,u1term,u0term
             PRINT *,"     ",quantity1,biggest_term
             PRINT *,"     ",y1,ub,uc,ub1,ub2,uc1,uc2
@@ -400,7 +402,8 @@ c     &     z1(2),z2(2),z3(2),z4(2)
          ELSEIF (ABS(z1(1)-uold).GT.ABS(z2(1)-uold)) THEN
             soln = z2(1)
             IF (ABS((soln-uold)/uold).GT.1.0) THEN
-               PRINT *,"Change big 1a ",z1(1),z2(1),z3(1),z4(1),uold
+               PRINT *,"Change big 1a ",z1(1),z2(1),z3(1),z4(1),uold,
+     &              ipartin
                PRINT *,u1term,u0term
                PRINT *,"     ",quantity1,biggest_term
                PRINT *,"     ",y1,ub,uc,ub1,ub2,uc1,uc2
@@ -409,7 +412,8 @@ c     &     z1(2),z2(2),z3(2),z4(2)
          ELSE
             soln = z1(1)
             IF (ABS((soln-uold)/uold).GT.1.0) THEN
-               PRINT *,"Change big 1b ",z1(1),z2(1),z3(1),z4(1),uold
+               PRINT *,"Change big 1b ",z1(1),z2(1),z3(1),z4(1),uold,
+     &              ipartin
                PRINT *,u1term,u0term
                PRINT *,"     ",quantity1,biggest_term
                PRINT *,"     ",y1,ub,uc,ub1,ub2,uc1,uc2
@@ -425,7 +429,8 @@ c     &     z1(2),z2(2),z3(2),z4(2)
          ELSEIF (z3(1).LE.0.0 .AND. z4(1).GT.0.0) THEN
             soln = z4(1)
          ELSEIF (z3(1).LE.0.0 .AND. z4(1).LE.0.0) THEN
-            PRINT *,"Failed 2 ",z1(1),z2(1),z3(1),z4(1),uold
+            PRINT *,"Failed 2 ",z1(1),z2(1),z3(1),z4(1),uold,
+     &              ipartin
             PRINT *,u1term,u0term
             PRINT *,"     ",quantity1,biggest_term
             PRINT *,"     ",y1,ub,uc,ub1,ub2,uc1,uc2
@@ -433,7 +438,8 @@ c     &     z1(2),z2(2),z3(2),z4(2)
          ELSEIF (ABS(z3(1)-uold).GT.ABS(z4(1)-uold)) THEN
             soln = z4(1)
             IF (ABS((soln-uold)/uold).GT.1.0) THEN
-               PRINT *,"Change big 2a ",z1(1),z2(1),z3(1),z4(1),uold
+               PRINT *,"Change big 2a ",z1(1),z2(1),z3(1),z4(1),uold,
+     &              ipartin
                PRINT *,u1term,u0term
                PRINT *,"     ",quantity1,biggest_term
                PRINT *,"     ",y1,ub,uc,ub1,ub2,uc1,uc2
@@ -442,7 +448,8 @@ c     &     z1(2),z2(2),z3(2),z4(2)
          ELSE
             soln = z3(1)
             IF (ABS((soln-uold)/uold).GT.1.0) THEN
-               PRINT *,"Change big 2b ",z1(1),z2(1),z3(1),z4(1),uold
+               PRINT *,"Change big 2b ",z1(1),z2(1),z3(1),z4(1),uold,
+     &              ipartin
                PRINT *,u1term,u0term
                PRINT *,"     ",quantity1,biggest_term
                PRINT *,"     ",y1,ub,uc,ub1,ub2,uc1,uc2
@@ -454,7 +461,8 @@ c     &     z1(2),z2(2),z3(2),z4(2)
       ELSE IF(z3(2).EQ.0.AND.z4(2).EQ.0.AND.z1(2).EQ.0.AND.z2(2).EQ.0)
      $     THEN
 
-            PRINT *,"QUARTIC4: All imaginary in "
+            PRINT *,"QUARTIC4: All imaginary in ",
+     &              ipartin
             PRINT *,"     ",u1term,u0term
             PRINT *,"     ",quantity1,biggest_term
             PRINT *,"     ",y1,ub,uc,ub1,ub2,uc1,uc2
@@ -464,7 +472,7 @@ c     &     z1(2),z2(2),z3(2),z4(2)
 
       rtst=0
       write (*,*) 'Four solutions ',tsoln1,tsoln2,z1(1),z2(1),z3(1),
-     &     z4(1)
+     &     z4(1),u1term,u0term,uold,ipartin
       STOP
       IF(tsoln1.GT.0.0.AND.tsoln1.GE.tmin.AND.tsoln1.LE.tmax) THEN
          rtst=rtst+1
@@ -491,7 +499,7 @@ c     &     z1(2),z2(2),z3(2),z4(2)
          PRINT *,"QUARTIC4: There are four solutions and I'm
      $        incapable of"
          PRINT *,"picking one. Solns are: "
-         PRINT *,z1(1),z2(1),z3(1),z4(1)
+         PRINT *,z1(1),z2(1),z3(1),z4(1),ipartin
          PRINT *,tsoln1,tsoln2,tsoln3,tsoln4
          PRINT *,"Min..Max T :",tmin,tmax
          PRINT *,"I'm going back to trapimpl with moresweep2=.TRUE."

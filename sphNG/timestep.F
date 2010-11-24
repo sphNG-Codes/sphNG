@@ -11,6 +11,7 @@ c************************************************************
 
 #ifdef MPI
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
 #endif
 

@@ -7,8 +7,11 @@ c************************************************************
 
       INCLUDE 'idim'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
+#endif
+#ifdef MPI
       INCLUDE 'COMMONS/mpi'
 #endif
 
@@ -90,11 +93,11 @@ c
 c--Open output file
 c 
  100  CONTINUE
-#ifdef MPI
+#ifdef MPIALL
       IF (iproc.EQ.0) THEN
 #endif
       IF(iprint.NE.6) OPEN (iprint, FILE=namerun)
-#ifdef MPI
+#ifdef MPIALL
       ENDIF
 #endif
 

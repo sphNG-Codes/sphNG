@@ -8,8 +8,11 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
+#endif
+#ifdef MPI
       INCLUDE 'COMMONS/mpi'
 #endif
 
@@ -1787,6 +1790,9 @@ c
      &        MPI_COMM_WORLD, istatus, ierr)
       ENDIF
 #endif
+#ifdef MPICOPY
+      IF (iproc.NE.0) THEN
+#endif
       
       DO i = nlstaccold + 1, nlstacc
          j = listacc(i)
@@ -1806,6 +1812,9 @@ c
       END DO
       CALL FLUSH (iaccpr)
 
+#ifdef MPICOPY
+      ENDIF
+#endif
 #ifdef MPI
          IF (iproc.NE.numproc-1) THEN
             CALL MPI_SEND(1, 1, MPI_INTEGER, iproc+1, 97,
@@ -2175,8 +2184,11 @@ c
 #else
             naccretetot = naccrete
 #endif
+#ifdef MPICOPY
+         IF (iproc.EQ.0) THEN
+#endif
 
-#ifdef MPI
+#ifdef MPIALL
 #ifdef MPIDEBUG
             print *,iproc,': Trying to open ',ptfile,' file'
 #endif
@@ -2235,13 +2247,16 @@ c            print *,iproc,': Trying to close ',iptprint
 #else
          CLOSE(iptprint)
 #endif
+#ifdef MPICOPY
+         ENDIF
+#endif
 
       ENDIF
 
       IF (icreate.EQ.1) iaccr = 1
       icreatetot = 0
 
-#ifdef MPI
+#ifdef MPIALL
 #ifdef MPIDEBUGS
             print *,iproc,': Exiting accrete'
 #endif

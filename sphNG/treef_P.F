@@ -228,6 +228,15 @@ c     particles within hn.  Forces are then applied so that m applies it's
 c     contribution to m and n if n is active, but if n is not active it's
 c     contribution is added when m is being done.
 c
+c--NOTE: This CANNOT be modified so that particle 'm' finds all its neighbours
+c     within 'h_n' because of the iterative h-solve in densityiterate.
+c     Active particles have their h's changed.  If particle 'm' finds
+c     neighbours within 'h_n' before 'n' has got its new value of 'h_n'
+c     then it may find 'n' as a neighbour, but when 'n' comes to find its
+c     neighbours and gets a new value of h, then particle 'm' may no longer
+c     be a neighbour (so the two will have different neighbours lists and
+c     forces will not be equal and opposite.
+c
                   IF (iscurrent(n)) THEN
                      rcut2 = (hm*radkernel)**2
                   ELSE

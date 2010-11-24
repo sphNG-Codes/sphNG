@@ -10,6 +10,7 @@ c************************************************************
 
 #ifdef MPI
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
 #endif
 
@@ -479,7 +480,7 @@ c--skip unnecessary reals
          IF (nums1(6).GT.iwanted) THEN
             DO j=1,nums1(6)-iwanted
                READ (idisk1, END=100)
-            ENDDO
+            END DO
          ENDIF
 c--real*4
          READ (idisk1, END=100) (rho(i), i=icount+1, icount+nhydro)
@@ -495,13 +496,16 @@ c--real*4
      &              icount+nhydro)
                iread = iread + 1
             ENDIF
+            DO j = 1, idim
+               dgrav(j) = 0.
+            END DO
          ELSE
             iread = 2
             READ (idisk1, END=100) (dgrav(i), i=icount+1, icount+nhydro)
             IF (gt.EQ.0.0) THEN
                DO j = icount+1, icount+nhydro
                   dgrav(j) = 0.
-               ENDDO
+               END DO
             ENDIF
          ENDIF
          IF (nums1(7).GT.iread) THEN
@@ -858,6 +862,7 @@ c************************************************************
       INCLUDE 'igrape'
 
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
 
       INTEGER*1 iphase(idim2)

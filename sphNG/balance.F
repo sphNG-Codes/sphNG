@@ -12,6 +12,7 @@ c************************************************************
 
 #ifdef MPI
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidebug'
 
@@ -1407,6 +1408,7 @@ c************************************************************
 
 #ifdef MPI
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidebug'
       INCLUDE 'COMMONS/densi'
@@ -1920,6 +1922,7 @@ c************************************************************
 
 #ifdef MPI
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidebug'
 #endif
@@ -1982,6 +1985,7 @@ c************************************************************
 
 #ifdef MPI
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidebug'
 #endif
@@ -2016,6 +2020,7 @@ c************************************************************
 
 #ifdef MPI
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidebug'
 #endif
@@ -2069,6 +2074,7 @@ c************************************************************
 
 #ifdef MPI
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidebug'
 #endif

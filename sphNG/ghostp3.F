@@ -8,9 +8,9 @@ c************************************************************
 
       INCLUDE 'idim'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
-      INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpiall'
 #endif
 
       DIMENSION xyzmh(5,idim)
@@ -139,7 +139,7 @@ c                  vxyzu(4,nptot) = boundtemp*ekcle(3,nptot)
 
  300  CONTINUE
 
-#ifdef MPI
+#ifdef MPIALL
       IF (iproc.EQ.0) WRITE (iprint, *) 'nghost ', nghost
 #else
       WRITE (iprint, *) 'nghost ', nghost

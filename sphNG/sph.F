@@ -411,10 +411,13 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
-      INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpidebug'
+#endif
+#ifdef MPI
+      INCLUDE 'COMMONS/mpi'
 #endif
 
       INCLUDE 'COMMONS/infor'
@@ -434,7 +437,7 @@ c************************************************************
 #ifdef ZEN
       clist(1:8) = (/ 0, 1, 4, 5, 2, 3, 6, 7 /)
 #endif
-#ifdef MPI
+#ifdef MPIALL
       iloop = 0
       CALL MPI_INIT(ierr)
       CALL MPI_COMM_RANK(MPI_COMM_WORLD, iproc, ierr)
@@ -457,7 +460,7 @@ c************************************************************
       ENDIF
       DO i = 1, idim
          lblocklengths(i) = 1
-      END DO      
+      END DO
 #else
 #ifdef ZEN
 !$OMP PARALLEL

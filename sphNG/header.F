@@ -8,8 +8,11 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
+#endif
+#ifdef MPI
       INCLUDE 'COMMONS/mpi'
 #endif
 
@@ -81,6 +84,8 @@ c************************************************************
 
       CALL MPI_ALLREDUCE(nptmass,nptmasstot,1,MPI_INTEGER,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
+#endif
+#ifdef MPIALL
       IF (iproc.EQ.0) THEN
 #endif
 c
@@ -468,7 +473,7 @@ c
 
       CALL FLUSH (iprint)
 
-#ifdef MPI
+#ifdef MPIALL
       ENDIF
 #endif
 

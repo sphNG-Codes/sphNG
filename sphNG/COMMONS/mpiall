@@ -1,0 +1,11 @@
+      INTEGER nummaxproc, ineighproc
+      PARAMETER (nummaxproc = 128)
+      PARAMETER (ineighproc = idim/2)
+
+      INTEGER ierr, numproc, iproc
+
+      INTEGER lblocklengths
+
+      COMMON /mpi / ierr, numproc, iproc
+
+      COMMON /mpiblk/ lblocklengths(idim)

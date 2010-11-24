@@ -43,6 +43,12 @@ FPP_SEP=
 # Add yours here...
 #
 ##############################################################
+ifeq ($(mpi), yes)
+    mpiall=yes
+endif
+ifeq ($(mpicopy), yes)
+    mpiall=yes
+endif
 
 ifeq ($(SYSTEM), ompi)
     FC= mpif90
@@ -72,7 +78,7 @@ ifeq ($(SYSTEM), intelmac)
 endif
 
 ifeq ($(SYSTEM), zen)
-    ifeq ($(mpi), yes)
+    ifeq ($(mpiall), yes)
        FC= mpiifort
 #       FC= ifort -lmpi
     else
@@ -94,7 +100,7 @@ ifeq ($(SYSTEM), zen)
 endif
 
 ifeq ($(SYSTEM), ukaff1a)
-    ifeq ($(mpi), yes)
+    ifeq ($(mpiall), yes)
         FC= mpif77 -qnosave
     else
         FC= xlf_r -qnosave
@@ -113,7 +119,7 @@ ifeq ($(SYSTEM), ukaff1a)
 endif
 
 ifeq ($(SYSTEM), apac)
-    ifeq ($(mpi), yes)
+    ifeq ($(mpiall), yes)
        LDFLAGS+= -lmpi
     endif
     FC=ifort
@@ -223,7 +229,12 @@ ifeq ($(openmp), yes)
 endif
 
 ifeq ($(mpi), yes)
+    FPPFLAGS+=${FPP_SEP}-DMPIALL
     FPPFLAGS+=${FPP_SEP}-DMPI
+endif
+ifeq ($(mpicopy), yes)
+    FPPFLAGS+=${FPP_SEP}-DMPIALL
+    FPPFLAGS+=${FPP_SEP}-DMPICOPY
 endif
 
 ifeq ($(mpidebug), yes)

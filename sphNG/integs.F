@@ -8,8 +8,11 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
+#endif
+#ifdef MPI
       INCLUDE 'COMMONS/mpi'
 #endif
 
@@ -123,7 +126,7 @@ c      IF (iresort.EQ.0) THEN
 c      ENDIF
 #endif
 
-#ifdef MPI
+#ifdef MPIALL
       IF (iproc.EQ.0) THEN
 #endif
       IF (ioutinf.NE.0) THEN
@@ -176,7 +179,7 @@ c
 
 99018    FORMAT('Mean number of nneigh(i) = ',F8.4)
       ENDIF
-#ifdef MPI
+#ifdef MPIALL
       ENDIF
 #endif
 c
@@ -239,11 +242,7 @@ c
 c
 c--Check for messages
 c
-#ifdef MPI
       CALL mesop
-#else
-      CALL mesop
-#endif
 c
 c--Write time, and number of ghosts
 c
@@ -251,6 +250,8 @@ c
 #ifdef MPI
       CALL MPI_REDUCE(nghost,nghosttot,1,MPI_INTEGER,MPI_SUM,0,
      &   MPI_COMM_WORLD,ierr)
+#endif
+#ifdef MPIALL
       IF (iproc.EQ.0) THEN
       ELSE
          iprint = 40+iproc
@@ -472,10 +473,6 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
 98020       FORMAT (' TREE Timing:')
          ENDIF
       ENDIF
-
-#ifdef MPI
-c      ENDIF
-#endif
 
       RETURN
       END

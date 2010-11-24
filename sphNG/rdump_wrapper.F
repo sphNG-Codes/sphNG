@@ -8,9 +8,9 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
-      INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpiall'
 #endif
 
       REAL*8 umassi, udisti, utimei, umagfdi
@@ -336,6 +336,7 @@ c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
          ifcor = ifcor - 2
       ENDIF
 
+#ifdef MPI
 #ifdef MPIDEBUG
       xxmin = 1.0E+30
       DO i = 1, npart
@@ -356,8 +357,9 @@ c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
       END DO
       print *,iproc,': CLOSEST z=-0.0 ',ipos2,xxmin
 #endif
+#endif
 
-#ifdef MPI
+#ifdef MPIALL
       print *,iproc,' EXITED RDUMP_WRAPPER'
 #else
       print *,' EXITED RDUMP_WRAPPER'

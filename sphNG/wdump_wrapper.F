@@ -8,11 +8,6 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-#ifdef MPI
-      INCLUDE 'mpif.h'
-      INCLUDE 'COMMONS/mpi'
-#endif
-
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/densi'

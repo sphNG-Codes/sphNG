@@ -658,8 +658,14 @@ c         torqv(i) = 0.
 c         torqc(i) = 0.
 c      END DO
 
-      ENDFILE idisk1
-      BACKSPACE idisk1
+#ifdef MPICOPY
+      IF (iproc.EQ.0) THEN
+#endif
+         ENDFILE idisk1
+         BACKSPACE idisk1
+#ifdef MPICOPY
+      ENDIF
+#endif
 
       ipos = irec
 

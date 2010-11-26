@@ -8,9 +8,11 @@ c                                                           *
 c************************************************************
       INCLUDE 'idim'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
+#endif
+#ifdef MPI
       INCLUDE 'COMMONS/mpi'
 #endif
 
@@ -95,12 +97,18 @@ c      CALL appendiproc(7,file1,iproc)
      &        POSITION='APPEND', RECL=imaxrec)
       ENDIF
 #else
+#ifdef MPICOPY
+      IF (iproc.EQ.0) THEN
+#endif
       OPEN (idisk1, FILE=file1, FORM='unformatted', RECL=imaxrec)
+#ifdef MPICOPY
+      ENDIF
+#endif
 #endif
 c
 c--Write witness on listing
 c
-#ifdef MPI
+#ifdef MPIALL
       IF (iproc.EQ.0) THEN      
 #endif
       WRITE (iprint, 99003)
@@ -111,7 +119,7 @@ c
 99005 FORMAT (' ------------ file ', A7, ' created --------------')
       WRITE (iprint, 99004)
       WRITE (iprint, 99003)
-#ifdef MPI
+#ifdef MPIALL
       ENDIF
 #endif
 c

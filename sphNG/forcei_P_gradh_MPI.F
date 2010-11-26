@@ -250,7 +250,7 @@ C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug)
 C$OMP& shared(ivar,ijvar,Bextx,Bexty,Bextz,etamhd,iresist)
 C$OMP& shared(forcei_lock)
 #ifdef MPICOPY
-C$OMP& shared(numberstart,numberend,fxyz_reduce,poten_reduce)
+C$OMP& shared(numberstart,numberend)
 #endif
 C$OMP& private(n,ipart,iparttree,stepsi,dtime)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
@@ -937,19 +937,10 @@ c
 #ifdef _OPENMP
                      CALL OMP_SET_LOCK(forcei_lock(j/10+1))
 #endif
-c                     IF (itime.EQ.100663296 .AND. icall.EQ.3) THEN
-c                        WRITE (70+iproc,*) iproc,': fj1 ',j,
-c     &                       fxyzu(1,j),forcex,t12jpmassi,runix,gradpj
-c                     ENDIF
-c#ifdef MPICOPY
-c                     fxyz_reduce(1,j) = fxyz_reduce(1,j) + forcex
-c                     fxyz_reduce(2,j) = fxyz_reduce(2,j) + forcey
-c                     fxyz_reduce(3,j) = fxyz_reduce(3,j) + forcez
-c#else
                      fxyzu(1,j) = fxyzu(1,j) + forcex
                      fxyzu(2,j) = fxyzu(2,j) + forcey
                      fxyzu(3,j) = fxyzu(3,j) + forcez
-c#endif
+
                      dq(j) = dq(j) + dqj
 
                      IF (imhd.EQ.idim) THEN
@@ -957,7 +948,6 @@ c#endif
                         dBxyz(2,j) = dBxyz(2,j) - dBydissj
                         dBxyz(3,j) = dBxyz(3,j) - dBzdissj
                      ENDIF
-
 #ifdef _OPENMP
                      CALL OMP_UNSET_LOCK(forcei_lock(j/10+1))
 #endif
@@ -1041,27 +1031,11 @@ c
 #ifdef _OPENMP
                   CALL OMP_SET_LOCK(forcei_lock(j/10+1))
 #endif
-c                  IF (itime.EQ.100663296 .AND. icall.EQ.3) THEN
-c                     WRITE (70+iproc,*) iproc,': fj2 ',j,fxyzu(1,j),
-c     &                    xmasi*dx + dsofttermi*runix
-c                  ENDIF
-
-c#ifdef MPICOPY
-c                  fxyz_reduce(1,j) = fxyz_reduce(1,j) + 
-c     &                 xmasi*dx + dsofttermi*runix
-c                  fxyz_reduce(2,j) = fxyz_reduce(2,j) + 
-c     &                 xmasi*dy + dsofttermi*runiy
-c                  fxyz_reduce(3,j) = fxyz_reduce(3,j) + 
-c     &                 xmasi*dz + dsofttermi*runiz
-c
-c                  poten_reduce(j) = poten_reduce(j) + phi*pmassi
-c#else
                   fxyzu(1,j) = fxyzu(1,j) + xmasi*dx + dsofttermi*runix
                   fxyzu(2,j) = fxyzu(2,j) + xmasi*dy + dsofttermi*runiy
                   fxyzu(3,j) = fxyzu(3,j) + xmasi*dz + dsofttermi*runiz
 
                   poten(j) = poten(j) + phi*pmassi
-c#endif
 #ifdef _OPENMP
                   CALL OMP_UNSET_LOCK(forcei_lock(j/10+1))
 #endif
@@ -1526,24 +1500,11 @@ c         IF (ipart.GT.idim) print *,iproc,': Fx ',ipart
 #ifdef _OPENMP
          CALL OMP_SET_LOCK(forcei_lock(ipart/10+1))
 #endif
-c         IF (itime.EQ.100663296 .AND. icall.EQ.3) THEN
-c            WRITE (70+iproc,*) iproc,': fi ',ipart,fxyzu(1,ipart),
-c     &           forcexi
-c         ENDIF
-
-c#ifdef MPICOPY
-c         fxyz_reduce(1,ipart) = fxyz_reduce(1,ipart) + forcexi
-c         fxyz_reduce(2,ipart) = fxyz_reduce(2,ipart) + forceyi
-c         fxyz_reduce(3,ipart) = fxyz_reduce(3,ipart) + forcezi
-
-c         poten_reduce(ipart) = poten_reduce(ipart) + poteni 
-c#else
          fxyzu(1,ipart) = fxyzu(1,ipart) + forcexi
          fxyzu(2,ipart) = fxyzu(2,ipart) + forceyi
          fxyzu(3,ipart) = fxyzu(3,ipart) + forcezi
 
          poten(ipart) = poten(ipart) + poteni 
-c#endif
 
          IF (iphase(ipart).EQ.0) THEN
 
@@ -1567,11 +1528,6 @@ c         IF (ipart.GT.idim) print *,iproc,': Fx2 ',ipart
       END DO
 C$OMP END DO
 
-c      IF (iproc.EQ.0) print *,iproc,' is here in force'
-      print *,iproc,': P0418dqfinal ',dq(418)
-
-c      GOTO 7890
-
 #ifdef MPICOPY
 C$OMP SINGLE
 c
@@ -1582,16 +1538,9 @@ c--Transfer fxyzu(1-3,i) - do not need to transfer all 4 elements of this
 c     arrary - only need to transfer 3 because change in 'u' is done
 c     only using neighbours of 'i', not 'j'.
 c
-
-c      GOTO 45678
-
       DO i = 1, nlst_end
-
-c         WRITE (50+iproc,*) i,fxyz_reduce(1,llisttrans(i)+1)
-
          DO k = 1, 3
             realtransfer5to15((i-1)*3+k) = 
-ccc     &           fxyz_reduce(k,llisttrans(i)+1)
      &           fxyzu(k,llisttrans(i)+1)
             realtransfer5to15(3*idim+(i-1)*3+k) = 0.
          END DO
@@ -1603,13 +1552,6 @@ c
      &     realtransfer5to15(3*idim+1),3*nlst_end,
      &     MPI_REAL8,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
-
-c      DO i = 1, nlst_end
-c         WRITE (60+iproc,*) i,realtransfer5to15(3*idim+(i-1)*3+1)
-c      END DO
-
-
-c      CALL quit
 c
 c--Now add reduced fxyz_reduce(1-3) on to existing fxyzu(1-3) data in correct 
 c     places in fxyzu(1-4)
@@ -1618,8 +1560,6 @@ c
       DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &     irecvcounti(j+1)
          DO k = 1, 3
-ccc            fxyzu(k,llisttrans(i) + 1) = fxyzu(k,llisttrans(i) + 1) + 
-ccc     &           realtransfer5to15(3*idim+(i-1)*3 + k)
             fxyzu(k,llisttrans(i) + 1) = 
      &           realtransfer5to15(3*idim+(i-1)*3 + k)
          END DO
@@ -1633,7 +1573,6 @@ c
 c--Reduce poten(i)
 c
       DO i = 1, nlst_end
-ccc         real4transfer2(i) = poten_reduce(llisttrans(i)+1)
          real4transfer2(i) = poten(llisttrans(i)+1)
          real4transfer2(idim+i) = 0.
       END DO
@@ -1644,24 +1583,16 @@ c
      &     nlst_end,MPI_REAL4,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
 c
-c--Now add reduced real4_reduce() on to existing poten() data in correct 
-c     places in poten()
+c--Now place reduced poten() data in correct places in poten()
 c
-c      j = iproc
-c      DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
       DO i = 1, nlst_end
-c     &     irecvcounti(j+1)
-ccc         poten(llisttrans(i) + 1) = poten(llisttrans(i) + 1) + 
-ccc     &        real4transfer2(idim+i)
-         poten(llisttrans(i) + 1) = 
-     &        real4transfer2(idim+i)
+         poten(llisttrans(i) + 1) = real4transfer2(idim+i)
       END DO
 #ifdef MPIDEBUG
       print *,iproc,': poten() reduce ',numbertodoherekeep,
      &     irecvcounti(j+1), nlst_end
 #endif
 
-45678 CONTINUE
 c
 c--Reduce dq(i)
 c
@@ -1677,9 +1608,8 @@ c
      &     MPI_COMM_WORLD,ierr)
 c
 c--Now transfer reduced real4_reduce() into correct places in dq().
-c
-c     NOTE: This is a transfer, not an add because all of dq() is
-c     calculated in forcei as opposed to poten or fxyzu(1-3).
+c     Only need to keep the values of those particles being done on this
+c     MPICOPY process.
 c
       j = iproc
       DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
@@ -1713,9 +1643,7 @@ c
 c--Now do reduction of dBxyzu(1-3) and put data in correct 
 c     places in dBxyz(1-3)
 c
-         j = iproc
-         DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
-     &        irecvcounti(j+1)
+         DO i = 1, nlst_end
             DO k = 1, 3
                dBxyz(k,llisttrans(i) + 1) = 
      &              realtransfer5to15(3*idim+(i-1)*3 + k)
@@ -1730,21 +1658,6 @@ c
 C$OMP END SINGLE
 #endif
 
- 7890 CONTINUE
-
-c
-c--MPICOPY TEST reduce variables
-c
-c      DO n = nlst_in, nlst_tot
-c         ipart = listp(n)
-c         DO k = 1, 3
-c            fxyzu(k,ipart) = fxyzu(k,ipart) + fxyz_reduce(k,ipart)
-c         END DO
-c         poten(ipart) = poten(ipart) + poten_reduce(ipart)
-c      END DO
-
-
-
 C$OMP DO SCHEDULE(runtime)
 c#ifdef MPICOPY
 c      DO n = numberstart, numberend
@@ -1756,22 +1669,9 @@ c#endif
 c
 c--Energy conservation
 c
-c            IF (n.LE.nlst_end)
-c            IF (iunique(iorig(ipart)).EQ.2757) THEN
-c               print *,iproc,': F ',ipart,fxyzu(4,ipart),dq(ipart),
-c     &              nlst_in,nlst_end,nlst_tot
-c            ENDIF
          IF (idim_h2.EQ.1) THEN
 
-            IF (ipart.EQ.418 .AND. itime.GE.134217728) THEN
-               print *,iproc,': P0418energ ',fxyzu(4,ipart)
-            ENDIF
-
            CALL energ(ipart,npart,ntot,realtime,vxyzu,fxyzu,xyzmh,trho)
-
-            IF (ipart.EQ.418 .AND. itime.GE.134217728) THEN
-               print *,iproc,': P0418energp ',fxyzu(4,ipart)
-            ENDIF
 
          ELSE
 
@@ -1781,14 +1681,10 @@ c            ENDIF
              dtime = (dt*isteps(ipart))/imaxstep
            ENDIF 
 
-
            CALL energ_cooling(ipart,npart,ntot,realtime,vxyzu,fxyzu,
      &           xyzmh,h2ratio,dtime,abhpq,abeq,abHIq,abco,trho)
 
          END IF 
-c            IF (iunique(iorig(ipart)).EQ.2757) THEN
-c               print *,iproc,': F2 ',ipart,fxyzu(4,ipart)
-c            ENDIF
 c
 c--Translate to dB/dt and add divv term if B is evolved
 c
@@ -1863,11 +1759,6 @@ c      GOTO 5555
       CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
       CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
 
-c      WRITE (40+iproc,*) 'forcei 1: ',numbertodoherekeep,numberstart,
-c     &     numberend,llisttrans(numberstart)
-c      WRITE (40+iproc,*) 'forcei 2: ',(irecvcounti(i),i=1,numproc)
-c      WRITE (40+iproc,*) 'forcei 3: ',(idisplacementsi(i),i=1,numproc)
-
       CALL MPI_TYPE_INDEXED(numbertodoherekeep,
      &     lblocklengths, llisttrans(numberstart),
      &     i4REAL8, indexMPI_INT1, ierr)
@@ -1881,12 +1772,6 @@ c
 c
 c--Put fxyzu(1-4) data into correct places in fxyzu(1-4)
 c
-c      IF (itime.EQ.136314880) THEN
-c         WRITE (70+iproc,*) itime,
-c     &              fxyzu(1,123246),
-c     &              (xyzmh(kkk,123246),kkk=1,5),
-c     &              (vxyzu(kkk,123246),kkk=1,4)
-c      ENDIF
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
@@ -1962,48 +1847,6 @@ c
       CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
       CALL MPI_TYPE_FREE(iaREAL4,ierr)
  5556 CONTINUE
-      GOTO 5557
-c
-c--Transfer poten(i)
-c
-      CALL MPI_TYPE_INDEXED(numbertodoherekeep,
-     &     lblocklengths, llisttrans(numberstart),
-     &     MPI_REAL4, indexMPI_INT1, ierr)
-      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
-c
-c--All processes transfer their poten(i) data
-c
-      CALL MPI_ALLGATHERV(poten,1,indexMPI_INT1,
-     &     real4transfer2,irecvcounti,idisplacementsi,MPI_REAL4,
-     &     MPI_COMM_WORLD,ierr)
-c
-c--Put poten() data into correct places in poten()
-c
-      DO j = 0, numproc - 1
-         IF (j.NE.iproc) THEN
-            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
-     &           irecvcounti(j+1)
-
-            IF (poten(llisttrans(i) + 1).NE.
-     &           real4transfer2(i)) THEN
-               WRITE (58+iproc,*) itime,i,llisttrans(i) + 1,
-     &              poten(llisttrans(i) + 1),
-     &              real4transfer2(i),
-     &              (xyzmh(kkk,llisttrans(i) + 1),kkk=1,5),
-     &              (vxyzu(kkk,llisttrans(i) + 1),kkk=1,4)
-            ENDIF
-
-               poten(llisttrans(i) + 1) = real4transfer2(i)
-            END DO
-         ENDIF
-      END DO
-#ifdef MPIDEBUG
-      print *,iproc,': poten() move ',numbertodoherekeep
-#endif
-
-      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
-
- 5557 CONTINUE
 
       IF (imhd.EQ.idim) THEN
 c
@@ -2090,17 +1933,11 @@ c
       IF (itrace.EQ.'all') WRITE (iprint, 255)
  255  FORMAT(' exit subroutine forcei')
 
-c      DO i = 1, npart
-c         IF (iphase(i).EQ.0) THEN
-c            WRITE (55,*) SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2+
-c     &           xyzmh(3,i)**2), SQRT(fxyzu(1,i)**2+fxyzu(2,i)**2+
-c     &           fxyzu(3,i)**2)
-c         ENDIF
-c      END DO
-
-c      print *,iproc,': Exited forcei'
-
-c      CALL quit
+#ifdef MPIALL
+#ifdef MPIDEBUG
+      print *,iproc,': Exited forcei'
+#endif
+#endif
 
       RETURN
       END

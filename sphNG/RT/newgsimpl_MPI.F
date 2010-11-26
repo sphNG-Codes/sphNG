@@ -1331,22 +1331,21 @@ C$OMP& private(l)
 #endif
 C$OMP& reduction(MAX:maxerrU2)
 C$OMP& reduction(MAX:maxerrE2)
-C$OMP DO SCHEDULE(runtime)
-c#ifdef MPICOPY
-c         DO n = numberstart, numberend
-c#else
-         DO n = 1, ncompact
-c#endif
-            i = ivar(3,n)
 
+#ifdef MPICOPY
+c
+c--Need to zero all of varinew because calculated using reduction across
+c     MPICOPY processes
+c
+C$OMP DO SCHEDULE(runtime)
+         DO n = 1, ncompact
+            i = ivar(3,n)
             varinew(1,i) = 0.
             varinew(2,i) = 0.
-c            varinew(3,i) = 0.
-
-
-
          END DO
 C$OMP END DO
+#endif
+
 C$OMP DO SCHEDULE(runtime)
 #ifdef MPICOPY
          DO n = numberstart, numberend
@@ -1527,8 +1526,6 @@ c      ENDIF
          END DO
 C$OMP END DO
 
-c      GOTO 4567
-
 #ifdef MPICOPY
 C$OMP SINGLE
 c
@@ -1572,10 +1569,6 @@ c
       CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
 C$OMP END SINGLE
 #endif
-
-
- 4567  CONTINUE 
-
 
 #ifdef MPI
 C$OMP SINGLE
@@ -1687,12 +1680,6 @@ C$OMP DO SCHEDULE(runtime)
             dedxyz(1,i) = dedxyz(1,j)
             dedxyz(2,i) = dedxyz(2,j)
             dedxyz(3,i) = dedxyz(3,j)
-
-c      IF (itime.EQ.136314880 .AND. j.EQ.123246) THEN
-c         WRITE (40+iproc,*) 'ghost ',i,(dedxyz(kkk,i),kkk=1,3),
-c     &        (ekcle(kkk,i),kkk=1,5)
-c      ENDIF
-
          END DO
 C$OMP END DO
 
@@ -1709,9 +1696,6 @@ C$OMP DO SCHEDULE(runtime)
          DO n = 1, ncompact
 #endif
             i = ivar(3,n)
-c      IF (itime.EQ.136314880) THEN
-c         WRITE (55+iproc,*) 'looping ',nosweep,n,i,iscurrent(i)
-c      ENDIF
 
             IF (iphase(i).EQ.0) THEN
 
@@ -1845,50 +1829,11 @@ c                  b1 = (4.0*bi*bj)/(bi+bj)
 c	    
 c--Diffusion numerator and denominator
 c
-c      IF (iunique(iorig(i)).EQ.79225 .OR. iunique(iorig(J)).EQ.79225) 
-c     &                 THEN
-
                   diffusion_numerator = diffusion_numerator -
      &                 0.5*dWidrlightrhorhom*b1*EU0(1,J)*rhoj
 
                   diffusion_denominator = diffusion_denominator +
      &                 0.5*dWidrlightrhorhom*b1*rhoi
-
-c      IF (itime.EQ.136314880 .AND. i.EQ.123246) THEN
-c         WRITE (44+iproc,*) 'varinew-i-i ',nosweep,j,
-c     &        dWidrlightrhorhom,b1,EU0(1,j),bi,bj,
-c     &        ekcle(4,i),ekcle(2,i),rhoi,
-c     &        ekcle(4,j),ekcle(2,j),rhoj
-c     &        diffusion_numerator,diffusion_denominator,
-c     &        0.5*dWidrlightrhorhom*b1*EU0(1,J)*rhoj,
-c     &        iscurrent(j)
-c      ENDIF
-
-
-c            IF (i.EQ.2497 .OR. i.EQ.2494) THEN
-c               print *,'tempval2 ',rhoj,b1,dWiidrlightrhorhom,rhoi,j
-c            ENDIF
-
-
-c      print *,'PAIR-I ',i,j,-0.5*dWidrlightrhorhom*b1*EU0(1,J)*rhoj,
-c     &                 0.5*dWidrlightrhorhom*b1*rhoi*EU0(1,I)
-
-c      IF (iunique(iorig(i)).EQ.79225) THEN
-c      testit1 = testit1 - 0.5*dWidrlightrhorhom*b1*EU0(1,J)*rhoj+
-c     &     0.5*dWidrlightrhorhom*b1*rhoi*EU0(1,I)
-c      ELSE
-c         testit2 = testit2 - 0.5*dWidrlightrhorhom*b1*EU0(1,J)*rhoj+
-c     &     0.5*dWidrlightrhorhom*b1*rhoi*EU0(1,I)
-c      ENDIF
-
-c      ENDIF
-c               if (iunique(iorig(i)).EQ.2789 .AND. itime.EQ.335544320)
-c     &          print *,'PRE-j ',j,iunique(iorig(j)),
-c     &                 dWidrlightrhorhom,b1,ekcle(4,i),
-c     &                 ekcle(4,j),ekcle(2,i),ekcle(2,j),
-c     &                 rhoi,rhoj,EU0(1,J),diffusion_numerator,
-c     &                 diffusion_denominator,iproc
-
 c
 c--For current(j) need to add contribution due to i for h_j
 c
@@ -1896,10 +1841,6 @@ c
 cC$OMP ATOMIC
 cTEST                     varinew(3,j) = varinew(3,j) + 
 cTEST     &                    0.5*dvdWimi*vpi
-
-c      IF (iunique(iorig(i)).EQ.79225 .OR. iunique(iorig(J)).EQ.79225
-c     &                    .AND.n.LE.ncompactlocal) 
-c     &                    THEN
 
 
                      tempval1 = 0.5*dWiidrlightrhorhom*b1
@@ -1911,63 +1852,15 @@ C$OMP ATOMIC
 C$OMP ATOMIC
                      varinew(2,j) = varinew(2,j) + tempval2
 
-c      IF (itime.EQ.136314880 .AND. j.EQ.123246) THEN
-c         WRITE (44+iproc,*) 'varinew-j ',(varinew(kkk,123246),kkk=1,2),
-c     &        tempval1,tempval2,dWiidrlightrhorhom,b1,rhoj,
-c     &        EU0(1,i),rhoi
-c      ENDIF
-
-c                     IF (j.EQ.2494 .OR. j.EQ.2497) THEN
-c                        print *,'tempval4 ',j,tempval2,rhoj,
-c     &                       dWiidrlightrhorhom,b1
-c                     ENDIF
-
-c      print *,'PAIR-J ',j,i,-0.5*dWiidrlightrhorhom*b1*EU0(1,i)*rhoi,
-c     &                    0.5*dWiidrlightrhorhom*b1*rhoj*EU0(1,J)
-
-c      IF (iunique(iorig(J)).EQ.79225) testit1 = testit1 
-c     &     -0.5*dWiidrlightrhorhom*b1*EU0(1,i)*rhoi +
-c     &     0.5*dWiidrlightrhorhom*b1*rhoj*EU0(1,J)
-c      ELSE
-c         testit2 = testit2
-c     &     -0.5*dWiidrlightrhorhom*b1*EU0(1,i)*rhoi +
-c     &     0.5*dWiidrlightrhorhom*b1*rhoj*EU0(1,J)
-
-c      ENDIF
-
                   ELSE
 cTEST                     pres_numerator = pres_numerator +
 cTEST     &                    0.5*dvdWjmj*vpi
-
-
-c      IF (iunique(iorig(i)).EQ.79225 .OR. iunique(iorig(J)).EQ.79225) 
-c     &                    THEN
 
                      diffusion_numerator = diffusion_numerator -
      &                    0.5*dWjdrlightrhorhom*b1*EU0(1,J)*rhoj
 
                      diffusion_denominator = diffusion_denominator +
      &                    0.5*dWjdrlightrhorhom*b1*rhoi
-
-c      IF (itime.EQ.136314880 .AND. i.EQ.123246) THEN
-c         WRITE (44+iproc,*) 'varinew-i-j ',nosweep,j,
-c     &        dWjdrlightrhorhom,b1,EU0(1,j),bi,bj,
-c     &        ekcle(4,i),ekcle(2,i),rhoi,
-c     &        ekcle(4,j),ekcle(2,j),rhoj
-c     &        diffusion_numerator,diffusion_denominator,
-c     &        0.5*dWjdrlightrhorhom*b1*EU0(1,J)*rhoj
-c      ENDIF
-
-
-c                     IF (i.EQ.2494 .OR. i.EQ.2497) THEN
-c                        print *,' tempval3 ',dWjdrlightrhorhom,
-c     &                       b1,rhoi
-c                     ENDIF
-
-c      print *,'PAIR-N ',j,i,0.5*dWjdrlightrhorhom*b1*rhoi
-
-c      ENDIF
-
 
                   ENDIF
                END DO           !J-loop
@@ -1978,35 +1871,13 @@ C$OMP ATOMIC
                varinew(2,i) = varinew(2,i) + diffusion_denominator
 
 
-c      IF (itime.EQ.136314880 .AND. i.EQ.123246) THEN
-c         WRITE (44+iproc,*) 'varinew-i ',(varinew(kkk,123246),kkk=1,2),
-c     &        diffusion_numerator,diffusion_denominator
-c      ENDIF
-
-c               IF (i.EQ.2494 .OR. i.EQ.2497) THEN
-c                  print *,'tempval6 ',diffusion_denominator,
-c     &                 varinew(2,i)
-c               ENDIF
-
 c               varinew(3,i) = varinew(3,i) + pres_numerator
 c               varinew(4,i) = pres_denominator
-
-c               if (iunique(iorig(i)).EQ.3863) THEN
-c            print *,iproc,': PRE ',iunique(iorig(i)),
-c     &           pres_denominator,ivar(1,n)
-c            endif
-
-c               if (iunique(iorig(i)).EQ.2789 .AND. itime.EQ.335544320)
-c     &          print *,'PRE ',iunique(iorig(i)),diffusion_numerator,
-c     &              diffusion_denominator,ivar(1,n),iproc
-
             ENDIF
 
             ENDIF
          END DO
 C$OMP END DO
-
-c         GOTO 9876
 
 #ifdef MPICOPY
 C$OMP SINGLE
@@ -2046,12 +1917,6 @@ c
 C$OMP END SINGLE
 #endif
 
- 9876    CONTINUE
-
-c      IF (itime.EQ.136314880) THEN
-c         WRITE (40+iproc,*) 'varinew ',(varinew(kkk,123246),kkk=1,2)
-c      ENDIF
-
 #ifdef MPI
 c
 c--Need to add contributions to varinew(1-4) from other MPI processes
@@ -2085,60 +1950,9 @@ c
                   ipos = llistsentback(l,iprocrec+1)+1
                   jpos = istartrec + l - 1
 
-c                  print *,iproc,': GOT ',ipos,jpos,varinew(3,ipos),
-c     &                 varinew(3,jpos),varinew(4,ipos),
-c     &                 varinew(4,jpos)
-
-c            if (iunique(iorig(ipos)).EQ.2789 .AND. itime.EQ.335544320)
-c     &          print *,'ADD ',ipos,jpos,l,ireturned,
-c     &                 nneighsentback(iprocrec+1),iunique(iorig(ipos)),
-c     &                 varinew(1,ipos),varinew(2,ipos),varinew(1,jpos),
-c     &                 varinew(2,jpos)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-c            IF (iunique(iorig(ipos)).NE.79225) THEN
-
                   DO k = 1, 2
                      varinew(k,ipos) = varinew(k,ipos) + varinew(k,jpos)
                   END DO
-
-c            ENDIF
-
-
-
-
-
-
-
-
-
-
                END DO
 
 #ifdef MPIDEBUGRT
@@ -2410,11 +2224,6 @@ C$OMP END CRITICAL (moresweepset)
      &           U1i**4 + stellarradiation)/(1.0-chival)
 
 
-c      IF (itime.EQ.136314880 .AND. i.EQ.123246) THEN
-c         WRITE (40+iproc,*) 'E1i,U1i ',E1i,U1i
-c      ENDIF
-
-
 cDIFF            E1i = (origEU(1,i)+dti*diffusion_numerator)/
 cDIFF     &           (1.0 - dti*diffusion_denominator)
 
@@ -2662,15 +2471,6 @@ c            endif
 
             ekcle(2,i) = GETKAPPA(EU0(2,i),ekcle(3,i),rho(i))
 
-
-
-
-
-
-
-
-
-
  200        CONTINUE
             ENDIF
 
@@ -2679,10 +2479,6 @@ c            endif
 C$OMP END DO
 
 c         IF (iproc.EQ.0) print *,'DIFF-T ',diffkeep
-
-c         WRITE (40+iproc,*) 'itime fin ',itime
-
-c         GOTO 5678
 
 #ifdef MPICOPY
 c
@@ -2748,12 +2544,6 @@ c
                DO k = 1, 2
                  EU0(k,llisttrans(i) + 1) =
      &                 realtransfer5to15((i-1)*2 + k)
-c                  IF (EU0(k,llisttrans(i) + 1).NE.
-c     &                 realtransfer5to15((i-1)*2 + k)) THEN
-c                     WRITE (90+iproc,*) itime,i,llisttrans(i) + 1,
-c     &                    nosweep,EU0(k,llisttrans(i) + 1),
-c     &                    realtransfer5to15((i-1)*2 + k)
-c                  ENDIF
                END DO
             END DO
          ENDIF
@@ -2763,8 +2553,6 @@ c                  ENDIF
 #endif
       CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
 #endif
-
- 5678 CONTINUE
 
 C$OMP DO SCHEDULE(runtime)
          DO i = npart + 1, npart + nghost*ihasghost

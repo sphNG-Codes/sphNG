@@ -106,6 +106,7 @@ c--Allow for tracing flow
 c
       IF (itrace.EQ.'all') WRITE(iprint,250)
   250 FORMAT(' entry subroutine step')
+c      print *,'Entered step'
 c
 c--Set integrator to R-K
 c
@@ -129,7 +130,6 @@ c
       f22 = 255./256.
       e1 = 1./512.
 
-      print *,'Entered step'
 c
 c--Integration
 c
@@ -420,7 +420,11 @@ c            itime0new = MIN(itime0new, it2bin(i))
          ENDIF
       END DO
 
+#ifdef MPICOPY
+#ifdef MPIDEBUG
       print *,iproc,': TIMES local ',itime0,itime1
+#endif
+#endif
 
 
 cC$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -1606,7 +1610,7 @@ c      print *,' '
 
 #ifdef MPICOPY
 #ifdef MPIDEBUG
-      print *,iproc,': bcast xyzmh ',itime,nlst0
+c      print *,iproc,': bcast xyzmh ',itime,nlst0
 #endif
 c
 c--Need to make sure timesteps for all particles are the same on different
@@ -2682,7 +2686,7 @@ c--Need to broadcast whether MPI process 0 is adding particles or not
 c
          CALL MPI_BCAST(nlst0,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
 #endif
-         IF (nlst0.GT.10) THEN
+         IF (nlst0.GE.100) THEN
 #ifdef MPI
 c
 c--If MPI code, particles are only injected by MPI process 0

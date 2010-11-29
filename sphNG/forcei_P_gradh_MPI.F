@@ -250,7 +250,9 @@ C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug)
 C$OMP& shared(ivar,ijvar,Bextx,Bexty,Bextz,etamhd,iresist)
 C$OMP& shared(forcei_lock)
 #ifdef MPICOPY
-C$OMP& shared(numberstart,numberend)
+C$OMP& shared(numberstart,numberend,numbertodoherekeep)
+C$OMP& shared(realtransfer5to15,llisttrans,idisplacementsi,irecvcounti)
+C$OMP& shared(real4transfer2)
 #endif
 C$OMP& private(n,ipart,iparttree,stepsi,dtime)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
@@ -288,6 +290,9 @@ C$OMP& private(t12jpmassi,t12jpmassj,r32grav,forcexi,forceyi,forcezi)
 C$OMP& private(Bevoldotdv,termBpmi,termBpmj,termetapmj,termetapmi)
 C$OMP& private(dBxdissj,dBydissj,dBzdissj,dBxyz_xi,dBxyz_yi,dBxyz_zi)
 C$OMP& private(ioffset,etai,etaj,ui,uj,dqj,rhotemp)
+#ifdef MPICOPY
+C$OMP& private(i,ierr)
+#endif
 C$OMP& reduction(+:ioutmin,ioutsup,ioutinf)
 C$OMP& reduction(MIN:inmin,inminsy)
 C$OMP& reduction(MAX:inmax,inmaxsy)

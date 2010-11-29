@@ -877,8 +877,6 @@ c
 
  888  CONTINUE
 
-      print *,iproc,' IN RT aa'
-
       ihasghostcount = 0
       ihasghost = 0
 
@@ -1115,18 +1113,6 @@ c               varij(10,icompact) = pmj*dWi
                varij2(1,icompact) = pmjdWrunix
                varij2(2,icompact) = pmjdWruniy
                varij2(3,icompact) = pmjdWruniz
-
-               IF (i.EQ.0008 .AND. itime.EQ.117440512) THEN
-               print *,iproc,': P0008v ',icompact,varij(1,icompact)
-               print *,iproc,': P0008v ',icompact,varij(2,icompact)
-               print *,iproc,': P0008v ',icompact,varij(3,icompact)
-               print *,iproc,': P0008v ',icompact,varij(4,icompact)
-               print *,iproc,': P0008v ',icompact,varij2(1,icompact)
-               print *,iproc,': P0008v ',icompact,varij2(2,icompact)
-               print *,iproc,': P0008v ',icompact,varij2(3,icompact)
-               ENDIF
-
-
             END DO
 
             dvdx(1,i) = dvxdxi
@@ -1141,19 +1127,10 @@ c               varij(10,icompact) = pmj*dWi
 
             vari(1,n) = dti
             vari(2,n) = rhoi
-
-               IF (i.EQ.0008 .AND. itime.EQ.117440512) THEN
-               print *,iproc,': P0008w ',dvdx(1,i)
-               print *,iproc,': P0008x ',vari(1,n)
-               print *,iproc,': P0008y ',vari(2,n)
-               ENDIF
-
          ENDIF
       END DO
 C$OMP END DO
 C$OMP END PARALLEL
-
-      print *,iproc,' IN RT b'
 
 #ifdef MPI
 c
@@ -1310,7 +1287,9 @@ C$OMP& shared(inumbertotallocal,nneighsentanyatall,nneighsentany)
 C$OMP& shared(transfer,nneightogetback,inumberindiv,inumbercumm)
 #endif
 #ifdef MPICOPY
-C$OMP& shared(numberstart,numberend)
+C$OMP& shared(numberstart,numberend,numbertodoherekeep,llisttrans)
+C$OMP& shared(numproc,iproc,lblocklengths,indexMPI_INT1,i5REAL8)
+C$OMP& shared(irecvcounti,idisplacementsi,realtransfer5to15,i2REAL8)
 #endif
 C$OMP& private(boundaryparticle,boundtest,radu)
 C$OMP& private(bounddenslocal,izoverh,mu)
@@ -1328,6 +1307,9 @@ C$OMP& private(cvcold,ucold,ecold,residualE,residualU,alphamean)
 C$OMP& private(stellarradiation,xchange,maxerrU2old,tempval1,tempval2)
 #ifdef MPI
 C$OMP& private(l)
+#endif
+#ifdef MPICOPY
+C$OMP& private(ierr)
 #endif
 C$OMP& reduction(MAX:maxerrU2)
 C$OMP& reduction(MAX:maxerrE2)
@@ -1354,8 +1336,13 @@ C$OMP DO SCHEDULE(runtime)
 #endif
             i = ivar(3,n)
 
+#ifndef MPICOPY
+c
+c--For MPICOPY code varinew is zeroed for entire list of particles above
+c
             varinew(1,i) = 0.
             varinew(2,i) = 0.
+#endif
 c            varinew(3,i) = 0.
             IF (iphase(i).EQ.0) THEN
 
@@ -1364,11 +1351,6 @@ c            varinew(3,i) = 0.
                dedzi = 0.
 
                rhoi = vari(2,n)
-
-
-               IF (i.EQ.0008 .AND. itime.EQ.117440512) THEN
-                  print *,iproc,': P0008i ',rhoi,EU0(1,i)
-               ENDIF
 
                DO k = 1, ivar(1,n)
                   icompact = ivar(2,n) + k
@@ -1383,31 +1365,14 @@ c--Calculates the gradient of E (where E=rho*e)
 c
                   Eij1 = rhoi*EU0(1,i) - rhoj*EU0(1,j)
 
-               IF (i.EQ.0008 .AND. itime.EQ.117440512) THEN
-                  print *,iproc,': P0008dej ',j,rhoj,EU0(1,j)
-                  print *,iproc,': P0008dex ',j,pmjdWrunix,pmjdWruniy
-                  print *,iproc,': P0008dez ',j,EU0(1,i),rhoi
-                  print *,iproc,': P0008deq ',j,Eij1
-               ENDIF
-
                   dedxi = dedxi - Eij1*pmjdWrunix
                   dedyi = dedyi - Eij1*pmjdWruniy
                   dedzi = dedzi - Eij1*pmjdWruniz
-               IF (i.EQ.0008 .AND. itime.EQ.117440512) THEN
-                  print *,iproc,': P0008dec ',j,dedxi
-               ENDIF
-
                END DO
 
                dedxyz(1,i) = dedxi
                dedxyz(2,i) = dedyi
                dedxyz(3,i) = dedzi
-
-
-c      IF (itime.EQ.136314880 .AND. i.EQ.123246) THEN
-c         WRITE (40+iproc,*) 'dedxyz ',(dedxyz(kkk,i),kkk=1,3)
-c      ENDIF
-
             ENDIF
          END DO
 C$OMP END DO
@@ -1517,11 +1482,6 @@ c               IF (rhoi.GT.10000.0) THEN
 c                  ekcle(4,i) = 1.0/3.0
 c                  ekcle(5,i) = 1.0/3.0
 c               ENDIF
-
-c      IF (itime.EQ.136314880 .AND. i.EQ.123246) THEN
-c         WRITE (40+iproc,*) 'ekcle45 ',(ekcle(kkk,i),kkk=1,5)
-c      ENDIF
-
             ENDIF
          END DO
 C$OMP END DO
@@ -2182,15 +2142,14 @@ C$OMP END CRITICAL (moresweepset)
                GOTO 200
             ENDIF
 
-            IF (i.EQ.0008 .AND. itime.EQ.117440512) THEN
 c            IF (i.EQ.3159 .OR. i.EQ.3159) THEN
-               write (*,*) iproc,': u1,u0,u4 ', u1term, u0term, u4term,
-     &              EU0(1,i),EU0(2,i),ekcle(1,i),ekcle(2,i),ekcle(3,i),
-     &              ekcle(4,i),ekcle(5,i),origEU(1,i),origEU(2,i)
-            write (*,*) iproc,': rhoi ',rhoi,dti,diffusion_denominator,
-     &              radpresdenom,gammaval,chival,pres_numerator,
-     &              lightspeed
-            ENDIF
+c               write (*,*) iproc,': u1,u0,u4 ', u1term, u0term, u4term,
+c     &              EU0(1,i),EU0(2,i),ekcle(1,i),ekcle(2,i),ekcle(3,i),
+c     &              ekcle(4,i),ekcle(5,i),origEU(1,i),origEU(2,i)
+c            write (*,*) iproc,': rhoi ',rhoi,dti,diffusion_denominator,
+c     &              radpresdenom,gammaval,chival,pres_numerator,
+c     &              lightspeed
+c            ENDIF
 
             u1term = u1term/u4term
             u0term = u0term/u4term
@@ -2481,6 +2440,7 @@ C$OMP END DO
 c         IF (iproc.EQ.0) print *,'DIFF-T ',diffkeep
 
 #ifdef MPICOPY
+C$OMP SINGLE
 c
 c--Need to transfer ekcle(2,i) around MPI processes.  Need to do it
 c         here to make sure that the right ekcle(2,i) values are stored
@@ -2552,6 +2512,7 @@ c
       print *,iproc,': EU0(1-2) move ',numbertodoherekeep
 #endif
       CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+C$OMP END SINGLE
 #endif
 
 C$OMP DO SCHEDULE(runtime)
@@ -2561,8 +2522,6 @@ C$OMP DO SCHEDULE(runtime)
          END DO
 C$OMP END DO
 C$OMP END PARALLEL
-
-         IF (itime.EQ.221904896) print *, 'place 4 ',nosweep
 
 c            IF (iproc.EQ.0) THEN
 c               print *,'DIFF-I '

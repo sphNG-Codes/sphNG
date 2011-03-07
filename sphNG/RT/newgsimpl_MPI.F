@@ -1854,6 +1854,9 @@ c
                realtransfer5to15(3*idim+(n-1)*2+k) = 0.
             END DO
          END DO
+#ifdef MPIDEBUG
+         print *,iproc,': about to do varinew(1-2) reduce ',ncompact
+#endif
 c
 c--All processes reduce the fxyzu(1-3) data
 c

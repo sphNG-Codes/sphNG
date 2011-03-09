@@ -245,12 +245,12 @@ C$OMP& shared(lsendlist,isend)
 C$OMP& shared(numberstart,numberend)
 #endif
 C$OMP& private(n,ipart,pmassi,hi,dhdrhoi,deltat,k,hchange)
-#ifdef MPICOPY
-c      DO n = numberstart, numberend
+c
+c--Loop is the same for MPICOPY and normal code because some variables
+c     need to be zeroed both those particles done remotely and by this
+c     MPI process.
+c
       DO n = 1, nlstdo
-#else
-      DO n = 1, nlstdo
-#endif
          ipart = ldolist(n)
          isucceed(ipart) = 0
 
@@ -1594,10 +1594,15 @@ c--Put rho data into correct places in rho
 c
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,real4transfer2,j)
+C$OMP&shared(rho)
+C$OMP&private(i)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1) 
                rho(llisttrans(i) + 1) = real4transfer2(i)
             END DO
+C$OMP END PARALLEL DO
          ENDIF
       END DO
 
@@ -1616,10 +1621,15 @@ c--Put rho data into correct places in rho
 c
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,real4transfer2,j)
+C$OMP&shared(dumrho)
+C$OMP&private(i)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                dumrho(llisttrans(i) + 1) = real4transfer2(i)
             END DO
+C$OMP END PARALLEL DO
          ENDIF
       END DO
 
@@ -1670,10 +1680,15 @@ c--Put nneigh data into correct places in nneigh
 c
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,itransfer3,j)
+C$OMP&shared(nneigh)
+C$OMP&private(i)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                nneigh(llisttrans(i) + 1) = itransfer3(i)
             END DO
+C$OMP END PARALLEL DO
          ENDIF
       END DO
 #ifdef MPIDEBUG
@@ -1685,16 +1700,24 @@ c
 c
 c--Send around xyzmh(5)
 c
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(numberstart,numbertodoherekeep,llisttrans)
+C$OMP&private(i)
       DO i = numberstart, numberstart + numbertodoherekeep - 1
          llisttrans(i) = llisttrans(i)*5 + 4
       END DO
+C$OMP END PARALLEL DO
       CALL MPI_TYPE_INDEXED(numbertodoherekeep, 
      &     lblocklengths, llisttrans(numberstart),
      &     MPI_REAL8, indexMPI_INT1, ierr)
       CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(numberstart,numbertodoherekeep,llisttrans)
+C$OMP&private(i)
       DO i = numberstart, numberstart + numbertodoherekeep - 1
          llisttrans(i) = llisttrans(i)/5
       END DO
+C$OMP END PARALLEL DO
 c
 c--All processes transfer their xyzmh(5) data
 c
@@ -1706,10 +1729,15 @@ c--Put xyzmh(5) data into correct places in xyzmh(5)
 c
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,realtransfer5to15,j)
+C$OMP&shared(xyzmh)
+C$OMP&private(i)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                xyzmh(5,llisttrans(i) + 1) = realtransfer5to15(i)
             END DO
+C$OMP END PARALLEL DO
          ENDIF
       END DO
 
@@ -1790,12 +1818,17 @@ c
 
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(idisplacementsi,irecvcounti,itransfer3,j)
+C$OMP&shared(ivar)
+C$OMP&private(i,k)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                DO k = 1, 3
                   ivar(k,i) = itransfer3((i-1)*3 + k)
                END DO
             END DO
+C$OMP END PARALLEL DO
          ENDIF
       END DO
 
@@ -1903,11 +1936,16 @@ c--Pressure and sound velocity from ideal gas law...
 c
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,j)
+C$OMP&shared(vxyzu,rho,pr,vsound,ekcle)
+C$OMP&private(i,ipart)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                ipart = llisttrans(i) + 1
                CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
             END DO
+C$OMP END PARALLEL DO
          ENDIF
       END DO
 #endif
@@ -1991,6 +2029,10 @@ c--Put gradhs(1-2) data into correct places in gradhs(1-2)
 c
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,real4transfer2,j)
+C$OMP&shared(gradhs)
+C$OMP&private(i,k)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                DO k = 1, 2
@@ -1998,6 +2040,7 @@ c
      &                 real4transfer2((i-1)*2 + k)
                END DO
             END DO
+C$OMP END PARALLEL DO
          ENDIF
       END DO
 #ifdef MPIDEBUG
@@ -2025,11 +2068,16 @@ c--Put divv() data into correct places in divv()
 c
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,real4transfer2,j)
+C$OMP&shared(divv)
+C$OMP&private(i)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                divv(llisttrans(i) + 1) = 
      &              real4transfer2(i)
             END DO
+C$OMP END PARALLEL DO
          ENDIF
       END DO
 #ifdef MPIDEBUG
@@ -2047,11 +2095,16 @@ c--Put curlv() data into correct places in curlv()
 c
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,real4transfer2,j)
+C$OMP&shared(curlv)
+C$OMP&private(i)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                curlv(llisttrans(i) + 1) = 
      &              real4transfer2(i)
             END DO
+C$OMP END PARALLEL DO
          ENDIF
       END DO
 #ifdef MPIDEBUG
@@ -2084,6 +2137,10 @@ c--Put gradmhd(1-15) data into correct places in gradmhd(1-15)
 c
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,realtransfer5to15,j)
+C$OMP&shared(gradmhd)
+C$OMP&private(i,k)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                DO k = 1, 15
@@ -2091,6 +2148,7 @@ c
      &                 realtransfer5to15((i-1)*15 + k)
                END DO
             END DO
+C$OMP END PARALLEL DO
          ENDIF
       END DO
 #ifdef MPIDEBUG

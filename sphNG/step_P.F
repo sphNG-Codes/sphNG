@@ -1608,35 +1608,54 @@ c     &     (dumvxyzu(4,llist(1))-vxyzu(4,llist(1)))/
 c     &     (dt*(isteps(llist(1)))/imaxstep)
 c      print *,' '
 
+
+      IF (itiming) CALL getused(ts131)
 #ifdef MPICOPY
 #ifdef MPIDEBUG
-c      print *,iproc,': bcast xyzmh ',itime,nlst0
+      print *,iproc,': bcast xyzmh ',itime,nlst0
 #endif
 c
-c--Need to make sure timesteps for all particles are the same on different
+c--Need to make sure xyzmh for all particles are the same on different
 c     MPI processes (otherwise different processes will get out of sync)
+c     Also note that the killing of particles must not be OpenMP parallel
+c     because otherwise the list of dead particles which can be re-used
+c     may have different orders on different MPI processes, leading again
+c     to MPI processes getting out of sync.
 c
-c      IF (iproc.EQ.0) THEN
-c         DO j = 1, nlst0
-c            DO k = 1,5
-c               realtransfer5to15((j-1)*5+k) = xyzmh(k,llist(j))
-c            END DO
-c         END DO
-c      ENDIF
-c      CALL MPI_BCAST(realtransfer5to15,nlst0*5,MPI_REAL8,0,
-c     &     MPI_COMM_WORLD,ierr)
-c      IF (iproc.NE.0) THEN
-c         DO j = 1, nlst0
-c            i = llist(j)
-c            DO k = 1, 5
-c               xyzmh(k,i) = realtransfer5to15((j-1)*5 + k)
-c            END DO
-c         END DO
-c      ENDIF
+      IF (iproc.EQ.0) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst0,llist,xyzmh,realtransfer5to15)
+C$OMP& private(j,k)
+         DO j = 1, nlst0
+            DO k = 1,5
+               realtransfer5to15((j-1)*5+k) = xyzmh(k,llist(j))
+            END DO
+         END DO
+C$OMP END PARALLEL DO
+      ENDIF
+      CALL MPI_BCAST(realtransfer5to15,nlst0*5,MPI_REAL8,0,
+     &     MPI_COMM_WORLD,ierr)
+      IF (iproc.NE.0) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst0,llist,xyzmh,realtransfer5to15)
+C$OMP& private(i,j,k)
+         DO j = 1, nlst0
+            i = llist(j)
+            DO k = 1, 5
+               xyzmh(k,i) = realtransfer5to15((j-1)*5 + k)
+            END DO
+         END DO
+C$OMP END PARALLEL DO
+      ENDIF
 #ifdef MPIDEBUG
       print *,iproc,': bcasted xyzmh ',itime,nlst0
 #endif
 #endif
+
+      IF (itiming) THEN
+         CALL getused(ts132)
+         ts13 = ts13 + (ts132 - ts131)
+      ENDIF
 
 c
 c--Synchronization time
@@ -1653,7 +1672,7 @@ c
 c
 c--Keep velocities at half time step
 c
-      IF (itiming) CALL getused(ts91)
+      IF (itiming) CALL getused(ts141)
       DO i = 1, nbinmax
          IF (it1bin(i).EQ.itime) it1bin(i) = imax
       END DO
@@ -1673,6 +1692,9 @@ C$OMP& shared(anglostx,anglosty,anglostz,istminold,listpm,coolingrate)
 C$OMP& shared(ifsvi,alphaMM,dumekcle,ekcle,iresist,etamhd,nptmass)
 C$OMP& shared(phibound,nlistinactive,listinactive,variation,npart,rmind)
 C$OMP& shared(rcyl)
+#ifdef MPICOPY
+C$OMP& shared(iproc)
+#endif
 C$OMP& private(phiparticle)
 C$OMP& private(i,j,l,tolpart,errBx,errBy,errBz)
 C$OMP& private(errx,erry,errz,errvx,errvy,errvz,erru,errh,errm)
@@ -1697,13 +1719,18 @@ c
          it1(i) = imax
       END DO
 C$OMP END DO
+
 c
-c--Compute new time steps for particles which have been advanced
+c--Update smoothing length and implicit radiative transfer quantities
+c     and kill particles
 c
+#ifdef MPICOPY
+C$OMP SINGLE
+#else
 C$OMP DO SCHEDULE(runtime)
-      DO 855 j = 1, nlst0
+#endif
+      DO j = 1, nlst0
          i = llist(j)
-         iscurrent(i) = .FALSE.
 c
 c--Dead particle boundaries
 c
@@ -1712,7 +1739,10 @@ c
             IF (r2.GT.(1.05*deadbound)**2) THEN
                iphase(i) = -1
                pmassi = xyzmh(4,i)
+#ifndef MPICOPY
 C$OMP CRITICAL (killparticle)
+#endif
+
                ikilled = 1
 
                nlstacc = nlstacc + 1
@@ -1734,7 +1764,9 @@ C$OMP CRITICAL (killparticle)
      &              xyzmh(1,i)*vxyzu(3,i))
                anglostz = anglostz + pmassi*(xyzmh(1,i)*vxyzu(2,i) - 
      &              vxyzu(1,i)*xyzmh(2,i))
+#ifndef MPICOPY
 C$OMP END CRITICAL (killparticle)
+#endif
                GOTO 855
             ENDIF
          ENDIF
@@ -1748,7 +1780,9 @@ c
             IF (r2.LT.(1.0-variation)**2 .OR. r2.GT.(1.0+variation)**2
      &           .OR. ABS(phiparticle).GT.phibound) THEN
                iphase(i) = -1
+#ifndef MPICOPY
 C$OMP CRITICAL (killparticle)
+#endif
                ikilled = 1
 
                nlstacc = nlstacc + 1
@@ -1771,7 +1805,9 @@ C$OMP CRITICAL (killparticle)
      &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
      &              poten(i),dgrav(i)
                CALL FLUSH(ikillpr)
+#ifndef MPICOPY
 C$OMP END CRITICAL (killparticle)
+#endif
                GOTO 855
             ENDIF
          ENDIF
@@ -1779,12 +1815,13 @@ C$OMP END CRITICAL (killparticle)
 c
 c--Dead particle boundaries - planet embedded in whole disc
 c
-c         GOTO 723
          IF (ibound.EQ.102) THEN
             r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
             IF (r2.GT.rcyl**2) THEN
                iphase(i) = -1
+#ifndef MPICOPY
 C$OMP CRITICAL (killparticle)
+#endif
                ikilled = 1
 
                nlstacc = nlstacc + 1
@@ -1800,20 +1837,25 @@ C$OMP CRITICAL (killparticle)
      &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
      &              poten(i),dgrav(i)
                CALL FLUSH(ikillpr)
+#ifndef MPICOPY
 C$OMP END CRITICAL (killparticle)
+#endif
                GOTO 855
             ENDIF
          ENDIF
- 723     continue
 
-c
-c--Follow point masses with greater accuracy than the gas particles 
-c
-         IF (iphase(i).GE.1 .AND. iphase(i).LT.10) THEN
-            tolpart = tolptm
-         ELSE
-            tolpart = tol
-         ENDIF
+ 855     CONTINUE
+      END DO
+#ifdef MPICOPY
+C$OMP END SINGLE
+#else
+C$OMP END DO
+#endif
+
+C$OMP DO SCHEDULE(runtime)
+      DO j = 1, nlst0
+         i = llist(j)
+         iscurrent(i) = .FALSE.
 c
 c--Set u to it's new value from DERIVI 
 c     For polytropic equation of state, the du's are not used - u(i) 
@@ -1842,6 +1884,30 @@ c--nlmax=1 is the sign that code is running using 'grad-h' so that h is set
 c     inside derivi rather than being evolved.
 c
          IF (nlmax.EQ.1) xyzmh(5,i) = dumxyzmh(5,i)
+      END DO
+C$OMP END DO
+c
+c--Compute new time steps for particles which have been advanced
+c
+#ifdef MPICOPY
+c
+c--If MPICOPY, then only root MPI process needs to compute timesteps which
+c     are then broadcast to all other MPI processes.  Ensures that all
+c     MPI processes remain in sync.
+c
+      IF (iproc.EQ.0) THEN
+#endif
+C$OMP DO SCHEDULE(runtime)
+      DO j = 1, nlst0
+         i = llist(j)
+c
+c--Follow point masses with greater accuracy than the gas particles 
+c
+         IF (iphase(i).GE.1 .AND. iphase(i).LT.10) THEN
+            tolpart = tolptm
+         ELSE
+            tolpart = tol
+         ENDIF
 c
 c--Estimate maximum error
 c
@@ -2127,30 +2193,49 @@ c
          istepmax = MAX(istepmax, isteps(i))
          istepmin = MIN(istepmin, isteps(i))
          IF (iphase(i).EQ.0) istepmingas = MIN(istepmingas, isteps(i))
+         it1(i) = it0(i) + isteps(i)/2
+         it2(i) = it0(i) + isteps(i)
+      END DO
+C$OMP END DO
+#ifdef MPICOPY
+      ENDIF
+#endif
+c
+c--Update f1 quantities
+c
+C$OMP DO SCHEDULE(runtime)
+      DO j = 1, nlst0
+         i = llist(j)
+
+         IF (iphase(i).GE.0) THEN
 c
 c--Reset variables
 c
-         f1vxyzu(1,i) = f2vxyzu(1,i)
-         f1vxyzu(2,i) = f2vxyzu(2,i)
-         f1vxyzu(3,i) = f2vxyzu(3,i)
-         f1vxyzu(4,i) = f2vxyzu(4,i)
-         f1ha(1,i) = f2ha(1,i)
-         IF (ifsvi.EQ.6) f1ha(2,i) = f2ha(2,i)
-
+            f1vxyzu(1,i) = f2vxyzu(1,i)
+            f1vxyzu(2,i) = f2vxyzu(2,i)
+            f1vxyzu(3,i) = f2vxyzu(3,i)
+            f1vxyzu(4,i) = f2vxyzu(4,i)
+            f1ha(1,i) = f2ha(1,i)
+            IF (ifsvi.EQ.6) f1ha(2,i) = f2ha(2,i)
+            
 c         gravx1(i) = gravx(i)
 c         gravy1(i) = gravy(i)
 c         gradpx1(i) = gradpx(i)
 c         gradpy1(i) = gradpy(i)
 c         artvix1(i) = artvix(i)
 c         artviy1(i) = artviy(i)
-
-         it1(i) = it0(i) + isteps(i)/2
-         it2(i) = it0(i) + isteps(i)
- 855  CONTINUE
+         ENDIF
+      END DO
 C$OMP END DO
 C$OMP END PARALLEL
 
 c      print *,'Done timesteps'
+
+      IF (itiming) THEN
+         CALL getused(ts142)
+         ts14 = ts14 + (ts142 - ts141)
+      ENDIF
+
 
 #ifdef MPI
 c
@@ -2166,6 +2251,7 @@ c
      &     MPI_COMM_WORLD,ierr)
       istepmax = istepmaxglobal
 #endif
+
 #ifdef MPICOPY
 #ifdef MPIDEBUG
       print *,iproc,': bcast steps ',itime,nlst0
@@ -2175,30 +2261,70 @@ c--Need to make sure timesteps for all particles are the same on different
 c     MPI processes (otherwise different processes will get out of sync)
 c
       IF (iproc.EQ.0) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst0,llist,isteps,itransfer3)
+C$OMP& private(j)
          DO j = 1, nlst0
             itransfer3(j) = isteps(llist(j))
          END DO
+C$OMP END PARALLEL DO
       ENDIF
       CALL MPI_BCAST(itransfer3,nlst0,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       CALL MPI_BCAST(istepmin,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       CALL MPI_BCAST(istepmax,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       CALL MPI_BCAST(istepmingas,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       IF (iproc.NE.0) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst0,llist,isteps,itransfer3,it0,it1,it2)
+C$OMP& private(i,j)
          DO j = 1, nlst0
             i = llist(j)
             isteps(i) = itransfer3(j)
             it1(i) = it0(i) + isteps(i)/2
             it2(i) = it0(i) + isteps(i)
          END DO
+C$OMP END PARALLEL DO
       ENDIF
 #ifdef MPIDEBUG
       print *,iproc,': bcasted steps ',itime,nlst0
 #endif
+c
+c--Make sure that vxyzu is also consistent across all MPI processes
+c
+      IF (iproc.EQ.0) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst0,llist,vxyzu,realtransfer5to15)
+C$OMP& private(j,k)
+         DO j = 1, nlst0
+            DO k = 1,4
+               realtransfer5to15((j-1)*4+k) = vxyzu(k,llist(j))
+            END DO
+         END DO
+C$OMP END PARALLEL DO
+      ENDIF
+      CALL MPI_BCAST(realtransfer5to15,nlst0*4,MPI_REAL8,0,
+     &     MPI_COMM_WORLD,ierr)
+      IF (iproc.NE.0) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst0,llist,vxyzu,realtransfer5to15)
+C$OMP& private(i,j,k)
+         DO j = 1, nlst0
+            i = llist(j)
+            DO k = 1, 4
+               vxyzu(k,i) = realtransfer5to15((j-1)*4 + k)
+            END DO
+         END DO
+C$OMP END PARALLEL DO
+      ENDIF
+
+#ifdef MPIDEBUG
+      print *,iproc,': bcasted vxyzu ',itime,nlst0
+#endif
 #endif
 
       IF (itiming) THEN
-         CALL getused(ts92)
-         ts9 = ts9 + (ts92 - ts91)
+         CALL getused(ts152)
+         ts15 = ts15 + (ts152 - ts142)
       ENDIF
 
       IF (individualtimesteps.EQ.0) THEN

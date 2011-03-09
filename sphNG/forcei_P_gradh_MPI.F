@@ -1534,7 +1534,6 @@ c         IF (ipart.GT.idim) print *,iproc,': Fx2 ',ipart
 C$OMP END DO
 
 #ifdef MPICOPY
-C$OMP SINGLE
 c
 c--For MPICOPY job, unfortunately need to do MPI reduce because in the above
 c     loop particle 'i' gives forces, dq, poten, and dBxyz to particle 'j'.
@@ -1543,6 +1542,7 @@ c--Transfer fxyzu(1-3,i) - do not need to transfer all 4 elements of this
 c     arrary - only need to transfer 3 because change in 'u' is done
 c     only using neighbours of 'i', not 'j'.
 c
+C$OMP DO SCHEDULE(runtime)
       DO i = 1, nlst_end
          DO k = 1, 3
             realtransfer5to15((i-1)*3+k) = 
@@ -1550,6 +1550,8 @@ c
             realtransfer5to15(3*idim+(i-1)*3+k) = 0.
          END DO
       END DO
+C$OMP END DO
+C$OMP SINGLE
 c
 c--All processes reduce the fxyzu(1-3) data
 c
@@ -1557,11 +1559,13 @@ c
      &     realtransfer5to15(3*idim+1),3*nlst_end,
      &     MPI_REAL8,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
+C$OMP END SINGLE
 c
 c--Now add reduced fxyz_reduce(1-3) on to existing fxyzu(1-3) data in correct 
 c     places in fxyzu(1-4)
 c
       j = iproc
+C$OMP DO SCHEDULE(runtime)
       DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &     irecvcounti(j+1)
          DO k = 1, 3
@@ -1569,6 +1573,8 @@ c
      &           realtransfer5to15(3*idim+(i-1)*3 + k)
          END DO
       END DO
+C$OMP END DO
+C$OMP SINGLE
 #ifdef MPIDEBUG
       print *,iproc,': fxyzu(1-3) reduce ',numbertodoherekeep,
      &     irecvcounti(j+1), nlst_end
@@ -1577,10 +1583,14 @@ c
 c
 c--Reduce poten(i)
 c
+C$OMP END SINGLE
+C$OMP DO SCHEDULE(runtime)
       DO i = 1, nlst_end
          real4transfer2(i) = poten(llisttrans(i)+1)
          real4transfer2(idim+i) = 0.
       END DO
+C$OMP END DO
+C$OMP SINGLE
 c
 c--All processes reduce the poten() data
 c
@@ -1590,9 +1600,13 @@ c
 c
 c--Now place reduced poten() data in correct places in poten()
 c
+C$OMP END SINGLE
+C$OMP DO SCHEDULE(runtime)
       DO i = 1, nlst_end
          poten(llisttrans(i) + 1) = real4transfer2(idim+i)
       END DO
+C$OMP END DO
+C$OMP SINGLE
 #ifdef MPIDEBUG
       print *,iproc,': poten() reduce ',numbertodoherekeep,
      &     irecvcounti(j+1), nlst_end
@@ -1601,35 +1615,45 @@ c
 c
 c--Reduce dq(i)
 c
+C$OMP END SINGLE
+C$OMP DO SCHEDULE(runtime)
       DO i = 1, nlst_end
          real4transfer2(i) = dq(llisttrans(i)+1)
          real4transfer2(idim+i) = 0.
       END DO
+C$OMP END DO
+C$OMP SINGLE
 c
 c--All processes reduce the poten() data
 c
       CALL MPI_ALLREDUCE(real4transfer2,real4transfer2(idim+1),
      &     nlst_end,MPI_REAL4,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
+C$OMP END SINGLE
 c
 c--Now transfer reduced real4_reduce() into correct places in dq().
 c     Only need to keep the values of those particles being done on this
 c     MPICOPY process.
 c
       j = iproc
+C$OMP DO SCHEDULE(runtime)
       DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &     irecvcounti(j+1)
          dq(llisttrans(i) + 1) = real4transfer2(idim+i)
       END DO
+C$OMP END DO
+C$OMP SINGLE
 #ifdef MPIDEBUG
       print *,iproc,': dq() reduce ',numbertodoherekeep,
      &     irecvcounti(j+1), nlst_end
 #endif
+C$OMP END SINGLE
 
       IF (imhd.EQ.idim) THEN
 c
 c--Transfer dBxyz(1-3,i)
 c
+C$OMP DO SCHEDULE(runtime)
          DO i = 1, nlst_end
             DO k = 1, 3
                realtransfer5to15((i-1)*3+k) = 
@@ -1637,6 +1661,8 @@ c
                realtransfer5to15(3*idim+(i-1)*3+k) = 0.
             END DO
          END DO
+C$OMP END DO
+C$OMP SINGLE
 c
 c--All processes reduce the dBxyz(1-3) data
 c
@@ -1644,31 +1670,36 @@ c
      &        realtransfer5to15(3*idim+1),3*nlst_end,
      &        MPI_REAL8,MPI_SUM,
      &        MPI_COMM_WORLD,ierr)
+C$OMP END SINGLE
 c
 c--Now do reduction of dBxyzu(1-3) and put data in correct 
 c     places in dBxyz(1-3)
 c
+C$OMP DO SCHEDULE(runtime)
          DO i = 1, nlst_end
             DO k = 1, 3
                dBxyz(k,llisttrans(i) + 1) = 
      &              realtransfer5to15(3*idim+(i-1)*3 + k)
             END DO
          END DO
+C$OMP END DO
+C$OMP SINGLE
 #ifdef MPIDEBUG
          print *,iproc,': dBxyz(1-3) reduce ',numbertodoherekeep,
      &        irecvcounti(j+1), nlst_end
 #endif
+C$OMP END SINGLE
 
       ENDIF
-C$OMP END SINGLE
 #endif
 
 C$OMP DO SCHEDULE(runtime)
-c#ifdef MPICOPY
-c      DO n = numberstart, numberend
-c#else
+c
+c--For MPICOPY, all processes do this locally because it is fast (no loop
+c     over neighbours) and probably not worth the transfer time to copy
+c     sections between MPI processes
+c
       DO n = nlst_in, nlst_tot
-c#endif
          ipart = listp(n)
          IF (iphase(ipart).EQ.0) THEN
 c
@@ -1744,8 +1775,6 @@ C$OMP DO SCHEDULE(runtime)
 C$OMP END DO 
 C$OMP END PARALLEL
 
-c      GOTO 4567
-
 #ifdef MPICOPY
 c
 c--For MPICOPY job, need to transfer fxyzu(1-4,i), dha(1-1+isizealphaMM,i), 
@@ -1758,9 +1787,6 @@ c     NOTE: Code assumes that dgrav() is NOT BEING USED (i.e. nlmax.EQ.1)
 c
 c--Transfer fxyzu(1-4,i)
 c
-
-c      GOTO 5555
-
       CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
       CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
 
@@ -1779,21 +1805,18 @@ c--Put fxyzu(1-4) data into correct places in fxyzu(1-4)
 c
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(idisplacementsi,irecvcounti,fxyzu,llisttrans)
+C$OMP& shared(realtransfer5to15,j)
+C$OMP& private(i,k)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                DO k = 1, 4
-c            IF (fxyzu(k,llisttrans(i) + 1).NE.
-c     &           realtransfer5to15((i-1)*4 + k)) THEN
-c               WRITE (60+iproc,*) itime,i,llisttrans(i) + 1,
-c     &              fxyzu(k,llisttrans(i) + 1),
-c     &              realtransfer5to15((i-1)*4 + k),
-c     &              (xyzmh(kkk,llisttrans(i) + 1),kkk=1,5),
-c     &              (vxyzu(kkk,llisttrans(i) + 1),kkk=1,4)
-c            ENDIF
                   fxyzu(k,llisttrans(i) + 1) =
      &                 realtransfer5to15((i-1)*4 + k)
                END DO
             END DO
+C$OMP END PARALLEL DO
          ENDIF
       END DO
 #ifdef MPIDEBUG
@@ -1802,8 +1825,6 @@ c            ENDIF
 
       CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
       CALL MPI_TYPE_FREE(i4REAL8,ierr)
- 5555 CONTINUE
-c      GOTO 5556
 c
 c--Transfer dha(1-1+isizealphaMM,i)
 c
@@ -1826,23 +1847,18 @@ c--Put dha(1-1+isizealphaMM) data into correct places in dha()
 c
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(idisplacementsi,irecvcounti,dha,llisttrans)
+C$OMP& shared(real4transfer2,j)
+C$OMP& private(i,k)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                DO k = 1, 1+isizealphaMM
-
-            IF (dha(k,llisttrans(i) + 1).NE.
-     &           real4transfer2((i-1)*(1+isizealphaMM) + k)) THEN
-               WRITE (62+iproc,*) itime,i,llisttrans(i) + 1,
-     &              dha(k,llisttrans(i) + 1),
-     &              real4transfer2((i-1)*(1+isizealphaMM) + k),
-     &              (xyzmh(kkk,llisttrans(i) + 1),kkk=1,5),
-     &              (vxyzu(kkk,llisttrans(i) + 1),kkk=1,4)
-            ENDIF
-
                   dha(k,llisttrans(i) + 1) =
      &                 real4transfer2((i-1)*(1+isizealphaMM) + k)
                END DO
             END DO
+C$OMP END PARALLEL DO
          ENDIF
       END DO
 #ifdef MPIDEBUG
@@ -1851,7 +1867,6 @@ c
 
       CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
       CALL MPI_TYPE_FREE(iaREAL4,ierr)
- 5556 CONTINUE
 
       IF (imhd.EQ.idim) THEN
 c
@@ -1875,6 +1890,10 @@ c--Put dBxyz(1-3) data into correct places in dBxyz
 c
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(idisplacementsi,irecvcounti,dBxyz,llisttrans)
+C$OMP& shared(realtransfer5to15,j)
+C$OMP& private(i,k)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                DO k = 1, 3
@@ -1882,6 +1901,7 @@ c
      &                 realtransfer5to15((i-1)*3 + k)
                END DO
             END DO
+C$OMP END PARALLEL DO
          ENDIF
       END DO
 #ifdef MPIDEBUG
@@ -1911,6 +1931,10 @@ c--Put divcurlB(1-4) data into correct places in divcurlB
 c
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(idisplacementsi,irecvcounti,divcurlB,llisttrans)
+C$OMP& shared(real4transfer2,j)
+C$OMP& private(i,k)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                DO k = 1, 4
@@ -1918,6 +1942,7 @@ c
      &                 real4transfer2((i-1)*4 + k)
                END DO
             END DO
+C$OMP END PARALLEL DO
          ENDIF
       END DO
 #ifdef MPIDEBUG

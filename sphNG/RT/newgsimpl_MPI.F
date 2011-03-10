@@ -1487,33 +1487,41 @@ c               ENDIF
 C$OMP END DO
 
 #ifdef MPICOPY
-C$OMP SINGLE
 c
 c--For MPICOPY job, need to transfer ekcle(4,i) values (only).
 c
 c--Transfer ekcle(4,i)
 c
+C$OMP DO SCHEDULE(runtime)
       DO i = numberstart, numberstart + numbertodoherekeep - 1
           llisttrans(i) = llisttrans(i)*5 + 3
       END DO
+C$OMP END DO
 
+C$OMP SINGLE
       CALL MPI_TYPE_INDEXED(numbertodoherekeep,
      &     lblocklengths, llisttrans(numberstart),
      &     MPI_REAL8, indexMPI_INT1, ierr)
       CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+C$OMP END SINGLE
 
+C$OMP DO SCHEDULE(runtime)
       DO i = numberstart, numberstart + numbertodoherekeep - 1
          llisttrans(i) = llisttrans(i)/5
       END DO
+C$OMP END DO
 c
 c--All processes transfer their ekcle(4,i) data
 c
+C$OMP SINGLE
       CALL MPI_ALLGATHERV(ekcle,1,indexMPI_INT1,
      &     realtransfer5to15,irecvcounti,idisplacementsi,MPI_REAL8,
      &     MPI_COMM_WORLD,ierr)
+C$OMP END SINGLE
 c
 c--Put ekcle(4,i) data into correct places in ekcle
 c
+C$OMP DO SCHEDULE(runtime)
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
@@ -1522,6 +1530,9 @@ c
             END DO
          ENDIF
       END DO
+C$OMP END DO
+
+C$OMP SINGLE
 #ifdef MPIDEBUG
       print *,iproc,': ekcle(4,i) move ',numbertodoherekeep
 #endif
@@ -1840,13 +1851,13 @@ c               varinew(4,i) = pres_denominator
 C$OMP END DO
 
 #ifdef MPICOPY
-C$OMP SINGLE
 c
 c--For MPICOPY job, unfortunately need to do MPI reduce because in the above
 c     loop particle 'i' gives varinew contributions to particle 'j'.
 c
 c--Transfer varinew(1-2,i)
 c
+C$OMP DO SCHEDULE(runtime)
          DO n = 1, ncompact
             i = ivar(3,n)
             DO k = 1, 2
@@ -1854,6 +1865,8 @@ c
                realtransfer5to15(3*idim+(n-1)*2+k) = 0.
             END DO
          END DO
+C$OMP END DO
+C$OMP SINGLE
 #ifdef MPIDEBUG
          print *,iproc,': about to do varinew(1-2) reduce ',ncompact
 #endif
@@ -1864,15 +1877,19 @@ c
      &        realtransfer5to15(3*idim+1),2*ncompact,
      &        MPI_REAL8,MPI_SUM,
      &        MPI_COMM_WORLD,ierr)
+C$OMP END SINGLE
 c
 c--Now do reduction of varinew(1-2)
 c
+C$OMP DO SCHEDULE(runtime)
          DO n = 1, ncompact
             i = ivar(3,n)
             DO k = 1, 2
                varinew(k,i) = realtransfer5to15(3*idim+(n-1)*2 + k)
             END DO
          END DO
+C$OMP END DO
+C$OMP SINGLE
 #ifdef MPIDEBUG
          print *,iproc,': varinew(1-2) reduce ',ncompact
 #endif
@@ -2466,9 +2483,11 @@ c
       CALL MPI_ALLGATHERV(ekcle,1,indexMPI_INT1,
      &     realtransfer5to15,irecvcounti,idisplacementsi,i5REAL8,
      &     MPI_COMM_WORLD,ierr)
+C$OMP END SINGLE
 c
 c--Put ekcle(1-5) data into correct places in ekcle
 c
+C$OMP DO SCHEDULE(runtime)
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
@@ -2480,6 +2499,8 @@ c
             END DO
          ENDIF
       END DO
+C$OMP END DO
+C$OMP SINGLE
 #ifdef MPIDEBUG
       print *,iproc,': ekcle(1-5) move ',numbertodoherekeep
 #endif
@@ -2497,9 +2518,11 @@ c
       CALL MPI_ALLGATHERV(EU0,1,indexMPI_INT1,
      &     realtransfer5to15,irecvcounti,idisplacementsi,i2REAL8,
      &     MPI_COMM_WORLD,ierr)
+C$OMP END SINGLE
 c
 c--Put EU0(1-2) data into correct places in EU0
 c
+C$OMP DO SCHEDULE(runtime)
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
@@ -2511,6 +2534,8 @@ c
             END DO
          ENDIF
       END DO
+C$OMP END DO
+C$OMP SINGLE
 #ifdef MPIDEBUG
       print *,iproc,': EU0(1-2) move ',numbertodoherekeep
 #endif

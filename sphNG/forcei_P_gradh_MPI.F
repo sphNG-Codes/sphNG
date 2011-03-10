@@ -1803,12 +1803,12 @@ c
 c
 c--Put fxyzu(1-4) data into correct places in fxyzu(1-4)
 c
-      DO j = 0, numproc - 1
-         IF (j.NE.iproc) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(idisplacementsi,irecvcounti,fxyzu,llisttrans)
-C$OMP& shared(realtransfer5to15,j)
-C$OMP& private(i,k)
+C$OMP& shared(realtransfer5to15,numproc,iproc)
+C$OMP& private(i,j,k)
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                DO k = 1, 4
@@ -1816,9 +1816,9 @@ C$OMP& private(i,k)
      &                 realtransfer5to15((i-1)*4 + k)
                END DO
             END DO
-C$OMP END PARALLEL DO
          ENDIF
       END DO
+C$OMP END PARALLEL DO
 #ifdef MPIDEBUG
       print *,iproc,': fxyzu(1-4) move ',numbertodoherekeep
 #endif
@@ -1845,12 +1845,12 @@ c
 c
 c--Put dha(1-1+isizealphaMM) data into correct places in dha()
 c
-      DO j = 0, numproc - 1
-         IF (j.NE.iproc) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(idisplacementsi,irecvcounti,dha,llisttrans)
-C$OMP& shared(real4transfer2,j)
-C$OMP& private(i,k)
+C$OMP& shared(real4transfer2,numproc,iproc)
+C$OMP& private(i,j,k)
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                DO k = 1, 1+isizealphaMM
@@ -1858,9 +1858,9 @@ C$OMP& private(i,k)
      &                 real4transfer2((i-1)*(1+isizealphaMM) + k)
                END DO
             END DO
-C$OMP END PARALLEL DO
          ENDIF
       END DO
+C$OMP END PARALLEL DO
 #ifdef MPIDEBUG
       print *,iproc,': dha(1-1+isizealphaMM) move ',numbertodoherekeep
 #endif
@@ -1888,12 +1888,12 @@ c
 c
 c--Put dBxyz(1-3) data into correct places in dBxyz
 c
-      DO j = 0, numproc - 1
-         IF (j.NE.iproc) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(idisplacementsi,irecvcounti,dBxyz,llisttrans)
-C$OMP& shared(realtransfer5to15,j)
-C$OMP& private(i,k)
+C$OMP& shared(realtransfer5to15,numproc,iproc)
+C$OMP& private(i,j,k)
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                DO k = 1, 3
@@ -1901,9 +1901,9 @@ C$OMP& private(i,k)
      &                 realtransfer5to15((i-1)*3 + k)
                END DO
             END DO
-C$OMP END PARALLEL DO
          ENDIF
       END DO
+C$OMP END PARALLEL DO
 #ifdef MPIDEBUG
       print *,iproc,': dBxyz(1-3) move ',numbertodoherekeep
 #endif
@@ -1929,12 +1929,12 @@ c
 c
 c--Put divcurlB(1-4) data into correct places in divcurlB
 c
-      DO j = 0, numproc - 1
-         IF (j.NE.iproc) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(idisplacementsi,irecvcounti,divcurlB,llisttrans)
-C$OMP& shared(real4transfer2,j)
-C$OMP& private(i,k)
+C$OMP& shared(real4transfer2,numproc,iproc)
+C$OMP& private(i,j,k)
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                DO k = 1, 4
@@ -1942,9 +1942,9 @@ C$OMP& private(i,k)
      &                 real4transfer2((i-1)*4 + k)
                END DO
             END DO
-C$OMP END PARALLEL DO
          ENDIF
       END DO
+C$OMP END PARALLEL DO
 #ifdef MPIDEBUG
       print *,iproc,': divcurlB(1-4) move ',numbertodoherekeep
 #endif

@@ -2320,6 +2320,72 @@ C$OMP END PARALLEL DO
 #ifdef MPIDEBUG
       print *,iproc,': bcasted vxyzu ',itime,nlst0
 #endif
+c
+c--Also ensure that E from ekcle is consistent across all MPI processes
+c
+      IF (iradtrans.EQ.idim) THEN
+
+         IF (iproc.EQ.0) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst0,llist,ekcle,realtransfer5to15)
+C$OMP& private(j)
+            DO j = 1, nlst0
+               realtransfer5to15(j) = ekcle(1,llist(j))
+            END DO
+C$OMP END PARALLEL DO
+         ENDIF
+         CALL MPI_BCAST(realtransfer5to15,nlst0,MPI_REAL8,0,
+     &        MPI_COMM_WORLD,ierr)
+         IF (iproc.NE.0) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst0,llist,ekcle,realtransfer5to15)
+C$OMP& private(j)
+            DO j = 1, nlst0
+               ekcle(1,llist(j)) = realtransfer5to15(j)
+            END DO
+C$OMP END PARALLEL DO
+         ENDIF
+
+#ifdef MPIDEBUG
+         print *,iproc,': bcasted E from ekcle ',itime,nlst0
+#endif
+      ENDIF
+c
+c--Also ensure that magnetic field is consistent across all MPI processes
+c
+      IF (imhd.EQ.idim) THEN
+
+         IF (iproc.EQ.0) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst0,llist,Bevolxyz,realtransfer5to15)
+C$OMP& private(j,k)
+            DO j = 1, nlst0
+               DO k = 1, 3
+                  realtransfer5to15((j-1)*3+k) = Bevolxyz(k,llist(j))
+               END DO
+            END DO
+C$OMP END PARALLEL DO
+         ENDIF
+         CALL MPI_BCAST(realtransfer5to15,nlst0*3,MPI_REAL8,0,
+     &        MPI_COMM_WORLD,ierr)
+         IF (iproc.NE.0) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst0,llist,Bevolxyz,realtransfer5to15)
+C$OMP& private(i,j,k)
+            DO j = 1, nlst0
+               i = llist(j)
+               DO k = 1, 3
+                  Bevolxyz(k,i) = realtransfer5to15((j-1)*3 + k)
+               END DO
+            END DO
+C$OMP END PARALLEL DO
+         ENDIF
+
+#ifdef MPIDEBUG
+      print *,iproc,': bcasted Bevolxyz ',itime,nlst0
+#endif
+      ENDIF
+
 #endif
 
       IF (itiming) THEN

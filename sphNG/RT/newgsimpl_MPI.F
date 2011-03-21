@@ -66,8 +66,6 @@ c      INCLUDE 'COMMONS/rad2'
       INCLUDE 'COMMONS/mpicopy'
 #endif
 
-      COMMON /rtpdv/ pdvvisc(idim)
-
       PARAMETER (nswmax = 200)
       PARAMETER (nswmax2 = 100)
 

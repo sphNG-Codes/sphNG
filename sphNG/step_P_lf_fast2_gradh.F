@@ -73,8 +73,6 @@ c************************************************************
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/divcurlB'
 
-      COMMON /rtpdv/ pdvvisc(idim)
-
 c      DIMENSION nsteplist(30)
 
       LOGICAL ifirst

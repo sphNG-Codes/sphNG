@@ -86,8 +86,6 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/mpicopy'
 #endif
 
-      COMMON /rtpdv/ pdvvisc(idim)
-
       DIMENSION nsteplist(30)
       INTEGER*8 nneightotsave
 

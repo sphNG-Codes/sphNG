@@ -73,6 +73,8 @@ c************************************************************
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/divcurlB'
 
+      COMMON /rtpdv/ pdvvisc(idim)
+
 c      DIMENSION nsteplist(30)
 
       LOGICAL ifirst
@@ -274,11 +276,13 @@ c
                   nlst = nlst + 1
                   llist(nlst) = i
                   isteps(i) = imaxstep
-                  CALL eospg(i,vxyzu,rho,pr,vsound,ekcle)
+                  IF (iphase(i).EQ.0) THEN
+                     CALL eospg(i,vxyzu,rho,pr,vsound,ekcle)
 c
 c--if rho not defined it is a problem
 c
-c                  vsound(i) = SQRT(2./3.*vxyzu(4,i))
+c                     vsound(i) = SQRT(2./3.*vxyzu(4,i))
+                  ENDIF
                ENDIF
             END DO
             nlst0 = nlst
@@ -652,8 +656,17 @@ c 444        CONTINUE
 c
 c--Update u(i) and h(i)
 c
-            IF (encal.NE.'r' .AND. encal.NE.'m') 
-     &           vxyzu(4,i) = vxyzu(4,i) + dtfull*f1vxyzu(4,i)
+            IF (encal.EQ.'r') THEN
+               vxyzu(4,i) = dumvxyzu(4,i)
+               pdvvisc(i) = dtfull*f1vxyzu(4,i)
+
+               print *,'set pdvvisc ',i,dtfull,f1vxyzu(4,i)
+
+            ELSEIF (encal.EQ.'m') THEN
+               vxyzu(4,i) = dumvxyzu(4,i)
+            ELSE
+               vxyzu(4,i) = vxyzu(4,i) + dtfull*f1vxyzu(4,i)
+            ENDIF
 
 c correction of energy if using K & I cooling curve
 
@@ -757,10 +770,12 @@ c
             END DO
             dumxyzmh(4,j) = xyzmh(4,j)
             IF (iphase(j).EQ.0) THEN
-               IF (encal.NE.'r' .AND. encal.NE.'m') THEN
-                  dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
-               ELSE
+               IF (encal.EQ.'r') THEN
                   dumvxyzu(4,j) = vxyzu(4,j)
+               ELSEIF (encal.EQ.'m') THEN
+                  dumvxyzu(4,j) = vxyzu(4,j)
+               ELSE
+                  dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
                ENDIF
               IF(iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
@@ -813,11 +828,13 @@ c
                   END DO
                   dumxyzmh(4,ipart) = xyzmh(4,ipart)
                   IF (iphase(ipart).EQ.0) THEN
-                     IF (encal.NE.'r' .AND. encal.NE.'m') THEN
+                     IF (encal.EQ.'r') THEN
+                        dumvxyzu(4,ipart) = vxyzu(4,ipart)
+                     ELSEIF (encal.EQ.'m') THEN
+                        dumvxyzu(4,ipart) = vxyzu(4,ipart)
+                     ELSE
                         dumvxyzu(4,ipart) = vxyzu(4,ipart) +
      &                       deltat*f1vxyzu(4,ipart)
-                     ELSE
-                        dumvxyzu(4,ipart) = vxyzu(4,ipart)
                      ENDIF
                      IF (iener.EQ.2 .AND. dumvxyzu(4,ipart).LT.0.0) 
      &                    dumvxyzu(4,ipart)=0.15
@@ -906,11 +923,13 @@ c
                   END DO
                   dumxyzmh(4,ipart) = xyzmh(4,ipart)
                   IF (iphase(ipart).EQ.0) THEN
-                     IF (encal.NE.'r' .AND. encal.NE.'m') THEN
+                     IF (encal.EQ.'r') THEN
+                        dumvxyzu(4,ipart) = vxyzu(4,ipart)
+                     ELSEIF (encal.EQ.'m') THEN
+                        dumvxyzu(4,ipart) = vxyzu(4,ipart)
+                     ELSE
                         dumvxyzu(4,ipart) = vxyzu(4,ipart) +
      &                       deltat*f1vxyzu(4,ipart)
-                     ELSE
-                        dumvxyzu(4,ipart) = vxyzu(4,ipart)
                      ENDIF
                      IF (iener.EQ.2 .AND. dumvxyzu(4,ipart).LT.0.0) 
      &                    dumvxyzu(4,ipart)=0.15

@@ -607,6 +607,7 @@ C$OMP& shared(it0,itime,imaxdens,cnormk,iener)
 C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,listrealpm)
 C$OMP& shared(ifsvi,alphaMM,alphamax,Bevolxyz,encal,gt)
+C$OMP& shared(pdvvisc)
 C$OMP& private(i,j,k,dtfull,dthalf,delvx,delvy,delvz)
 C$OMP& private(iii,pmasspt)
 C$OMP& reduction(+:ioutmax)
@@ -657,9 +658,6 @@ c
             IF (encal.EQ.'r') THEN
                vxyzu(4,i) = dumvxyzu(4,i)
                pdvvisc(i) = dtfull*f1vxyzu(4,i)
-
-               print *,'set pdvvisc ',i,dtfull,f1vxyzu(4,i)
-
             ELSEIF (encal.EQ.'m') THEN
                vxyzu(4,i) = dumvxyzu(4,i)
             ELSE

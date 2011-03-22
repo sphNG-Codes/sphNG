@@ -1,1 +1,1 @@
-      COMMON /radtrans/ ekcle(5,iradtrans), pdvvisc(iradtrans)
+      COMMON /radtrans/ ekcle(5,iradtrans)

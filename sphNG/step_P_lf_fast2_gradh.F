@@ -68,6 +68,7 @@ c************************************************************
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/timeextra'
       INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/radtran2'
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/varmhd'

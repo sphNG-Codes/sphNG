@@ -61,6 +61,7 @@ c      INCLUDE 'COMMONS/rad2'
       INCLUDE 'COMMONS/current'
       INCLUDE 'COMMONS/boundheight'
       INCLUDE 'COMMONS/diskbd'
+      INCLUDE 'COMMONS/radtran2'
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'

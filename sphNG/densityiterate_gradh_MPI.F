@@ -1199,11 +1199,6 @@ c         IF (itime.GE.142868480)
 c     &  write(*,*)'H-stuff ',hnew,hi,hi_oldi,omegai,nneighi,
 c     &        isucceed(ipart),iphase(ipart),ipart
 
-         IF (ipart.EQ.3159) THEN
-            WRITE (*,*) iproc,': P3159 ',itime,hnew,hi,hi_oldi,omegai,
-     &           nneighi,isucceed(ipart)
-         ENDIF
-
          IF ((hnew.LE.0. .OR. omegai.LE.tiny .OR. 
      &        iteration.EQ.maxitsnr .OR. nneighi.LE.0) 
      &        .AND. isucceed(ipart).NE.-1) THEN
@@ -3348,10 +3343,6 @@ c--Derivative w.r.t. h for grad h correction terms (and dhdrho)
 c
                      dwdhi = (-rij2*grwtij - 3.*wtij)*hi1
                      gradhi = gradhi + pmassj*dwdhi
-
-                     IF (iparttree.EQ.3159) THEN
-                     WRITE (*,*) 'P3159 ',j,pmassj,dwdhi
-                     ENDIF
 c
 c--Compute density
 c

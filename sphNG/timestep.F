@@ -344,10 +344,12 @@ C$OMP END PARALLEL
      &            istepeta,' parts by ratio ',etafac/real(istepeta)
       ENDIF
 
-      IF (istepmingasnew.NE.imax) istepmingas = istepmingasnew
-      IF (istepmingas.LT.2) THEN
-         WRITE (iprint,*) 'ERROR - istepmingas.LT.2'
-         CALL quit
+      IF (istepmingasnew.NE.imax) THEN
+         istepmingas = istepmingasnew
+         IF (istepmingas.LT.2) THEN
+            WRITE (iprint,*) 'ERROR - istepmingas.LT.2'
+            CALL quit
+         ENDIF
       ENDIF
 
       RETURN

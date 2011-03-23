@@ -18,8 +18,10 @@ c************************************************************
       REAL rhozero, RK2, gama1
       REAL deltaz,deltax,deltaphi,rcyl,rintorus2,phi
       REAL xtorus,ztorus,massp,totmass,totvol
-      REAL phitorus, randphi, ran1, thetator, r1, rho_c
-      REAL rintorus, xi, yi, zi, rfactor, kappa, ra2, pri
+      REAL randphi, ran1
+c      REAL phitorus, rho_c, thetator, r1
+c      REAL rintorus, xi, yi, zi, rfactor, kappa
+      REAL ra2, pri
       INTEGER ipart,nx,nz,nphi,k,j,i
 
       nx = 15

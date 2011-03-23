@@ -1414,7 +1414,8 @@ cc         ENDIF
 c
 c--Perform accretion
 c
- 777     IF (nptlist(iii).GT.0) THEN
+c 777     CONTINUE
+         IF (nptlist(iii).GT.0) THEN
 
          IF (iphase(i).EQ.3) THEN
             haccmin = haccall
@@ -2123,7 +2124,7 @@ c            CALL FLUSH(iptprint)
 c
 c--Consider accreted particles' effect on ghosts
 c
- 1000 CONTINUE
+c 1000 CONTINUE
 
       IF (iaccr.EQ.1) THEN
          DO i = 1, nghost

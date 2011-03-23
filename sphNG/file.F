@@ -127,5 +127,6 @@ c--Reset dump counter
 c
       irec = 0
 
- 100  RETURN
+c 100  CONTINUE
+      RETURN
       END

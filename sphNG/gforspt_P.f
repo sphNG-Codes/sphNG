@@ -139,6 +139,13 @@ c
                rr54 = rr4*rr4s025
                potn = pmassj / rr4s025
                fff = rr*pmassj / rr54
+            ELSE
+c
+c--ERROR! unknown softening option
+c           
+               print*,' ERROR: unknown softening option in gforspt_P'
+               fff = 0.
+               potn = 0.
             ENDIF
 c
 c--End force definition

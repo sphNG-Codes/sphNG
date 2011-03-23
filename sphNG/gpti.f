@@ -139,6 +139,13 @@ c
                rr54 = rr4*rr4s025
                potn = pmassipt / rr4s025
                fff = rr*pmassipt / rr54
+            ELSE
+c
+c--ERROR! unknown softening option
+c           
+               print*,' ERROR: unknown softening option in gpti'
+               fff = 0.
+               potn = 0.
             ENDIF
          ENDIF
 c

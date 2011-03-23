@@ -1,6 +1,6 @@
       FUNCTION GETKAPPA(u2,cv2,rho2)
   
-!      IMPLICIT NONE
+      IMPLICIT NONE
 
       INCLUDE 'idim'
 
@@ -15,8 +15,10 @@
       REAL lTg,lrho,getkappa,u2,u,cv,cv2,rho
       REAL rkappa,y1,y2,y3,y4,w,v
       REAL minop, mu, mintemp, maxtemp, maxop
-      INTEGER nkrho1,nkrho2,nktg1,nktg2,iflag
-      LOGICAL y1alex,y2alex,y3alex,y4alex,tryalex
+      REAL grad,val1,val1h,val1l,val2,val2h,val2l,valdown,valup
+      INTEGER ndrho,nkrho1,nkrho2,nktg1,nktg2,iflag
+c      LOGICAL y1alex,y2alex,y3alex,y4alex
+      LOGICAL tryalex
 
 c     SHOCK!!!!!!!!!
 !      getkappa=4.0d2*umass/udist**2

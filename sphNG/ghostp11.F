@@ -29,7 +29,7 @@ c************************************************************
 
       CHARACTER*7 where
 
-      DATA where/'ghostp11'/
+      DATA where/'ghost11'/
 c
 c--Allow for tracing flow
 c
@@ -54,6 +54,7 @@ c
 
       DO 200 i = 1, npart
          nghostold = nghost
+         nptot = MIN0(npart + nghost, idim)
          hasghost(i) = .FALSE.
          IF (iphase(i).NE.0) GOTO 200
          xi = xyzmh(1,i)

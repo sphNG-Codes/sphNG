@@ -1,5 +1,5 @@
       REAL optable
       INTEGER opmxtg,opmxrh
       PARAMETER (opmxtg=95)
-      PARAMETER (opmxrh=16)	
+      PARAMETER (opmxrh=16)
       COMMON /optbl/ optable(opmxtg,opmxrh)

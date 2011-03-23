@@ -116,7 +116,14 @@ c
                rr54 = rr4*rr4s025
                potn = pmassn / rr4s025
                fff = rr*pmassn / rr54
-            ENDIF            
+            ELSE
+c
+c--ERROR! unknown softening option
+c           
+               print*,' ERROR: unknown softening option in gforsa_P'
+               fff = 0.
+               potn = 0.
+            ENDIF
 c
 c--Otherwise, both particles are gas and are not neighbours
 c

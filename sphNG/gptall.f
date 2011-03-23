@@ -136,6 +136,13 @@ c
                   potn = pmassj / rr4s025
                   fff = rr*pmassj / rr54
                ENDIF
+            ELSE
+c
+c--ERROR! unknown softening option
+c           
+               print*,' ERROR: unknown softening option in gptall'
+               fff = 0.
+               potn = 0.
             ENDIF
 c
 c--End force definition

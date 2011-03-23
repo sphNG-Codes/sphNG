@@ -25,7 +25,6 @@ c************************************************************
       INCLUDE 'COMMONS/delay'
       INCLUDE 'COMMONS/rbnd'
 
-      LOGICAL icalc
       CHARACTER*7 where
 
       DATA where/'gpti'/

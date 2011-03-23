@@ -262,9 +262,9 @@ c                     l = 1
             ENDIF
             
             IF (idist.EQ.2) THEN
-c	          xstart = (xmin+xmax)/2.0
+c                xstart = (xmin+xmax)/2.0
 c     &               -(INT(ABS(0.5*(xmax-xmin)/delx)+0.5))*delx
-c     &               + 0.5*delx	
+c     &               + 0.5*delx      
 c                  ystart = (ymin+ymax)/2.0
 c     &              -(INT(ABS(0.5*(ymax-ymin)/dely)+0.5))*dely
 c     &               + 0.5*dely
@@ -276,29 +276,29 @@ c               ystart = FLOAT(INT(ymin/stepy))*stepy + 0.5*dely
 c     &              + stepy/2.0 
 c     &              - dely/2.0
 c               zstart = FLOAT(INT(zmin/stepz))*stepz + 0.5*stepz
-               xstart = xmin + 0.125*delx
-	       ystart = ymin + 0.25*dely
-	       zstart = zmin + 0.5*stepz
-               jy = MOD(l, 2)
-               jz = MOD(m, 3)
-	       IF (jz.EQ.0) THEN	! 3rd layer
-		  ystart = ystart + 2.*dely
-	          IF (jy.EQ.0) xstart = xstart + delx		   
-	       ELSEIF (jz.EQ.2) THEN	! 2nd layer	  
-	          ystart = ystart + dely
-		  IF (jy.EQ.1) xstart = xstart + delx
-	       ELSEIF (jy.EQ.0) THEN    ! first layer	  
-	          xstart = xstart + delx
-	       ENDIF
+                xstart = xmin + 0.125*delx
+                ystart = ymin + 0.25*dely
+                zstart = zmin + 0.5*stepz
+                jy = MOD(l, 2)
+                jz = MOD(m, 3)
+             IF (jz.EQ.0) THEN      ! 3rd layer
+                ystart = ystart + 2.*dely
+                IF (jy.EQ.0) xstart = xstart + delx               
+             ELSEIF (jz.EQ.2) THEN      ! 2nd layer        
+                ystart = ystart + dely
+                IF (jy.EQ.1) xstart = xstart + delx
+             ELSEIF (jy.EQ.0) THEN    ! first layer        
+                xstart = xstart + delx
+             ENDIF
 
             ELSEIF (idist.EQ.1) THEN
-	          xstart = (xmin+xmax)/2.0
+                xstart = (xmin+xmax)/2.0
      &               -(INT(ABS(0.5*(xmax-xmin)/stepx)+0.5))*stepx
-     &               + 0.5*stepx	
-                  ystart = (ymin+ymax)/2.0
+     &               + 0.5*stepx      
+                ystart = (ymin+ymax)/2.0
      &              -(INT(ABS(0.5*(ymax-ymin)/stepy)+0.5))*stepy
      &               + 0.5*stepy
-                  zstart = (zmin+zmax)/2.0
+                zstart = (zmin+zmax)/2.0
      &              -(INT(ABS(0.5*(zmax-zmin)/stepz)+0.5))*stepz
      &               + 0.5*stepz
 

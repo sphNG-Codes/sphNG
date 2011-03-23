@@ -22,9 +22,11 @@ c  I. A. Bonnell  University de Montreal         XX/XX/91   *
 c                 University of Cambridge, UK    01/10/92   *
 c                                                           *
 c  M. R. Bate     University of Cambridge, UK    01/10/92   *
+c                 University of Exeter, UK                  *
 c                                                           *
-c  D. J. Price	  University of Cambridge, UK    XX/XX/03   *
+c  D. J. Price    University of Cambridge, UK    XX/XX/03   *
 c                 University of Exeter, UK       XX/XX/05   *
+c                 Monash University, Australia   XX/XX/11   *
 c                                                           *
 c************************************************************
 c                                                           *

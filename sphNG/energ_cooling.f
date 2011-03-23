@@ -126,32 +126,32 @@ c
          rate_diss=nH2*exp(rate)*rate_diss0
 c
          th2=10000.
-c		 
+c             
 ccc From Bergin et. al. 2004, d(n(h2))/dt=(formation-destruction)
 ccc Here we are looking to dt such that n(H2) goes to zero, i.e dt=0-n(H2)/(formation-destruction)
 ccc First just check that dt is not 0. - but actually this should not occur anyway.
 c
          IF ((np1*nh1*tempiso**0.5*Rconst-
      &       (rate_diss+rate_cr)*nh21).EQ.0) THEN
-			nstep=5000
+                  nstep=5000
          ELSE
-c		 
+c             
 ccc - calculate dt according to dt=0-n(H2)/(formation-destruction)
-c 		 
-			dttest=-h2ratio(ipart)*np1/(np1*nh1*tempiso**0.5*Rconst-
+c              
+            dttest=-h2ratio(ipart)*np1/(np1*nh1*tempiso**0.5*Rconst-
      &         (rate_diss+rate_cr)*nh21)
 c
 ccc - if dttest>0 then h2 is being photodissociated. Set timestep to correspond to 1/10th of the time to 
 ccc completely photodissociate to 0 (this step is basically ensuring that the amount of H2 does not
 ccc become negative. 
 c
-         IF (dttest.GT.0.) th2=0.1*dttest/dtclare 
+            IF (dttest.GT.0.) th2=0.1*dttest/dtclare 
 c
 ccc Set number of steps for subcycling. In the event that the h2 is 0 (i.e. for the first timestep) or h2
 ccc being created, the number of timesteps is 201 (chosen by running the simulation initially and finding
 ccc a sensible value). 
-c 		 
-         IF (th2.GT.0) nstep=MAX(INT(1./th2)+1,201)
+c              
+            IF (th2.GT.0) nstep=MAX(INT(1./th2)+1,201)
          END IF
          tstep=dtclare/nstep
 
@@ -162,9 +162,9 @@ ccc it was also in the last section, but I've not done that yet
 c
          DO i=1,nstep
 c
-	      np1=(trho(ipart)*udens/mp)*5./7.
-		  nh1=np1*(1.-2.*h2ratio(ipart))
-	      nh21=np1*h2ratio(ipart)
+            np1=(trho(ipart)*udens/mp)*5./7.
+              nh1=np1*(1.-2.*h2ratio(ipart))
+            nh21=np1*h2ratio(ipart)
 c         
 ccc Calculate photodissociation rate
 c
@@ -186,7 +186,7 @@ c
 c
 ccc Determine number density of molecular hydrogen
 c
-		  nmol=max(np1*nh1*tempiso**0.5*Rconst*tstep-(rate_diss
+          nmol=max(np1*nh1*tempiso**0.5*Rconst*tstep-(rate_diss
      &      +rate_cr)*tstep*nh21+h2ratio(ipart)*np1,0.)
 c         
 ccc There should also be a timestep criterion so that H2 abundances do not exceed 1.
@@ -195,7 +195,7 @@ ccc in H2 fraction) indicating that the minimum
 ccc number of timesteps of 201 prevents this. But for higher density calculations,
 ccc a criterion should be included. This is the number density of h2
 c
-		  h2mol=min(np1*0.5,nmol)
+          h2mol=min(np1*0.5,nmol)
 c
 c and ratio of H2 to HI+H2 (i.e. n(H2)/n(HI+H2)
 c
@@ -242,7 +242,7 @@ c           nstep2=max(INT(tstep*10./tsteptest),INT(trho(ipart)*10.),1)
              beta=0.
              abco(ipart)=0.
            ELSE IF (h2ratio(ipart).GT.0.) THEN
-             beta = k1 * (abundo-abco(ipart))/(k1 *(abundo-abco(ipart))+ 
+            beta = k1 * (abundo-abco(ipart))/(k1 *(abundo-abco(ipart))+ 
      &       gamma_chx / (h2ratio(ipart) * np1))
              abco(ipart)= max(abco(ipart)+(k0*abcp*beta*np1**2 
      &      -gamma_co*abco(ipart)*np1)*tstep2,0.)

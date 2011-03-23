@@ -83,8 +83,8 @@ c
 c
 c--Magnetic energy
 c
-	    IF (imhd.EQ.idim) THEN
-	       B2i = Bxyz(1,i)**2 + Bxyz(2,i)**2 + Bxyz(3,i)**2
+            IF (imhd.EQ.idim) THEN
+               B2i = Bxyz(1,i)**2 + Bxyz(2,i)**2 + Bxyz(3,i)**2
                tmagi = pmassi*B2i/rho(i)
                tmag = tmag + tmagi
             ELSE

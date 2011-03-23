@@ -777,7 +777,7 @@ C$OMP END PARALLEL DO
      &              nneighsentback(iahead+1))
 c
 c--Send gravity forces back to sending process (includes forces from gas
-c	particles on sinks if iptintree=1 and also sink particles if
+c      particles on sinks if iptintree=1 and also sink particles if
 c       iptintree=2).
 c
 #ifdef MPIDEBUG
@@ -949,7 +949,7 @@ C$OMP END PARALLEL DO
      &                       nneighsentback(iahead+1))
 c
 c--Receive gravity forces back (includes forces from gas
-c	particles on sinks if iptintree=1 and also sink particles if
+c      particles on sinks if iptintree=1 and also sink particles if
 c       iptintree=2).
 c
                         IF (ntotplusinumber+nlstsend.GE.idim3) THEN
@@ -1123,7 +1123,7 @@ C$OMP& reduction(+:nwarnroundoff,nbisection,numsucceeded)
          ipart = ldolist(n)
 c
 c--Adds on local contributions to rho, gradh, and nneigh and long-range
-c	 gravity
+c       gravity
 c
          CALL densitygradh(ipart,npart,ntot,nlstdo_tot,xyzmh,
      &        nneighlocal,dvxyzu)
@@ -3014,19 +3014,19 @@ c     them to form a point mass and it may create a point mass without
 c     accreting many particles!
 c
 c--NOTE: For MPI job, still need to check for neighbours on another process
-c	For this, need to check within forcei when particles are sent back
-c	Only need to check particle that has passed all local tests and
-c	also has neighbours on other process.
-c	Need to check that all its neighbours are currently being evolved.
-c	Also need to check that it is the candidate sink particle with the
-c	greatest density on all MPI processes (only form 1 sink at a time).
-c	These things only need to be checked if there is a particle for
-c	which icreate=1 on any MPI process.
+c      For this, need to check within forcei when particles are sent back
+c      Only need to check particle that has passed all local tests and
+c      also has neighbours on other process.
+c      Need to check that all its neighbours are currently being evolved.
+c      Also need to check that it is the candidate sink particle with the
+c      greatest density on all MPI processes (only form 1 sink at a time).
+c      These things only need to be checked if there is a particle for
+c      which icreate=1 on any MPI process.
 c
          IF ((2.0*xyzmh(5,irhonex)).LT.hacc) THEN
             WRITE(iprint,*)'Ptmass creation passed h ',xyzmh(5,irhonex)
 
-	    nlist = 0
+          nlist = 0
             CALL getneigh(irhonex,npart,xyzmh(5,irhonex),xyzmh,idim,
      &           nlist,iptneigh,nearl)
 
@@ -3060,9 +3060,9 @@ c
 c
 c--Check most dense particle first
 c
-	 IF (icreatetot.GT.1) THEN
-   	    IF (icreate.EQ.0) rhonext = 0.
-	    CALL MPI_ALLREDUCE(rhonext,rhonextmax,1,MPI_REAL4,MPI_MAX,
+       IF (icreatetot.GT.1) THEN
+             IF (icreate.EQ.0) rhonext = 0.
+          CALL MPI_ALLREDUCE(rhonext,rhonextmax,1,MPI_REAL4,MPI_MAX,
      &           MPI_COMM_WORLD,ierr)
 #ifdef MPIDEBUGS
       print *,iproc,': rhonextmax ',rhonextmax,rhonext
@@ -3074,7 +3074,7 @@ c
             ENDIF
 c
 c--If more than one process has a particle with density=rhonextmax, then
-c	take the process with the largest rank first
+c      take the process with the largest rank first
 c
             CALL MPI_ALLREDUCE(itest,itestmax,1,MPI_INTEGER,MPI_MAX,
      &           MPI_COMM_WORLD,ierr)
@@ -3082,7 +3082,7 @@ c
 #ifdef MPIDEBUGS
       print *,iproc,': iproccreate ',iproccreate
 #endif
-	 ELSE
+       ELSE
             itest = icreate*iproc
             CALL MPI_ALLREDUCE(itest,itestmax,1,MPI_INTEGER,MPI_MAX,
      &           MPI_COMM_WORLD,ierr)
@@ -3093,19 +3093,19 @@ c
          ENDIF
 c
 c--iproccreate is the process whose particle is being tested.  All MPI
-c	processes know this.
+c      processes know this.
 c
-	 IF (iproccreate.EQ.iproc) THEN
+       IF (iproccreate.EQ.iproc) THEN
 c
 c--Check for neighbours on other processes - only need to loop over "sendback"
-c	lists to see which processes need to check
+c      lists to see which processes need to check
 c
-	    IF (nneighsentanyatall) THEN
-	       DO j = 0, numproc - 1
+          IF (nneighsentanyatall) THEN
+             DO j = 0, numproc - 1
                   IF (j.NE.iproc) THEN
                      IF (nneighsentany(j+1)) THEN
                         CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8,
-     &	                     ierr)
+     &                           ierr)
                         CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
 
                         CALL MPI_SEND(xyzmh(1,irhonex),1,i5REAL8,j,60,
@@ -3114,10 +3114,10 @@ c
       print *,iproc,': sent irhonex data to ',j
 #endif
 
-	                CALL MPI_TYPE_FREE(i5REAL8,ierr)
+                      CALL MPI_TYPE_FREE(i5REAL8,ierr)
 c
 c--Receive back information on whether neighbouring particles are all on 
-c	current timestep or not
+c      current timestep or not
 c
                         CALL MPI_RECV(iokay,1,MPI_INTEGER,j,61,
      &                       MPI_COMM_WORLD, istatus, ierr)
@@ -3129,7 +3129,7 @@ c
                   ENDIF
                END DO
             ENDIF
-	 ELSE
+       ELSE
             IF (nneightogetback(iproccreate+1).GT.0) THEN
 c
 c--Expect to get particle which has neighbours on this process
@@ -3149,7 +3149,7 @@ c
                ENDIF
 c
 c--Find neighbours of this particle and test to see whether they are all
-c	being evolved on the current step
+c      being evolved on the current step
 c
                nlist = 0
                CALL getneigh(itest,npart,xyzmh(5,itest),xyzmh,
@@ -3163,10 +3163,10 @@ c
 c
 c--Send back the result
 c
-	       CALL MPI_SEND(iokay,1,MPI_INTEGER,iprocrec,61,
+             CALL MPI_SEND(iokay,1,MPI_INTEGER,iprocrec,61,
      &              MPI_COMM_WORLD, ierr)
-	    ENDIF
-	 ENDIF
+          ENDIF
+       ENDIF
 c
 c--Everyone needs to find out the overall result
 c
@@ -3387,12 +3387,12 @@ c      IF (nptmass.GE.1) print *,iproc,': ',ipart,dvxyzu(1,ipart)
 c
 c--Add gravity on gas and sinks from sink particles
 c
-	 IF (iptintree.EQ.0) THEN
+       IF (iptintree.EQ.0) THEN
             CALL gpti(ipart, npart, ntot, xyzmh, dvxyzu)
 c
 c--On sinks and gas but without gravity from gas on sinks
 c
-	 ELSEIF (iptintree.EQ.1) THEN
+       ELSEIF (iptintree.EQ.1) THEN
             CALL gforspt(ipart,npart,ntot,xyzmh,dvxyzu)
          ENDIF
       ENDIF

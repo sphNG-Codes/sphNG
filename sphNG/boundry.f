@@ -251,8 +251,8 @@ c
             r2 = xyzmh(1,i)*xyzmh(1,i) + xyzmh(2,i)*xyzmh(2,i) 
             IF ( r2.GT.rcyl2) THEN
                iinner = iinner + 1
-			   r = sqrt(r2)
-			   delta = r - rcyl            
+               r = sqrt(r2)
+               delta = r - rcyl            
                ichan = ichan + 1
                zi = xyzmh(3,i)
                yi = xyzmh(2,i)*(rcyl-delta)/r

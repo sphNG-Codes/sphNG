@@ -197,19 +197,19 @@ c
 
          IF (varmhd.EQ.'eulr') THEN
             IF (abs(fracz-1.0).LT.tiny) THEN
-	       DO i=1,npart
+               DO i=1,npart
                   Bevolxyz(1,i) = -Bzero*xyzmh(2,i)
                   Bevolxyz(2,i) = xyzmh(1,i)
                   Bevolxyz(3,i) = 0.
                ENDDO
             ELSEIF (abs(fracy-1.0).LT.tiny) THEN
-	       DO i=1,npart
+               DO i=1,npart
                   Bevolxyz(1,i) = -Bzero*xyzmh(1,i)
                   Bevolxyz(2,i) = xyzmh(3,i)
                   Bevolxyz(3,i) = 0.
                ENDDO
             ELSEIF (abs(fracx-1.0).LT.tiny) THEN
-	       DO i=1,npart
+               DO i=1,npart
                   Bevolxyz(1,i) = -Bzero*xyzmh(3,i)
                   Bevolxyz(2,i) = xyzmh(2,i)
                   Bevolxyz(3,i) = 0.
@@ -238,7 +238,7 @@ c  and is only implemented for the purposes of testing
 c  NB: there is a Gauge choice doing it this way
 c
             IF (abs(fracz-1.0).LT.tiny) THEN
-	       DO i=1,npart
+               DO i=1,npart
                   Bevolxyz(1,i) = -Bzero*xyzmh(2,i)
                   Bevolxyz(2,i) = 0.
                   Bevolxyz(3,i) = 0.
@@ -248,7 +248,7 @@ c                  Bevolxyz(2,i) = Bzero*xyzmh(1,i)
 c                  Bevolxyz(3,i) = 0.
                ENDDO
             ELSEIF (abs(fracy-1.0).LT.tiny) THEN
-	       DO i=1,npart
+               DO i=1,npart
                   Bevolxyz(1,i) = Bzero*xyzmh(3,i)
                   Bevolxyz(2,i) = 0.
                   Bevolxyz(3,i) = 0.
@@ -258,7 +258,7 @@ c                  Bevolxyz(2,i) = 0.
 c                  Bevolxyz(3,i) = -Bzero*xyzmh(1,i)
                ENDDO
             ELSEIF (abs(fracx-1.0).LT.tiny) THEN
-	       DO i=1,npart
+               DO i=1,npart
                   Bevolxyz(1,i) = 0.
                   Bevolxyz(2,i) = -Bzero*xyzmh(3,i)
                   Bevolxyz(3,i) = 0.

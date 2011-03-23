@@ -111,10 +111,10 @@ c            rfactor = 1.- kappa*rhozero/rho_c*(rintorus/atorus)**2
 c            r1 = atorus*SQRT(-LOG(rfactor)/kappa)
 c            xyzmh(1,i) = (Rtorus+r1*COS(thetator))*COS(phitorus)
 c            xyzmh(2,i) = (Rtorus+r1*COS(thetator))*SIN(phitorus)
-c	        xyzmh(3,i) = r1*SIN(thetator)
-c	     ENDIF   
-c	  END DO        
-	  
+c            xyzmh(3,i) = r1*SIN(thetator)
+c           ENDIF   
+c        END DO        
+        
       WRITE(*,*) 'npart = ',npart,' particle mass = ',massp,
      &           ' denszero = ',rhozero
       

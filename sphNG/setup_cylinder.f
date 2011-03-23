@@ -69,11 +69,11 @@ c            if (ir.eq.nr+1) write (*,*) rr, radius-rr, 0.5*deltar
               IF (ipart.GT.idim) STOP 'setup_cyl: dims too small'
               xyzmh(1,ipart) = 0.d0
               xyzmh(2,ipart) = 0.d0
-              xyzmh(3,ipart) = zz        
-              if (imhd.eq.idim) then               
-				  Bevolxyz(1,ipart) =  0.d0
-				  Bevolxyz(2,ipart) =  0.d0
-				  Bevolxyz(3,ipart) =  ampl*dbesj0(Muff*rr) 
+              xyzmh(3,ipart) = zz
+              if (imhd.eq.idim) then
+                 Bevolxyz(1,ipart) =  0.d0
+                 Bevolxyz(2,ipart) =  0.d0
+                 Bevolxyz(3,ipart) =  ampl*dbesj0(Muff*rr)
               endif
             else
               offset = ran1(1)
@@ -194,4 +194,4 @@ C               ENDIF
 C            enddo
 C         enddo   
 C      enddo
-            
+          

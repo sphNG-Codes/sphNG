@@ -48,9 +48,9 @@ c      IF(nkrho1.LT.1.0.OR.nkrho1.GE.mumxrh.OR.nku1.LT.1)
      $     CALL FAILED3(0,lu,lrho,nkrho1,nkrho2,nku1,nku2)
       
       IF(nku2.GE.mumxu) THEN
-				get1overmu = 1.61
-				RETURN
-		ENDIF
+         get1overmu = 1.61
+         RETURN
+      ENDIF
 
 !     Bilinear interpolation from Numerical Recipes
 !     Interpolation is in log T_g

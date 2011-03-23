@@ -190,7 +190,7 @@ c ...and finally solve for the derivatives by back substitution
         do J = I+1, nval
           sum = sum + Cc(I,J) * derivatives(J)
         enddo
-	derivatives(I) = (Cc(I,nval+1) - sum) / Cc(I,I)
+        derivatives(I) = (Cc(I,nval+1) - sum) / Cc(I,I)
       enddo
 
       end

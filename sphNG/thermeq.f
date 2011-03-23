@@ -22,12 +22,12 @@ c is used here for SPH.
       heatingr=2.0e-26/mpenerg
 
       do i=1,35100
-        tguess(i)=(i-1)/10000.+1.0
-        tguess(i)=10**(tguess(i))
-	tg=tguess(i)
-	cooling(i)=1.0e7*exp(-1.184*1e5/(tg+1000.))
-	cooling(i)=1./(cooling(i)+1.4e-2*sqrt(tg)*exp(-92./tg))
-       end do
-	   
+         tguess(i)=(i-1)/10000.+1.0
+         tguess(i)=10**(tguess(i))
+         tg=tguess(i)
+         cooling(i)=1.0e7*exp(-1.184*1e5/(tg+1000.))
+         cooling(i)=1./(cooling(i)+1.4e-2*sqrt(tg)*exp(-92./tg))
+      end do
+         
       RETURN
       END

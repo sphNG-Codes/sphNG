@@ -466,7 +466,7 @@ c--Default real
             ENDIF
 
             READ (idisk1, END=100) (h2ratio(i), i=icount+1,
-     &	         icount+nhydro)
+     &               icount+nhydro)
             READ (idisk1, END=100) (abHIq(i), i=icount+1,
      &           icount+nhydro)
             READ (idisk1, END=100) (abhpq(i), i=icount+1,

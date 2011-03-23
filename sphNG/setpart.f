@@ -1090,23 +1090,23 @@ c
      &     '    initial average sound speed (code units)      : (s) ',/,
      &     '    initial average internal energy (code units)  : (u) ?')
          READ(*,99128) ien
-99128    FORMAT(A1)	 
-	 IF (ien.EQ.'t') THEN
-	    WRITE(*,99129)
+99128    FORMAT(A1)       
+         IF (ien.EQ.'t') THEN
+            WRITE(*,99129)
 99129       FORMAT (' Value of initial average temperature in kelvin:')
-	    READ (*,*) thermal
+            READ (*,*) thermal
             thermal = 3.0/2.0*thermal*Rg/gmw/uergg
-	 ELSE IF (ien.EQ.'u') THEN
-	    WRITE(*,99130)
+         ELSE IF (ien.EQ.'u') THEN
+            WRITE(*,99130)
 99130       FORMAT (' Value of internal energy (code units)') 
-	    READ (*,*) thermal
-	 ELSE IF (ien.EQ.'s') THEN
-	    WRITE(*,99131) udist/utime
+            READ (*,*) thermal
+         ELSE IF (ien.EQ.'s') THEN
+            WRITE(*,99131) udist/utime
 99131       FORMAT (' Value of sound speed in units of ',1pe10.4,'cm/s')
-	    READ (*,*) thermal
-	    vsoundin = ABS(thermal)
-	    vsoundin2 = vsoundin*vsoundin
-	 ELSE
+            READ (*,*) thermal
+            vsoundin = ABS(thermal)
+            vsoundin2 = vsoundin*vsoundin
+         ELSE
             GOTO 99027
          ENDIF
       ENDIF
@@ -1148,12 +1148,12 @@ c
          ELSE IF (encal.EQ.'a' .OR. encal.EQ.'c') THEN
             gamma = 5.0/3.0
             gm1 = gamma - 1.0
-	    IF (ien.EQ.'s') thermal = vsoundin2/(gamma*gm1)
+            IF (ien.EQ.'s') thermal = vsoundin2/(gamma*gm1)
             RK2 = thermal/(rhozero**gm1)
          ELSE IF (encal.EQ.'i' .OR. encal.EQ.'t') THEN
             gamma = 1.0
             RK2 = thermal
-	    IF (ien.EQ.'s') thermal = 1.5*vsoundin2
+            IF (ien.EQ.'s') thermal = 1.5*vsoundin2
             RK2 = thermal
             tempiso = 2./3.*thermal/(Rg/gmw/uergg)
             WRITE(*,*) 'isothermal temperature = ',tempiso
@@ -1167,7 +1167,7 @@ c--Value of gamma is irrelevant for definition of variable e.o.s.
 c
             gamma = 5.0/3.0
             gm1 = gamma - 1.0
-	    IF (ien.EQ.'s') thermal = vsoundin2*1.5  !!!/(gamma*gm1)
+          IF (ien.EQ.'s') thermal = vsoundin2*1.5  !!!/(gamma*gm1)
             RK2 = thermal/(rhozero**gm1)
             tempiso = 2./3.*thermal/(Rg/gmw/uergg)
             WRITE(*,*) 'isothermal temperature = ',tempiso
@@ -1181,7 +1181,7 @@ c--Value of gamma is irrelevant for definition of physical e.o.s.
 c
             gamma = 5.0/3.0
             gm1 = gamma - 1.0
-	    IF (ien.EQ.'s') thermal = vsoundin2/(gamma*gm1)
+            IF (ien.EQ.'s') thermal = vsoundin2/(gamma*gm1)
             RK2 = thermal/(rhozero**gm1)
 c
 c--Radiative transfer

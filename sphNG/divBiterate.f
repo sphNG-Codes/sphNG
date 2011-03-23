@@ -130,7 +130,7 @@ c--Copy arrays for all particles
 c
 C$OMP DO SCHEDULE(static)
       DO n = nlst_in, nlst_end
-      	 i = list(n)
+             i = list(n)
 
          Bxyznew(1,i) = Bxyz(1,i)
          Bxyznew(2,i) = Bxyz(2,i)

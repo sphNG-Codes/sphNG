@@ -447,10 +447,10 @@ c            WRITE (iprint,88008) rmax
 c88008       FORMAT (' new boundary radius: ',1PE12.5)
 c         ENDIF
 c
-c--Magnetic field parameters	(computed in mhdparams)
+c--Magnetic field parameters      (computed in mhdparams)
 c
          IF (imhd.EQ.idim) THEN    
-	    WRITE (iprint, 66001, ERR=100) betamhdmin,betamhdmax,
+          WRITE (iprint, 66001, ERR=100) betamhdmin,betamhdmax,
      &           betamhdav,divBmax,divBav,curlBmax,curlBav,div2curlBmax,
      &           div2curlBav,omegamhdmax,omegamhdav,omegtol,fracdivBok,
      &           valphaBmin,valphaBmax

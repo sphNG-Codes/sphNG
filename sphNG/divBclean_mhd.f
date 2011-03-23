@@ -129,7 +129,7 @@ cC$OMP END PARALLEL
        DO i=nlst_in,nlst_end
           ipart = list(i)
           CALL directsum_poisson_vec(ipart,npart,xyzmh,curlBmrhoxyz,
-     &	      Bcorrxi,Bcorryi,Bcorrzi)
+     &            Bcorrxi,Bcorryi,Bcorrzi)
 c          if (ipart.le.10) then
 c          print*,ipart,'curlB=  ',divcurlB(:,ipart)
 c          IF (varmhd.EQ.'Brho') THEN

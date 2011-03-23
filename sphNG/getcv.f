@@ -40,22 +40,19 @@ c
       uval1=(nku1+1545)*0.005
       uval2=(nku2+1545)*0.005
 
-
-
 c      IF(nkrho1.LT.1.0.OR.nkrho1.GE.tgmxrh.OR.nku1.LT.1)
       IF(nkrho1.LT.1.0.OR.nku1.LT.1)
      $     CALL FAILED2(0,lu,lrho,nkrho1,nkrho2,nku1,nku2)
       
       IF(nku2.GE.tgmxu) THEN
 !It's reached the stage where c_v is constant for all rho at high T
-			getcv = 198561558.8045447/uergg
-			RETURN
-		ENDIF
+         getcv = 198561558.8045447/uergg
+         RETURN
+      ENDIF
 
 !     Bilinear interpolation from Numerical Recipes
 !     Interpolation is in log T_g
-       
- 
+
       !Interpolation in log10 space
          y1=(tgtable(nku1,nkrho1))
          y2=(tgtable(nku2,nkrho1))
@@ -68,10 +65,10 @@ c      IF(nkrho1.LT.1.0.OR.nkrho1.GE.tgmxrh.OR.nku1.LT.1)
 
          !     Final value of log10 temperature
          rtg=(1.0-v)*(1.0-w)*y1+v*(1.0-w)*y2+w*v*y3+(1.0-v)*w*y4
-!			PRINT *,u,rtg
-!			PRINT *,y1,y2,y3,y4
+!                  PRINT *,u,rtg
+!                  PRINT *,y1,y2,y3,y4
          getcv=u/(10.0**rtg)/uergg
-	
+      
 
          IF(getcv.EQ.0.00) CALL FAILED2(5,lu,lrho,nkrho1,nkrho2,
      $        nku1,nku2)

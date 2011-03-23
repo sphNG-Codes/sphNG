@@ -24,6 +24,7 @@ c FM: produce array of the boundary height for radii from rmin to rcyl
       Mstar_init = 1.0d0
       R_o = 1.0d0
       R_out = 25.0d0
+      sigma_init = 0.
 
       radius = rmind
       do i=1, nsteps+1

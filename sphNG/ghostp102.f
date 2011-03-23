@@ -26,7 +26,7 @@ c************************************************************
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/cgas'
 
-      REAL*4 rhoreal4
+c      REAL*4 rhoreal4
 
       CHARACTER*7 where
 
@@ -160,7 +160,7 @@ c      END DO
 c      CLOSE (36)
 c 999  FORMAT (6(1PE12.5,2X))
 
- 400  WRITE (iprint, *) 'npart, nghost', npart, nghost
+      WRITE (iprint, *) 'npart, nghost', npart, nghost
       ntot = npart + nghost
       IF (iinner.NE.0) WRITE (iprint,99090) iinner
 99090 FORMAT(' adding ',I6,' inner ghosts')

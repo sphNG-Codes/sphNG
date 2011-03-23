@@ -50,6 +50,7 @@ c
       xcentre = 0.0
       DO 300 i = 1, npart
          nghostold = nghost
+         nptot = MIN0(npart + nghost, idim)
          hasghost(i) = .FALSE.
          IF (iphase(i).NE.0) GOTO 300
          xi = xyzmh(1,i)

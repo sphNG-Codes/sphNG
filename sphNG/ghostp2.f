@@ -37,6 +37,7 @@ c
 
       nghost = 0
       iinner = 0
+      uradconst = radconst/uergcc
 c
 c--If ibound = 2 then we have cylindrical boundaries
 c--now find ghost for cylindrical boundaries

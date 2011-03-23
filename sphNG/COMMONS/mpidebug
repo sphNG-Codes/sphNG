@@ -1,2 +1,2 @@
-	COMMON /mpidebug/ iprocdebug,iloop,iparticlex,iparticley,
+      COMMON /mpidebug/ iprocdebug,iloop,iparticlex,iparticley,
      &                    iproblem

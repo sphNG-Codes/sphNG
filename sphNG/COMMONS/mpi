@@ -1,5 +1,5 @@
       INTEGER nparttot, nactivetot, n1tot, n2tot, iproccreate,
-     &	maxnneighsentback, inumofreturns, inumbertotal
+     &      maxnneighsentback, inumofreturns, inumbertotal
 
       REAL fmas1tot, fmas2tot, xlocationmpi, ylocationmpi,
      &     zlocationmpi, densmpi
@@ -14,15 +14,15 @@
      &        inumberproc
 
       COMMON /mpiint/ nparttot, nactivetot, n1tot, n2tot, iproccreate,
-     &	     maxnneighsentback,inumofreturns, inumbertotal, inumofsends
+     &           maxnneighsentback,inumofreturns, inumbertotal, inumofsends
       COMMON /mpireal/ fmas1tot, fmas2tot, xlocationmpi, ylocationmpi,
      &     zlocationmpi, densmpi
       COMMON /mpichar/ mpitype
       COMMON /mpilog/ nneighsentany(nummaxproc),nneighsentanyatall
 
       COMMON /mpireq/ istatus(MPI_STATUS_SIZE),
-     &	     irequest_array(2*nummaxproc), 
-     &	     istatus_array(MPI_STATUS_SIZE,2*nummaxproc),
+     &           irequest_array(2*nummaxproc), 
+     &           istatus_array(MPI_STATUS_SIZE,2*nummaxproc),
      &       nneighfull(idim)
 
       COMMON /mpiarri/ lsendlist(idim), llistrec(idim), 
@@ -30,29 +30,29 @@
      &     nneightogetback(nummaxproc),
      &     nneighsink(nummaxproc),
      &     nneighforeignsink(iptdim,nummaxproc),
-     &	   ibelongptmass(iptdim),
+     &         ibelongptmass(iptdim),
      &     llistsentback(ineighproc,nummaxproc),
      &     inumberindiv(nummaxproc),
      &     inumbercumm(nummaxproc),
      &     inumberproc(nummaxproc),
-     &	   nsplit(3)
+     &         nsplit(3)
 
        COMMON /mpiarrr/ splitcoords(31,3),binarysplits(16384),
      &     xyzmax(3),xyzmin(3),searchxyzmax(3),searchxyzmin(3)
 
 c
 c--Notes:
-c	maxnneighsentback is the maximum number of neighbours that were 
-c		found on another MPI process for any local particle in nlst
-c	inumofreturns is the number of MPI processes whose particles are
-c		currently moving that have neighbours on this MPI process
-c		(i.e. it is the number of MPI processes that will send
-c		data to it).
-c	nneighsentback() contains the number of particles that need to be
-c		sent back to each other MPI process for forces to be calculated
-c	nneightogetback() contains the number of particles that will be
-c		sent back from the other MPI process to this process
+c      maxnneighsentback is the maximum number of neighbours that were 
+c      	found on another MPI process for any local particle in nlst
+c      inumofreturns is the number of MPI processes whose particles are
+c      	currently moving that have neighbours on this MPI process
+c      	(i.e. it is the number of MPI processes that will send
+c      	data to it).
+c      nneighsentback() contains the number of particles that need to be
+c      	sent back to each other MPI process for forces to be calculated
+c      nneightogetback() contains the number of particles that will be
+c      	sent back from the other MPI process to this process
 c
 c--Quantities that do not need to be in common block:
-c	inumberreturned
+c      inumberreturned
 c

@@ -1,6 +1,6 @@
-	REAL gaptable
-	INTEGER gaplen,gapwid
-	PARAMETER (gaplen=7)
-	PARAMETER (gapwid=9)
+      REAL gaptable
+      INTEGER gaplen,gapwid
+      PARAMETER (gaplen=7)
+      PARAMETER (gapwid=9)
 
-	COMMON /gaptbl / gaptable(gaplen,gapwid)
+      COMMON /gaptbl / gaptable(gaplen,gapwid)

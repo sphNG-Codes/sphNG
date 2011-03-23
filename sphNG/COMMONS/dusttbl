@@ -1,6 +1,6 @@
-	REAL dusttable
-	INTEGER duslen,duswid
-	PARAMETER (duslen=1001)
-	PARAMETER (duswid=5)
+      REAL dusttable
+      INTEGER duslen,duswid
+      PARAMETER (duslen=1001)
+      PARAMETER (duswid=5)
 
-	COMMON /dusttbl / dusttable(duslen,duswid)
+      COMMON /dusttbl / dusttable(duslen,duswid)

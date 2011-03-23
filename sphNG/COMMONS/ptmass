@@ -28,4 +28,4 @@
      &                nptmass,nptmasstot,nptmasstotlast,nptmasslocal,
      &                iptmass
       COMMON /ptaccr/ ptmassrecord(iaccrec,iptdim),
-     &	     ptaccrecord(iaccrec,iptdim),iptmassrecord(iptdim)
+     &           ptaccrecord(iaccrec,iptdim),iptmassrecord(iptdim)

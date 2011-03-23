@@ -1,6 +1,6 @@
-	REAL*8 mutable
+      REAL*8 mutable
         INTEGER mumxu,mumxrh
-	PARAMETER (mumxu=1798)
-	PARAMETER (mumxrh=4600)
-	
-	COMMON /mutbl/ mutable(mumxu,mumxrh)
+      PARAMETER (mumxu=1798)
+      PARAMETER (mumxrh=4600)
+      
+      COMMON /mutbl/ mutable(mumxu,mumxrh)

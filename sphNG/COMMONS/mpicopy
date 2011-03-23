@@ -5,14 +5,14 @@
       REAL realtransfer5to15
 
       COMMON /mpidatai/ irecvcounti(nummaxproc),
-     &	     idisplacementsi(nummaxproc), irecvcountn(nummaxproc),
+     &           idisplacementsi(nummaxproc), irecvcountn(nummaxproc),
      &       idisplacementsn(nummaxproc), numberstart, numberend,
-     &	     numbertodoherekeep
+     &           numbertodoherekeep
 
       COMMON /mpiarri/ llisttrans(idim), itransfer3(idim*3), 
-     &	     ijvartemp(icompactmax),listparentstemp(idim)
+     &           ijvartemp(icompactmax),listparentstemp(idim)
 
       COMMON /mpiarrr4/ real4transfer2(idim*4),poten_reduce(idim)
 
       COMMON /mpiarrr/ realtransfer5to15(idim*6+imhd*9),
-     &	     fxyz_reduce(3,idim)
+     &           fxyz_reduce(3,idim)

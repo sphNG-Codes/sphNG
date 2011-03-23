@@ -2,4 +2,4 @@
       INTEGER iendisp, ielastic
 
       COMMON /surface / oldxyzmh(5,iplanet),surfp(iplanet),
-     &	     surfpd(iplanet), iendisp, ielastic
+     &           surfpd(iplanet), iendisp, ielastic

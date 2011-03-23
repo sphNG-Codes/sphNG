@@ -1,11 +1,11 @@
       PARAMETER (nmaxexposed=1000)
       
       COMMON /radsinki/ nexposed(iptdim), nexposedold(iptdim),
-     &	     listexposed(nmaxexposed,iptdim), 
-     &	     listexposedold(nmaxexposed,iptdim), nptmasslast
+     &           listexposed(nmaxexposed,iptdim), 
+     &           listexposedold(nmaxexposed,iptdim), nptmasslast
 
       COMMON /radsinkr/ ptmassluminosity(iptdim), 
-     &	     cummulativeenergy(iptdim), actualcumenergy(iptdim)
+     &           cummulativeenergy(iptdim), actualcumenergy(iptdim)
 
       LOGICAL iexposedold
       COMMON /radsinkl/ iexposedold(idim)

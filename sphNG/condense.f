@@ -53,6 +53,7 @@ c
 88001 FORMAT (A1)
 
       fractot = 0.
+      rnew = 1.
       DO i = nptmass + 1, npart
          xi = xyzmh(1,i)
          yi = xyzmh(2,i)

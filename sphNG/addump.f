@@ -151,6 +151,7 @@ c
 c
 c--Read array type 3 header
 c
+      nradtrans = 0
       IF (number.GE.3) THEN
          READ (idisk1, END=300) number8, (nums(i), i=1,8)
          IF (number8.GT.iradtrans .OR. number8.NE.1 .AND. 
@@ -164,6 +165,7 @@ c
 c
 c--Read array type 4 header
 c
+      nmhd = 0
       IF (number.GE.4) THEN
          READ (idisk1, END=300) number8, (nums(i), i=1,8)
          IF (number8.GT.imhd .OR. number8.NE.1 .AND. 

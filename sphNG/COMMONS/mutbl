@@ -1,5 +1,5 @@
       REAL*8 mutable
-        INTEGER mumxu,mumxrh
+      INTEGER mumxu,mumxrh
       PARAMETER (mumxu=1798)
       PARAMETER (mumxrh=4600)
       

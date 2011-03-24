@@ -143,9 +143,10 @@ c
 c
 c--ERROR! unknown softening option
 c           
-               print*,' ERROR: unknown softening option in gforspt_P'
-               fff = 0.
+               print *,' ERROR: unknown softening option in gforspt_P'
                potn = 0.
+               fff = 0.
+               CALL quit
             ENDIF
 c
 c--End force definition

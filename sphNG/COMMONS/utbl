@@ -1,5 +1,5 @@
       REAL*8 utable
-        INTEGER umxt,umxrh
+      INTEGER umxt,umxrh
       PARAMETER (umxt=1801)
       PARAMETER (umxrh=4601)
       

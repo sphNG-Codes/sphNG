@@ -142,9 +142,10 @@ c
 c
 c--ERROR! unknown softening option
 c           
-               print*,' ERROR: unknown softening option in gpti'
-               fff = 0.
+               print *,' ERROR: unknown softening option in gpti'
                potn = 0.
+               fff = 0.
+               CALL quit
             ENDIF
          ENDIF
 c

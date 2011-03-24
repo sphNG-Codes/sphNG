@@ -140,9 +140,10 @@ c
 c
 c--ERROR! unknown softening option
 c           
-               print*,' ERROR: unknown softening option in gptall'
-               fff = 0.
+               print *,' ERROR: unknown softening option in gptall'
                potn = 0.
+               fff = 0.
+               CALL quit
             ENDIF
 c
 c--End force definition

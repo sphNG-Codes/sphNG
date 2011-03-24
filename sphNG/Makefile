@@ -174,7 +174,7 @@ endif
 
 ifeq ($(SYSTEM), gfortran)
     FC= gfortran
-    FFLAGS= -O3 -Wall -fopenmp
+    FFLAGS= -O3 -Wall
     DBLFLAG= -fdefault-real-8
     OMPFLAG= -fopenmp
     DEBUGFLAG= -g ##-ftrace=full -fbounds-check

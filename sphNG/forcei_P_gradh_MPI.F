@@ -624,9 +624,9 @@ c     &                       grkerntable,hi,gradhi
 c                     ENDIF
 
                pdvi = pdvi + grpmi*projv
-               IF (ipart.EQ.0418 .AND. itime.GE.134217728) THEN
-                  print *,iproc,': P0418fp ',itime,j,pdvi,grpmi,projv
-               ENDIF
+c               IF (ipart.EQ.0418 .AND. itime.GE.134217728) THEN
+c                  print *,iproc,': P0418fp ',itime,j,pdvi,grpmi,projv
+c               ENDIF
 c
 c--i contribution to force softening (including pseudo-pressure term)
 c
@@ -1513,9 +1513,9 @@ c         IF (ipart.GT.idim) print *,iproc,': Fx ',ipart
 
          IF (iphase(ipart).EQ.0) THEN
 
-            IF (ipart.EQ.0418 .AND. itime.GE.134217728) THEN
-               print *,iproc,': P0418dqs ',dq(ipart),dqi
-            ENDIF
+c            IF (ipart.EQ.0418 .AND. itime.GE.134217728) THEN
+c               print *,iproc,': P0418dqs ',dq(ipart),dqi
+c            ENDIF
 
             dq(ipart) = dq(ipart) + dqi
 

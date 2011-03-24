@@ -342,15 +342,20 @@ c
 c--Array length 3 header
 c
       IF (number.GE.3) THEN
-         number8 = nprint
-         nums(1) = 0
-         nums(2) = 0
-         nums(3) = 0
-         nums(4) = 0
-         nums(5) = 0
-         nums(6) = 5
-         nums(7) = 0
-         nums(8) = 0
+         IF (iradtrans.EQ.idim) THEN
+            number8 = nprint
+            nums(1) = 0
+            nums(2) = 0
+            nums(3) = 0
+            nums(4) = 0
+            nums(5) = 0
+            nums(6) = 5
+            nums(7) = 0
+            nums(8) = 0
+         ELSE
+            number8 = 0
+            nums(:) = 0
+         ENDIF
          WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
       ENDIF
 c

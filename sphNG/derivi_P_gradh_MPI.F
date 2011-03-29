@@ -1305,6 +1305,10 @@ c                  write (89,99004) ipart
      &        xyzmh(2,25646),xyzmh(3,25646)
       print *,' '
 #endif
+
+99901 FORMAT (11(1PE12.5,1X),I8)
+99902 FORMAT (13(1PE12.5,1X),I8)
+99903 FORMAT (13(1PE17.10,1X),I8)
 #endif
 
 c         DO n = 1, nlst
@@ -1315,9 +1319,6 @@ cc     &           gradhs(1,ipart),gradhs(2,ipart),
 c     &           dvxyzu(1,ipart),dvxyzu(2,ipart),dvxyzu(3,ipart),
 c     &           dvxyzu(4,ipart),poten(ipart),nneigh(ipart)
 c         END DO
-99901 FORMAT (11(1PE12.5,1X),I8)
-99902 FORMAT (13(1PE12.5,1X),I8)
-99903 FORMAT (13(1PE17.10,1X),I8)
 
 c      STOP
 

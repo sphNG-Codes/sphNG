@@ -9,7 +9,7 @@ c      use f90_unix
       
       INCLUDE 'COMMONS/ibmcom'
 
-      DIMENSION ivalues(8), istatb(19)
+      DIMENSION ivalues(8) !, istatb(19)
 
       CHARACTER*11 job, inname
       CHARACTER*10 time

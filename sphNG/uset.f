@@ -1,4 +1,6 @@
       subroutine uset
+      
+      IMPLICIT NONE
 
       INCLUDE 'idim'
 
@@ -6,17 +8,14 @@
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/physcon'
-      INCLUDE 'COMMONS/diskbd'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/part'
-      INCLUDE 'COMMONS/tgtbl'
       INCLUDE 'COMMONS/radtrans'
-
-      REAL*4 rhocold
-      REAL lu, lrho, ltemp, muu, murho, fraction
-      INTEGER nkrho1, nkrho2, nku1, nku2
-      REAL rhoval1, rhoval2, uval1, uval2, rtg
+      
+      INTEGER i
+      REAL radius, boundtempl
+      REAL getu,getcv
 
       DO i=1, npart
          radius = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
@@ -67,7 +66,7 @@ c-- Pass in rho in code units.
 c      write(*,*) rho, umass, udist, lrho
 c      write(*,*) nkrho1, nkrho2, nkt1, nkt2
 c      write(*,468) rhoval1, rhoval2, tval1, tval2, ltemp
- 468  FORMAT (5(1PE12.5,1X))
+c 468  FORMAT (5(1PE12.5,1X))
 c      STOP
 c      IF(nkrho1.LT.1.0.OR.nkt1.LT.1)
 c     $     CALL FAILED2(0,lu,lrho,nkrho1,nkrho2,nkt1,nkt2)

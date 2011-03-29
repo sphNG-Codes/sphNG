@@ -1,1 +1,4 @@
+      INTEGER npart
+      REAL xyzmh, vxyzu
+
       COMMON /part  / xyzmh(5,idim), vxyzu(4,idim), npart

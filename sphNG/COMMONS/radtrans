@@ -1,1 +1,3 @@
+      REAL ekcle
+      
       COMMON /radtrans/ ekcle(5,iradtrans)

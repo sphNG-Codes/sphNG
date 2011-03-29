@@ -142,7 +142,7 @@ c               ipart = llist(i)
 c               WRITE (44,66001) ipart,fxyzu(1,ipart),fxyzu(2,ipart),
 c     &              fxyzu(3,ipart),gravxyzstore(1,ipart),
 c     &              gravxyzstore(2,ipart),gravxyzstore(3,ipart)
-66001          FORMAT(I7,6(1X,1PE12.5))
+c66001          FORMAT(I7,6(1X,1PE12.5))
 c            END DO
 c         ELSE
 c            DO i = 1, nlst

@@ -57,6 +57,7 @@ c
       ELSEIF (ibound.EQ.91) THEN
          fractanhere = fractan*(rxy2/radinject2)
       ELSE
+         fractanhere = fractan
          WRITE (iprint,*) 'ERROR in phoenix'
          CALL quit
       ENDIF

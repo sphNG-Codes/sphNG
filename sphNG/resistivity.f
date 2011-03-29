@@ -74,7 +74,7 @@ c
 c
 c--multiply by rho in code units and sqrt(Te) in K
 c
-      etafunc = etareal*utime/udist**2
+      etafunc = fac * etareal*utime/udist**2
       
     !print*,' rho = ',rhoi,rhoreal,' ui = ',ui,' T = ',Te,' gmw = ',gmw
       !print*,' eta (physical) = ',etareal,' eta (code) = ',etafunc

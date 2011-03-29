@@ -210,6 +210,7 @@ c
                angaddy(npart) = 0.
                angaddz(npart) = 0.
             END DO
+            qratio1 = 1. ! to prevent compiler warning
          ENDIF
 
          IF (iok.EQ.'y' .AND. numpt.EQ.2) THEN
@@ -1887,7 +1888,7 @@ c
          WRITE(*,*) 'setting dtmax = ',dtmax
       ENDIF
 
-999   CONTINUE
+c999   CONTINUE
 c
 c--adjust smoothing lengths (also calculates initial density)
 c  MUST be done (to get density) if evolving B/rho

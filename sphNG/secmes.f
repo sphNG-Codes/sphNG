@@ -72,7 +72,7 @@ c
 c
 c--Unexpected messages
 c
-         WRITE (*, 99010) string(i)
+         WRITE (*, 99090) string(i)
 99090    FORMAT (' unexpected message received : ', /, A20)
 
  300  CONTINUE

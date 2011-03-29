@@ -51,7 +51,7 @@ c
 c--Allow for tracing flow
 c
 c      IF (itrace.EQ.'all') WRITE(iprint,250)
-  250 FORMAT(' entry subroutine treef')
+c  250 FORMAT(' entry subroutine treef')
 c
 c--Accreted particles not in tree
 c
@@ -61,7 +61,8 @@ c
       fsx = 0.
       fsy = 0.
       fsz = 0.
-      epot = 0.      
+      epot = 0.
+      iptn = 0
 c
 c--Point masses no longer in tree - gravity and neighbours done in gforspt.f
 c

@@ -299,7 +299,8 @@ c         ENDIF
 c      END DO
 c      WRITE (*,*) 'passed 2'
 
- 432     CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
+c432    CONTINUE
+       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
      &        ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz)
 
 c         WRITE (*,*) 'passed 3'
@@ -1593,7 +1594,7 @@ c
 c--Compute forces on list particles - Note: May be full AND half time step
 c     evaluations!!
 c
- 200  icall = 3
+      icall = 3
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f2vxyzu,f2ha,npart,
      &     ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f2Bxyz)
 

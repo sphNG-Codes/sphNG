@@ -46,6 +46,8 @@ c
             poten(iptcur) = 0.
          ENDIF
       END DO
+      potn = 0.
+      fff = 0.
       
       DO iptn = 1, nptmass
          ipt = listpm(iptn)
@@ -135,14 +137,17 @@ c
                   rr54 = rr4*rr4s025
                   potn = pmassj / rr4s025
                   fff = rr*pmassj / rr54
+c
+c--ERROR! unknown softening option
+c           
+                  print *,' ERROR: unknown softening option in gptall'
+                  CALL quit
                ENDIF
             ELSE
 c
 c--ERROR! unknown softening option
 c           
                print *,' ERROR: unknown softening option in gptall'
-               potn = 0.
-               fff = 0.
                CALL quit
             ENDIF
 c

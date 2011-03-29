@@ -44,6 +44,8 @@ c
       ELSE
          iparttree = ipart
       ENDIF
+      potn = 0.
+      fff = 0.
 
       xi = xyzmh(1,iparttree)
       yi = xyzmh(2,iparttree)
@@ -143,10 +145,11 @@ c
 c--ERROR! unknown softening option
 c           
                print *,' ERROR: unknown softening option in gpti'
-               potn = 0.
-               fff = 0.
                CALL quit
             ENDIF
+         ELSE
+            print *,' ERROR: unknown softening option in gpti'
+            CALL quit
          ENDIF
 c
 c--End force definition

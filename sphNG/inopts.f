@@ -39,9 +39,6 @@ c
 c
 c--Determine options for insph
 c
-99002 FORMAT (A20)
-99003 FORMAT (A7)
-c
 c--Read options
 c
       READ (iterm, *) igrp

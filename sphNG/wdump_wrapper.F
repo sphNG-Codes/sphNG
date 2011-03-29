@@ -60,10 +60,7 @@ c      INCLUDE 'COMMONS/torq'
       EQUIVALENCE (itempsort, next1)
 
       CHARACTER*7 where
-      CHARACTER*100 fileident
       INTEGER*4 int1, int2
-      INTEGER*8 number8
-      DIMENSION nums(8)
 c
 c--Standard numbers
 c
@@ -659,12 +656,6 @@ c         torqc(i) = 0.
 c      END DO
 
       ipos = irec
-
-      RETURN
-c
-c--An error as occured while writing
-c
- 100  CALL error(where, 1)
 
       RETURN
       END

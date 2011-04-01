@@ -40,9 +40,7 @@ c
       omegamhdmax = 0.
       omegtol = 1.E-2
       fracdivBok = 0.
-      fluxtotx = 0.
-      fluxtoty = 0.
-      fluxtotz = 0.
+      fluxtot = 0.
       crosshel = 0.
       Bmin = 1.E30
       Bmean = 0.
@@ -145,7 +143,7 @@ c
          valphaBmax = MAX(valphaBmax, alphaMM(2,i))
          valphaBmin = MIN(valphaBmin, alphaMM(2,i))
          
-         IF (iresist.GE.2) THEN
+c         IF (iresist.GE.2) THEN
             etai = etafunc(rhoi,vxyzu(4,i))
             etamax = MAX(etamax, etai)
             etamin = MIN(etamin, etai)
@@ -153,10 +151,14 @@ c
             
             vsigi = sqrt(vsound(i)**2 + B2i*rho1i)
             IF (ifsvi.EQ.6) THEN
-               etaart = 0.1*alphaMM(2,i)*vsigi*xyzmh(5,i)
+               etaart = alphaMM(2,i)*vsigi*xyzmh(5,i)
             ELSE
-               etaart = 0.1*alphamin(2)*vsigi*xyzmh(5,i)
+               etaart = alphamin(2)*vsigi*xyzmh(5,i)
             ENDIF
+
+            etaartificial(i) = etaart
+            etareal(i) = etai
+
             IF (etaart.GT.0.) THEN
                ratio = etai/etaart
                etarealoverartmin = min(etarealoverartmin,ratio)
@@ -164,7 +166,7 @@ c
                etarealoverartav = etarealoverartav + ratio
                ietacount = ietacount + 1
             ENDIF
-         ENDIF
+c         ENDIF
       ENDDO
       
       denom = 1./FLOAT(npart)

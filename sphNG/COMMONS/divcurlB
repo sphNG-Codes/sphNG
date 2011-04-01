@@ -1,5 +1,10 @@
 c
 c--divergence of the magnetic field and the current density J
 c
+c--resistivity values (for dump file)
+c
       REAL*4 divcurlB
       COMMON /divBJ/ divcurlB(4,imhd)
+
+      REAL*4 etareal,etaartificial
+      COMMONS /etavar/ etareal(imhd),etaartificial(imhd)

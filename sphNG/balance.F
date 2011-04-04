@@ -1273,7 +1273,7 @@ c
 
       npartold = npart
       npart = npartnew
-      n1 = npart
+c      n1 = npart
 
       CALL MPI_ALLREDUCE(nptmass, nptmasstot, 1, MPI_INTEGER, MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
@@ -1300,7 +1300,7 @@ c
          ENDIF
       END DO
       npart = npart - (nlistinactiveold - nlistinactive)
-      n1 = n1 - (nlistinactiveold - nlistinactive)
+c      n1 = n1 - (nlistinactiveold - nlistinactive)
       IF (iproc.EQ.0) WRITE (iprint,*) 'MOVE-POST ',npart,
      &     nlistinactive,nlistinactiveold
 c

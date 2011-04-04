@@ -43,7 +43,8 @@ c
           gam1 = gam - 1.
           gamdh1 = gamdh - 1.
           gamah1 = gamah - 1.
-          IF (iorig(ipart).GT.n1 .AND. iorig(ipart).LE.n1+n2) THEN
+          IF (iunique(iorig(ipart)).GT.n1 .AND. 
+     &         iunique(iorig(ipart)).LE.n1+n2) THEN
              uzero = uzero_n2
           ELSE
              uzero = RK2 * (rhozero ** gama1)
@@ -75,7 +76,8 @@ c
           gam1 = gamphys1 - 1.
           gam2 = gamphys2 - 1.
           gam3 = gamphys3 - 1.
-          IF (iorig(ipart).GT.n1+1 .AND. iorig(ipart).LE.n1+n2) THEN
+          IF (iunique(iorig(ipart)).GT.n1 .AND. 
+     &         iunique(iorig(ipart)).LE.n1+n2) THEN
              uzero = uzero_n2
           ELSE
              uzero = RK2 * (rhozero ** gama1)

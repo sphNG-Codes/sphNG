@@ -749,7 +749,7 @@ c         IF (iproc.EQ.iblock-1) THEN
             ELSE
                print *,iproc,': MAINTAIN PARTICLE SPLIT ',npart,nhydro
                npart = nhydro
-               n1 = nhydro
+c               n1 = nhydro
             ENDIF
 c         ENDIF
 c      ENDIF
@@ -1657,7 +1657,7 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
       nlistinactive = nlistinactivenew
 
       npart = icountnew
-      n1 = icountnew
+c      n1 = icountnew
       icount = icountnew
 
       RETURN

@@ -130,10 +130,10 @@ c
       nblocks = numproc
       CALL MPI_REDUCE(npart,nparttot,1,MPI_INTEGER,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(n1,n1tot,1,MPI_INTEGER,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(n2,n2tot,1,MPI_INTEGER,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
+c      CALL MPI_REDUCE(n1,n1tot,1,MPI_INTEGER,MPI_SUM,0,
+c     &     MPI_COMM_WORLD,ierr)
+c      CALL MPI_REDUCE(n2,n2tot,1,MPI_INTEGER,MPI_SUM,0,
+c     &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(nreassign,nreassigntot,1,MPI_INTEGER,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(naccrete,naccretetot,1,MPI_INTEGER,MPI_SUM,0,
@@ -167,8 +167,8 @@ c
       nblocks = 1
 
       nparttot = npart
-      n1tot = n1
-      n2tot = n2
+c      n1tot = n1
+c      n2tot = n2
       nreassigntot = nreassign
       naccretetot = naccrete
       nkilltot = nkill
@@ -191,7 +191,7 @@ c
 c--Default int
       number = 9 + NTAB
       WRITE (idisk1, ERR=100) number
-      WRITE (idisk1, ERR=100) nparttot,n1tot,n2tot,nreassigntot,
+      WRITE (idisk1, ERR=100) nparttot,n1,n2,nreassigntot,
      &     naccretetot,nkilltot,nblocks,iyr,idum,
      &     (iv(i),i=1,NTAB)
 
@@ -381,7 +381,7 @@ c
                nums(6) = 3
             ENDIF
          ENDIF
-         nums(7) = 5
+         nums(7) = 7
          nums(8) = 0
          WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
       ENDIF
@@ -544,6 +544,10 @@ c--real*4
             WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, nprint)
          ENDDO
          WRITE(idisk1, ERR=100) (alphaMM(isizealphaMM,isort(i)),
+     &        i=1,nprint)
+         WRITE(idisk1, ERR=100) (etareal(isort(i)),
+     &        i=1,nprint)
+         WRITE(idisk1, ERR=100) (etaartificial(isort(i)),
      &        i=1,nprint)
 c--real*8
 

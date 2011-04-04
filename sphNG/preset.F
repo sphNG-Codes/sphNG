@@ -51,6 +51,7 @@ c************************************************************
       INCLUDE 'COMMONS/updated'
       INCLUDE 'COMMONS/rbnd' ! for periodic_no_ghosts
       INCLUDE 'COMMONS/boundheight'
+      INCLUDE 'COMMONS/sort'
 
       CHARACTER*7 where
 
@@ -199,27 +200,22 @@ c
       neimax = 70
       nrange = 12
 c
-c--Total mass
-c
-      pmassmin = 1.0E+10
-      fmas1 = 0.
-      DO i = 1, n1
-         IF (iphase(i).GE.0) THEN
-            fmas1 = fmas1 + xyzmh(4,i)
-            IF (pmassmin.GT.xyzmh(4,i)) pmassmin = xyzmh(4,i)
-         ENDIF
-      END DO
-      fmas2 = 0.
-      DO i = n1 + 1, npart
-         IF (iphase(i).GE.0) THEN
-            fmas2 = fmas2 + xyzmh(4,i)
-            IF (pmassmin.GT.xyzmh(4,i)) pmassmin = xyzmh(4,i)
-         ENDIF
-      END DO
-c
 c--Set mass for particle being partially accreted at which it is 
 c     completely accreted
 c
+      pmassmin = 1.0E+10
+      fmas1 = 0.
+      fmas2 = 0.
+      DO i = 1, npart
+         IF (iphase(i).GE.0) THEN
+            IF (iunique(iorig(i)).LE.n1) THEN
+               fmas1 = fmas1 + xyzmh(4,i)
+            ELSE
+               fmas2 = fmas2 + xyzmh(4,i)
+            ENDIF
+            IF (pmassmin.GT.xyzmh(4,i)) pmassmin = xyzmh(4,i)
+         ENDIF
+      END DO
       pmassleast = pmassmin/100.
 c
 c--Point Mass Presets

@@ -87,7 +87,7 @@ c
          naccretetot = naccrete
          nkilltot = nkill
 
-         n1tot = n1
+c         n1tot = n1
          cmx1tot = cmx1
          cmy1tot = cmy1
          cmz1tot = cmz1
@@ -110,7 +110,7 @@ c
          trmax1tot = trmax1
          trcen1tot = trcen1
 
-         n2tot = n2
+c         n2tot = n2
          cmx2tot = cmx2
          cmy2tot = cmy2
          cmz2tot = cmz2
@@ -177,8 +177,8 @@ c
       CALL MPI_REDUCE(nkill,nkilltot,1,MPI_INTEGER,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
 
-      CALL MPI_REDUCE(n1,n1tot,1,MPI_INTEGER,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
+c      CALL MPI_REDUCE(n1,n1tot,1,MPI_INTEGER,MPI_SUM,0,
+c     &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(n1new,n1newtot,1,MPI_INTEGER,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(fmas1,fmas1tot,1,MPI_REAL8,MPI_SUM,0,
@@ -246,8 +246,8 @@ c
      &     MPI_COMM_WORLD,ierr)
       trcen1tot = trcen1tot/numproc
 
-      CALL MPI_REDUCE(n2,n2tot,1,MPI_INTEGER,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
+c      CALL MPI_REDUCE(n2,n2tot,1,MPI_INTEGER,MPI_SUM,0,
+c     &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(n2new,n2newtot,1,MPI_INTEGER,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(fmas2,fmas2tot,1,MPI_REAL8,MPI_SUM,0,
@@ -479,7 +479,7 @@ c
 c
 c--Object no 1
 c
-         WRITE (iprint, 99006, ERR=100) n1tot,cmx1tot,cmy1tot,cmz1tot,
+         WRITE (iprint, 99006, ERR=100) n1,cmx1tot,cmy1tot,cmz1tot,
      &        vcmx1tot,vcmy1tot, vcmz1tot, hmi1tot, hma1tot, dmax1tot,
      &        zmax1tot, romean1tot, romax1tot, rocen1tot,
      &        valphamin1tot,valphamax1tot,tgmean1tot,tgmax1tot,tgcen1tot
@@ -513,7 +513,7 @@ c
 c--Object no 2
 c
          IF (n2.NE.0) THEN
-            WRITE (iprint, 99007, ERR=100) n2tot,cmx2tot,cmy2tot,
+            WRITE (iprint, 99007, ERR=100) n2,cmx2tot,cmy2tot,
      &           cmz2tot,vcmx2tot,vcmy2tot,vcmz2tot,hmi2tot,hma2tot,
      &           dmax2tot,zmax2tot,romean2tot,
      &           romax2tot,rocen2tot,valphamin2tot,valphamax2tot,

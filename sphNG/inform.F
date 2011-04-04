@@ -97,7 +97,7 @@ c
       n1new = 0
       n2new = 0.
       DO i = 1, npart
-         IF (iorig(i).LE.n1 .AND. 
+         IF (iunique(iorig(i)).LE.n1 .AND. 
      &                    (iphase(i).EQ.0 .OR. iphase(i).GE.10)) THEN
             n1new = n1new + 1
             pmassi = xyzmh(4,i)
@@ -188,7 +188,8 @@ c     for second object (if existing)
 c
       IF (n2.NE.0) THEN
          DO i = 1, npart
-            IF (iorig(i).GT.n1 .AND. iphase(i).GE.0) THEN
+            IF (iunique(iorig(i)).GT.n1 .AND. 
+     &           iunique(iorig(i)).LE.n1+n2 .AND. iphase(i).GE.0) THEN
                pmassi = xyzmh(4,i)
                n2new = n2new + 1
                fmas2 = fmas2 + xyzmh(4,i)
@@ -252,7 +253,7 @@ c
       imin = 0
       rocen1 = 0.
       DO i = 1, npart
-         IF (iorig(i).LE.n1 .AND. iphase(i).GE.0) THEN
+         IF (iunique(iorig(i)).LE.n1 .AND. iphase(i).GE.0) THEN
             dz = xyzmh(3,i) - cmz1
             d2 = (xyzmh(1,i) - cmx1)**2 + (xyzmh(2,i) - cmy1)**2 +dz*dz
             dmax1 = MAX(dmax1, d2)
@@ -281,7 +282,7 @@ c
       imin = 0
       rocen2 = 0.
       DO i = 1, npart
-         IF (iorig(i).GT.n1 .AND. iphase(i).GE.0) THEN
+         IF (iunique(iorig(i)).GT.n1 .AND. iphase(i).GE.0) THEN
             dz = xyzmh(3,i) - cmz2
             d2 = (xyzmh(1,i) - cmx2)**2 + (xyzmh(2,i) - cmy2)**2 +dz*dz
             dmax2 = MAX(dmax2, d2)
@@ -294,7 +295,7 @@ c
          ENDIF
       END DO
       dmax2 = SQRT(dmax2)
-      IF (npart.GT.n1 .AND. imin.NE.0) rocen2 = rho(imin)
+      IF (imin.NE.0) rocen2 = rho(imin)
 c
 c--Compute energies
 c

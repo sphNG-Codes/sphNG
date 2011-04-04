@@ -65,18 +65,18 @@ c************************************************************
       nactivetot = nactive
       fmas1tot = fmas1
       fmas2tot = fmas2
-      n1tot = n1
-      n2tot = n2
+c      n1tot = n1
+c      n2tot = n2
       nptmasstot = nptmass
 #ifdef MPI
       CALL MPI_REDUCE(npart,nparttot,1,MPI_INTEGER,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(nactive,nactivetot,1,MPI_INTEGER,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(n1,n1tot,1,MPI_INTEGER,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(n2,n2tot,1,MPI_INTEGER,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
+c      CALL MPI_REDUCE(n1,n1tot,1,MPI_INTEGER,MPI_SUM,0,
+c     &     MPI_COMM_WORLD,ierr)
+c      CALL MPI_REDUCE(n2,n2tot,1,MPI_INTEGER,MPI_SUM,0,
+c     &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(fmas1,fmas1tot,1,MPI_REAL8,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(fmas2,fmas2tot,1,MPI_REAL8,MPI_SUM,0,
@@ -121,7 +121,7 @@ c
 c--Mass fractions
 c
       WRITE (iprint, 99003) nparttot, nactivetot, (fmas1tot + fmas2tot),
-     &        n1tot, fmas1tot, n2tot, fmas2tot
+     &        n1, fmas1tot, n2, fmas2tot
 99003 FORMAT (/, ' Total number of particles used : ', I8, /,
      &        ' Number of active particles     : ', I8, /,
      &        ' Total mass                     :', 1PE12.4, /,

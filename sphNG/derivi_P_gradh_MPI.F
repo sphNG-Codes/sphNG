@@ -325,16 +325,6 @@ c     &                  1,llistsentback(1,j+1),MPI_REAL4,indexMPI1,ierr)
      &                  llistsentback(1,j+1),MPI_REAL4,indexMPI1,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI1,ierr)
 
-c                        IF (iproc.EQ.0) THEN
-c                           print *,' SentbackDER ',llistsentback(1,j+1),
-c     &                       iunique(iorig(llistsentback(1,j+1)+1)),
-c     &                       i,j,iunique(iorig(llistsentback(2,j+1)+1))
-c
-c                           DO ijk = 1, nneighsentback(j+1)
-c                              print *,iorig(llistsentback(ijk,j+1)+1)-1
-c                           END DO
-c                        ENDIF
-
                         DO ijk = 1, nneighsentback(j+1)
                         listex(ijk) = iorig(llistsentback(ijk,j+1)+1)-1
                         END DO
@@ -469,7 +459,6 @@ c     arrays such as vxyzu).
 c
                CALL MPI_RECV(divv(istart), idim, MPI_REAL4,
      &              i, 23, MPI_COMM_WORLD, istatus, ierr)
-c     &              MPI_ANY_SOURCE, 23, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
                IF (istart+inumber.GE.idim2) THEN
                   WRITE (*,*) iproc,' ERROR - istart+inumber.GE.idim ',
@@ -492,8 +481,10 @@ c     &              MPI_ANY_SOURCE, 23, MPI_COMM_WORLD, istatus, ierr)
                      CALL quit
                   ENDIF
 
+#ifdef MPIDEBUG
 c                  print *,iproc,': Recved ',(iunique(ijk),ijk=istart,
 c     &                 istart+inumber)
+#endif
 
                   CALL MPI_RECV(pr(istart), inumber, MPI_REAL4,iprocrec,
      &                 24, MPI_COMM_WORLD, istatus, ierr)
@@ -582,10 +573,10 @@ c     &                 istart+inumber)
      &                       iproc
                         CALL quit
                      ENDIF
-c#ifdef MPIDEBUG
+#ifdef MPIDEBUG
                      print *,iproc,': got ekcle from ',iprocrec,
      &                    icheck,istart
-c#endif
+#endif
                   ENDIF
                ENDIF
                inumbertotal = inumbertotal + inumber
@@ -607,7 +598,7 @@ c#endif
          CALL quit
       ENDIF
 c
-c--Calculate ONLY neighbours lists for remote particles.  Also need to ensure
+c--Need to set up lists for remote particles and ensure
 c     that forces and poten are zeroed before call of forcei.
 c
       DO j = 1, inumbertotal
@@ -615,9 +606,6 @@ c
          iorig(jpart) = jpart
 
          llist(nlst_end + j) = jpart
-ccc         iphase(jpart) = 0
-
-ccc         CALL treef(jpart,npart,ntot,xyzmh,acc,0,fsx,fsy,fsz,epot)
 
          DO k = 1, 3
             dvxyzu(k,jpart) = 0.0
@@ -631,9 +619,6 @@ ccc         CALL treef(jpart,npart,ntot,xyzmh,acc,0,fsx,fsy,fsz,epot)
          ENDIF
       END DO
       nlst_tot = nlst_end + inumbertotal
-
-c      print *,'nlst_tot,nlst_end,inumbertotal ',
-c     &     nlst_tot,nlst_end,inumbertotal
 
 #ifdef MPIDEBUG
       print *,iproc,': Received all particles with remote neighbours'
@@ -1005,18 +990,7 @@ c
 #endif
 
 
-c      DO i = 1, nlst_tot
-c         ipart = llist(i)
-c         DO k = 1, 3
-c            dvxyzu(k,ipart) = 0.0
-c         END DO
-c      END DO
 
-
-
-c      CALL forcei(nlst_in,nlst_tot,llist,dt,itime,npart,ntot,
-c     &     xyzmh,vxyzu,dvxyzu,dha,dumrho,pr,vsound,alphaMM,ekcle,
-c     &     dedxyz,Bxyz,dBevolxyz,Bevolxyz)
       CALL forcei(nlst_in,nlst_end,nlst_tot,llist,dt,itime,npart,ntot,
      &     xyzmh,vxyzu,dvxyzu,dha,dumrho,pr,vsound,alphaMM,ekcle,
      &     dedxyz,Bxyz,dBevolxyz,Bevolxyz)
@@ -1080,26 +1054,10 @@ c               iprocrec = istatus(MPI_SOURCE)
                DO l = 1, nneighsentback(iprocrec+1)
                   ipos = llistsentback(l,iprocrec+1)+1
                   jpos = istartrec + l - 1
-c                  IF (ipos.EQ.1164) THEN
-c                     print *,iproc,ipos,jpos,' extra ',dvxyzu(1,ipos),
-c     &                    dvxyzu(1,jpos)
-c                  ENDIF
                   DO k = 1, 4
                      dvxyzu(k,ipos) = dvxyzu(k,ipos) + dvxyzu(k,jpos)
-c                     IF (iunique(iorig(ipos)).EQ.2757) THEN
-c                        print *,iproc,': FOR ',k,dvxyzu(k,ipos),
-c     &                       dvxyzu(k,jpos),iprocrec,
-c     &                       ipos,jpos
-c                     ENDIF
                   END DO
                END DO
-
-#ifdef MPIDEBUG
-c      IF (iproc.EQ.0) 
-c     &     print *,'called forcei PRE3 ',dvxyzu(1,68),
-c     &              dvxyzu(2,68),dvxyzu(3,68),dvxyzu(1,2325),
-c     &              dvxyzu(2,2325),dvxyzu(3,2325)
-#endif
 
                IF (istartrec+nneighsentback(iprocrec+1).GT.idim2) THEN
                   WRITE (*,*) 'ERROR - istartrec+nneighsentback',
@@ -1144,11 +1102,6 @@ c               print *,iproc,': got poten from ',iprocrec
                      DO k = 1, 3
                         dBevolxyz(k,ipos) = dBevolxyz(k,ipos) + 
      &                       dBevolxyz(k,jpos)
-c                        IF (iunique(iorig(ipos)).EQ.2757) THEN
-c                           print *,iproc,': dB ',k,dBevolxyz(k,ipos),
-c     &                          dBevolxyz(k,jpos),iprocrec,
-c     &                          ipos,jpos
-c                        ENDIF
                      END DO
                   END DO
                ENDIF
@@ -1205,79 +1158,6 @@ c     because none will be expected)
 c
       END DO
 
-      GOTO 779
-
-      IF (iproc.EQ.0) THEN
-         IF (gt.EQ.0.) THEN
-            DO n = 1, nlst
-               ipart = llist(n)
-               IF (xyzmh(1,ipart).LT.0.2 .AND. xyzmh(1,ipart).GT.0.0
-     &              .AND. xyzmh(2,ipart).GT.1.0
-     &              .AND. xyzmh(2,ipart).LT.1.2 
-     &              .AND. xyzmh(3,ipart).LT.0.2
-     &              .AND. xyzmh(3,ipart).GT.0.) THEN                  
-                  print *,'Particle near x-bound ',ipart
-c                  write (88,99004) ipart
-99004             FORMAT('# ',I8)
-                  iparticlex = ipart
-               ENDIF
-               IF (xyzmh(1,ipart).LT.1.2 .AND. xyzmh(1,ipart).GT.1.0
-     &              .AND. xyzmh(2,ipart).GT.0.0
-     &              .AND. xyzmh(2,ipart).LT.0.2 
-     &              .AND. xyzmh(3,ipart).LT.0.2
-     &              .AND. xyzmh(3,ipart).GT.0.) THEN
-                  print *,'Particle near y-bound ',ipart
-c                  write (89,99004) ipart
-                  iparticley = ipart
-               ENDIF
-            END DO
-         ENDIF
-         write (88,99903) xyzmh(1,iparticlex),xyzmh(2,iparticlex),
-     &        xyzmh(3,iparticlex),xyzmh(5,iparticlex),
-     &        rho(iparticlex),divv(iparticlex),
-     &        gradhs(1,iparticlex),gradhs(2,iparticlex),
-     &        dvxyzu(1,iparticlex),dvxyzu(2,iparticlex),
-     &        dvxyzu(3,iparticlex),
-     &        dvxyzu(4,iparticlex),gt,
-     &        nneigh(iparticlex)
-         write (89,99903) xyzmh(1,iparticley),xyzmh(2,iparticley),
-     &        xyzmh(3,iparticley),xyzmh(5,iparticley),
-     &        rho(iparticley),divv(iparticley),
-     &        gradhs(1,iparticley),gradhs(2,iparticley),
-     &        dvxyzu(1,iparticley),dvxyzu(2,iparticley),
-     &        dvxyzu(3,iparticley),
-     &        dvxyzu(4,iparticley),gt,
-     &        nneigh(iparticley)
-         CALL FLUSH(88)
-         CALL FLUSH(89)
-      ENDIF
-
-
-      GOTO 779
-
-      IF (iproc.EQ.0) THEN
-         DO n = 1, nlst
-            ipart = llist(n)
-            write (88,99902) xyzmh(1,ipart),xyzmh(2,ipart),
-     &           xyzmh(3,ipart),xyzmh(5,ipart),rho(ipart),divv(ipart),
-     &           gradhs(1,ipart),gradhs(2,ipart),
-     &           dvxyzu(1,ipart),dvxyzu(2,ipart),dvxyzu(3,ipart),
-     &           dvxyzu(4,ipart),poten(ipart),nneigh(ipart)
-         END DO
-      ELSE
-         DO n = 1, nlst
-            ipart = llist(n)
-            write (89,99902) xyzmh(1,ipart),xyzmh(2,ipart),
-     &           xyzmh(3,ipart),xyzmh(5,ipart),rho(ipart),divv(ipart),
-     &           gradhs(1,ipart),gradhs(2,ipart),
-     &           dvxyzu(1,ipart),dvxyzu(2,ipart),dvxyzu(3,ipart),
-     &           dvxyzu(4,ipart),poten(ipart),nneigh(ipart)
-         END DO
-      ENDIF
-
- 779  CONTINUE
-
-
       IF (inumberreturned.NE.inumofreturns) THEN
          WRITE (*,*) 'ERROR - inumberreturned.NE.inumofreturns ', iproc
          CALL quit
@@ -1291,50 +1171,10 @@ c                  write (89,99004) ipart
 
 #ifdef MPIDEBUG
       print *,iproc,': FINISHED ',itime
-         IF (iproc.EQ.0) print *,iproc,':B',dvxyzu(1,625),
-     &        dvxyzu(2,625),dvxyzu(3,625),xyzmh(1,625),
-     &        xyzmh(2,625),xyzmh(3,625)
-         IF (iproc.EQ.1) print *,iproc,':B',dvxyzu(1,25786),
-     &        dvxyzu(2,25786),dvxyzu(3,25786),xyzmh(1,25786),
-     &        xyzmh(2,25786),xyzmh(3,25786)
-         IF (iproc.EQ.2) print *,iproc,':B',dvxyzu(1,460),
-     &        dvxyzu(2,460),dvxyzu(3,460),xyzmh(1,460),
-     &        xyzmh(2,460),xyzmh(3,460)
-         IF (iproc.EQ.3) print *,iproc,':B',dvxyzu(1,25646),
-     &        dvxyzu(2,25646),dvxyzu(3,25646),xyzmh(1,25646),
-     &        xyzmh(2,25646),xyzmh(3,25646)
       print *,' '
 #endif
 
-99901 FORMAT (11(1PE12.5,1X),I8)
-99902 FORMAT (13(1PE12.5,1X),I8)
-99903 FORMAT (13(1PE17.10,1X),I8)
 #endif
-
-c         DO n = 1, nlst
-c            ipart = llist(n)
-c            write (88,99901) xyzmh(1,ipart),xyzmh(2,ipart),
-c     &           xyzmh(3,ipart),xyzmh(5,ipart),rho(ipart),divv(ipart),
-cc     &           gradhs(1,ipart),gradhs(2,ipart),
-c     &           dvxyzu(1,ipart),dvxyzu(2,ipart),dvxyzu(3,ipart),
-c     &           dvxyzu(4,ipart),poten(ipart),nneigh(ipart)
-c         END DO
-
-c      STOP
-
-c      DO ipos = 1, npart
-c         IF (iunique(iorig(ipos)).EQ.2757) THEN
-c            DO k = 1,4
-c               print *,iproc,': FOR-FINAL ',k,dvxyzu(k,ipos)
-c            END DO
-c            DO k = 1,3
-c               print *,iproc,': dB-FINAL ',k,Bxyz(k,ipos),
-c    &              Bevolxyz(k,ipos),dBevolxyz(k,ipos)
-c            END DO
-c         ENDIF             
-c      END DO
-                   
-c      CALL quit
 
 #ifdef MPIDEBUG
       print *,iproc,': Exited derivi ',itime

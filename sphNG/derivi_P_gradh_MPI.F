@@ -108,13 +108,11 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
       INCLUDE 'COMMONS/gradhterms'
       INCLUDE 'COMMONS/compact'
 
-      CHARACTER*7 where
       DIMENSION dedxyz(3,iradtrans2)
 #ifdef MPI
       DIMENSION listex(idim)
 #endif
 
-      DATA where/'derivi'/
 c
 c--Allow for tracing flow
 c
@@ -616,6 +614,9 @@ c
             DO k = 1, 3
                dBevolxyz(k,jpart) = 0.
             END DO
+            DO k = 1, 4
+               divcurlB(k,jpart) = 0.
+            END DO
          ENDIF
       END DO
       nlst_tot = nlst_end + inumbertotal
@@ -990,10 +991,10 @@ c
 #endif
 
 
-
       CALL forcei(nlst_in,nlst_end,nlst_tot,llist,dt,itime,npart,ntot,
      &     xyzmh,vxyzu,dvxyzu,dha,dumrho,pr,vsound,alphaMM,ekcle,
      &     dedxyz,Bxyz,dBevolxyz,Bevolxyz)
+
 
 #ifdef MPIDEBUG
       print *,iproc,': called forcei ',itime
@@ -1019,8 +1020,8 @@ c
       DO i = 0, numproc - 1
          IF (iproc.EQ.i) THEN
 c
-c--Receive back forces, du, potential energy, dBevolxyz to be added on 
-c     to local values
+c--Receive back forces, du, potential energy, dBevolxyz, divcurlB 
+c     to be added on to local values
 c
             DO j = 1, inumofsends
 #ifdef MPIDEBUG
@@ -1104,6 +1105,27 @@ c               print *,iproc,': got poten from ',iprocrec
      &                       dBevolxyz(k,jpos)
                      END DO
                   END DO
+
+               CALL MPI_RECV(divcurlB(1,istartrec),4*maxnneighsentback,
+     &              MPI_REAL4,iprocrec,33,MPI_COMM_WORLD,istatus,
+     &              ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_REAL4,ireturned,ierr)
+                  IF (ireturned.NE.4*nneighsentback(iprocrec+1)) THEN
+               WRITE (*,*) 'ERROR - ireturned.NE.4*nnsentback divcurlB'
+                     CALL quit
+                  ENDIF
+#ifdef MPIDEBUG
+               print *,iproc,': got divcurlB from ',iprocrec,
+     &              ' put into ',llistsentback(1,iprocrec+1)+1
+#endif
+                  DO l = 1, nneighsentback(iprocrec+1)
+                     ipos = llistsentback(l,iprocrec+1)+1
+                     jpos = istartrec + l - 1
+                     DO k = 1, 4
+                        divcurlB(k,ipos) = divcurlB(k,ipos) + 
+     &                       divcurlB(k,jpos)
+                     END DO
+                  END DO
                ENDIF
 
 #ifdef MPIDEBUG
@@ -1138,6 +1160,8 @@ c
                   IF (imhd.EQ.idim) THEN
                      CALL MPI_SEND(dBevolxyz(1,istart),3*inumber,
      &                 MPI_REAL8,iprocsend,32,MPI_COMM_WORLD, ierr)
+                     CALL MPI_SEND(divcurlB(1,istart),4*inumber,
+     &                 MPI_REAL4,iprocsend,33,MPI_COMM_WORLD, ierr)
                   ENDIF
 #ifdef MPIDEBUG
                   print *,iproc,': sent forces and poten to ',iprocsend
@@ -1170,11 +1194,30 @@ c
       CALL MPI_TYPE_FREE(i5REAL8,ierr)
 
 #ifdef MPIDEBUG
-      print *,iproc,': FINISHED ',itime
+      print *,iproc,': FINISHED MPI force transfer ',itime
       print *,' '
 #endif
 
 #endif
+
+c
+c--Calculate source terms for variable viscosity and resistivity
+c     This used to be done in forcei, but with MPI could not be because
+c     divcurlB (e.g. with B/rho) cannot be calculated until the end of
+c     forcei.  Therefore, the source term calculation for both the 
+c     viscosity and the resistivity has been moved to this new routine
+c     (which is essentially a very small fraction of the original forcei
+c     routine).
+c
+      CALL dissipative_source(nlst_in,nlst_end,nlst_tot,llist,itime,
+     &     npart,ntot,xyzmh,dha,dumrho,vsound,alphaMM,Bxyz)
+
+
+      DO i = nlst_in,nlst_end
+         ipart = llist(i)
+         print *,'Exit derivi ',ipart,vxyzu(1,ipart),vsound(ipart)
+      END DO
+
 
 #ifdef MPIDEBUG
       print *,iproc,': Exited derivi ',itime

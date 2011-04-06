@@ -4,7 +4,7 @@ c
 c--resistivity values (for dump file)
 c
       REAL*4 divcurlB
-      COMMON /divBJ/ divcurlB(4,imhd)
+      COMMON /divBJ/ divcurlB(4,imhd2)
 
       REAL*4 etareal,etaartificial
       COMMONS /etavar/ etareal(imhd),etaartificial(imhd)

@@ -294,7 +294,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 # these are the sources required for the gradh code to compile
 
 SRCGRADH= derivi_P_gradh_MPI.F forcei_P_gradh_MPI.F  \
-        densityiterate_gradh_MPI.F hcalc_gradh.f 
+        densityiterate_gradh_MPI.F hcalc_gradh.f dissipative_source.F
 	#divBclean_mhd.f divBdiffuse.f divBiterate.f \
 	#directsum_poisson_vec_mhd_clean.f 
 
@@ -304,7 +304,8 @@ SRCNONGRADH= densityi_P.f derivi_P.f forcei_P.F hcalc.f
 
 # these are the extra routines required for the radiative transfer code to compile
         
-SRCRT= ass.f RT/newgsimpl_MPI.f quartic_gs1t.f RT/getblock.f
+SRCRT= ass.f RT/newgsimpl_MPI.f RT/boundaryparticle.f quartic_gs1t.f \
+	RT/getblock.f 
 SRCNORT = ass_dummy.f
 
 # these are the extra routines required for Monte-Carlo radiative transfer

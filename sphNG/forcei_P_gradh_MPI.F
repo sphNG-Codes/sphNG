@@ -329,7 +329,7 @@ ccc         CALL treef(ipart,npart,ntot,xyzmh,acc,0,fxi,fyi,fzi,poteni)
          forcezi = 0.
 
          fxyzu(4,ipart) = 0.
-         dha(1,ipart) = 0.0
+c         dha(1,ipart) = 0.0
 
          gravxi = 0.
          gravyi = 0.
@@ -1344,7 +1344,7 @@ c
             forcexi = forcexi + fanisoxi
             forceyi = forceyi + fanisoyi
             forcezi = forcezi + fanisozi
-            IF (ipart.LE.npart) THEN
+c            IF (ipart.LE.npart) THEN
                divcurlB(1,ipart) = divBi !!*rho1i
                curlBxi = curlBxi*rho1i
                curlByi = curlByi*rho1i
@@ -1352,7 +1352,7 @@ c
                divcurlB(2,ipart) = curlBxi
                divcurlB(3,ipart) = curlByi
                divcurlB(4,ipart) = curlBzi
-            ENDIF
+c            ENDIF
 c
 c--get contributions to dBxyz and force from an external B field
 c  (get force only using iexf=9, so do not add another contribution here)
@@ -1427,8 +1427,8 @@ c            fi = adivi/(adivi+acurlvi+epsil2*vsigi/hi)
 
 cc         dha(2,ipart) = (alphamin(1)-alphaMMpass(1,ipart))*tdecay1 -
 cc     &           MIN(divv(ipart)*rho1i+0.5*vsoundi/hi,0.0)
-            dha(2,ipart) = (alphamin(1)-alphaMMpass(1,ipart))*tdecay1 -
-     &             MIN(divv(ipart)*rho1i,0.0) !!*fi
+c            dha(2,ipart) = (alphamin(1)-alphaMMpass(1,ipart))*tdecay1 -
+c     &             MIN(divv(ipart)*rho1i,0.0) !!*fi
             IF (imhd.EQ.idim .AND. ipart.LE.ntot) THEN
                dB2 = divcurlB(1,ipart)**2 + divcurlB(2,ipart)**2
      &             + divcurlB(3,ipart)**2 + divcurlB(4,ipart)**2
@@ -1438,8 +1438,8 @@ cc     &           MIN(divv(ipart)*rho1i+0.5*vsoundi/hi,0.0)
                ELSE
                   source = SQRT(dB2*rho1i)
                ENDIF
-               dha(3,ipart) = (alphamin(2)-alphaMMpass(2,ipart))*tdecay1
-     &                        + source
+c               dha(3,ipart) = (alphamin(2)-alphaMMpass(2,ipart))*tdecay1
+c     &                        + source
             ENDIF
          ENDIF
 c
@@ -1854,8 +1854,8 @@ C$OMP& private(i,j,k)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                DO k = 1, 1+isizealphaMM
-                  dha(k,llisttrans(i) + 1) =
-     &                 real4transfer2((i-1)*(1+isizealphaMM) + k)
+c                  dha(k,llisttrans(i) + 1) =
+c     &                 real4transfer2((i-1)*(1+isizealphaMM) + k)
                END DO
             END DO
          ENDIF

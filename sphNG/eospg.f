@@ -117,10 +117,17 @@ c
 c--Radiative transfer equation of state
 c
       ELSEIF (encal.EQ.'r') THEN
-         pr(ipart)= Rg*rho(ipart)*(vxyzu(4,ipart)/
-     &        getcv(rho(ipart),vxyzu(4,ipart)))*
-     &        get1overmu(rho(ipart),vxyzu(4,ipart))/uergg
-         vsound(ipart) = SQRT(gamma*pr(ipart)/rho(ipart))
+          IF (iunique(iorig(ipart)).GT.n1 .AND. 
+     &         iunique(iorig(ipart)).LE.n1+n2) THEN
+             vxyzu(4,ipart) = uzero_n2
+             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho(ipart)
+             vsound(ipart) = SQRT(pr(ipart)/rho(ipart))
+          ELSE
+             pr(ipart)= Rg*rho(ipart)*(vxyzu(4,ipart)/
+     &            getcv(rho(ipart),vxyzu(4,ipart)))*
+     &            get1overmu(rho(ipart),vxyzu(4,ipart))/uergg
+             vsound(ipart) = SQRT(gamma*pr(ipart)/rho(ipart))
+          ENDIF
 c
 c--Radiative transfer equation of state using Monte Carlo code
 c

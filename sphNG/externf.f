@@ -38,7 +38,7 @@ c      INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/diskbd'
       INCLUDE 'COMMONS/phase'
-      INCLUDE 'COMMONS/grains'
+      INCLUDE 'COMMONS/prdrag'
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/pxpy'
 c

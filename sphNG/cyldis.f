@@ -35,7 +35,7 @@ c************************************************************
                IF ((rtemp.GT.(1.0+variation)) .OR. 
      &              ((rtemp.LT.(1.0-variation)))) GOTO 100
                IF (sqrt((xyzmh(1,i)-1.0)**2 + xyzmh(2,i)**2
-     &              + xyzmh(3,i)**2) .LE. (rplanet*pradfac*2.1))
+     &              + xyzmh(3,i)**2) .LE. (rplanet*pradfac(1)*2.1))
      &              GOTO 100
             ENDIF
 
@@ -48,8 +48,8 @@ c************************************************************
 
       ELSE IF (igeom.EQ.10) THEN
          DO i = nptmass + 1, npart
- 101        radius=(((rcyl)**1.5-(rmind)**1.5)*
-     &        ran1(1) + (rmind)**1.5)**(2.0/3.0)
+ 101        radius=(((rcyl)**(2.+sdprof)-(rmind)**(2.+sdprof))*
+     &        ran1(1) + (rmind)**(2.+sdprof))**(1./(2.+sdprof))
             phi = 2.0*(ran1(1)-0.5)*pi
             xyzmh(1,i) = radius*COS(phi)
             xyzmh(2,i) = radius*SIN(phi)
@@ -66,9 +66,14 @@ c************************************************************
                   IF (sqrt((xyzmh(1,i)-xyzmh(1,listpm(j)))**2 +
      &                 (xyzmh(2,i)-xyzmh(2,listpm(j)))**2
      &                 + (xyzmh(3,i)-xyzmh(3,listpm(j)))**2) .LE.
-     &                 (rplanet*pradfac*2.1))
+     &                 (xyzmh(5,listpm(j))*pradfac(j)*2.1))
      &                 GOTO 101
                ENDDO
+
+            ELSEIF (ibound.EQ.102 .AND. irotpot.EQ.1) THEN
+               rtemp = sqrt((xyzmh(1,i)-1.0)**2 + xyzmh(2,i)**2 +
+     &              xyzmh(3,i)**2)
+               IF (rtemp.LE.(rplanet*pradfac(1)*2.1)) GOTO 101
             ENDIF
             xyzmh(5,i) = 0.1
          END DO

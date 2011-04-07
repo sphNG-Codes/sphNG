@@ -246,7 +246,7 @@ C$OMP& shared(ifcor,iexpan,iener,damp)
 C$OMP& shared(realtime,ekcle,encal,dedxyz,acc,it1,imax)
 C$OMP& shared(Bxyz,dBxyz,Bextxi,Bextyi,Bextzi,B2ext,divcurlB,Bevolxyz)
 C$OMP& shared(varmhd,iupdated,listparents)
-C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug)
+C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug,irotpot)
 C$OMP& shared(ivar,ijvar,Bextx,Bexty,Bextz,etamhd,iresist)
 C$OMP& shared(forcei_lock)
 #ifdef MPICOPY
@@ -1482,8 +1482,8 @@ c
 c--External forces
 c       
          IF (iexf.GE.1) 
-     &        CALL externf(ipart,ntot,realtime,xyzmh,forcexi,forceyi,
-     &        forcezi,trho,iexf,ibound)
+     &        CALL externf(ipart,ntot,realtime,xyzmh,vxyzu,forcexi,
+     &        forceyi,forcezi,trho,iexf,ibound,irotpot)
 c
 c--Coriolis and centrifugal forces
 c

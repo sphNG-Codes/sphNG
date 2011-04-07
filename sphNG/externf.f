@@ -1,4 +1,5 @@
-      SUBROUTINE externf(ipart,ntot,ti,xyzmh,fx,fy,fz,rho,iexf,ibound)
+      SUBROUTINE externf(ipart,ntot,ti,xyzmh,vxyzu,fx,fy,fz,rho,iexf,
+     &     ibound, irotpot)
 c************************************************************
 c                                                           *
 c  This subroutine computes the effect of an external       *
@@ -19,8 +20,9 @@ c************************************************************
 
       INCLUDE 'idim'
 
-      DIMENSION xyzmh(5,idim)
+      DIMENSION xyzmh(5,idim),vxyzu(4,idim)
       REAL rhoi,fextx,fexty,fextz, fbound, rxyplane, drxyplane
+      REAL ang, angend
       REAL*4 rho(idim)
 
       INCLUDE 'COMMONS/kerne'
@@ -36,6 +38,9 @@ c      INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/diskbd'
       INCLUDE 'COMMONS/phase'
+      INCLUDE 'COMMONS/grains'
+      INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/pxpy'
 c
 c--Needed for MPI code
 c
@@ -119,8 +124,27 @@ c
          fy = fy - xmass*runiy/d2
          fz = fz - xmass*runiz/d2
          poten(ipart) = poten(ipart) - xmass/d
-
-         IF (ibound.EQ.102) THEN
+c
+c--Forces related to radiation pressure and PR drag
+c
+         IF (prswitch) THEN
+            IF (iphase(ipart).EQ.11) THEN
+               clight = c*utime/udist
+               vx = vxyzu(1,ipart)
+               vy = vxyzu(2,ipart)
+               vz = vxyzu(3,ipart)
+               vr = vx*runix + vy*runiy + vz*runiz
+               
+               prcoeff = xmass*pbeta/d2
+               fx = fx + ((1.-vr/clight)*runix - vx/clight)*prcoeff
+               fy = fy + ((1.-vr/clight)*runiy - vy/clight)*prcoeff
+               fz = fz + ((1.-vr/clight)*runiz - vz/clight)*prcoeff
+            ENDIF
+         ENDIF
+c
+c--Inner disc edge boundary which acts only on gas
+c
+         IF (ibound.EQ.102 .AND. iphase(ipart).EQ.0) THEN
             range = 0.005
             rlmin = rmind - (2.*range)
             
@@ -130,11 +154,70 @@ c
                fsurface = 0.0
             ENDIF
             
-            ftotal = -fsurface/d2
+            fx = fx + fsurface*xmass*runix/d2
+            fy = fy + fsurface*xmass*runiy/d2
+            fz = fz + fsurface*xmass*runiz/d2
+         ENDIF
+
+c
+c--Wyatt style migration, now useable for sinks and potentials.
+c  Odd use of runiy, runix due to force acting in phi direction.
+c
+         IF (imigrate.EQ.1 .AND. iphase(ipart).GE.1 .AND.
+     &        iphase(ipart).LT.10 .AND. ti.LT.rorbitmax) THEN
+            fwyatt = 0.5*pmrate*sqrt(xmass/d**3)
+            fx = fx - fwyatt*runiy
+            fy = fy + fwyatt*runix
+         ENDIF
+c
+c--Orbiting potential case, where gravity and surface forces are
+c  applied here.
+c
+         IF (irotpot.EQ.1) THEN
+            rorbit = rorbit_orig
+
+c--Allow for migration of potential at prescribed rate.
+            IF (imigrate.EQ.1 .AND. ti.LT.rorbitmax) THEN
+               rorbit = rorbit_orig + (pmrate*ti)
+               ang = (2.*rorbit_orig*sqrt(xmass/rorbit_orig**3) - 
+     &              2.*(pmrate*ti+rorbit_orig)*sqrt(xmass/(pmrate*
+     &              ti + rorbit_orig)**3))/pmrate
+            ELSEIF (imigrate.EQ.1 .AND. ti.GE.rorbitmax) THEN
+               rorbit = rorbit_orig + (pmrate*rorbitmax)
+c--This only needs to be calculated once really, consider moving.
+               angend = (2.*rorbit_orig*sqrt(xmass/rorbit_orig**3) - 
+     &            2.*(pmrate*rorbitmax+rorbit_orig)*sqrt(xmass/(pmrate*
+     &            rorbitmax + rorbit_orig)**3))/pmrate
+
+               ang = angend + (ti-rorbitmax)/sqrt(rorbit**3/xmass)
+            ENDIF
+
+            px = rorbit*COS(ang)
+            py = rorbit*SIN(ang)
+
+            xi = xi - px
+            yi = yi - py
+
+            d2 = (xi*xi + yi*yi + zi*zi + tiny)
+            d = SQRT(d2)
+
+            runix = xi/d
+            runiy = yi/d
+            runiz = zi/d
+
+            IF (d.LE.(2.*rplanet*pradfac(1))) THEN
+               fsurface = (((2.*rplanet*pradfac(1))-d)/
+     &              (rplanet*pradfac(1)))**4
+            ELSE
+               fsurface = 0.0
+            ENDIF
             
+            ftotal = planetmass/d2*(1.0 - fsurface)
+
             fx = fx - ftotal*runix
             fy = fy - ftotal*runiy
             fz = fz - ftotal*runiz
+            poten(ipart) = poten(ipart) - planetmass/d
          ENDIF
 
 c
@@ -187,7 +270,7 @@ c         d = SQRT(d2)
 
          d2 = (xi*xi + yi*yi + zi*zi + tiny)
          d = SQRT(d2)
-         rp = d - (rplanet*pradfac)
+         rp = d - (rplanet*pradfac(1))
 
          runix = xi/d
          runiy = yi/d
@@ -195,9 +278,9 @@ c         d = SQRT(d2)
 c
 c--Forces relating to planet's surface
 c
-         IF (d.LE.(2.*rplanet*pradfac)) THEN
-            fsurface = (((2.*rplanet*pradfac)-d)/
-     &           (rplanet*pradfac))**4
+         IF (d.LE.(2.*rplanet*pradfac(1))) THEN
+            fsurface = (((2.*rplanet*pradfac(1))-d)/
+     &           (rplanet*pradfac(1)))**4
          ELSE
             fsurface = 0.0
          ENDIF

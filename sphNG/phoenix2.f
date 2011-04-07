@@ -28,6 +28,7 @@ c***********************************************************************
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/xforce'
 
       PARAMETER (numinjectmax = 10001)
       COMMON /zeustab/ xinjecttable(6,numinjectmax), dtheta, numinject
@@ -44,6 +45,18 @@ c     iflag = 0
 c--Pick from ZEUS
 c
       iflag = 1
+      
+      IF (iflag.EQ.1 .AND. xmass.NE.1.0) THEN
+         print *, 'Welcome to Phoenix2.f'
+         print *, 'You have a star with a mass ne 1, and are using'
+         print *, 'tables based upon ZEUS calculations.'
+         print *, 'This code now uses xmass for the star mass,'
+         print *, 'but the tables were made assuming a solar mass,'
+         print *, 'so I am going to stop you to make sure you'
+         print *, 'have engaged your brain. Comment this out to'
+         print *, 'continue.'
+         stop
+      ENDIF
 
       IF (iflag.EQ.0) THEN
          radinject = findradius()
@@ -149,7 +162,7 @@ c
 c--Velocity equals Keplerian velocity (but in frame rotating with planet)
 c
       IF (iflag.EQ.0) THEN
-         velmag = 1.0/SQRT(radinject)
+         velmag = xmass/SQRT(radinject)
          vxyzu(1,i) = - velmag*sinangle + xyzmh(2,i)
          vxyzu(2,i) = velmag*cosangle - xyzmh(1,i)
          vxyzu(3,i) = 0.0

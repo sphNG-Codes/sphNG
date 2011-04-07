@@ -82,6 +82,7 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/diskbd'
+      INCLUDE 'COMMONS/xforce'
 #ifdef MPICOPY
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/mpicopy'
@@ -1817,7 +1818,9 @@ c--Dead particle boundaries - planet embedded in whole disc
 c
          IF (ibound.EQ.102) THEN
             r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
-            IF (r2.GT.rcyl**2) THEN
+            IF ((r2.GT.rcyl**2 .AND. iphase(i).EQ.0) .OR.
+     &           (r2.LE.rmind**2 .AND. iphase(i).GT.0) .OR.
+     &           (r2.GT.(2.*rcyl)**2 .AND. iphase(i).GT.0)) THEN
                iphase(i) = -1
 #ifndef MPICOPY
 C$OMP CRITICAL (killparticle)
@@ -2417,24 +2420,26 @@ c
 c
 c--Additional constraint for planet with surface for migration
 c
-         IF (ibound.EQ.102 .AND. nptmass.EQ.1) THEN
-            IF (iphase(listpm(1)).EQ.5) THEN
-               radiushill2 = (xyzmh(4,listpm(1))/3.0)**(2./3.)
-               DO i = 1, npart
-                  IF ((iphase(i).LT.1 .OR. iphase(i).GT.10) .AND.
-     &                 it0(i).EQ.itime) THEN
-                     dx = xyzmh(1,i) - xyzmh(1,listpm(1))
-                     dy = xyzmh(2,i) - xyzmh(2,listpm(1))
-                     dz = xyzmh(3,i) - xyzmh(3,listpm(1))
-                     radius = dx*dx + dy*dy + dz*dz
-                     IF (radius.LT.uniformtslim2*radiushill2) THEN
-                        isteps(i) = istepmin
-                        it1(i) = it0(i) + isteps(i)/2
-                        it2(i) = it0(i) + isteps(i)
+         IF (ibound.EQ.102 .AND. initialptm.EQ.5) THEN
+            DO j = 1, nptmass
+               IF (iphase(listpm(j)).EQ.5) THEN
+                  radiushill2 = (xyzmh(4,listpm(j))/(3.*xmass))**(2./3.)
+                  DO i = 1, npart
+                     IF ((iphase(i).LT.1 .OR. iphase(i).GT.10) .AND.
+     &                    it0(i).EQ.itime) THEN
+                        dx = xyzmh(1,i) - xyzmh(1,listpm(j))
+                        dy = xyzmh(2,i) - xyzmh(2,listpm(j))
+                        dz = xyzmh(3,i) - xyzmh(3,listpm(j))
+                        radius = dx*dx + dy*dy + dz*dz
+                        IF (radius.LT.uniformtslim2*radiushill2) THEN
+                           isteps(i) = istepmin
+                           it1(i) = it0(i) + isteps(i)/2
+                           it2(i) = it0(i) + isteps(i)
+                        ENDIF
                      ENDIF
-                  ENDIF
-               END DO
-            ENDIF
+                  END DO
+               ENDIF
+            ENDDO
          ENDIF
 
       ELSEIF (individualtimesteps.EQ.2) THEN

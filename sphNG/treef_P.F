@@ -200,17 +200,19 @@ c                  nstack(istack) = isibdaupar(1,j)
 c
 c--Added to ensure node opening near planet surface.
 c
-               ELSEIF ((iphase(m).EQ.5) .AND.
-     &                 (rr.LE.((2.*rplanet*pradfac) +
-     &                 qrad(1,n))**2) .AND.
-     &                 iptintree.EQ.1) THEN
-                  j = isibdaupar(2,n)
-                  istack = istack + 1
-                  nstack(istack) = j
-                  istack = istack + 1
-                  nstack(istack) = isibdaupar(1,j)
+               ELSEIF (iphase(m).EQ.5) THEN
+                  IF ((rr.LE.((2.*xyzmh(5,m)*pradfac(listrealpm(m))) +
+     &                 qrad(1,n))**2) .AND. iptintree.EQ.1) THEN
+                     j = isibdaupar(2,n)
+                     istack = istack + 1
+                     nstack(istack) = j
+                     istack = istack + 1
+                     nstack(istack) = isibdaupar(1,j)
+                  ELSE
+                     goto 125
+                  ENDIF
                ELSE
-                  nlistgn = nlistgn + 1
+ 125              nlistgn = nlistgn + 1
                   IF (nlistgn.GT.idim) THEN
                      WRITE (iprint,*) 'ERROR - nlistgn.GT.idim'
                      CALL quit

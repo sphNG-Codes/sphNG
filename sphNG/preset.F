@@ -51,6 +51,9 @@ c************************************************************
       INCLUDE 'COMMONS/updated'
       INCLUDE 'COMMONS/rbnd' ! for periodic_no_ghosts
       INCLUDE 'COMMONS/boundheight'
+      INCLUDE 'COMMONS/andrea'
+      INCLUDE 'COMMONS/astrcon'
+      INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/sort'
 
       CHARACTER*7 where
@@ -293,20 +296,23 @@ c--Load in tables of opacity and cv
 c
 c      IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
       IF (encal.EQ.'r' .OR. (encal.EQ.'i' .AND. ibound.EQ.102)) THEN
+
+         print *, 'Reading tables in preset'
+
          OPEN(UNIT=8,FILE='/home/mrbate/tables/opacitytbl')
          DO i=1, opmxtg
             READ(8,*) (optable(i,j), j=1, opmxrh)
          ENDDO
          CLOSE(8)
-
-         OPEN(UNIT=8,FILE='/home/mrbate/tables/gasttbl',
+      
+         OPEN(UNIT=8,FILE='/home/py02baa/Code/Tables/gasttbl',
      &        FORM='unformatted')
          DO i=1, tgmxu
             READ(8) (tgtable(i,j), j=1, tgmxrh)
          ENDDO
          CLOSE(8)
 
-         OPEN(UNIT=8,FILE='/home/mrbate/tables/utbl',
+         OPEN(UNIT=8,FILE='/home/py02baa/Code/Tables/utbl',
      &        FORM='unformatted')
          DO i=1, umxrh
             READ(8) (utable(j,i), j=1, umxt)
@@ -320,7 +326,7 @@ c      IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
          ENDDO
          CLOSE(8)
 
-         OPEN(UNIT=8,FILE='/home/mrbate/tables/dusttbl2')
+         OPEN(UNIT=8,FILE='/home/py02baa/Code/Tables/dusttbl2')
          DO i=1, duslen
             READ(8,*) (dusttable(i,j), j=1, duswid)
          ENDDO
@@ -335,13 +341,33 @@ c      IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
          ENDDO
          CLOSE(8)
       ENDIF
+c
+c--Andrea Fortier provided tables to introduce planetesimal heating
+c  to planet calculations.
+c
+      e_planetesimal(:) = 0.0
 
+      IF (iandrea.EQ.1) THEN
+         OPEN(UNIT=8,FILE=
+     &        '/home/py02baa/Code/Tables/planetesimals')
+         READ (8,*) prmin, princ
+         READ (8,*) pmmin, pminc
+         pmmin = pmmin*5.9742E27/umass
+         pminc = pminc*5.9742E27/umass
+         DO i = 1, mbins
+            READ (8,*) (ptable(i,j), j = 1, rbins)
+         ENDDO
+         DO i = 1, mbins
+            DO j = 1, rbins
+               ptable(i,j) = (ptable(i,j))*utime/uergg
+            ENDDO
+         ENDDO
+      ENDIF
 
       IF ((ibound.EQ.101 .OR. ibound.EQ.102) .AND. encal.EQ.'r') THEN
          CALL discboundary(ibound)
          print *, 'Disc optically thin boundary set'
       ENDIF
-
 
       IF (ihopin.NE.1) THEN
 c

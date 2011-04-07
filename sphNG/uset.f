@@ -12,19 +12,21 @@
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/phase'
       
       INTEGER i
       REAL radius, boundtempl
       REAL getu,getcv
 
       DO i=1, npart
-         radius = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
-         boundtempl = gmw*hoverr**2*radius**
-     &        (tprof+1)/((Rg/uergg)*gamma*radius)
-
-         vxyzu(4,i) = getu(rho(i), boundtempl)
-         ekcle(3,i) = getcv(rho(i),vxyzu(4,i))
-
+         IF (iphase(i).EQ.0) THEN
+           radius = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+            boundtempl = gmw*hoverr**2*radius**
+     &           (tprof+1)/((Rg/uergg)*gamma*radius)
+            
+            vxyzu(4,i) = getu(rho(i), boundtempl)
+            ekcle(3,i) = getcv(rho(i),vxyzu(4,i))
+         ENDIF
       ENDDO
 
       RETURN

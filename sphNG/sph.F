@@ -594,6 +594,10 @@ c
 c  5) extract an output file
 c
       IF (job(1:7).EQ.'extract') CALL extract
+c
+c  6) setup planet calculations
+c
+      IF (job(1:7).EQ.'planet') CALL newplanet
 
       CALL quit
       END

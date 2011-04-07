@@ -16,6 +16,7 @@ c************************************************************
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/ptsoft'
       INCLUDE 'COMMONS/rbnd'
+      INCLUDE 'COMMONS/ptmass'
 
       DIMENSION listga(idim), xyzmh(5,mmax2)
 
@@ -56,7 +57,12 @@ c--Point mass with surface.
 c
             IF (iphase(m).EQ.5 .OR. iphase(n).EQ.5) THEN
                rr05 = SQRT(rr)
-               rsurface = rplanet*pradfac
+               IF (iphase(m).EQ.5) THEN
+                  rsurface = xyzmh(5,m)*pradfac(listrealpm(m))
+               ELSE
+                  rsurface = xyzmh(5,n)*pradfac(listrealpm(n))
+               ENDIF
+
                IF (rr05.LE.(2.*rsurface)) THEN
                   fsurface = (((2.*rsurface)-rr05)/
      &                 (rsurface))**4

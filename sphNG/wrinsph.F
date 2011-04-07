@@ -46,7 +46,8 @@ c************************************************************
       INCLUDE 'COMMONS/useles'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/varmhd'
-
+      INCLUDE 'COMMONS/prdrag'
+      INCLUDE 'COMMONS/pxpy'
 c
 c--Allow for tracing flow
 c
@@ -203,27 +204,39 @@ c
          WRITE (iterm, 88071) use_tprof
          IF (use_tprof) WRITE (iterm, 88072) tprof
 88072    FORMAT(2X,1PE12.5, '  Temperature profile')
+11071    FORMAT(3X, L1, ' PR-drag & rad. pres. switch')
+         WRITE (iterm, 11071) prswitch
+         IF (prswitch) WRITE (iterm, 11073) pbeta
+11073    FORMAT(2X,1PE12.5, ' grain beta (Burns et al. 1979)')
          WRITE (iterm, 88073) signorm, hoverr,partm
 88073    FORMAT(2X,3(1PE12.5,1X),'  sigma, HoverR, partmass')
+         WRITE (iterm, 11074) imigrate
+11074    FORMAT(2X, I2, ' prescribed migration')
+         IF (imigrate.EQ.1) THEN
+            WRITE (iterm, 11075) pmrate/(1.49598E13/3.1536E13)/
+     &           (utime/udist)
+11075       FORMAT(2X, 1PE12.5, ' applied migration rate (AU/Myr)')
+            WRITE (iterm, 11076) rorbitmax*pmrate + rorbit_orig
+11076       FORMAT(2X, 1PE12.5, ' stopping radius (code units)')
+         ENDIF
       ENDIF
 
       IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7) THEN
          WRITE (iterm, 88040) xmass
 88040    FORMAT(2X,1PE12.5,'  External Forces Mass')
       ENDIF
-      IF (iexf.EQ.7) THEN
+      IF (iexf.EQ.7 .OR. (ibound.EQ.102 .AND. initialptm.EQ.0)) THEN
          WRITE (iterm, 88043) planetmass
 88043    FORMAT(2X,1PE12.5,'  Planet Mass')
          WRITE (iterm, 88045) rplanet
 88045    FORMAT(2X,1PE12.5,'  Planet Radius')
+         IF (iexf.EQ.7) WRITE (iterm, 88145) iandrea
+88145    FORMAT(2X,I2,'  Include planetesimal heating')
       ENDIF
 
-      IF (ibound.EQ.102 .AND. iexf.NE.7) THEN
-         WRITE (iterm, 88045) rplanet
-         IF (initialptm.EQ.5) THEN
+      IF (ibound.EQ.102 .AND. initialptm.EQ.5) THEN
 88047       FORMAT(2X,1PE12.5,'  Uniform Timestep radius')
             WRITE (iterm, 88047) uniformtslim
-         ENDIF
       ENDIF
 
       IF (iptmass.NE.0 .OR. nptmasstot.NE.0) THEN

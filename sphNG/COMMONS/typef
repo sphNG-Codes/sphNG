@@ -1,5 +1,7 @@
       INTEGER igrp, igphi, ifsvi, ifcor, ichoc, iener, ibound,
-     &                iexf, iexpan, iresist
+     &                iexf, iexpan, iresist, iplanetesimals, irotpot,
+     &                iandrea
 
       COMMON /typef / igrp, igphi, ifsvi, ifcor, ichoc, iener, ibound,
-     &                iexf, iexpan, iresist
+     &                iexf, iexpan, iresist, iplanetesimals, irotpot,
+     &                iandrea

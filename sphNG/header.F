@@ -53,6 +53,7 @@ c************************************************************
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/initpt'
       INCLUDE 'COMMONS/h2'
+      INCLUDE 'COMMONS/pxpy'
 
       REAL*8 angmom
 
@@ -252,31 +253,47 @@ c
      &           '  planet mass     : ',1PE12.4,/,
      &           '  planet radius   : ',1PE12.4,/)
          ELSEIF (ibound.EQ.102) THEN
-            IF (initialptm.EQ.5) THEN
+            IF (nptmass.GT.0) THEN
                WRITE (iprint,99535) rcyl,rmind,
-     &              signorm,hoverr,xyzmh(4,listpm(1)),rplanet,
-     &              uniformtslim
+     &              signorm,sdprof,tprof,hoverr
+
+               DO i = 1, nptmass
+                  WRITE (iprint, 99537) i, xyzmh(4,listpm(i)), i,
+     &                 xyzmh(5,listpm(i))
+               ENDDO
+               IF (initialptm.EQ.5) WRITE (iprint, 99538) uniformtslim
+            
 99535          FORMAT (/,' Boundary type: whole disc  ',/,
-     &              '  outer radius    : ',1PE12.4,/,
-     &              '  inner radius    : ',1PE12.4,/,
-     &              '  sigma normal.   : ',1PE12.4,/,
-     &              '  disc H/R        : ',1PE12.4,/,
-     &              '  planet mass     : ',1PE12.4,/,
-     &              '  planet radius   : ',1PE12.4,/,
-     &              '  uniform ts rad  : ',1PE12.4,/)
+     &              '  outer radius           : ',1PE12.4,/,
+     &              '  inner radius           : ',1PE12.4,/,
+     &              '  sigma normal           : ',1PE12.4,/,
+     &              '  disc density profile   : ',1PE12.4,/,
+     &              '  disc temp profile      : ',1PE12.4,/,
+     &              '  disc H/R               : ',1PE12.4,/)
+99537          FORMAT (/,'  planet (',I2,') mass     : ',1PE12.4,/,
+     &              '  planet (',I2,') radius   : ',1PE12.4,/)
+99538          FORMAT (/,' uniform ts rad  : ',1PE12.4,/)
+
             ELSEIF (initialptm.EQ.0) THEN
                WRITE (iprint,99534) rcyl,rmind,
-     &              signorm,hoverr,planetmass,rplanet
-            ELSE
-               WRITE (iprint,99534) rcyl,rmind,
-     &              signorm,hoverr,xyzmh(4,listpm(1)),rplanet
+     &              signorm,sdprof,tprof,hoverr,planetmass,rplanet
 99534          FORMAT (/,' Boundary type: whole disc  ',/,
-     &              '  outer radius    : ',1PE12.4,/,
-     &              '  inner radius    : ',1PE12.4,/,
-     &              '  sigma normal.   : ',1PE12.4,/,
-     &              '  disc H/R        : ',1PE12.4,/,
-     &              '  planet mass     : ',1PE12.4,/,
-     &              '  planet radius   : ',1PE12.4,/)
+     &           '  outer radius           : ',1PE12.4,/,
+     &           '  inner radius           : ',1PE12.4,/,
+     &           '  sigma normal.          : ',1PE12.4,/,
+     &           '  disc density profile   : ',1PE12.4,/,
+     &           '  disc temp profile      : ',1PE12.4,/,
+     &           '  disc H/R               : ',1PE12.4,/,
+     &           '  planet mass            : ',1PE12.4,/,
+     &           '  planet radius          : ',1PE12.4,/)
+            ENDIF
+
+            IF (imigrate.EQ.1) THEN
+               WRITE (iprint, 11001) pmrate/(1.49598E13/3.1536E13)/
+     &              (utime/udist), pmrate*rorbitmax/(1.49598E13/
+     &              3.1536E13)/(utime/udist)*(utime/3.1536E13)
+11001          FORMAT ('Imposed migration rate (AU/Myr)  :', 1PE12.4,/,
+     &                 'Total migration distance (AU)    :', 1PE12.4,/)
             ENDIF
          ENDIF
 c

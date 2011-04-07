@@ -61,6 +61,7 @@ C$OMP& shared(iprint,nneigh,iphase)
 C$OMP& shared(iorig,nptmass,listpm,listrealpm,encal)
 C$OMP& shared(ifsvi,alphaMM,iptsoft,ptsoft,iresist,etamhd)
 C$OMP& shared(iptmass,hacc,haccall,ptmcrit,radcrit)
+C$OMP& shared(iplanetesimals)
 C$OMP& private(i,j,l,ll,xmindist,iptcur,rad2)
 C$OMP& private(divvi,aux1,aux2,aux3,denom,valfven2,rmodcool)
 C$OMP& private(crstepi,rmodcr,rmodvel,force2,rmod,vel2,coolstepi)
@@ -89,7 +90,12 @@ c
                softrad = xyzmh(5,i)
             ENDIF
             rmod = Courant*SQRT(softrad/SQRT(force2))
-            IF (iphase(i).GT.0 .AND. iphase(i).LT.10) rmod = rmod/1000.0
+            IF (iplanetesimals.EQ.0) THEN
+               IF (iphase(i).GT.0 .AND. iphase(i).LT.10) rmod =
+     &              rmod/1000.0
+            ELSE
+               rmod = rmod*0.1
+            ENDIF
             rmod = rmod/(dt*isteps(i)/imaxstep)
          ELSE
             rmod = 1.0E+30

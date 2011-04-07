@@ -50,6 +50,7 @@ c************************************************************
       INCLUDE 'COMMONS/outmhd'
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/initpt'
+      INCLUDE 'COMMONS/pxpy'
 
 #ifdef MPI
       REAL*4 romax1tot, romax2tot, valphamin1tot, valphamax1tot,
@@ -368,7 +369,11 @@ c
             betl = trotztot / ABS(tgravtot)
             betr = trotxtot / ABS(tgravtot)
             rmag2grav = tmagtot / ABS(tgravtot)
-            ajeans = 1 / alph
+            IF (alph.GT.tiny) THEN
+               ajeans = 1. / alph
+            ELSE
+               ajeans = 0.0
+            ENDIF
          ELSE
             alph = 0.
             betl = 0.
@@ -414,24 +419,66 @@ c
          IF (iexf.EQ.7) THEN
             WRITE (iprint, 99407, ERR=100) hmass
 99407       FORMAT (' mass for zeus table           : ', 1PE14.5)
-            WRITE (iprint, 99408, ERR=100) rplanet*pradfac
+            WRITE (iprint, 99408, ERR=100) rplanet*pradfac(1)
 99408       FORMAT (' radius of planet surface      : ', 1PE14.5)
             WRITE (iprint, 99409, ERR=100) gapfac
 99409       FORMAT (' injection adjustment factor   : ', 1PE14.5)
          ENDIF
          
          IF (ibound.EQ.102) THEN
-            WRITE (iprint, 99408, ERR=100) rplanet*pradfac
-         ENDIF
-         
-         IF (initialptm.NE.0 .AND. ibound.EQ.102) THEN
-            WRITE (iprint, 99410, ERR=100)
-     &           hillmass(xyzmh(4,listpm(1)), 1)
+            IF (initialptm.EQ.5) THEN
+11408          FORMAT(' radius of planet (',I2, ') surface : ', 1PE14.5)
+               DO i = 1, nptmass
+                  WRITE (iprint, 11408, ERR=100) i, xyzmh(5,listpm(i))*
+     &                 pradfac(i)
+               ENDDO
+               DO i = 1, nptmass
+                  WRITE (iprint, 99410, ERR=100) i,
+     &                 hillmass(xyzmh(4,listpm(i)), 1, xmass)
+               ENDDO
+            ELSEIF (irotpot.EQ.1) THEN
+               WRITE (iprint, 11409) rplanet*pradfac(1)
+11409          FORMAT (' radius of planet ', 1PE14.5)
+            ENDIF
          ELSEIF (ibound.EQ.100 .AND. iexf.EQ.7) THEN
-            WRITE (iprint, 99410, ERR=100) hillmass(planetmass, 0)
+            WRITE (iprint, 99410, ERR=100) 1, hillmass(planetmass, 0,
+     &           xmass)
          ENDIF
-99410    FORMAT ('mass within planet hill radius : ', 1PE14.5)
+99410    FORMAT (' mass within planet(',I2,') hill radius : ', 1PE14.5)
 
+         IF (imigrate.EQ.1) THEN
+            IF (irotpot.EQ.1) THEN
+               WRITE (iprint, 11001), sqrt(px**2 + py**2),
+     &              rorbit_orig
+11001          FORMAT (' migrated to ', 1PE14.5, ' from ', 1PE14.5)
+            ENDIF
+            IF (nptmass.GE.1) THEN
+               is = listpm(1)
+               rmass1 = xmass
+               rmass2 = xyzmh(4,is)
+               rmass2 = 0.0
+
+               rcradius = SQRT(xyzmh(1,is)**2 + xyzmh(2,is)**2)
+               rmradius = SQRT(xyzmh(1,is)**2 + xyzmh(2,is)**2 +
+     &              xyzmh(3,is)**2)
+
+               amx = xyzmh(2,is)*vxyzu(3,is) - xyzmh(3,is)*vxyzu(2,is)
+               amy = xyzmh(3,is)*vxyzu(1,is) - xyzmh(1,is)*vxyzu(3,is)
+               amz = xyzmh(1,is)*vxyzu(2,is) - xyzmh(2,is)*vxyzu(1,is)
+               
+               angmom = amx + amy + amz
+               angmom2 = amx**2 + amy**2 + amz**2
+               
+               vel2 = vxyzu(1,is)**2 + vxyzu(2,is)**2 + vxyzu(3,is)**2
+               energy = vel2/2. - (rmass1+rmass2)/rmradius
+
+               e = SQRT(1.0 + (2.*energy*angmom2/
+     &              (rmass1+rmass2)**2))
+               a = angmom2/((rmass1+rmass2)*(1.-e**2))
+
+               WRITE (iprint, 11001) rcradius, rorbit_orig
+            ENDIF
+         ENDIF
 
 c         IF (iaccevol.EQ.'v' .OR. iaccevol.EQ.'s') THEN
 c            WRITE (iprint, 88006, ERR=100)

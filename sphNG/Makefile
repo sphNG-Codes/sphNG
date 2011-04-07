@@ -270,22 +270,23 @@ FFLAGSKEEP := ${FFLAGS}
 SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f \
 	chekopt.f condense.f constan.f coolcurve.f coolinmo.F cool_func.F \
-	coriol.f cyldis.f cylmas.f cylpres.f cylvel.f discboundary.f endrun.f \
-	energ.f energ_cooling.f eospg.f error.f evol.f externf.f externBfield.f \
-        extract.f file.f gapfactor.f getneigh.f \
+	coriol.f cyldis.f cylmas.f cylpres.f cylvel.f discboundary.f dustorbit.f \
+	endrun.f energ.f energ_cooling.f eospg.f error.f evol.f externf.f \
+	externBfield.f \
+	extract.f file.f gapfactor.f getneigh.f \
 	getcv.f get1overmu.f getkappa.f \
 	gforsa_P.f gforsn_P.f gforspt_P.f \
 	ghostp.f ghostp1.f ghostp2.f ghostp3.F ghostp11.f ghostp100.f \
 	ghostp102.f \
-        gptall.f gptfromgas.f gpti.f hdot_P.f header.F hchem.F hillmass.f \
+	gptall.f gptfromgas.f gpti.f hdot_P.f header.F hchem.F hillmass.f \
 	homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
 	inopts.f insulate_TREE_P.F integs.F ktable.f labrun.f lunit_double.f \
 	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
 	newrun.f options.f phoenix.f phoenix2.f \
-	place.f potential.f preset.F \
+	place.f planet_setup.f planetesimals.f potential.f preset.F \
 	prout.F ran1.f rdump.F rdump_wrapper.F reduce.f \
-        resistivity.f save.f setup_torus.f \
-        scaling.f secmes.f setBfield_mhd.f setpart.f \
+	resistivity.f save.f setup_torus.f \
+	scaling.f secmes.f setBfield_mhd.f setpart.f \
 	smoothd_P.f \
 	sphdis.f sphmas.f spline.F sphpres.f sphvel.f thermeq.f \
 	toten.f treef_P.F unifdis.f unit.f uset.f \
@@ -343,6 +344,7 @@ TOBJRK = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o)
 TOBJRT = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o)
 TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
 TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
+TOBJGRADHLFRT = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCRT:.f=.o) $(ZEN_PIN)
 TOBJGRADHRKRT = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o) $(ZEN_PIN)
 TOBJGRADHRKRTBAR = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o) $(SRCBAR:.f=.o) $(ZEN_PIN)
 TOBJTORUS = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCNORT:.f=.o) $(SRCTORUS:.f=.o) $(ZEN_PIN)
@@ -353,7 +355,8 @@ OBJRK = $(TOBJRK:.F=.o)
 OBJRT = $(TOBJRT:.F=.o) 
 OBJGRADHLF = $(TOBJGRADHLF:.F=.o) 
 OBJGRADHRK = $(TOBJGRADHRK:.F=.o) 
-OBJGRADHRKRT = $(TOBJGRADHRKRT:.F=.o) 
+OBJGRADHLFRT = $(TOBJGRADHLFRT:.F=.o)
+OBJGRADHRKRT = $(TOBJGRADHRKRT:.F=.o)
 OBJGRADHRKRTBAR = $(TOBJGRADHRKRTBAR:.F=.o) 
 OBJTORUS = $(TOBJTORUS:.F=.o) 
 
@@ -395,6 +398,8 @@ gradhlf: checksystem checkparams sph_tree_lf_gradh
 
 gradhrk: checksystem checkparams sph_tree_rk_gradh 
 
+gradhlfrt: checksystem checkparams sph_tree_lf_gradh_RT 
+
 gradhrkrt: checksystem checkparams sph_tree_rk_gradh_RT
 
 gradhrkrtbar: checksystem checkparams sph_tree_rk_gradh_RT_BAR
@@ -412,6 +417,12 @@ sph_tree_rk_gradh: $(OBJGRADHRK)
 	@echo "This is the gradh, Runge Kutta version"
 	@echo ""
 	$(FC) $(FFLAGS) -o $@ $(OBJGRADHRK) $(LDFLAGS)
+
+sph_tree_lf_gradh_RT: $(OBJGRADHLFRT)
+	@echo ""
+	@echo "This is the gradh, leapfrog version"
+	@echo ""
+	$(FC) $(FFLAGS) -o $@ $(OBJGRADHLFRT) $(LDFLAGS)
 
 sph_tree_rk_gradh_RT: $(OBJGRADHRKRT)
 	@echo ""

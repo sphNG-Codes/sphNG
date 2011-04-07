@@ -1,0 +1,4 @@
+      REAL pbeta
+      LOGICAL prswitch
+      
+      COMMON /grains  / pbeta, prswitch

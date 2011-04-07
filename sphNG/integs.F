@@ -106,7 +106,7 @@ c--If modelling a planet in a section, rebuild ZEUS table
 c  for planet including gas mass
 
       IF (iexf.EQ.7 .AND. ibound.EQ.100) THEN
-         rhillmasstemp = hillmass(planetmass, 0)
+         rhillmasstemp = hillmass(planetmass, 0, xmass)
          
          IF(gt.GT.(2.*pi).AND.rhillmasstemp.GT.(1.1*hmass)) THEN
             hmass = rhillmasstemp !Store new Hillmass

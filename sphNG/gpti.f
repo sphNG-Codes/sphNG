@@ -79,7 +79,7 @@ c
                potn = pmassipt/rr05
             ELSE
                rr05 = SQRT(rr)
-               rsurface = rplanet*pradfac
+               rsurface = xyzmh(5,ipt)*pradfac(iptn)
                IF (rr05.LE.(2.*rsurface)) THEN
                   fsurface = (((2.*rsurface)-rr05)/
      &                 (rsurface))**4

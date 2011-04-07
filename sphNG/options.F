@@ -47,6 +47,8 @@ c************************************************************
       INCLUDE 'COMMONS/ptbin'
       INCLUDE 'COMMONS/useles'
       INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/prdrag'
+      INCLUDE 'COMMONS/pxpy'
 c
 c--Allow for tracing flow
 c
@@ -208,27 +210,39 @@ c      ENDIF
      &        hoverr,partm
       ENDIF
 
+      imigrate = 0
+      use_prof = .FALSE.
+      prswitch = .FALSE.
       IF (ibound.EQ.102) THEN
          READ (iterm, *) use_tprof
          IF (use_tprof) READ (iterm, *) tprof
+         READ (iterm, *) prswitch
+         IF (prswitch) READ (iterm, *) pbeta
          READ (iterm, *) signorm,hoverr,partm
+
+         READ (iterm, *) imigrate
+         IF (imigrate.EQ.1) THEN
+            READ (iterm, *) pmrate
+            pmrate = pmrate*(1.49598E13/3.1536E13)*(utime/udist)
+            print *,'pmrate in options = ', pmrate
+            READ (iterm, *) rorbitmax
+         ENDIF
       ENDIF
 
       xmass = 0.
+      iandrea = 0
       IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7) THEN
          READ (iterm, *) xmass
       ENDIF
-      IF (iexf.EQ.7) THEN
+      IF (iexf.EQ.7 .OR. (ibound.EQ.102 .AND. initialptm.EQ.0)) THEN
          READ (iterm, *) planetmass
          READ (iterm, *) rplanet
+         IF (iexf.EQ.7) READ (iterm, *) iandrea
       ENDIF
 
-      IF (ibound.EQ.102 .AND. iexf.NE.7) THEN
-         READ (iterm, *) rplanet
-         IF (initialptm.EQ.5) THEN
+      IF (ibound.EQ.102 .AND. initialptm.EQ.5) THEN
             READ (iterm, *) uniformtslim
             uniformtslim2 = uniformtslim*uniformtslim
-         ENDIF
       ENDIF
 
       IF (iptmass.NE.0 .OR. initialptm.NE.0) THEN

@@ -73,6 +73,7 @@ c************************************************************
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/divcurlB'
+      INCLUDE 'COMMONS/diskbd'
 
 c      DIMENSION nsteplist(30)
 
@@ -1246,6 +1247,7 @@ C$OMP& shared(ikilled,nactive,nkill,time,iorig,nlstacc,listacc)
 C$OMP& shared(anglostx,anglosty,anglostz)
 C$OMP& shared(dumBevolxyz,Bevolxyz)
 C$OMP& shared(variation,phibound,nlistinactive,listinactive)
+C$OMP& shared(rcyl,rmind)
 C$OMP& private(i,j,k)
 C$OMP& private(r2,pmassi,phiparticle)
 c
@@ -1313,6 +1315,36 @@ C$OMP CRITICAL (killparticle)
                   CALL quit
                ENDIF
                listinactive(nlistinactive) = i
+
+               nactive = nactive - 1
+               nkill = nkill + 1
+               WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
+     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
+     &              poten(i),dgrav(i)
+               CALL FLUSH(ikillpr)
+C$OMP END CRITICAL (killparticle)
+               GOTO 855
+            ENDIF
+         ENDIF
+
+c
+c--Dead particle boundaries - planet embedded in whole disc
+c
+         IF (ibound.EQ.102) THEN
+            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
+            IF ((r2.GT.rcyl**2 .AND. iphase(i).EQ.0) .OR.
+     &           (r2.LE.rmind**2 .AND. iphase(i).GT.0) .OR.
+     &           (r2.GT.(2.*rcyl)**2 .AND. iphase(i).GT.0)) THEN
+               iphase(i) = -1
+C$OMP CRITICAL (killparticle)
+               ikilled = 1
+
+               nlstacc = nlstacc + 1
+               IF (nlstacc.GT.nlstaccmax) THEN
+                  WRITE (iprint,*) 'ERROR step nlstacc'
+                  CALL quit
+               ENDIF
+               listacc(nlstacc) = i
 
                nactive = nactive - 1
                nkill = nkill + 1

@@ -113,10 +113,11 @@ c
 #else
       IF (nlst0.GT.nptmass) idoaccrete = .TRUE.
 #endif
-      IF (idoaccrete) THEN
+      IF (idoaccrete .AND. initialptm.NE.5) THEN
 c
 c--Only allow accretion of GAS particles evaluated at the CURRENT timestep
 c     iremove is initialised in evol.f to -1
+c  Added removal of planetesimals (iphase.EQ.11).
 c
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst0,llist,iphase,iremove)
@@ -129,7 +130,7 @@ C$OMP DO SCHEDULE(runtime)
             WRITE (*,*) 'ERROR - accrete iremove ',iremove(j),j,nlst0
             CALL quit
          ENDIF
-         IF (iphase(j).EQ.0) iremove(j) = 0
+         IF (iphase(j).EQ.0 .OR. iphase(j).EQ.11) iremove(j) = 0
       END DO
 C$OMP END DO
 
@@ -1102,7 +1103,6 @@ c                   (c) local pressure gradient correction to pressure force
 c                   (d) local shear viscosity correction
 c              5  Point mass with a surface that prevents sink accretion.
 c                 The surface is applied in gpti, gptfromgas.
-c                 Requires that iptintree=0.
 c              6  Removes gas but doesn't absorb any of its properties.
 c
 c     hacc    = outer radius at which particle's accretion begins
@@ -1114,7 +1114,7 @@ c--Only to be done if all sink particles and some gas is being moved
 c     (mainly comes into force if individualtimesteps=2 which allows 
 c     sinks to have individual timesteps).
 c
-      IF (idoaccrete) THEN
+      IF (idoaccrete .AND. initialptm.NE.5) THEN
          nlstaccold = nlstacc
 #ifdef MPI
 c
@@ -1517,7 +1517,12 @@ c
  566           IF (nboundto.NE.iii) vpotdif = 1.0E+10
 
                IF(vpotdif.LE.0. .AND. specangmom2.LT.specangmomhacc2
-     &              .OR. r2.LT.haccall2 .OR. iphase(i).EQ.1) THEN
+     &              .OR. r2.LT.haccall2 .OR. iphase(i).EQ.1 .OR.
+     &              ibound.EQ.102) THEN
+
+c--haccall<haccmin, but haccall cannot be set for an individual planet.
+c  Therefore, for ibound=102 get through above condition to below,
+c  where haccmin is set based on xyzmh(5,i), which is planet radius.
 
                   IF (r2.LT.haccmin2 .OR. (iphase(i).EQ.3 .AND.
      &                 pmassjn.LT.pmassleast)) THEN
@@ -1589,7 +1594,7 @@ c      angular momentum
 c      linear momentum
 c
                   IF (notacc(j)) GOTO 888
-                  IF (iphase(i).EQ.6) GOTO 888
+                  IF (iphase(i).EQ.6 .OR. iphase(i).EQ.5) GOTO 888
                   pmiold = ptmsyn(iii) + ptmadd(iii)
                   ptmadd(iii) = ptmadd(iii) + pmassj
                   totalmass = ptmsyn(iii) + ptmadd(iii)

@@ -55,13 +55,14 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/abundances'
       INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/pxpy'
 
       CHARACTER*7 where
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
       INTEGER*8 number8
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
-      PARAMETER (idimhead = 23)
+      PARAMETER (idimhead = 25)
       DIMENSION rheader(idimhead)
 
       DATA icall/2/
@@ -76,6 +77,9 @@ c
       icount = 0
       icountsink = 0
       nhydrocumulative = 0
+
+      iplanetesimals = 0
+      irotpot = 0
 c
 c--Dump file
 c-------------
@@ -134,6 +138,15 @@ c--Default int
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks,iyr,idum,(iv(i), i=1,NTAB)
          print *,'USING 9+NTAB'
+      ELSEIF (number.EQ.10+NTAB) THEN
+         READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
+     &        nblocks,iyr,idum,(iv(i), i=1,NTAB), iplanetesimals
+         print *,'USING 10+NTAB'
+      ELSEIF (number.EQ.11+NTAB) THEN
+         READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
+     &        nblocks,iyr,idum,(iv(i), i=1,NTAB), iplanetesimals,
+     &        irotpot
+         print *,'USING 11+NTAB'
       ELSEIF (number.EQ.7) THEN
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks
@@ -223,6 +236,20 @@ c  D.Price 14.5.07
       ELSE
          gapfac = 0.
       ENDIF
+      IF (number.GE.24) THEN
+         sdprof = rheader(24)
+      ELSE
+         sdprof = -0.5
+         print *, 'Surface density pre vary (goes as r^-0.5)'
+      ENDIF
+      IF (number.GE.25 .AND. imigrate.EQ.1) THEN
+         rorbit_orig = rheader(25)
+         rorbitmax = (rorbitmax - rorbit_orig)/pmrate
+      ELSE
+         rorbit_orig = 0.0
+         rorbitmax = 0.0
+      ENDIF
+
 
 c--real*4
       READ (idisk1, END=100) number

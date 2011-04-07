@@ -63,6 +63,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/f2'
       INCLUDE 'COMMONS/abundances'
       INCLUDE 'COMMONS/perform'
+      INCLUDE 'COMMONS/pxpy'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -189,11 +190,11 @@ c      n2tot = n2
 #endif
 c
 c--Default int
-      number = 9 + NTAB
+      number = 11 + NTAB
       WRITE (idisk1, ERR=100) number
       WRITE (idisk1, ERR=100) nparttot,n1,n2,nreassigntot,
      &     naccretetot,nkilltot,nblocks,iyr,idum,
-     &     (iv(i),i=1,NTAB)
+     &     (iv(i),i=1,NTAB), iplanetesimals, irotpot
 
 c--int*1, int*2, int*4
       number = 0
@@ -209,7 +210,7 @@ c--Default real
 c
 c--Full dump
 c
-      number = 23
+      number = 25
 
       pmassinitial = 0.
       IF (ifulldump.NE.0) THEN
@@ -257,7 +258,8 @@ c      print *,'stuff ',gt, dtmax, gamma, rhozero, RK2
      &     escaptot, tkintot, tgravtot, ttermtot, 
      &     anglostxtot, anglostytot, anglostztot,
      &     specangtot, ptmassintot, tmagtot, Bextx, Bexty, Bextz,
-     &     hzero, uzero_n2, hmass, gapfac, pmassinitial
+     &     hzero, uzero_n2, hmass, gapfac, pmassinitial, sdprof,
+     &     rorbit_orig
 
 c--real*4
       number = 0

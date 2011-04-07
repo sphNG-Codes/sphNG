@@ -63,6 +63,8 @@ c      INCLUDE 'COMMONS/rad2'
       INCLUDE 'COMMONS/current'
       INCLUDE 'COMMONS/boundheight'
       INCLUDE 'COMMONS/diskbd'
+      INCLUDE 'COMMONS/andrea'
+      INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/radtran2'
       INCLUDE 'COMMONS/polyk2'
       INCLUDE 'COMMONS/bodys'
@@ -882,6 +884,9 @@ c
       ihasghostcount = 0
       ihasghost = 0
 
+      IF (ibound.EQ.100 .AND. iandrea.EQ.1)
+     &     hmass_e = hillmass(planetmass, 0, xmass) - planetmass
+
 C$OMP PARALLEL default(none)
 C$OMP& shared(EU0,uergg,ekcle,Rg)
 C$OMP& shared(vxyzu,lightspeed,uradconst,iprint,ddvtable)
@@ -890,9 +895,13 @@ C$OMP& shared(rho,vari,ivar,ijvar,varij,ijvar2,varij2,bounddens)
 C$OMP& shared(xyzmh,dvtable,grwij,cnormk,adiabaticgradient)
 C$OMP& shared(dvdx,ihasghost,iflag,origEU,vsmooth,iphase,ifullstep)
 C$OMP& shared(ntot,ncompactlocal,radkernel,gradhs,ncompact)
+C$OMP& shared(ibound,hmass_e,e_planetesimal,iandrea)
+C$OMP& shared(prmin,princ,pmmin,pminc,ptable,udist)
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend)
 #endif
+C$OMP& private(radius,index_r,index_m,y1,y2,y3,y4,w,v)
+C$OMP& private(enp)
 C$OMP& private(n,i,j,k,rhoi,icompact,pmi)
 C$OMP& private(dvxdxi,dvxdyi,dvxdzi,dvydxi,dvydyi,dvydzi)
 C$OMP& private(dvzdxi,dvzdyi,dvzdzi,dti,dx,dy,dz)
@@ -953,6 +962,53 @@ c            adiabaticgradient(i) = Rg/(cv_effective*uergg + Rg)
 cTEST
                   dti = dtimax*isteps(i)/2.0
                ENDIF
+            ENDIF
+
+c
+c--Addition of energy due to planetesimal collisions with planetary
+c  atmosphere. Tables provided by Andrea Fortier.
+c
+            IF (ibound.EQ.100 .AND. iandrea.EQ.1) THEN
+               radius = sqrt((xyzmh(1,i)-1.0)**2 + xyzmh(2,i)**2 +
+     &                 xyzmh(3,i)**2)
+               radius = log10(radius*udist)
+               index_r = INT((radius - prmin)/princ) + 1
+               index_m = INT((hmass_e - pmmin)/pminc) + 1
+               IF (index_r.GE.rbins) index_r = rbins-1
+               IF (index_m.GE.mbins) index_m = mbins-1
+               IF (radius.LT.prmin) THEN
+                  print *, 'Radius too small for Fortier tables'
+                  STOP
+               ENDIF
+               
+               y1=ptable(index_m,index_r)
+               y2=ptable(index_m+1,index_r)
+               y3=ptable(index_m+1,index_r+1)
+               y4=ptable(index_m,index_r+1)
+
+               IF (y1.LT.tiny .OR. y2.LT.tiny .OR. y3.LT.tiny .OR.
+     &              y4.LT.tiny) THEN
+                  e_planetesimal(i) = 0.0
+                  goto 250
+               ENDIF
+
+               y1=log10(y1)
+               y2=log10(y2)
+               y3=log10(y3)
+               y4=log10(y4)
+               
+               w = (log10(radius) - log10(prmin+(index_r-1)*princ))/
+     &              (log10(prmin+(index_r*princ)) - 
+     &              log10(prmin+((index_r-1)*princ)))
+               v = (log10(hmass_e) - log10(pmmin+(index_m-1)*pminc))/
+     &              (log10(pmmin+(index_m*pminc)) - 
+     &              log10(pmmin+((index_m-1)*pminc)))
+                  
+               enp = (1.0-v)*(1.0-w)*y1 + v*(1.0-w)*y2 +
+     &              w*v*y3 + (1.0-v)*w*y4
+               e_planetesimal(i) = (10.0**enp)
+
+ 250           continue
             ENDIF
 
             dvxdxi = 0.
@@ -1280,6 +1336,7 @@ C$OMP& shared(xpres_numerator,xpres_denominator,xtfour,ikick)
 C$OMP& shared(pdvvisc)
 C$OMP& shared(hoverr,ibound)
 C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)
+C$OMP& shared(e_planetesimal)
 C$OMP& shared(iunique,iorig,n1,n2)
 #ifdef MPI
 C$OMP& shared(istart,ntot,istartrec,inumbertotal,inumberreturned)
@@ -2109,8 +2166,9 @@ c            u4term = gammaval*dti*(chival + betaval - 1.0)
      &           radpresdenom/EU0(1,I)) - 1.0)
             u1term = (chival-1.0)*(1.0-dti*pres_denominator)
             u0term = betaval*origEU(1,i) + (chival-1.0)*(-origEU(2,i)-
-     &        dti*pres_numerator) + dti*diffusion_numerator*betaval +
-     &        stellarradiation*betaval
+     &           dti*pres_numerator - dti*e_planetesimal(i)) + 
+     &           dti*diffusion_numerator*betaval +
+     &           stellarradiation*betaval
 
             IF (u1term.GT.0.0 .AND. u0term.GT.0.0 .OR. u1term.LT.0.0 
      &           .AND. u0term.LT.0.0) THEN
@@ -2186,6 +2244,7 @@ c               tfour = (origEU(1,i) - EU0(1,I))/dti + (diffusion_numerator +
 c     &              diffusion_denominator*EU0(1,I) - radpresdenom)
 c            ENDIF
             dUcomb = pres_numerator + pres_denominator*EU0(2,I) + tfour
+     &           + e_planetesimal(i)
             dEcomb = diffusion_numerator + diffusion_denominator*
      &           EU0(1,I) - tfour - radpresdenom + stellarradiation
 

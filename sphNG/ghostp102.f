@@ -25,6 +25,7 @@ c************************************************************
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/xforce'
 
 c      REAL*4 rhoreal4
 
@@ -81,7 +82,7 @@ c
             xyzmh(3,nptot) = zi
             xyzmh(4,nptot) = pmassi
             xyzmh(5,nptot) = hi
-            vg = 1.0/SQRT(rgr)
+            vg = xmass/SQRT(rgr)
             ang1 = ATAN2(yi,xi)
             vxyzu(1,nptot) = - vg*SIN(ang1)
             vxyzu(2,nptot) = vg*COS(ang1)
@@ -107,7 +108,7 @@ c
                   xyzmh(3,nptot) = zi
                   xyzmh(4,nptot) = pmassi
                   xyzmh(5,nptot) = hi
-                  vg = 1.0/SQRT(rgr)
+                  vg = xmass/SQRT(rgr)
                   ang1 = ATAN2(yi,xi)
                   vxyzu(1,nptot) = - vg*SIN(ang1)
                   vxyzu(2,nptot) = vg*COS(ang1)

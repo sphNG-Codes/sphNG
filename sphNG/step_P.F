@@ -2060,7 +2060,7 @@ c
 c--Resistivity which is a function of density
                   etai = etafunc(rho(i),vxyzu(4,i))
                   IF (etai.GT.tiny) THEN
-                     dteta = 0.5*xyzmh(5,i)**2/etai
+                     dteta = 0.15*xyzmh(5,i)**2/etai
                      rmodeta = dteta/(dt*isteps(i)/imaxstep)
                      IF (rmodeta.LT.rmod) THEN
                         istepeta = istepeta + 1
@@ -2072,7 +2072,7 @@ c--Resistivity which is a function of density
                ELSEIF (iresist.EQ.1) THEN
 c--Constant resistivity
                   IF (etamhd.GT.tiny) THEN
-                     dteta = 0.5*xyzmh(5,i)**2/etamhd
+                     dteta = 0.15*xyzmh(5,i)**2/etamhd
                      rmodeta = dteta/(dt*isteps(i)/imaxstep)
                      IF (rmodeta.LT.rmod) THEN
                         istepeta = istepeta + 1

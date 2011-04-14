@@ -1212,13 +1212,6 @@ c
       CALL dissipative_source(nlst_in,nlst_end,nlst_tot,llist,itime,
      &     npart,ntot,xyzmh,dha,dumrho,vsound,alphaMM,Bxyz)
 
-
-      DO i = nlst_in,nlst_end
-         ipart = llist(i)
-         print *,'Exit derivi ',ipart,vxyzu(1,ipart),vsound(ipart)
-      END DO
-
-
 #ifdef MPIDEBUG
       print *,iproc,': Exited derivi ',itime
 #endif

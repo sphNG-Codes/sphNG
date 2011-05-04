@@ -15,6 +15,7 @@ c
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/boundheight'
+      INCLUDE 'COMMONS/typef'
 
       REAL mu
 c

@@ -24,7 +24,6 @@
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/diskbd'
       INCLUDE 'COMMONS/expan'
-      INCLUDE 'COMMONS/kerne'
       INCLUDE 'COMMONS/files'
       INCLUDE 'COMMONS/actio'
       INCLUDE 'COMMONS/logun'

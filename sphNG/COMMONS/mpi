@@ -24,9 +24,9 @@
       COMMON /mpireq/ istatus(MPI_STATUS_SIZE),
      &           irequest_array(2*nummaxproc), 
      &           istatus_array(MPI_STATUS_SIZE,2*nummaxproc),
-     &       nneighfull(idim)
+     &       nneighfull(idim_MPI)
 
-      COMMON /mpiarri/ lsendlist(idim), llistrec(idim), 
+      COMMON /mpiarri/ lsendlist(idim_MPI), llistrec(idim_MPI), 
      &     nneighsentback(nummaxproc),
      &     nneightogetback(nummaxproc),
      &     nneighsink(nummaxproc),

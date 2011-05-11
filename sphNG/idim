@@ -1,7 +1,7 @@
       INTEGER idim, idim2, idim3, iptdim, iptneigh, nlmax
       INTEGER mmax, mmax2, iradtrans, iradtrans2
       INTEGER imhd, imhd2, imhd3, imhdxsph, isizealphaMM
-      INTEGER idim_h2, idim_h2_2
+      INTEGER idim_h2, idim_h2_2, idim_MPI
       REAL tiny
 
       PARAMETER (idim=1201000)
@@ -9,6 +9,11 @@
       PARAMETER (iptdim=1000)
       PARAMETER (iptneigh=10000)
       PARAMETER (tiny=1.0E-20)
+c
+c--For MPI need to set these
+c
+c      PARAMETER (idim_MPI=idim)
+      PARAMETER (idim_MPI=1)
 c
 c--Flag for using grad-h version of code is nlmax=1
 c      PARAMETER (nlmax = 90)
@@ -30,24 +35,18 @@ c      PARAMETER (idim_h2 = idim)
       PARAMETER (idim_h2 = 1)
 c
 c--Parameters derived from those defined above.
-c     NOTE:  If you are running a non-MPI calculation and you are short
-c     of memory you should set idim2 = idim and idim3 = idim and
-c     mmax2 = mmax
 c
-      PARAMETER (idim2 = idim*2)
-      PARAMETER (idim3 = idim*3)
-c      PARAMETER (idim2 = idim)
-c      PARAMETER (idim3 = idim)
+      PARAMETER (idim2 = idim + idim_MPI)
+      PARAMETER (idim3 = idim + 2*idim_MPI)
 
       PARAMETER (mmax=2*idim + 2)
-      PARAMETER (mmax2=mmax + idim)
-c      PARAMETER (mmax2=mmax)
+      PARAMETER (mmax2=mmax + idim_MPI)
 
       PARAMETER (imhdxsph=imhd)
 
       PARAMETER (isizealphaMM=imhd/idim+1)
 
-      PARAMETER (imhd2 = imhd*2)
-      PARAMETER (imhd3 = imhd*3)
-      PARAMETER (iradtrans2 = iradtrans*2)
-      PARAMETER (idim_h2_2 = idim_h2*2)
+      PARAMETER (imhd2 = imhd + idim_MPI)
+      PARAMETER (imhd3 = imhd + 2*idim_MPI)
+      PARAMETER (iradtrans2 = iradtrans + idim_MPI)
+      PARAMETER (idim_h2_2 = idim_h2 + idim_MPI)

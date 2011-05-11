@@ -86,6 +86,7 @@ c      INCLUDE 'COMMONS/vsmooth'
       INCLUDE 'COMMONS/presb'
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/gravi'
+      INCLUDE 'COMMONS/divcurlB'
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
@@ -237,7 +238,7 @@ C$OMP END PARALLEL DO
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none) 
 C$OMP& shared(nlstdo,ldolist,isucceed,xyzmh,hi_old,it1,isteps,imaxstep)
 C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)
-C$OMP& shared(iphase,dBxyz,it0,itime,curlv,gradhs)
+C$OMP& shared(iphase,dBxyz,divcurlB,it0,itime,curlv,gradhs)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend)
 #endif
@@ -303,6 +304,9 @@ c            ENDIF
          IF (imhd.EQ.idim) THEN
             DO k = 1, 3
                dBxyz(k,ipart) = 0.
+            END DO
+            DO k = 1, 4
+               divcurlB(k,ipart) = 0.
             END DO
          ENDIF
       END DO

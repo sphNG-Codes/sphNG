@@ -268,8 +268,8 @@ FFLAGSKEEP := ${FFLAGS}
 # these are the sources common to all compilations
 
 SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
-	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f \
-	chekopt.f condense.f constan.f coolcurve.f coolinmo.F cool_func.F \
+	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f chekopt.f \
+	classify_MPI.F condense.f constan.f coolcurve.f coolinmo.F cool_func.F \
 	coriol.f cyldis.f cylmas.f cylpres.f cylvel.f discboundary.f dustorbit.f \
 	endrun.f energ.f energ_cooling.f eospg.f error.f evol.f externf.f \
 	externBfield.f \
@@ -469,6 +469,11 @@ binary: checksystem checkparams utils/binary.o
 convert: checksystem checkparams utils/convert.o utils/readdump_sphNG.o utils/writedump_ascii.o
 	$(FC) $(FFLAGS) -o $@ utils/convert.o utils/writedump_ascii.o utils/readdump_sphNG.o
 
+# convert from scalar dump file to MPI dump file (i.e. multiple blocks)
+
+convertmpi: checksystem checkparams utils/convert_to_mpi.o wdump.o rdump.o error.o classify_MPI.o file.o options.o chekopt.o lunit_double.o
+	$(FC) $(FFLAGS) -o $@ utils/convert_to_mpi.o wdump.o rdump.o error.o classify_MPI.o file.o options.o chekopt.o lunit_double.o
+
 # convert from full to small dump file
 
 convertfs: checksystem checkparams utils/convert_full_small.o wdump.o rdump.o error.o balance.o
@@ -487,6 +492,11 @@ massvsangmom: checksystem checkparams utils/massvsangmom.o utils/readdump_sphNG.
 
 masswithtime: checksystem checkparams utils/masswithtime.o utils/readdump_sphNG.o idim
 	$(FC) $(FFLAGS) -o $@ utils/masswithtime.o utils/readdump_sphNG.o
+
+# set up particle distribution without using entire SPH executable
+
+setup_alone: checksystem checkparams utils/setup_alone.o wdump.o error.o file.o chekopt.o lunit_double.o setpart.o ktable.o unifdis.o condense.o cartmas.o cylmas.o sphmas.o cartdis.o cyldis.o sphdis.o cartpres.o cylpres.o sphpres.o eospg.o setBfield_mhd.o inopts.o cartvel.o cylvel.o sphvel.o gapfactor.o uset.o wrinsph.o constan.o ran1.o unit.o $(ZZFILE:.f=.o)
+	$(FC) $(FFLAGS) -o $@ utils/setup_alone.o wdump.o error.o file.o chekopt.o lunit_double.o setpart.o ktable.o unifdis.o condense.o cartmas.o cylmas.o sphmas.o cartdis.o cyldis.o sphdis.o cartpres.o cylpres.o sphpres.o eospg.o setBfield_mhd.o inopts.o cartvel.o cylvel.o sphvel.o gapfactor.o uset.o wrinsph.o constan.o ran1.o unit.o $(ZZFILE:.f=.o)
 
 getdeltat: checksystem checkparams utils/getdeltat.o utils/readdump_sphNG.o idim
 	$(FC) $(FFLAGS) -o $@ utils/getdeltat.o utils/readdump_sphNG.o

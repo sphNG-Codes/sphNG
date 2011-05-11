@@ -48,6 +48,7 @@ c************************************************************
       INCLUDE 'COMMONS/divve'
       INCLUDE 'COMMONS/eosq'
       INCLUDE 'COMMONS/abundances'
+      INCLUDE 'COMMONS/divcurlB'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -61,6 +62,7 @@ c
       CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL4, i4REAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(isizealphaMM, MPI_REAL4, 
      &     ialphaREAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(isizealphaMM+1, MPI_REAL4, 
@@ -70,6 +72,7 @@ c
       CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
+      CALL MPI_TYPE_COMMIT(i4REAL4,ierr)
       CALL MPI_TYPE_COMMIT(ialphaREAL4,ierr)
       CALL MPI_TYPE_COMMIT(ialphaREAL41,ierr)
 
@@ -201,7 +204,7 @@ c        it0, it1, it2, f1vxyzu, f2vxyzu, rho, dumrho
 c     For sinks: all sink arrays: listpm, spinx,y,z, angadd, spinad
 c     For RT: ekcle
 c     For MHD: Bevolxyz, Bxyz, alphaMM(isizealphaMM,i),
-c        f1Bxyz, f2Bxyz
+c        f1Bxyz, f2Bxyz, divcurlB
 c
 c     Other points to note: ??dumxyzmh, ??dumvxyzu, it1bin, it2bin,
 c        nlstbins, listbins, iscurrent
@@ -263,6 +266,13 @@ c     &       lsendlist, i2REAL4, indexMPI2, ierr)
      &                       lblocklengths, lsendlist, i2REAL4, 
      &                       indexMPI2, ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI2,ierr)
+
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
+c     &       lsendlist, i4REAL4, indexMPI44, ierr)
+                        CALL MPI_TYPE_INDEXED(numlist(j+1), 
+     &                       lblocklengths, lsendlist, i4REAL4, 
+     &                       indexMPI44, ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI44,ierr)
 
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
 c     &       lsendlist, MPI_REAL4, indexMPI1, ierr)
@@ -405,6 +415,9 @@ c     &                          MPI_COMM_WORLD, ierr)
                   
                            CALL MPI_SEND(f2Bxyz,1,indexMPI3,j,119,
      &                          MPI_COMM_WORLD, ierr)
+
+                           CALL MPI_SEND(divcurlB,1,indexMPI44,j,160,
+     &                          MPI_COMM_WORLD, ierr)
                         ENDIF
 
                         IF (encal.EQ.'r') THEN
@@ -417,6 +430,7 @@ c
                         CALL MPI_TYPE_FREE(indexMPIalpha1,ierr)
                         CALL MPI_TYPE_FREE(indexMPIalpha,ierr)
                         CALL MPI_TYPE_FREE(indexMPI1,ierr)
+                        CALL MPI_TYPE_FREE(indexMPI44,ierr)
                         CALL MPI_TYPE_FREE(indexMPI2,ierr)
                         CALL MPI_TYPE_FREE(indexMPI_INT8,ierr)
                         CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
@@ -839,6 +853,14 @@ c                  ENDIF
                      WRITE (*,*) 'ERROR - balance igotnumber'
                      CALL quit
                   ENDIF
+
+                  CALL MPI_RECV(divcurlB(1,npartnew+1), idim, i4REAL4,
+     &                 iprocrec, 160, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, i4REAL4, inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber'
+                     CALL quit
+                  ENDIF
                ENDIF
 
                IF (encal.EQ.'r') THEN
@@ -1175,6 +1197,7 @@ c
 
       CALL MPI_TYPE_FREE(ialphaREAL41,ierr)
       CALL MPI_TYPE_FREE(ialphaREAL4,ierr)
+      CALL MPI_TYPE_FREE(i4REAL4,ierr)
       CALL MPI_TYPE_FREE(i2REAL4,ierr)
       CALL MPI_TYPE_FREE(i3REAL8,ierr)
       CALL MPI_TYPE_FREE(i4REAL8,ierr)
@@ -1415,8 +1438,7 @@ c************************************************************
       INCLUDE 'COMMONS/active'
 
       DIMENSION listtrans(idim), numlist(nummaxproc), xyzmh(5,idim)
-      INTEGER classify_cartesian, classify_disc, classify_sphere,
-     &     classify_binary
+      INTEGER classify
       INTEGER*1 iphase(idim2)
       REAL*4 rhomaxlocal,rhomaxtot
 
@@ -1871,19 +1893,8 @@ c--Now classify every particle as to which MPI process it should belong to
 c
       DO ipart = 1, npart
          IF (iphase(ipart).GE.0) THEN
-            IF (mpitype.EQ.'b') THEN
-               ibelong = classify_binary(ipart,xyzmh)
-            ELSEIF (mpitype.EQ.'c') THEN
-               ibelong = classify_cartesian(ipart,xyzmh)
-            ELSEIF (mpitype.EQ.'d') THEN
-               ibelong = classify_disc(ipart,xyzmh)
-            ELSEIF (mpitype.EQ.'p') THEN
-               ibelong = classify_disc(ipart,xyzmh)
-            ELSEIF (mpitype.EQ.'r') THEN
-               ibelong = classify_disc(ipart,xyzmh)
-            ELSEIF (mpitype.EQ.'s') THEN
-               ibelong = classify_sphere(ipart,xyzmh)
-            ENDIF
+            ibelong = classify(mpitype,ipart,xyzmh)
+
             ibelong1 = ibelong + 1
             numlist(ibelong1) = numlist(ibelong1) + 1
             listtrans(ipart) = ibelong
@@ -1899,215 +1910,6 @@ c
       IF (ifirst) THEN
          ifirst = .FALSE.
       ENDIF
-
-      RETURN
-      END
-
-c---------------------------------------------------------------------------
-
-      FUNCTION classify_disc(ipart,xyzmh)
-c************************************************************
-c                                                           *
-c  Subroutine to determine which MPI process a particle     *
-c     should be on.                                         *
-c     This version is applicable to disc geometries.        *
-c     The split is done on z (assumed rotation axis) first. *
-c     The split is located at xlocationmpi, ylocationmpi,   *
-c     zlocationmpi.
-c                                                           *
-c************************************************************
-
-      INCLUDE 'idim'
-      INCLUDE 'igrape'
-
-#ifdef MPI
-      INCLUDE 'mpif.h'
-      INCLUDE 'COMMONS/mpiall'
-      INCLUDE 'COMMONS/mpi'
-      INCLUDE 'COMMONS/mpidebug'
-#endif
-      INCLUDE 'COMMONS/physcon'
-      INCLUDE 'COMMONS/rbnd'
-
-      DIMENSION xyzmh(5,idim)
-
-      INTEGER classify_disc
-
-      ival = 0
-
-#ifdef MPI
-      xcen = xyzmh(1,ipart) - xlocationmpi
-      ycen = xyzmh(2,ipart) - ylocationmpi
-      zcen = xyzmh(3,ipart) - zlocationmpi
-
-      IF (mpitype.EQ.'p') THEN
-         IF (xcen**2+ycen**2+zcen**2.GT.(0.5*phibound)**2) GOTO 100
-      ENDIF
-
-      IF (zcen.LT.0.0) THEN
-         ival = 1
-      ELSE
-         ival = 0
-      ENDIF
-
-      phiincrement = 2.0*pi/(numproc/2)
-
-      IF (xcen.EQ.0. .AND. ycen.EQ.0.) THEN
-         ival = 0
-      ELSE
-         ival = ival*numproc/2 +
-     &     INT((pi + ATAN2(ycen,xcen))/phiincrement)
-      ENDIF
-
- 100  IF (ival.GT.numproc) ival = numproc
-#endif
-
-      classify_disc = ival
-
-      RETURN
-      END
-
-
-c---------------------------------------------------------------------------
-
-      FUNCTION classify_sphere(ipart,xyzmh)
-c************************************************************
-c                                                           *
-c  Subroutine to determine which MPI process a particle     *
-c     should be on.                                         *
-c     This version is applicable to disc geometries.        *
-c     The split is done on z (assumed rotation axis) first. *
-c                                                           *
-c************************************************************
-
-      INCLUDE 'idim'
-      INCLUDE 'igrape'
-
-#ifdef MPI
-      INCLUDE 'mpif.h'
-      INCLUDE 'COMMONS/mpiall'
-      INCLUDE 'COMMONS/mpi'
-      INCLUDE 'COMMONS/mpidebug'
-#endif
-      INCLUDE 'COMMONS/physcon'
-
-      DIMENSION xyzmh(5,idim)
-
-      INTEGER classify_sphere
-
-      ival = 0
-
-      classify_sphere = ival
-
-      RETURN
-      END
-
-
-c---------------------------------------------------------------------------
-
-      FUNCTION classify_cartesian(ipart,xyzmh)
-c************************************************************
-c                                                           *
-c  Subroutine to determine which MPI process a particle     *
-c     should be on.                                         *
-c     This version is applicable to cartesian geometries.   *
-c     The split is done on x then y then z, then back to x. *
-c                                                           *
-c************************************************************
-
-      INCLUDE 'idim'
-      INCLUDE 'igrape'
-
-#ifdef MPI
-      INCLUDE 'mpif.h'
-      INCLUDE 'COMMONS/mpiall'
-      INCLUDE 'COMMONS/mpi'
-      INCLUDE 'COMMONS/mpidebug'
-#endif
-      INCLUDE 'COMMONS/physcon'
-
-      DIMENSION xyzmh(5,idim)
-
-      INTEGER classify_cartesian
-
-      ival = 0
-
-#ifdef MPI
-      DO idimension = 1, 3
-         DO number = 1, nsplit(idimension) - 1
-            IF (xyzmh(idimension,ipart).LT.
-     &           splitcoords(number,idimension)) THEN
-               ival = ival + number - 1
-               GOTO 100
-            ENDIF
-         END DO
-         ival = ival + nsplit(idimension) - 1
- 100     IF (idimension.LT.3) ival = ival*nsplit(idimension+1)
-      END DO
-
-      IF (ival.GT.numproc) THEN
-         WRITE (*,*) 'ERROR - classify_cartesian ',numproc,ival
-         CALL quit
-      ENDIF
-#endif
-
-      classify_cartesian = ival
-
-      RETURN
-      END
-
-c---------------------------------------------------------------------------
-
-      FUNCTION classify_binary(ipart,xyzmh)
-c************************************************************
-c                                                           *
-c  Subroutine to determine which MPI process a particle     *
-c     should be on.                                         *
-c     This version is applicable to cartesian geometries.   *
-c     It does binary splits.                                *
-c     The splits are done on x then y, z, then back to x.   *
-c                                                           *
-c************************************************************
-
-      INCLUDE 'idim'
-      INCLUDE 'igrape'
-
-#ifdef MPI
-      INCLUDE 'mpif.h'
-      INCLUDE 'COMMONS/mpiall'
-      INCLUDE 'COMMONS/mpi'
-      INCLUDE 'COMMONS/mpidebug'
-#endif
-      INCLUDE 'COMMONS/physcon'
-
-      DIMENSION xyzmh(5,idim)
-
-      INTEGER classify_binary
-
-      ival = 0
-
-#ifdef MPI
-      nsplits = INT(LOG(REAL(numproc)+0.1)/LOG(2.0))
-      DO i = 1, nsplits
-         idimension = MOD(i-1,3)+1
-
-         IF (i.EQ.1) THEN
-            ipos = 1
-         ELSE
-            ipos = MOD(ival,2**(i-1)) + 2**(i-1)
-         ENDIF
-
-         IF (xyzmh(idimension,ipart).GE.binarysplits(ipos))
-     &        ival = ival + 2**(i-1)
-      END DO
-
-      IF (ival.GT.numproc) THEN
-         WRITE (*,*) 'ERROR - classify_binary ',numproc,ival
-         CALL quit
-      ENDIF
-#endif
-
-      classify_binary = ival
 
       RETURN
       END
@@ -2159,6 +1961,7 @@ c*************************`***********************************
       INCLUDE 'COMMONS/divve'
       INCLUDE 'COMMONS/eosq'
       INCLUDE 'COMMONS/abundances'
+      INCLUDE 'COMMONS/divcurlB'
 
       DO i = 1, 5
          xyzmh(i,ito) = xyzmh(i,ifrom)
@@ -2224,6 +2027,9 @@ c         h2mol(ito) = h2mol(ifrom)
             Bxyz(i,ito) = Bxyz(i,ifrom)
             f1Bxyz(i,ito) = f1Bxyz(i,ifrom)
             f2Bxyz(i,ito) = f2Bxyz(i,ifrom)
+         END DO
+         DO i = 1, 4
+            divcurlB(i,ito) = divcurlB(i,ifrom)
          END DO
       ENDIF
       IF (iradtrans.EQ.idim) THEN

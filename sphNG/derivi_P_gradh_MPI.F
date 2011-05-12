@@ -107,6 +107,7 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
       INCLUDE 'COMMONS/divcurlB'
       INCLUDE 'COMMONS/gradhterms'
       INCLUDE 'COMMONS/compact'
+      INCLUDE 'COMMONS/initpt'
 
       DIMENSION dedxyz(3,iradtrans2)
 #ifdef MPI
@@ -140,13 +141,19 @@ c
 
       IF (iexf.EQ.7 .OR. ibound.EQ.102) THEN
          realtime = dt*itime/imaxstep+gt
-         IF (rplanet.NE.0.0) THEN
-            pradfac = (rplanet + (0.01*exp(-4.*realtime/pi)))/rplanet
+         IF (rplanet.GT.1.0E-10) THEN
+            pradfac(1) = (rplanet + (0.01*exp(-4.*realtime/pi)))/rplanet
 c--Double shrink time.
-c            pradfac = (rplanet + (0.01*exp(-2.*realtime/pi)))/rplanet
-            IF (pradfac.LT.1.001) pradfac = 1.0
+c            pradfac(1) = (rplanet + (0.01*exp(-2.*realtime/pi)))/rplanet
+            IF (pradfac(1).LT.1.001) pradfac(1) = 1.0
+         ELSEIF (initialptm.EQ.5) THEN
+            DO i = 1, nptmass
+               pradfac(i) = (xyzmh(5,listpm(i)) + (0.01*exp(-4.*
+     &              realtime/pi)))/xyzmh(5,listpm(i))
+            IF (pradfac(i).LT.1.001) pradfac(i) = 1.0
+            ENDDO
          ELSE
-            pradfac = 0.0
+            pradfac(:) = 0.0
          ENDIF
       ENDIF
 

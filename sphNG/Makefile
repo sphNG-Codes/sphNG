@@ -270,7 +270,7 @@ FFLAGSKEEP := ${FFLAGS}
 SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f chekopt.f \
 	classify_MPI.F condense.f constan.f coolcurve.f coolinmo.F cool_func.F \
-	coriol.f cyldis.f cylmas.f cylpres.f cylvel.f discboundary.f dustorbit.f \
+	coriol.f cyldis.f cylmas.f cylpres.f cylvel.f discboundary.f \
 	endrun.f energ.f energ_cooling.f eospg.f error.f evol.f externf.f \
 	externBfield.f \
 	extract.f file.f gapfactor.f getneigh.f \

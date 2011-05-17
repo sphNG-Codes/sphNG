@@ -72,9 +72,10 @@ c
      &        '        uniform toroidal field : 2 ',/,
      &        '          non-zero div B field : 3 ',/,
      &        '          tokamak Btheta field : 4 ',/,
-     &        'force free z-periodic cylinder : 5')
+     &        'force free z-periodic cylinder : 5 ',/,
+     &        '            sine function in x : 6 ')
       READ (*, *) iBfield
-      IF (iBfield.LT.1.OR.iBfield.GT.5) GOTO 100
+      IF (iBfield.LT.1.OR.iBfield.GT.6) GOTO 100
 c
 c--set initial mean pressure for use in beta calculations
 c
@@ -420,6 +421,17 @@ c
             ENDDO   
          ENDIF  
          Bzero = ampl
+      ELSEIF (iBfield.EQ.6) THEN
+c
+c  Sinusoidal B_y field in the x direction
+c
+         DO i=1,npart
+            xi = xyzmh(1,i) - xmin
+            Bevolxyz(1,i) = 0.
+            Bevolxyz(2,i) = Bzero*sin(2.*pi*xyzmh(1,i)/(xmax - xmin))
+            Bevolxyz(3,i) = 0.
+         ENDDO
+
       ENDIF
 c
 c--spit out various information about the magnetic field we have set up

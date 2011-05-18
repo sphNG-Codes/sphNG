@@ -807,7 +807,7 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
             ENDIF
             IF (imhd.EQ.idim) THEN
                DO l = 1, 3
-                  dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,j)
+                  dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,k)
                END DO
             ENDIF
          ENDIF
@@ -1550,7 +1550,7 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
             ENDIF
             IF (imhd.EQ.idim) THEN
                DO l = 1, 3
-                  dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,j)
+                  dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,k)
                END DO
             ENDIF
          ENDIF
@@ -1692,7 +1692,7 @@ C$OMP& shared(pmass,ikilled,nactive,nkill,time,iorig,nlstacc,listacc)
 C$OMP& shared(anglostx,anglosty,anglostz,istminold,listpm,coolingrate)
 C$OMP& shared(ifsvi,alphaMM,dumekcle,ekcle,iresist,etamhd,nptmass)
 C$OMP& shared(phibound,nlistinactive,listinactive,variation,npart,rmind)
-C$OMP& shared(rcyl)
+C$OMP& shared(rcyl,Bevolxyz,dumBevolxyz)
 #ifdef MPICOPY
 C$OMP& shared(iproc)
 #endif
@@ -1879,6 +1879,12 @@ cTEST
             IF (encal.EQ.'r') THEN
                DO l = 1, 5
                   ekcle(l,i) = dumekcle(l,i)
+               END DO
+            ENDIF
+
+            IF (imhd.EQ.idim .AND. iresist.LT.0) THEN
+               DO l = 1, 3
+                  Bevolxyz(l,i) = dumBevolxyz(l,i)
                END DO
             ENDIF
          ENDIF

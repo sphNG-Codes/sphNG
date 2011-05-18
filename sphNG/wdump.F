@@ -38,15 +38,10 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/timei'
       INCLUDE 'COMMONS/stepopt'
       INCLUDE 'COMMONS/sort'
-      INCLUDE 'COMMONS/curlist'
-      INCLUDE 'COMMONS/f1'
-      INCLUDE 'COMMONS/ghost'
-      INCLUDE 'COMMONS/dum'
-      INCLUDE 'COMMONS/dumderivi'
-      INCLUDE 'COMMONS/nextmpt'
-      INCLUDE 'COMMONS/timeextra'
+c#ifdef DUMPGHOSTS
+c      INCLUDE 'COMMONS/ghost'
+c#endif
       INCLUDE 'COMMONS/numpa'
-      INCLUDE 'COMMONS/divve'
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/tming'
       INCLUDE 'COMMONS/radtrans'
@@ -59,8 +54,6 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/savernd'
-      INCLUDE 'COMMONS/eosq'
-      INCLUDE 'COMMONS/f2'
       INCLUDE 'COMMONS/abundances'
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/pxpy'
@@ -124,6 +117,7 @@ c
 c
 c--Single values
 c
+      nparttot = npart
 #ifdef MPI
 #ifdef MPIDEBUG
       print *,iproc,': Reduction '
@@ -167,7 +161,6 @@ c     &     MPI_COMM_WORLD,ierr)
 #else
       nblocks = 1
 
-      nparttot = npart
 c      n1tot = n1
 c      n2tot = n2
       nreassigntot = nreassign
@@ -287,7 +280,7 @@ c
 c      ENDIF
       nowgo = 0
 #ifdef MPIDEBUG
-      print *,iproc,': About to write'
+      print *,iproc,': About to write ',nprint,ifulldump
 #endif
       IF (iproc.GT.0) THEN
          CALL MPI_RECV(nowgo,1,MPI_INTEGER,iproc-1,99,MPI_COMM_WORLD,

@@ -801,13 +801,13 @@ c
          IF (ibound/10.EQ.10 .AND. ibound.NE.100) THEN
             WRITE (*,99053)
 99053       FORMAT('Enter radiative transfer tolerance: ')
-            READ(*,*) tolerance
+            READ (*,*) tolerance
          ELSE
             WRITE (*,99035)
 99035       FORMAT('Enter radiative transfer tolerance, boundary'//
      &           ' temperature, and scale height at which disk becomes'//
      &           ' optically thin:')
-            READ(*,*) tolerance, boundtemp, bounddens
+            READ (*,*) tolerance, boundtemp, bounddens
          ENDIF
          
          WRITE (*, 89019)
@@ -1083,7 +1083,7 @@ c
       IF (iok.EQ.'y' .OR. iok.EQ.'Y') THEN
          WRITE (*,78046)
 78046    FORMAT(' Enter fraction:')
-         READ(*,*) dtfrac
+         READ (*,*) dtfrac
          dtmax = dtfrac*tcomp
          WRITE(*,*) 'setting dtmax = ',dtmax
       ENDIF

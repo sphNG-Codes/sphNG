@@ -47,7 +47,7 @@ c
      &           '           exponential : e',/,
      &           '             velocity  : v',/,  
      &           ' cos(mtheta) perturbn. : c')
-         READ (*, 99004) prof
+         READ (iread, 99004) prof
          iprofr = 0
          IF (prof.NE.'e') THEN
             IF (prof.EQ.'1') iprofr = 1
@@ -78,7 +78,7 @@ c
             WRITE (*,*) 'Warning: perturbation correct only for linear'
             WRITE (*,99034)
 99034       FORMAT(' Enter m, and density contrast ')
-            READ(*,*) m, densc
+            READ (iread,*) m, densc
             IF (m .LE. 0) STOP 'ERROR: m must be > 0'
             WRITE (*,*) 'Setting perturbation m = ',m,' ampl = ',densc
             DO i = nptmass+1, npart
@@ -103,7 +103,7 @@ c
          rmind2 = rmind * rmind
          rmax2 = rmax * rmax
          WRITE (*, 88001)
-         READ (*, 99004) prof
+         READ (iread, 99004) prof
          iprofr = 0
          IF (prof.NE.'e' .AND. prof.NE.'v') THEN
             IF (prof.EQ.'1') iprofr = 1
@@ -114,11 +114,11 @@ c
          IF (prof.EQ.'v') THEN
             WRITE (*, 88401)
 88401       FORMAT ('Enter name of file')
-            READ (*,99010) filename
+            READ (iread,99010) filename
 99010       FORMAT(A20)
 
             WRITE (*,*) 'Enter size of velocity files (e.g.N=32^3)'
-            READ (*,*) nspace
+            READ (iread,*) nspace
 
             OPEN (45,FILE=filename,FORM='unformatted')
             READ (45) (((velx(i,j,k), i=1,nspace),j=1,nspace), 

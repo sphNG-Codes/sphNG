@@ -47,39 +47,39 @@ c
 
  40      WRITE (*, 88002)
 88002    FORMAT (' Enter number of different regions (max 10)')   
-         READ (*,*) ireg
+         READ (iread,*) ireg
          IF (ireg.GT.10) GOTO 40
 
          icount = 1
          DO 120 i = 1, ireg
  60         WRITE (*, 88004) icount
 88004       FORMAT ('   Enter xmin of region ', I5)
-            READ (*,*) rxmin(icount)
+            READ (iread,*) rxmin(icount)
             WRITE (*, 88006) icount
 88006       FORMAT ('   Enter xmax of region ', I5)
-            READ (*,*) rxmax(icount)
+            READ (iread,*) rxmax(icount)
             WRITE (*, 88008) icount
 88008       FORMAT ('   Enter ymin of region ', I5)
-            READ (*,*) rymin(icount)
+            READ (iread,*) rymin(icount)
             WRITE (*, 88010) icount
 88010       FORMAT ('   Enter ymax of region ', I5)
-            READ (*,*) rymax(icount)
+            READ (iread,*) rymax(icount)
             WRITE (*, 88012) icount
 88012       FORMAT ('   Enter zmin of region ', I5)
-            READ (*,*) rzmin(icount)
+            READ (iread,*) rzmin(icount)
             WRITE (*, 88014) icount
 88014       FORMAT ('   Enter zmax of region ', I5)
-            READ (*,*) rzmax(icount)
+            READ (iread,*) rzmax(icount)
 
  80         WRITE (*, 88016) icount
 88016       FORMAT ('   Enter relative density of region ', I5, 
      &             ' (0.0 to 1.0)')
-            READ (*,*) dens(icount)
+            READ (iread,*) dens(icount)
             IF ((dens(icount).LT.0.).OR.(dens(icount).GT.1.)) GOTO 80
 
  100        WRITE (*, 88018) icount
 88018       FORMAT (' Is region ', I2,' correct (y/n)? ')
-            READ (*, 99004) iok
+            READ (iread, 99004) iok
             IF ((iok.NE.'y').AND.(iok.NE.'n')) GOTO 100
             IF (iok.NE.'y') GOTO 60
 

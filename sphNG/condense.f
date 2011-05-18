@@ -32,7 +32,7 @@ c
       rmax2 = rmax*rmax
 
       WRITE (*,*) 'Do you want exp[-3 x^2], r^-1 or r^-2 (0, 1 or 2)?'
-      READ (*,*) islope
+      READ (iread,*) islope
 
       IF (islope.EQ.0) THEN
          OPEN (19, FILE='/home/mbate/Important/Gaussian_Data')
@@ -48,7 +48,7 @@ c
       ians = 'n'
       IF (islope.EQ.1 .OR. islope.EQ.2) THEN
          WRITE (*,*) 'Change particle masses to be uniform density?'
-         READ (*,88001) ians
+         READ (iread,88001) ians
       ENDIF
 88001 FORMAT (A1)
 

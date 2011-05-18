@@ -39,7 +39,7 @@ c
      &        '                or a linear z mass profile ? (z)',/,
      &        '             or a cos(mtheta) perturbation ? (c)',/,
      &        ' or a cos(mtheta)exp(-(k(r-r1)/r1)^2 pert. ? (e)')
-      READ (*, 99004) iok
+      READ (iread, 99004) iok
 
       IF (iok.EQ.'s') THEN
          npert = 0
@@ -47,7 +47,7 @@ c
          WRITE (*, 99026)
 99026    FORMAT (' Enter number of perturbations',
      &        ' and the density contrast')   
-         READ (*, *) npert, densc
+         READ (iread, *) npert, densc
          densc1 = densc - 1
          DO i = nptmass + 1, npart
             r1 = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2)
@@ -65,7 +65,7 @@ c
      &          '                  r^-1 : 1',/,
      &          '                  r^-2 : 2',/,
      &          '           exponential : e')   
-         READ (*, 99004) prof
+         READ (iread, 99004) prof
 
          IF (prof.NE.'e') THEN
             iprofr = 0
@@ -89,7 +89,7 @@ c
       ELSEIF (iok.EQ.'z') THEN
          WRITE (*,99031)
 99031    FORMAT(' Enter density contrast ')
-         READ (*,*) densc
+         READ (iread,*) densc
          densc = densc - 1
          DO i = nptmass + 1, npart
             zi = (xyzmh(3,i) - zmin) / deltaz
@@ -100,7 +100,7 @@ c
       ELSEIF (iok.EQ.'c') THEN
          WRITE (*,99034)
 99034    FORMAT(' Enter m, and density contrast ')
-         READ(*,*) m, densc
+         READ (iread,*) m, densc
          DO i = nptmass + 1, npart
             theta = ATAN2(xyzmh(2,i), xyzmh(1,i))
             disfrac(i) = disfrac(i)*(1.0 + densc*COS(m*theta))
@@ -110,10 +110,10 @@ c
       ELSEIF (iok.EQ.'e') THEN
          WRITE (*,99035)
 99035    FORMAT(' Enter m, and density contrast ')
-         READ(*,*) m, densc
+         READ (iread,*) m, densc
          WRITE (*,99036)
 99036    FORMAT(' Enter r1 and k ')
-         READ(*,*) rad1, width
+         READ (iread,*) rad1, width
          DO i = nptmass + 1, npart
             theta = ATAN2(xyzmh(2,i), xyzmh(1,i))
             r1 = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2)

@@ -36,36 +36,36 @@ c
 
  40   WRITE (*, 88002)
 88002 FORMAT (' Enter number of different regions (max 10)')   
-      READ (*,*) ireg
+      READ (iread,*) ireg
       IF (ireg.GT.10) GOTO 40
 
       icount = 1
       DO 120 i = 1, ireg
  60      WRITE (*,*) '   Enter xmin of region ',icount
-         READ (*,*) rxmin(icount)
+         READ (iread,*) rxmin(icount)
          WRITE (*,*) '   Enter xmax of region ',icount
-         READ (*,*) rxmax(icount)
+         READ (iread,*) rxmax(icount)
          WRITE (*,*) '   Enter ymin of region ',icount
-         READ (*,*) rymin(icount)
+         READ (iread,*) rymin(icount)
          WRITE (*,*) '   Enter ymax of region ',icount
-         READ (*,*) rymax(icount)
+         READ (iread,*) rymax(icount)
          WRITE (*,*) '   Enter zmin of region ',icount
-         READ (*,*) rzmin(icount)
+         READ (iread,*) rzmin(icount)
          WRITE (*,*) '   Enter zmax of region ',icount
-         READ (*,*) rzmax(icount)
+         READ (iread,*) rzmax(icount)
 
          WRITE (*,*) '   Enter x velocity of region ',icount,
      &         ' in units of av. sound speed'
-         READ (*,*) xvel(icount)
+         READ (iread,*) xvel(icount)
          WRITE (*,*) '   Enter y velocity of region ',icount,
      &         ' in units of av. sound speed'
-         READ (*,*) yvel(icount)
+         READ (iread,*) yvel(icount)
          WRITE (*,*) '   Enter z velocity of region ',icount,
      &         ' in units of av. sound speed'
-         READ (*,*) zvel(icount)
+         READ (iread,*) zvel(icount)
 
  100     WRITE (*,*) ' Is region ',icount,' correct (y/n)? '
-         READ (*, 99004) iok
+         READ (iread, 99004) iok
          IF ((iok.NE.'y') .AND. (iok.NE.'n')) GOTO 100
          IF (iok.NE.'y') GOTO 60
          icount = icount + 1

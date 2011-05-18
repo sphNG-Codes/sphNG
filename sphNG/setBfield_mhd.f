@@ -54,7 +54,7 @@ c
       WRITE(*,*) '  from any run, but an Euler potential run can only '
       WRITE(*,*) '  restarted from an Euler potential run.)'
       WRITE(*,*)
-      READ (*, 99024) varmhd
+      READ (iread, 99024) varmhd
 99024 FORMAT (A4)
       IF (varmhd.EQ.'b' .or. varmhd.EQ.'B') varmhd = 'Bvol'
       IF (varmhd.EQ.'r') varmhd = 'Brho'
@@ -74,7 +74,7 @@ c
      &        '          tokamak Btheta field : 4 ',/,
      &        'force free z-periodic cylinder : 5 ',/,
      &        '            sine function in x : 6 ')
-      READ (*, *) iBfield
+      READ (iread, *) iBfield
       IF (iBfield.LT.1.OR.iBfield.GT.6) GOTO 100
 c
 c--set initial mean pressure for use in beta calculations
@@ -103,7 +103,7 @@ c
      &       '            or Alfven speed in code units (a)',/,
      &       '                      or mean plasma beta (b)',/, 
      &       '                or the mass-to-flux ratio (f)?')
-      READ (*,99002) isetB
+      READ (iread,99002) isetB
         
       IF (isetB.EQ.'m') THEN
 c
@@ -114,7 +114,7 @@ c
 
          WRITE (*,99005)
 99005    FORMAT(/,' Enter Mag flux density in Gauss')
-         READ (*,*) Bzero
+         READ (iread,*) Bzero
          Bzero = Bzero/umagfd         
       
       ELSEIF (isetB.EQ.'c') THEN
@@ -123,7 +123,7 @@ c--magnetic field strength in code units
 c
          WRITE (*,99006) umagfd
 99006    FORMAT(/,' Enter Mag flux density in units of ',1pe14.6,' G')
-         READ (*,*) Bzero
+         READ (iread,*) Bzero
 
       ELSEIF (isetB.eq.'a') THEN
 c
@@ -131,7 +131,7 @@ c--Alfven speed in code units
 c
          WRITE (*,99007)
 99007    FORMAT (' Enter Alfven speed in code units')
-         READ (*,*) valfven
+         READ (iread,*) valfven
          Bzero = SQRT(rhozero)*valfven
 
       ELSEIF (isetB.eq.'b') THEN
@@ -141,7 +141,7 @@ c
          WRITE (*,98007)
 98007    FORMAT (' Enter mean plasma beta (gas/mag pressure)',/,
      &           ' (assuming uniform density and temperature, 0=hydro)')
-         READ (*,*) betazero
+         READ (iread,*) betazero
          IF (betazero.LT.0.) THEN
             STOP 'beta must be > 0'
          ELSEIF (betazero.EQ.0) THEN
@@ -162,7 +162,7 @@ c
      &           '          1 = critical,',/,
      &           '        > 1 = supercritical, ',/,
      &           '          0=inf=hydro )')
-         READ (*,*) rmasstoflux
+         READ (iread,*) rmasstoflux
          IF (rmasstoflux.LT.0.) THEN
             STOP 'ratio must be >= 0'
          ELSEIF (rmasstoflux.LT.tiny) THEN
@@ -183,7 +183,7 @@ c--uniform cartesian field
 c
          WRITE (*,99008)
 99008    FORMAT (' Enter Bx:By:Bz ratio')
-         READ (*,*) fracx,fracy,fracz
+         READ (iread,*) fracx,fracy,fracz
          fractot = SQRT(fracx**2. + fracy**2. + fracz**2.)
          Bxzero = fracx*Bzero/fractot
          Byzero = fracy*Bzero/fractot
@@ -310,7 +310,7 @@ c
          WRITE(*,99104) umagfd
          WRITE(*,99106) 'Enter Binit'
 99106    FORMAT(A)
-         READ(*,*) Bzero
+         READ (iread,*) Bzero
          rbump = 4./sqrt(2.)        ! radius of the initial bump
          rbump2 = rbump*rbump
 

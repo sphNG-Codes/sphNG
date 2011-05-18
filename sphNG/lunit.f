@@ -11,6 +11,7 @@ c************************************************************
       INCLUDE 'COMMONS/ptdump'
       INCLUDE 'COMMONS/binfile'
 
+      iread = 5
 c      iprint = 9
       iprint = 6
       iterm = 50 

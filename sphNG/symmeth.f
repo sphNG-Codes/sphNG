@@ -34,8 +34,8 @@
       CHARACTER*1  ien, icont, icor, icent, isink, itorq
 
       WRITE (*,*) 'Enter name of input file:'
-         READ(*,90) filein
- 90      FORMAT(A7)
+      READ (*,90) filein
+ 90   FORMAT(A7)
 
       OPEN (UNIT = 11, FILE = filein, FORM = 'unformatted',
      &     RECL=maxrec)

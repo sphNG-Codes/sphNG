@@ -68,6 +68,7 @@ c      INCLUDE 'COMMONS/rad2'
       INCLUDE 'COMMONS/radtran2'
       INCLUDE 'COMMONS/polyk2'
       INCLUDE 'COMMONS/bodys'
+      INCLUDE 'COMMONS/implicit'
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
@@ -89,12 +90,12 @@ c      INCLUDE 'COMMONS/rad2'
       LOGICAL moresweep2
       REAL dx,dy,dz,dvz,dvx,dvy,lightspeed
 
-      COMMON /rtvarr1/ vari(2,iradtrans2),varinew(2,iradtrans2),
-     &     transfer(iradtrans2),addenergyparticle(iradtrans2)
-      COMMON /rtvarr2/ varij(4,icompactmax),varij2(3,icompactmax)
-      REAL*4 varij,varij2
-c      COMMON /rtvarr3/ varijnew(icompactmax)
-      COMMON /rtvarr3/ varijnew(iradtrans2)
+      COMMON /rtvarr1/ transfer(iradtrans2),
+     &     addenergyparticle(iradtrans2)
+      REAL*4 varij2
+      COMMON /rtvarr3/ varij2(3,icompactmax)
+c      COMMON /rtvarr4/ varijnew(icompactmax)
+      COMMON /rtvarr4/ varijnew(iradtrans2)
 
 c      DIMENSION vari(2,iradtrans)
 c      REAL*4 varij(4,icompactmax),varij2(3,icompactmax)
@@ -106,15 +107,11 @@ c      DIMENSION transfer(iradtrans)
 
       COMMON /rtvari/ neighblock(iradtrans)
 c      DIMENSION neighblock(iradtrans), addenergyparticle(iradtrans)
-      COMMON /rtvarr4/ fractionexposed(nmaxexposed)
+      COMMON /rtvarr7/ fractionexposed(nmaxexposed)
 c      DIMENSION fractionexposed(nmaxexposed)
 
       REAL*8 ptmasstime,dtstep,ptmassmodel,ptmassradius,ptmasstemp,
      &     accrate,starradius,starluminosity,startime,starmass
-
-      PARAMETER (ntests=10)
-      REAL xmaxerr1old(ntests),xmaxerrcomp1(ntests)
-      REAL xmaxerr2old(ntests),xmaxerrcomp2(ntests)
 
       REAL maxerrE2,maxerrE2last,maxerrU2,maxerrU2last,maxerrU2old
 #ifdef MPIALL

@@ -1,4 +1,2 @@
-      LOGICAL*1 ifullstep
-
-      COMMON /radstore/ origEU(2,iradtrans2), ifullstep(iradtrans2)
+      COMMON /radstore/ origEU(2,iradtrans2)
 

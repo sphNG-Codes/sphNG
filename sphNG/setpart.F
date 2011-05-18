@@ -11,6 +11,11 @@ c************************************************************
 
       INCLUDE 'idim'
 
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
+#endif
+
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/part'
@@ -57,6 +62,11 @@ c************************************************************
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
       CHARACTER*1 ien, irotref, uort
+
+#ifdef MPI
+      DIMENSION inum_npart(nummaxproc),inum_n1(nummaxproc),
+     &     inum_n2(nummaxproc)
+#endif
 c
 c--Initialise time
 c
@@ -109,36 +119,36 @@ c
       iaccevol = 'f'
       WRITE (*, 99085) 
 99085 FORMAT (' Do you want point masses? (y/n)')
-      READ (*, 99004) iok
+      READ (iread, 99004) iok
       IF (iok.EQ.'y') THEN
          totptmass = 0.
          WRITE (*, 99086) 
 99086    FORMAT (' Enter number of point masses')
-         READ (*,*) numpt
+         READ (iread,*) numpt
 
          WRITE (*, 99091) 
 99091    FORMAT (' Enter type of point mass (1,2,3,4,5,6)')
-         READ (*,*) ipttype
+         READ (iread,*) ipttype
          initialptm = ipttype
 
  
          WRITE (*, 99084) 
 99084    FORMAT (' Do you want a binary? (y/n)')
-         READ (*, 99004) iok
+         READ (iread, 99004) iok
         
          IF (iok.EQ.'y' .AND. numpt.EQ.2) THEN
             WRITE (*, 99201) 
 99201       FORMAT (' Enter binary mass')
-            READ (*,*) bmass
+            READ (iread,*) bmass
             WRITE (*, 99202) 
 99202       FORMAT (' Enter mass ratio')
-            READ (*,*) qratio
+            READ (iread,*) qratio
             WRITE (*, 99203) 
 99203       FORMAT (' Enter semi-major axis')
-            READ (*,*) semiaxis
+            READ (iread,*) semiaxis
             WRITE (*, 99204) 
 99204       FORMAT (' Enter eccentricity')
-            READ (*,*) eccent
+            READ (iread,*) eccent
             qratio1 = 1.0 + qratio
             
             npart = npart + 2
@@ -188,19 +198,19 @@ c
                listrealpm(npart) = i
                WRITE (*, 99087) 
 99087          FORMAT (' Enter positions (x,y,z)')
-               READ (*,*) tx,ty,tz
+               READ (iread,*) tx,ty,tz
                xyzmh(1,npart) = tx
                xyzmh(2,npart) = ty
                xyzmh(3,npart) = tz
                WRITE (*, 99088) 
 99088          FORMAT (' Enter velocities (vx,vy,vz)')
-               READ (*,*) tvx,tvy,tvz
+               READ (iread,*) tvx,tvy,tvz
                vxyzu(1,npart) = tvx
                vxyzu(2,npart) = tvy
                vxyzu(3,npart) = tvz
                WRITE (*, 99089) 
 99089          FORMAT (' Enter mass')
-               READ (*,*) tmass
+               READ (iread,*) tmass
                xyzmh(4,npart) = tmass
                totptmass = totptmass + tmass
                spinx(npart) = 0.
@@ -216,17 +226,17 @@ c
          IF (iok.EQ.'y' .AND. numpt.EQ.2) THEN
             WRITE (*, 99093) 
 99093       FORMAT (' Do you want Roche-lobe accretion radii? (y/n)')
-            READ (*, 99004) iok
+            READ (iread, 99004) iok
             IF (iok.EQ.'y') THEN
                WRITE (*, 99094) 
 99094          FORMAT (' Do you want variable accretion radii? (y/n)')
-               READ (*, 99004) iok2
+               READ (iread, 99004) iok2
                IF (iok2.EQ.'y') THEN
                   iaccevol = 'v'
                ENDIF
                WRITE (*, 99095) 
 99095          FORMAT (' Enter fraction of Roche-lobe size')
-               READ (*,*) accfac
+               READ (iread,*) accfac
 c
 c--Sets accretion radii to be the roche lobe sizes 
 c     (see Accretion Power in Astrophysics, Frank, King, & Raine)
@@ -250,10 +260,10 @@ c
                IF (ipttype.NE.5) THEN
  555              WRITE (*, 99090) 
 99090             FORMAT (' Enter Outer Accretion radius')
-                  READ (*,*) hacc
+                  READ (iread,*) hacc
                   WRITE (*, 99092) 
 99092             FORMAT (' Enter Inner Accretion radius')
-                  READ (*,*) haccall
+                  READ (iread,*) haccall
                   IF (haccall.GT.hacc) THEN
                      WRITE(*,*) 'Inner <= Outer Radius'
                      GOTO 555
@@ -266,9 +276,9 @@ c
          ELSE
             IF (ipttype.NE.5) THEN
  556           WRITE (*, 99090) 
-               READ (*,*) hacc
+               READ (iread,*) hacc
                WRITE (*, 99092) 
-               READ (*,*) haccall
+               READ (iread,*) haccall
                IF (haccall.GT.hacc) THEN
                   WRITE(*,*) 'Inner <= Outer Radius'
                   GOTO 556
@@ -298,15 +308,15 @@ c
       ptmcrit = 0.
       WRITE (*, 99061)
 99061 FORMAT (' Do you want dynamic point mass creation (y/n)')
-      READ (*, 99004) iok
+      READ (iread, 99004) iok
       IF (iok.EQ.'y') THEN
          WRITE (*, 99091) 
-         READ (*,*) ipttype
+         READ (iread,*) ipttype
          iptmass = ipttype
  557     WRITE (*, 99090) 
-         READ (*,*) hacc
+         READ (iread,*) hacc
          WRITE (*, 99092) 
-         READ (*,*) haccall
+         READ (iread,*) haccall
          IF (haccall.GT.hacc) THEN
             WRITE(*,*) 'Inner <= Outer Radius'
             GOTO 557
@@ -314,12 +324,12 @@ c
          WRITE (*, 99063)
 99063    FORMAT (' Enter critical radius for point mass creation',/
      &           '    (rad. from another pt. mass) in code units')
-         READ (*, *) radcrit
+         READ (iread, *) radcrit
          WRITE (*, 99064)
 99064    FORMAT (' Enter critical density for point mass creation',/
      &           '    in units of the initial density rhozero',/,
      &           '    (or -ve in physical units) ')
-         READ (*, *) ptmcrit
+         READ (iread, *) ptmcrit
       ENDIF
 c
 c--Specify Geometry
@@ -336,7 +346,7 @@ c
      &        '            sphere in a box : 8 ',/,
      &        '             planet in disc : 9 ',/,
      &        '       planet in whole disc : 10 ')
-      READ (*, *) igeom
+      READ (iread, *) igeom
       IF (igeom.LT.1 .OR. igeom.GT.10) GOTO 50
 c
 c--Specify Box Size
@@ -353,7 +363,7 @@ c
 99002    FORMAT (//, ' PARTICLE SET UP ', //,
      &   ' Bounds of particle distribution in units of ',1pe14.5,
      &   ' (cm):  xmin, xmax, ymin, ymax, zmin, zmax')
-         READ (*, *) xmin, xmax, ymin, ymax, zmin, zmax
+         READ (iread, *) xmin, xmax, ymin, ymax, zmin, zmax
          rmax = SQRT((xmax/2)**2 + (ymax/2)**2 +
      &               (zmax/2)**2)
          rcyl = SQRT((xmax/2)**2 + (ymax/2)**2) 
@@ -363,7 +373,7 @@ c
 88003    FORMAT (//, ' PARTICLE SET UP ', //,
      &   ' Bounds of particle distribution in units of ',1pe14.5,
      &   '(cm): rcyl, L/D')
-         READ (*, *) rcyl, faclod
+         READ (iread, *) rcyl, faclod
          zmax = rcyl * faclod
          zmin = - zmax
          xmax = rcyl
@@ -377,12 +387,12 @@ c
 88002    FORMAT (//, ' PARTICLE SET UP ', //,
      &   ' Bounds of particle distribution in units of ',1pe14.5,
      &   '(cm):  rmax')
-         READ (*, *) rmax
+         READ (iread, *) rmax
 
          IF (igeom.EQ.7) THEN
             WRITE (*, 88102)
 88102       FORMAT (' Inner hole radius:  rmind')
-            READ (*, *) rmind
+            READ (iread, *) rmind
          ENDIF
 
          xmax = rmax
@@ -397,10 +407,10 @@ c
 88103       FORMAT (//, ' BOX SET UP ', //,
      &   ' Bounds of particle distribution in units of ',1pe14.5,
      &   ' (cm):  xmin, xmax, ymin, ymax, zmin, zmax')
-            READ (*, *) xminb, xmaxb, yminb, ymaxb, zminb, zmaxb
+            READ (iread, *) xminb, xmaxb, yminb, ymaxb, zminb, zmaxb
             WRITE(*, 88104)
 88104       FORMAT (' Enter density contrast between sphere and box')
-            READ (*, *) rhocontrast
+            READ (iread, *) rhocontrast
             igeom = 3
          ENDIF
          
@@ -410,7 +420,7 @@ c
      &   ' Maximum and minimum radius of disk',/,' in units of ',
      &   1PE14.5,'(cm): rmaxd, rmind,',/,
      &   ' and the disk height to radius ratio, h/r')
-         READ (*, *) rcyl, rmind, faclod
+         READ (iread, *) rcyl, rmind, faclod
          zmax = rcyl * faclod
          zmin = - zmax
          xmax = rcyl
@@ -425,7 +435,7 @@ c
      &   ' Maximum and minimum radius of ellipsoid',/,
      &   ' in units of ',1pe14.5,'(cm): rmaxd, rmind,',/,
      &   ' and the ellipsoid height to radius ratio, h/r')
-         READ (*, *) rcyl, rmind, faclod
+         READ (iread, *) rcyl, rmind, faclod
          zmax = rcyl * faclod
          zmin = - zmax
          xmax = rcyl
@@ -439,7 +449,7 @@ c
 89005    FORMAT (//, ' PARTICLE SET UP ', //,
      &   ' Maximum radius of cloud',/,
      &   ' in units of ',1pe14.5,'(cm): rmax,')
-         READ (*, *) rmax
+         READ (iread, *) rmax
          angvel = SQRT(gg*totptmass*umass/udist**3.0)
          WRITE (*, 89006) angvel
 89006    FORMAT(/, ' Angular velocity in rad/s at radius=1 is ',
@@ -447,12 +457,12 @@ c
          WRITE (*, 89007) 
 89007    FORMAT(/, ' Enter angular velocity at radius=1 in fraction ',
      &        'of above units')
-         READ (*, *) angvel
+         READ (iread, *) angvel
          angvel = angvel*SQRT(totptmass)
          WRITE (*, 89008) 
 89008    FORMAT(/, ' Enter radial velocity in fraction of free-fall 
      &        units')
-         READ (*, *) fracradial
+         READ (iread, *) fracradial
 
          rmind = hacc
          xmax = rmax
@@ -468,7 +478,7 @@ c
      &   ' Variation of radius of disk',/,' in units of ',
      &   1PE14.5,'(cm): variation,',/,
      &   ' and the disk height to radius ratio, h/r, and the phirange')
-         READ (*, *) variation, hoverr, phibound
+         READ (iread, *) variation, hoverr, phibound
          radiusmax = 1.0+variation
          radiusmin = 1.0-variation
          zmax = radiusmax * 10.0 * hoverr
@@ -481,7 +491,7 @@ c
 
          WRITE (*,89002)
 89002    FORMAT('Enter radius for planet')
-         READ (*,*) rplanet
+         READ (iread,*) rplanet
 
          hzero = rplanet/5.
          nlistinactive = 0
@@ -495,17 +505,17 @@ c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
          iexf = 7
       ELSE IF (igeom.EQ.10) THEN
          WRITE (*, 89003) udist
-         READ (*, *) rcyl, rmind, faclod
+         READ (iread, *) rcyl, rmind, faclod
 
          use_tprof = .false.
 77001    FORMAT (' Use standard u propto r^-0.5 initial disc',/
      &        ' (u) or set a specific temperature profile (t)?')
  174     WRITE (*, 77001)
-         READ (*,99004) uort
+         READ (iread,99004) uort
          IF (uort.EQ.'t') THEN
             use_tprof = .true.
             WRITE (*, 99023)
-            READ (*,*) tprof
+            READ (iread,*) tprof
          ELSEIF (uort.NE.'u') THEN
             goto 174
          ENDIF
@@ -523,7 +533,7 @@ c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
          rmax = SQRT(rcyl*rcyl + zmax*zmax)
 
          WRITE (*,89002)
-         READ (*,*) rplanet
+         READ (iread,*) rplanet
 
          IF (nptmass.EQ.1) THEN
             IF (iphase(listpm(1)).EQ.5) THEN
@@ -575,7 +585,7 @@ c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
      &     ' constant omega',/,
      &  '                             100 : planet in disc',/,
      &  '                             102 : planet in whole disc')
-      READ (*, *) ibound
+      READ (iread, *) ibound
       IF (ibound.LT.0 .OR. (ibound.GT.11 .AND. ibound.NE.90 .AND.
      &     ibound.NE.91 .AND. ibound.NE.100 .AND.
      &     ibound.NE.102)) GOTO 150
@@ -583,12 +593,12 @@ c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
          WRITE(*,88111)
 88111    FORMAT(/,'   What is the external temperature (units K) ',/,
      &            '   (-ve=use setup values)?')
-         READ (*,*) exttemp
+         READ (iread,*) exttemp
          IF (exttemp.GT.0.) THEN
             extu = 3.0/2.0*exttemp*Rg/gmw/uergg
             WRITE(*,88112)
 88112       FORMAT(/,'   External density (gm/cc) (-ve=use rhozero)?')
-            READ (*,*) extdens
+            READ (iread,*) extdens
             IF (extdens.GT.0.) THEN
                extdens = extdens/udens
                pext = 2.0/3.0*extu*extdens
@@ -600,27 +610,27 @@ c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
       IF (ibound.EQ.8) THEN
          WRITE(*,88113)
 88113    FORMAT(/,'   What is the dead particle radius?')
-         READ (*,*) deadbound
+         READ (iread,*) deadbound
          WRITE(*,88114)
 88114    FORMAT(/,'   How many particles to accrete before stopping?')
-         READ (*,*) nstop
+         READ (iread,*) nstop
          WRITE(*,88115)
 88115    FORMAT(/,'   How many particles from end start fast dumping?')
-         READ (*,*) nfastd
+         READ (iread,*) nfastd
       ENDIF
       IF (ibound/10.EQ.9) THEN
          WRITE(*,88113)
-         READ (*,*) deadbound
+         READ (iread,*) deadbound
          WRITE(*,88116)
 88116    FORMAT(/,'   How many particles in shell near outer boundary?')
-         READ (*,*) nshell
+         READ (iread,*) nshell
          WRITE(*,88117)
 88117    FORMAT(/,'   What is the minimum radius of the shell?')
-         READ (*,*) rshell
+         READ (iread,*) rshell
          rmind = rshell
 c         WRITE(*,88118)
 c88118    FORMAT(/,'   What is the minimum radius of the STARTING shell?')
-c         READ (*,*) rmind
+c         READ (iread,*) rmind
       ENDIF
       nreassign = 0
       nkill = 0
@@ -639,18 +649,18 @@ c
      &           '                      body centred  = 4', /,
      &           '                      custom        = 5', /,
      &           '                      rings         = 6')
-         READ (*, *) idist
+         READ (iread, *) idist
       ENDIF
  210  WRITE (*, 88009)
 88009 FORMAT(' Do you want to enter the spacing between particles',
      &       ' or the number of particles? (s/n)')
-      READ (*, 99004) iok
+      READ (iread, 99004) iok
 
       IF (iok.eq.'n' .OR. iok.eq.'N') THEN
          WRITE (*, 88004)
 88004    FORMAT(//,' Enter number of particles to use in ',
      &          ' the simulation ')
-         READ (*, *) np
+         READ (iread, *) np
          IF (idist.EQ.4) THEN
             h1 = (deltax * deltay * deltaz * 2.0 / np) ** (1./3.)
             delmin = MIN(deltax,deltay)
@@ -672,7 +682,7 @@ c
  300  IF (ichang.EQ.1 .OR. ichang.EQ.4) THEN
          WRITE (*, 99007) udist
 99007    FORMAT (' Spacing between particles in ',1PE14.5,' (cm)?')
-         READ (*, *) h1
+         READ (iread, *) h1
       ENDIF
 c
 c--Compute number of particles and check if ok
@@ -705,7 +715,7 @@ c
          np = nx*ny*nz
          IF (ibound.EQ.11 .AND. idist.EQ.2) THEN
             WRITE (*,*) 'Adjust boundaries for lattice periodicity?'
-            READ (*, 99004) iok
+            READ (iread, 99004) iok
             IF (iok.EQ.'y'.OR.iok.EQ.'Y') THEN
 c           move the outer boundaries to ensure periodicity of the lattice
                nx = 2*(INT(0.5*deltax/(facx*h1)) + 1)
@@ -749,7 +759,7 @@ c           move the outer boundaries to ensure periodicity of the lattice
      &           ' this number EXCEEDS the dimensions set to ', I8, /,
      &           ' is this still ok? (y/n)')
       ENDIF
-      READ (*, 99004) iok
+      READ (iread, 99004) iok
       IF (iok.EQ.'y') GOTO 450
  400  WRITE (*, 99010)
 99010 FORMAT (' What do you want to change : all      = 1', /,
@@ -757,7 +767,7 @@ c           move the outer boundaries to ensure periodicity of the lattice
      &        '                              distrib. = 3', /,
      &        '                              spacing  = 4', /,
      &        '                              npart    = 5')
-      READ (*, *) ichang
+      READ (iread, *) ichang
       IF (ichang.LE.2) GOTO 100
       IF (ichang.EQ.3) GOTO 200
       IF (ichang.EQ.4) GOTO 300
@@ -806,7 +816,7 @@ c
      &   '  Uniform particle distribution, Non-uniform masses  (m)', /,
      &   '  Uniform particle masses, Non-uniform distribution  (d)', /,
      &   '  Uniform density                                    (u)')
-      READ (*,99004) idens
+      READ (iread,99004) idens
       IF ((idens.NE.'m').AND.(idens.NE.'d').AND.(idens.NE.'u')) GOTO 450
 
       IF (idens.NE.'u') THEN
@@ -817,7 +827,7 @@ c
 99016    FORMAT (' Coords for density variations: Cartesian    (1)', /,
      &      '                                 Cylindrical (2)', /,
      &      '                                 Spherical   (3)')
-         READ (*,*) icoord
+         READ (iread,*) icoord
          IF ((icoord.LT.1).OR.(icoord.GT.3)) GOTO 550
 
          IF (idens.EQ.'m') THEN
@@ -826,7 +836,7 @@ c
             IF (notdone.EQ.1) GOTO 400
 
             WRITE(*, 99105)
-            READ (*, 99004) icentral
+            READ (iread, 99004) icentral
             IF (icentral.EQ.'y') CALL condense
 
             IF (icoord.EQ.1) THEN
@@ -855,7 +865,7 @@ c
          IF (notdone.EQ.1) GOTO 400
          WRITE(*, 99105)
 99105    FORMAT (' Do you want to centrally condense the particles?')
-         READ (*, 99004) icentral
+         READ (iread, 99004) icentral
 
          IF (icentral.EQ.'y') CALL condense
       ENDIF
@@ -928,11 +938,11 @@ c--Rotate particle distribution about y-axis
 c
  500  WRITE (*, 99110)
 99110 FORMAT (' Do you want to rotate particles about y-axis?')
-      READ (*, *) irotatey
+      READ (iread, *) irotatey
       IF (irotatey.EQ.'Y' .OR. irotatey.EQ.'y') THEN
          WRITE (*, 99115)
 99115    FORMAT (' Enter angle (deg)?')
-         READ (*,*) rangle
+         READ (iread,*) rangle
          rangle = rangle*pi/180.0
          DO i = 1, npart
             r=SQRT(xyzmh(1,i)**2 + xyzmh(3,i)**2)
@@ -941,6 +951,59 @@ c
             xyzmh(3,i)=r*SIN(th)
          END DO
       ENDIF
+#ifdef MPI
+c
+c--If MPI is doing a setup, need to set iunique and n1 and n2 properly
+c     across MPI processes.  Also need to set the total number of particles
+c     so that the mass of the particles is set correctly.
+c
+      inum_npart(iproc+1) = npart
+      inum_n1(iproc+1) = n1
+      inum_n2(iproc+1) = n2
+      print *,iproc,npart,n1,n2
+      DO i = 0, numproc-1
+         CALL MPI_BCAST(inum_npart(i+1),1,MPI_INTEGER,i,MPI_COMM_WORLD,
+     &        ierr)
+         CALL MPI_BCAST(inum_n1(i+1),1,MPI_INTEGER,i,MPI_COMM_WORLD,
+     &        ierr)
+         CALL MPI_BCAST(inum_n2(i+1),1,MPI_INTEGER,i,MPI_COMM_WORLD,
+     &        ierr)
+      END DO
+      icount0 = 0
+      icount1 = 0
+      icount2 = 0
+      DO i = 1, numproc
+         icount0 = icount0 + inum_npart(i)
+         icount1 = icount1 + inum_n1(i)
+         icount2 = icount2 + inum_n2(i)
+         inum_npart(i) = icount0 - inum_npart(i)
+         inum_n1(i) = icount1 - inum_n1(i)
+         inum_n2(i) = icount2 - inum_n2(i)
+         print *,iproc,': counts ',i,inum_npart(i),inum_n1(i),
+     &        inum_n2(i)
+      END DO
+      IF (n1+n2.NE.npart) THEN
+         WRITE (*,*) 'ERROR - n1+n2.NE.npart'
+         CALL quit
+      ENDIF
+      DO i = 1, n1
+         iunique(i) = inum_n1(iproc+1) + i
+      END DO
+      DO i = 1, n2
+         iunique(n1+i) = icount1 + inum_n2(iproc+1) + i
+      END DO
+      nparttot = icount0
+      iuniquemax = nparttot
+      n1tot = icount1
+      n2tot = icount2
+      WRITE (*,*) 'MPI Set particles npart: ',icount0,' n1: ',n1tot,
+     &     ' n2: ',n2tot
+#else
+      nparttot = npart
+      n1tot = n1
+      n2tot = n2
+      iuniquemax = npart
+#endif
 c
 c--Set Total Mass
 c
@@ -950,38 +1013,38 @@ c
 99011    FORMAT (' Do you want to enter: Total mass of the system (1)',
      &        /,'                       Particle mass            (2)', 
      &        /,'                       Mean density rhozero     (3)')
-         READ (*, *) ichmass
+         READ (iread, *) ichmass
          IF (ichmass.EQ.1) THEN
             WRITE (*, 99012) umassr
 99012       FORMAT (' Enter total mass of system in units of ',1pe14.5,
      &           ' solar masses')
-            READ (*, *) totmas
+            READ (iread, *) totmas
             IF (igeomorig.EQ.8) THEN
-               partm = totmas/(n1 - nptmass)
+               partm = totmas/(n1tot - nptmass)
             ELSE
-               partm = totmas/(npart - nptmass)
+               partm = totmas/(nparttot - nptmass)
             ENDIF
          ELSEIF (ichmass.EQ.2) THEN
             WRITE (*, 99013) umassr
 99013       FORMAT (' Enter particle masses in units of ',1pe14.5,
      &           ' solar masses')
-            READ (*, *) partm
-            totmas = partm*FLOAT(npart - nptmass)
+            READ (iread, *) partm
+            totmas = partm*FLOAT(nparttot - nptmass)
          ELSEIF (ichmass.EQ.3) THEN
             WRITE (*, 90013)
 90013       FORMAT (' Enter rhozero in code units')
-            READ (*, *) rhozero
+            READ (iread, *) rhozero
             totmas = rhozero*totvol
-            partm = totmas/(npart - nptmass)
+            partm = totmas/(nparttot - nptmass)
          ELSE
             GOTO 500
          ENDIF
       ELSE IF (igeom.EQ.10) THEN
          WRITE (*,99114)
-         READ (*, *) signorm
+         READ (iread, *) signorm
          totmas = 4.0/3.0*pi*75.0*signorm*(5.2*au)**2*
      &        (rcyl**1.5-rmind**1.5)/umass
-         partm = totmas/(npart - nptmass)
+         partm = totmas/(nparttot - nptmass)
 
          DO i = nptmass + 1, npart
             rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2 +
@@ -994,12 +1057,12 @@ c
       ELSE
          WRITE (*,99114)
 99114    FORMAT(' Enter signorm (units of 75 g/cm^2) ')
-         READ (*, *) signorm
+         READ (iread, *) signorm
          rmindisc = 1.0-variation
          rmaxdisc = 1.0+variation
          totmas = 4.0/3.0*pi*75.0*signorm*(5.2*au)**2*
      &        (rmaxdisc**1.5-rmindisc**1.5)/(pi/phibound)/umass
-         partm = totmas/(npart - nptmass)
+         partm = totmas/(nparttot - nptmass)
          flowrate = 75.0*SQRT(gg*solarm*5.2*au)*((2./3.*rmindisc**
      &        (3./2.))+(2./3.*rmaxdisc**(3./2.))-LOG(rmindisc)-
      &        LOG(rmaxdisc)-(4./3.))/umass*utime*signorm/partm
@@ -1045,10 +1108,10 @@ c
       WRITE (*, 99020) npart - nptmass
       IF (npart-nptmass.LE.0) STOP ': ZERO PARTICLES SET'
 99020 FORMAT (1X, I8, ' particles have been set, is this ok? (y/n)')
-      READ (*, 99004) iok
+      READ (iread, 99004) iok
       IF (iok.EQ.'n') THEN
          WRITE (*, 99010)
-         READ (*, *) ichang
+         READ (iread, *) ichang
          IF (ichang.LE.2) GOTO 100
          IF (ichang.EQ.3) GOTO 200
          IF (ichang.EQ.4) GOTO 300
@@ -1066,7 +1129,7 @@ c
      &           'Please choose the fraction of the Hill radius',/
      &           'out to which timesteps will all be the minimum:')
             WRITE (*, 99021)
-            READ (*,*) uniformtslim
+            READ (iread,*) uniformtslim
             uniformtslim2 = uniformtslim*uniformtslim
          ENDIF
          varsta = 'intener'
@@ -1076,13 +1139,13 @@ c
 99022 FORMAT (' What is the equation of state variable:', /,
      &        ' specific internal energy :  intener (i)', /,
      &        ' specific entropy         :  entropy (e)')
-      READ (*, 99024) varsta
+      READ (iread, 99024) varsta
 99024 FORMAT (A7)
       IF (varsta.EQ.'entropy' .OR. varsta.EQ.'e') THEN
          WRITE (*, 99026)
          varsta = 'entropy'
 99026    FORMAT (' Value of specific entropy (code units)')
-         READ (*, *) thermal
+         READ (iread, *) thermal
       ELSE
          varsta = 'intener'
 99027    WRITE (*, 99028)
@@ -1090,21 +1153,21 @@ c
      &     '    value of initial average temperature in kelvin: (t) ',/,
      &     '    initial average sound speed (code units)      : (s) ',/,
      &     '    initial average internal energy (code units)  : (u) ?')
-         READ(*,99128) ien
+         READ (iread,99128) ien
 99128    FORMAT(A1)       
          IF (ien.EQ.'t') THEN
             WRITE(*,99129)
 99129       FORMAT (' Value of initial average temperature in kelvin:')
-            READ (*,*) thermal
+            READ (iread,*) thermal
             thermal = 3.0/2.0*thermal*Rg/gmw/uergg
          ELSE IF (ien.EQ.'u') THEN
             WRITE(*,99130)
 99130       FORMAT (' Value of internal energy (code units)') 
-            READ (*,*) thermal
+            READ (iread,*) thermal
          ELSE IF (ien.EQ.'s') THEN
             WRITE(*,99131) udist/utime
 99131       FORMAT (' Value of sound speed in units of ',1pe10.4,'cm/s')
-            READ (*,*) thermal
+            READ (iread,*) thermal
             vsoundin = ABS(thermal)
             vsoundin2 = vsoundin*vsoundin
          ELSE
@@ -1125,22 +1188,22 @@ c
      &        '   Radiative,      p=R*rho*u/Cv  (r)',/,
      &        '   Variable gamma, p=A*rho^gamma (v)',/,
      &        '      critical rho (s) = ', 1PE14.5, 1PE14.5, 1PE14.5)
-         READ (*, 99004) encal
+         READ (iread, 99004) encal
          IF (encal.EQ.'i' .AND. (ibound.EQ.102.OR.ibound.EQ.100)) THEN
             gamma = 5.0/3.0
          ELSE IF (encal.EQ.'p') THEN
             WRITE (*,99032)
 99032       FORMAT (' Enter gamma')
-            READ (*,*) gamma
+            READ (iread,*) gamma
             gm1 = gamma - 1.0
             WRITE (*,99033)
 99033       FORMAT (' Do you want to specify the polytropic K? (y/n)',/,
      &           '(otherwise uses initial temp/internal energy/vsound)')
-            READ (*,*) iok
+            READ (iread,*) iok
             IF (iok.eq.'y'.or.iok.EQ.'Y') THEN
                WRITE(*,99133)
 99133          FORMAT (' Enter polytropic K:')         
-               READ (*,*) RK2
+               READ (iread,*) RK2
                RK2 = RK2*1.5
                WRITE(*,*) 'RK2 = ',RK2
             ELSE            
@@ -1196,25 +1259,25 @@ c
             IF (ibound/10.EQ.10 .AND. ibound.NE.100) THEN
                WRITE (*,99053)
 99053          FORMAT('Enter radiative transfer tolerance: ')
-               READ(*,*) tolerance
+               READ (iread,*) tolerance
             ELSE
                WRITE (*,99035)
 99035          FORMAT('Enter radiative transfer tolerance, boundary'//
      &        ' temperature, and scale height at which disk becomes'//
      &              ' optically thin:')
-               READ(*,*) tolerance, boundtemp, bounddens
+               READ (iread,*) tolerance, boundtemp, bounddens
             ENDIF
 
             WRITE (*, 89019)
 89019       FORMAT ('Choose an opacity denominator')
-            READ (*,*) opdenom
+            READ (iread,*) opdenom
          ELSE
             GOTO 616
          ENDIF
       ELSE         
          WRITE (*,99034)
 99034    FORMAT (' Enter polytropic gamma')
-         READ (*,*) gamma
+         READ (iread,*) gamma
       ENDIF
       WRITE(*,*) 'specific internal energy in code units =',thermal
 c
@@ -1222,7 +1285,7 @@ c--Set Pressure Distribution
 c
  617  WRITE(*, 99036)
 99036 FORMAT (' Do you want pressure variations (y/n)')
-      READ (*,99004) ipres
+      READ (iread,99004) ipres
       IF ((ipres.NE.'y').AND.(ipres.NE.'n')) GOTO 617
 
       IF (ipres.EQ.'y') THEN
@@ -1233,7 +1296,7 @@ c
 99038    FORMAT (' Coords for pressure variations: Cartesian (1)', /,
      &        '                                  Cylindrical (2)', /,
      &        '                                    Spherical (3)')
-         READ (*,*) icoord
+         READ (iread,*) icoord
          IF ((icoord.LT.1) .OR. (icoord.GT.3)) GOTO 618
 
          IF (icoord.EQ.1) THEN
@@ -1309,11 +1372,11 @@ c--Set in Perturbations in Position
 c
       WRITE (*, 99040)
 99040 FORMAT (' Random perturbations in particle positions? (y/n)')
-      READ (*, 99004) iok
+      READ (iread, 99004) iok
       IF (iok.EQ.'y') THEN
          WRITE (*, 99042)
 99042    FORMAT (' Amplitude (in unit of spacing)')
-         READ (*, *) dmax
+         READ (iread, *) dmax
          dmax05 = 0.5*dmax
          DO i = nptmass + 1, npart
  625        xi = xyzmh(1,i) + 2.0*h1*(ran1(1)*dmax - dmax05)
@@ -1341,15 +1404,29 @@ c
          cmz = cmz + xyzmh(4,i)*xyzmh(3,i)
          totmasn1 = totmasn1 + xyzmh(4,i)
       END DO
+#ifdef MPI
+      CALL MPI_ALLREDUCE(cmxtot,cmx,1,MPI_REAL8,MPI_SUM,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_ALLREDUCE(cmytot,cmy,1,MPI_REAL8,MPI_SUM,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_ALLREDUCE(cmztot,cmz,1,MPI_REAL8,MPI_SUM,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_ALLREDUCE(totmasn1tot,totmasn1,1,MPI_REAL8,MPI_SUM,
+     &     MPI_COMM_WORLD,ierr)
+      cmx = cmxtot/totmasn1tot
+      cmy = cmytot/totmasn1tot
+      cmz = cmztot/totmasn1tot
+#else
       cmx = cmx/totmasn1
       cmy = cmy/totmasn1
       cmz = cmz/totmasn1
+#endif
       WRITE (*,*) 'Centre of mass (obj 1) is at: ',cmx,cmy,cmz
 
       WRITE (*, 99045)
 99045 FORMAT(' Do you want to set the centre of mass',/,
      & ' at zero ? (y/n) ')
-      READ (*, 99004) iok
+      READ (iread, 99004) iok
       IF (iok.EQ.'y' .OR. iok.EQ.'Y') THEN
          DO i = 1, n1
             xyzmh(1,i) = xyzmh(1,i) - cmx
@@ -1379,7 +1456,7 @@ c--Self-Gravity?
 c
       WRITE (*, 99046)
 99046 FORMAT (' Is self-gravity included? (y/n)')
-      READ (*, 99004) iok
+      READ (iread, 99004) iok
       igphi = 0
       IF (iok.EQ.'y') igphi = 1
 c
@@ -1408,7 +1485,7 @@ c
      &        '    or  a gaussian random P(k) : (p)',/,
      &        '    or a velocity distribution : (v)',/,
      &        '    or           no velocities : (n)')
-      READ (*, 99004) iok
+      READ (iread, 99004) iok
       IF (iok.EQ.'n') GOTO 777
       IF (iok.EQ.'r') GOTO 776
       IF (iok.EQ.'p') GOTO 779
@@ -1419,7 +1496,7 @@ c
 99049 FORMAT (' Coords for velocity variations: Cartesian    (1)', /,
      &        '                                 Cylindrical  (2)', /,
      &        '                                 Spherical    (3)')
-      READ (*,*) icoord
+      READ (iread,*) icoord
       IF ((icoord.LT.1) .OR. (icoord.GT.3)) GOTO 765
 
       IF (icoord.EQ.1) THEN
@@ -1445,14 +1522,14 @@ c
      &        '      or rotation perpendicular :  (p)',/,
      &        '      or Galactic rotation curve :  (v)',/,
      &        '        or no internal rotation :  (n)')
-         READ (*, 99004) iok
+         READ (iread, 99004) iok
       ENDIF
 
  777  IF (iok.EQ.'s' .OR. iok.EQ.'d' .OR. iok.EQ.'p') THEN
          IF (igeom.NE.6) THEN
             WRITE (*,99050)
 99050       FORMAT (' Enter angular velocity in rad/sec at radius=1')
-            READ (*,*) angvel
+            READ (iread,*) angvel
             angvel = angvel * utime
             IF (iok.EQ.'p' .OR. iok.EQ.'d') THEN
                  WRITE (*,99054) 
@@ -1460,7 +1537,7 @@ c
      &                  '        omega ~ exponential (e) ?',/,
      &                  '        omega ~    1 over r (r) ?',/,
      &                  '        omega ~  1 over r^2 (s) ?')
-                 READ (*, 99004) iwhat
+                 READ (iread, 99004) iwhat
             ENDIF
          ELSEIF (igeom.EQ.6) THEN
             fractan = angvel/specang
@@ -1471,14 +1548,14 @@ c
       IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7. .OR. iok.EQ.'k') THEN
          WRITE (*,55504)
 55504    FORMAT (' Enter mass for external forces')
-         READ (*,*) xmass
+         READ (iread,*) xmass
          IF (iexf.EQ.7) THEN
             WRITE (*,55505)
 55505       FORMAT (' Is the calculation in rotating reference frame?')
-            READ (*,99004) irotref
+            READ (iread,99004) irotref
             WRITE (*,55533)
 55533              FORMAT (' Enter planet mass for external forces')
-            READ (*,*) planetmass
+            READ (iread,*) planetmass
             hmass = planetmass
 c            hmass = 0.0001
          ELSE
@@ -1494,10 +1571,10 @@ c            hmass = 0.0001
          WRITE (*,55506)
 55506    FORMAT (' Enter fractional rotation gradient along z per',
      &        ' unit distance')
-         READ (*,*) fracrotgrad
+         READ (iread,*) fracrotgrad
          WRITE (*,55507)
 55507    FORMAT (' Enter offset for rotation gradient along z')
-         READ (*,*) fracrotoffset
+         READ (iread,*) fracrotoffset
       ENDIF
 
       IF (iok.EQ.'v') THEN
@@ -1505,7 +1582,7 @@ c Set parameters for rotation curve
 c         WRITE (*,55506)
 c55508    FORMAT (' Enter velocity for rotation curve',
 c     &        ' unit distance (cm/s)')
-c         READ (*,*) angvel
+c         READ (iread,*) angvel
 c      Set velocity to ~200km/s
       angvel=-2.16e+07
       angvel = angvel * utime/udist
@@ -1637,13 +1714,12 @@ c For 5 km/s dispersion, use Gaussian with sigma=disp=5
       GOTO 778
 
  779  WRITE (*,*) 'Do you want random vels?'
-      READ (*,99004) iok
+      READ (iread,99004) iok
 
       IF (iok.EQ.'Y' .OR. iok.EQ.'y') THEN
          WRITE (*,*) 'Enter amplitude'
-         READ (*,*) amplitude
+         READ (iread,*) amplitude
 
-         ekinetic = 0.
          DO i = nptmass + 1, n1
 66544       vxyzu(1,i) = ran1(1)
             vxyzu(2,i) = ran1(1)
@@ -1653,28 +1729,27 @@ c For 5 km/s dispersion, use Gaussian with sigma=disp=5
             vxyzu(2,i) = amplitude*vxyzu(2,i)
             vxyzu(3,i) = amplitude*vxyzu(3,i)
             IF (vel2.GT.1.0) GOTO 66544
-            ekinetic = ekinetic + xyzmh(4,i)*amplitude**2*vel2
          END DO
          GOTO 66545
       ENDIF
 
       WRITE (*,*) 'Enter names of velocity files (x,y,z)'
-      READ (*,77771) filevelx
-      READ (*,77771) filevely
-      READ (*,77771) filevelz
+      READ (iread,77771) filevelx
+      READ (iread,77771) filevely
+      READ (iread,77771) filevelz
       
       WRITE (*,*) 'Enter size of velocity files (e.g.N=32^3)'
-      READ (*,*) nspace
+      READ (iread,*) nspace
       IF (nspace.GT.nvelmax) THEN
          WRITE (*,*) 'Dimensions of velocity arrays too small'
          STOP
       ENDIF
 
       WRITE (*,*) 'Enter amplitude'
-      READ (*,*) amplitude
+      READ (iread,*) amplitude
 
       WRITE (*,*) 'Do you want fall off near edge?'
-      READ (*,99004) iok
+      READ (iread,99004) iok
 
       OPEN (45,FILE=filevelx,FORM='unformatted')
       READ (45) (((velx(i,j,k), i=1,nspace),j=1,nspace), k=1,nspace)
@@ -1777,15 +1852,27 @@ c
          cmy = cmy + xyzmh(4,i)*vxyzu(2,i)
          cmz = cmz + xyzmh(4,i)*vxyzu(3,i)
       END DO
+#ifdef MPI
+      CALL MPI_ALLREDUCE(cmxtot,cmx,1,MPI_REAL8,MPI_SUM,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_ALLREDUCE(cmytot,cmy,1,MPI_REAL8,MPI_SUM,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_ALLREDUCE(cmztot,cmz,1,MPI_REAL8,MPI_SUM,
+     &     MPI_COMM_WORLD,ierr)
+      cmx = cmxtot/totmasn1tot
+      cmy = cmytot/totmasn1tot
+      cmz = cmztot/totmasn1tot
+#else
       cmx = cmx/totmasn1
       cmy = cmy/totmasn1
       cmz = cmz/totmasn1
+#endif
       WRITE (*,*) 'Vel of centre of mass is: ',cmx,cmy,cmz
 
       WRITE (*, 99886)
 99886 FORMAT(' Do you want to set the centre of mass',/,
      & ' velocity to zero ? (y/n) ')
-      READ (*, 99004) iok
+      READ (iread, 99004) iok
       IF (iok.EQ.'y' .OR. iok.EQ.'Y') THEN
          DO i = 1, n1
             vxyzu(1,i) = vxyzu(1,i) - cmx
@@ -1801,24 +1888,32 @@ c
          rootmeansquare = rootmeansquare + vel2
          ekinetic = ekinetic + xyzmh(4,i)*vel2
       END DO
+#ifdef MPI
+      CALL MPI_ALLREDUCE(rootmeansquaretot,rootmeansquare,1,
+     &     MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+      CALL MPI_ALLREDUCE(ekinetictot,ekinetic,1,
+     &     MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+      rootmeansquare = rootmeansquaretot
+      ekinetic = ekinetictot
+#endif
       ekinetic = ekinetic/2.0
       WRITE (*,*) 'Root mean square velocity = ',
-     &     SQRT(rootmeansquare/(n1-nptmass)),rootmeansquare
+     &     SQRT(rootmeansquare/(n1tot-nptmass)),rootmeansquare
       vsoundin = SQRT(2.0/3.0*gamma*thermal)
       WRITE (*,*) 'Sound speed = ',vsoundin
       WRITE (*,*) 'Kinetic energy = ',ekinetic
       WRITE (*,*) 'Is this okay?'
-      READ (*,99004) iok
+      READ (iread,99004) iok
       IF (iok.EQ.'y' .OR. iok.EQ.'Y') GOTO 778
 
       WRITE (*,*) 'Do you want to enter RMS velocity, mach number or',
      &     ' multiplicative factor or ekin (r/m/f/e)?'
-      READ (*,99004) iok
+      READ (iread,99004) iok
 
       IF (iok.EQ.'r' .OR. iok.EQ.'R') THEN
          WRITE (*,*) 'Enter new RMS velocity'
-         READ (*,*) factor
-         rootmeansquare = SQRT(rootmeansquare/(n1-nptmass))
+         READ (iread,*) factor
+         rootmeansquare = SQRT(rootmeansquare/(n1tot-nptmass))
          DO i = nptmass + 1, n1
             vxyzu(1,i) = vxyzu(1,i)*factor/rootmeansquare
             vxyzu(2,i) = vxyzu(2,i)*factor/rootmeansquare
@@ -1826,8 +1921,8 @@ c
          END DO
       ELSEIF (iok.EQ.'m' .OR. iok.EQ.'M') THEN
          WRITE (*,*) 'Enter new RMS mach number'
-         READ (*,*) factor
-         rootmeansquare = SQRT(rootmeansquare/(n1-nptmass))
+         READ (iread,*) factor
+         rootmeansquare = SQRT(rootmeansquare/(n1tot-nptmass))
          DO i = nptmass + 1, n1
             vxyzu(1,i) = vxyzu(1,i)*factor/rootmeansquare*vsoundin
             vxyzu(2,i) = vxyzu(2,i)*factor/rootmeansquare*vsoundin
@@ -1835,7 +1930,7 @@ c
          END DO
       ELSEIF (iok.EQ.'e' .OR. iok.EQ.'E') THEN
          WRITE (*,*) 'Enter new kinetic energy in code units'
-         READ (*,*) factor
+         READ (iread,*) factor
          DO i = nptmass + 1, n1
             vxyzu(1,i) = vxyzu(1,i)*SQRT(factor/ekinetic)
             vxyzu(2,i) = vxyzu(2,i)*SQRT(factor/ekinetic)
@@ -1843,7 +1938,7 @@ c
          ENDDO
       ELSEIF (iok.EQ.'F' .OR. iok.EQ.'f') THEN
          WRITE (*,*) 'Enter multiplicative factor'
-         READ (*,*) factor
+         READ (iread,*) factor
          DO i = nptmass + 1, n1
             vxyzu(1,i) = vxyzu(1,i)*factor
             vxyzu(2,i) = vxyzu(2,i)*factor
@@ -1863,8 +1958,16 @@ c
          rootmeansquare = rootmeansquare + vel2
          ekinetic = ekinetic + xyzmh(4,i)*vel2
       END DO
+#ifdef MPI
+      CALL MPI_ALLREDUCE(rootmeansquaretot,rootmeansquare,1,
+     &     MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+      CALL MPI_ALLREDUCE(ekinetictot,ekinetic,1,
+     &     MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+      rootmeansquare = rootmeansquaretot
+      ekinetic = ekinetictot
+#endif
       ekinetic = ekinetic/2.0
-      vrms = SQRT(rootmeansquare/(n1-nptmass))
+      vrms = SQRT(rootmeansquare/(n1tot-nptmass))
       WRITE (*,*) 'Kinetic energy = ',ekinetic
       WRITE (*,*) 'Root mean square velocity = ',vrms,' mach # = ',
      &             vrms/vsoundin
@@ -1879,11 +1982,11 @@ c
       WRITE(*,*) 'The free-fall time in code units is ',tcomp
       WRITE (*, 78045)
 78045 FORMAT(' Set dtmax as fraction of free-fall time? (y/n)')
-      READ (*, 99004) iok
+      READ (iread, 99004) iok
       IF (iok.EQ.'y' .OR. iok.EQ.'Y') THEN
          WRITE (*,78046)
 78046    FORMAT(' Enter fraction:')
-         READ(*,*) dtfrac
+         READ (iread,*) dtfrac
          dtmax = dtfrac*tcomp
          WRITE(*,*) 'setting dtmax = ',dtmax
       ENDIF
@@ -1897,7 +2000,7 @@ c
       WRITE (*, 99044)
 99044 FORMAT(' Do you want to adjust smoothing length',/,
      + ' to have similar number of neighbours ? (y/n) ')
-      READ (*, 99004) iok
+      READ (iread, 99004) iok
 
 c Set abundances of main species
       IF (iener.EQ.4) THEN
@@ -1917,6 +2020,12 @@ c Set abundances of main species
          gapfac = 0.0
          CALL gapfactor(variation, hmass, gapfac)
       ENDIF
+c
+c--For MPI set up, need to keep local n1 and n2 values until here.
+c     After this, n1 and n2 are global values.
+c
+      n1 = n1tot
+      n2 = n2tot
 
       IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim) CALL hcalc
 
@@ -1933,9 +2042,7 @@ c
 c--Write options
 c
       CALL wrinsph
-
-      iuniquemax = npart
-
+      
       IF (idebug.EQ.'setpart') THEN
          WRITE (iprint, 99058) (xyzmh(1,i), i=1, npart)
          WRITE (iprint, 99058) (xyzmh(2,i), i=1, npart)

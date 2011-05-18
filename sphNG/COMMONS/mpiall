@@ -8,4 +8,4 @@
 
       COMMON /mpi / ierr, numproc, iproc
 
-      COMMON /mpiblk/ lblocklengths(idim_MPI)
+      COMMON /mpiblk/ lblocklengths(idim)

@@ -474,6 +474,12 @@ c************************************************************
 !$OMP END PARALLEL      
 #endif
 #endif
+#ifdef MPI
+      IF (idim_MPI.NE.idim) THEN
+         PRINT *,'ERROR - idim_MPI.NE.idim'
+         CALL quit
+      ENDIF
+#endif
 c
 c--Version - date is date last updated with other code version changes
 c

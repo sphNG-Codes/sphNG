@@ -647,7 +647,154 @@ c
      &        nlst_end,nlst_tot,ncompact
          CALL quit
       ENDIF
-c     
+c
+c--Compute implicit magnetic resistivity
+c
+      IF (imhd.EQ.idim .AND. iresist.LT.0) THEN
+         CALL resistivity_implicit(nlst_in,nlst_end,llist,dt,itime,
+     &        npart,ntot,Bxyz,xyzmh,vxyzu,dumrho,nit,xerror)
+
+         IF (varmhd.EQ.'Bvol') THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst_in,nlst_end,Bevolxyz,Bxyz,llist)
+C$OMP& private(i,ipart)
+            DO i = nlst_in,nlst_end
+               ipart = llist(i)
+               Bevolxyz(1,ipart) = Bxyz(1,ipart)
+               Bevolxyz(2,ipart) = Bxyz(2,ipart)
+               Bevolxyz(3,ipart) = Bxyz(3,ipart)
+            END DO
+C$OMP END PARALLEL DO
+         ELSEIF (varmhd.EQ.'Brho') THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst_in,nlst_end,Bevolxyz,Bxyz,llist,dumrho)
+C$OMP& private(i,ipart)
+            DO i = nlst_in,nlst_end
+               ipart = llist(i)
+               Bevolxyz(1,ipart) = Bxyz(1,ipart)/dumrho(ipart)
+               Bevolxyz(2,ipart) = Bxyz(2,ipart)/dumrho(ipart)
+               Bevolxyz(3,ipart) = Bxyz(3,ipart)/dumrho(ipart)
+            END DO
+C$OMP END PARALLEL DO
+         ENDIF
+
+#ifdef MPI
+c
+c--Transfer new values of Bxyz, Bevolxyz to other MPI processes
+c
+      inumbertotallocal = 0
+      inumberreturned = 0
+      DO i = 0, numproc - 1
+         IF (iproc.EQ.i) THEN
+            IF (nneighsentanyatall) THEN
+c
+c--Otherwise this process does not need to send any particle back!
+c
+c--Send active node data to be processed by other processes.  Data from all
+c     other processes is received before any processing is done.  This
+c     is because here it is assumed that the total number of remote particles
+c     on which forces need to be calculated by this MPI process is less
+c     than idim.
+c
+               DO j = 0, numproc - 1
+                  IF (j.NE.iproc) THEN
+c
+c--Only sends anything at all to another MPI process if it needs to (the
+c     other MPI process knows when it doesn't need to expect anything)
+c
+                     IF (nneighsentany(j+1)) THEN
+
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI3,ierr)
+
+                        CALL MPI_SEND(Bxyz,1,indexMPI3,j,27,
+     &                       MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                        print *,iproc,' sent Bxyz to ',j
+#endif
+
+                        CALL MPI_SEND(Bevolxyz,1,indexMPI3,j,28,
+     &                       MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                        print *,iproc,' sent Bevolxyz to ',j
+#endif
+
+                        CALL MPI_TYPE_FREE(indexMPI3,ierr)
+                     ENDIF
+                  ENDIF
+               END DO
+            ENDIF
+c
+c--Other processes receive the particles being sent
+c
+         ELSE
+            IF (inumberreturned.LT.inumofreturns .AND.
+     &           nneightogetback(i+1).GT.0) THEN
+               inumberreturned = inumberreturned + 1
+#ifdef MPIDEBUG
+               print *,iproc,': receiving Bxyz, Bevolxyz data ',
+     &              inumberreturned,inumofreturns
+#endif
+               istart = ntot + inumbertotallocal + 1
+
+               CALL MPI_RECV(Bxyz(1,istart),idim,i3REAL8,
+     &              i, 27, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus,i3REAL8,inumber,ierr)
+               icheck = inumber
+               IF (istart + icheck.GE.idim2) THEN
+                  WRITE (*,*) iproc,': ERROR - istart+icheck.GE.idim2 ',
+     &                 istart,icheck,idim2,ntot,inumbertotallocal,
+     &                 inumberreturned,inumofreturns,
+     &                 nneightogetback(i+1)
+                  CALL quit
+               ENDIF
+               iprocrec = istatus(MPI_SOURCE)
+#ifdef MPIDEBUG
+               print *,iproc,': got Bxyz from ',iprocrec,inumber
+#endif
+
+               CALL MPI_RECV(Bevolxyz(1,istart),idim,i3REAL8,
+     &              iprocrec, 28, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus,i3REAL8,inumber,ierr)
+               IF (icheck.NE.inumber) THEN
+                  WRITE (*,*) 'ERROR - icheck.NE.inumber 17 ',
+     &                 iproc
+                  CALL quit
+               ENDIF
+#ifdef MPIDEBUG
+               print *,iproc,': got Bxyz from ',iprocrec,inumber
+#endif
+
+               inumbertotallocal = inumbertotallocal + inumber
+               IF (inumberindiv(inumberreturned).NE.inumber) THEN
+                  WRITE (*,*) iproc,': ERR - inumberindiv B ',inumber,
+     &                 inumberindiv(inumberreturned),inumberreturned
+                  CALL quit
+               ENDIF
+               IF (inumbercumm(inumberreturned).NE.istart) THEN
+                  WRITE (*,*) iproc,': ERR - inumbercumm B ',istart,
+     &                 inumbercumm(inumberreturned),inumberreturned
+                  CALL quit
+               ENDIF
+               IF (inumberproc(inumberreturned).NE.iprocrec) THEN
+                  WRITE (*,*) iproc,': ERR - inumberprocB ',iprocrec,
+     &                 inumberproc(inumberreturned),inumberreturned
+                  CALL quit
+               ENDIF
+            ENDIF
+         ENDIF
+      END DO
+      IF (inumbertotallocal.NE.inumbertotal) THEN
+         WRITE (*,*) iproc,': inumbertotallocal.NE.inumbertotal ',
+     &        inumbertotallocal,inumbertotal
+         CALL quit
+      ENDIF
+
+#endif
+
+      ENDIF   ! Endif for imhd.EQ.idim and iresist<0
+c
 c--Compute implicit radiative transfer
 c     
       IF (itiming) CALL getused(tass1)

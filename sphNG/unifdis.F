@@ -48,11 +48,11 @@ c
       IF ((idist.EQ.3).AND.(igeom.EQ.2)) THEN
          WRITE (*,99003)
 99003    FORMAT ('Do you want the centre of the disk to be empty?')
-         READ (*,*) ians
+         READ (iread,*) ians
          IF (ians.EQ.'y') THEN
              WRITE (*,99004)
 99004        FORMAT ('What radius for inner boundary (in code units)?')
-             READ (*,*) rcylin      
+             READ (iread,*) rcylin      
           ENDIF
       ENDIF
       rcylin2=rcylin*rcylin
@@ -74,7 +74,7 @@ c
             
             IF (ians.EQ.'y') THEN
             IF (iexcludepart(igeom,ibound,xi,yi,zi,r2,d2,xmax,ymax,zmax,
-     &          rcylin2,rmax2,zmax2,rmind2).EQ.0) GOTO 100
+     &          -rcylin2,rmax2,zmax2,rmind2).NE.0) GOTO 100
              ENDIF
 
             xyzmh(1,i) = xi
@@ -173,7 +173,7 @@ c
 99002             FORMAT (' dimensions too small ! ', /,
      &            ' choices  : 1  =  change dimensions and recompile'
      &            , /, '            2  =  change input parameters')
-                  READ (*, *) ichoice
+                  READ (iread, *) ichoice
                   IF (ichoice.EQ.1) CALL quit
                   notdone = 1
                   GOTO 300
@@ -221,7 +221,7 @@ c
                npart = npart + 1
                IF (npart.GT.idim) THEN
                   WRITE (*, 99002)
-                  READ (*, *) ichoice
+                  READ (iread, *) ichoice
                   IF (ichoice.EQ.1) CALL quit
                   notdone = 1
                   GOTO 300
@@ -256,7 +256,7 @@ c
 c                     k = 1
 c                     l = 1
                      nz = nz + 1
-                     print*,'nz =',nz
+c                     print*,'nz =',nz
                   ENDIF
                ENDIF
             ENDIF
@@ -337,7 +337,7 @@ c               zstart = FLOAT(INT(zmin/stepz))*stepz + 0.5*stepz
                npart = npart + 1
                IF (npart.GT.idim) THEN
                   WRITE (*, 99002)
-                  READ (*, *) ichoice
+                  READ (iread, *) ichoice
                   IF (ichoice.EQ.1) CALL quit
                   notdone = 1
                   GOTO 300
@@ -357,6 +357,8 @@ c               zstart = FLOAT(INT(zmin/stepz))*stepz + 0.5*stepz
          disfrac(i) = 1.0
       END DO
 
+      print *,iproc,npartold,npart
+
       RETURN
       END
 c
@@ -368,18 +370,49 @@ c
       FUNCTION iexcludepart(igeom,ibound,xi,yi,zi,r2,d2,xmax,ymax,zmax,
      &                      rcyl2,rmax2,zmax2,rmind2)
 
+      INCLUDE 'idim'
+
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
+      INCLUDE 'COMMONS/mpi'
+#endif
+
       INCLUDE 'COMMONS/setbin'
-      INTEGER iexcludepart
+      INTEGER iexcludepart,classify
+      DIMENSION xyzmh_local(5,1)
 
       DATA small/0.0001/
         
-      iexcludepart = 0      
-      
+      iexcludepart = 0
+
+#ifdef MPI
+      mpitype = 'd'
+      xyzmh_local(1,1) = xi
+      xyzmh_local(2,1) = yi
+      xyzmh_local(3,1) = zi
+      xyzmh_local(4,1) = 0.
+      xyzmh_local(5,1) = 0.
+
+c      print *,iproc,xi,yi,zi,classify(mpitype,1,xyzmh_local)
+      IF (iproc.NE.classify(mpitype,1,xyzmh_local)) THEN
+         iexcludepart = 1
+      ELSE
+#endif
+
       IF ((igeom.EQ.1) .AND. ((xi.GT.xmax + small) .OR.
      &    (yi.GT.ymax + small) .OR. (zi.GT.zmax + small))) THEN
          iexcludepart = 1
-      ELSEIF ((igeom.EQ.2) .AND. (r2.GT.rcyl2)) THEN
-         iexcludepart = 1
+      ELSEIF ((igeom.EQ.2) .AND. (r2.GT.ABS(rcyl2))) THEN
+c
+c--Note: If rcyl2 is negative, this excludes particles inside the radius
+c     whereas if rcyl2 is positive a particle outside is excluded
+c
+         IF (rcyl2.LT.0.0) THEN
+            iexcludepart = 0
+         ELSE
+            iexcludepart = 1
+         ENDIF
          
       ELSEIF ((igeom.EQ.3) .AND. (d2.GT.rmax2)) THEN
          iexcludepart = 1
@@ -411,6 +444,10 @@ c
      &     .OR. (zi.GT.zmax + small)))) THEN
          iexcludepart = 1
       ENDIF
-      
+
+#ifdef MPI
+      ENDIF
+#endif
+
       RETURN
       END

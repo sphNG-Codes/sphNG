@@ -54,7 +54,7 @@ c************************************************************
 
 #ifdef MPI
       REAL*4 romax1tot, romax2tot, valphamin1tot, valphamax1tot,
-     &     valphamin2tot, valphamax2tot
+     &     valphamin2tot, valphamax2tot, valphaBmaxtot, valphaBmintot
 #endif
 
       CHARACTER*24 sentenc
@@ -135,190 +135,284 @@ c         n2tot = n2
          trcen2tot = trcen2
 
 #ifdef MPI
-      CALL MPI_REDUCE(tkin,tkintot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(tgrav,tgravtot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(tterm,ttermtot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(tmag,tmagtot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(trad,tradtot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(trotz,trotztot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(trotx,trotxtot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(angx,angxtot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(angy,angytot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(angz,angztot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      angtotot = SQRT(angxtot**2 + angytot**2 + angztot**2)
-      CALL MPI_REDUCE(xmom,xmomtot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(ymom,ymomtot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(zmom,zmomtot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      totmomtot = SQRT(xmomtot**2 + ymomtot**2 + zmomtot**2)
-      CALL MPI_REDUCE(escap,escaptot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(nactive,nactivetot,1,MPI_INTEGER,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(npart,nparttot,1,MPI_INTEGER,
+     &        MPI_SUM,0,MPI_COMM_WORLD,ierr)
 
-      CALL MPI_ALLREDUCE(nptmass,nptmasstot,1,MPI_INTEGER,MPI_SUM,
-     &     MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(tkin,tkintot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(tgrav,tgravtot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(tterm,ttermtot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(tmag,tmagtot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(trad,tradtot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(trotz,trotztot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(trotx,trotxtot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(angx,angxtot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(angy,angytot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(angz,angztot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         angtotot = SQRT(angxtot**2 + angytot**2 + angztot**2)
+         CALL MPI_REDUCE(xmom,xmomtot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(ymom,ymomtot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(zmom,zmomtot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         totmomtot = SQRT(xmomtot**2 + ymomtot**2 + zmomtot**2)
+         CALL MPI_REDUCE(escap,escaptot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(nactive,nactivetot,1,MPI_INTEGER,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
 
-      CALL MPI_REDUCE(nreassign,nreassigntot,1,MPI_INTEGER,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(naccrete,naccretetot,1,MPI_INTEGER,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(nkill,nkilltot,1,MPI_INTEGER,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
+         CALL MPI_ALLREDUCE(nptmass,nptmasstot,1,MPI_INTEGER,MPI_SUM,
+     &        MPI_COMM_WORLD,ierr)
 
+         CALL MPI_REDUCE(nreassign,nreassigntot,1,MPI_INTEGER,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(naccrete,naccretetot,1,MPI_INTEGER,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(nkill,nkilltot,1,MPI_INTEGER,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+c
+c--n1 and n2 are kept as global constant values
+c
 c      CALL MPI_REDUCE(n1,n1tot,1,MPI_INTEGER,MPI_SUM,0,
 c     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(n1new,n1newtot,1,MPI_INTEGER,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(fmas1,fmas1tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(cmx1*fmas1,cmx1tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(cmy1*fmas1,cmy1tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(cmz1*fmas1,cmz1tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(vcmx1*fmas1,vcmx1tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(vcmy1*fmas1,vcmy1tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(vcmz1*fmas1,vcmz1tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      IF (fmas1tot.NE.0.0) THEN
-         cmx1tot = cmx1tot/fmas1tot
-         cmy1tot = cmy1tot/fmas1tot
-         cmz1tot = cmz1tot/fmas1tot
-         vcmx1tot = vcmx1tot/fmas1tot
-         vcmy1tot = vcmy1tot/fmas1tot
-         vcmz1tot = vcmz1tot/fmas1tot
-      ENDIF
-      CALL MPI_REDUCE(hmi1,hmi1tot,1,MPI_REAL8,MPI_MIN,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(hma1,hma1tot,1,MPI_REAL8,MPI_MAX,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(dmax1,dmax1tot,1,MPI_REAL8,MPI_MAX,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(zmax1,zmax1tot,1,MPI_REAL8,MPI_MAX,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(romean1*n1new,romean1tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      IF (n1newtot.NE.0) THEN
-         romean1tot = romean1tot/n1newtot
-      ENDIF
-      CALL MPI_REDUCE(romax1,romax1tot,1,MPI_REAL4,MPI_MAX,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(rocen1,rocen1tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      rocen1tot = rocen1tot/numproc
-      CALL MPI_REDUCE(valphamin1,valphamin1tot,1,MPI_REAL4,MPI_MIN,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(valphamax1,valphamax1tot,1,MPI_REAL4,MPI_MAX,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(tgmean1*n1new,tgmean1tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      IF (n1newtot.NE.0) THEN
-         tgmean1tot = tgmean1tot/n1newtot
-      ENDIF
-      CALL MPI_REDUCE(tgmax1,tgmax1tot,1,MPI_REAL8,MPI_MAX,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(tgcen1,tgcen1tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      tgcen1tot = tgcen1tot/numproc
-      CALL MPI_REDUCE(trmean1*n1new,trmean1tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      IF (n1newtot.NE.0) THEN
-         trmean1tot = trmean1tot/n1newtot
-      ENDIF
-      CALL MPI_REDUCE(trmax1,trmax1tot,1,MPI_REAL8,MPI_MAX,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(trcen1,trcen1tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      trcen1tot = trcen1tot/numproc
-
+         CALL MPI_REDUCE(n1new,n1newtot,1,MPI_INTEGER,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(fmas1,fmas1tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(cmx1*fmas1,cmx1tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(cmy1*fmas1,cmy1tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(cmz1*fmas1,cmz1tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(vcmx1*fmas1,vcmx1tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(vcmy1*fmas1,vcmy1tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(vcmz1*fmas1,vcmz1tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         IF (fmas1tot.NE.0.0) THEN
+            cmx1tot = cmx1tot/fmas1tot
+            cmy1tot = cmy1tot/fmas1tot
+            cmz1tot = cmz1tot/fmas1tot
+            vcmx1tot = vcmx1tot/fmas1tot
+            vcmy1tot = vcmy1tot/fmas1tot
+            vcmz1tot = vcmz1tot/fmas1tot
+         ENDIF
+         CALL MPI_REDUCE(hmi1,hmi1tot,1,MPI_REAL8,MPI_MIN,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(hma1,hma1tot,1,MPI_REAL8,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(dmax1,dmax1tot,1,MPI_REAL8,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(zmax1,zmax1tot,1,MPI_REAL8,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(romean1*n1new,romean1tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         IF (n1newtot.NE.0) THEN
+            romean1tot = romean1tot/n1newtot
+         ENDIF
+         CALL MPI_REDUCE(romax1,romax1tot,1,MPI_REAL4,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(rocen1,rocen1tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         rocen1tot = rocen1tot/numproc
+         CALL MPI_REDUCE(valphamin1,valphamin1tot,1,MPI_REAL4,MPI_MIN,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(valphamax1,valphamax1tot,1,MPI_REAL4,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(tgmean1*n1new,tgmean1tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         IF (n1newtot.NE.0) THEN
+            tgmean1tot = tgmean1tot/n1newtot
+         ENDIF
+         CALL MPI_REDUCE(tgmax1,tgmax1tot,1,MPI_REAL8,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(tgcen1,tgcen1tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         tgcen1tot = tgcen1tot/numproc
+         CALL MPI_REDUCE(trmean1*n1new,trmean1tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         IF (n1newtot.NE.0) THEN
+            trmean1tot = trmean1tot/n1newtot
+         ENDIF
+         CALL MPI_REDUCE(trmax1,trmax1tot,1,MPI_REAL8,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(trcen1,trcen1tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         trcen1tot = trcen1tot/numproc
+c
+c--n1 and n2 are kept as global constant values
+c
 c      CALL MPI_REDUCE(n2,n2tot,1,MPI_INTEGER,MPI_SUM,0,
 c     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(n2new,n2newtot,1,MPI_INTEGER,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(fmas2,fmas2tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(cmx2*fmas2,cmx2tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(cmy2*fmas2,cmy2tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(cmz2*fmas2,cmz2tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(vcmx2*fmas2,vcmx2tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(vcmy2*fmas2,vcmy2tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(vcmz2*fmas2,vcmz2tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      IF (fmas2tot.NE.0.0) THEN
-         cmx2tot = cmx2tot/fmas2tot
-         cmy2tot = cmy2tot/fmas2tot
-         cmz2tot = cmz2tot/fmas2tot
-         vcmx2tot = vcmx2tot/fmas2tot
-         vcmy2tot = vcmy2tot/fmas2tot
-         vcmz2tot = vcmz2tot/fmas2tot
-      ENDIF
-      CALL MPI_REDUCE(hmi2,hmi2tot,1,MPI_REAL8,MPI_MIN,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(hma2,hma2tot,1,MPI_REAL8,MPI_MAX,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(dmax2,dmax2tot,1,MPI_REAL8,MPI_MAX,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(zmax2,zmax2tot,1,MPI_REAL8,MPI_MAX,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(romean2*n2new,romean2tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      IF (n2newtot.NE.0) THEN
-         romean2tot = romean2tot/n2newtot
-      ENDIF
-      CALL MPI_REDUCE(romax2,romax2tot,1,MPI_REAL4,MPI_MAX,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(rocen2,rocen2tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      rocen2tot = rocen2tot/numproc
-      CALL MPI_REDUCE(valphamin2,valphamin2tot,1,MPI_REAL4,MPI_MIN,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(valphamax2,valphamax2tot,1,MPI_REAL4,MPI_MAX,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(tgmean2*n2new,tgmean2tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      IF (n2newtot.NE.0) THEN
-         tgmean2tot = tgmean2tot/n2newtot
-      ENDIF
-      CALL MPI_REDUCE(tgmax2,tgmax2tot,1,MPI_REAL8,MPI_MAX,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(tgcen2,tgcen2tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      tgcen2tot = tgcen2tot/numproc
-      CALL MPI_REDUCE(trmean2*n2new,trmean2tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      IF (n2newtot.NE.0) THEN
-         trmean2tot = trmean2tot/n2newtot
-      ENDIF
-      CALL MPI_REDUCE(trmax2,trmax2tot,1,MPI_REAL8,MPI_MAX,0,
-     &     MPI_COMM_WORLD,ierr)
-      CALL MPI_REDUCE(trcen2,trcen2tot,1,MPI_REAL8,MPI_SUM,0,
-     &     MPI_COMM_WORLD,ierr)
-      trcen2tot = trcen2tot/numproc
+         CALL MPI_REDUCE(n2new,n2newtot,1,MPI_INTEGER,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(fmas2,fmas2tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(cmx2*fmas2,cmx2tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(cmy2*fmas2,cmy2tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(cmz2*fmas2,cmz2tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(vcmx2*fmas2,vcmx2tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(vcmy2*fmas2,vcmy2tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(vcmz2*fmas2,vcmz2tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         IF (fmas2tot.NE.0.0) THEN
+            cmx2tot = cmx2tot/fmas2tot
+            cmy2tot = cmy2tot/fmas2tot
+            cmz2tot = cmz2tot/fmas2tot
+            vcmx2tot = vcmx2tot/fmas2tot
+            vcmy2tot = vcmy2tot/fmas2tot
+            vcmz2tot = vcmz2tot/fmas2tot
+         ENDIF
+         CALL MPI_REDUCE(hmi2,hmi2tot,1,MPI_REAL8,MPI_MIN,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(hma2,hma2tot,1,MPI_REAL8,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(dmax2,dmax2tot,1,MPI_REAL8,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(zmax2,zmax2tot,1,MPI_REAL8,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(romean2*n2new,romean2tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         IF (n2newtot.NE.0) THEN
+            romean2tot = romean2tot/n2newtot
+         ENDIF
+         CALL MPI_REDUCE(romax2,romax2tot,1,MPI_REAL4,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(rocen2,rocen2tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         rocen2tot = rocen2tot/numproc
+         CALL MPI_REDUCE(valphamin2,valphamin2tot,1,MPI_REAL4,MPI_MIN,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(valphamax2,valphamax2tot,1,MPI_REAL4,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(tgmean2*n2new,tgmean2tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         IF (n2newtot.NE.0) THEN
+            tgmean2tot = tgmean2tot/n2newtot
+         ENDIF
+         CALL MPI_REDUCE(tgmax2,tgmax2tot,1,MPI_REAL8,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(tgcen2,tgcen2tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         tgcen2tot = tgcen2tot/numproc
+         CALL MPI_REDUCE(trmean2*n2new,trmean2tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         IF (n2newtot.NE.0) THEN
+            trmean2tot = trmean2tot/n2newtot
+         ENDIF
+         CALL MPI_REDUCE(trmax2,trmax2tot,1,MPI_REAL8,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(trcen2,trcen2tot,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         trcen2tot = trcen2tot/numproc
 
-      IF (iproc.EQ.0) THEN
+         IF (imhd.EQ.idim) THEN
+            CALL MPI_REDUCE(betamhdmin,betamhdmintot,1,MPI_REAL8,
+     &           MPI_MIN,0,MPI_COMM_WORLD,ierr)
+            betamhdmin = betamhdmintot
+            CALL MPI_REDUCE(betamhdmax,betamhdmaxtot,1,MPI_REAL8,
+     &           MPI_MAX,0,MPI_COMM_WORLD,ierr)
+            betamhdmax = betamhdmaxtot
+            CALL MPI_REDUCE(betamhdav*npart,betamhdavtot,1,
+     &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+            betamhdav = betamhdavtot/nparttot
+            
+            CALL MPI_REDUCE(divBmax,divBmaxtot,1,MPI_REAL8,
+     &           MPI_MAX,0,MPI_COMM_WORLD,ierr)
+            divBmax = divBmaxtot
+            CALL MPI_REDUCE(divBav*npart,divBavtot,1,
+     &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+            divBav = divBavtot/nparttot
+            
+            CALL MPI_REDUCE(curlBmax,curlBmaxtot,1,MPI_REAL8,
+     &           MPI_MAX,0,MPI_COMM_WORLD,ierr)
+            curlBmax = curlBmaxtot
+            CALL MPI_REDUCE(curlBav*npart,curlBavtot,1,
+     &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+            curlBav = curlBavtot/nparttot
+            
+            CALL MPI_REDUCE(div2curlBmax,div2curlBmaxtot,1,MPI_REAL8,
+     &           MPI_MAX,0,MPI_COMM_WORLD,ierr)
+            div2curlBmax = div2curlBmaxtot
+            CALL MPI_REDUCE(div2curlBav*npart,div2curlBavtot,1,
+     &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+            div2curlBav = div2curlBavtot/nparttot
+
+            CALL MPI_REDUCE(omegamhdmax,omegamhdmaxtot,1,MPI_REAL8,
+     &           MPI_MAX,0,MPI_COMM_WORLD,ierr)
+            omegamhdmax = omegamhdmaxtot
+            CALL MPI_REDUCE(omegamhdav*npart,omegamhdavtot,1,
+     &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+            omegamhdav = omegamhdavtot/nparttot
+            CALL MPI_REDUCE(fracdivBok*npart,fracdivBoktot,1,
+     &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+            fracdivBok = fracdivBoktot/nparttot
+            
+            CALL MPI_REDUCE(valphaBmin,valphaBmintot,1,MPI_REAL4,
+     &           MPI_MIN,0,MPI_COMM_WORLD,ierr)
+            valphaBmin = valphaBmintot
+            CALL MPI_REDUCE(valphaBmax,valphaBmaxtot,1,MPI_REAL4,
+     &           MPI_MAX,0,MPI_COMM_WORLD,ierr)
+            valphaBmax = valphaBmaxtot
+
+            CALL MPI_REDUCE(Bmin,Bmintot,1,MPI_REAL8,
+     &           MPI_MIN,0,MPI_COMM_WORLD,ierr)
+            Bmin = Bmintot
+            CALL MPI_REDUCE(Bmax,Bmaxtot,1,MPI_REAL8,
+     &           MPI_MAX,0,MPI_COMM_WORLD,ierr)
+            Bmax = Bmaxtot
+            CALL MPI_REDUCE(Bmean*npart,Bmeantot,1,
+     &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+            Bmean = Bmeantot/nparttot
+            
+            CALL MPI_REDUCE(etamin,etamintot,1,MPI_REAL8,
+     &           MPI_MIN,0,MPI_COMM_WORLD,ierr)
+            etamin = etamintot
+            CALL MPI_REDUCE(etamax,etamaxtot,1,MPI_REAL8,
+     &           MPI_MAX,0,MPI_COMM_WORLD,ierr)
+            etamax = etamaxtot
+            CALL MPI_REDUCE(etaav*npart,etaavtot,1,
+     &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+            etaav = etaavtot/nparttot
+            
+            CALL MPI_REDUCE(etarealoverartmax,etarealoverartmaxtot,
+     &           1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+            etarealoverartmax = etarealoverartmaxtot
+            CALL MPI_REDUCE(etarealoverartmin,etarealoverartmintot,
+     &           1,MPI_REAL8,MPI_MIN,0,MPI_COMM_WORLD,ierr)
+            etarealoverartmin = etarealoverartmintot
+            CALL MPI_REDUCE(etarealoverartav*npart,etarealavtot,1,
+     &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+            etarealoverartav = etarealavtot/nparttot
+
+            CALL MPI_REDUCE(fluxtot,fluxtot_tot,1,MPI_REAL8,MPI_SUM,
+     &           0,MPI_COMM_WORLD,ierr)
+            fluxtot = fluxtot_tot
+            CALL MPI_REDUCE(crosshel,crossheltot,1,MPI_REAL8,MPI_SUM,
+     &           0,MPI_COMM_WORLD,ierr)
+            crosshel = crossheltot
+         ENDIF
+
+         IF (iproc.EQ.0) THEN
 #else
-      escaptot = escap
+         escaptot = escap
 #endif
 
 c
@@ -510,7 +604,7 @@ c
      &   '              divB*h/B max : ', 1PE14.5,
      &   '  mean: ', 1PE14.5,' frac < ',1PE9.2,' : ',0PF6.2,'%',/,
      &   '   resistivity switch  min : ', 1PE14.5, '  max : ',1PE14.5)
-            IF (iresist.GE.2) THEN
+            IF (ABS(iresist).GE.2) THEN
                WRITE (iprint, 66002, ERR=100) etarealoverartmin,
      &               etarealoverartmax,etarealoverartav
             ENDIF
@@ -545,7 +639,7 @@ c
             WRITE (iprint, 99206) Bmin, Bmean, Bmax
 99206       FORMAT (' mag field    min  :', 1PE14.5, '  av:', 1PE14.5,
      &              ' max:', 1PE14.5)         
-            IF (iresist.GE.2) THEN
+            IF (ABS(iresist).GE.2) THEN
                WRITE (iprint, 99207) etamin, etaav, etamax
 99207          FORMAT (' eta resist   min  :', 1PE14.5, '  av:',1PE14.5,
      &              ' max:', 1PE14.5)

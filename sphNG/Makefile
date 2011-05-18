@@ -285,11 +285,11 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	newrun.f options.f phoenix.f phoenix2.f \
 	place.f planet_setup.f planetesimals.f potential.f preset.F \
 	prout.F ran1.f rdump.F rdump_wrapper.F reduce.f \
-	resistivity.f save.f setup_torus.f \
-	scaling.f secmes.f setBfield_mhd.f setpart.f \
+	resistivity.f resistivity_implicit.F save.f setup_torus.f \
+	scaling.f secmes.f setBfield_mhd.f setpart.F \
 	smoothd_P.f \
 	sphdis.f sphmas.f spline.F sphpres.f sphvel.f thermeq.f \
-	toten.f treef_P.F unifdis.f unit.f uset.f \
+	toten.f treef_P.F unifdis.F unit.f uset.f \
 	wdump.F wdump_wrapper.F wrinsph.F zeusread.f
 
 # these are the sources required for the gradh code to compile

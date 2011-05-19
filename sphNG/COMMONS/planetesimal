@@ -1,0 +1,9 @@
+      REAL r_planetesimal, rho_planetesimal, min_rplan, max_rplan
+      REAL eccentricity_p, inclination_p, planetesimalmass
+      REAL*4 planetesimaltimestep
+      LOGICAL gasdrag
+      
+      COMMON /planetesimal / gasdrag, r_planetesimal, rho_planetesimal,
+     &	                     planetesimaltimestep(idim), min_rplan,
+     &                       max_rplan, eccentricity_p, inclination_p,
+     &                       planetesimalmass

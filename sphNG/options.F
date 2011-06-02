@@ -211,7 +211,7 @@ c      ENDIF
       ENDIF
 
       imigrate = 0
-      use_prof = .FALSE.
+      use_tprof = .FALSE.
       prswitch = .FALSE.
       IF (ibound.EQ.102) THEN
          READ (iterm, *) use_tprof

@@ -20,7 +20,7 @@ c************************************************************
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/numpa'
       REAL*8 etai
-      REAL*4 rhoi
+      REAL rhoi
 c
 c--Allow for tracing flow
 c
@@ -144,7 +144,7 @@ c
          valphaBmin = MIN(valphaBmin, alphaMM(2,i))
          
 c         IF (iresist.GE.2) THEN
-            etai = etafunc(rhoi,vxyzu(4,i))
+            etai = etafunc(rhoi,vxyzu(4,i),etamhd,iresist)
             etamax = MAX(etamax, etai)
             etamin = MIN(etamin, etai)
             etaav = etaav + etai

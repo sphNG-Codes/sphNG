@@ -46,7 +46,7 @@ c
 
       INTEGER nosweep
       LOGICAL moresweep
-      REAL*4 rhoi, rhoj
+      REAL rhoi, rhoj
 
       DIMENSION BxyzNew(3,imhd2)
 

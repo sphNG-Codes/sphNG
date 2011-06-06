@@ -84,7 +84,6 @@ c
 
       CHARACTER*7 where
       LOGICAL inosink
-      REAL*4 rhotemp
 
 #ifdef _OPENMP
       INTEGER*8 forcei_lock,revtree_lock
@@ -289,7 +288,7 @@ C$OMP& private(fanisox,fanisoy,fanisoz,forcex,forcey,forcez,xmasi)
 C$OMP& private(t12jpmassi,t12jpmassj,r32grav,forcexi,forceyi,forcezi)
 C$OMP& private(Bevoldotdv,termBpmi,termBpmj,termetapmj,termetapmi)
 C$OMP& private(dBxdissj,dBydissj,dBzdissj,dBxyz_xi,dBxyz_yi,dBxyz_zi)
-C$OMP& private(ioffset,etai,etaj,ui,uj,dqj,rhotemp)
+C$OMP& private(ioffset,etai,etaj,ui,uj,dqj)
 #ifdef MPICOPY
 C$OMP& private(i,ierr)
 #endif
@@ -404,7 +403,7 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
          sqrtrho1i = SQRT(rho1i)
          rho21i = rho1i*rho1i         
 
-         IF (imhd.EQ.idim .AND. iphase(ipart).EQ.0) THEN
+         IF (imhd.EQ.idim.AND. iphase(ipart).EQ.0) THEN
             Bxi = Bxyz(1,ipart)
             Byi = Bxyz(2,ipart)
             Bzi = Bxyz(3,ipart)
@@ -437,17 +436,19 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
             fanisoxi = 0.
             fanisoyi = 0.
             fanisozi = 0.
-            IF (iresist.EQ.2) THEN
-               rhotemp = rhoi
-               etai = etafunc(rhotemp,ui)
+            IF (iresist.GE.2) THEN
+               etai = etafunc(rhoi,ui,etamhd,iresist)
             ELSEIF (iresist.EQ.1) THEN
                etai = etamhd
             ELSE
                etai = 0.
             ENDIF
          ELSE
+            Bxi = 0.; Byi = 0.; Bzi = 0.
+            Bevolxi = 0.; Bevolyi = 0.; Bevolzi = 0.
             B2i = 0.
             B2j = 0.
+            etai = 0.
          ENDIF
 c
 c--note that pressure term includes isotropic magnetic pressure         
@@ -533,8 +534,8 @@ c
             rhoj = trho(j)
             rho1j = 1./rhoj
             robar1 = 2./(rhoi + rhoj)
-            IF (imhd.EQ.idim .AND. iphase(ipart).EQ.0 .AND. 
-     &                                            iphase(j).EQ.0) THEN
+            IF (imhd.EQ.idim) THEN
+             IF (iphase(ipart).EQ.0 .AND. iphase(j).EQ.0) THEN
                Bxj = Bxyz(1,j)
                Byj = Bxyz(2,j)
                Bzj = Bxyz(3,j)
@@ -557,14 +558,26 @@ c
                projBext = Bextxi*runix + Bextyi*runiy + Bextzi*runiz
 c               projBrho2i = (projBi - projBext)*rho21i
 c               projBrho2j = (projBj - projBext)*rho1j*rho1j
-               IF (iresist.EQ.2) THEN
-                  rhotemp = rhoj
-                  etaj = etafunc(rhotemp,uj)
+               IF (iresist.GE.2) THEN
+                  etaj = etafunc(rhoj,uj,etamhd,iresist)
                ELSEIF (iresist.EQ.1) THEN
                   etaj = etamhd
                ELSE
                   etaj = 0.
                ENDIF
+             ELSE
+               Bxj = 0.
+               Byj = 0.
+               Bzj = 0.
+               dBx = 0.
+               dBy = 0.
+               dBz = 0.
+               B2j = 0.
+               projBi = 0.
+               projBj = 0.
+               projdB = 0.
+               etaj = 0.
+             ENDIF
             ENDIF
 c
 c--Determine whether or not there is a sink particle between i and j
@@ -891,6 +904,7 @@ c
                         dBxdissj = 0.
                         dBydissj = 0.
                         dBzdissj = 0.
+                        termeta = (etai+etaj)*grkern*rij1
                         termetapmi = termeta*pmassi*rho1i
 
                         IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN

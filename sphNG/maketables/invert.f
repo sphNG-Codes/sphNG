@@ -1,4 +1,6 @@
-
+c
+c Program to calculate T(u,rho) by inverting the table containing u(rho,T)
+c
       PROGRAM INVERT
 
       IMPLICIT NONE

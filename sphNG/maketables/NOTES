@@ -7,8 +7,7 @@ these are molmasstbl, and gasttbl.
 This routine also creates utbl, which can be used with routine uset.f to
 obtain the internal energy that matches a given temperature.
 
-
-If you wish to avoid recompilling for some reason, just run these routines:
+If you wish to avoid recompiling for some reason, just run these routines:
 
 run: ./specheat
 run: ./goinvert

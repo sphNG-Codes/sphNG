@@ -15,7 +15,7 @@ c
       Y = 0.28
       Z = 0.02
       
-      CALL GENERATEU_ALL(rho,tm,X,Y,Z,specific,uoverT,mu,ne)
+      CALL ionisation(rho,tm,X,Y,Z,specific,uoverT,mu,ne)
       
       END SUBROUTINE GENERATEU
 
@@ -25,7 +25,7 @@ c  interface to return the electron number density
 c  and take in an assumed composition
 c  (DJP 23/5/11)
 c-------------------------------------------------------------------------
-      SUBROUTINE GENERATEU_ALL(rho,tm,X,Y,Z,specific,uoverT,mu,ne)
+      SUBROUTINE ionisation(rho,tm,X,Y,Z,specific,uoverT,mu,ne)
 c
 c--Originally written by Stuart Whitehouse following Black & Bodenheimer 1975.
 c     However, Boley et al. 2007 pointed out that Black & Bodenheimer's 
@@ -56,6 +56,8 @@ c
       REAL*8, PARAMETER :: me = 9.109d-28
       REAL*8, PARAMETER :: k  = 1.381d-16
       REAL*8, PARAMETER :: mH = 1.6733d-24
+      !1eV = 1.602176462E-12 ergs
+      REAL*8, PARAMETER :: eV = 1.602176462E-12
       !1eV = 1.602176462E-12 ergs
       REAL*8, PARAMETER :: IH   = 13.5984*1.602176462d-12
       !-13.6eV ionisation potential of hydrogen
@@ -124,7 +126,7 @@ c
 !      PRINT *,"Number density of H,He"
 !      PRINT *,nh,nHe
 
-!      PRINT *,"Degree of disociation of H_2:",aiony
+c      PRINT *,'Degree of dissociation of H_2:',aiony
 
 c
 c--Other ionisation - ionisation of hydrogen
@@ -150,7 +152,7 @@ c
          STOP
       END IF
 
-!      PRINT *,"Ionisation of H:",aionx
+c      PRINT *,'Ionisation of H:',aionx
 c
 c--Degree of single ionisation of He
 c
@@ -202,7 +204,7 @@ c
          END IF
       ENDIF
 
-!      PRINT *,"Single & Double He ionization: ",aionz1,aionz2
+c      PRINT *,'Single & Double He ionization: ',aionz1,aionz2
 
 c
 c--Temperatures for rotational and vibrational excitation of molecular H
@@ -283,7 +285,7 @@ c
 c--Mu
 c
       mu=(1.0/((2.*X*(1.+aiony+aionx*aiony*2.0)+
-     $     Y*(1+aionz1+aionz1*aionz2))/4.0))
+     $     Y*(1.+aionz1+aionz1*aionz2))/4.0))
 c
 c--Final value of specific internal energy
 c
@@ -304,8 +306,13 @@ c
       uoverT = specific/tm
 c
 c--Return number density of electrons
+c  from the mean molecular weight, we have n = rho/m_h * 1/mu
+c  where 1/mu = X/2*(1 + aiony + 2*aiony*aionx)
+c             + Y/4*(1 + aionz1 + aionz1*aionz2) 
+c  so, noting that n = ni + ne, and hence 1/mu = 1/mu_i + 1/mu_e
+c  ne are just the electron parts making up 1/mu_e
 c
-      ne = nh*(aiony + aionx*aiony*2.)
+      ne = nh*(aionx*aiony*2.)
      $   + nHe*(aionz1 + aionz1*aionz2)
 
       IF(uoverT.LE.1) THEN

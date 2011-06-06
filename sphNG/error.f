@@ -134,6 +134,11 @@ c
          IF (iwhat.EQ.6) WRITE (iprint, 99105)
 99105    FORMAT (' iptintree = 2 cannot be used with point masses',
      &           ' without self-gravity')
+         IF (iwhat.EQ.7) WRITE (iprint, 99106)
+99106    FORMAT (' using real resistivity from function (iresist=2)',/,
+     &           ' but multiplying factor etamhd is <= 0,',
+     &           ' usually should be 1.0',/,
+     &           ' (to use etamhd = 0.0, select iresist=1) ')
 
          CALL quit
       ENDIF

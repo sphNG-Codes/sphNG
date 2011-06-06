@@ -339,7 +339,7 @@ c
      &        '                       cube : 1 ',/,
      &        '                   cylinder : 2 ',/,
      &        '                     sphere : 3 ',/,
-     &        '             accretion disk : 4 ',/,
+     &        '             accretion disc : 4 ',/,
      &        '                  ellipsoid : 5 ',/,
      &        '  constant angular momentum : 6 ',/,
      &        '           sphere with hole : 7 ',/,

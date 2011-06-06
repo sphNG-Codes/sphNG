@@ -1,4 +1,31 @@
+c-------------------------------------------------------------------------
+c  GENERATEU is now a simplified interface to the more general routine
+c  to maintain backwards compatibility with the maketables program
+c-------------------------------------------------------------------------
       SUBROUTINE GENERATEU(rho,tm,specific,uoverT,mu) !,delta)
+      IMPLICIT NONE
+      REAL*8, INTENT(IN)  :: rho,tm
+      REAL*8, INTENT(OUT) :: specific,uoverT,mu
+      REAL*8 :: X,Y,Z,ne
+c
+c--Set metallicity and H/He fractions.  These are consistent with opacity
+c     tables used.
+c
+      X = 0.700
+      Y = 0.28
+      Z = 0.02
+      
+      CALL GENERATEU_ALL(rho,tm,X,Y,Z,specific,uoverT,mu,ne)
+      
+      END SUBROUTINE GENERATEU
+
+c-------------------------------------------------------------------------
+c  This is the most general routine, with modified
+c  interface to return the electron number density
+c  and take in an assumed composition
+c  (DJP 23/5/11)
+c-------------------------------------------------------------------------
+      SUBROUTINE GENERATEU_ALL(rho,tm,X,Y,Z,specific,uoverT,mu,ne)
 c
 c--Originally written by Stuart Whitehouse following Black & Bodenheimer 1975.
 c     However, Boley et al. 2007 pointed out that Black & Bodenheimer's 
@@ -8,56 +35,44 @@ c     for ortho/para H_2 mix (3:1) was incorrect as T->0.
 c
 c     So, on 31/10/07 Matthew Bate modified this code to follow Boley et al.'s
 c     equations for H_2 equation of state.
-c      
-      IMPLICIT REAL*8 (A-H,O-Z)
-
-      REAL*8 rho,tm,aiony,aionx,aionz1,aionz2
-      REAL*8 rhsy,specific,nh,h,IH,IHe1,k,me,nhe,IHe2,mu,IH2,nH2
-      REAL*8 aiony1,aiony2,delta,y0,yp,aionz21,aionz22
-      REAL*8 aionz11,aionz12,mH
-
 c
-c--Set metallicity and H/He fractions.  These are consistent with opacity
-c     tables used.
+c     DJP (23/5/11): General cleanup, more general interface so can return
+c     electron number density and change input composition, implicit none and
+c     parameters set as parameters. References to units removed,
+c     as everything should be in cgs anyway. Additional comments added.
+c     Also incorrect value of Pi fixed!
 c
-      Z=0.02
-      Y=0.28
-      X=0.700
-c      Z=0.0
-c      Y=0.0
-c      X=1.0
+      IMPLICIT NONE
+      REAL*8, INTENT(IN)  :: rho,tm,X,Y,Z
+      REAL*8, INTENT(OUT) :: specific,uoverT,mu,ne
+      REAL*8 aionx1,aionx2,EH2,ftm
+      REAL*8 aiony,aionx,aionz1,aionz2
+      REAL*8 rhsy,nh,nhe,nH2,zrot
+      REAL*8 aiony1,aiony2,delta,aionz21,aionz22 !,y0,yp
+      REAL*8 aionz11,aionz12,rhsx,rhsz1,rhsz2,thetaRot,thetaVib
+      REAL*8, PARAMETER :: pi = 3.1415926536
+      REAL*8, PARAMETER :: Rg = 8.3145d7
+      REAL*8, PARAMETER :: h  = 6.626d-27
+      REAL*8, PARAMETER :: me = 9.109d-28
+      REAL*8, PARAMETER :: k  = 1.381d-16
+      REAL*8, PARAMETER :: mH = 1.6733d-24
+      !1eV = 1.602176462E-12 ergs
+      REAL*8, PARAMETER :: IH   = 13.5984*1.602176462d-12
+      !-13.6eV ionisation potential of hydrogen
+      REAL*8, PARAMETER :: IH2  = 4.73*1.602176462d-12
+      !First ionisation pot of Helium
+      REAL*8, PARAMETER :: IHe1 = 24.58*1.602176462d-12
+      !Second one
+      REAL*8, PARAMETER :: IHe2 = 54.416*1.602176462d-12
 c
 c--Set delta for numerical integration of equations
 c
 !      delta=1.47572e-6
       delta=tm*1.0d-5
 c
-c--Calculations done in cgs units
-c
-      utime=1.0
-      umass=1.0
-      uerg=1.0
-c
-c--Set other constants
-c
-      h=6.626d-27!/uerg/utime
-      me=9.109d-28!/umass
-      k=1.381d-16!/uerg
-      pi=3.14259265
-      Rg=8.3145d7
-      mH=1.6733d-24
-
-      !1eV = 1.602176462E-12 ergs
-      IH=13.5984*1.602176462d-12!/uerg
-      !-13.6eV ionisation potential of hydrogen in code units
-		IH2=4.73*1.602176462d-12!/uerg
-      
-      IHe1=24.58*1.602176462d-12!/uerg  !First ionisation pot of Helium
-      IHe2=54.416*1.602176462d-12!/uerg !Second one
-c
 c--Set Number density of molecular hydrogen
 c
-      nH2=X*rho/(2.0*mH)!*(umass)
+      nH2=X*rho/(2.0*mH)
 c
 c--Right Hand Side of B&B1975 eqn 10
 c
@@ -100,11 +115,11 @@ c
 c
 c--Number density of hydrogen
 c
-      nh=X*rho/(1.6733d-24)!*(umass)
+      nh=X*rho/(mH)
 c
 c--Number density of helium
 c      
-      nHe=Y*rho/(4.002*1.6733d-24)
+      nHe=Y*rho/(4.002*mH)
 
 !      PRINT *,"Number density of H,He"
 !      PRINT *,nh,nHe
@@ -135,9 +150,7 @@ c
          STOP
       END IF
 
-
 !      PRINT *,"Ionisation of H:",aionx
-
 c
 c--Degree of single ionisation of He
 c
@@ -161,7 +174,7 @@ c
          STOP
       END IF
 c
-c--Degree of double ionisatoin of He
+c--Degree of double ionisation of He
 c
       IF(aionz1.EQ.0.0) THEN
          aionz2=0.0
@@ -242,11 +255,12 @@ c
 c--New equations for 2nd term in Boley et al. 2007
 c     which is T^2 d(ln z)/dT
 c
-      ftm = tm**2*(LOG(zrot(tm+delta)) -LOG(zrot(tm-delta)))/(2.0*delta)
+      ftm = tm**2*(LOG(zrot(tm+delta,thetaRot))
+     $            -LOG(zrot(tm-delta,thetaRot)))/(2.0*delta)
 
 !      PRINT *,"f(tm):",ftm
 c
-c--Definition of specific internal energy of H_2 (following Boley et al.)
+c--Definition of specific internal energy of H_2 (following Boley et al., eqn. 5)
 c     Note that the derivative of this with respect to T gives the equation
 c     in BB75 because BB75 has the right equation for c_v=du/dT but then
 c     an incorrect equation u=c_v*T.
@@ -268,7 +282,7 @@ c     $     -1.0)**2)
 c
 c--Mu
 c
-      mu=(1.0/((2*X*(1+aiony+aionx*aiony*2.0)+
+      mu=(1.0/((2.*X*(1.+aiony+aionx*aiony*2.0)+
      $     Y*(1+aionz1+aionz1*aionz2))/4.0))
 c
 c--Final value of specific internal energy
@@ -288,9 +302,13 @@ c--Set ratio of specific internal energy to temperature (note that this is
 c     NOT equal to c_v because c_v is not a constant.  c_v = du/dT.
 c
       uoverT = specific/tm
+c
+c--Return number density of electrons
+c
+      ne = nh*(aiony + aionx*aiony*2.)
+     $   + nHe*(aionz1 + aionz1*aionz2)
 
-	
-      IF(uoverT.LE.1) THEN		
+      IF(uoverT.LE.1) THEN
          PRINT *,(X*(1.0-aiony)*EH2)
          PRINT *,1.5*X*(1+aionx)*aiony+0.375*Y*(1.0+aionz1+aionz1*
      $        aionz2)*Rg
@@ -304,36 +322,43 @@ c
       ENDIF
 
       RETURN
-      END
+      END SUBROUTINE
 
 c-------------------------------------------------------------------------
+c Overall partition function assuming a fixed 3:1 ortho/para ratio (b:a)
+c from Boley et al. 2007:
+c     zrot = zp^(a/(a+b))*zodash^(b/(a+b))
+c     where zodash = zortho*exp(2*thetarot/T)
+c     Here a and b are hardwired to 1 and 3 as above.
+c-------------------------------------------------------------------------
+      FUNCTION zrot(tm,theta_rot)
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: tm,theta_rot
+      REAL*8 zrot,ypara,yortho
 
-      FUNCTION zrot(tm)
-
-      IMPLICIT REAL*8 (A-H,O-Z)
-
-      theta_rot = 85.4
-
-      zrot = yp(tm)**0.25*(y0(tm)*EXP(2.0*theta_rot/tm))**0.75
+      zrot = ypara(tm,theta_rot)**0.25*(yortho(tm,theta_rot)
+     $        *EXP(2.0*theta_rot/tm))**0.75
 
       RETURN
       END
 
 c-------------------------------------------------------------------------
+c Partition function for para-Hydrogen
+c (see Boley et al. 2007)
+c-------------------------------------------------------------------------
+      FUNCTION ypara(tm,thetaRot)
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: tm,thetaRot
+      REAL*8 ypara,zpara !,zpold
+      INTEGER I,J
 
-      FUNCTION yp(tm)
-
-      REAL*8 yp,tm,zp,thetaRot,zpold
-      INTEGER I
-
-      thetaRot=85.4
-      zp=0.0
-      zpold=-9999.9
+      zpara=0.0
+      !zpold=-9999.9
       DO I=2,200,2
          J=I-2
-         zpold=zp
-         zp=zp+(2*J+1)*exp(-J*(J+1)*thetaRot/tm)
-!         PRINT *,zp
+         !zpold=zp
+         zpara=zpara+(2*J+1)*exp(-J*(J+1)*thetaRot/tm)
+!         PRINT *,zpara
    !      IF(ABS((zpold-zp)/zp).GE.0.99999.AND.ABS((zpold-zp)/zp).LE.
    !  $        1.000001) THEN
    !         GOTO 101
@@ -341,26 +366,29 @@ c-------------------------------------------------------------------------
       END DO
 !      STOP
 ! 100  PRINT *,"zp",tm,zp,I
-! 101  yp=tm*log(zp)
- 101  yp=(zp)
+! 101  ypara=tm*log(zpara)
+! 101  CONTINUE
+      ypara=(zpara)
 
       RETURN
       END
 
 c-------------------------------------------------------------------------
-
-      FUNCTION y0(tm)
-
-      REAL*8 y0,tm,z0,thetaRot,z0old
-      INTEGER I
-      z0old=-9999.9
-      thetaRot=85.4
-      z0=0.0
+c Partition function for ortho-Hydrogen
+c (see Boley et al. 2007)
+c-------------------------------------------------------------------------
+      FUNCTION yortho(tm,thetaRot)
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: tm,thetaRot
+      REAL*8 yortho,zortho !,z0old
+      INTEGER I,J
+      !z0old=-9999.9
+      zortho=0.0
       DO I=1,199,2
          J=I
-         z0old=z0
-         z0=z0+(2*J+1)*exp(-J*(J+1)*thetaRot/tm)
-!         PRINT *,z0
+         !z0old=zortho
+         zortho=zortho+(2*J+1)*exp(-J*(J+1)*thetaRot/tm)
+!         PRINT *,zortho
   !       IF(ABS((z0old-z0)/z0).GE.0.99999.AND.ABS((z0old-z0)/z0).LE.
   !   $        1.000001) THEN
   !          GOTO 101
@@ -369,70 +397,8 @@ c-------------------------------------------------------------------------
 !      STOP
 ! 100  PRINT *,"z0",tm,z0,I
 ! 101  y0=tm*log(z0)
- 101  y0=(z0)
+! 101  CONTINUE
+      yortho=(zortho)
 
       RETURN
       END
-
-c-------------------------------------------------------------------------
-
-      PROGRAM MAKETABLE
-
-      REAL*8 ltm,lrho,tm,rho,specific,uoverT,cvv,muu,mu,Rg
-      DIMENSION cvv(4602,1802),muu(4602,1802)
-      INTEGER I,J
-
-!		PRINT *,"Rho, Tg"
-!		READ *,rho,tm
-!		CALL GENERATECV(rho,tm,cv,mu)
-!		PRINT *,"CV: ",cv,cv/8.3144d7
-!		PRINT *,"Mu: ",mu
-!		STOP
-
-      Rg=8.3145d7
-
-!     OPEN(UNIT=55,FILE='specheattbl')
-
-      OPEN(UNIT=8,FILE='specheattbl',FORM='unformatted')
-!      OPEN(UNIT=10,FILE='molmasstbl',FORM='unformatted')
-
-      DO nrho=-20000,3000,5!-20,0,0.005
-
-         IF(MOD(nrho,500).EQ.0) PRINT *,nrho
-         lrho=nrho/1000.0
-         i=nrho/5+4001
-         rho=10.0**lrho
-
-         DO ntm=0,9000,5!0.05,4,0.005
-            ltm=ntm/1000.0
-            j=ntm/5+1
-            tm=10.0**ltm
-            CALL GENERATEU(rho,tm,specific,uoverT,mu)
-c            write (95,99001) tm,specific/Rg,uoverT/Rg,mu
-99001       FORMAT(4(1PE12.5,1X))
-            cvv(I,J)=log10(uoverT)
-            muu(I,J)=log10(mu)
-         END DO
-
-c         STOP
-
-         IF(MOD(nrho,500).EQ.0) PRINT *,cvv(I,900)
-
-      ENDDO
-      PRINT *,"Doing making logcv table. Writing to disk..."
-!J is temperature J = 1 to 1002 rows
-!I is density I = 1 to 4602 columns
-
-      DO j=1,1802
-         WRITE(8) (cvv(i,j), i=1, 4601)
-!         WRITE(10) (muu(i,j), i=1, 4601)
-         PRINT *,cvv(2096,j),muu(2096,j)
-c         WRITE(66,*) cvv(4600,j)
-      END DO
-!      PRINT *,cvv(20,50)
-      PRINT *,"Complete"
-      CLOSE(55)
-
-      END 
-            
-c=========================================================================

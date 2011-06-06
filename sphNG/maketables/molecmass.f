@@ -1,12 +1,12 @@
       
       FUNCTION MU(rho,tm)!,delta)
 
-		IMPLICIT NONE      
+      IMPLICIT NONE      
       REAL*8 rho,tm,aiony,aionx,aionz1,aionz2
       REAL*8 rhsy,cv,nh,h,IH,IHe1,me,nhe,IHe2,IH2,nH2
       REAL*8 aiony1,aiony2,delta,mu,y0,yp,aionz21,aionz22
       REAL*8 aionz11,aionz12,K,aionx1,aionx2,rhsz1,rhsz2,mH
-		REAL*8 rhsx,pi,Y,X,Rg,Z
+      REAL*8 rhsx,pi,Y,X,Rg,Z
 
       tm=DBLE(tm)
 !      INCLUDE 'COMMONS/massfrac'
@@ -28,17 +28,17 @@
       k=1.381d-16!/uerg
       pi=3.142
       Rg=8.3145d7
-		mH=1.6733d-24
+      mH=1.6733d-24
 
       !1eV = 1.602176462E-12 ergs
       IH=13.5984*1.602176462d-12!/uerg
       !-13.6eV ionisation potential of hydrogen in code units
-		IH2=4.73*1.602176462d-12!/uerg
+                IH2=4.73*1.602176462d-12!/uerg
       
       IHe1=24.58*1.602176462d-12!/uerg  !First ionisation pot of Helium
       IHe2=54.416*1.602176462d-12!/uerg !Second one
 
-!    	PRINT *,"Density: ",rho, " Temperature: ",tm
+!            PRINT *,"Density: ",rho, " Temperature: ",tm
       !Number density of molecular hydrogen
       nH2=X*rho/(2.0*mH)!*(umass)
 
@@ -80,13 +80,12 @@ c  throughout the density space.
          PRINT *,"MU: error in dissociation y",aiony1,aiony2
          STOP
       END IF
-      
 
       !Number density of hydrogen
-      nh=X*rho/(1.6733d-24)!*(umass)
+      nh=X*rho/mH  !*(umass)
       
       !And similarly of Helium
-      nHe=Y*rho/(4.002*1.6733d-24)
+      nHe=Y*rho/(4.002*mH)
 
 !      PRINT *,"Number density of H,He"
 !      PRINT *,nh,nHe
@@ -101,9 +100,9 @@ c  throughout the density space.
          aionx1=-1.0
          aionx2=1.0
       ELSE
-      	aionx1=-rhsx/2.0-sqrt((4.0*rhsx+rhsx**2))/2.0
-      	aionx2=sqrt((4.0*rhsx+rhsx**2))/2.0-rhsx/2.0
-		ENDIF
+         aionx1=-rhsx/2.0-sqrt((4.0*rhsx+rhsx**2))/2.0
+         aionx2=sqrt((4.0*rhsx+rhsx**2))/2.0-rhsx/2.0
+      ENDIF
  !     PRINT *,"aionx",aionx1,aionx2,rhsx
       IF(aionx1.LT.0.0.AND.aionx2.GE.0.0) THEN
          aionx=aionx2
@@ -128,9 +127,9 @@ c  throughout the density space.
          aionz11=-1.0
          aionz12=1.0
       ELSE
-      	aionz11=-rhsz1/2.0-sqrt((4.0*rhsz1+rhsz1**2))/2.0
-      	aionz12=sqrt((4.0*rhsz1+rhsz1**2))/2.0-rhsz1/2.0
-		ENDIF
+         aionz11=-rhsz1/2.0-sqrt((4.0*rhsz1+rhsz1**2))/2.0
+         aionz12=sqrt((4.0*rhsz1+rhsz1**2))/2.0-rhsz1/2.0
+      ENDIF
       IF(aionz11.LT.0.0.AND.aionz12.GE.0.0) THEN
          aionz1=aionz12
       ELSE IF(aionz12.LT.0.0.AND.aionz11.GE.0.0) THEN
@@ -143,41 +142,38 @@ c  throughout the density space.
       END IF
 
 
-      !Degree of double ionisatoin of He
+      !Degree of double ionisation of He
       IF(aionz1.EQ.0.0) THEN
          aionz2=0.0
       ELSE
-      rhsz2=1.0/(nhe*aionz1*h**3)*(2*pi*me*k*tm)**1.5*
-     $        exp(-MIN(200.,IHe2/(k*tm)))
-      IF((log10(rhsz2)).GT.8.0) THEN
-         aionz21=-1.0
-         aionz22=1.0
-      ELSE
-      	aionz21=-rhsz2/2.0-sqrt((4.0*rhsz2+rhsz2**2))/2.0
-      	aionz22=sqrt((4.0*rhsz2+rhsz2**2))/2.0-rhsz2/2.0
-		ENDIF
-!      PRINT *,"aionz2:",aionz21,aionz22
-      IF(aionz21.LT.0.0.AND.aionz22.GE.0.0) THEN
-         aionz2=aionz22
-      ELSE IF(aionz22.LT.0.0.AND.aionz21.GE.0.0) THEN
-         aionz2=aionz21
-      ELSEIF(aionz21.EQ.0.0.AND.aionz22.EQ.0.0) THEN
-         aionz2=0.0
-      ELSE
-        PRINT *,"CV error in ionisation z2",aionz21,aionz22
-          PRINT *,rho,tm,aionz1
-         STOP
-      END IF
+         rhsz2=1.0/(nhe*aionz1*h**3)*(2*pi*me*k*tm)**1.5*
+     $         exp(-MIN(200.,IHe2/(k*tm)))
+         IF((log10(rhsz2)).GT.8.0) THEN
+            aionz21=-1.0
+            aionz22=1.0
+         ELSE
+            aionz21=-rhsz2/2.0-sqrt((4.0*rhsz2+rhsz2**2))/2.0
+            aionz22=sqrt((4.0*rhsz2+rhsz2**2))/2.0-rhsz2/2.0
+         ENDIF
+   !      PRINT *,"aionz2:",aionz21,aionz22
+         IF(aionz21.LT.0.0.AND.aionz22.GE.0.0) THEN
+            aionz2=aionz22
+         ELSE IF(aionz22.LT.0.0.AND.aionz21.GE.0.0) THEN
+            aionz2=aionz21
+         ELSEIF(aionz21.EQ.0.0.AND.aionz22.EQ.0.0) THEN
+            aionz2=0.0
+         ELSE
+            PRINT *,"CV error in ionisation z2",aionz21,aionz22
+            PRINT *,rho,tm,aionz1
+            STOP
+         END IF
       ENDIF
-
 
 !      PRINT *,"Single & Double He ionization: ",aionz1,aionz2
 
-  
-
       !Mu 
-      mu=(((2*X*(1+aiony+aionx*aiony*2.0)+
-     $     Y*(1+aionz1+aionz1*aionz2))/4.0))
+      mu=(((2.*X*(1.+aiony+aionx*aiony*2.)+
+     $         Y*(1.+aionz1+aionz1*aionz2))/4.))
 
  !     print *,mu
       END
@@ -258,9 +254,9 @@ c  throughout the density space.
       ENDDO
       CLOSE(8)
 
-!		PRINT *,mu(0.9,10.0**14.71/getcv(0.9,10.0**14.71))
-!!		PRINT *,10.0**14.71/getcv(0.9,10.0**14.71)
-!		STOP
+!                PRINT *,mu(0.9,10.0**14.71/getcv(0.9,10.0**14.71))
+!!                PRINT *,10.0**14.71/getcv(0.9,10.0**14.71)
+!                STOP
 
       OPEN(UNIT=10,FILE='molmasstbl',FORM='unformatted')
 
@@ -271,7 +267,7 @@ c  throughout the density space.
          i=nrho/5+4001
          rho=10.0**lrho
 
-	 		startu=7.725
+                         startu=7.725
          DO R=1,1798
             startu=startu+0.005
             u=10.0**REAL(startu)
@@ -301,18 +297,18 @@ c  throughout the density space.
 
       OPEN(UNIT=10,FILE='molmasstbl',FORM='unformatted')
 
-	DO I=1,mumxu
+        DO I=1,mumxu
            READ(10) (mutable(i,j), j=1,4601)
         END DO
 
-	PRINT *,"Read table"
+        PRINT *,"Read table"
       K=7.725
       DO I=1,mumxu-1
          K=K+0.005
          u=10.0**(REAL(K))
-         rho=1e-18			
+         rho=1e-18                        
 !     print *,1e-10,u
-         PRINT *,mutable(I,4600),muu(4600,I)			
+         PRINT *,mutable(I,4600),muu(4600,I)                        
          y1=get1overmu(rho,u)
          y2=getcv(rho,u)
 c         WRITE(57,*)  u/y2,y2,1.0/y1
@@ -321,8 +317,6 @@ c         WRITE(57,*)  u/y2,y2,1.0/y1
          y2=getcv(rho,u)
 c         WRITE(58,*)  u/y2,y2,1.0/y1
       ENDDO
-
-	
 
       CLOSE(10)
 

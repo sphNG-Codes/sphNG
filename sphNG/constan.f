@@ -14,7 +14,7 @@ c************************************************************
 c
 c--Mathematical constants
 c
-      pi = 3.141592654
+      pi = 3.141592653589
 c
 c--Physical constants (in cgs units)
 c
@@ -36,7 +36,12 @@ c--collection of constants in front
 c  of conductivity term
 c
       sigmaterm = 4.d0*pi/(c*c)*qe*qe
-      
+c
+c--term required in rate coefficient
+c  for physical resistivity
+c     sqrt(8*k_b/(pi*me))
+c
+      ratecoeffconst = dsqrt(8.*boltzmannk/(pi*elecm))
 c
 c--Astronomical constants (in cgs units)
 c

@@ -1,5 +1,10 @@
       REAL*8 gg, c, Rg, pi, radconst, cgsmu0
       REAL*8 qe, ccmu0, ratiomptome, sigmaterm
+      REAL*8 ratecoeffconst
+      REAL*8, PARAMETER :: mH = 1.6733d-24
+      REAL*8, PARAMETER :: elecm = 9.1093897d-28
+      REAL*8, PARAMETER :: boltzmannk = 1.380658d-16
       
       COMMON /physcon/gg, c, Rg, pi, radconst, cgsmu0
-      COMMON /physcon2/qe, ccmu0, ratiomptome, sigmaterm
+      COMMON /physcon2/qe, ccmu0, ratiomptome, sigmaterm,
+     &                 ratecoeffconst

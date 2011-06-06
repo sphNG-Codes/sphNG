@@ -285,7 +285,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	newrun.f options.f phoenix.f phoenix2.f \
 	place.f planet_setup.f planetesimals.f potential.f preset.F \
 	prout.F ran1.f rdump.F rdump_wrapper.F reduce.f \
-	resistivity.f resistivity_implicit.F save.f setup_torus.f \
+	maketables/specificheat.f resistivity.f resistivity_implicit.F save.f setup_torus.f \
 	scaling.f secmes.f setBfield_mhd.f setpart.F \
 	smoothd_P.f \
 	sphdis.f sphmas.f spline.F sphpres.f sphvel.f thermeq.f \

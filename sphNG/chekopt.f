@@ -54,8 +54,8 @@ c
       IF (igphi.EQ.0 .AND. iptintree.EQ.2 .AND. 
      &     (iptmass .NE.0 .OR. initialptm.NE.0)) CALL error(where,6)
 
-      IF (imhd.eq.idim .and. 
-     &    iresist.GE.2 .AND. etamhd.le.0.) CALL error(where,7)
+      IF (imhd.EQ.idim .AND. 
+     &    iresist.GE.2 .AND. etamhd.LE.0.) CALL error(where,7)
 
       RETURN
       END

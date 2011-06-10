@@ -209,7 +209,7 @@ c
             IF (iphase(i).EQ.0) THEN
                IF (iresist.GE.2) THEN
 c           resistivity which is a function of density
-                  etai = etafunc(rho(i),vxyzu(4,i),etamhd,iresist)
+                  etai = etafunc(real(rho(i)),vxyzu(4,i),etamhd,iresist)
                   IF (etai.GT.tiny) THEN
                      dteta = 0.15*xyzmh(5,i)**2/etai
                      rmodeta = dteta/(dt*isteps(i)/imaxstep)

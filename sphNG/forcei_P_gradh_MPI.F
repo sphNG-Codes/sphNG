@@ -1768,11 +1768,11 @@ c
                   ENDIF
 
                   dBxyz(1,ipart) = dBxyz(1,ipart)
-     &                 + (Bxyz(1,ipart)+Beqxi)*rho1i*divv(ipart)
+     &                 - (Bxyz(1,ipart)+Beqxi)*rho1i*divv(ipart)
                   dBxyz(2,ipart) = dBxyz(2,ipart)
-     &                 + (Bxyz(2,ipart)+Beqyi)*rho1i*divv(ipart)
+     &                 - (Bxyz(2,ipart)+Beqyi)*rho1i*divv(ipart)
                   dBxyz(3,ipart) = dBxyz(3,ipart)
-     &                 + (Bxyz(3,ipart)+Beqzi)*rho1i*divv(ipart)
+     &                 - (Bxyz(3,ipart)+Beqzi)*rho1i*divv(ipart)
 
                ENDIF
             ENDIF

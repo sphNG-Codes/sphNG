@@ -194,8 +194,8 @@ c
             hi41 = hi21*hi21
             rhoi = rho(i)
 
-            IF (ABS(iresist).EQ.2) THEN
-               etai = etafunc(rhoi,vxyzu(4,i))
+            IF (ABS(iresist).GE.2) THEN
+               etai = etafunc(rhoi,vxyzu(4,i),etamhd,iresist)
 c               print *,i,rhoi,vxyzu(4,i),etai
             ELSEIF (ABS(iresist).EQ.1) THEN
                etai = etamhd
@@ -267,8 +267,8 @@ c
 c
 c--Set resistivity terms
 c
-               IF (ABS(iresist).EQ.2) THEN
-                  etaj = etafunc(rhoj,vxyzu(4,j))
+               IF (ABS(iresist).GE.2) THEN
+                  etaj = etafunc(rhoj,vxyzu(4,j),etamhd,iresist)
                ELSEIF (ABS(iresist).EQ.1) THEN
                   etaj = etamhd
                ELSE

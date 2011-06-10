@@ -21,10 +21,14 @@ c************************************************************
       REAL*8 ratecoefftH,ratecoefftHe,densne,densnei,densnh,vrms
       REAL*8 ratecoefft,Te,sigmaterme,sigmae,sigma,rhoreal,etareal
       REAL*8 X,Y,Z,specific,uoverT,gmwi,gasmw
+      REAL*4 rhoreal4
+      REAL, EXTERNAL :: getcv
 c
 c--get temperature in K
 c
-      Te = 2./3.*ui/(Rg/gmw/uergg)
+c      Te = 2./3.*ui/(Rg/gmw/uergg)
+      rhoreal4 = rhoi
+      Te = ui/getcv(rhoreal4,ui)
 c
 c--handle T=0 case - prevent floating exceptions         
 c

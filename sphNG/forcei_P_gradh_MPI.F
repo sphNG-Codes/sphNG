@@ -403,7 +403,7 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
          sqrtrho1i = SQRT(rho1i)
          rho21i = rho1i*rho1i         
 
-         IF (imhd.EQ.idim.AND. iphase(ipart).EQ.0) THEN
+         IF (imhd.EQ.idim .AND. iphase(ipart).EQ.0) THEN
             Bxi = Bxyz(1,ipart)
             Byi = Bxyz(2,ipart)
             Bzi = Bxyz(3,ipart)
@@ -444,8 +444,12 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
                etai = 0.
             ENDIF
          ELSE
-            Bxi = 0.; Byi = 0.; Bzi = 0.
-            Bevolxi = 0.; Bevolyi = 0.; Bevolzi = 0.
+            Bxi = 0.
+            Byi = 0.
+            Bzi = 0.
+            Bevolxi = 0.
+            Bevolyi = 0.
+            Bevolzi = 0.
             B2i = 0.
             B2j = 0.
             etai = 0.

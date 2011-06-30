@@ -219,12 +219,12 @@ c
          WRITE (iprint,99100) npart, nactive
 #endif
 
-99100 FORMAT ('Timestep distribution ',I8,' number active ',I8)
+99100 FORMAT ('Timestep distribution ',I10,' number active ',I10)
 
       DO j = 0, 29
          WRITE (iprint,99101) j, dtmax/2**j, nsteplisttot(j+1)
       END DO
-99101 FORMAT (I2,1PE12.4,I8)
+99101 FORMAT (I2,1PE12.4,I10)
 
 #ifdef MPI
       ELSE
@@ -259,7 +259,7 @@ c
 #endif
 
       WRITE (iprint, 98001) tstep/60., nghosttot
-98001 FORMAT (' time used  : ', F8.3, ' min. , ghosts : ', I8)
+98001 FORMAT (' time used  : ', F8.3, ' min. , ghosts : ', I10)
 
       IF (itiming) THEN
          IF (igrape.EQ.1) THEN

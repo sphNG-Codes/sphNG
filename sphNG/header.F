@@ -123,13 +123,13 @@ c--Mass fractions
 c
       WRITE (iprint, 99003) nparttot, nactivetot, (fmas1tot + fmas2tot),
      &        n1, fmas1tot, n2, fmas2tot
-99003 FORMAT (/, ' Total number of particles used : ', I8, /,
-     &        ' Number of active particles     : ', I8, /,
+99003 FORMAT (/, ' Total number of particles used : ', I10, /,
+     &        ' Number of active particles     : ', I10, /,
      &        ' Total mass                     :', 1PE12.4, /,
-     &        ' Distribution : object 1 :  number of particles : ', I8,
+     &        ' Distribution : object 1 :  number of particles : ', I10,
      &        /, '                            mass of object      : ',
      &        1PE12.4, /,
-     &        '                object 2 :  number of particles : ', I8,
+     &        '                object 2 :  number of particles : ', I10,
      &        /, '                            mass of object      : ',
      &        1PE12.4, /)
 
@@ -385,14 +385,22 @@ c
 99217       FORMAT(' WARNING: Magnetic fields are ON',
      &             ', but unknown variable',//)
      
-            IF (iresist.EQ.1) THEN
+            IF (ABS(iresist).EQ.1) THEN
                WRITE(iprint,99221) etamhd
-            ELSEIF (iresist.EQ.2) THEN
-               WRITE(iprint,99222)
+            ELSEIF (ABS(iresist).GE.2) THEN
+               WRITE(iprint,99222) ABS(iresist)
             ENDIF
 99221       FORMAT(' Physical resistivity ON, using constant eta =',
      &             1PE12.3,//)
-99222       FORMAT(' Physical resistivity ON, function of density',//)
+99222       FORMAT(' Physical resistivity type ',I1,' ON',
+     &           ' function of density and temperature',//)
+            IF (iresist.LT.0) THEN
+               WRITE(iprint,99223)
+            ELSE
+               WRITE(iprint,99224)
+            ENDIF
+99223       FORMAT(' Physical resistivity evolved implicitly',//)
+99224       FORMAT(' Physical resistivity evolved explicitly',//)
 
          ENDIF
 c

@@ -16,7 +16,7 @@ c************************************************************
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/typef'
       
-      REAL xyzmh(5,idim),vxyzu(4,idim), Bevolxyz(3,imhd)      
+      REAL xyzmh(5,idim),vxyzu(4,idim), Bevolxyz(imhdevol,imhd)      
       REAL pi, gama1, rhozero, RK2, Slund, valfven
       PARAMETER (pi=3.141592653589)
       

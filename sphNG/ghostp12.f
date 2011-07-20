@@ -12,7 +12,7 @@ c************************************************************
       DIMENSION xyzmh(5,idim)
       DIMENSION vxyzu(4,idim)
       DIMENSION ekcle(4,iradtrans)
-      DIMENSION Bevolxyz(3,imhd)
+      DIMENSION Bevolxyz(imhdevol,imhd)
 
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/densi'
@@ -140,9 +140,9 @@ c
             rho(nptot) = rhoi
             iphase(nptot) = 0
             IF (imhd.EQ.idim) THEN
-               Bevolxyz(1,nptot) = Bevolxyz(1,i)
-               Bevolxyz(2,nptot) = Bevolxyz(2,i)
-               Bevolxyz(3,nptot) = Bevolxyz(3,i)
+               DO k = 1, imhdevol
+                  Bevolxyz(k,nptot) = Bevolxyz(k,i)
+               END DO
             ENDIF
          ENDIF
 
@@ -164,9 +164,9 @@ c
             rho(nptot) = rhoi
             iphase(nptot) = 0
             IF (imhd.EQ.idim) THEN
-               Bevolxyz(1,nptot) = Bevolxyz(1,i)
-               Bevolxyz(2,nptot) = Bevolxyz(2,i)
-               Bevolxyz(3,nptot) = Bevolxyz(3,i)
+               DO k = 1, imhdevol
+                  Bevolxyz(k,nptot) = Bevolxyz(k,i)
+               END DO
             ENDIF
          ENDIF
 

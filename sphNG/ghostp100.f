@@ -11,7 +11,7 @@ c************************************************************
       DIMENSION xyzmh(5,idim)
       DIMENSION vxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
-      DIMENSION Bevolxyz(3,imhd)
+      DIMENSION Bevolxyz(imhdevol,imhd)
 
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/densi'
@@ -201,7 +201,7 @@ c         ekcle(1,i) = uradconst*(vxyzu(4,i)/ekcle(3,i))**4/rhoreal4
 c         ekcle(2,i) = getkappa(vxyzu(4,i),ekcle(3,i),rhoreal4)
                ENDIF
                IF (imhd.EQ.idim) THEN
-                  DO j=1,3
+                  DO j=1,imhdevol
                      Bevolxyz(j,k) = Bevolxyz(j,i)
                   END DO
                ENDIF

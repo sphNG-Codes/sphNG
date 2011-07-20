@@ -11,7 +11,7 @@ c************************************************************
       DIMENSION xyzmh(5,idim)
       DIMENSION vxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
-      DIMENSION Bevolxyz(3,imhd)
+      DIMENSION Bevolxyz(imhdevol,imhd)
 
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/densi'
@@ -49,7 +49,7 @@ c  For periodic boundary conditions, safest is to use hmax
 c
       hmax = 0.
       DO i = 1, npart
-         hmax = max(1.1*xyzmh(5,i),hmax)
+         hmax = max(2.1*xyzmh(5,i),hmax)
       ENDDO
 
       DO 200 i = 1, npart
@@ -676,7 +676,7 @@ c
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/presb'
 
-      DIMENSION Bevolxyz(3,imhd)
+      DIMENSION Bevolxyz(imhdevol,imhd)
 c
 c--for Euler potentials need gradient to be continuous across boundary
 c      
@@ -693,7 +693,7 @@ c--   WARNING! DOES NOT DO MIXED CARTESIAN FIELDS YET
             Bevolxyz(2,inew) = Bevolxyz(2,iold) + deltay         
          ENDIF
       ELSE
-         DO j=1,3
+         DO j=1,imhdevol
             Bevolxyz(j,inew) = Bevolxyz(j,iold)
          END DO
       ENDIF

@@ -11,7 +11,7 @@ c************************************************************
       DIMENSION xyzmh(5,idim)
       DIMENSION vxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
-      DIMENSION Bevolxyz(3,imhd)
+      DIMENSION Bevolxyz(imhdevol,imhd)
 
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/densi'
@@ -175,7 +175,7 @@ c
      &              ekcle(3,k))**4/50.226017
                ENDIF
                IF (imhd.EQ.idim) THEN
-                  DO j=1,3
+                  DO j=1,imhdevol
                      Bevolxyz(j,k) = Bevolxyz(j,i)
                   END DO
                ENDIF

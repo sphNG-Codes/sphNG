@@ -1,13 +1,13 @@
       INTEGER idim, idim2, idim3, iptdim, iptneigh, nlmax
       INTEGER mmax, mmax2, iradtrans, iradtrans2
-      INTEGER imhd, imhd2, imhd3, imhdxsph, isizealphaMM
+      INTEGER imhd, imhd2, imhd3, imhdxsph, isizealphaMM, imhdevol
       INTEGER idim_h2, idim_h2_2, idim_MPI
       REAL tiny
 
-      PARAMETER (idim=1201000)
+      PARAMETER (idim=2001000)
 
-      PARAMETER (iptdim=1000)
-      PARAMETER (iptneigh=10000)
+      PARAMETER (iptdim=10)
+      PARAMETER (iptneigh=100000)
       PARAMETER (tiny=1.0E-20)
 c
 c--For MPI need to set these
@@ -28,6 +28,13 @@ c--For MHD need to use imhd = idim
 c
 c      PARAMETER (imhd = idim)
       PARAMETER (imhd = 1)
+c
+c--Sets the number of variables in the magnetic field array
+c	Use 3 if only need Bxyz, use 4 if need psi as well for
+c	divergence cleaning
+c
+      PARAMETER (imhdevol = 3)
+c      PARAMETER (imhdevol = 4)
 c
 c--For chemistry need to use idim_h2 = idim
 c

@@ -1,4 +1,4 @@
       PARAMETER (ighost = idim)
 
       LOGICAL*1 hasghost
-      COMMON /ghost / ireal(ighost), hasghost(idim2), nghost
+      COMMON /ghost / nghost, ireal(ighost), hasghost(idim2)

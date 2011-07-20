@@ -295,7 +295,8 @@ c
 c--Load in tables of opacity and cv
 c
 c      IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
-      IF (encal.EQ.'r' .OR. (encal.EQ.'i' .AND. ibound.EQ.102)) THEN
+      IF (encal.EQ.'r' .OR. (encal.EQ.'i' .AND. ibound.EQ.102)
+     &     .OR. ABS(iresist).GT.1) THEN
 
          print *, 'Reading tables in preset'
 

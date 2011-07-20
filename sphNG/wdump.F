@@ -373,10 +373,11 @@ c
             ELSEIF (varmhd.EQ.'vecp') THEN
                nums(6) = 6
             ELSE
-               nums(6) = 3
+               nums(6) = imhdevol
             ENDIF
          ENDIF
          nums(7) = 7
+         nums(7) = 13
          nums(8) = 0
          WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
       ENDIF
@@ -505,12 +506,12 @@ c
 c--Dump B (not whatever the evolved MHD variable is)
 c
          IF (varmhd.EQ.'Brho') THEN
-            DO j = 1, 3
+            DO j = 1, imhdevol
                WRITE (idisk1, ERR=100) 
      &            (Bevolxyz(j,isort(i))*rho(isort(i)), i=1, nprint)
             END DO
          ELSEIF (varmhd.EQ.'Bvol') THEN
-            DO j = 1, 3
+            DO j = 1,imhdevol
                WRITE (idisk1, ERR=100) 
      &            (Bevolxyz(j,isort(i)), i=1, nprint)
             END DO         
@@ -544,6 +545,12 @@ c--real*4
      &        i=1,nprint)
          WRITE(idisk1, ERR=100) (etaartificial(isort(i)),
      &        i=1,nprint)
+         DO j = 1, 3
+            WRITE (idisk1, ERR=100) (force_sym(j,isort(i)), i=1, nprint)
+         ENDDO
+         DO j = 1, 3
+            WRITE (idisk1, ERR=100) (force_an(j,isort(i)), i=1, nprint)
+         ENDDO
 c--real*8
 
       ENDIF

@@ -32,7 +32,8 @@ c************************************************************
       DIMENSION xyzmh(5,mmax2), vxyzu(4,idim2), dvxyzu(4,idim3)
       DIMENSION listp(idim2)
       DIMENSION ekcle(5,iradtrans2)
-      DIMENSION Bevol(3,imhd3),Bxyz(3,imhd2),dBxyz(3,imhd2)
+      DIMENSION Bevol(imhdevol,imhd3),Bxyz(3,imhd2),
+     &     dBxyz(imhdevol,imhd2)
 
 c--Neides=INT(4./3.*pi*8.*hfact**3))
       PARAMETER (hfact = 1.2)
@@ -238,7 +239,8 @@ C$OMP END PARALLEL DO
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none) 
 C$OMP& shared(nlstdo,ldolist,isucceed,xyzmh,hi_old,it1,isteps,imaxstep)
 C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)
-C$OMP& shared(iphase,dBxyz,divcurlB,it0,itime,curlv,gradhs)
+C$OMP& shared(iphase,dBxyz,divcurlB,force_sym,force_an,it0,itime)
+C$OMP& shared(curlv,gradhs)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend)
 #endif
@@ -302,11 +304,17 @@ c            ENDIF
          poten(ipart) = 0.
          dq(ipart) = 0.
          IF (imhd.EQ.idim) THEN
-            DO k = 1, 3
+            DO k = 1, imhdevol
                dBxyz(k,ipart) = 0.
             END DO
             DO k = 1, 4
                divcurlB(k,ipart) = 0.
+            END DO
+            DO k = 1, 3
+               force_sym(k,ipart) = 0.
+            END DO
+            DO k = 1, 3
+               force_an(k,ipart) = 0.
             END DO
          ENDIF
       END DO
@@ -3424,7 +3432,7 @@ c
 
       INCLUDE 'idim'
 
-      DIMENSION xyzmh(5,mmax2), vxyzu(4,idim2), Bevol(3,imhd3),
+      DIMENSION xyzmh(5,mmax2), vxyzu(4,idim2), Bevol(imhdevol,imhd3),
      &     gradmhd(15,imhd2)
       DIMENSION neighbourslist(numneighi)
 

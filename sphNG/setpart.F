@@ -61,7 +61,7 @@ c************************************************************
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
-      CHARACTER*1 ien, irotref, uort
+      CHARACTER*1 ien, irotref, uort, ipreseq
 
 #ifdef MPI
       DIMENSION inum_npart(nummaxproc),inum_n1(nummaxproc),
@@ -411,6 +411,9 @@ c
             WRITE(*, 88104)
 88104       FORMAT (' Enter density contrast between sphere and box')
             READ (iread, *) rhocontrast
+            WRITE(*, 88105)
+88105       FORMAT (' Do you want pressure equilibrium or not (y/n)?')
+            READ (iread, 99004) ipreseq
             igeom = 3
          ENDIF
          
@@ -1318,7 +1321,11 @@ c           for sphere in box, ensure pressure balance
             DO i = 1, n1
                vxyzu(4,i) = thermal
             END DO
-            uzero_n2 = thermal*rhocontrast
+            IF (ipreseq.EQ.'Y' .OR. ipreseq.EQ.'y') THEN
+               uzero_n2 = thermal*rhocontrast
+            ELSE
+               uzero_n2 = thermal
+            ENDIF
 c            print*,'uzero = ',thermal,' uzero2 = ',uzero_n2
             DO i = n1+1,npart
                vxyzu(4,i) = uzero_n2

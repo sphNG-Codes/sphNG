@@ -7,4 +7,7 @@ c
       COMMON /divBJ/ divcurlB(4,imhd2)
 
       REAL*4 etareal,etaartificial
-      COMMONS /etavar/ etareal(imhd),etaartificial(imhd)
+      COMMON /etavar/ etareal(imhd),etaartificial(imhd)
+
+      REAL*4 force_sym, force_an
+      COMMON /Bforces/ force_sym(3,idim), force_an(3,idim)

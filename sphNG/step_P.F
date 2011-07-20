@@ -93,6 +93,7 @@ c      INCLUDE 'COMMONS/neighbor_P'
 
       LOGICAL ifirst
       LOGICAL icenter
+      LOGICAL gasdrag
       CHARACTER*7 where
       CHARACTER*5 ptdebug
       CHARACTER*2 itemchar
@@ -111,6 +112,9 @@ c
 c--Set integrator to R-K
 c
       integrator = 0
+
+      gasdrag = .FALSE.
+
 c
 c--Compute next dump time and initialise variables
 c
@@ -221,7 +225,7 @@ ccc               isteps(i) = idtini
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
-                  DO k = 1, 3
+                  DO k = 1, imhdevol
                      dumBevolxyz(k,i) = Bevolxyz(k,i)
                   END DO
                ENDIF
@@ -261,7 +265,7 @@ c
                END DO
             ENDIF
             IF (imhd.EQ.idim) THEN
-               DO k = 1, 3
+               DO k = 1, imhdevol
                   dumBevolxyz(k,i) = Bevolxyz(k,i)
                END DO
             ENDIF
@@ -651,7 +655,7 @@ c                  dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
                ENDDO
             ENDIF
             IF (imhd.EQ.idim) THEN
-               DO k = 1, 3
+               DO k = 1, imhdevol
                   dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
                END DO
             ENDIF
@@ -712,7 +716,7 @@ c            dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                        ENDDO
                     ENDIF
                      IF (imhd.EQ.idim) THEN
-                        DO k = 1, 3
+                        DO k = 1, imhdevol
                            dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) 
      &                                          + deltat*f1Bxyz(k,ipart)
                         END DO
@@ -806,7 +810,7 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                ENDDO
             ENDIF
             IF (imhd.EQ.idim) THEN
-               DO l = 1, 3
+               DO l = 1, imhdevol
                   dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,k)
                END DO
             ENDIF
@@ -1170,7 +1174,7 @@ c
 c-MHD
 c
             IF (imhd.EQ.idim) THEN
-               DO k = 1, 3
+               DO k = 1, imhdevol
                   Bevolxyz(k,i) = Bevolxyz(k,i)
      &              + dtf21*f1Bxyz(k,i) + dtf22*f2Bxyz(k,i)
                ENDDO
@@ -1391,7 +1395,7 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
                ENDDO
             ENDIF
             IF (imhd.EQ.idim) THEN
-               DO k = 1, 3
+               DO k = 1, imhdevol
                   dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
                END DO
             ENDIF
@@ -1452,7 +1456,7 @@ c           dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                         ENDDO
                      ENDIF
                      IF (imhd.EQ.idim) THEN
-                        DO k = 1, 3
+                        DO k = 1, imhdevol
                            dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) 
      &                                          + deltat*f1Bxyz(k,ipart)
                         END DO
@@ -1549,7 +1553,7 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                ENDDO
             ENDIF
             IF (imhd.EQ.idim) THEN
-               DO l = 1, 3
+               DO l = 1, imhdevol
                   dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,k)
                END DO
             ENDIF
@@ -1692,7 +1696,7 @@ C$OMP& shared(pmass,ikilled,nactive,nkill,time,iorig,nlstacc,listacc)
 C$OMP& shared(anglostx,anglosty,anglostz,istminold,listpm,coolingrate)
 C$OMP& shared(ifsvi,alphaMM,dumekcle,ekcle,iresist,etamhd,nptmass)
 C$OMP& shared(phibound,nlistinactive,listinactive,variation,npart,rmind)
-C$OMP& shared(rcyl,Bevolxyz,dumBevolxyz)
+C$OMP& shared(rcyl,Bevolxyz,dumBevolxyz,gasdrag)
 #ifdef MPICOPY
 C$OMP& shared(iproc)
 #endif
@@ -1883,8 +1887,14 @@ cTEST
             ENDIF
 
             IF (imhd.EQ.idim .AND. iresist.LT.0) THEN
-               DO l = 1, 3
+               DO l = 1, imhdevol
                   Bevolxyz(l,i) = dumBevolxyz(l,i)
+               END DO
+            ENDIF
+
+            IF (gasdrag) THEN
+               DO l = 1, 3
+                  vxyzu(l,i) = dumvxyzu(l,i)
                END DO
             ENDIF
          ENDIF

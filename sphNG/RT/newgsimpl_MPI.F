@@ -69,6 +69,7 @@ c      INCLUDE 'COMMONS/rad2'
       INCLUDE 'COMMONS/polyk2'
       INCLUDE 'COMMONS/bodys'
       INCLUDE 'COMMONS/implicit'
+      INCLUDE 'COMMONS/implicit2'
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
@@ -92,8 +93,6 @@ c      INCLUDE 'COMMONS/rad2'
 
       COMMON /rtvarr1/ transfer(iradtrans2),
      &     addenergyparticle(iradtrans2)
-      REAL*4 varij2
-      COMMON /rtvarr3/ varij2(3,icompactmax)
 c      COMMON /rtvarr4/ varijnew(icompactmax)
       COMMON /rtvarr4/ varijnew(iradtrans2)
 

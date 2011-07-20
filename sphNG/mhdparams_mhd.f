@@ -19,6 +19,7 @@ c************************************************************
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/numpa'
+      INCLUDE 'COMMONS/dissi'
       REAL*8 etai
       REAL rhoi
 c

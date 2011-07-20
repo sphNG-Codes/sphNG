@@ -64,7 +64,7 @@ c************************************************************
       REAL*4 dha(1+isizealphaMM,idim2),alphaMM(isizealphaMM,idim2)
       DIMENSION ireal(idim)
       DIMENSION ekcle(5,iradtrans2)
-      DIMENSION Bevolxyz(3,imhd2),dBevolxyz(3,imhd3)
+      DIMENSION Bevolxyz(imhdevol,imhd2),dBevolxyz(imhdevol,imhd3)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/astrcon'
@@ -618,7 +618,7 @@ c
          poten(jpart) = 0.0
          dq(jpart) = 0.0
          IF (imhd.EQ.idim) THEN
-            DO k = 1, 3
+            DO k = 1, imhdevol
                dBevolxyz(k,jpart) = 0.
             END DO
             DO k = 1, 4
@@ -652,7 +652,8 @@ c--Compute implicit magnetic resistivity
 c
       IF (imhd.EQ.idim .AND. iresist.LT.0) THEN
          CALL resistivity_implicit(nlst_in,nlst_end,llist,dt,itime,
-     &        npart,ntot,Bxyz,xyzmh,vxyzu,dumrho,nit,xerror)
+     &        npart,ntot,Bxyz,xyzmh,vxyzu,dumrho,vsound,alphaMM,nit,
+     &        xerror)
 
          IF (varmhd.EQ.'Bvol') THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -1364,7 +1365,8 @@ c     (which is essentially a very small fraction of the original forcei
 c     routine).
 c
       CALL dissipative_source(nlst_in,nlst_end,nlst_tot,llist,itime,
-     &     npart,ntot,xyzmh,dha,dumrho,vsound,alphaMM,Bxyz)
+     &     npart,ntot,xyzmh,dha,dumrho,vsound,alphaMM,Bxyz,Bevolxyz,
+     &     dBevolxyz)
 
 #ifdef MPIDEBUG
       print *,iproc,': Exited derivi ',itime

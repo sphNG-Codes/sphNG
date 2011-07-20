@@ -11,12 +11,6 @@ c************************************************************
 
       INCLUDE 'idim'
 
-#ifdef MPI
-      INCLUDE 'mpif.h'
-      INCLUDE 'COMMONS/mpiall'
-      INCLUDE 'COMMONS/mpi'
-#endif
-
       INCLUDE 'COMMONS/files'
       INCLUDE 'COMMONS/task'
       INCLUDE 'COMMONS/actio'
@@ -53,18 +47,12 @@ c
 c--Start from scratch
 c
       IF (what.EQ.'scratch' .OR. what.EQ.'s') THEN
-#ifdef MPI
-         IF (iproc.EQ.0) THEN
-#endif
          WRITE (*, 99006)
 99006    FORMAT (' name of binary file (7 char. max)')
          READ (*, 99005) file1
          WRITE (*,*) 'MAXIMUM RECORD LENGTH = ',imaxrec,' ',file1
          OPEN (idisk1, FILE=file1, STATUS='unknown', FORM='unformatted',
      &        RECL=imaxrec)
-#ifdef MPI
-         ENDIF
-#endif
          CALL planet_setup
 
          CALL inform(where)
@@ -732,7 +720,7 @@ c
       READ (*, 99004) encal
       
       IF (encal.EQ.'i' .AND. (ibound.EQ.102.OR.ibound.EQ.100)) THEN
-         gamma = 5.0/3.0        !Assuming temperature near planet < 100K.
+         gamma = 5.0/3.0  !Assuming temperature near planet < 100K.
       ELSE IF (encal.EQ.'p') THEN
          WRITE (*,99032)
 99032    FORMAT (' Enter gamma')
@@ -805,8 +793,8 @@ c
          ELSE
             WRITE (*,99035)
 99035       FORMAT('Enter radiative transfer tolerance, boundary'//
-     &           ' temperature, and scale height at which disk becomes'//
-     &           ' optically thin:')
+     &          ' temperature, and scale height at which disk becomes'//
+     &          ' optically thin:')
             READ (*,*) tolerance, boundtemp, bounddens
          ENDIF
          

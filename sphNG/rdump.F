@@ -657,6 +657,15 @@ c
                READ (idisk1, END=100) (Bxyz(j,i), i=icount+1, 
      &              icount+nmhd)
             END DO
+            IF (imhdevol.EQ.4) THEN
+               IF (nums4(6).NE.4) THEN
+                  WRITE(*,*) 'WARNING: imhdevol.EQ.4 but nums4(6)=',
+     &                 nums4(6)
+               ELSE
+                  READ (idisk1, END=100) (Bevolxyz(4,i), i=icount+1,
+     &              icount+nmhd)
+               ENDIF
+            ENDIF
 #ifdef MPIDEBUG
          print *,iproc,': Read Bxyz'
 #endif
@@ -715,7 +724,7 @@ c
                ENDDO
             ELSE
                WRITE (*,*) 'unknown MHD variable in rdump'
-               DO j = 4, MIN(nums4(6),6)
+               DO j = imhdevol+1, MIN(nums4(6),6)
                   READ (idisk1, END=100) (Bevolxyz(j,i), i=icount+1,
      &                 icount+nmhd)
                END DO

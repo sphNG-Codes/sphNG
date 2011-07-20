@@ -136,6 +136,23 @@ ifeq ($(SYSTEM), apac)
     ZZFILE= zzibm.f
 endif
 
+ifeq ($(SYSTEM), msg)
+    ifeq ($(mpiall), yes)
+       LDFLAGS+= -lmpi
+    endif
+    FC=ifort
+    FFLAGS= -O3 -WB -mcmodel=medium -shared-intel \
+            -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source\
+            -warn interfaces -gen-interfaces
+    OMPFLAG= -openmp
+    DBLFLAG= -r8
+    DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -convert big_endian
+    ENDIANFLAGLITTLE= -convert little_endian
+    ZZFILE= zzibm.f
+endif
+
 ifeq ($(SYSTEM), sunf95)
     FC= sunf95
     FFLAGS= -fast -w4 -errtags -erroff=COMMENT_1582,COMMENT_1744

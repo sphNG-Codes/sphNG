@@ -1,1 +1,1 @@
-      COMMON /mhd/      Bevolxyz(3,imhd)
+      COMMON /mhd/      Bevolxyz(imhdevol,imhd)

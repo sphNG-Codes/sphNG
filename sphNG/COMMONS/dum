@@ -3,4 +3,4 @@
       COMMON /dum   / dumxyzmh(5,mmax2), dumvxyzu(4,idim2), 
      &                dumalpha(isizealphaMM,idim2),
      &                dumekcle(5,iradtrans2),
-     &                dumBevolxyz(3,imhd2)
+     &                dumBevolxyz(imhdevol,imhd2)

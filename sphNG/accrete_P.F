@@ -669,7 +669,7 @@ c            WRITE (iprint,*) 'Test ',jj,j,r2,iremove(j)
                   iaccr = 1
                   nlstacc = nlstacc + 1
                   IF (nlstacc.GT.nlstaccmax) THEN
-                     WRITE (iprint,*) 'ERROR nlstacc'
+                     WRITE (iprint,*) 'ERROR nlstacc ',nlstacc
                      CALL quit
                   ENDIF
                   listacc(nlstacc) = j
@@ -898,7 +898,7 @@ c
                      numberaccreted = numberaccreted + 1
                      nlstacc = nlstacc + 1
                      IF (nlstacc.GT.nlstaccmax) THEN
-                        WRITE (iprint,*) 'ERROR nlstacc 2'
+                        WRITE (iprint,*) 'ERROR nlstacc 2 ',nlstacc
                         CALL quit
                      ENDIF
                      listacc(nlstacc) = nearl(i)+1
@@ -1536,7 +1536,7 @@ c
                         iaccr = 1
                         nlstacc = nlstacc + 1
                         IF (nlstacc.GT.nlstaccmax) THEN
-                           WRITE (iprint,*) 'ERROR nlstacc'
+                           WRITE (iprint,*) 'ERROR nlstacc ',nlstacc
                            CALL quit
                         ENDIF
                         listacc(nlstacc) = j
@@ -1766,7 +1766,7 @@ c
                numberaccreted = numberaccreted + 1
                nlstacc = nlstacc + 1
                IF (nlstacc.GT.nlstaccmax) THEN
-                  WRITE (iprint,*) 'ERROR nlstacc 3'
+                  WRITE (iprint,*) 'ERROR nlstacc 3 ',nlstacc
                   CALL quit
                ENDIF
                listacc(nlstacc) = llistsentback(iii,ibehind+1)+1
@@ -1939,7 +1939,8 @@ c     &     zmomsyn(iii)+zmomadd(iii)+zmomsyn(jjj)+zmomadd(jjj)
                               IF (i2list.LE.nptmass) THEN
                                  nlstacc = nlstacc + 1
                                  IF (nlstacc.GT.nlstaccmax) THEN
-                                    WRITE (iprint,*) 'ERROR nlstacc'
+                                    WRITE (iprint,*) 'ERROR nlstacc ',
+     &                                   nlstacc
                                     CALL quit
                                  ENDIF
                                  listacc(nlstacc) = iptm2

@@ -226,7 +226,7 @@ c
          ENDDO
       ENDIF
       IF (imhd.EQ.idim) THEN
-         DO k = 1, 3
+         DO k = 1, imhdevol
             DO i = 1, npart
                tempsort(i) = Bevolxyz(k,iorig(i))
             END DO

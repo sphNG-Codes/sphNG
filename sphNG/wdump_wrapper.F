@@ -546,7 +546,7 @@ c
 c--Bevolxyz, dumBevolxyz, Bxyz, f1Bxyz, f2Bxyz
 c
       IF (imhd.EQ.idim) THEN
-         DO k = 1, 3
+         DO k = 1, imhdevol
             DO i = 1, npart
                tempsort(i) = Bevolxyz(k,llist(i))
             END DO
@@ -560,14 +560,6 @@ c
             DO i = 1, npart
                dumBevolxyz(k,i) = tempsort(i)
             END DO
-
-            DO i = 1, npart
-               tempsort(i) = Bxyz(k,llist(i))
-            END DO
-            DO i = 1, npart
-               Bxyz(k,i) = tempsort(i)
-            END DO
-
             DO i = 1, npart
                tempsort(i) = f1Bxyz(k,llist(i))
             END DO
@@ -581,6 +573,15 @@ c
             DO i = 1, npart
                f2Bxyz(k,i) = tempsort(i)
             END DO
+         END DO
+         DO k = 1, 3
+            DO i = 1, npart
+               tempsort(i) = Bxyz(k,llist(i))
+            END DO
+            DO i = 1, npart
+               Bxyz(k,i) = tempsort(i)
+            END DO
+
          END DO
       ENDIF
 c

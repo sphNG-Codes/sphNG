@@ -1,5 +1,6 @@
       SUBROUTINE resistivity_implicit(nlst_in,nlst_end,list,dtdo,
-     &     itime,npart,ntot,Bxyz,xyzmh,vxyzu,rho,nit,error)
+     &     itime,npart,ntot,Bxyz,xyzmh,vxyzu,rho,vsound,alphaMMpass,
+     &     nit,error)
   
       INCLUDE 'idim'
       INCLUDE 'igrape'
@@ -16,8 +17,9 @@
       DIMENSION Bxyz(3,imhd2)
       DIMENSION xyzmh(5,mmax2)
       DIMENSION vxyzu(4,idim2)
-      REAL*4 rho(idim2)
+      REAL*4 rho(idim2),vsound(idim2),alphaMMpass(isizealphaMM,idim2)
 
+      INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/table'
       INCLUDE 'COMMONS/kerne'
@@ -31,24 +33,27 @@
       INCLUDE 'COMMONS/current'
       INCLUDE 'COMMONS/dissi'
       INCLUDE 'COMMONS/implicit'
+      INCLUDE 'COMMONS/numpa'
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
 #endif
 
-      PARAMETER (nswmax = 200)
-      PARAMETER (tolmhd = 1.0e-8)
+      PARAMETER (nswmax = 1000)
+      PARAMETER (tolmhd = 1.0e-6)
 c
 c--This factor is 1.0 for Backwards Euler implicit method and 0.5 for 
 c     Crank-Nicolson implicit method
 c
-      PARAMETER (fac = 0.5)
+      PARAMETER (fac = 1.0)
 
       INTEGER nosweep
       LOGICAL moresweep
       REAL rhoi, rhoj
+      LOGICAL*1 ido,ido_j
 
       DIMENSION BxyzNew(3,imhd2)
+      DIMENSION ido(idim2),ido_j(idim2)
 
       REAL maxerrB,maxerrB2,maxerrBlast,maxerrB2last
 #ifdef MPIALL
@@ -81,6 +86,8 @@ C$OMP& private(n,i)
          ELSE
             ifullstep(i) = .FALSE.
          ENDIF
+
+         
       END DO
 C$OMP END PARALLEL DO
 
@@ -90,7 +97,7 @@ C$OMP END PARALLEL DO
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(xmaxerr1old,xmaxerr2old,ncompact,ivar)
-C$OMP& shared(varinew)
+C$OMP& shared(varinew,ido,ido_j)
 C$OMP& private(i,n,k)
 c
 c--Set up values that don't change during sweeps
@@ -104,6 +111,9 @@ C$OMP END DO
 C$OMP DO SCHEDULE(runtime)
       DO n = 1, ncompact
          i = ivar(3,n)
+
+         ido(i) = .FALSE.
+         ido_j(i) = .FALSE.
 
          DO k = 1, 7
             varinew(k,i) = 0.
@@ -123,17 +133,18 @@ C$OMP& shared(rho,vari,ivar,ijvar,varij)
 C$OMP& shared(xyzmh,dvtable,grwij,cnormk)
 C$OMP& shared(ihasghost,iphase,ifullstep,iresist,etamhd)
 C$OMP& shared(ntot,ncompactlocal,radkernel,gradhs,ncompact)
+C$OMP& shared(ido,ido_j,vsound,alphaMMpass,alphamin,ifsvi)
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend)
 #endif
-C$OMP& private(n,i,j,k,l,rhoi,icompact,pmi)
+C$OMP& private(n,i,j,k,l,rhoi,icompact,pmi,iparttree)
 C$OMP& private(dti,dx,dy,dz)
 C$OMP& private(rij2,rij,rij1,pmj,rhoj,hi,hj,hi21,hj21,hi41,hj41)
 C$OMP& private(v2i,vi,v2j,vj,index,dxx,index1,dgrwdx,grwtij)
 C$OMP& private(dWi,dWj,dWidrmj,dWidrmi,dWjdrmj)
 C$OMP& private(etai,etaj,etaij,dWidrmjrhojrhoieta,dWidrmirhojrhoieta)
 C$OMP& private(dWjdrmjrhojrhoieta)
-C$OMP& private(iparttree)
+C$OMP& private(B2i,B2j,vsigi,vsigj,etaart)
 C$OMP& reduction(+:ihasghostcount)
 c
 c--Set up values that don't change during sweeps
@@ -202,6 +213,15 @@ c               print *,i,rhoi,vxyzu(4,i),etai
             ELSE
                etai = 0.
             ENDIF
+
+            B2i = Bxyz(1,i)**2 + Bxyz(2,i)**2 + Bxyz(3,i)**2
+            vsigi = SQRT(vsound(i)**2 + B2i/rhoi)
+            IF (ifsvi.EQ.6) THEN
+               etaart = alphaMMpass(2,i)*vsigi*hi
+            ELSE
+               etaart = alphamin(2)*vsigi*hi
+            ENDIF
+            IF (etai/etaart.GT.0.01) ido(i) = .TRUE.
 
             DO k = 1, ivar(1,n)
                icompact = ivar(2,n) + k
@@ -275,6 +295,17 @@ c
                   etaj = 0.
                ENDIF
 
+               B2j = Bxyz(1,j)**2 + Bxyz(2,j)**2 + Bxyz(3,j)**2
+               vsigj = SQRT(vsound(j)**2 + B2j/rhoj)
+               IF (ifsvi.EQ.6) THEN
+                  etaart = alphaMMpass(2,j)*vsigj*hj
+               ELSE
+                  etaart = alphamin(2)*vsigj*hj
+               ENDIF
+               IF (etaj/etaart.GT.0.01) THEN
+                  ido_j(i) = .TRUE.
+               ENDIF
+
                etaij = etai + etaj
 
                dWidrmjrhojrhoieta = dWidrmj/(rhoj*rhoi)*etaij
@@ -320,7 +351,7 @@ C$OMP& shared(npart,nghost,ihasghost,ireal,ncompact)
 C$OMP& shared(xyzmh)
 C$OMP& shared(icall)
 C$OMP& shared(iphase,maxerrBlast,maxerrB2last)
-C$OMP& shared(ncompactlocal,iscurrent)
+C$OMP& shared(ncompactlocal,iscurrent,ido,ido_j)
 #ifdef MPI
 C$OMP& shared(istart,ntot,istartrec,inumbertotal,inumberreturned)
 C$OMP& shared(numproc,iproc,inumofsends,maxnneighsentback,istatus)
@@ -379,7 +410,7 @@ C$OMP DO SCHEDULE(runtime)
 #endif
             i = ivar(3,n)
 
-            IF (iphase(i).EQ.0) THEN
+            IF (iphase(i).EQ.0 .AND. (ido(i) .OR. ido_j(i))) THEN
 
                rhoi = vari(2,n)
 c
@@ -436,7 +467,7 @@ c
 c
 c--For current(j) need to add contribution due to i for h_j
 c
-                  IF (iscurrent(j)) THEN
+                  IF (iscurrent(j) .AND. ido(j)) THEN
                      tempval = dWidrmirhojrhoieta*BxyzNew(1,i)
 C$OMP ATOMIC
                      varinew(1,j) = varinew(1,j) + tempval
@@ -643,7 +674,7 @@ C$OMP DO SCHEDULE(runtime)
             i = ivar(3,n)
             rhoi = vari(2,n)
 
-            IF (iphase(i).EQ.0) THEN
+            IF (iphase(i).EQ.0 .AND. ido(i)) THEN
 
                dti = vari(1,n)
 
@@ -691,7 +722,6 @@ c
                maxerrB2 = MAX(maxerrB2,ABS(BxyzNew(1,i) - Bnewxi))
                maxerrB2 = MAX(maxerrB2,ABS(BxyzNew(2,i) - Bnewyi))
                maxerrB2 = MAX(maxerrB2,ABS(BxyzNew(3,i) - Bnewzi))
-c               IF (i.EQ.1) print *,i,maxerrB2,BxyzNew(2,i),Bnewyi
 c
 c--Function error
 c
@@ -971,6 +1001,9 @@ c
 c
 c--Maximum number of iterations reached
 c
+      WRITE (iprint,99001) nswmax, maxerrB, maxerrB2
+99001 FORMAT('RES-IMPL: Warning. Maximum iterations reached ',
+     &     I5,2(1X,1PE12.5))
       PRINT *,"GSIMPL: Warning. Maximum iterations reached"
       moresweep = .TRUE.
       GOTO 998
@@ -995,11 +1028,11 @@ c--And that done, return everything to ASS
 c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(ncompactlocal,ivar)
-C$OMP& shared(iphase,Bxyz,BxyzNew)
+C$OMP& shared(iphase,Bxyz,BxyzNew,ido)
 C$OMP& private(n,i,j)
       DO n = 1, ncompactlocal
          i = ivar(3,n)
-         IF (iphase(i).EQ.0) THEN
+         IF (iphase(i).EQ.0 .AND. ido(i)) THEN
             DO j = 1, 3
                Bxyz(j,i) = BxyzNew(j,i)
             END DO

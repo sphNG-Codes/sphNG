@@ -18,7 +18,7 @@ c************************************************************
       PARAMETER (Courant=0.30)
 
       DIMENSION llist(idim),fxyzu(4,idim)
-      DIMENSION Bevolxyz(3,imhd)
+      DIMENSION Bevolxyz(imhdevol,imhd)
 
       REAL omega, omega1
 

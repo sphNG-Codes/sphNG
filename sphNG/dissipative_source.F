@@ -1,5 +1,6 @@
       SUBROUTINE dissipative_source(nlst_in,nlst_end,nlst_tot,listp,
-     &     itime,npart,ntot,xyzmh,dha,trho,vsound,alphaMMpass,Bxyz)
+     &     itime,npart,ntot,xyzmh,dha,trho,vsound,alphaMMpass,Bxyz,
+     &     Bevolxyz,dBxyz)
 c************************************************************
 c                                                           *
 c  This subroutine computes the dissipative source terms    *
@@ -17,6 +18,7 @@ c************************************************************
       REAL*4 dha(1+isizealphaMM,idim2),alphaMMpass(isizealphaMM,idim2)
       DIMENSION listp(idim2)
       DIMENSION Bxyz(3,imhd2)
+      DIMENSION Bevolxyz(imhdevol,imhd3),dBxyz(imhdevol,imhd3)
 
       INCLUDE 'COMMONS/numpa'
       INCLUDE 'COMMONS/typef'
@@ -41,13 +43,13 @@ C$OMP& shared(nlst_in,nlst_end,npart,listp)
 C$OMP& shared(xyzmh,dha,trho,vsound,divv,curlv)
 C$OMP& shared(iphase,iprint,ifsvi)
 C$OMP& shared(alphaMMpass,alphamin)
-C$OMP& shared(Bxyz,divcurlB)
+C$OMP& shared(Bxyz,divcurlB,dBxyz,Bevolxyz)
 C$OMP& shared(ivar)
 C$OMP& private(ipart,k)
 C$OMP& private(hi,hi1,rhoi,rho1i,vsoundi)
 C$OMP& private(fi,tdecay1,source)
 C$OMP& private(Bxi,Byi,Bzi,B2i)
-C$OMP& private(vsigi,vs2i,dB2)
+C$OMP& private(vsigi,vs2i,dB2,psi)
       DO n = nlst_in, nlst_end
          ipart = ivar(3,n)
          
@@ -124,6 +126,13 @@ cc     &           MIN(divv(ipart)*rho1i+0.5*vsoundi*hi1,0.0)
                   ENDIF
                   dha(3,ipart) = (alphamin(2)-alphaMMpass(2,ipart))*
      &                 tdecay1 + source
+
+                  IF (imhdevol.EQ.4) THEN
+                     psi = Bevolxyz(4,ipart)
+                     dBxyz(4,ipart) = - vs2i*divcurlB(1,ipart)
+     &                    - 0.4*vsigi*hi1*psi
+     &                    - 0.5*divv(ipart)*rho1i*psi
+                  ENDIF
                ENDIF
             ENDIF
          ENDIF

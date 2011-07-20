@@ -76,7 +76,7 @@ c  dust composition and in particular the grain size.
 c
 c      densne = 1.d-2
       
-      IF (iresist.EQ.3) THEN
+      IF (ABS(iresist).EQ.3) THEN
 c
 c--parametrisation of ne in Fig. 1 of Wardle & Ng (1999)
 c  (this is assuming a single grain size of 0.1 micron)

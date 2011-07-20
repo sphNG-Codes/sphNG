@@ -26,11 +26,12 @@ c************************************************************
       DIMENSION fxyzu(4,idim3)
       DIMENSION ekcle(5,iradtrans2)
       DIMENSION dedxyz(3,iradtrans2)
-      DIMENSION Bxyz(3,imhd2),dBxyz(3,imhd2)
-      DIMENSION Bevolxyz(3,imhd3) ! needed for prediction only
+      DIMENSION Bxyz(3,imhd2),dBxyz(imhdevol,imhd2)
+      DIMENSION Bevolxyz(imhdevol,imhd3) ! needed for prediction only
 c--this weight is equivalent to m/(rho*h^3) in the grad h version
       PARAMETER (hfact = 1.2)
       PARAMETER (weight = 1./hfact**3)
+      PARAMETER (iMorris = .FALSE.)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -232,6 +233,7 @@ C$OMP PARALLEL default(none)
 C$OMP& shared(nlst_in,nlst_end,npart,ntot,listp,nneigh,neimin,neimax)
 C$OMP& shared(nlst_tot,icall,dt,itime,imaxstep,isteps)
 C$OMP& shared(xyzmh,vxyzu,dha,fxyzu,trho,pr,vsound,dq,gradhs)
+C$OMP& shared(force_sym,force_an)
 C$OMP& shared(neighb,neighover,dvtable,ddvtable,psoft)
 C$OMP& shared(fmass,fpoten,part2kernel,part1kernel,radkernel)
 C$OMP& shared(part2potenkernel,part1potenkernel,grwij)
@@ -283,8 +285,10 @@ C$OMP& private(grkerni,grpmi,phii,dsoftterm,dsofttermi,projdB,projbext)
 C$OMP& private(grkernj,phij,dsofttermj,rhoij1,fmj,vsoundj)
 C$OMP& private(grkern,grkerntable,dBevolx,dBevoly,dBevolz)
 C$OMP& private(irealj,advBx,advBy,advBz,termeta)
-C$OMP& private(fextx,fexty,fextz,projBeqi,inosink)
+C$OMP& private(fextx,fexty,fextz,projBeqi,inosink,Borve_temp)
 C$OMP& private(fanisox,fanisoy,fanisoz,forcex,forcey,forcez,xmasi)
+C$OMP& private(forceBanx,forceBany,forceBanz)
+C$OMP& private(dBpsix,dBpsiy,dBpsiz,dBpsixj,dBpsiyj,dBpsizj)
 C$OMP& private(t12jpmassi,t12jpmassj,r32grav,forcexi,forceyi,forcezi)
 C$OMP& private(Bevoldotdv,termBpmi,termBpmj,termetapmj,termetapmi)
 C$OMP& private(dBxdissj,dBydissj,dBzdissj,dBxyz_xi,dBxyz_yi,dBxyz_zi)
@@ -436,6 +440,9 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
             fanisoxi = 0.
             fanisoyi = 0.
             fanisozi = 0.
+            dBpsix = 0.
+            dBpsiy = 0.
+            dBpsiz = 0.
             IF (iresist.GE.2) THEN
                etai = etafunc(rhoi,ui,etamhd,iresist)
             ELSEIF (iresist.EQ.1) THEN
@@ -727,23 +734,46 @@ c     &                 print *,j,- gradpi*runix
                   gradzi = gradzi - gradpi*runiz
 
                   grkern = 0.5*grkerni
+
+                  IF (imhd.EQ.idim) THEN
+                     IF (iMorris) THEN
 c
 c--Anisotropic magnetic force (Morris formalism)
 c
-                  IF (imhd.EQ.idim) THEN
-                     rhoij1 = rho1i*rho1j
-                     projBext = Bextxi*runix +Bextyi*runiy +Bextzi*runiz
+                        rhoij1 = rho1i*rho1j
+                        projBext = Bextxi*runix + Bextyi*runiy +
+     &                       Bextzi*runiz
                      
-                     fanisox = grkern*((Bxj-Bextxi)*(projBj-projBext)
-     &                    - (Bxi-Bextxi)*(projBi-projBext))*rhoij1
-                     fanisoy = grkern*((Byj-Bextyi)*(projBj-projBext)
-     &                    - (Byi-Bextyi)*(projBi-projBext))*rhoij1
-                     fanisoz = grkern*((Bzj-Bextzi)*(projBj-projBext)
-     &                    - (Bzi-Bextzi)*(projBi-projBext))*rhoij1
+                        fanisox = grkern*((Bxj-Bextxi)*(projBj-projBext)
+     &                       - (Bxi-Bextxi)*(projBi-projBext))*rhoij1
+                        fanisoy = grkern*((Byj-Bextyi)*(projBj-projBext)
+     &                       - (Byi-Bextyi)*(projBi-projBext))*rhoij1
+                        fanisoz = grkern*((Bzj-Bextzi)*(projBj-projBext)
+     &                       - (Bzi-Bextzi)*(projBi-projBext))*rhoij1
 
-                     fanisoxi = fanisoxi + pmassj*fanisox
-                     fanisoyi = fanisoyi + pmassj*fanisoy
-                     fanisozi = fanisozi + pmassj*fanisoz
+                        fanisoxi = fanisoxi + pmassj*fanisox
+                        fanisoyi = fanisoyi + pmassj*fanisoy
+                        fanisozi = fanisozi + pmassj*fanisoz
+                     ELSE
+c
+c--Anisotropic magnetic force (Borve formalism)
+c
+c                        Borve_temp = pmassj*grkerni*projBi*rho1i*rho1i
+c                        fanisoxi = fanisoxi + Borve_temp*Bxi
+c                        fanisoyi = fanisoyi + Borve_temp*Byi
+c                        fanisozi = fanisozi + Borve_temp*Bzi
+                     ENDIF
+c
+c--Evolution of psi
+c
+                     IF (imhdevol.EQ.4) THEN
+                        dBpsix = dBpsix - pmassj*grkerni*
+     &                       Bevolxyz(4,ipart)*rho1i*rho1i*runix
+                        dBpsiy = dBpsiy - pmassj*grkerni*
+     &                       Bevolxyz(4,ipart)*rho1i*rho1i*runiy
+                        dBpsiz = dBpsiz - pmassj*grkerni*
+     &                       Bevolxyz(4,ipart)*rho1i*rho1i*runiz
+                     ENDIF
 c
 c--Signal velocity (MHD)
 c
@@ -892,14 +922,43 @@ c
                         forcey = 0.
                         forcez = 0.
                      ENDIF
+                     forceBanx = 0.
+                     forceBany = 0.
+                     forceBanz = 0.
                      dqj = 0.
+
+                     IF (imhd.EQ.idim) THEN
 c
 c--Anisotropic magnetic force (Morris formalism)
 c
-                     IF (imhd.EQ.idim) THEN
-                        forcex = forcex + pmassi*fanisox
-                        forcey = forcey + pmassi*fanisoy
-                        forcez = forcez + pmassi*fanisoz
+                        IF (iMorris) THEN
+                           forcex = forcex + pmassi*fanisox
+                           forcey = forcey + pmassi*fanisoy
+                           forcez = forcez + pmassi*fanisoz
+                        ELSE
+c
+c--Anisotropic magnetic force (Borve formalism)
+c
+                           Borve_temp =pmassi*grkerni*projBi*rho1i*rho1i
+                           forcex = forcex - Borve_temp*(Bxi-Bxj)
+                           forcey = forcey - Borve_temp*(Byi-Byj)
+                           forcez = forcez - Borve_temp*(Bzi-Bzj)
+
+                           forceBanx = forceBanx - Borve_temp*(Bxi-Bxj)
+                           forceBany = forceBany - Borve_temp*(Byi-Byj)
+                           forceBanz = forceBanz - Borve_temp*(Bzi-Bzj)
+                        ENDIF
+c
+c--Evolution of psi
+c
+                        IF (imhdevol.EQ.4) THEN
+                           dBpsixj = pmassi*grkerni*
+     &                        Bevolxyz(4,ipart)*rho1i*rho1i*runix
+                           dBpsiyj = pmassi*grkerni*
+     &                        Bevolxyz(4,ipart)*rho1i*rho1i*runiy
+                           dBpsizj = pmassi*grkerni*
+     &                        Bevolxyz(4,ipart)*rho1i*rho1i*runiz
+                        ENDIF
 c
 c--Artificial resistivity
 c
@@ -964,12 +1023,21 @@ c
                      fxyzu(2,j) = fxyzu(2,j) + forcey
                      fxyzu(3,j) = fxyzu(3,j) + forcez
 
+                     force_an(1,j) = forceBanx
+                     force_an(2,j) = forceBany
+                     force_an(3,j) = forceBanz
+
                      dq(j) = dq(j) + dqj
 
                      IF (imhd.EQ.idim) THEN
                         dBxyz(1,j) = dBxyz(1,j) - dBxdissj
                         dBxyz(2,j) = dBxyz(2,j) - dBydissj
                         dBxyz(3,j) = dBxyz(3,j) - dBzdissj
+                        IF (imhdevol.EQ.4) THEN
+                           dBxyz(1,j) = dBxyz(1,j) + dBpsixj
+                           dBxyz(2,j) = dBxyz(2,j) + dBpsiyj
+                           dBxyz(3,j) = dBxyz(3,j) + dBpsizj
+                        ENDIF
                      ENDIF
 #ifdef _OPENMP
                      CALL OMP_UNSET_LOCK(forcei_lock(j/10+1))
@@ -1124,20 +1192,41 @@ c
 c--Anisotropic magnetic force (Morris formalism)
 c
                      IF (imhd.EQ.idim) THEN
-                        rhoij1 = rho1i*rho1j
-                        projBext =Bextxi*runix +Bextyi*runiy +
-     &                       Bextzi*runiz
+                        IF (iMorris) THEN
+                           rhoij1 = rho1i*rho1j
+                           projBext =Bextxi*runix +Bextyi*runiy +
+     &                          Bextzi*runiz
 
                         fanisox = grkern*((Bxj-Bextxi)*(projBj-projBext)
-     &                       - (Bxi-Bextxi)*(projBi-projBext))*rhoij1
+     &                          - (Bxi-Bextxi)*(projBi-projBext))*rhoij1
                         fanisoy = grkern*((Byj-Bextyi)*(projBj-projBext)
-     &                       - (Byi-Bextyi)*(projBi-projBext))*rhoij1
+     &                          - (Byi-Bextyi)*(projBi-projBext))*rhoij1
                         fanisoz = grkern*((Bzj-Bextzi)*(projBj-projBext)
-     &                       - (Bzi-Bextzi)*(projBi-projBext))*rhoij1
+     &                          - (Bzi-Bextzi)*(projBi-projBext))*rhoij1
 
-                        fanisoxi = fanisoxi + pmassj*fanisox
-                        fanisoyi = fanisoyi + pmassj*fanisoy
-                        fanisozi = fanisozi + pmassj*fanisoz
+                           fanisoxi = fanisoxi + pmassj*fanisox
+                           fanisoyi = fanisoyi + pmassj*fanisoy
+                           fanisozi = fanisozi + pmassj*fanisoz
+c
+c--Anisotropic magnetic force (Borve formalism)
+c
+                        ELSE
+                           Borve_temp =pmassj*grkernj*projBj*rho1j*rho1j
+                           fanisoxi = fanisoxi + Borve_temp*(Bxj-Bxi)
+                           fanisoyi = fanisoyi + Borve_temp*(Byj-Byi)
+                           fanisozi = fanisozi + Borve_temp*(Bzj-Bzi)
+                        ENDIF
+c
+c--Evolution of psi
+c
+                        IF (imhdevol.EQ.4) THEN
+                           dBpsix = dBpsix - pmassj*grkernj*
+     &                          Bevolxyz(4,j)*rho1j*rho1j*runix
+                           dBpsiy = dBpsiy - pmassj*grkernj*
+     &                          Bevolxyz(4,j)*rho1j*rho1j*runiy
+                           dBpsiz = dBpsiz - pmassj*grkernj*
+     &                          Bevolxyz(4,j)*rho1j*rho1j*runiz
+                        ENDIF
 c
 c--Signal velocity (MHD)
 c
@@ -1362,6 +1451,7 @@ c
             forcexi = forcexi + fanisoxi
             forceyi = forceyi + fanisoyi
             forcezi = forcezi + fanisozi
+
 c            IF (ipart.LE.npart) THEN
                divcurlB(1,ipart) = divBi !!*rho1i
                curlBxi = curlBxi*rho1i
@@ -1527,6 +1617,10 @@ c         IF (ipart.GT.idim) print *,iproc,': Fx ',ipart
          fxyzu(2,ipart) = fxyzu(2,ipart) + forceyi
          fxyzu(3,ipart) = fxyzu(3,ipart) + forcezi
 
+         force_sym(1,ipart) = force_sym(1,ipart) + fanisoxi
+         force_sym(2,ipart) = force_sym(2,ipart) + fanisoyi
+         force_sym(3,ipart) = force_sym(3,ipart) + fanisozi
+
          poten(ipart) = poten(ipart) + poteni 
 
          IF (iphase(ipart).EQ.0) THEN
@@ -1541,6 +1635,11 @@ c            ENDIF
                dBxyz(1,ipart) = dBxyz(1,ipart) + dBxyz_xi
                dBxyz(2,ipart) = dBxyz(2,ipart) + dBxyz_yi
                dBxyz(3,ipart) = dBxyz(3,ipart) + dBxyz_zi
+               IF (imhdevol.EQ.4) THEN
+                  dBxyz(1,ipart) = dBxyz(1,ipart) + dBpsix
+                  dBxyz(2,ipart) = dBxyz(2,ipart) + dBpsiy
+                  dBxyz(3,ipart) = dBxyz(3,ipart) + dBpsiz
+               ENDIF
             ENDIF
          ENDIF
 
@@ -2012,7 +2111,7 @@ c************************************************************
       REAL*4 trho(idim2), pr(idim2), vsound(idim2)
       DIMENSION ekcle(5,iradtrans2)
       DIMENSION Bxyz(3,imhd2)
-      DIMENSION Bevolxyz(3,imhd3)
+      DIMENSION Bevolxyz(imhdevol,imhd3)
       
       IF (it1(j).EQ.imax) THEN
          deltat = dt*(itime - it0(j) - isteps(j)/2)/imaxstep

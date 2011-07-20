@@ -433,6 +433,11 @@ c
          ENDDO
 
       ENDIF
+      IF (imhdevol.EQ.4) THEN
+         DO i=1,npart
+            Bevolxyz(4,i) = 0.
+         END DO
+      ENDIF
 c
 c--spit out various information about the magnetic field we have set up
 c

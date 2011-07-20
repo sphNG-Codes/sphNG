@@ -1,0 +1,2 @@
+      REAL*4 varij2
+      COMMON /implicit2/ varij2(3,icompactmax)

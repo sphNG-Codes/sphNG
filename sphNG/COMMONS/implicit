@@ -1,12 +1,12 @@
       REAL vari, varinew
-      COMMON /implicit/ vari(2,MAX(imhd2,iradtrans2)),
-     &	     varinew(2+5*(imhd/idim),MAX(imhd2,iradtrans2))
+      COMMON /implicit/ vari(2,idim2),
+     &	     varinew(3+4*(imhd/idim),idim2)
 
       REAL*4 varij
       COMMON /implicit2/ varij(4,icompactmax)
 
       LOGICAL*1 ifullstep
-      COMMON /implicit3/ ifullstep(MAX(iradtrans2,imhd2))
+      COMMON /implicit3/ ifullstep(idim2)
 
       PARAMETER (ntests=10)
       REAL xmaxerr1old(ntests),xmaxerrcomp1(ntests)

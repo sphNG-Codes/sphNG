@@ -184,7 +184,7 @@ c
                   dumvxyzu(k,i) = vxyzu(k,i)
                END DO
                IF (imhd.EQ.idim) THEN
-                  DO k = 1, 3
+                  DO k = 1, imhdevol
                      dumBevolxyz(k,i) = Bevolxyz(k,i)
                   END DO
                ENDIF
@@ -221,7 +221,7 @@ c
                ENDDO
             ENDIF
             IF (imhd.EQ.idim) THEN
-               DO k = 1, 3
+               DO k = 1, imhdevol
                   dumBevolxyz(k,i) = Bevolxyz(k,i)
                END DO
             ENDIF
@@ -694,7 +694,7 @@ c
 c--Update MHD
 c
             IF (imhd.EQ.idim) THEN
-               DO k = 1, 3
+               DO k = 1, imhdevol
                   Bevolxyz(k,i) = Bevolxyz(k,i) + dtfull*f1Bxyz(k,i)
                END DO
             ENDIF
@@ -787,7 +787,7 @@ c
            IF (iener.EQ.3) CALL coolcurve(dumvxyzu(4,j),rho(j),deltat)
 
                IF (imhd.EQ.idim) THEN
-                  DO k = 1, 3
+                  DO k = 1, imhdevol
                      dumBevolxyz(k,j) = Bevolxyz(k,j)+deltat*f1Bxyz(k,j)
                   END DO
                ENDIF
@@ -849,7 +849,7 @@ c
      &      deltat)
 
                      IF (imhd.EQ.idim) THEN
-                        DO k = 1, 3
+                        DO k = 1, imhdevol
                            dumBevolxyz(k,ipart) = 
      &                         Bevolxyz(k,ipart)+deltat*f1Bxyz(k,ipart)
                         END DO
@@ -945,7 +945,7 @@ c
      &          deltat)
 
                      IF (imhd.EQ.idim) THEN
-                        DO k = 1, 3
+                        DO k = 1, imhdevol
                            dumBevolxyz(k,ipart) = 
      &                        Bevolxyz(k,ipart)+deltat*f1Bxyz(k,ipart)
                         END DO
@@ -1059,7 +1059,7 @@ c
            IF (iener.EQ.3) CALL coolcurve(dumvxyzu(4,j),rho(j),deltat)
 
                IF (imhd.EQ.idim) THEN
-                  DO l = 1, 3
+                  DO l = 1, imhdevol
                      dumBevolxyz(l,j) = Bevolxyz(l,j)+deltat*f1Bxyz(l,k)
                   END DO
                ENDIF
@@ -1373,7 +1373,7 @@ c--also set Bevol to (possibly changed) value from derivi
 c  (can be changed by divergence cleaning, B smoothing)
 c
          IF (imhd.EQ.idim) THEN
-            DO k=1,3
+            DO k=1,imhdevol
                Bevolxyz(k,i) = dumBevolxyz(k,i)
             ENDDO
          ENDIF

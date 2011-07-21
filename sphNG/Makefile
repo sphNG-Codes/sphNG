@@ -85,8 +85,7 @@ ifeq ($(SYSTEM), zen)
        FC= ifort
     endif
     FFLAGS= -O3 -xT -mcmodel=medium -i-dynamic -WB -Vaxlib \
-            -w90 -w95 -cm -warn uninitialized -warn unused \
-#            -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source\
+            -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source\
             -warn interfaces -gen-interfaces
     OMPFLAG= -openmp -DZEN
     DBLFLAG= -r8

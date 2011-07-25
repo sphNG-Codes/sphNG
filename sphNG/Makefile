@@ -17,7 +17,7 @@
 .KEEP_STATE:
 
 KNOWN_SYSTEM=no
-SHELL = /bin/sh
+SHELL = /bin/bash
 
 # can comment out the following lines and instead set
 # the parameters as environment variables

@@ -1943,14 +1943,15 @@ c--Pressure and sound velocity from ideal gas law...
 c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP&shared(idisplacementsi,irecvcounti,llisttrans)
-C$OMP&shared(vxyzu,rho,pr,vsound,ekcle,numproc,iproc)
+C$OMP&shared(vxyzu,rho,pr,vsound,ekcle,numproc,iproc,iphase)
 C$OMP&private(i,j,ipart)
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                ipart = llisttrans(i) + 1
-               CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
+               IF (iphase(ipart).EQ.0)
+     &              CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
             END DO
          ENDIF
       END DO

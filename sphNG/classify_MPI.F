@@ -1,29 +1,29 @@
-      FUNCTION classify(mpitype,ipart,xyzmh)
+      FUNCTION classify(mpitype,xyzmh)
 
       IMPLICIT NONE
 
       INCLUDE 'idim'
 
       CHARACTER*1 mpitype
-      REAL xyzmh(5,idim)
+      REAL xyzmh(5,1)
 
       INTEGER classify_binary,classify_cartesian,classify_disc,
      &     classify_sphere
 
-      INTEGER classify,ibelong,ipart
+      INTEGER classify,ibelong
 
       IF (mpitype.EQ.'b') THEN
-         ibelong = classify_binary(ipart,xyzmh)
+         ibelong = classify_binary(xyzmh)
       ELSEIF (mpitype.EQ.'c') THEN
-         ibelong = classify_cartesian(ipart,xyzmh)
+         ibelong = classify_cartesian(xyzmh)
       ELSEIF (mpitype.EQ.'d') THEN
-         ibelong = classify_disc(ipart,xyzmh)
+         ibelong = classify_disc(xyzmh)
       ELSEIF (mpitype.EQ.'p') THEN
-         ibelong = classify_disc(ipart,xyzmh)
+         ibelong = classify_disc(xyzmh)
       ELSEIF (mpitype.EQ.'r') THEN
-         ibelong = classify_disc(ipart,xyzmh)
+         ibelong = classify_disc(xyzmh)
       ELSEIF (mpitype.EQ.'s') THEN
-         ibelong = classify_sphere(ipart,xyzmh)
+         ibelong = classify_sphere(xyzmh)
       ELSE
          WRITE (*,*) 'ERROR - mpitype ',mpitype,' not defined'
          CALL quit
@@ -37,7 +37,7 @@
 
 c---------------------------------------------------------------------------
 
-      FUNCTION classify_disc(ipart,xyzmh)
+      FUNCTION classify_disc(xyzmh)
 c************************************************************
 c                                                           *
 c  Subroutine to determine which MPI process a particle     *
@@ -61,16 +61,16 @@ c************************************************************
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/rbnd'
 
-      DIMENSION xyzmh(5,idim)
+      DIMENSION xyzmh(5,1)
 
       INTEGER classify_disc
 
       ival = 0
 
 #ifdef MPI
-      xcen = xyzmh(1,ipart) - xlocationmpi
-      ycen = xyzmh(2,ipart) - ylocationmpi
-      zcen = xyzmh(3,ipart) - zlocationmpi
+      xcen = xyzmh(1,1) - xlocationmpi
+      ycen = xyzmh(2,1) - ylocationmpi
+      zcen = xyzmh(3,1) - zlocationmpi
 
       IF (mpitype.EQ.'p') THEN
          IF (xcen**2+ycen**2+zcen**2.GT.(0.5*phibound)**2) GOTO 100
@@ -102,7 +102,7 @@ c************************************************************
 
 c---------------------------------------------------------------------------
 
-      FUNCTION classify_sphere(ipart,xyzmh)
+      FUNCTION classify_sphere(xyzmh)
 c************************************************************
 c                                                           *
 c  Subroutine to determine which MPI process a particle     *
@@ -123,7 +123,7 @@ c************************************************************
 #endif
       INCLUDE 'COMMONS/physcon'
 
-      DIMENSION xyzmh(5,idim)
+      DIMENSION xyzmh(5,1)
 
       INTEGER classify_sphere
 
@@ -137,7 +137,7 @@ c************************************************************
 
 c---------------------------------------------------------------------------
 
-      FUNCTION classify_cartesian(ipart,xyzmh)
+      FUNCTION classify_cartesian(xyzmh)
 c************************************************************
 c                                                           *
 c  Subroutine to determine which MPI process a particle     *
@@ -158,7 +158,7 @@ c************************************************************
 #endif
       INCLUDE 'COMMONS/physcon'
 
-      DIMENSION xyzmh(5,idim)
+      DIMENSION xyzmh(5,1)
 
       INTEGER classify_cartesian
 
@@ -167,7 +167,7 @@ c************************************************************
 #ifdef MPI
       DO idimension = 1, 3
          DO number = 1, nsplit(idimension) - 1
-            IF (xyzmh(idimension,ipart).LT.
+            IF (xyzmh(idimension,1).LT.
      &           splitcoords(number,idimension)) THEN
                ival = ival + number - 1
                GOTO 100
@@ -190,7 +190,7 @@ c************************************************************
 
 c---------------------------------------------------------------------------
 
-      FUNCTION classify_binary(ipart,xyzmh)
+      FUNCTION classify_binary(xyzmh)
 c************************************************************
 c                                                           *
 c  Subroutine to determine which MPI process a particle     *
@@ -212,7 +212,7 @@ c************************************************************
 #endif
       INCLUDE 'COMMONS/physcon'
 
-      DIMENSION xyzmh(5,idim)
+      DIMENSION xyzmh(5,1)
 
       INTEGER classify_binary
 
@@ -229,7 +229,7 @@ c************************************************************
             ipos = MOD(ival,2**(i-1)) + 2**(i-1)
          ENDIF
 
-         IF (xyzmh(idimension,ipart).GE.binarysplits(ipos))
+         IF (xyzmh(idimension,1).GE.binarysplits(ipos))
      &        ival = ival + 2**(i-1)
       END DO
 

@@ -1893,7 +1893,7 @@ c--Now classify every particle as to which MPI process it should belong to
 c
       DO ipart = 1, npart
          IF (iphase(ipart).GE.0) THEN
-            ibelong = classify(mpitype,ipart,xyzmh)
+            ibelong = classify(mpitype,xyzmh(1,ipart))
 
             ibelong1 = ibelong + 1
             numlist(ibelong1) = numlist(ibelong1) + 1

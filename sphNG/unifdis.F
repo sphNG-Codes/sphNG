@@ -14,6 +14,11 @@ c************************************************************
 
       INCLUDE 'idim'
 
+#ifdef MPI
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
+#endif
+
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/rbnd'
@@ -357,7 +362,9 @@ c               zstart = FLOAT(INT(zmin/stepz))*stepz + 0.5*stepz
          disfrac(i) = 1.0
       END DO
 
+#ifdef MPI
       print *,iproc,npartold,npart
+#endif
 
       RETURN
       END
@@ -394,8 +401,7 @@ c
       xyzmh_local(4,1) = 0.
       xyzmh_local(5,1) = 0.
 
-c      print *,iproc,xi,yi,zi,classify(mpitype,1,xyzmh_local)
-      IF (iproc.NE.classify(mpitype,1,xyzmh_local)) THEN
+      IF (iproc.NE.classify(mpitype,xyzmh_local)) THEN
          iexcludepart = 1
       ELSE
 #endif

@@ -911,7 +911,7 @@ c************************************************************
      &     spinadz(iptdim)
       DIMENSION listinactive(idim)
 
-      INTEGER classify_disc,classify_sphere,classify_cartesian
+      INTEGER classify
 
       DIMENSION numdiv(10)
 
@@ -929,7 +929,7 @@ c--Disc-type domain decomposition
 c
       IF (mpitype.EQ.'d' .OR. mpitype.EQ.'r' .OR. mpitype.EQ.'p') THEN
          DO i = icount+1, nhydro
-            ibelong = classify_disc(i,xyzmh)
+            ibelong = classify(mpitype,xyzmh(1,i))
             IF (iproc.EQ.ibelong) THEN
                icountnew = icountnew + 1
                imap(i) = icountnew

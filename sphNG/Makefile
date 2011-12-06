@@ -87,13 +87,13 @@ ifeq ($(SYSTEM), zen)
     FFLAGS= -O3 -xT -mcmodel=medium -i-dynamic -WB -Vaxlib \
             -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source\
             -warn interfaces -gen-interfaces
-    OMPFLAG= -openmp -DZEN
+    OMPFLAG= -openmp
     DBLFLAG= -r8
     DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -convert big_endian
     ENDIANFLAGLITTLE= -convert little_endian
-    ZEN_PIN = pin_to_cpu.o
+#    ZEN_PIN = pin_to_cpu.o
 # or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
     ZZFILE= zzibm.f
 endif

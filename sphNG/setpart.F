@@ -1412,13 +1412,13 @@ c
          totmasn1 = totmasn1 + xyzmh(4,i)
       END DO
 #ifdef MPI
-      CALL MPI_ALLREDUCE(cmxtot,cmx,1,MPI_REAL8,MPI_SUM,
+      CALL MPI_ALLREDUCE(cmx,cmxtot,1,MPI_REAL8,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_ALLREDUCE(cmytot,cmy,1,MPI_REAL8,MPI_SUM,
+      CALL MPI_ALLREDUCE(cmy,cmytot,1,MPI_REAL8,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_ALLREDUCE(cmztot,cmz,1,MPI_REAL8,MPI_SUM,
+      CALL MPI_ALLREDUCE(cmz,cmztot,1,MPI_REAL8,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_ALLREDUCE(totmasn1tot,totmasn1,1,MPI_REAL8,MPI_SUM,
+      CALL MPI_ALLREDUCE(totmasn1,totmasn1tot,1,MPI_REAL8,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
       cmx = cmxtot/totmasn1tot
       cmy = cmytot/totmasn1tot
@@ -1860,11 +1860,11 @@ c
          cmz = cmz + xyzmh(4,i)*vxyzu(3,i)
       END DO
 #ifdef MPI
-      CALL MPI_ALLREDUCE(cmxtot,cmx,1,MPI_REAL8,MPI_SUM,
+      CALL MPI_ALLREDUCE(cmx,cmxtot,1,MPI_REAL8,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_ALLREDUCE(cmytot,cmy,1,MPI_REAL8,MPI_SUM,
+      CALL MPI_ALLREDUCE(cmy,cmytot,1,MPI_REAL8,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
-      CALL MPI_ALLREDUCE(cmztot,cmz,1,MPI_REAL8,MPI_SUM,
+      CALL MPI_ALLREDUCE(cmz,cmztot,1,MPI_REAL8,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
       cmx = cmxtot/totmasn1tot
       cmy = cmytot/totmasn1tot
@@ -1896,9 +1896,9 @@ c
          ekinetic = ekinetic + xyzmh(4,i)*vel2
       END DO
 #ifdef MPI
-      CALL MPI_ALLREDUCE(rootmeansquaretot,rootmeansquare,1,
+      CALL MPI_ALLREDUCE(rootmeansquare,rootmeansquaretot,1,
      &     MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
-      CALL MPI_ALLREDUCE(ekinetictot,ekinetic,1,
+      CALL MPI_ALLREDUCE(ekinetic,ekinetictot,1,
      &     MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
       rootmeansquare = rootmeansquaretot
       ekinetic = ekinetictot
@@ -1966,9 +1966,9 @@ c
          ekinetic = ekinetic + xyzmh(4,i)*vel2
       END DO
 #ifdef MPI
-      CALL MPI_ALLREDUCE(rootmeansquaretot,rootmeansquare,1,
+      CALL MPI_ALLREDUCE(rootmeansquare,rootmeansquaretot,1,
      &     MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
-      CALL MPI_ALLREDUCE(ekinetictot,ekinetic,1,
+      CALL MPI_ALLREDUCE(ekinetic,ekinetictot,1,
      &     MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
       rootmeansquare = rootmeansquaretot
       ekinetic = ekinetictot

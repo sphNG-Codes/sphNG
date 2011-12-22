@@ -91,7 +91,7 @@ c************************************************************
      &     INT((pi + ATAN2(ycen,xcen))/phiincrement)
       ENDIF
 
- 100  IF (ival.GT.numproc) ival = numproc
+ 100  IF (ival.GE.numproc) ival = numproc - 1
 #endif
 
       classify_disc = ival
@@ -177,7 +177,7 @@ c************************************************************
  100     IF (idimension.LT.3) ival = ival*nsplit(idimension+1)
       END DO
 
-      IF (ival.GT.numproc) THEN
+      IF (ival.GE.numproc) THEN
          WRITE (*,*) 'ERROR - classify_cartesian ',numproc,ival
          CALL quit
       ENDIF
@@ -233,7 +233,7 @@ c************************************************************
      &        ival = ival + 2**(i-1)
       END DO
 
-      IF (ival.GT.numproc) THEN
+      IF (ival.GE.numproc) THEN
          WRITE (*,*) 'ERROR - classify_binary ',numproc,ival
          CALL quit
       ENDIF

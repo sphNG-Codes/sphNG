@@ -7,9 +7,12 @@ c************************************************************
 
       INCLUDE 'idim'
 
-#ifdef MPI
+#ifdef MPIALL
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
+#endif
+
+#ifdef MPI
       INCLUDE 'COMMONS/mpi'
 #endif
 
@@ -36,6 +39,7 @@ c************************************************************
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/planetesimal'
 
       CHARACTER*7 where
 c
@@ -323,6 +327,18 @@ c         IF (nbuild.EQ.1 .OR. MOD(ncount, nstep).EQ.0 .OR.
             CALL file
 #endif
             CALL wdump_wrapper(idisk1)
+         ENDIF
+c
+c--Write out 3D grid of drag deposited energy.
+c
+         IF (gasdrag) THEN
+#ifdef MPICOPY
+            IF (iproc.EQ.0) THEN
+#endif
+            CALL write_dragtable(idragfile)
+#ifdef MPICOPY
+            ENDIF
+#endif
          ENDIF
 c
 c--Write global results on listing

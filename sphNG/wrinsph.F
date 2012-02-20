@@ -1,3 +1,4 @@
+
       SUBROUTINE wrinsph
 c************************************************************
 c                                                           *
@@ -48,6 +49,7 @@ c************************************************************
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/prdrag'
       INCLUDE 'COMMONS/pxpy'
+      INCLUDE 'COMMONS/planetesimal'
 c
 c--Allow for tracing flow
 c
@@ -57,6 +59,9 @@ c
 c--Open input file
 c
 #ifdef MPI
+      IF (iproc.EQ.0) THEN
+#endif
+#ifdef MPICOPY
       IF (iproc.EQ.0) THEN
 #endif
       OPEN (iterm, FILE=inname)
@@ -195,6 +200,11 @@ c
      &        '  New Part. Vels., Nshell, and Rshell')
       ENDIF
       IF (ibound.EQ.100) THEN
+         WRITE (iterm, 11070) gasdrag
+         IF (gasdrag) THEN
+            WRITE (iterm, 11080) r_planetesimal*udist/1.E5
+            WRITE (iterm, 11081) rho_planetesimal*udens
+         ENDIF
          WRITE (iterm, 88039) variation,phibound,flowrate,signorm,
      &        hoverr,partm
 88039    FORMAT(2X,7(1PE12.5,1X),
@@ -210,6 +220,14 @@ c
          WRITE (iterm, 11071) prswitch
          IF (prswitch) WRITE (iterm, 11073) pbeta
 11073    FORMAT(2X,1PE12.5, ' grain beta (Burns et al. 1979)')
+         WRITE (iterm, 11070) gasdrag
+11070    FORMAT(3X,L1, ' planetesimal-gas drag')
+         IF (gasdrag) THEN
+            WRITE (iterm, 11080) r_planetesimal*udist/1.E5
+11080       FORMAT (2X,1PE12.5, ' planetesimal radius (km)')
+            WRITE (iterm, 11081) rho_planetesimal*udens
+11081       FORMAT (2X,1PE12.5, ' planetesimal density (g/cm3)')
+         ENDIF
          WRITE (iterm, 88073) signorm, hoverr,partm
 88073    FORMAT(2X,3(1PE12.5,1X),'  sigma, HoverR, partmass')
          WRITE (iterm, 11074) imigrate
@@ -229,11 +247,17 @@ c
       ENDIF
       IF (iexf.EQ.7 .OR. (ibound.EQ.102 .AND. initialptm.EQ.0)) THEN
          WRITE (iterm, 88043) planetmass
-88043    FORMAT(2X,1PE12.5,'  Planet Mass')
+88043    FORMAT(2X,1PE15.8,'  Planet Mass')
          WRITE (iterm, 88045) rplanet
 88045    FORMAT(2X,1PE12.5,'  Planet Radius')
-         IF (iexf.EQ.7) WRITE (iterm, 88145) iandrea
-88145    FORMAT(2X,I2,'  Include planetesimal heating')
+         IF (iexf.EQ.7) THEN
+            WRITE (iterm, 88145) iandrea
+88145       FORMAT(2X,I2,'  Include planetesimal heating')
+            WRITE (iterm, 88146) eccentricity_p
+88146       FORMAT(2X,1PE12.5,'  Planetesimal eccentricity max')
+            WRITE (iterm, 88147) inclination_p
+88147       FORMAT(2X,1PE12.5,'  Planetesimal inclination max')
+         ENDIF
       ENDIF
 
       IF (ibound.EQ.102 .AND. initialptm.EQ.5) THEN
@@ -296,6 +320,9 @@ c
       CLOSE (iterm)
 
 #ifdef MPI
+      ENDIF
+#endif
+#ifdef MPICOPY
       ENDIF
 #endif
 

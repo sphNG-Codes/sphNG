@@ -141,7 +141,7 @@ c
       uradconst = radconst / uergcc
       dtimax = dtdo/imaxstep
 
-      print *,'entry gsimpl ',rho(2550),rho(30788),rho(30789)
+c      print *,'entry gsimpl ',rho(2550),rho(30788),rho(30789)
 c     &  ,npart,ekcle(1,1),ekcle(2,1),xyzmh(5,1),vxyzu(1,1),
 c     &     isteps(1)
 
@@ -1960,13 +1960,16 @@ c
                print *,iproc,': expecting to get ',inumofsends,
      &              ' varinew ',j
 #endif
-               CALL MPI_RECV(varinew(1,istartrec),2*maxnneighsentback,
+               CALL MPI_RECV(varinew(1,istartrec),
+     &              nelements_varinew*maxnneighsentback,
      &              MPI_REAL8,MPI_ANY_SOURCE,153,MPI_COMM_WORLD,istatus,
      &              ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL8, ireturned, ierr)
                iprocrec = istatus(MPI_SOURCE)
-               IF (ireturned.NE.2*nneighsentback(iprocrec+1)) THEN
-                  WRITE (*,*) 'ERROR - ireturned.NE.4*nnsentback varinw'
+               IF (ireturned.NE.
+     &              nelements_varinew*nneighsentback(iprocrec+1)) THEN
+                  WRITE (*,*) 'ERROR - ireturned.NE.nelements',
+     &                 '*nnsentback varinw'
                   CALL quit
                ENDIF
 
@@ -2000,7 +2003,8 @@ c
      &                 ' istart ',istart,' returned ',inumberreturned,
      &                 ' of ',inumofreturns
 #endif
-                  CALL MPI_SEND(varinew(1,istart),2*inumber,MPI_REAL8,
+                  CALL MPI_SEND(varinew(1,istart),
+     &                 nelements_varinew*inumber,MPI_REAL8,
      &                 iprocsend,153,MPI_COMM_WORLD,ierr)
 c
 c--Only need to loop over jjj until found appropriate index for process 'i'
@@ -2609,11 +2613,11 @@ c
 #ifdef MPIALL
          IF (iproc.EQ.0) THEN
 #endif
-         IF (MOD(nosweep,1).EQ.0) THEN
-           PRINT 97001,nosweep,nswmax2,maxerrE2,maxerrU2
+c         IF (MOD(nosweep,1).EQ.0) THEN
+c           PRINT 97001,nosweep,nswmax2,maxerrE2,maxerrU2
 97001      FORMAT('GSIMPL: Finished iteration ',I4,' of ',I4,' (',
      &        1PE12.5,1PE12.5,')')
-         ENDIF
+c         ENDIF
 #ifdef MPIALL
          ENDIF
 #endif
@@ -2903,7 +2907,7 @@ c
 #ifdef MPI
       IF (iproc.EQ.0) THEN
 #endif
-c      PRINT *,"Succeeded with ",nosweep," iterations ",maxerrE2,maxerrU2
+      PRINT *,"Succeeded with ",nosweep," iterations ",maxerrE2,maxerrU2
 #ifdef MPI
       ENDIF
 #endif
@@ -2922,7 +2926,7 @@ C$OMP& shared(Rg,gmw,uergg,boundtemp,uradconst,rho,ekcle)
 C$OMP& shared(iphase,bounddens)
 C$OMP& shared(hoverr,ibound,xyzmh)
 C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)
-C$OMP& shared(gamma)
+C$OMP& shared(gamma,dedxyz)
 C$OMP& shared(iunique,iorig,n1,n2,uzero_n2)
 C$OMP& private(temp, rho0)
 C$OMP& private(boundtest,radu)

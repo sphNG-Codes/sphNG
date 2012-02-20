@@ -304,7 +304,7 @@ c
 c--Calculate fluxlimiter values without using separate subroutine
 c
 C$OMP PARALLEL default(none)
-C$OMP& shared(list,vari,ivar,varij2,ijvar,varij)
+C$OMP& shared(list,vari,ivar,ijvar,varij)
 C$OMP& shared(nosweep,Bxyz,Bxyznew,Bxyzmax)
 C$OMP& shared(npart,nghost,ihasghost,ireal,nlst_in,nlst_end)
 C$OMP& shared(origEU,moresweep,xyzmh,gamma,alpha,beta,Rg,gmw)

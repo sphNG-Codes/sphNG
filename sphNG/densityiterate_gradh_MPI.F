@@ -87,7 +87,9 @@ c      INCLUDE 'COMMONS/vsmooth'
       INCLUDE 'COMMONS/presb'
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/gravi'
+      INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/divcurlB'
+      INCLUDE 'COMMONS/pxpy'
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
@@ -241,6 +243,7 @@ C$OMP& shared(nlstdo,ldolist,isucceed,xyzmh,hi_old,it1,isteps,imaxstep)
 C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)
 C$OMP& shared(iphase,dBxyz,divcurlB,force_sym,force_an,it0,itime)
 C$OMP& shared(curlv,gradhs)
+C$OMP& shared(planetesimaltimestep,planetesimalnorm,iplanetesimals)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend)
 #endif
@@ -316,6 +319,10 @@ c            ENDIF
             DO k = 1, 3
                force_an(k,ipart) = 0.
             END DO
+         ENDIF
+         IF (iplanetesimals.GT.0) THEN
+            planetesimaltimestep(ipart) = 0.0
+            planetesimalnorm(ipart) = 0.0
          ENDIF
       END DO
 C$OMP END PARALLEL DO
@@ -1473,6 +1480,9 @@ c
 c
 c--Re-zero quantities
 c
+c--Doesn't zero quantities if dens_iterate has failed, allowing printing.
+c
+      IF (iteration.NE.maxiterations) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstdo,ldolist,rho,dumrho,divv,curlv,gradhs,nneigh)
 C$OMP& shared(dvxyzu,poten)
@@ -1481,25 +1491,25 @@ C$OMP& shared(numberstart,numberend)
 #endif
 C$OMP& private(n,ipart,k)
 #ifdef MPICOPY
-      DO n = numberstart, numberend
+         DO n = numberstart, numberend
 #else
-      DO n = 1, nlstdo
+         DO n = 1, nlstdo
 #endif
-         ipart = ldolist(n)
+            ipart = ldolist(n)
 
-         rho(ipart) = 0.
-         dumrho(ipart) = 0.
-         divv(ipart) = 0.
-         curlv(ipart) = 0.
-         gradhs(2,ipart) = 0.
-         nneigh(ipart) = 0
-         DO k = 1, 4
-            dvxyzu(k,ipart) = 0.
+            rho(ipart) = 0.
+            dumrho(ipart) = 0.
+            divv(ipart) = 0.
+            curlv(ipart) = 0.
+            gradhs(2,ipart) = 0.
+            nneigh(ipart) = 0
+            DO k = 1, 4
+               dvxyzu(k,ipart) = 0.
+            END DO
+            poten(ipart) = 0.
          END DO
-         poten(ipart) = 0.
-      END DO
 C$OMP END PARALLEL DO
-
+      ENDIF
 #ifdef MPI
 c
 c--Need to remove those particles that are being sent back now from the lists
@@ -1554,6 +1564,32 @@ c
 #else
       WRITE (iprint,*) 'ERROR: density iteration failed for ',nlstdo,
      &     ' particles ',ifinished,iproc
+c
+c--Added to give more information about failed particle. (fort.65)
+c
+      itemp = ldolist(nlstdo)
+      IF (irotpot.EQ.1) THEN
+         WRITE (65,11002) px, py, pradfac(1)*rplanet,
+     &        sqrt((px-xyzmh(1,itemp))**2 + (py-xyzmh(2,itemp))**2 +
+     &        xyzmh(3,itemp)**2)
+11002    FORMAT ('#Planet :', 4(X,1PE15.8))
+      ENDIF
+
+11001 FORMAT (I8,X,I4,X,I8,6(X,1PE15.8),X,L1)
+      WRITE (65,11001) itemp, iphase(itemp), nneigh(itemp), rho(itemp),
+     &     xyzmh(1,itemp), xyzmh(2,itemp), xyzmh(3,itemp),
+     &     xyzmh(5,itemp), 0, iscurrent(itemp)
+      DO k = 1, nneigh(itemp)
+         iitemp = neighlist(k)
+         rtemp = SQRT((xyzmh(1,itemp)-xyzmh(1,iitemp))**2 + 
+     &        (xyzmh(2,itemp)-xyzmh(2,iitemp))**2 + 
+     &        (xyzmh(3,itemp)-xyzmh(3,iitemp))**2)
+         WRITE (65,11001) iitemp, iphase(iitemp), nneigh(iitemp),
+     &        rho(iitemp), xyzmh(1,iitemp), xyzmh(2,iitemp),
+     &        xyzmh(3,iitemp), xyzmh(5,iitemp), rtemp,
+     &        iscurrent(iitemp)
+      ENDDO
+
       WRITE (*,*) 'ERROR: density iteration failed for ',nlstdo,
      &     ' particles ',ifinished,iproc
 #endif
@@ -1950,6 +1986,7 @@ C$OMP&private(i,j,ipart)
             DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
      &           irecvcounti(j+1)
                ipart = llisttrans(i) + 1
+
                IF (iphase(ipart).EQ.0)
      &              CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
             END DO

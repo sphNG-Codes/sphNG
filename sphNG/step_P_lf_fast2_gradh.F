@@ -74,6 +74,9 @@ c************************************************************
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/divcurlB'
       INCLUDE 'COMMONS/diskbd'
+      INCLUDE 'COMMONS/planetesimal'
+      INCLUDE 'COMMONS/pxpy'
+      INCLUDE 'COMMONS/xforce'
 
 c      DIMENSION nsteplist(30)
 
@@ -304,6 +307,32 @@ c
                   iptcur = listpm(i)
                   isteps(iptcur) = istepmin
                END DO
+c
+c--Additional constraint for planet with surface for migration
+c
+               IF (ibound.EQ.102 .AND. initialptm.EQ.5) THEN
+                  DO j = 1, nptmass
+                     IF (iphase(listpm(j)).EQ.5) THEN
+                        radiushill2 = (xyzmh(4,listpm(j))/(3.*xmass))
+     &                       **(2./3.)
+                        DO i = 1, npart
+                           IF ((iphase(i).LT.1 .OR. iphase(i).GT.10)
+     &                          .AND. it0(i).EQ.itime) THEN
+                              dx = xyzmh(1,i) - xyzmh(1,listpm(j))
+                              dy = xyzmh(2,i) - xyzmh(2,listpm(j))
+                              dz = xyzmh(3,i) - xyzmh(3,listpm(j))
+                              radius = dx*dx + dy*dy + dz*dz
+                              IF (radius.LT.uniformtslim2*radiushill2)
+     &                             THEN
+                                 isteps(i) = istepmin
+                                 it2(i) = it0(i) + isteps(i)
+                              ENDIF
+                           ENDIF
+                        END DO
+                     ENDIF
+                  ENDDO
+               ENDIF
+
             ELSEIF (individualtimesteps.EQ.2) THEN
                DO i = 1, nptmass
                   iptcur = listpm(i)                  
@@ -1214,6 +1243,30 @@ c
             iptcur = listpm(i)
             isteps(iptcur) = istepmin
          END DO
+c
+c--Additional constraint for planet with surface for migration
+c
+         IF (ibound.EQ.102 .AND. initialptm.EQ.5) THEN
+            DO j = 1, nptmass
+               IF (iphase(listpm(j)).EQ.5) THEN
+                  radiushill2 = (xyzmh(4,listpm(j))/(3.*xmass))**(2./3.)
+                  DO i = 1, npart
+                     IF ((iphase(i).LT.1 .OR. iphase(i).GT.10)
+     &                    .AND. it0(i).EQ.itime) THEN
+                        dx = xyzmh(1,i) - xyzmh(1,listpm(j))
+                        dy = xyzmh(2,i) - xyzmh(2,listpm(j))
+                        dz = xyzmh(3,i) - xyzmh(3,listpm(j))
+                        radius = dx*dx + dy*dy + dz*dz
+                        IF (radius.LT.uniformtslim2*radiushill2) THEN
+                           isteps(i) = istepmin
+                           it2(i) = it0(i) + isteps(i)
+                        ENDIF
+                     ENDIF
+                  END DO
+               ENDIF
+            ENDDO
+         ENDIF
+
       ELSEIF (individualtimesteps.EQ.2) THEN
          DO i = 1, nptmass
             iptcur = listpm(i)
@@ -1248,7 +1301,8 @@ C$OMP& shared(anglostx,anglosty,anglostz)
 C$OMP& shared(dumBevolxyz,Bevolxyz)
 C$OMP& shared(variation,phibound,nlistinactive,listinactive)
 C$OMP& shared(rcyl,rmind)
-C$OMP& private(i,j,k)
+C$OMP& shared(pradfac,rplanet,px,py,irotpot,iplanetesimals)
+C$OMP& private(i,j,k,ipkill,rlim)
 C$OMP& private(r2,pmassi,phiparticle)
 c
 c--Compute new time steps for particles which have been advanced
@@ -1262,6 +1316,7 @@ c
          IF (ibound.EQ.8 .OR. ibound/10.EQ.9) THEN
             r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
             IF (r2.GT.(1.05*deadbound)**2) THEN
+               ipkill = iphase(i)
                iphase(i) = -1
                pmassi = xyzmh(4,i)
 C$OMP CRITICAL (killparticle)
@@ -1277,8 +1332,8 @@ C$OMP CRITICAL (killparticle)
                nactive = nactive - 1
                nkill = nkill + 1
                WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
-     &              xyzmh(3,i),
-     &              vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),poten(i),dgrav(i)
+     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
+     &              poten(i),dgrav(i),ipkill
                CALL FLUSH (ikillpr)
                anglostx = anglostx + pmassi*(xyzmh(2,i)*vxyzu(3,i) - 
      &              vxyzu(2,i)*xyzmh(3,i))
@@ -1298,6 +1353,7 @@ c
             r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
             IF (r2.LT.(1.0-variation)**2 .OR. r2.GT.(1.0+variation)**2
      &                         .OR. ABS(phiparticle).GT.phibound) THEN
+               ipkill = iphase(i)
                iphase(i) = -1
 C$OMP CRITICAL (killparticle)
                ikilled = 1
@@ -1320,7 +1376,7 @@ C$OMP CRITICAL (killparticle)
                nkill = nkill + 1
                WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
      &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
-     &              poten(i),dgrav(i)
+     &              poten(i),dgrav(i),ipkill
                CALL FLUSH(ikillpr)
 C$OMP END CRITICAL (killparticle)
                GOTO 855
@@ -1335,6 +1391,7 @@ c
             IF ((r2.GT.rcyl**2 .AND. iphase(i).EQ.0) .OR.
      &           (r2.LE.rmind**2 .AND. iphase(i).GT.0) .OR.
      &           (r2.GT.(2.*rcyl)**2 .AND. iphase(i).GT.0)) THEN
+               ipkill = iphase(i)
                iphase(i) = -1
 C$OMP CRITICAL (killparticle)
                ikilled = 1
@@ -1350,9 +1407,44 @@ C$OMP CRITICAL (killparticle)
                nkill = nkill + 1
                WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
      &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
-     &              poten(i),dgrav(i)
+     &              poten(i),dgrav(i),ipkill
                CALL FLUSH(ikillpr)
 C$OMP END CRITICAL (killparticle)
+               GOTO 855
+            ENDIF
+         ENDIF
+c
+c--Kill planetesimals approaching planet modelled as potential.
+c
+         IF (irotpot.EQ.1 .AND. iplanetesimals.GT.0 .AND.
+     &        iphase(i).EQ.11) THEN
+            r2 = (xyzmh(1,i)-px)**2 + (xyzmh(2,i)-py)**2 +
+     &           xyzmh(3,i)**2
+            rlim = rplanet*pradfac(1)
+            IF (r2.LT.rlim**2) THEN
+               ipkill = iphase(i)
+               iphase(i) = -1
+#ifndef MPICOPY
+C$OMP CRITICAL (killparticle)
+#endif
+               ikilled = 1
+
+               nlstacc = nlstacc + 1
+               IF (nlstacc.GT.nlstaccmax) THEN
+                  WRITE (iprint,*) 'ERROR step nlstacc'
+                  CALL quit
+               ENDIF
+               listacc(nlstacc) = i
+
+               nactive = nactive - 1
+               nkill = nkill + 1
+               WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
+     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
+     &              poten(i),dgrav(i),ipkill
+               CALL FLUSH(ikillpr)
+#ifndef MPICOPY
+C$OMP END CRITICAL (killparticle)
+#endif
                GOTO 855
             ENDIF
          ENDIF

@@ -1,4 +1,4 @@
       REAL pbeta
       LOGICAL prswitch
       
-      COMMON /grains  / pbeta, prswitch
+      COMMON /prdrag  / pbeta, prswitch

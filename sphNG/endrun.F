@@ -56,6 +56,10 @@ c
          CLOSE (ireasspr)
       ENDIF
 
+      IF (job(1:9).EQ.'evolution' .AND. irotpot.EQ.1) THEN
+         CLOSE (ikillpr)
+      ENDIF
+
       IF (job(1:9).EQ.'evolution') THEN
          WRITE (inotify,*) 'stopped'
          CLOSE (inotify)

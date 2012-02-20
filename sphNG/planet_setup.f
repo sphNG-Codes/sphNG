@@ -160,15 +160,19 @@ c---------------------------------------------------------------
       INCLUDE 'COMMONS/abundances'
       INCLUDE 'COMMONS/prdrag'
       INCLUDE 'COMMONS/pxpy'
+      INCLUDE 'COMMONS/planetesimal'
 
       REAL*8 inclination
       CHARACTER*1 iok, iwhat, idens
       CHARACTER*1 ien, irotref, uort, iplans
-      INTEGER inum, inum2
+      INTEGER inum, inum2, nplanetesimals
 
       sdprof = 0
       iplanetesimals = 0
       imigrate = 0
+      eccentricity_p = 0.0
+      inclination_p = 0.0
+      gasdrag = .FALSE.
 c
 c--Initialise time
 c
@@ -246,6 +250,8 @@ c--Route one: Single planet modelled using a potential.
 11101    FORMAT (' Enter planet mass')
          READ (*,*) planetmass
          hmass = planetmass
+         coremass_orig = planetmass
+         coremass = planetmass
 
          WRITE (*,11102)
 11102    FORMAT('Enter radius for planet')
@@ -388,7 +394,7 @@ c
          ifcor = 1
          irotref = 'y'
          ibound = 100
-         iplans = 'g'
+c         iplans = 'g'
 
          WRITE (*, 11301) udist
 11301    FORMAT (//, ' PARTICLE SET UP ', //,
@@ -406,10 +412,19 @@ c
          ymin = - ymax
          rmax = SQRT(radiusmax*radiusmax + zmax*zmax)
 
-         WRITE (*, 11399)
+ 1139    WRITE (*, 11399)
 11399    FORMAT ('Include heating by planetesimals (Fortier) (y/n)?')
          READ (*,*) iok
          IF (iok.EQ.'y' .OR. iok.EQ.'Y') iandrea = 1
+
+         WRITE (*,11401)
+         READ (*,*) iplans
+
+         IF (iplans.NE.'g' .AND. iandrea.EQ.1) THEN
+            print *, "Can't have planetesimals and artificial"
+            print *, "planetesimal heating. Choose again"
+            GOTO 1139
+         ENDIF
 
       ELSE IF (igeom.EQ.10) THEN
          IF (inum2.EQ.1) THEN
@@ -524,7 +539,7 @@ c
      &           ' try again.')
          GOTO 1145
       ENDIF
-      
+
       WRITE (*, 11407) np
 11407 FORMAT (' Total number of particles set :', I8)
 
@@ -551,7 +566,11 @@ c
 c--Set particle distribution.
 c      
       IF (iplans.EQ.'p') THEN
-         CALL planetesimals(np)
+         IF (igeom.EQ.10) CALL planetesimals(np, nptmass)
+         IF (igeom.EQ.9) THEN
+            print *, 'Not implemented, not likely to be.'
+            STOP
+         ENDIF
       ELSE
          idens = 'd'
          icoord = 2
@@ -562,36 +581,205 @@ c
 c
 c--Set Total Mass
 c
-      umassr = umass/solarm
-      IF (igeom.EQ.10) THEN
+      IF (igeom.EQ.9) THEN
+         WRITE (*,99114)
+99114    FORMAT(' Enter signorm at 5.2 au (units of 75 g/cm^2) ')
+         READ (*, *) signorm
+         rmindisc = 1.0-variation
+         rmaxdisc = 1.0+variation
+         totmas = 4.0/3.0*pi*75.0*signorm*(5.2*au)**2*
+     &        (rmaxdisc**1.5-rmindisc**1.5)/(pi/phibound)/umass
+         partm = totmas/(npart - nptmass)
+         flowrate = 75.0*SQRT(gg*solarm*5.2*au)*((2./3.*rmindisc**
+     &        (3./2.))+(2./3.*rmaxdisc**(3./2.))-LOG(rmindisc)-
+     &        LOG(rmaxdisc)-(4./3.))/umass*utime*signorm/partm
+
+         IF (iplans.EQ.'b') THEN
+
+            DO i = nptmass + 1, npart
+               iphase(i) = 0
+               rho(i) = 0.
+               xyzmh(4,i) = partm * disfrac(i)
+               dgrav(i) = 0.
+            END DO
+
+            iplanetesimals = 2
+c--Injection as I have it requires equal numbers of gas and dust.
+            nplanetesimals = npart
+c            WRITE (*,11094)
+c 1184       READ (*,*) nplanetesimals
+            IF (npart+nplanetesimals.GT.idim) THEN
+               print *, 'idim too small for gas and planetesimals.'
+               print *, 'idim, npart, nplanetesimals'
+               print *, idim, npart, nplantesimals
+               STOP
+            ENDIF
+            
+            ntot = npart
+            CALL planetesimals(nplanetesimals, ntot)
+            
+            WRITE (*, 11093)
+            READ (*,*) psize
+            r_planetesimal = psize*1.E5/udist
+            WRITE (*, 11092)
+            READ (*,*) pdensity
+            rho_planetesimal = pdensity/udens
+            
+            WRITE (*, 11097)
+            gasdrag = .true.
+            
+            WRITE (*, 11996)
+            READ (*,*) sgratio
+            totgrainmass = sgratio*totmas
+            
+            partm2 = totgrainmass/nplanetesimals
+            planetesimalmass = partm2
+            print *, 'Total solids/gas mass ratio ', totgrainmass/totmas
+            totmas = totmas + totgrainmass
+            print*,'Planetesimal particle mass = ',
+     &           totgrainmass/nplanetesimals               
+
+
+            DO i = npart - nplanetesimals + 1, npart
+               rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+               rhotemp = ((75.*udist**2/umass)*signorm*rtemp**sdprof*
+     &              exp(-(xyzmh(3,i)**2/(2.*(0.05*rtemp)**2))))/
+     &              (sqrt(2.*pi)*0.05)
+               xyzmh(5,i) = 1.2*(partm2/rhotemp)**(1./3.)
+               iphase(i) = 11
+               xyzmh(4,i) = partm2
+            ENDDO
+            
+         ENDIF
+
+      ELSEIF (igeom.EQ.10) THEN
          IF (iplans.EQ.'g' .OR. iplans.EQ.'G') THEN
             WRITE (*,99114)
             READ (*, *) signorm
 
-            totmas = (2.*pi*75.0*signorm/((5.2*au)**sdprof*(2.+sdprof)))
-     &           *(rcyl**(2.+sdprof)-rmind**(2.+sdprof))
-     &           *udist**(2.+sdprof)/umass
+            IF (abs(sdprof+2.0).LT.tiny) THEN
+               totmas = (2.*pi*75.0*signorm*udist**2)*(log(rcyl)
+     &              - log(rmind))/umass
+            ELSE
+c--udist in top line substituted for 5.2*au (assumes density set at r=1.0)
+               totmas = (2.*pi*75.0*signorm/(udist**sdprof*(2.+
+     &              sdprof)))*(rcyl**(2.+sdprof)-rmind**(2.+sdprof))
+     &              *udist**(2.+sdprof)/umass
+            ENDIF
             partm = totmas/(npart - nptmass)
 
             DO i = nptmass + 1, npart
-               rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2 +
-     &              xyzmh(3,i)**2)
-               rhotemp = (75.*signorm*sqrt(1./rtemp)*udist**2/umass)/
-     &              (6.*0.05*rtemp)
+               rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+               rhotemp = ((75.*udist**2/umass)*signorm*rtemp**sdprof*
+     &              exp(-(xyzmh(3,i)**2/(2.*(0.05*rtemp)**2))))/
+     &              (sqrt(2.*pi)*0.05)
+c               rhotemp = (75.*signorm*sqrt(1./rtemp)*udist**2/umass)/
+c     &              (6.*0.05*rtemp)
                xyzmh(5,i) = 1.2*(partm/rhotemp)**(1./3.)
             END DO
-         ELSEIF (iplans.EQ.'p' .OR. iplans.EQ.'P') THEN
+         ELSE
+c
+c--iplanetesimals = 0 - gas only, 1 - planetesimals only, 2 - both.
+c
             iplanetesimals = 1
+            IF (iplans.EQ.'b' .OR. iplans.EQ.'B') THEN
+               iplanetesimals = 2
+               WRITE (*,99114)
+               READ (*, *) signorm
+               
+               IF (abs(sdprof+2.0).LT.tiny) THEN
+                  totmas = (2.*pi*75.0*signorm*udist**2)*(log(rcyl)
+     &                 - log(rmind))/umass
+               ELSE
+                  totmas = (2.*pi*75.0*signorm/(udist**sdprof*
+     &                 (2.+sdprof)))*(rcyl**(2.+sdprof)-rmind**(2.+
+     &                 sdprof))*udist**(2.+sdprof)/umass
+               ENDIF
+               partm = totmas/(npart - nptmass)
+               
+               DO i = nptmass + 1, npart
+                  rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+                  rhotemp = ((75.*udist**2/umass)*signorm*rtemp**sdprof*
+     &                 exp(-(xyzmh(3,i)**2/(2.*(0.05*rtemp)**2))))/
+     &                 (sqrt(2.*pi)*0.05)
+                  xyzmh(5,i) = 1.2*(partm/rhotemp)**(1./3.)
 
-            WRITE (*, 11995)            
-11995       FORMAT ('Enter total solids mass (Jupiter masses)')
-            READ (*,*) totgrainmass
-            totgrainmass = totgrainmass*1.8986E30/umass
-            partm = totgrainmass/(npart-nptmass)
-            totmas = partm*(npart - nptmass)
-            print *, 'Planetesimal mass (Jupiter masses) = ',
-     &           totgrainmass/(npart-nptmass)
+                  iphase(i) = 0
+                  rho(i) = 0.
+                  xyzmh(4,i) = partm * disfrac(i)
+                  dgrav(i) = 0.
+               END DO
 
+               WRITE (*,11094)
+11094          FORMAT ('Enter number of planetesimal particles ')
+ 1194          READ (*,*) nplanetesimals
+               IF (npart+nplanetesimals.GT.idim) THEN
+                  print *, 'idim too small for gas and planetesimals.'
+                  print *, 'Try smaller number of planetesimals'
+                  GOTO 1194
+               ENDIF
+
+               ntot = npart
+               CALL planetesimals(nplanetesimals, ntot)
+               
+               WRITE (*, 11093)
+11093          FORMAT ('Enter radius of plantesimals in km')
+               READ (*,*) psize
+               r_planetesimal = psize*1.E5/udist
+               WRITE (*, 11092)
+11092          FORMAT ('Enter density of plantesimals (g/cm3)')
+               READ (*,*) pdensity
+               rho_planetesimal = pdensity/udens
+
+               WRITE (*, 11097)
+11097          FORMAT ('It is assumed you want gas-planetesimal',/
+     &              'interaction (i.e. gas drag). This can be',/
+     &              'turned off in the ifile.')
+               gasdrag = .true.
+            ENDIF
+
+            IF (iplans.EQ.'p' .OR. iplans.EQ.'P') THEN
+               WRITE (*, 11995)            
+11995          FORMAT ('Enter total solids mass (Jupiter masses)')
+               READ (*,*) totgrainmass
+               totgrainmass = totgrainmass*1.8986E30/umass
+
+               partm = totgrainmass/(npart-nptmass)
+               totmas = totgrainmass
+               print*,'Planetesimal particle mass = ',
+     &              totgrainmass/(npart-nptmass)
+            ENDIF
+
+            IF (iplans.EQ.'b' .OR. iplans.EQ.'B') THEN
+               WRITE (*,11996)
+11996          FORMAT ('Enter solids/gas surface density ratio')
+               READ (*,*) sgratio
+
+               IF (abs(sdprof+2.0).LT.tiny) THEN
+                  gasmass = (2.*pi*75.0*signorm*udist**2)*
+     &                 (log(max_rplan) - log(min_rplan))/umass
+                  print *, 'Using alpha = -2'
+                  print *, 'Gassmass = ', gasmass
+               ELSE
+                  gasmass = (2.*pi*75.0*signorm/(udist**sdprof*
+     &                 (2.+sdprof)))*(max_rplan**(2.+sdprof) - 
+     &                 min_rplan**(2.+sdprof))*udist**(2.+sdprof)/umass
+
+c                  gasmass = 2.*pi*(75.*udist**2/umass)*signorm*
+c     &                 (max_rplan**(2.-sdprof) - min_rplan**(2.-sdprof))/
+c     &                 (2.-sdprof)
+                  print *, 'Gassmass = ', gasmass
+               ENDIF
+               totgrainmass = sgratio*gasmass
+
+               partm2 = totgrainmass/nplanetesimals
+               print *, 'Total solids/gas mass ratio ', totgrainmass/
+     &              totmas
+               totmas = totmas + totgrainmass
+               print*,'Planetesimal particle mass = ',
+     &              totgrainmass/nplanetesimals
+
+            ENDIF
 
             IF (inum.EQ.1) THEN
                WRITE (*,11095)
@@ -604,7 +792,7 @@ c
                      print *, ' orbit is not currently implemented'
                      STOP
                   ENDIF
-
+                  
                   imigrate = 1
                   WRITE (*,11096)
 11096     FORMAT ('Enter migration rate in AU/Myr (+ve outwards)')
@@ -618,7 +806,7 @@ c
                   READ (*,*) iok
                   IF (iok.EQ.'y') THEN
                      WRITE (*,11105)
-11105             FORMAT ('Enter radius at which to stop (code units)')
+11105     FORMAT ('Enter radius at which to stop (code units)')
                      READ (*,*) rorbitmax
                      rorbitmax = (rorbitmax - rorbit_orig)/pmrate
 c--rorbitmax is stored as a time, at which point migration should stop.
@@ -637,32 +825,29 @@ c--rorbitmax is stored as a time, at which point migration should stop.
                READ (*,*) pbeta
             ENDIF
 
-            DO i = nptmass + 1, npart
-               rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2 +
-     &              xyzmh(3,i)**2)
-               rhotemp = ((totmas/totvol)*sqrt(1./rtemp))/
-     &              (6.*0.05*rtemp)
-               xyzmh(5,i) = 1.2*(partm/rhotemp)**(1./3.)
+            IF (iplans.EQ.'p' .OR. iplans.EQ.'P') THEN
+               DO i = nptmass + 1, npart
+                  rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2 +
+     &                 xyzmh(3,i)**2)
+                  rhotemp = ((totmas/totvol)*sqrt(1./rtemp))/
+     &                 (6.*0.05*rtemp)
+                  xyzmh(5,i) = 1.2*(partm/rhotemp)**(1./3.)
+                  iphase(i) = 11
+                  xyzmh(4,i) = partm
+               ENDDO
+            ELSEIF (iplans.EQ.'b' .OR. iplans.EQ.'B') THEN
+               DO i = npart - nplanetesimals + 1, npart
 
-               iphase(i) = 11
-               xyzmh(4,i) = partm
-            ENDDO
-         ELSEIF (iplans.EQ.'b' .OR. iplans.EQ.'B') THEN
-            print *, 'NOT YET IMPLEMENTED'
-            STOP
+                  rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+                  rhotemp = ((75.*udist**2/umass)*signorm*rtemp**sdprof*
+     &                 exp(-(xyzmh(3,i)**2/(2.*(0.05*rtemp)**2))))/
+     &                 (sqrt(2.*pi)*0.05)
+                  xyzmh(5,i) = 1.2*(partm2/rhotemp)**(1./3.)
+                  iphase(i) = 11
+                  xyzmh(4,i) = partm2
+               ENDDO
+            ENDIF
          ENDIF
-      ELSEIF (igeom.EQ.9) THEN
-         WRITE (*,99114)
-99114    FORMAT(' Enter signorm at 5.2 au (units of 75 g/cm^2) ')
-         READ (*, *) signorm
-         rmindisc = 1.0-variation
-         rmaxdisc = 1.0+variation
-         totmas = 4.0/3.0*pi*75.0*signorm*(5.2*au)**2*
-     &        (rmaxdisc**1.5-rmindisc**1.5)/(pi/phibound)/umass
-         partm = totmas/(npart - nptmass)
-         flowrate = 75.0*SQRT(gg*solarm*5.2*au)*((2./3.*rmindisc**
-     &        (3./2.))+(2./3.*rmaxdisc**(3./2.))-LOG(rmindisc)-
-     &        LOG(rmaxdisc)-(4./3.))/umass*utime*signorm/partm
       ELSE
          WRITE (*,*) 'Error in mass setting, unknown igeom'
          STOP
@@ -923,6 +1108,43 @@ c
                vxyzu(2,i) = sqxmass*vxyzu(2,i)
                vxyzu(3,i) = sqxmass*vxyzu(3,i)
             ENDDO
+         ELSEIF (iplans.EQ.'b') THEN
+            sqxmass = sqrt(xmass)
+            print *, 'Sq mass ', sqxmass
+            DO i = npart - nplanetesimals + 1, npart
+               vxyzu(1,i) = sqxmass*vxyzu(1,i)
+               vxyzu(2,i) = sqxmass*vxyzu(2,i)
+               vxyzu(3,i) = sqxmass*vxyzu(3,i)
+            ENDDO
+            IF (iexf.EQ.7) THEN
+               IF (irotref.NE.'y' .AND. irotref.NE.'Y') THEN
+                  print *, 'iexf=7 but not rotating frame? You crazy?'
+                  stop
+               ENDIF
+               
+               print *, '##############################################'
+               print *, 'WARNING: I am uncertain about changing the'
+               print *, '         rotation frame for eccentric/inclined'
+               print *, '         orbits of planetesimals.'
+               print *, '##############################################'
+
+c--below assumes r = 1.
+               p_omega = sqxmass
+               DO i = npart - nplanetesimals + 1, npart
+                  rr = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+                  vphi = (-xyzmh(2,i)*vxyzu(1,i) + vxyzu(2,i)*
+     &                 xyzmh(1,i))/rr
+                  vr = (vxyzu(1,i)*xyzmh(1,i) + vxyzu(2,i)*xyzmh(2,i))
+     &                 /rr
+                  omega = vphi/rr
+                  omega = omega - p_omega
+                  vphi = omega*rr
+                  phi = ATAN(xyzmh(2,i)/xyzmh(1,i))
+
+                  vxyzu(1,i) = vr*cos(phi) - vphi*sin(phi)
+                  vxyzu(2,i) = vr*sin(phi) + vphi*cos(phi)
+               ENDDO
+            ENDIF
          ENDIF
       ELSE
          xmass = 0.
@@ -945,8 +1167,22 @@ c Set velocity dispersion parameter
         disp=5.
       ENDIF
 
-         
-      IF (iplans.NE.'p') THEN
+      IF (iplans.EQ.'b') THEN
+         DO i = nptmass + 1, npart - nplanetesimals
+            gg2 = 1.
+            radius = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+            xtild = xyzmh(1,i)/radius
+            ytild = xyzmh(2,i)/radius
+            velsub = 0.0
+            IF (irotref.EQ.'y' .OR. irotref.EQ.'Y') THEN
+               velsub = 1.0
+            ENDIF
+            alpha = SQRT(gg2 * xmass/radius)
+            vxyzu(1,i) = -alpha * ytild + xyzmh(2,i)*velsub
+            vxyzu(2,i) =  alpha * xtild - xyzmh(1,i)*velsub
+            vxyzu(3,i) = 0.
+         ENDDO
+      ELSEIF (iplans.NE.'p') THEN
          DO i = nptmass + 1, n1
             IF (iok.EQ.'k') THEN
                gg2 = 1.  

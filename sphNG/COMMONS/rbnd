@@ -5,6 +5,7 @@
       REAL variation,phibound,flowrate,signorm,hoverr,partm
       REAL rplanet,opdenom,hmass,pradfac,gapfac
       REAL uniformtslim,uniformtslim2,tprof,sdprof
+      REAL coremass_orig, coremass
       REAL metallicity
 
       LOGICAL use_tprof
@@ -22,4 +23,5 @@ c
       COMMON /inactive/ listinactive(idim),nlistinactive
       COMMON /planet2/ variation,phibound,flowrate,signorm,hoverr,
      &       partm,rplanet,pradfac(iptdim),gapfac,uniformtslim,
-     &       uniformtslim2,tprof,sdprof,use_tprof
+     &       uniformtslim2,tprof,sdprof,use_tprof,coremass_orig,
+     &	     coremass

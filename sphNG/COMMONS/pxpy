@@ -1,5 +1,5 @@
-      REAL    px, py, rorbit_orig, rorbitmax, pmrate
+      REAL    px, py, pz, rorbit_orig, rorbitmax, pmrate
       INTEGER imigrate
-      COMMON /pxpy/ px, py, rorbit_orig, rorbitmax, pmrate, imigrate
+      COMMON /pxpy/ px, py, pz, rorbit_orig, rorbitmax, pmrate, imigrate
 
       

@@ -56,7 +56,7 @@ c
          nghostold = nghost
          nptot = MIN0(npart + nghost, idim)
          hasghost(i) = .FALSE.
-         IF (iphase(i).NE.0) GOTO 200
+         IF (iphase(i).GE.1 .AND. iphase(i).LE.10) GOTO 200
          xi = xyzmh(1,i)
          yi = xyzmh(2,i)
          zi = xyzmh(3,i)
@@ -89,7 +89,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -110,7 +110,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -133,7 +133,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -154,7 +154,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -177,7 +177,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -198,7 +198,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -231,7 +231,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -252,7 +252,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -273,7 +273,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -294,7 +294,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -316,7 +316,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -337,7 +337,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -358,7 +358,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -379,7 +379,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -401,7 +401,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -422,7 +422,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -443,7 +443,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -464,7 +464,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -489,7 +489,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -511,7 +511,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -533,7 +533,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -555,7 +555,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -577,7 +577,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -599,7 +599,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -621,7 +621,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -643,7 +643,7 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
-            iphase(nptot) = 0
+            iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF

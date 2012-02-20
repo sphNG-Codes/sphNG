@@ -85,10 +85,12 @@ c
       WRITE (iterm, 99006) encal
 99006 FORMAT (A1)
       IF (encal.EQ.'r') THEN
-         WRITE (iterm, 99008) tolerance, boundtemp, bounddens, opdenom
-99008    FORMAT(2X,4(1PE12.5, 1X),
+         WRITE (iterm, 99008) tolerance, boundtemp, bounddens, opdenom,
+     &        iopmodel, metallicity
+99008    FORMAT(2X,4(1PE12.5, 1X),I2,1X,1PE12.5,
      &    ' Implicit radiative transfer',
-     &    ' tolerance, boundtemp, bounddens, opacity divisor')
+     &    ' tolerance, boundtemp, bounddens, opacity divisor,'
+     &    ' opacity model, metallicity')
       ENDIF
 
 #ifdef MPI

@@ -1274,6 +1274,13 @@ c
             WRITE (*, 89019)
 89019       FORMAT ('Choose an opacity denominator')
             READ (iread,*) opdenom
+
+            WRITE (*, 89020)
+89020       FORMAT ('Choose an opacity model',//,
+     &           '   Low-T: (0=Pollack et al. 1985)',
+     &           '   High-T: (10=Alexander 1975)',
+     &           '           (20=Ferguson et al. 2005)')
+            READ (iread,*) iopmodel
          ELSE
             GOTO 616
          ENDIF

@@ -1,15 +1,17 @@
-      INTEGER listinactive,nlistinactive
+      INTEGER listinactive,nlistinactive,iopmodel
 
       REAL rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl
       REAL boundtemp, bounddens, dxbound,dybound,dzbound
       REAL variation,phibound,flowrate,signorm,hoverr,partm
       REAL rplanet,opdenom,hmass,pradfac,gapfac
       REAL uniformtslim,uniformtslim2,tprof,sdprof
+      REAL metallicity
 
       LOGICAL use_tprof
       
       COMMON /rbnd  / rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl,
-     &                boundtemp, bounddens, opdenom, hmass
+     &                boundtemp, bounddens, opdenom, hmass,
+     &		      metallicity, iopmodel
 c
 c--these are used in the modbound subroutine for periodic without ghosts
 c

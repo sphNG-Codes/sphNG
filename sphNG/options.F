@@ -125,8 +125,11 @@ c
             WRITE (iprint,*) 'ERROR - iradtrans.NE.idim'
             CALL quit
          ENDIF
-         READ (iterm, *) tolerance, boundtemp, bounddens, opdenom
+         READ (iterm, *) tolerance, boundtemp, bounddens, opdenom, 
+     &        iopmodel, metallicity
       ENDIF
+
+      print *,'Opacity model ',iopmodel
 
 #ifdef MPI
       READ (iterm, *) mpitype, xlocationmpi, ylocationmpi, 

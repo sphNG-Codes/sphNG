@@ -57,6 +57,14 @@ c************************************************************
       INCLUDE 'COMMONS/sort'
 
       CHARACTER*7 where
+      CHARACTER*6 dummy
+
+      CHARACTER*100 metalfilenames, metalbase
+      DIMENSION metalfilenames(opmxMet_ferguson)
+
+      REAL*4 rho_real4
+
+      REAL optable_line(opmxrh)
 
       DATA where/'preset'/
 
@@ -292,28 +300,188 @@ c
 #endif
       CALL ktable
 c
-c--Load in tables of opacity and cv
+c--Read in tables of quantities
 c
-c      IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
+      print *, 'Reading tables in preset'
+c
+c--Load in tables of opacity
+c
+      IF (encal.EQ.'r') THEN
+c
+c--Read in low temperature opacity model
+c
+         IF (MOD(iopmodel,10).EQ.0) THEN
+c
+c--This is also the default opacity model (for both high and low temperature)
+c     The "opacitytbl" file here is to take the full opacity table
+c     from the original table (Whitehouse & Bate 2006).  This table was later
+c     split into the Pollack only bit and the Alexander only bit.  The
+c     max values from each of these two bits gives back the original table.
+c     But the two are split so that can allow different low-temperature and
+c     high-temperature tables to be used.
+c
+c            OPEN(UNIT=8,FILE='/home/mrbate/tables/opacitytbl')
+            OPEN(UNIT=8,
+     &           FILE='/home/mrbate/tables/opacitytbl_Pollacketal1985')
+            DO i=1, opmxtg
+               READ(8,*) (optable(i,j), j=1, opmxrh)
+            ENDDO
+            CLOSE(8)
+         ELSE
+            WRITE (*,*) 'ERROR - unknown low-T opacity model'
+            CALL quit
+         ENDIF
+c
+c--Read in high temperature opacity modelx
+c
+         IF (iopmodel/10.EQ.0) THEN
+c
+c--Read in Alexander (1975) models.  These are placed into the optable
+c     so that the full optable is the same as in the original version of
+c     the code (i.e. a mix of Pollack et al. 1985 and Alexander 1975)
+c
+            ialexander_only = 34
+            OPEN(UNIT=8,
+     &FILE='/home/mrbate/tables/opacitytbl_Alexander1975_Model_KingIVa')
+c
+c--Skip 1st line
+c
+            READ(8,*)
+c
+c--Read Alexander data
+c
+            DO i=opmxtg-ialexander_only+1, opmxtg
+               READ(8,*) (optable_line(j), j=1, opmxrh)
+c
+c--Take the maximum of the values already in the table (from 
+c     Pollack et al. 1985) and those taken from the Alexander (1975) table
+c
+               DO j = 1, opmxrh
+                  optable(i,j) = MAX(optable(i,j),optable_line(j))
+               END DO
+            END DO
+            CLOSE(8)
+c
+c--End of reading in Alexander data
+c
+         ELSEIF (iopmodel/10.EQ.1) THEN
+c
+c--Read in Ferguson et al. (2005), ApJ, 623, 585 models.  Note these are
+c     provided as a tar file (f05.g93.tar).  The last three lines of the
+c     file "g7.0.tron" need to be edited because the numbers are not
+c     separated by spaces, but other than that the data files are used
+c     as provided by the tarfile.
+c
+            metaltable(1) = 0.0
+            metaltable(2) = 0.00001
+            metaltable(3) = 0.00003
+            metaltable(4) = 0.0001
+            metaltable(5) = 0.0003
+            metaltable(6) = 0.001
+            metaltable(7) = 0.002
+            metaltable(8) = 0.004
+            metaltable(9) = 0.01
+            metaltable(10) = 0.02
+            metaltable(11) = 0.03
+            metaltable(12) = 0.04
+            metaltable(13) = 0.05
+            metaltable(14) = 0.06
+            metaltable(15) = 0.08
+            metaltable(16) = 0.1
+
+            metalbase = '/home/mrbate/tables/Fergusonetal2005/'
+            imetalbase = 37
+            metalfilenames(1) = metalbase(1:37) // 'g7.0.tron'
+            metalfilenames(2) = metalbase(1:37) // 'g7.00001.tron'
+            metalfilenames(3) = metalbase(1:37) // 'g7.00003.tron'
+            metalfilenames(4) = metalbase(1:37) // 'g7.0001.tron'
+            metalfilenames(5) = metalbase(1:37) // 'g7.0003.tron'
+            metalfilenames(6) = metalbase(1:37) // 'g7.001.tron'
+            metalfilenames(7) = metalbase(1:37) // 'g7.002.tron'
+            metalfilenames(8) = metalbase(1:37) // 'g7.004.tron'
+            metalfilenames(9) = metalbase(1:37) // 'g7.01.tron'
+            metalfilenames(10) = metalbase(1:37) // 'g7.02.tron'
+            metalfilenames(11) = metalbase(1:37) // 'g7.03.tron'
+            metalfilenames(12) = metalbase(1:37) // 'g7.04.tron'
+            metalfilenames(13) = metalbase(1:37) // 'g7.05.tron'
+            metalfilenames(14) = metalbase(1:37) // 'g7.06.tron'
+            metalfilenames(15) = metalbase(1:37) // 'g7.08.tron'
+            metalfilenames(16) = metalbase(1:37) // 'g7.1.tron'
+c
+c--Set Z (metal contribution) from metallicity in solar units (Z=0.02)
+c
+            xlogZ = MIN(-1.0,LOG10(MAX(metallicity*0.02,1.0E-10)))
+            DO k = 1, opmxMet_ferguson
+               metaltable(k) = LOG10(MAX(metaltable(k),1.0E-10))
+               IF (xlogZ.GE.metaltable(k)) metaltable1 = k
+            END DO
+            metaltable1 = MIN(metaltable1,opmxMet_ferguson-1)
+
+            DO k = 1, opmxMet_ferguson
+            OPEN(UNIT=8,FILE=metalfilenames(k))
+c
+c--Skip initial lines, the read in temperature scale
+c
+            DO i=1,3
+               READ(8,*)
+            END DO
+            READ(8,55001) dummy, (optable_ferguson(1,i,k),i=2,
+     &           opmxR_ferguson)
+55001       FORMAT(A6,19(1F7.3))
+55002       FORMAT(20(1PE12.3))
+            Rmax_ferguson = optable_ferguson(1,opmxR_ferguson,k)
+            Rmin_ferguson = optable_ferguson(1,2,k)
+            Rdelta_ferguson = optable_ferguson(1,3,k)-
+     &           optable_ferguson(1,2,k)
+c
+c--Read in data - ***NOTE*** that it stores the table BACKWARDS since the
+c     table as provided is in order of decreasing temperature
+c
+            DO i=opmxtg_ferguson, 2, -1
+               READ(8,*) (optable_ferguson(i,j,k), j=1, opmxR_ferguson)
+            ENDDO
+            CLOSE(8)
+            Tmax_ferguson = optable_ferguson(opmxtg_ferguson,1,k)
+            Tmin_ferguson = optable_ferguson(2,1,k)
+            Tdelta_ferguson = optable_ferguson(3,1,k)-
+     &           optable_ferguson(2,1,k)
+
+            END DO
+         ELSEIF (iopmodel/10.EQ.0) THEN
+            WRITE (*,*) 'Going with Alexander 1975 high-T model'
+         ELSE
+            WRITE (*,*) 'ERROR - unknown low-H opacity model'
+            CALL quit
+         ENDIF
+c
+c--Read in dusttable, which is required to make the interface between
+c     dust opacity and gas opacity smooth when using reduced dust opacities
+c     using the "opdenom" parameter, and when using the Alexander and
+c     Pollack tables (i.e. opcity model iopmodel=0).
+c
+         OPEN(UNIT=8,FILE='/home/mrbate/tables/dusttbl2')
+         DO i=1, duslen
+            READ(8,*) (dusttable(i,j), j=1, duswid)
+         ENDDO
+         CLOSE(8)
+
+      ENDIF
+c
+c--End reading of opacity tables
+c
+c--Read in equation of state tables
+c      
       IF (encal.EQ.'r' .OR. (encal.EQ.'i' .AND. ibound.EQ.102)
      &     .OR. ABS(iresist).GT.1) THEN
 
-         print *, 'Reading tables in preset'
-
-         OPEN(UNIT=8,FILE='/home/mrbate/tables/opacitytbl')
-         DO i=1, opmxtg
-            READ(8,*) (optable(i,j), j=1, opmxrh)
-         ENDDO
-         CLOSE(8)
-      
-         OPEN(UNIT=8,FILE='/home/py02baa/Code/Tables/gasttbl',
+         OPEN(UNIT=8,FILE='/home/mrbate/tables/gasttbl',
      &        FORM='unformatted')
          DO i=1, tgmxu
             READ(8) (tgtable(i,j), j=1, tgmxrh)
          ENDDO
          CLOSE(8)
 
-         OPEN(UNIT=8,FILE='/home/py02baa/Code/Tables/utbl',
+         OPEN(UNIT=8,FILE='/home/mrbate/tables/utbl',
      &        FORM='unformatted')
          DO i=1, umxrh
             READ(8) (utable(j,i), j=1, umxt)
@@ -326,13 +494,6 @@ c      IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
             READ(8) (mutable(i,j), j=1, mumxrh)
          ENDDO
          CLOSE(8)
-
-         OPEN(UNIT=8,FILE='/home/py02baa/Code/Tables/dusttbl2')
-         DO i=1, duslen
-            READ(8,*) (dusttable(i,j), j=1, duswid)
-         ENDDO
-         CLOSE(8)
-
       ENDIF
 
       IF (ibound.EQ.100) THEN
@@ -342,6 +503,34 @@ c      IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
          ENDDO
          CLOSE(8)
       ENDIF
+c
+c--SECTION OF CODE ONLY FOR TESTING TABLES
+c
+      IF (.FALSE.) THEN
+         temp_val = 1.0
+         u_val_init = 8.314E+07/2.381*10.0
+         u_fac = 1.01
+         rho_val = 1.0e-16/udens
+         rho_fac = 3.0
+         DO i = 1, 30
+            rho_val = rho_val*rho_fac
+            rho_real4 = rho_val
+            cv_val = getcv(rho_real4,u_val_init)
+            u_val = cv_val*temp_val
+            DO j = 1, 1600
+               u_val = u_val*u_fac
+               cv_val = getcv(rho_real4,u_val)
+               op_val = getkappa(u_val,cv_val,rho_real4)
+c              WRITE (80+i,55004) rho_val*udens,cv_val*uergg,
+c     &           u_val/cv_val,op_val/umass*udist**2
+55004          FORMAT(4(1PE12.5))
+            END DO
+         END DO
+
+         CALL quit
+      ENDIF
+c
+c--END SECTION OF CODE FOR TESTING TABLES
 c
 c--Andrea Fortier provided tables to introduce planetesimal heating
 c  to planet calculations.

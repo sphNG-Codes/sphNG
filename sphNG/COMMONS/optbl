@@ -1,5 +1,17 @@
-      REAL optable
-      INTEGER opmxtg,opmxrh
+      REAL optable,optable_ferguson,metaltable
+      REAL Rmax_ferguson,Rmin_ferguson,Rdelta_ferguson,Tmax_ferguson,
+     &	   Tmin_ferguson,Tdelta_ferguson,xlogZ
+      INTEGER opmxtg,opmxrh,opmxtg_ferguson,opmxR_ferguson,
+     &	      opmxMet_ferguson,metaltable1
       PARAMETER (opmxtg=95)
       PARAMETER (opmxrh=16)
-      COMMON /optbl/ optable(opmxtg,opmxrh)
+      PARAMETER (opmxtg_ferguson=86)
+      PARAMETER (opmxR_ferguson=20)
+      PARAMETER (opmxMet_ferguson=16)
+
+      COMMON /optbl/ optable(opmxtg,opmxrh), 
+     &	     optable_ferguson(opmxtg_ferguson,opmxR_ferguson,
+     &	     opmxMet_ferguson),metaltable(opmxMet_ferguson)
+      COMMON /opvals/ Rmax_ferguson, Rmin_ferguson, Rdelta_ferguson,
+     &	     Tmax_ferguson,Tmin_ferguson,Tdelta_ferguson,
+     &	     xlogZ,metaltable1

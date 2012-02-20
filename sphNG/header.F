@@ -341,6 +341,10 @@ c
 99113       FORMAT (' Radiative transfer tolerance    : ',1PE12.3, //)
             WRITE (iprint, 99613) opdenom
 99613       FORMAT (' Opacity Denominator             : ',1PE12.3, //)
+            WRITE (iprint, 99614) iopmodel
+99614       FORMAT (' Opacity model                   : ',I3, //)
+            WRITE (iprint, 99615) metallicity
+99615       FORMAT (' Metallicity                     : ',1PE12.3, //)
          ELSEIF (encal.EQ.'c') THEN
             WRITE (iprint, 99313) coolingrate
 99313       FORMAT (' Cooling Rate                    : ',1PE12.3, //)

@@ -1,4 +1,4 @@
-      SUBROUTINE phoenix2(i, idtsyn, itime)
+      SUBROUTINE phoenix2(i, idtsyn, itime, iphasein)
 c***********************************************************************
 c                                                                      *
 c  Assigns an accreted particle or particle that goes outside the      *
@@ -29,16 +29,53 @@ c***********************************************************************
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/xforce'
+      INCLUDE 'COMMONS/planetesimal'
 
       PARAMETER (numinjectmax = 10001)
       COMMON /zeustab/ xinjecttable(6,numinjectmax), dtheta, numinject
 
       REAL*4 rhoreal4
 c
-c--Assumes planet is at radius=1 and stellar mass is 1.  Also assumes disc
+c--Assumes planet is at radius=1.  Also assumes disc
 c     rotating anticlockwise and calculation done in rotating reference 
 c     frame so planet is fixed.  Also assumes disc is thin.
 c
+      IF (iphasein.EQ.11) THEN
+         CALL orbital_elements (i, eccentricty_p, inclination_p,
+     &        1.0-variation, 1.0+variation)
+c
+c--Section injection, rotate position to be at phibound
+c
+         rxy2 = xyzmh(1,i)**2 + xyzmh(2,i)**2
+         radius = sqrt(rxy2 + xyzmh(3,i)**2)
+         thetaadd = -phibound*0.999
+         IF (radius.LT.1.0) thetaadd = phibound*0.999
+         theta  = ATAN2(xyzmh(2,i), xyzmh(1,i)) + thetaadd
+         xi = xyzmh(1,i)*cos(theta) + xyzmh(2,i)*sin(theta)
+         yi = -xyzmh(1,i)*sin(theta) + xyzmh(2,i)*cos(theta)
+c
+c--Section injection, rotate velocities to phibound
+c
+         rr = sqrt(rxy2)
+         vphi = (-xyzmh(2,i)*vxyzu(1,i) + vxyzu(2,i)*xyzmh(1,i))/rr
+         vr = (vxyzu(1,i)*xyzmh(1,i) + vxyzu(2,i)*xyzmh(2,i))/rr
+         omega = vphi/rr
+         omega = omega - sqrt(xmass)
+         vphi = omega*rr
+         phi = ATAN(xyzmh(2,i)/xyzmh(1,i))
+
+         xyzmh(1,i) = xi
+         xyzmh(2,i) = yi
+         vxyzu(1,i) = vr*cos(phi) - vphi*sin(phi)
+         vxyzu(2,i) = vr*sin(phi) + vphi*cos(phi)
+
+c         write(99,99000) xyzmh(1,i), xyzmh(2,i), xyzmh(3,i),
+c     &        vxyzu(1,i),vxyzu(2,i),theta
+c99000    FORMAT (6(1PE12.5,2X))
+         xyzmh(4,i) = planetesimalmass
+         goto 222
+      ENDIF
+
 c
 c--Pick r and z from random standard accretion disc
 c     iflag = 0
@@ -207,9 +244,14 @@ c
          dumekcle(3,i) = ekcle(3,i)
       ENDIF
 
-      xyzmh(5,i) = (4.0*hoverr*phibound*variation/(FLOAT(npart)))**
-     &     (1.0/3.0)
       xyzmh(4,i) = partm/gapfac
+ 222  IF (iplanetesimals.EQ.2) THEN
+         rndiv = REAL(npart/2.)
+      ELSE
+         rndiv = REAL(npart)
+      ENDIF
+      xyzmh(5,i) = (4.0*hoverr*phibound*variation/(rndiv))**
+     &     (1.0/3.0)
 
       DO j = 1, 5
          dumxyzmh(j,i) = xyzmh(j,i)
@@ -238,7 +280,7 @@ ccc      itry = imaxstep
       it0(i) = itime
       it1(i) = it0(i) + isteps(i)/2
       it2(i) = it0(i) + isteps(i)
-      iphase(i) = 0
+      iphase(i) = iphasein
 
       nreassign = nreassign + 1
 

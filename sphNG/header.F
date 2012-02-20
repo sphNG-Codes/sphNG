@@ -54,6 +54,7 @@ c************************************************************
       INCLUDE 'COMMONS/initpt'
       INCLUDE 'COMMONS/h2'
       INCLUDE 'COMMONS/pxpy'
+      INCLUDE 'COMMONS/planetesimal'
 
       REAL*8 angmom
 
@@ -295,6 +296,13 @@ c
 11001          FORMAT ('Imposed migration rate (AU/Myr)  :', 1PE12.4,/,
      &                 'Total migration distance (AU)    :', 1PE12.4,/)
             ENDIF
+         ENDIF
+
+         IF (iplanetesimals.GT.0) THEN
+            WRITE (iprint, 11002) r_planetesimal*udist/1.0E5,
+     &           rho_planetesimal*udens
+11002       FORMAT (' Planetesimal radius (km) : ', 1PE12.4,/,
+     &           ' Planetesimal density (g/cm^3) : ', 1PE12.4,/)
          ENDIF
 c
 c--Critical densities for variable gamma

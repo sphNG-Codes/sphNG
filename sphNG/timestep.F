@@ -42,6 +42,7 @@ c************************************************************
       INCLUDE 'COMMONS/cylinder'
       INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/dissi'
+      INCLUDE 'COMMONS/planetesimal'
 
       xlog2 = 0.30103
       istepmin = imax
@@ -61,7 +62,8 @@ C$OMP& shared(iprint,nneigh,iphase)
 C$OMP& shared(iorig,nptmass,listpm,listrealpm,encal)
 C$OMP& shared(ifsvi,alphaMM,iptsoft,ptsoft,iresist,etamhd)
 C$OMP& shared(iptmass,hacc,haccall,ptmcrit,radcrit)
-C$OMP& shared(iplanetesimals)
+C$OMP& shared(iplanetesimals,gasdrag,planetesimaltimestep)
+C$OMP& private(rmodgd)
 C$OMP& private(i,j,l,ll,xmindist,iptcur,rad2)
 C$OMP& private(divvi,aux1,aux2,aux3,denom,valfven2,rmodcool)
 C$OMP& private(crstepi,rmodcr,rmodvel,force2,rmod,vel2,coolstepi)
@@ -90,11 +92,20 @@ c
                softrad = xyzmh(5,i)
             ENDIF
             rmod = Courant*SQRT(softrad/SQRT(force2))
-            IF (iplanetesimals.EQ.0) THEN
+c
+c--If gas is involved, sink timesteps divided by 1000 (pre-existing),
+c  regardless of whether planetesimals exist. If the case is just
+c  planetesimals (iplanetesimals=1), then the sink can be on a
+c  longer timestep, but all particle timesteps reduced according to
+c  the Courant number. The planetesimals must always be reduced by the
+c  Courant factor.
+c
+            IF (iplanetesimals.NE.1) THEN
                IF (iphase(i).GT.0 .AND. iphase(i).LT.10) rmod =
      &              rmod/1000.0
-            ELSE
-               rmod = rmod*0.1
+               IF (iphase(i).EQ.11) rmod = rmod*Courant
+            ELSEIF (iplanetesimals.EQ.1) THEN
+               rmod = rmod*Courant
             ENDIF
             rmod = rmod/(dt*isteps(i)/imaxstep)
          ELSE
@@ -176,6 +187,15 @@ c     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
             crstepi = Courant*xyzmh(5,i)/denom
             rmodcr = crstepi/(dt*isteps(i)/imaxstep)
             rmod = MIN(rmod, rmodcr)
+         ELSEIF (iphase(i).GE.10) THEN
+            IF (iphase(i).EQ.11 .AND. gasdrag) THEN
+               rmodgd = 0.1*planetesimaltimestep(i)/
+     &              (dt*isteps(i)/imaxstep)
+            ELSE
+               rmodgd = 1.0E10
+            ENDIF
+c            IF (rmodgd.LT.rmod) print *, 'Use rmodgd ', rmod, rmodgd
+            rmod = MIN(rmod, rmodgd)
          ENDIF
 c         write (13,*) rmod, 'print3'
 c

@@ -16,6 +16,7 @@
       INCLUDE 'COMMONS/radstore'
       INCLUDE 'COMMONS/curlist'
       INCLUDE 'COMMONS/timei'
+      INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/implicit'
 
       DIMENSION EUsave(2,iradtrans2)

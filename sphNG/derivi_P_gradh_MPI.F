@@ -108,6 +108,7 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
       INCLUDE 'COMMONS/gradhterms'
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/initpt'
+      INCLUDE 'COMMONS/planetesimal'
 
       DIMENSION dedxyz(3,iradtrans2)
 #ifdef MPI
@@ -874,7 +875,12 @@ c            WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
          ELSEIF (ibound.EQ.102 .AND. use_tprof) THEN
 c-- Added for Isothermal whole disc case with t-profile
             rho0 = 0.2
-            DO i = 1, npart
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst_in,nlst_end,llist,xyzmh,gamma,gmw,iphase)
+C$OMP& shared(hoverr,tprof,Rg,uergg,vxyzu,rho0,rho)
+C$OMP& private(i,j,radius,boundtempl)
+            DO j = nlst_in, nlst_end
+               i = llist(j)
                IF (iphase(i).EQ.0) THEN
                   radius = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
                   boundtempl =  gmw*hoverr**2*radius**
@@ -885,10 +891,16 @@ c-- Added for Isothermal whole disc case with t-profile
                   ENDIF
                ENDIF
             END DO
+C$OMP END PARALLEL DO
          ELSEIF (ibound.EQ.100 .OR. ibound.EQ.102) THEN
 c--Added for Isothermal disc section case and whole disc with u profile
             rho0 = 0.2
-            DO i = 1, npart
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst_in,nlst_end,llist,xyzmh,gamma,iphase)
+C$OMP& shared(hoverr,vxyzu,rho0,rho)
+C$OMP& private(i,j)
+            DO j = nlst_in, nlst_end
+               i = llist(j)
                IF (iphase(i).EQ.0) THEN
                   vxyzu(4,i)=hoverr**2/(SQRT(xyzmh(1,i)**2+
      &                 xyzmh(2,i)**2)*gamma*(gamma-1.0))
@@ -897,6 +909,7 @@ c--Added for Isothermal disc section case and whole disc with u profile
                   ENDIF
                ENDIF
             END DO
+C$OMP END PARALLEL DO
          ENDIF
          
 ccc         thermalenergy = 0.
@@ -964,12 +977,15 @@ ccc99556    FORMAT(I2,': ENER-A ',I1,1PE14.7,1PE14.7,1PE14.7)
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end,vxyzu,dumrho,pr,vsound,llist,iphase)
 C$OMP& shared(ekcle)
+C$OMP& shared(gasdist,gasdrag)
 C$OMP& private(i,ipart)
 
             DO i = nlst_in, nlst_end
                ipart = llist(i)
                IF (iphase(ipart).EQ.0) 
      &              CALL eospg(ipart,vxyzu,dumrho,pr,vsound,ekcle)
+               IF (iphase(ipart).EQ.11 .AND. gasdrag)
+     &              gasdist(ipart) = 1.0E6
             END DO
 
 C$OMP END PARALLEL DO

@@ -18,6 +18,7 @@ c************************************************************
       INCLUDE 'COMMONS/maspres'
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/typef'
+      INCLUDE 'COMMONS/pxpy'
 
       npart = np + nptmass
       IF (igeom.EQ.9) THEN
@@ -48,8 +49,12 @@ c************************************************************
 
       ELSE IF (igeom.EQ.10) THEN
          DO i = nptmass + 1, npart
- 101        radius=(((rcyl)**(2.+sdprof)-(rmind)**(2.+sdprof))*
-     &        ran1(1) + (rmind)**(2.+sdprof))**(1./(2.+sdprof))
+ 101        IF (abs(sdprof+2.0).LT.tiny) THEN
+               radius = exp((log(rcyl)-log(rmind))*ran1(1) + log(rmind))
+            ELSE
+               radius=(((rcyl)**(2.+sdprof)-(rmind)**(2.+sdprof))*
+     &              ran1(1) + (rmind)**(2.+sdprof))**(1./(2.+sdprof))
+            ENDIF
             phi = 2.0*(ran1(1)-0.5)*pi
             xyzmh(1,i) = radius*COS(phi)
             xyzmh(2,i) = radius*SIN(phi)
@@ -59,8 +64,6 @@ c************************************************************
                xyzmh(3,i) = radius*hoverr*gasdev(1)
             ENDIF
 
-            rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2 +
-     &           xyzmh(3,i)**2)
             IF (nptmass.GE.1) THEN
                DO j = 1, nptmass
                   IF (sqrt((xyzmh(1,i)-xyzmh(1,listpm(j)))**2 +
@@ -71,8 +74,8 @@ c************************************************************
                ENDDO
 
             ELSEIF (ibound.EQ.102 .AND. irotpot.EQ.1) THEN
-               rtemp = sqrt((xyzmh(1,i)-1.0)**2 + xyzmh(2,i)**2 +
-     &              xyzmh(3,i)**2)
+               rtemp = sqrt((xyzmh(1,i)-rorbit_orig)**2 +
+     &              xyzmh(2,i)**2 + xyzmh(3,i)**2)
                IF (rtemp.LE.(rplanet*pradfac(1)*2.1)) GOTO 101
             ENDIF
             xyzmh(5,i) = 0.1

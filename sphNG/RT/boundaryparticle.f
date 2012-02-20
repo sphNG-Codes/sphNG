@@ -16,6 +16,7 @@ c
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/boundheight'
       INCLUDE 'COMMONS/typef'
+      INCLUDE 'COMMONS/diskbd'
 
       REAL mu
 c

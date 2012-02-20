@@ -50,6 +50,7 @@ c************************************************************
       INCLUDE 'COMMONS/initpt'
 
       DIMENSION nsteplist(30),nsteplisttot(30)
+      INTEGER nstepphase(2,30)
 
       CHARACTER*7 where
 
@@ -106,7 +107,7 @@ c--If modelling a planet in a section, rebuild ZEUS table
 c  for planet including gas mass
 
       IF (iexf.EQ.7 .AND. ibound.EQ.100) THEN
-         rhillmasstemp = hillmass(planetmass, 0, xmass)
+         rhillmasstemp = hillmass(planetmass, 0, xmass, 0)
          
          IF(gt.GT.(2.*pi).AND.rhillmasstemp.GT.(1.1*hmass)) THEN
             hmass = rhillmasstemp !Store new Hillmass
@@ -187,6 +188,8 @@ c--Report number of particles with each timestep
 c
       DO j = 1, 30
          nsteplist(j) = 0
+         nstepphase(1,j) = 0
+         nstepphase(2,j) = 0
       END DO
 
       DO j = 1, npart
@@ -198,8 +201,16 @@ c
             ipostime = INT((LOG10(dtmax/dttime) * 3.3219281) + 1.01)
             IF ((ipostime.GE.1) .AND. (ipostime.LE.29)) THEN
                nsteplist(ipostime) = nsteplist(ipostime) + 1
+               IF (iphase(j).EQ.0)
+     &              nstepphase(1,ipostime) = nstepphase(1,ipostime) + 1
+               IF (iphase(j).GT.0)
+     &              nstepphase(2,ipostime) = nstepphase(2,ipostime) + 1
             ELSE
                nsteplist(30) = nsteplist(30) + 1
+               IF (iphase(j).EQ.0)
+     &              nstepphase(1,30) = nstepphase(1,30) + 1
+               IF (iphase(j).GT.0)
+     &              nstepphase(2,30) = nstepphase(2,30) + 1
             ENDIF
          ENDIF
       END DO
@@ -222,9 +233,11 @@ c
 99100 FORMAT ('Timestep distribution ',I10,' number active ',I10)
 
       DO j = 0, 29
-         WRITE (iprint,99101) j, dtmax/2**j, nsteplisttot(j+1)
+         WRITE (iprint,99102) j, dtmax/2**j, nsteplisttot(j+1),
+     &        nstepphase(1,j+1),nstepphase(2,j+1)
       END DO
 99101 FORMAT (I2,1PE12.4,I10)
+99102 FORMAT (I2,1PE12.4,I8,I8,I8)
 
 #ifdef MPI
       ELSE

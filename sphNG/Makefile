@@ -87,7 +87,11 @@ ifeq ($(SYSTEM), zen)
     FFLAGS= -O3 -xT -mcmodel=medium -i-dynamic -WB -Vaxlib \
             -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source\
             -warn interfaces -gen-interfaces
-    OMPFLAG= -openmp
+# -check
+#To use above MPI check need to:
+#source /sw/sdev/itac/7.2.0.011/bin/itacvars.csh
+#
+    OMPFLAG= -openmp #-DZEN
     DBLFLAG= -r8
     DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
     KNOWN_SYSTEM=yes
@@ -287,26 +291,28 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f chekopt.f \
 	classify_MPI.F condense.f constan.f coolcurve.f coolinmo.F cool_func.F \
 	coriol.f cyldis.f cylmas.f cylpres.f cylvel.f discboundary.f \
-	endrun.f energ.f energ_cooling.f eospg.f error.f evol.f externf.f \
-	externBfield.f \
+	dragtable.f endrun.f energ.f energ_cooling.f eospg.f error.f \
+	evol.f externf.f externBfield.f \
 	extract.f file.f gapfactor.f getneigh.f \
-	getcv.f get1overmu.f getkappa.f \
+	getcd.f getcv.f get1overmu.f getkappa.f \
 	gforsa_P.f gforsn_P.f gforspt_P.f \
 	ghostp.f ghostp1.f ghostp2.f ghostp3.F ghostp11.f ghostp100.f \
 	ghostp102.f \
 	gptall.f gptfromgas.f gpti.f hdot_P.f header.F hchem.F hillmass.f \
 	homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
-	inopts.f insulate_TREE_P.F integs.F ktable.f labrun.f lunit_double.f \
+	inopts.f insulate_TREE_P.F integs.F ktable.f labrun.F lunit_double.f \
 	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
 	newrun.f options.f phoenix.f phoenix2.f \
-	place.f planet_setup.f planetesimals.f potential.f preset.F \
-	prout.F ran1.f rdump.F rdump_wrapper.F reduce.f \
-	maketables/specificheat.f resistivity.f resistivity_implicit.F save.f setup_torus.f \
-	scaling.f secmes.f setBfield_mhd.f setpart.F \
-	smoothd_P.f \
-	sphdis.f sphmas.f spline.F sphpres.f sphvel.f thermeq.f \
+	place.f planetpotential.f planet_setup.f planetesimals.f potential.f \
+	preset.F \
+	prout.F ran1.f rdump.F rdump_wrapper.F read_dragfile.f reduce.f \
+	maketables/specificheat.f resistivity.f resistivity_implicit.F save.f \
+	scaling.f secmes.f \
+	semimajoraxis.f setBfield_mhd.f setpart.F setup_torus.f \
+	smoothd_P.f sphericalposition.f \
+	sphdis.f sphmas.f sphpres.f sphvel.f spline.F thermeq.f \
 	toten.f treef_P.F unifdis.F unit.f uset.f \
-	wdump.F wdump_wrapper.F wrinsph.F zeusread.f
+	wdump.F wdump_wrapper.F wrinsph.F write_dragtable.f zeusread.f
 
 # these are the sources required for the gradh code to compile
 
@@ -577,5 +583,5 @@ updatedepends:
 include .depends
 
 clean:
-	\rm -f *.o *.mod RT/Baraffe/*.o RT/Baraffe/*.mod RT/*.o RT/*.mod sph_tree_lf_gradh sph_tree_lf sph_tree_rk_gradh sph_tree_rk ./utils/*.o
+	\rm -f *.o *.mod RT/Baraffe/*.o RT/Baraffe/*.mod RT/*.o RT/*.mod sph_tree_lf_gradh sph_tree_lf_gradh_RT sph_tree_lf sph_tree_rk_gradh sph_tree_rk_gradh_RT sph_tree_rk ./utils/*.o
 # DO NOT DELETE

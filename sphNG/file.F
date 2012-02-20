@@ -20,6 +20,7 @@ c************************************************************
       INCLUDE 'COMMONS/files'
       INCLUDE 'COMMONS/recor'
       INCLUDE 'COMMONS/actio'
+      INCLUDE 'COMMONS/planetesimal'
 
       LOGICAL ifirst
       DATA ifirst/.TRUE./
@@ -101,10 +102,20 @@ c      CALL appendiproc(7,file1,iproc)
       IF (iproc.EQ.0) THEN
 #endif
       OPEN (idisk1, FILE=file1, FORM='unformatted', RECL=imaxrec)
+c
+c--Open dragfile for writing drag energy table.
+c
+      IF (gasdrag) THEN
+11403    FORMAT (A4, I4.4)
+         WRITE (dragfile, 11403) 'drag', inum
+         OPEN (idragfile, FILE=dragfile, FORM='unformatted',
+     &        RECL=imaxrec)
+      ENDIF
 #ifdef MPICOPY
       ENDIF
 #endif
 #endif
+
 c
 c--Write witness on listing
 c

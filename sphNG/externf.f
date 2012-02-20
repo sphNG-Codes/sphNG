@@ -174,26 +174,8 @@ c--Orbiting potential case, where gravity and surface forces are
 c  applied here.
 c
          IF (irotpot.EQ.1) THEN
-            rorbit = rorbit_orig
-
-c--Allow for migration of potential at prescribed rate.
-            IF (imigrate.EQ.1 .AND. ti.LT.rorbitmax) THEN
-               rorbit = rorbit_orig + (pmrate*ti)
-               ang = (2.*rorbit_orig*sqrt(xmass/rorbit_orig**3) - 
-     &              2.*(pmrate*ti+rorbit_orig)*sqrt(xmass/(pmrate*
-     &              ti + rorbit_orig)**3))/pmrate
-            ELSEIF (imigrate.EQ.1 .AND. ti.GE.rorbitmax) THEN
-               rorbit = rorbit_orig + (pmrate*rorbitmax)
-c--This only needs to be calculated once really, consider moving.
-               angend = (2.*rorbit_orig*sqrt(xmass/rorbit_orig**3) - 
-     &            2.*(pmrate*rorbitmax+rorbit_orig)*sqrt(xmass/(pmrate*
-     &            rorbitmax + rorbit_orig)**3))/pmrate
-
-               ang = angend + (ti-rorbitmax)/sqrt(rorbit**3/xmass)
-            ENDIF
-
-            px = rorbit*COS(ang)
-            py = rorbit*SIN(ang)
+            CALL planetpotential (px, py, pz, imigrate, rorbitmax,
+     &           pmrate, rorbit_orig, ti)
 
             xi = xi - px
             yi = yi - py
@@ -205,7 +187,8 @@ c--This only needs to be calculated once really, consider moving.
             runiy = yi/d
             runiz = zi/d
 
-            IF (d.LE.(2.*rplanet*pradfac(1))) THEN
+            IF (d.LE.(2.*rplanet*pradfac(1)) .AND.
+     &           iphase(ipart).EQ.0) THEN
                fsurface = (((2.*rplanet*pradfac(1))-d)/
      &              (rplanet*pradfac(1)))**4
             ELSE

@@ -3,10 +3,12 @@
       REAL*4 planetesimaltimestep,planetesimalnorm
       INTEGER nearestgas
       LOGICAL gasdrag
-      
-      COMMON /planetesimal / gasdrag, r_planetesimal, rho_planetesimal,
-     &	                     planetesimaltimestep(idim), 
-     &			     planetesimalnorm(idim),min_rplan,
-     &                       max_rplan, eccentricity_p, inclination_p,
-     &                       planetesimalmass, nearestgas(idim),
-     &			     gasdist(idim)
+
+      COMMON /planetesimalr4/ planetesimaltimestep(idim),
+     &			     planetesimalnorm(idim)
+      COMMON /planetesimal_l/ gasdrag      
+      COMMON /planetesimal_i/ nearestgas(idim)
+      COMMON /planetesimal / r_planetesimal, rho_planetesimal,
+     &			     min_rplan, max_rplan, 
+     &                       eccentricity_p, inclination_p,
+     &                       planetesimalmass, gasdist(idim)

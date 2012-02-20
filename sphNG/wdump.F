@@ -57,6 +57,7 @@ c#endif
       INCLUDE 'COMMONS/abundances'
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/pxpy'
+      INCLUDE 'COMMONS/planetesimal'
 
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
@@ -203,7 +204,7 @@ c--Default real
 c
 c--Full dump
 c
-      number = 25
+      number = 30
 
       pmassinitial = 0.
       IF (ifulldump.NE.0) THEN
@@ -252,7 +253,8 @@ c      print *,'stuff ',gt, dtmax, gamma, rhozero, RK2
      &     anglostxtot, anglostytot, anglostztot,
      &     specangtot, ptmassintot, tmagtot, Bextx, Bexty, Bextz,
      &     hzero, uzero_n2, hmass, gapfac, pmassinitial, sdprof,
-     &     rorbit_orig
+     &     rorbit_orig, min_rplan, max_rplan, planetesimalmass,
+     &     coremass_orig, coremass
 
 c--real*4
       number = 0

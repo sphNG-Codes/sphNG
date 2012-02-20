@@ -54,13 +54,14 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/abundances'
       INCLUDE 'COMMONS/Bxyz'
       INCLUDE 'COMMONS/pxpy'
+      INCLUDE 'COMMONS/planetesimal'
 
       CHARACTER*7 where
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
       INTEGER*8 number8
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
-      PARAMETER (idimhead = 25)
+      PARAMETER (idimhead = 30)
       DIMENSION rheader(idimhead)
 
       DATA icall/2/
@@ -144,7 +145,7 @@ c--Default int
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks,iyr,idum,(iv(i), i=1,NTAB), iplanetesimals,
      &        irotpot
-         print *,'USING 11+NTAB'
+         print *,'USING 11+NTAB', iplanetesimals, irotpot
       ELSEIF (number.EQ.7) THEN
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks
@@ -240,14 +241,45 @@ c  D.Price 14.5.07
          sdprof = -0.5
          print *, 'Surface density pre vary (goes as r^-0.5)'
       ENDIF
-      IF (number.GE.25 .AND. imigrate.EQ.1) THEN
+      IF (number.GE.25) THEN
          rorbit_orig = rheader(25)
-         rorbitmax = (rorbitmax - rorbit_orig)/pmrate
+         IF (imigrate.GT.0)
+     &        rorbitmax = (rorbitmax - rorbit_orig)/pmrate
       ELSE
          rorbit_orig = 0.0
          rorbitmax = 0.0
       ENDIF
-
+      IF (number.GE.27) THEN
+         min_rplan = rheader(26)
+         max_rplan = rheader(27)
+         print *, 'Setting planetesimal boundaries; check values.'
+         print *, 'r_min = ', min_rplan
+         print *, 'r_max = ', max_rplan
+         print *, 'DO NOT USE CODE WITH DUMPS MADE FROM APRIL 2011'
+         print *, ' AND BEFORE 16/05/2011. For these, reals 26, 27 are'
+         print *, ' planetesimal radius and density respectively.'
+      ELSE
+         min_rplan = 0.0
+         max_rplan = 1.0E6
+      ENDIF
+      IF (number.GE.28) THEN
+         planetesimalmass = rheader(28)
+         print *, 'Planetesimal mass ', planetesimalmass
+      ELSE
+         planetesimalmass = 0.0
+      ENDIF
+      IF (number.GE.29) THEN
+         coremass_orig = rheader(29)
+         print *, 'Core mass orig ', coremass_orig
+      ELSE
+         coremass_orig = 0.0
+      ENDIF
+      IF (number.GE.30) THEN
+         coremass = rheader(30)
+         print *, 'Core mass running record ', coremass
+      ELSE
+         coremass = 0.0
+      ENDIF
 
 c--real*4
       READ (idisk1, END=100) number
@@ -447,6 +479,7 @@ c--Default int
 c--int*1
          READ (idisk1, END=100) (iphase(i), i=icount+1, icount+nhydro)
          print *,'iphases ',iphase(1),iphase(nhydro)
+
 c--int*2
 
 c--int*4
@@ -477,6 +510,7 @@ c--Default real
             READ (idisk1, END=100) (vxyzu(j,i), i=icount+1, 
      &           icount+nhydro)
          END DO
+
 #ifdef MPIDEBUG
          print *,iproc,': Read xyzmh, vxyzu'
 #endif

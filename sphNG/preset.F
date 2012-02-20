@@ -55,6 +55,9 @@ c************************************************************
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/sort'
+      INCLUDE 'COMMONS/radtran3'
+      INCLUDE 'COMMONS/planetesimal'
+      INCLUDE 'COMMONS/pxpy'
 
       CHARACTER*7 where
       CHARACTER*6 dummy
@@ -68,7 +71,9 @@ c************************************************************
 
       DATA where/'preset'/
 
-      INTEGER ihopin
+      INTEGER ihopin, dfilenum
+      LOGICAL existingdragfile
+      CHARACTER*4 dfilename
 
       IF(ihopin.NE.1) THEN
 c
@@ -133,6 +138,9 @@ c         CALL appendiproc(21,reassfile,iproc)
             OPEN (ireasspr, FILE=reassfile, STATUS='unknown',
      &           FORM='unformatted')
          ENDIF
+         IF (irotpot.EQ.1)
+     &        OPEN (ikillpr, FILE=killfile, STATUS='unknown',
+     &        FORM='unformatted')
 c
 c--Open notify file
 c
@@ -504,6 +512,18 @@ c
          CLOSE(8)
       ENDIF
 c
+c--Make sure planet position is set from the beginning
+c
+      IF (irotpot.EQ.1) THEN
+         CALL planetpotential (px, py, pz, imigrate, rorbitmax,
+     &        pmrate, rorbit_orig, gt)
+         print *, 'PX PY PZ'
+         print *, px, py, pz
+         print *, imigrate, rorbitmax
+         print *, pmrate, rorbit_orig
+         print *, gt
+      ENDIF
+c
 c--SECTION OF CODE ONLY FOR TESTING TABLES
 c
       IF (.FALSE.) THEN
@@ -536,6 +556,38 @@ c--Andrea Fortier provided tables to introduce planetesimal heating
 c  to planet calculations.
 c
       e_planetesimal(:) = 0.0
+c
+c--Zero planetesimal-planet collision energy array (not needed)
+c
+      pcolen(:) = 0.0
+c
+c--Setup table for recording planetesimal energy deposition
+c
+      print *, 'IPLANETESIMALS = ', iplanetesimals
+      IF (gasdrag.AND.iplanetesimals.GT.0) THEN
+         CALL dragtable
+
+         READ (file1, 99303) dfilename, dfilenum
+99303    FORMAT (A3, I4)
+99304    FORMAT (A4, I4.4)
+         dfilename = 'drag'
+         WRITE (dragfile, 99304) dfilename, dfilenum
+
+         INQUIRE (FILE=dragfile, exist=existingdragfile)
+         IF (.NOT.existingdragfile .AND. dfilenum.GT.0) THEN
+            WRITE (iprint,*) 'ERROR READING DRAGFILE'
+            WRITE (iprint,*) 'No corresponding drag file for dump,'
+            WRITE (iprint,*) 'but dump not No. 0000, i.e. first'
+            STOP
+         ENDIF
+
+         IF (existingdragfile) THEN
+            OPEN (idragfile, FILE=dragfile, STATUS='unknown', 
+     &           FORM='unformatted', RECL=imaxrec)
+            print *, 'READING DRAG FILE'
+            CALL read_dragtable
+         ENDIF
+      ENDIF
 
       IF (iandrea.EQ.1) THEN
          OPEN(UNIT=8,FILE=
@@ -549,6 +601,10 @@ c
          ENDDO
          DO i = 1, mbins
             DO j = 1, rbins
+c--This is column 2 from Andrea's work. Despite here original notes
+c  stating units of erg/g, they are actually erg/(g.s) (see e-mail
+c  correspondence, 4th March 2011). They are also not logged as
+c  originally stated.
                ptable(i,j) = (ptable(i,j))*utime/uergg
             ENDDO
          ENDDO

@@ -65,7 +65,7 @@ c
          DO k = 1, Nstep
             ifrac = ifrac + increment
 
-            PRINT *,"DOSEG: ",K,Nstep,ifrac
+c            PRINT *,"DOSEG: ",K,Nstep,ifrac
 c     &           ,increment*dt/Nstep,nlst_in,nlst_end,npart,
 c     &     list(1),ekcle(1,1),ekcle(2,1),xyzmh(5,1),vxyzu(1,1)
 

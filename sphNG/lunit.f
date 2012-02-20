@@ -23,6 +23,7 @@ c      iprint = 9
       ikillpr = 16
       ireasspr = 17
       inotify = 18
+      idragfile = 31
 
       imaxrec = 60*idim
 

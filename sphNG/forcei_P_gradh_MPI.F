@@ -74,6 +74,9 @@ c--this weight is equivalent to m/(rho*h^3) in the grad h version
       INCLUDE 'COMMONS/cylinder'
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/abundances'
+      INCLUDE 'COMMONS/planetesimal'
+      INCLUDE 'COMMONS/radtran3'
+      INCLUDE 'COMMONS/pxpy'
 c
 c--Used for listparents list to keep a list of iupdated
 c
@@ -107,6 +110,8 @@ c
       print *,iproc,': Entered forcei ',itime
 #endif
 #endif
+
+      IF (gasdrag) dragqchange(:,:,:) = 0.0
 
       nlistupdated = 0
       realtime = dt*itime/imaxstep + gt
@@ -236,7 +241,7 @@ C$OMP& shared(xyzmh,vxyzu,dha,fxyzu,trho,pr,vsound,dq,gradhs)
 C$OMP& shared(force_sym,force_an)
 C$OMP& shared(neighb,neighover,dvtable,ddvtable,psoft)
 C$OMP& shared(fmass,fpoten,part2kernel,part1kernel,radkernel)
-C$OMP& shared(part2potenkernel,part1potenkernel,grwij)
+C$OMP& shared(part2potenkernel,part1potenkernel,wij,grwij)
 C$OMP& shared(divv,curlv,beta,alpha,poten,dgrav,nlst0)
 C$OMP& shared(cnormk,epsil,epsil2,where,pext)
 C$OMP& shared(iphase,listpm,iprint,nptmasstot,iorig)
@@ -249,7 +254,13 @@ C$OMP& shared(Bxyz,dBxyz,Bextxi,Bextyi,Bextzi,B2ext,divcurlB,Bevolxyz)
 C$OMP& shared(varmhd,iupdated,listparents)
 C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug,irotpot)
 C$OMP& shared(ivar,ijvar,Bextx,Bexty,Bextz,etamhd,iresist)
+C$OMP& shared(pi)
 C$OMP& shared(forcei_lock)
+C$OMP& shared(gasdrag,r_planetesimal,rho_planetesimal)
+C$OMP& shared(planetesimaltimestep,planetesimalnorm)
+C$OMP& shared(gasdist,nearestgas)
+C$OMP& shared(dragenergy,dragqchange,px,py,pz)
+C$OMP& shared(itot)
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend,numbertodoherekeep)
 C$OMP& shared(realtransfer5to15,llisttrans,idisplacementsi,irecvcounti)
@@ -259,14 +270,19 @@ C$OMP& private(n,ipart,iparttree,stepsi,dtime)
 C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(fxi,fyi,fzi,numneigh,hmin)
 C$OMP& private(poteni,dphiti,gradxi,gradyi,gradzi,artxi,artyi,artzi)
+C$OMP& private(gasdragxi,gasdragyi,gasdragzi,ig,f_drag_co,dvij)
+C$OMP& private(gamma,rsub,fgd)
+C$OMP& private(rho_g,f_drag_i,ptsi,ptsj,ptsnormi,ptsnormj)
 C$OMP& private(pdvi,dqi,rhoi,pro2i,pro2j,vsoundi,k,j,hj,dx,dy,dz)
+C$OMP& private(dragr,dragp,dragt,idragr,idragp,idragt)
+C$OMP& private(dq_drag,dq_dragi,dq_dragj)
 C$OMP& private(rho1i,rho21i,sqrtrho1i,rho1j)
 C$OMP& private(rij2,rij,rij1,pmassj,runix,runiy,runiz,hmean,hmean21)
-C$OMP& private(hi1,hi21,hi41,v2i,vi)
-C$OMP& private(hj1,hj21,hj41,v2j,vj)
+C$OMP& private(hi1,hi21,hi31,hi41,v2i,vi)
+C$OMP& private(hj1,hj21,hj31,hj41,v2j,vj)
 C$OMP& private(index,dxx,index1,rij2grav,rijgrav,fm)
 C$OMP& private(phi,dphi,dfmassdx,dfptdx,dpotdh,xmasj,rhoj,robar)
-C$OMP& private(dgrwdx,grwtij,grpm,dvx,dvy,dvz,projv,vsbar)
+C$OMP& private(wtij,dwdx,dgrwdx,grwtij,grpm,dvx,dvy,dvz,projv,vsbar)
 C$OMP& private(f,adivi,acurlvi,fi,adivj,acurlvj,fj,t12j)
 C$OMP& private(ddvxi,ddvyi,ddvzi,edotv)
 C$OMP& private(vlowcorrection,qi,qj)
@@ -350,8 +366,16 @@ c         dha(1,ipart) = 0.0
          artyi = 0.
          artzi = 0.
 
+         gasdragxi = 0.
+         gasdragyi = 0.
+         gasdragzi = 0.
+
+         ptsi = 0.
+         ptsnormi = 0.
+
          pdvi = 0.
          dqi = 0.
+         dq_dragi = 0.
          
          ddvxi = 0.
          ddvyi = 0.
@@ -391,8 +415,22 @@ c
          hi = xyzmh(5,iparttree)
          hi1 = 1./hi
          hi21 = hi1*hi1
+         hi31 = hi21*hi1
          hi41 = hi21*hi21
-         
+
+         IF (gasdrag) THEN
+            CALL sphericalpos(xi, yi, zi, dragr, dragp, dragt)
+            CALL dragcoordinates(dragr, dragp, dragt, idragr, idragp,
+     &           idragt)
+c            print *, 'index 0a', idragr, idragp, idragt
+
+c---DragEnergyTest output. Checking coordinate transform and indexing.
+c            write (44, 146) xi, yi, zi,
+c     &           px, py, pz, dragr, dragp, dragt, idragr,
+c     &           idragp, idragt
+c 146        FORMAT (9(1PE15.8,1X),3(I4,1X))
+         ENDIF
+
 c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
 
          vxi = vxyzu(1,ipart)
@@ -480,12 +518,6 @@ c     &        ivar(1,n)
 
          DO 70 k = 1, ivar(1,n)
             j = ijvar(ioffset + k)
-            
-c            IF (iunique(iorig(ipart)).EQ.2757) THEN
-c            IF (iproc.EQ.0) THEN
-c               print *,iproc,' N2757 ',iunique(iorig(j)),k,ivar(1,n),
-c     &              ioffset,j,xyzmh(1,j),xyzmh(2,j),xyzmh(3,j)
-c            ENDIF
 
 c         IF (ipart.GT.ntot) print *,iprocdebug,': D4 ',n,k
 
@@ -525,7 +557,18 @@ c
             hj = xyzmh(5,j)
             hj1 = 1./hj
             hj21 = hj1*hj1
+            hj31 = hj21*hj1
             hj41 = hj21*hj21
+c
+c--Added for gas-dust drag
+c
+            vsoundj = vsound(j)
+            IF (gasdrag .AND. iphase(j).EQ.0) THEN
+               CALL sphericalpos(xi, yi, zi, dragr, dragp, dragt)
+               CALL dragcoordinates(dragr, dragp, dragt, idragr, idragp,
+     &              idragt)
+            ENDIF
+
 c
 c--Unit vectors
 c
@@ -537,6 +580,7 @@ c
             dvz = vzi - vxyzu(3,j)
             uj = vxyzu(4,j)
             projv = dvx*runix + dvy*runiy + dvz*runiz
+            dvij = SQRT(dvx**2 + dvy**2 + dvz**2)
 
             v2i = rij2*hi21
             vi = rij*hi1
@@ -545,6 +589,7 @@ c
             rhoj = trho(j)
             rho1j = 1./rhoj
             robar1 = 2./(rhoi + rhoj)
+
             IF (imhd.EQ.idim) THEN
              IF (iphase(ipart).EQ.0 .AND. iphase(j).EQ.0) THEN
                Bxj = Bxyz(1,j)
@@ -630,6 +675,14 @@ c
                IF (index1.GT.itable) index1 = itable
                dxx = v2i - index*dvtable               
                dgrwdx = (grwij(index1)-grwij(index))*ddvtable ! slope
+c
+c--Kernel required for gas drag calculation.
+c
+               IF (gasdrag) THEN
+                  dwdx = (wij(index1) - wij(index))*ddvtable
+                  wtij = (wij(index) + dwdx*dxx)*hi31*v2i*10./
+     &                 (9.*pi)
+               ENDIF
 c
 c--(note that kernel gradient is multiplied by gradhi)
 c
@@ -718,8 +771,11 @@ c     &                               (dBx*runiy - dBy*runix)
 c
 c--If i and j are not across a sink particle
 c
-               IF (inosink .AND. iphase(ipart).EQ.0 .AND. 
-     &              iphase(j).EQ.0) THEN
+               IF (inosink) THEN
+c
+c--Next region only for gas-gas interactions
+c
+                  IF (iphase(ipart).EQ.0 .AND. iphase(j).EQ.0) THEN
 c
 c--Add terms to particle i
 c-------------------------
@@ -902,30 +958,74 @@ c                     ENDIF
                   ELSE
                      t12j = 0.
                   ENDIF
+c
+c--This is the end of gas-gas interactions (i.e. iphase(i) and iphase(j) both 0)
+c
+                  ENDIF
+c
+c--Dust/Planetesimal drag terms with modified kernel.
+c
+                  IF (gasdrag .AND. (iphase(ipart).EQ.0 .AND.
+     &                 iphase(j).EQ.11)) THEN
+
+                     f_drag_co = 9.*getcd(rhoi, dvij, vsoundi,
+     &                    r_planetesimal)/
+     &                    (8.*r_planetesimal*rho_planetesimal)*dvij
+
+                     f_drag_i = f_drag_co*pmassj*projv*wtij
+
+                     ptsi = ptsi +  pmassj*wtij/(rhoi*rhoi*f_drag_co/3.)
+                     ptsnormi = ptsnormi +  pmassj*wtij/rhoi
+
+                     gasdragxi = gasdragxi - f_drag_i*runix
+                     gasdragyi = gasdragyi - f_drag_i*runiy
+                     gasdragzi = gasdragzi - f_drag_i*runiz
+
+                     dq_drag = 2.*f_drag_i*projv
+                     dq_dragi = dq_dragi + dq_drag
+                     dqi = dqi + dq_drag
+                  ELSE
+                     f_drag_co = 0.0
+                  ENDIF
 
 
+                  IF (gasdrag .AND.  (iphase(ipart).EQ.11 .AND.
+     &                 iphase(j).EQ.0)) THEN
+                     IF (rij.LT.gasdist(ipart)) THEN
+                        gasdist(ipart) = rij
+                        nearestgas(ipart) = ipart
+                     ENDIF
+                  ENDIF
 c
 c--Add terms to particle j (if j is active)
 c-------------------------
 c
                   IF (iscurrent(j)) THEN
+                     
+                     forcex = 0.
+                     forcey = 0.
+                     forcez = 0.
+                     dqj = 0.
+                     dq_dragj = 0.
+                     ptsj = 0.
+                     ptsnormj = 0.
+c
+c--Next region only for gas-gas interactions
+c
+                  IF (iphase(ipart).EQ.0 .AND. iphase(j).EQ.0) THEN
 c
 c--Pressure force
 c
                      IF (igrp.NE.0) THEN
                         gradpj = gradp*pmassi
-                        forcex = gradpj*runix
-                        forcey = gradpj*runiy
-                        forcez = gradpj*runiz
-                     ELSE
-                        forcex = 0.
-                        forcey = 0.
-                        forcez = 0.
+                        forcex = forcex + gradpj*runix
+                        forcey = forcey + gradpj*runiy
+                        forcez = forcez + gradpj*runiz
                      ENDIF
+
                      forceBanx = 0.
                      forceBany = 0.
                      forceBanz = 0.
-                     dqj = 0.
 
                      IF (imhd.EQ.idim) THEN
 c
@@ -1011,6 +1111,29 @@ c                     ENDIF
                         dqj = dqj + t12jpmassi*projv
                      ENDIF
 c
+c--This is the end of gas-gas interactions (i.e. iphase(i) and iphase(j) both 0)
+c
+                  ENDIF
+c
+c--Dust/Planetesimal terms (contribution if j particle is active).
+c
+                  IF (gasdrag .AND. (iphase(ipart).EQ.0 .AND.
+     &                 iphase(j).EQ.11)) THEN
+
+                     f_drag_i = f_drag_co*pmassi*projv*wtij
+
+                     ptsj = ptsj + pmassi*wtij/(rhoi*rhoi*f_drag_co/3.)
+                     ptsnormj = ptsnormj + pmassi*wtij/rhoi
+
+                     forcex = forcex + f_drag_i*runix
+                     forcey = forcey + f_drag_i*runiy
+                     forcez = forcez + f_drag_i*runiz
+
+                     dq_drag = 2.*f_drag_i*projv
+                     dq_dragj = dq_dragj + dq_drag
+                     dqj = dqj + dq_drag
+                  ENDIF
+c
 c--Add contributions to particle j
 c
 c--Note: C$OMP ATOMIC would be the best way to do these IF the compiler was
@@ -1028,6 +1151,21 @@ c
                      force_an(3,j) = forceBanz
 
                      dq(j) = dq(j) + dqj
+c                     print *, 'index 1', idragr, idragp, idragt
+
+                     IF (gasdrag) THEN
+C$OMP CRITICAL
+                        dragqchange(idragr, idragp, idragt) = 
+     &                       dragqchange(idragr, idragp, idragt) +
+     &                       dq_dragj*dt*isteps(j)/imaxstep
+C$OMP END CRITICAL
+                     ENDIF
+                     IF (gasdrag) THEN
+                        planetesimaltimestep(j) =
+     &                    planetesimaltimestep(j) + ptsj
+                        planetesimalnorm(j) = 
+     &                       planetesimalnorm(j) + ptsnormj
+                     ENDIF
 
                      IF (imhd.EQ.idim) THEN
                         dBxyz(1,j) = dBxyz(1,j) - dBxdissj
@@ -1137,6 +1275,7 @@ c--Using hj  (only need to be done if j is non-active since if it is active
 c     j's contribution is added to i when j is done.
 c
             IF (.NOT.iscurrent(j)) THEN
+
                dsofttermj = 0.
                IF (vj.LT.radkernel) THEN
                   index = v2j*ddvtable
@@ -1144,6 +1283,12 @@ c
                   IF (index1.GT.itable) index1 = itable
                   dxx = v2j - index*dvtable
                   dgrwdx = (grwij(index1)-grwij(index))*ddvtable ! slope
+
+                  IF (gasdrag .AND. iphase(ipart).EQ.11) THEN
+                     dwdx = (wij(index1) - wij(index))*ddvtable
+                     wtij = (wij(index)+dwdx*dxx)*hj31*v2j*10./
+     &                    (9.*pi)
+                  ENDIF
 c
 c--(note that kernel gradient is multiplied by gradhj)
 c
@@ -1174,8 +1319,11 @@ c
 c
 c--If i and j are not across a sink particle
 c
-                  IF (inosink .AND. iphase(ipart).EQ.0 .AND.
-     &                                        iphase(j).EQ.0) THEN
+                  IF (inosink) THEN
+c
+c--Next region only for gas-gas interactions
+c
+                  IF (iphase(ipart).EQ.0 .AND. iphase(j).EQ.0) THEN
 c
 c--Add terms to particle i
 c-------------------------
@@ -1347,6 +1495,34 @@ c                     ENDIF
                         dqi = dqi + t12jpmassj*projv
                      ENDIF
 c
+c--This is the end of gas-gas interactions (i.e. iphase(i) and iphase(j) both 0)
+c
+                  ENDIF
+c
+c--Dust/Planetesimal terms (contribution if j particle is inactive).
+c
+                  IF (gasdrag .AND. (iphase(ipart).EQ.11 .AND.
+     &                 iphase(j).EQ.0)) THEN
+
+                     f_drag_co = 9.*getcd(rhoj, dvij, vsoundj, 
+     &                    r_planetesimal)/
+     &                    (8.*r_planetesimal*rho_planetesimal)*dvij
+
+                     f_drag_i = f_drag_co*pmassj*projv*wtij
+
+                     ptsi = ptsi +  pmassj*wtij/
+     &                      (rhoj*rhoj*f_drag_co/3.)
+                     ptsnormi = ptsnormi +  pmassj*wtij/rhoj
+
+                     gasdragxi = gasdragxi - f_drag_i*runix
+                     gasdragyi = gasdragyi - f_drag_i*runiy
+                     gasdragzi = gasdragzi - f_drag_i*runiz
+
+                     dq_drag = 2.*f_drag_i*projv
+                     dq_dragi = dq_dragi + dq_drag
+                     dqi = dqi + dq_drag
+                  ENDIF
+c
 c--End if for inosink
 c
                   ENDIF
@@ -1400,8 +1576,6 @@ c     &                 print *,j, - xmasj*dx,' j-inactive '
                ENDIF
             ENDIF
             
-
-
  70      CONTINUE
 c
 c--Store quantities
@@ -1426,6 +1600,14 @@ c
                poteni = poteni+xyzmh(4,ipart)*fpoten(0)*hi1
                dgrav(ipart) = 0.
             ENDIF
+         ENDIF
+c
+c--Add gas-dust drag interaction force
+c
+         IF (gasdrag) THEN
+            forcexi = forcexi + gasdragxi
+            forceyi = forceyi + gasdragyi
+            forcezi = forcezi + gasdragzi
          ENDIF
 c
 c--The force contributions below only apply to gas particles
@@ -1623,6 +1805,13 @@ c         IF (ipart.GT.idim) print *,iproc,': Fx ',ipart
 
          poten(ipart) = poten(ipart) + poteni 
 
+         IF (gasdrag) THEN
+            planetesimaltimestep(ipart) =
+     &           planetesimaltimestep(ipart) + ptsi
+            planetesimalnorm(ipart) =
+     &           planetesimalnorm(ipart) + ptsnormi
+         ENDIF
+
          IF (iphase(ipart).EQ.0) THEN
 
 c            IF (ipart.EQ.0418 .AND. itime.GE.134217728) THEN
@@ -1631,6 +1820,13 @@ c            ENDIF
 
             dq(ipart) = dq(ipart) + dqi
 
+            IF (gasdrag) THEN
+C$OMP CRITICAL
+               dragqchange(idragr, idragp, idragt) = 
+     &              dragqchange(idragr, idragp, idragt) + dq_dragi*
+     &              dt*isteps(ipart)/imaxstep
+C$OMP END CRITICAL
+            ENDIF
             IF (imhd.EQ.idim) THEN
                dBxyz(1,ipart) = dBxyz(1,ipart) + dBxyz_xi
                dBxyz(2,ipart) = dBxyz(2,ipart) + dBxyz_yi
@@ -1766,6 +1962,53 @@ C$OMP SINGLE
 #endif
 C$OMP END SINGLE
 
+      IF (gasdrag) THEN
+c--Sum dragqchange(i,j,k) across processes.
+c     
+         itot = idragresr*idragresp*idragrest
+C$OMP DO SCHEDULE(runtime)
+         DO i = 1, idragresr
+            DO j = 1, idragresp
+               DO k = 1, idragrest
+                  ii = (i-1)*(idragresp*idragrest) + (j-1)*idragrest + k
+                  realtransfer5to15(ii) = dragqchange(i,j,k)
+                  realtransfer5to15(itot + ii) = 0.
+               ENDDO
+            ENDDO
+         ENDDO
+C$OMP END DO
+C$OMP SINGLE
+c
+c--All processes reduce the dragqchange data
+c
+      CALL MPI_ALLREDUCE(realtransfer5to15,
+     &     realtransfer5to15(itot+1),itot,
+     &     MPI_REAL8,MPI_SUM,
+     &     MPI_COMM_WORLD,ierr)
+C$OMP END SINGLE
+c
+c--Now return dragqchange to normal array in correct places
+c
+C$OMP DO SCHEDULE(runtime)
+      DO i = 1, idragresr
+         DO j = 1, idragresp
+            DO k = 1, idragrest
+               ii = (i-1)*(idragresp*idragrest) + (j-1)*idragrest + k
+               dragenergy(i,j,k) = dragenergy(i,j,k) +
+     &              realtransfer5to15(itot+ii)
+            ENDDO
+         ENDDO
+      ENDDO
+C$OMP END DO
+C$OMP SINGLE
+
+#ifdef MPIDEBUG
+      print *,iproc,': dragenergy summed in force ',numbertodoherekeep,
+     &     irecvcounti(j+1), nlst_end
+#endif
+C$OMP END SINGLE
+      ENDIF
+
       IF (imhd.EQ.idim) THEN
 c
 c--Transfer dBxyz(1-3,i)
@@ -1807,6 +2050,20 @@ C$OMP SINGLE
 #endif
 C$OMP END SINGLE
 
+      ENDIF
+#else
+c--Sum dragenergy in non-MPI case.
+      IF (gasdrag) THEN
+C$OMP DO SCHEDULE(runtime)
+         DO i = 1, idragresr
+            DO j = 1, idragresp
+               DO k = 1, idragrest
+                  dragenergy(i,j,k) = dragenergy(i,j,k) +
+     &                 dragqchange(i,j,k)
+               ENDDO
+            ENDDO
+         ENDDO
+C$OMP END DO
       ENDIF
 #endif
 
@@ -1984,6 +2241,15 @@ C$OMP END PARALLEL DO
 
       CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
       CALL MPI_TYPE_FREE(iaREAL4,ierr)
+
+c
+c--Unify nearest gas neighbour list for solid particles
+c
+      IF (gasdrag)
+     &     CALL MPI_ALLGATHERV (MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+     &     nearestgas, irecvcounti, idisplacementsi, MPI_INTEGER,
+     &     MPI_COMM_WORLD, ierr)
+
 
       IF (imhd.EQ.idim) THEN
 c

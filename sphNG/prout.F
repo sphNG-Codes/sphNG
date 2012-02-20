@@ -442,8 +442,7 @@ c
 c
 c--Energies + total angular momentum
 c
-         total = tkintot + tgravtot
-         IF (igrp.NE.0) total = total + ttermtot + tmagtot + tradtot
+         total = tkintot + tgravtot + ttermtot + tmagtot + tradtot
          WRITE (iprint, 99004, ERR=100) total,tkintot,trotztot,trotxtot,
      &        tgravtot,ttermtot,tmagtot,tradtot,angtotot,totmomtot
 99004    FORMAT (' General properties of system : ', /,
@@ -528,7 +527,7 @@ c
                ENDDO
                DO i = 1, nptmass
                   WRITE (iprint, 99410, ERR=100) i,
-     &                 hillmass(xyzmh(4,listpm(i)), 1, xmass)
+     &                 hillmass(xyzmh(4,listpm(i)), 1, xmass, i)
                ENDDO
             ELSEIF (irotpot.EQ.1) THEN
                WRITE (iprint, 11409) rplanet*pradfac(1)
@@ -536,7 +535,7 @@ c
             ENDIF
          ELSEIF (ibound.EQ.100 .AND. iexf.EQ.7) THEN
             WRITE (iprint, 99410, ERR=100) 1, hillmass(planetmass, 0,
-     &           xmass)
+     &           xmass, 0)
          ENDIF
 99410    FORMAT (' mass within planet(',I2,') hill radius : ', 1PE14.5)
 

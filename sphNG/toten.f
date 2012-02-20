@@ -96,10 +96,13 @@ c
             IF (xi*vxi + yi*vyi + zi*vzi.LT.0.) vtot2 = 0.
             tinout = 0.5*pmassi*vtot2
             tpot = poteni
-            IF (varsta.EQ.'intener') THEN
-               ttherm = vxyzu(4,i)*pmassi
-            ELSE
-               ttherm = pmassi*pr(i)/(gama1*rho(i))
+            ttherm = 0.
+            IF (iphase(i).EQ.0) THEN
+               IF (varsta.EQ.'intener') THEN
+                  ttherm = vxyzu(4,i)*pmassi
+               ELSE
+                  ttherm = pmassi*pr(i)/(gama1*rho(i))
+               ENDIF
             ENDIF
             IF (encal.EQ.'r' .AND. iradtrans.EQ.idim) THEN
                tradi = ekcle(1,i)*pmassi

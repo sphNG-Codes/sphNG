@@ -49,6 +49,7 @@ c************************************************************
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/prdrag'
       INCLUDE 'COMMONS/pxpy'
+      INCLUDE 'COMMONS/planetesimal'
 c
 c--Allow for tracing flow
 c
@@ -208,21 +209,40 @@ c      ENDIF
          READ (iterm, *) deadbound
          READ (iterm, *) fractan, fracradial, nshell, rshell
       ENDIF
+
+      imigrate = 0
+      r_planetesimal = 0.0
+      rho_planetesimal = 0.0
+      use_prof = .FALSE.
+      prswitch = .FALSE.
+      gasdrag = .FALSE.
       IF (ibound.EQ.100) THEN
+         READ (iterm, *) gasdrag
+         IF (gasdrag) THEN
+            READ (iterm, *) r_planetesimal
+            r_planetesimal = r_planetesimal*1.E5/udist
+            READ (iterm, *) rho_planetesimal
+            rho_planetesimal = rho_planetesimal/udens
+            print *, 'r_pla ', r_planetesimal, rho_planetesimal
+         ENDIF
          READ (iterm, *) variation,phibound,flowrate,signorm,
      &        hoverr,partm
       ENDIF
 
-      imigrate = 0
-      use_tprof = .FALSE.
-      prswitch = .FALSE.
       IF (ibound.EQ.102) THEN
          READ (iterm, *) use_tprof
          IF (use_tprof) READ (iterm, *) tprof
          READ (iterm, *) prswitch
          IF (prswitch) READ (iterm, *) pbeta
+         READ (iterm, *) gasdrag
+         IF (gasdrag) THEN
+            READ (iterm, *) r_planetesimal
+            r_planetesimal = r_planetesimal*1.E5/udist
+            READ (iterm, *) rho_planetesimal
+            rho_planetesimal = rho_planetesimal/udens
+            print *, 'r_pla ', r_planetesimal, rho_planetesimal
+         ENDIF
          READ (iterm, *) signorm,hoverr,partm
-
          READ (iterm, *) imigrate
          IF (imigrate.EQ.1) THEN
             READ (iterm, *) pmrate
@@ -240,7 +260,11 @@ c      ENDIF
       IF (iexf.EQ.7 .OR. (ibound.EQ.102 .AND. initialptm.EQ.0)) THEN
          READ (iterm, *) planetmass
          READ (iterm, *) rplanet
-         IF (iexf.EQ.7) READ (iterm, *) iandrea
+         IF (iexf.EQ.7) THEN
+            READ (iterm, *) iandrea
+            READ (iterm, *) eccentricity_p
+            READ (iterm, *) inclination_p
+         ENDIF
       ENDIF
 
       IF (ibound.EQ.102 .AND. initialptm.EQ.5) THEN

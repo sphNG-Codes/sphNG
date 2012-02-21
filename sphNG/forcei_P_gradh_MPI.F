@@ -28,10 +28,12 @@ c************************************************************
       DIMENSION dedxyz(3,iradtrans2)
       DIMENSION Bxyz(3,imhd2),dBxyz(imhdevol,imhd2)
       DIMENSION Bevolxyz(imhdevol,imhd3) ! needed for prediction only
+      INTEGER dragscheme
 c--this weight is equivalent to m/(rho*h^3) in the grad h version
       PARAMETER (hfact = 1.2)
       PARAMETER (weight = 1./hfact**3)
       PARAMETER (iMorris = .FALSE.)
+      PARAMETER (dragscheme = 1)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -111,7 +113,9 @@ c
 #endif
 #endif
 
+#ifdef DGRID
       IF (gasdrag) dragqchange(:,:,:) = 0.0
+#endif
 
       nlistupdated = 0
       realtime = dt*itime/imaxstep + gt
@@ -256,11 +260,13 @@ C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug,irotpot)
 C$OMP& shared(ivar,ijvar,Bextx,Bexty,Bextz,etamhd,iresist)
 C$OMP& shared(pi)
 C$OMP& shared(forcei_lock)
-C$OMP& shared(gasdrag,r_planetesimal,rho_planetesimal)
+C$OMP& shared(gasdrag,r_planetesimal,rho_planetesimal,iregime)
 C$OMP& shared(planetesimaltimestep,planetesimalnorm)
 C$OMP& shared(gasdist,nearestgas)
-C$OMP& shared(dragenergy,dragqchange,px,py,pz)
 C$OMP& shared(itot)
+#ifdef DGRID
+C$OMP& shared(dragenergy,dragqchange,px,py,pz)
+#endif
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend,numbertodoherekeep)
 C$OMP& shared(realtransfer5to15,llisttrans,idisplacementsi,irecvcounti)
@@ -274,7 +280,9 @@ C$OMP& private(gasdragxi,gasdragyi,gasdragzi,ig,f_drag_co,dvij)
 C$OMP& private(gamma,rsub,fgd)
 C$OMP& private(rho_g,f_drag_i,ptsi,ptsj,ptsnormi,ptsnormj)
 C$OMP& private(pdvi,dqi,rhoi,pro2i,pro2j,vsoundi,k,j,hj,dx,dy,dz)
+#ifdef DGRID
 C$OMP& private(dragr,dragp,dragt,idragr,idragp,idragt)
+#endif
 C$OMP& private(dq_drag,dq_dragi,dq_dragj)
 C$OMP& private(rho1i,rho21i,sqrtrho1i,rho1j)
 C$OMP& private(rij2,rij,rij1,pmassj,runix,runiy,runiz,hmean,hmean21)
@@ -418,18 +426,13 @@ c
          hi31 = hi21*hi1
          hi41 = hi21*hi21
 
+#ifdef DGRID
          IF (gasdrag) THEN
             CALL sphericalpos(xi, yi, zi, dragr, dragp, dragt)
             CALL dragcoordinates(dragr, dragp, dragt, idragr, idragp,
      &           idragt)
-c            print *, 'index 0a', idragr, idragp, idragt
-
-c---DragEnergyTest output. Checking coordinate transform and indexing.
-c            write (44, 146) xi, yi, zi,
-c     &           px, py, pz, dragr, dragp, dragt, idragr,
-c     &           idragp, idragt
-c 146        FORMAT (9(1PE15.8,1X),3(I4,1X))
          ENDIF
+#endif
 
 c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
 
@@ -563,12 +566,13 @@ c
 c--Added for gas-dust drag
 c
             vsoundj = vsound(j)
+#ifdef DGRID
             IF (gasdrag .AND. iphase(j).EQ.0) THEN
                CALL sphericalpos(xi, yi, zi, dragr, dragp, dragt)
                CALL dragcoordinates(dragr, dragp, dragt, idragr, idragp,
      &              idragt)
             ENDIF
-
+#endif
 c
 c--Unit vectors
 c
@@ -968,8 +972,14 @@ c
                   IF (gasdrag .AND. (iphase(ipart).EQ.0 .AND.
      &                 iphase(j).EQ.11)) THEN
 
+c--Determine drag regime for getcd_bb scheme (dragscheme = 1)
+                     iregime = 0 ! Stokes
+c--Constant from Stepinski & Valageas 1996 (I)(see lab book).
+                     IF (1.619E-15/rhoi.GT.(4.*r_planetesimal/9.))
+     &                    iregime = 1 ! Epstein
+
                      f_drag_co = 9.*getcd(rhoi, dvij, vsoundi,
-     &                    r_planetesimal)/
+     &                    r_planetesimal, iregime, ipart, dragscheme)/
      &                    (8.*r_planetesimal*rho_planetesimal)*dvij
 
                      f_drag_i = f_drag_co*pmassj*projv*wtij
@@ -1153,6 +1163,7 @@ c
                      dq(j) = dq(j) + dqj
 c                     print *, 'index 1', idragr, idragp, idragt
 
+#ifdef DGRID
                      IF (gasdrag) THEN
 C$OMP CRITICAL
                         dragqchange(idragr, idragp, idragt) = 
@@ -1160,6 +1171,7 @@ C$OMP CRITICAL
      &                       dq_dragj*dt*isteps(j)/imaxstep
 C$OMP END CRITICAL
                      ENDIF
+#endif
                      IF (gasdrag) THEN
                         planetesimaltimestep(j) =
      &                    planetesimaltimestep(j) + ptsj
@@ -1504,8 +1516,14 @@ c
                   IF (gasdrag .AND. (iphase(ipart).EQ.11 .AND.
      &                 iphase(j).EQ.0)) THEN
 
+c--Determine drag regime for getcd_bb scheme (dragscheme = 1)
+                     iregime = 0 ! Stokes
+c--Constant from Stepinski & Valageas 1996 (I)(see lab book).
+                     IF (1.619E-15/rhoj.GT.(4.*r_planetesimal/9.))
+     &                    iregime = 1 ! Epstein
+
                      f_drag_co = 9.*getcd(rhoj, dvij, vsoundj, 
-     &                    r_planetesimal)/
+     &                    r_planetesimal, iregime, j, dragscheme)/
      &                    (8.*r_planetesimal*rho_planetesimal)*dvij
 
                      f_drag_i = f_drag_co*pmassj*projv*wtij
@@ -1820,6 +1838,7 @@ c            ENDIF
 
             dq(ipart) = dq(ipart) + dqi
 
+#ifdef DGRID
             IF (gasdrag) THEN
 C$OMP CRITICAL
                dragqchange(idragr, idragp, idragt) = 
@@ -1827,6 +1846,7 @@ C$OMP CRITICAL
      &              dt*isteps(ipart)/imaxstep
 C$OMP END CRITICAL
             ENDIF
+#endif
             IF (imhd.EQ.idim) THEN
                dBxyz(1,ipart) = dBxyz(1,ipart) + dBxyz_xi
                dBxyz(2,ipart) = dBxyz(2,ipart) + dBxyz_yi
@@ -1962,6 +1982,7 @@ C$OMP SINGLE
 #endif
 C$OMP END SINGLE
 
+#ifdef DGRID
       IF (gasdrag) THEN
 c--Sum dragqchange(i,j,k) across processes.
 c     
@@ -2008,6 +2029,7 @@ C$OMP SINGLE
 #endif
 C$OMP END SINGLE
       ENDIF
+#endif
 
       IF (imhd.EQ.idim) THEN
 c
@@ -2052,6 +2074,7 @@ C$OMP END SINGLE
 
       ENDIF
 #else
+#ifdef DGRID
 c--Sum dragenergy in non-MPI case.
       IF (gasdrag) THEN
 C$OMP DO SCHEDULE(runtime)
@@ -2065,6 +2088,7 @@ C$OMP DO SCHEDULE(runtime)
          ENDDO
 C$OMP END DO
       ENDIF
+#endif
 #endif
 
 C$OMP DO SCHEDULE(runtime)

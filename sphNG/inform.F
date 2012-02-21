@@ -328,6 +328,8 @@ c         IF (nbuild.EQ.1 .OR. MOD(ncount, nstep).EQ.0 .OR.
 #endif
             CALL wdump_wrapper(idisk1)
          ENDIF
+
+#ifdef DGRID
 c
 c--Write out 3D grid of drag deposited energy.
 c
@@ -340,6 +342,7 @@ c
             ENDIF
 #endif
          ENDIF
+#endif
 c
 c--Write global results on listing
 c

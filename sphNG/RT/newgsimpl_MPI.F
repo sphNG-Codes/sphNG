@@ -2171,7 +2171,7 @@ c            u4term = gammaval*dti*(chival + betaval - 1.0)
             u0term = betaval*origEU(1,i) + (chival-1.0)*(-origEU(2,i)-
      &           dti*pres_numerator - dti*e_planetesimal(i)) + 
      &           dti*diffusion_numerator*betaval +
-     &           stellarradiation*betaval - pcolen(i)*betaval
+     &           stellarradiation*betaval - (chival-1.0)*pcolen(i)
 
             IF (u1term.GT.0.0 .AND. u0term.GT.0.0 .OR. u1term.LT.0.0 
      &           .AND. u0term.LT.0.0) THEN
@@ -2931,6 +2931,7 @@ C$OMP& shared(hoverr,ibound,xyzmh)
 C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)
 C$OMP& shared(gamma,dedxyz)
 C$OMP& shared(iunique,iorig,n1,n2,uzero_n2)
+C$OMP& shared(ifullstep,pcolen)
 C$OMP& private(temp, rho0)
 C$OMP& private(boundtest,radu)
 C$OMP& private(bounddenslocal,izoverh,mu)
@@ -2983,6 +2984,12 @@ c         IF (ekcle(1,i).LT.ecold .OR. vxyzu(4,i).LT.ucold) THEN
                ekcle(3,i) = GETCV(rho(i),vxyzu(4,i))
 c               oneovermu(i) = GET1OVERMU(rho(i),vxyzu(4,i))
                ekcle(2,i) = GETKAPPA(vxyzu(4,i),ekcle(3,i),rho(i))
+            ENDIF
+c
+c--Zero collision energy array after its addition.
+c
+            IF (ifullstep(i)) THEN
+               pcolen(i) = 0.0
             ENDIF
 
             cv_effective = ekcle(3,i)/GET1OVERMU(rho(i),vxyzu(4,i))

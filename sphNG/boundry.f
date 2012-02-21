@@ -342,6 +342,9 @@ c            ENDIF
 99009 FORMAT(' number of corrections inner boundary:',I6)
 99010 FORMAT(' number of corrections outer boundary:',I6)
 
+      IF (itrace.EQ.'all') WRITE (iprint, 99002)
+99002 FORMAT (' exit subroutine boundary')
+
       RETURN
       END
 

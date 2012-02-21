@@ -273,6 +273,10 @@ ifeq ($(mpidebugrt), yes)
     FPPFLAGS+=${FPP_SEP}-DMPIDEBUGRT
 endif
 
+ifeq ($(dgrid), yes)
+    FPPFLAGS+=${FPP_SEP}-DDGRID
+endif
+
 # do double precision flag last (append only to FFLAGS)
 
 ZZFFLAGS := ${FFLAGS}
@@ -291,7 +295,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f chekopt.f \
 	classify_MPI.F condense.f constan.f coolcurve.f coolinmo.F cool_func.F \
 	coriol.f cyldis.f cylmas.f cylpres.f cylvel.f discboundary.f \
-	dragtable.f endrun.f energ.f energ_cooling.f eospg.f error.f \
+	dragtable.F endrun.f energ.f energ_cooling.f eospg.f error.f \
 	evol.f externf.f externBfield.f \
 	extract.f file.f gapfactor.f getneigh.f \
 	getcd.f getcv.f get1overmu.f getkappa.f \

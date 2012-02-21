@@ -72,7 +72,9 @@ c************************************************************
       DATA where/'preset'/
 
       INTEGER ihopin, dfilenum
+#ifdef DGRID
       LOGICAL existingdragfile
+#endif
       CHARACTER*4 dfilename
 
       IF(ihopin.NE.1) THEN
@@ -560,6 +562,8 @@ c
 c--Zero planetesimal-planet collision energy array (not needed)
 c
       pcolen(:) = 0.0
+
+#ifdef DGRID
 c
 c--Setup table for recording planetesimal energy deposition
 c
@@ -588,6 +592,7 @@ c
             CALL read_dragtable
          ENDIF
       ENDIF
+#endif
 
       IF (iandrea.EQ.1) THEN
          OPEN(UNIT=8,FILE=

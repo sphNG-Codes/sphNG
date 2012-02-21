@@ -1748,12 +1748,15 @@ C$OMP& shared(phibound,nlistinactive,listinactive,variation,npart,rmind)
 C$OMP& shared(planetesimaltimestep,gasdrag,max_rplan,min_rplan)
 C$OMP& shared(pradfac,rplanet,px,py,irotpot,iplanetesimals)
 C$OMP& shared(rcyl,Bevolxyz,dumBevolxyz,planetesimalnorm)
-C$OMP& shared(pcolen,xmass,dragenergy)
+C$OMP& shared(pcolen,xmass)
 C$OMP& shared(gasdist,nearestgas,planetmass,coremass,pi)
 #ifdef MPICOPY
 C$OMP& shared(iproc)
 #endif
+#ifdef DGRID
+C$OMP& shared(dragenergy)
 C$OMP& private(dragr,dragp,dragt,idragr,idragp,idragt)
+#endif
 C$OMP& private(rtemp,rtempm,k,keepk)
 C$OMP& private(ig,rp,pvel,theta,pvx,pvy,dvx,dvy,dvz,vmagnitude2)
 C$OMP& private(ipkill,rlim,eccentricity,smaxis,killme)
@@ -1987,6 +1990,7 @@ c
                   pcolen(ig) = 0.5*xyzmh(4,i)*vmagnitude2/
      &                 (xyzmh(4,ig) + xyzmh(4,i))
 
+#ifdef DGRID
                   IF (gasdrag) THEN
                      CALL sphericalpos(xyzmh(1,i),xyzmh(2,i),xyzmh(3,i),
      &                    dragr, dragp, dragt)
@@ -2018,6 +2022,7 @@ c--Makes MAX statements below redundant
      &                    dragenergy(MAX(idragr,1), idragp, idragt) +
      &                    pcolen(ig)
                   ENDIF
+#endif
                ENDIF
 
                nlstacc = nlstacc + 1

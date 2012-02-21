@@ -66,6 +66,7 @@ c      INCLUDE 'COMMONS/rad2'
       INCLUDE 'COMMONS/andrea'
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/radtran2'
+      INCLUDE 'COMMONS/radtran3'
       INCLUDE 'COMMONS/polyk2'
       INCLUDE 'COMMONS/bodys'
       INCLUDE 'COMMONS/implicit'
@@ -1332,7 +1333,7 @@ C$OMP& shared(xpres_numerator,xpres_denominator,xtfour,ikick)
 C$OMP& shared(pdvvisc)
 C$OMP& shared(hoverr,ibound)
 C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)
-C$OMP& shared(e_planetesimal)
+C$OMP& shared(e_planetesimal,pcolen)
 C$OMP& shared(iunique,iorig,n1,n2)
 #ifdef MPI
 C$OMP& shared(istart,ntot,istartrec,inumbertotal,inumberreturned)
@@ -1756,7 +1757,7 @@ c
                DO k = 1, ivar(1,n)
                   icompact = ivar(2,n) + k
                   j = ijvar(icompact)
-
+                  IF (iphase(j).EQ.0) THEN
                   rhoj = varij(1,icompact)
                   dWiidrlightrhorhom = varij(2,icompact)
                   dWidrlightrhorhom = varij(3,icompact)
@@ -1879,6 +1880,8 @@ cTEST     &                    0.5*dvdWjmj*vpi
      &                 0.5*dWjdrlightrhorhom*b1*rhoi
 
                ENDIF
+
+            ENDIF !--iphase(j).EQ.0
             END DO              !J-loop
 
 C$OMP ATOMIC
@@ -2168,7 +2171,7 @@ c            u4term = gammaval*dti*(chival + betaval - 1.0)
             u0term = betaval*origEU(1,i) + (chival-1.0)*(-origEU(2,i)-
      &           dti*pres_numerator - dti*e_planetesimal(i)) + 
      &           dti*diffusion_numerator*betaval +
-     &           stellarradiation*betaval
+     &           stellarradiation*betaval - pcolen(i)*betaval
 
             IF (u1term.GT.0.0 .AND. u0term.GT.0.0 .OR. u1term.LT.0.0 
      &           .AND. u0term.LT.0.0) THEN
@@ -2244,7 +2247,7 @@ c               tfour = (origEU(1,i) - EU0(1,I))/dti + (diffusion_numerator +
 c     &              diffusion_denominator*EU0(1,I) - radpresdenom)
 c            ENDIF
             dUcomb = pres_numerator + pres_denominator*EU0(2,I) + tfour
-     &           + e_planetesimal(i)
+     &           + e_planetesimal(i) + pcolen(i)
             dEcomb = diffusion_numerator + diffusion_denominator*
      &           EU0(1,I) - tfour - radpresdenom + stellarradiation
 
@@ -3049,6 +3052,7 @@ c
                   icompact = ivar(2,n) + k
                   j = ijvar(icompact)
 
+                  IF (iphase(j).EQ.0) THEN
                   rhoj = varij(1,icompact)
                   dWidrlightrhorhom = varij(3,icompact)
 c
@@ -3068,7 +3072,7 @@ c
                   IF (iscurrent(j)) THEN
 c                     ADD CONT transfer
                   ENDIF
-
+                  ENDIF !--iphase(j).EQ.0
                END DO           !J-loop
                transfer(i) = diffusion_denominator
             ENDIF
@@ -3292,6 +3296,7 @@ c
             DO k = 1, ivar(1,n)
                icompact = ivar(2,n) + k
                j = ijvar(icompact)
+               IF (iphase(j).EQ.0) THEN
 
 c               rhoj = varij(1,icompact)
 c               dWidrlightrhorhom = varij(3,icompact)
@@ -3318,6 +3323,7 @@ c     &              dWidrlightrhorhom*b1*rhoi
                IF (iscurrent(j)) THEN
 c                  ADD CONT transfer
                ENDIF
+               ENDIF!--iphase(j).EQ.0
             END DO              !J-loop
             transfer(i) = diffusion_numerator
             ENDIF

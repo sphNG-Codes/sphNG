@@ -1987,8 +1987,7 @@ c
                   dvy = vxyzu(2,i) - pvy
                   dvz = vxyzu(3,i)
                   vmagnitude2 = dvx*dvx + dvy*dvy + dvz*dvz
-                  pcolen(ig) = 0.5*xyzmh(4,i)*vmagnitude2/
-     &                 (xyzmh(4,ig) + xyzmh(4,i))
+                  pcolen(ig) = 0.5*xyzmh(4,i)*vmagnitude2/xyzmh(4,ig)
 
 #ifdef DGRID
                   IF (gasdrag) THEN

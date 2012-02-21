@@ -668,6 +668,9 @@ c
       WRITE (iprint, *) 'npart, nghost', npart, nghost
       IF (ntot.GT.idim) CALL error(where, ntot)
 
+      IF (itrace.EQ.'all') WRITE (iprint, 99002)
+99002 FORMAT (' exit subroutine ghostp11')
+
       RETURN
       END
       

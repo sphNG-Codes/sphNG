@@ -102,6 +102,7 @@ c      CALL appendiproc(7,file1,iproc)
       IF (iproc.EQ.0) THEN
 #endif
       OPEN (idisk1, FILE=file1, FORM='unformatted', RECL=imaxrec)
+#ifdef DGRID
 c
 c--Open dragfile for writing drag energy table.
 c
@@ -111,6 +112,7 @@ c
          OPEN (idragfile, FILE=dragfile, FORM='unformatted',
      &        RECL=imaxrec)
       ENDIF
+#endif
 #ifdef MPICOPY
       ENDIF
 #endif

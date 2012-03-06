@@ -2806,7 +2806,7 @@ c--Accrete particles near point mass, or create point mass
 c
          IF (itiming) CALL getused(taccrete1)
 
-         CALL accrete(dt, realtime, isave, ntot)
+         CALL accrete(dt, realtime, isave, ntot, itime)
 
          IF (itiming) THEN
             CALL getused(taccrete2)

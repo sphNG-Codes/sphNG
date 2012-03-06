@@ -1,4 +1,4 @@
-      SUBROUTINE accrete(dt, realtime, isave, ntot)
+      SUBROUTINE accrete(dt, realtime, isave, ntot, itime)
 c************************************************************
 c                                                           *
 c  This routine does accretion for pt masses                *
@@ -79,11 +79,12 @@ c      INCLUDE 'COMMONS/angm'
 
       numberacclocal = 0
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(nptmass,numberacc,ptminner)
+C$OMP& shared(nptmass,numberacc,ptminner,iscurrent,listpm,it0,itime)
 C$OMP& private(iii)
       DO iii = 1, nptmass
          numberacc(iii) = 0
          ptminner(iii) = 0.
+         iscurrent(listpm(iii)) = it0(listpm(iii)).EQ.itime
       END DO
 C$OMP END PARALLEL DO
 
@@ -1046,7 +1047,7 @@ c
 #endif
 
          CALL MPI_SENDRECV(iscurrent, 1, indexMPIL, iahead, 83,
-     &        iscurrent(ntot+nptmasslocal-nptmass+1), idim, 
+     &        iscurrent(ntot+nptmasslocal-nptmass+1), idim,
      &        MPI_LOGICAL, ibehind, 83, MPI_COMM_WORLD, istatus, ierr)
          CALL MPI_GET_COUNT(istatus, MPI_LOGICAL, inumber, ierr)
          IF (inumber.NE.nptmassrec) THEN
@@ -1866,17 +1867,17 @@ c      zmom2 = zmom
       imerged1 = 0
       imerged2 = 0
 
-C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(nptmass,listpm,xyzmh,ptsoft,imerge,realtime,iorig)
-C$OMP& shared(iphase,nlstacc,listacc,numberacc,vxyzu,spinx,spiny,spinz)
-C$OMP& shared(spinadx,spinady,spinadz,f1vxyzu,ptminner,ptmsyn,ptmadd)
-C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,xmomadd,ymomadd,zmomadd,iprint)
-C$OMP& shared(iunique,nptmasstot)
-C$OMP& shared(iscurrent,imerged1,imerged2)
-C$OMP& private(iii,jjj,iptm1,x1,y1,z1,iptm2,rx,ry,rz,r2)
-C$OMP& private(i1list,i2list,itemp,pmass1,pmass2,dvx,dvy,dvz)
-C$OMP& private(totalmass,spinm)
-C$OMP& reduction(+:numberacclocal)
+cC$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+cC$OMP& shared(nptmass,listpm,xyzmh,ptsoft,imerge,realtime,iorig)
+cC$OMP& shared(iphase,nlstacc,listacc,numberacc,vxyzu,spinx,spiny,spinz)
+cC$OMP& shared(spinadx,spinady,spinadz,f1vxyzu,ptminner,ptmsyn,ptmadd)
+cC$OMP& shared(xmomsyn,ymomsyn,zmomsyn,xmomadd,ymomadd,zmomadd,iprint)
+cC$OMP& shared(iunique,nptmasstot)
+cC$OMP& shared(iscurrent,imerged1,imerged2)
+cC$OMP& private(iii,jjj,iptm1,x1,y1,z1,iptm2,rx,ry,rz,r2)
+cC$OMP& private(i1list,i2list,itemp,pmass1,pmass2,dvx,dvy,dvz)
+cC$OMP& private(totalmass,spinm)
+cC$OMP& reduction(+:numberacclocal)
       DO iii = 1, nptmasstot
          IF (imerge.EQ.0) THEN
             iptm1 = listpm(iii) 
@@ -1899,23 +1900,30 @@ c            IF (r2.LT.(MAX(xyzmh(5,iptm1),xyzmh(5,iptm2))**2.0)) THEN
 c
 c--Merge if pass within some fraction of softening radius
 c
-                        IF (r2.LT.(1.0E-6)**2.0) THEN
+                        IF (r2.LT.(1.5E-6)**2.0) THEN
 c                        IF (r2.LT.(0.03)**2.0) THEN
-C$OMP CRITICAL(mergesinks)
+cC$OMP CRITICAL(mergesinks)
                            IF (imerge.EQ.0) THEN
                               imerge = 1
+
                   WRITE(iprint,*) 'POINT MASSES MERGED, TIME=',realtime
                               WRITE(iprint,*) '   Radius**2 ',r2
                               WRITE(iprint,*) '   Point masses ',iii,
-     &                             jjj,iorig(iptm1),iorig(iptm2)
-c                  WRITE(iprint,*) 'Linear before ',
-c     &     xyzmh(4,iptm1)*vxyzu(1,iptm1)+xyzmh(4,iptm2)*vxyzu(1,iptm2),
-c     &     xyzmh(4,iptm1)*vxyzu(2,iptm1)+xyzmh(4,iptm2)*vxyzu(2,iptm2),
-c     &     xyzmh(4,iptm1)*vxyzu(3,iptm1)+xyzmh(4,iptm2)*vxyzu(3,iptm2)
-c                  WRITE(iprint,*) 'Linear before ',
-c     &     xmomsyn(iii)+xmomadd(iii)+xmomsyn(jjj)+xmomadd(jjj),
-c     &     ymomsyn(iii)+ymomadd(iii)+ymomsyn(jjj)+ymomadd(jjj),
-c     &     zmomsyn(iii)+zmomadd(iii)+zmomsyn(jjj)+zmomadd(jjj)
+     &                             jjj,iorig(iptm1),iorig(iptm2),
+     &                             iunique(iorig(iptm1)),
+     &                             iunique(iorig(iptm2))
+                              WRITE(iprint,*) '   Masses ',
+     &                             xyzmh(4,iptm2),xyzmh(4,iptm1)
+
+                  WRITE(*,*) 'POINT MASSES MERGED, TIME=',realtime
+                              WRITE(*,*) '   Radius**2 ',r2
+                              WRITE(*,*) '   Point masses ',iii,
+     &                             jjj,iorig(iptm1),iorig(iptm2),
+     &                             iunique(iorig(iptm1)),
+     &                             iunique(iorig(iptm2))
+                              WRITE(*,*) '   Masses ',
+     &                             xyzmh(4,iptm2),xyzmh(4,iptm1)
+
                               i1list = iii
                               i2list = jjj
                               IF (xyzmh(4,iptm2).GT.xyzmh(4,iptm1)) THEN
@@ -1933,9 +1941,15 @@ c     &     zmomsyn(iii)+zmomadd(iii)+zmomsyn(jjj)+zmomadd(jjj)
                                  z1 = xyzmh(3,iptm1)
                               ENDIF
                               iphase(iptm2) = -1
+                              iscurrent(iptm2) = .FALSE.
                               imerged1 = iunique(iorig(listpm(i1list)))
                               imerged2 = iunique(iorig(listpm(i2list)))
                   
+             WRITE (*,*) 'MERGE CHECK ',i1list,i2list,listpm(i1list),
+     &                             listpm(i2list),iorig(listpm(i1list)),
+     &                             iorig(listpm(i2list)),
+     &                             imerged1,imerged2
+
                               IF (i2list.LE.nptmass) THEN
                                  nlstacc = nlstacc + 1
                                  IF (nlstacc.GT.nlstaccmax) THEN
@@ -2026,7 +2040,7 @@ c     &                    pmass2*f1vxyzu(3,iptm2))/totalmass
                      ymomadd(i1list) = 0.0
                      zmomadd(i1list) = 0.0
                   ENDIF
-C$OMP END CRITICAL(mergesinks)
+cC$OMP END CRITICAL(mergesinks)
                         ENDIF
                      ENDIF
                   ENDIF
@@ -2034,22 +2048,25 @@ C$OMP END CRITICAL(mergesinks)
             ENDIF
          ENDIF
       END DO
-C$OMP END PARALLEL DO
+cC$OMP END PARALLEL DO
 #ifdef MPI
 c
 c--Need to check that all MPI processes merged the same two sink particles!
 c     This could be enforced, but it would be complicated and the chances
 c     of more than two sink particles merging on the same timestep are
 c     extremely small.
+c--Equally, the chances of two sinks on different MPI processes being merged
+c     is very small.  So this simply checks that the merger ONLY happens
+c     on a single MPI process.
 c
       CALL MPI_ALLREDUCE(imerge,imergetot,1,MPI_INTEGER,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
-      IF (imergetot.NE.imerge*numproc) THEN
+      IF (imergetot.GT.1) THEN
          WRITE (*,*) 'ERROR - Some MPI processes merged sinks but ',
      &        'others did not! ',iproc,numproc,imerge,imergetot
          CALL quit
       ENDIF
-      IF (imerge.EQ.1) THEN
+      IF (imergetot.GE.2) THEN
          CALL MPI_ALLREDUCE(imerged1,iuniquetot,1,MPI_INTEGER8,
      &        MPI_SUM,MPI_COMM_WORLD,ierr)
          IF (iuniquetot.NE.numproc*imerged1) THEN
@@ -2111,20 +2128,29 @@ c
             END DO
             nptmass = icount
          ENDIF
+      ENDIF
 #ifdef MPI
+      IF (imergetot.EQ.1) THEN
          CALL MPI_ALLREDUCE(nptmass,nptmasstot,1,
      &        MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
+      ENDIF
 #else
-         nptmasstot = nptmass
+      nptmasstot = nptmass
 #endif
+      IF (imerge.EQ.1) THEN
          IF (i2list.LE.nptmassold) THEN
             tcomp = SQRT((3 * pi) / (32 * rhozero))
 
-            print *,'NOTE MERGER NOT WRITTEN'
+            PRINT *,'NOTE MERGER WRITTEN ', nptmasstot, nptmass
 
-c            WRITE (iptprint) realtime/tcomp, realtime, -nptmasstot
-c            WRITE (iptprint) imerged1, imerged2
-c            CALL FLUSH(iptprint)
+            OPEN (iptprint, FILE=ptfile,
+     &           FORM='unformatted',POSITION='APPEND')
+
+            WRITE (iptprint) realtime/tcomp, realtime, -nptmasstot
+            WRITE (iptprint) imerged1, imerged2
+            CALL FLUSH(iptprint)
+
+            CLOSE (iptprint)
          ENDIF
       ENDIF
 c
@@ -2262,6 +2288,14 @@ c            print *,iproc,': Trying to close ',iptprint
 
       IF (icreate.EQ.1) iaccr = 1
       icreatetot = 0
+
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nptmass,iscurrent,listpm)
+C$OMP& private(iii)
+      DO iii = 1, nptmass
+         iscurrent(listpm(iii)) = .FALSE.
+      END DO
+C$OMP END PARALLEL DO
 
 #ifdef MPIALL
 #ifdef MPIDEBUGS

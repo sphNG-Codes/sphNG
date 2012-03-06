@@ -264,12 +264,6 @@ c
       CALL MPI_REDUCE(nghost,nghosttot,1,MPI_INTEGER,MPI_SUM,0,
      &   MPI_COMM_WORLD,ierr)
 #endif
-#ifdef MPIALL
-      IF (iproc.EQ.0) THEN
-      ELSE
-         iprint = 40+iproc
-      ENDIF
-#endif
 
       WRITE (iprint, 98001) tstep/60., nghosttot
 98001 FORMAT (' time used  : ', F8.3, ' min. , ghosts : ', I10)

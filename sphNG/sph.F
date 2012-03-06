@@ -427,6 +427,7 @@ c************************************************************
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/savernd'
       INCLUDE 'COMMONS/rbnd'
+      INCLUDE 'COMMONS/logun'
 
 #ifdef ZEN
       INTEGER (4)        :: clist(8)
@@ -558,6 +559,12 @@ c
       nlistinactive = 0
 
       CALL mainop
+
+#ifdef MPIALL
+      IF (iproc.NE.0) THEN
+         iprint = 40+iproc
+      ENDIF
+#endif
 c
 c--Initialize physical, mathematical and astronomical constants
 c

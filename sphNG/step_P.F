@@ -1818,6 +1818,13 @@ C$OMP CRITICAL (killparticle)
                ENDIF
                listacc(nlstacc) = i
 
+               nlistinactive = nlistinactive + 1
+               IF (nlistinactive.GT.idim) THEN
+                  WRITE (iprint,*) 'ERROR step nlistinactive'
+                  CALL quit
+               ENDIF
+               listinactive(nlistinactive) = i
+
                nactive = nactive - 1
                nkill = nkill + 1
                WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
@@ -1906,6 +1913,13 @@ C$OMP CRITICAL (killparticle)
                   CALL quit
                ENDIF
                listacc(nlstacc) = i
+
+               nlistinactive = nlistinactive + 1
+               IF (nlistinactive.GT.idim) THEN
+                  WRITE (iprint,*) 'ERROR step nlistinactive'
+                  CALL quit
+               ENDIF
+               listinactive(nlistinactive) = i
 
                nactive = nactive - 1
                nkill = nkill + 1
@@ -2030,6 +2044,13 @@ c--Makes MAX statements below redundant
                   CALL quit
                ENDIF
                listacc(nlstacc) = i
+
+               nlistinactive = nlistinactive + 1
+               IF (nlistinactive.GT.idim) THEN
+                  WRITE (iprint,*) 'ERROR step nlistinactive'
+                  CALL quit
+               ENDIF
+               listinactive(nlistinactive) = i
 
                nactive = nactive - 1
                nkill = nkill + 1

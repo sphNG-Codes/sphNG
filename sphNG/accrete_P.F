@@ -61,6 +61,7 @@ c************************************************************
       INCLUDE 'COMMONS/current'
       INCLUDE 'COMMONS/dum'
       INCLUDE 'COMMONS/treecom_P'
+      INCLUDE 'COMMONS/rbnd'
 
 c      INCLUDE 'COMMONS/angm'
 
@@ -1788,6 +1789,16 @@ c
          iremove(i) = -1
       END DO
 #endif
+c
+c--Add accreted particles to the list of inactive particles
+c
+      DO i = nlstaccold + 1, nlstacc
+         j = listacc(i)
+         nlistinactive = nlistinactive + 1
+         listinactive(nlistinactive) = j
+
+c         WRITE (*,*) iproc,': Add listinactive ',i,iunique(iorig(j))
+      END DO
 c
 c--Write accreted particles to output file
 c

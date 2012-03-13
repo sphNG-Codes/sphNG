@@ -52,8 +52,8 @@ c      logpart=Co*log(Rc**2.+r**2.+(z/0.7)**2.)
       p=spiral
 
 
-c      OPEN (19, FILE = 'consts', STATUS = 'UNKNOWN')
-c      WRITE(19,*)phir,ti,phir*ti,spiral,logpart
+c      OPEN (21, FILE = 'consts', STATUS = 'UNKNOWN')
+c      WRITE(21,*)phir,ti,phir*ti,spiral,logpart
 
       RETURN
 c     end subroutine potentialsub

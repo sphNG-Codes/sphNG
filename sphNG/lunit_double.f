@@ -14,7 +14,7 @@ c************************************************************
       iread = 5
       iprint = 9
 c      iprint = 6
-      iterm = 50 
+      iterm = 19
       idisk1 = 11
       idisk2 = 12
       idisk3 = 13

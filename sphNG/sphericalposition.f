@@ -35,11 +35,11 @@ c************************************************************
 
       xr =  xi*cos(phi_p) + yi*sin(phi_p)
       yr = -xi*sin(phi_p) + yi*cos(phi_p)
-      dxr = xr - radius_p
+      dxr = xr - sqrt(px*px + py*py)
       dyr = yr
 
       phi = ATAN2(dyr,dxr)
 
-      theta = ACOS(zi/radius)
+      theta = ACOS(dz/radius)
 
       end subroutine sphericalpos

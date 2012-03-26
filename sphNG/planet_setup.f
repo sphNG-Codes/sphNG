@@ -173,6 +173,9 @@ c---------------------------------------------------------------
       eccentricity_p = 0.0
       inclination_p = 0.0
       gasdrag = .FALSE.
+
+      iopmodel=0
+      metallicity = 1.0
 c
 c--Initialise time
 c
@@ -195,7 +198,7 @@ c
 c--Allow for tracing flow
 c
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
-99001 FORMAT (' entry subroutine setpart')
+99001 FORMAT (' entry subroutine planet_setup')
 99004 FORMAT (A1)
 11111 FORMAT (I1)
 
@@ -392,6 +395,7 @@ c
       IF (igeom.EQ.9) THEN
          iexf = 7
          ifcor = 1
+         omeg0 = sqrt(gg*solarm/(5.2*au)**3)
          irotref = 'y'
          ibound = 100
 c         iplans = 'g'
@@ -627,6 +631,9 @@ c 1184       READ (*,*) nplanetesimals
             
             WRITE (*, 11097)
             gasdrag = .true.
+            WRITE (*, 11098)
+            READ (*,*) idragscheme
+
             
             WRITE (*, 11996)
             READ (*,*) sgratio
@@ -732,10 +739,20 @@ c
                rho_planetesimal = pdensity/udens
 
                WRITE (*, 11097)
+               gasdrag = .true.
+
+               WRITE (*, 11098)
+               READ (*,*) idragscheme
+
+               write (*,*) 'Drag scheme = ', idragscheme
+
 11097          FORMAT ('It is assumed you want gas-planetesimal',/
      &              'interaction (i.e. gas drag). This can be',/
      &              'turned off in the ifile.')
-               gasdrag = .true.
+11098          FORMAT ('Select a drag scheme:',/
+     &              ' 0 - Perret & Murray-Cley, continuous scheme',/
+     &              ' 1 - Brasser & Bains hybrid (Accumulation paper)',/
+     &              ' 2 - Laibe & Price 2012 scheme')
             ENDIF
 
             IF (iplans.EQ.'p' .OR. iplans.EQ.'P') THEN

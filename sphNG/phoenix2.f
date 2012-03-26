@@ -41,7 +41,7 @@ c     rotating anticlockwise and calculation done in rotating reference
 c     frame so planet is fixed.  Also assumes disc is thin.
 c
       IF (iphasein.EQ.11) THEN
-         CALL orbital_elements (i, eccentricty_p, inclination_p,
+         CALL orbital_elements (i, eccentricity_p, inclination_p,
      &        1.0-variation, 1.0+variation)
 c
 c--Section injection, rotate position to be at phibound

@@ -213,7 +213,7 @@ c      ENDIF
       imigrate = 0
       r_planetesimal = 0.0
       rho_planetesimal = 0.0
-      use_prof = .FALSE.
+      use_tprof = .FALSE.
       prswitch = .FALSE.
       gasdrag = .FALSE.
       IF (ibound.EQ.100) THEN

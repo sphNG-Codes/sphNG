@@ -329,6 +329,7 @@ ccc      GOTO 50
 c
 c--Change reference frame
 c
+c      IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.gt.NE.0.0)) THEN
       IF (iexpan.NE.0.OR.(ifcor.GT.0.AND.ifcor.LE.2.AND.ibound.NE.100)
      &     .OR. (ifcor.GT.0.AND.ifcor.LE.2.AND.ibound.EQ.100.AND.
      &     gt.NE.0.0)) THEN

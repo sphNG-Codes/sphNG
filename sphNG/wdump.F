@@ -184,12 +184,12 @@ c      n2tot = n2
 #endif
 c
 c--Default int
-      number = 11 + NTAB
+      number = 12 + NTAB
       WRITE (idisk1, ERR=100) number
       WRITE (idisk1, ERR=100) nparttot,n1,n2,nreassigntot,
      &     naccretetot,nkilltot,nblocks,iyr,idum,
-     &     (iv(i),i=1,NTAB), iplanetesimals, irotpot
-
+     &     (iv(i),i=1,NTAB), iplanetesimals, irotpot,
+     &     idragscheme
 c--int*1, int*2, int*4
       number = 0
       DO i = 1, 3

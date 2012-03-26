@@ -79,6 +79,7 @@ c
 
       iplanetesimals = 0
       irotpot = 0
+      idragscheme = 100
 c
 c--Dump file
 c-------------
@@ -146,6 +147,11 @@ c--Default int
      &        nblocks,iyr,idum,(iv(i), i=1,NTAB), iplanetesimals,
      &        irotpot
          print *,'USING 11+NTAB', iplanetesimals, irotpot
+      ELSEIF (number.EQ.12+NTAB) THEN
+         READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
+     &        nblocks,iyr,idum,(iv(i), i=1,NTAB), iplanetesimals,
+     &        irotpot, idragscheme
+         print *,'USING 12+NTAB', irotpot, idragscheme
       ELSEIF (number.EQ.7) THEN
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks

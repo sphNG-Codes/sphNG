@@ -28,12 +28,10 @@ c************************************************************
       DIMENSION dedxyz(3,iradtrans2)
       DIMENSION Bxyz(3,imhd2),dBxyz(imhdevol,imhd2)
       DIMENSION Bevolxyz(imhdevol,imhd3) ! needed for prediction only
-      INTEGER dragscheme
 c--this weight is equivalent to m/(rho*h^3) in the grad h version
       PARAMETER (hfact = 1.2)
       PARAMETER (weight = 1./hfact**3)
       PARAMETER (iMorris = .FALSE.)
-      PARAMETER (dragscheme = 1)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -119,6 +117,7 @@ c
 
       nlistupdated = 0
       realtime = dt*itime/imaxstep + gt
+
 #ifdef MPI
 c
 c--Need to get all sink particle data from all MPI processes so can check
@@ -262,7 +261,7 @@ C$OMP& shared(pi)
 C$OMP& shared(forcei_lock)
 C$OMP& shared(gasdrag,r_planetesimal,rho_planetesimal,iregime)
 C$OMP& shared(planetesimaltimestep,planetesimalnorm)
-C$OMP& shared(gasdist,nearestgas)
+C$OMP& shared(gasdist,nearestgas,idragscheme)
 C$OMP& shared(itot)
 #ifdef DGRID
 C$OMP& shared(dragenergy,dragqchange,px,py,pz)
@@ -972,17 +971,11 @@ c
                   IF (gasdrag .AND. (iphase(ipart).EQ.0 .AND.
      &                 iphase(j).EQ.11)) THEN
 
-c--Determine drag regime for getcd_bb scheme (dragscheme = 1)
-                     iregime = 0 ! Stokes
-c--Constant from Stepinski & Valageas 1996 (I)(see lab book).
-                     IF (1.619E-15/rhoi.GT.(4.*r_planetesimal/9.))
-     &                    iregime = 1 ! Epstein
-
-                     f_drag_co = 9.*getcd(rhoi, dvij, vsoundi,
-     &                    r_planetesimal, iregime, ipart, dragscheme)/
-     &                    (8.*r_planetesimal*rho_planetesimal)*dvij
-
-                     f_drag_i = f_drag_co*pmassj*projv*wtij
+                     f_drag_co = getcd(rhoi, dvij, vsoundi,
+     &                    ipart, idragscheme)
+                     
+                     f_drag_i = f_drag_co*projv*wtij*pmassj
+                        
 
                      ptsi = ptsi +  pmassj*wtij/(rhoi*rhoi*f_drag_co/3.)
                      ptsnormi = ptsnormi +  pmassj*wtij/rhoi
@@ -1516,17 +1509,10 @@ c
                   IF (gasdrag .AND. (iphase(ipart).EQ.11 .AND.
      &                 iphase(j).EQ.0)) THEN
 
-c--Determine drag regime for getcd_bb scheme (dragscheme = 1)
-                     iregime = 0 ! Stokes
-c--Constant from Stepinski & Valageas 1996 (I)(see lab book).
-                     IF (1.619E-15/rhoj.GT.(4.*r_planetesimal/9.))
-     &                    iregime = 1 ! Epstein
+                     f_drag_co = getcd(rhoj, dvij, vsoundj,
+     &                    ipart, idragscheme)
 
-                     f_drag_co = 9.*getcd(rhoj, dvij, vsoundj, 
-     &                    r_planetesimal, iregime, j, dragscheme)/
-     &                    (8.*r_planetesimal*rho_planetesimal)*dvij
-
-                     f_drag_i = f_drag_co*pmassj*projv*wtij
+                     f_drag_i = f_drag_co*projv*wtij*pmassj
 
                      ptsi = ptsi +  pmassj*wtij/
      &                      (rhoj*rhoj*f_drag_co/3.)
@@ -1847,6 +1833,7 @@ C$OMP CRITICAL
 C$OMP END CRITICAL
             ENDIF
 #endif
+
             IF (imhd.EQ.idim) THEN
                dBxyz(1,ipart) = dBxyz(1,ipart) + dBxyz_xi
                dBxyz(2,ipart) = dBxyz(2,ipart) + dBxyz_yi

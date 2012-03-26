@@ -309,7 +309,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	newrun.f options.f phoenix.f phoenix2.f \
 	place.f planetpotential.f planet_setup.f planetesimals.f potential.f \
 	preset.F \
-	prout.F ran1.f rdump.F rdump_wrapper.F read_dragfile.f reduce.f \
+	prout.F ran1.f rdump.F rdump_wrapper.F read_dragtable.f reduce.f \
 	maketables/specificheat.f resistivity.f resistivity_implicit.F save.f \
 	scaling.f secmes.f \
 	semimajoraxis.f setBfield_mhd.f setpart.F setup_torus.f \

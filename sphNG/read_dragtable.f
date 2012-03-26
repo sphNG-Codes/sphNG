@@ -55,15 +55,25 @@ c
 c--Read in planet mass, and check it matches current state
 c
       READ (idragfile, ERR=100) dragpmass, draghmass
-      
-      IF (dragpmass.NE.planetmass) THEN
- 116     FORMAT ('Planet mass does not match in dragfile')
- 117     FORMAT ('(read in here   ) mass ', 1PE15.8)
- 118     FORMAT ('(read in options) mass ', 1PE15.8)
-         WRITE (iprint,117) dragpmass
-         WRITE (iprint,118) planetmass
-         WRITE (iprint, *) 'Drag file mass overwrites ifile'
-         planetmass = dragpmass
+
+      IF (abs(dragpmass-planetmass).GT.tiny) THEN
+         IF (abs(dragpmass-planetmass).LT.1.0E-6) THEN
+ 116        FORMAT ('Planet mass does not match in dragfile')
+ 117        FORMAT ('(read in here   ) mass ', 1PE15.8)
+ 118        FORMAT ('(read in options) mass ', 1PE15.8)
+            WRITE (iprint, 116)
+            WRITE (iprint,117) dragpmass
+            WRITE (iprint,118) planetmass
+            WRITE (iprint, *) 'Drag file mass overwrites ifile'
+            planetmass = dragpmass
+         ELSE
+ 119        FORMAT ('ERROR : Mass difference too large.')
+            WRITE (iprint, 116)
+            WRITE (iprint,117) dragpmass
+            WRITE (iprint,118) planetmass
+            WRITE (iprint, 119)
+            STOP
+         ENDIF
       ENDIF
 
 c

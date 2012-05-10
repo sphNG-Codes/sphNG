@@ -508,9 +508,13 @@ c
 c--Dump B (not whatever the evolved MHD variable is)
 c
          IF (varmhd.EQ.'Brho') THEN
-            DO j = 1, imhdevol
+            DO j = 1, 3
                WRITE (idisk1, ERR=100) 
      &            (Bevolxyz(j,isort(i))*rho(isort(i)), i=1, nprint)
+            END DO
+            DO j = 4, imhdevol
+               WRITE (idisk1, ERR=100) 
+     &            (Bevolxyz(j,isort(i)), i=1, nprint)
             END DO
          ELSEIF (varmhd.EQ.'Bvol') THEN
             DO j = 1,imhdevol

@@ -20,11 +20,8 @@ c************************************************************
       INCLUDE 'COMMONS/secret'
 
       CHARACTER*20 string(10)
-      CHARACTER*7 where
       CHARACTER*5 dummy5
       CHARACTER*3 dummy3
-
-      DATA where/'secret'/
 c
 c--Open message file first
 c

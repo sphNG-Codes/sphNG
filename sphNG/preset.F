@@ -71,11 +71,12 @@ c************************************************************
 
       DATA where/'preset'/
 
-      INTEGER ihopin, dfilenum
+      INTEGER ihopin
 #ifdef DGRID
+      INTEGER dfilenum
       LOGICAL existingdragfile
-#endif
       CHARACTER*4 dfilename
+#endif
 
       IF(ihopin.NE.1) THEN
 c

@@ -59,14 +59,11 @@ c      INCLUDE 'COMMONS/torq'
       DIMENSION itempsort(idim)
       EQUIVALENCE (itempsort, next1)
 
-      CHARACTER*7 where
       INTEGER*4 int1, int2
 c
 c--Standard numbers
 c
       PARAMETER (int1=690706,int2=780806)
-
-      DATA where/'wdump_w'/
 c
 c--Do the actual write
 c

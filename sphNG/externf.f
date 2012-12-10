@@ -22,7 +22,6 @@ c************************************************************
 
       DIMENSION xyzmh(5,idim),vxyzu(4,idim)
       REAL rhoi,fextx,fexty,fextz, fbound, rxyplane, drxyplane
-      REAL ang, angend
       REAL*4 rho(idim)
 
       INCLUDE 'COMMONS/kerne'

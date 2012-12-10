@@ -386,8 +386,12 @@ c
 #endif
 
       INCLUDE 'COMMONS/setbin'
-      INTEGER iexcludepart,classify
+      INTEGER iexcludepart
+
+#ifdef MPI
+      INTEGER classify
       DIMENSION xyzmh_local(5,1)
+#endif
 
       DATA small/0.0001/
         

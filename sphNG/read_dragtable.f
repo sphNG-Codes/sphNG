@@ -24,7 +24,7 @@ c
 
       IF (ires_r.NE.idragresr .OR. ires_p.NE.idragresp .OR.
      &     ires_t.NE.idragrest) THEN
- 111     FORMAT('Drag table resolution being read in does not ', $,
+ 111     FORMAT('Drag table resolution being read in does not ',
      &        'match resolution set in radtran3',/)
  112     FORMAT('(code, table) ', A2, ' = ', I6, 1X, I6)
          WRITE (iprint,111)

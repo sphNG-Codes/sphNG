@@ -400,6 +400,10 @@ c
          contrast = LOG10(contrast)
          ipower = - ABS(INT(ratio/contrast))
          IF (ABS(ratio/contrast).LT.0.5) ipower = 1
+c
+c--Limit the largest change in timestep to 2**5 = 32
+c
+         IF (ipower.GT.5) ipower = 5
 
          WRITE (*, 99017) dtmaxsync, 10**contrast, 
      &        rhomaxsync/rhomaxsyncold, ipower

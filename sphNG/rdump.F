@@ -56,16 +56,12 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/planetesimal'
 
-      CHARACTER*7 where
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
       INTEGER*8 number8
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
       PARAMETER (idimhead = 30)
       DIMENSION rheader(idimhead)
-
-      DATA icall/2/
-      DATA where/'rdump'/
 c     
 c--Read
 c

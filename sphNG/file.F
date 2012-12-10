@@ -26,7 +26,7 @@ c************************************************************
       DATA ifirst/.TRUE./
       CHARACTER*5 name
 
-      DATA maxsize/10000000/
+c      DATA maxsize/10000000/
 
       IF (ifirst) THEN
          ifirst = .FALSE.

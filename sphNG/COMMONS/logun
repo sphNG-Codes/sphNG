@@ -1,5 +1,5 @@
       INTEGER iread, iprint, iterm, idisk1, idisk2, idisk3, imaxrec,
-     &	      idragfile
+     &        idragfile
 
       COMMON /logun / iread, iprint, iterm, idisk1, idisk2, idisk3, 
-     &	     imaxrec, idragfile
+     &        imaxrec, idragfile

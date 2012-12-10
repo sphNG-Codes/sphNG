@@ -1,8 +1,8 @@
       INTEGER idragresr, idragresp, idragrest
 
       REAL*8 pcolen, dragenergy, dragtrmax, dragtrmin,
-     &	     dragtpmin, dragtpmax, dragttmin, dragttmax,
-     &	     dragtdr, dragtdp, dragtdt, dragqchange
+     &       dragtpmin, dragtpmax, dragttmin, dragttmax,
+     &       dragtdr, dragtdp, dragtdt, dragqchange
 
       PARAMETER (idragresr = 100)
       PARAMETER (idragresp = 100)
@@ -12,8 +12,8 @@ c--dragenergy(idragres+1,...) the plus 1 spot is used to dump
 c  drag energy from beyond rmax in a simple manner.
 c
       COMMON /radtran3/ pcolen(iradtrans),
-     &	     dragenergy(idragresr+1,idragresp,idragrest),
-     &	     dragqchange(idragresr, idragresp, idragrest),
-     &	     dragtrmax, dragtrmin,
-     &	     dragtpmin, dragtpmax, dragttmin, dragttmax,
-     &	     dragtdr, dragtdp, dragtdt
+     &       dragenergy(idragresr+1,idragresp,idragrest),
+     &       dragqchange(idragresr, idragresp, idragrest),
+     &       dragtrmax, dragtrmin,
+     &       dragtpmin, dragtpmax, dragttmin, dragttmax,
+     &       dragtdr, dragtdp, dragtdt

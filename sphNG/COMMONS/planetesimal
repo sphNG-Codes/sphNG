@@ -5,10 +5,10 @@
       LOGICAL gasdrag
 
       COMMON /planetesimalr4/ planetesimaltimestep(idim),
-     &			     planetesimalnorm(idim)
+     &                       planetesimalnorm(idim)
       COMMON /planetesimal_l/ gasdrag      
       COMMON /planetesimal_i/ nearestgas(idim)
       COMMON /planetesimal / r_planetesimal, rho_planetesimal,
-     &			     min_rplan, max_rplan, 
+     &                       min_rplan, max_rplan, 
      &                       eccentricity_p, inclination_p,
      &                       planetesimalmass, gasdist(idim)

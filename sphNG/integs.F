@@ -51,10 +51,6 @@ c************************************************************
 
       DIMENSION nsteplist(30),nsteplisttot(30)
       INTEGER nstepphase(2,30)
-
-      CHARACTER*7 where
-
-      DATA where/'integs'/
 c
 c--Allow for tracing flow
 c

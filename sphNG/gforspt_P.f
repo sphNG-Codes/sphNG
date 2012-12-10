@@ -29,10 +29,6 @@ c************************************************************
       INCLUDE 'COMMONS/mpidebug'
       INCLUDE 'COMMONS/rbnd'
 
-      CHARACTER*7 where
-
-      DATA where/'gforspt'/
-
 c      CALL getused(tgforpt1)
 c
 c--Allow for tracing flow

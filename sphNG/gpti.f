@@ -25,10 +25,6 @@ c************************************************************
       INCLUDE 'COMMONS/delay'
       INCLUDE 'COMMONS/rbnd'
 
-      CHARACTER*7 where
-
-      DATA where/'gpti'/
-
       CALL getused(tgforpt1)
 c
 c--Allow for tracing flow

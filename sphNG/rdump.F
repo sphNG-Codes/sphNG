@@ -944,7 +944,7 @@ c************************************************************
       REAL*4 rho(idim), dgrav(idim), gradhs(2,idim),
      &     alphaMM(isizealphaMM,idim)
       DIMENSION isteps(idim), xyzmh(5,idim), vxyzu(4,idim), 
-     &     Bevolxyz(3,imhd), Bxyz(3,imhd), ekcle(5,iradtrans)
+     &     Bevolxyz(imhdevol,imhd), Bxyz(3,imhd), ekcle(5,iradtrans)
       DIMENSION listpm(iptdim),spinx(iptdim),spiny(iptdim),
      &     spinz(iptdim),angaddx(iptdim),angaddy(iptdim),
      &     angaddz(iptdim),spinadx(iptdim),spinady(iptdim),
@@ -994,7 +994,7 @@ c
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
-                  DO j = 1, 3
+                  DO j = 1, imhdevol
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                   END DO
                   DO j = 1, 3
@@ -1038,7 +1038,7 @@ c
                      END DO
                   ENDIF
                   IF (imhd.EQ.idim) THEN
-                     DO j = 1, 3
+                     DO j = 1, imhdevol
                         Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                      END DO
                      DO j = 1, 3
@@ -1075,7 +1075,7 @@ c
                      END DO
                   ENDIF
                    IF (imhd.EQ.idim) THEN
-                     DO j = 1, 3
+                     DO j = 1, imhdevol
                         Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                      END DO
                      DO j = 1, 3
@@ -1116,7 +1116,7 @@ c
                      END DO
                   ENDIF
                    IF (imhd.EQ.idim) THEN
-                     DO j = 1, 3
+                     DO j = 1, imhdevol
                         Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                      END DO
                      DO j = 1, 3
@@ -1153,7 +1153,7 @@ c
                      END DO
                   ENDIF
                    IF (imhd.EQ.idim) THEN
-                     DO j = 1, 3
+                     DO j = 1, imhdevol
                         Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                      END DO
                      DO j = 1, 3
@@ -1190,7 +1190,7 @@ c
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
-                  DO j = 1, 3
+                  DO j = 1, imhdevol
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                   END DO
                   DO j = 1, 3
@@ -1227,7 +1227,7 @@ c
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
-                  DO j = 1, 3
+                  DO j = 1, imhdevol
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                   END DO
                   DO j = 1, 3
@@ -1268,7 +1268,7 @@ c
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
-                  DO j = 1, 3
+                  DO j = 1, imhdevol
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                   END DO
                   DO j = 1, 3
@@ -1305,7 +1305,7 @@ c
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
-                  DO j = 1, 3
+                  DO j = 1, imhdevol
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                   END DO
                   DO j = 1, 3
@@ -1342,7 +1342,7 @@ c
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
-                  DO j = 1, 3
+                  DO j = 1, imhdevol
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                   END DO
                   DO j = 1, 3
@@ -1379,7 +1379,7 @@ c
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
-                  DO j = 1, 3
+                  DO j = 1, imhdevol
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                   END DO
                   DO j = 1, 3
@@ -1416,7 +1416,7 @@ c
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
-                  DO j = 1, 3
+                  DO j = 1, imhdevol
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                   END DO
                   DO j = 1, 3
@@ -1453,7 +1453,7 @@ c
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
-                  DO j = 1, 3
+                  DO j = 1, imhdevol
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                   END DO
                   DO j = 1, 3
@@ -1490,7 +1490,7 @@ c
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
-                  DO j = 1, 3
+                  DO j = 1, imhdevol
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                   END DO
                   DO j = 1, 3
@@ -1527,7 +1527,7 @@ c
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN
-                  DO j = 1, 3
+                  DO j = 1, imhdevol
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                   END DO
                   DO j = 1, 3
@@ -1665,7 +1665,7 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
                   END DO
                ENDIF
                IF (imhd.EQ.idim) THEN               
-                  DO j = 1, 3
+                  DO j = 1, imhdevol
                      Bevolxyz(j,icountnew) = Bevolxyz(j,i)
                   END DO
                   DO j = 1, 3

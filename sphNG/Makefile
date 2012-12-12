@@ -102,6 +102,31 @@ ifeq ($(SYSTEM), zen)
     ZZFILE= zzibm.f
 endif
 
+ifeq ($(SYSTEM), complexity)
+    ifeq ($(mpiall), yes)
+       FC= mpiifort
+#       FC= ifort -lmpi
+    else
+       FC= ifort
+    endif
+    FFLAGS= -O3 -axAVX -ipo -mcmodel=medium -WB \
+            -warn nousage -warn uninitialized -warn unused -warn truncated_source\
+            -warn interfaces -nogen-interfaces
+# -check
+#To use above MPI check need to:
+#source /sw/sdev/itac/7.2.0.011/bin/itacvars.csh
+#
+    OMPFLAG= -openmp #-DZEN
+    DBLFLAG= -r8
+    DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -convert big_endian
+    ENDIANFLAGLITTLE= -convert little_endian
+#    ZEN_PIN = pin_to_cpu.o
+# or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
+    ZZFILE= zzibm.f
+endif
+
 ifeq ($(SYSTEM), ukaff1a)
     ifeq ($(mpiall), yes)
         FC= mpif77 -qnosave

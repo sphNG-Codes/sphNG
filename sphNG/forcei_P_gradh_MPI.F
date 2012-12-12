@@ -755,8 +755,8 @@ c
 c
 c--compute divB
 c
-c                  divBi = divBi - grpmi*projdB
-                  divBi = divBi - weight*grkerntable*hi1*projdB
+                  divBi = divBi - grpmi*projdB
+c                  divBi = divBi - weight*grkerntable*hi1*projdB
 c
 c--compute current
 c
@@ -1639,7 +1639,7 @@ c
             forcezi = forcezi + fanisozi
 
 c            IF (ipart.LE.npart) THEN
-               divcurlB(1,ipart) = divBi !!*rho1i
+               divcurlB(1,ipart) = divBi *rho1i
                curlBxi = curlBxi*rho1i
                curlByi = curlByi*rho1i
                curlBzi = curlBzi*rho1i

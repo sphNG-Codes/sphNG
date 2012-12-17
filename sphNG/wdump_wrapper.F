@@ -571,6 +571,7 @@ c
                f2Bxyz(k,i) = tempsort(i)
             END DO
          END DO
+
          DO k = 1, 3
             DO i = 1, npart
                tempsort(i) = Bxyz(k,llist(i))
@@ -578,7 +579,15 @@ c
             DO i = 1, npart
                Bxyz(k,i) = tempsort(i)
             END DO
+         END DO
 
+         DO k = 1, 4
+            DO i = 1, npart
+               tempsort(i) = divcurlB(k,llist(i))
+            END DO
+            DO i = 1, npart
+               divcurlB(k,i) = tempsort(i)
+            END DO
          END DO
       ENDIF
 c

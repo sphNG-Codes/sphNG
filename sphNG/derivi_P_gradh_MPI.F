@@ -276,12 +276,14 @@ c
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
       CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, imhdevolREAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(isizealphaMM,MPI_REAL4,ialphaREAL4,ierr)
 
       CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(imhdevolREAL8,ierr)
       CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
@@ -351,11 +353,18 @@ c     &                  1,llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
                         ENDIF
 
                         IF (imhd.EQ.idim) THEN
+
 c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
 c     &                  1,llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
                 CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
      &                  llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI3,ierr)
+
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),imhdevolREAL8,
+     &                       indexMPIimhdevol,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPIimhdevol,ierr)
+
                         ENDIF
 
 c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
@@ -407,13 +416,14 @@ c     &    iorig(llistsentback(1,j+1)+1),MPI_INTEGER8,indexMPI_I8,ierr)
                            print *,iproc,' sent Bxyz to ',j
 #endif
 
-                           CALL MPI_SEND(Bevolxyz,1,indexMPI3,j,28,
-     &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(Bevolxyz,1,indexMPIimhdevol,
+     &                          j,28,MPI_COMM_WORLD, ierr)
 #ifdef MPIDEBUG
                            print *,iproc,' sent Bevolxyz to ',j
 #endif
 
                            CALL MPI_TYPE_FREE(indexMPI3,ierr)
+                           CALL MPI_TYPE_FREE(indexMPIimhdevol,ierr)
                         ENDIF
 
                         IF (ifsvi.EQ.6 .OR. imhd.EQ.idim) THEN
@@ -541,9 +551,11 @@ c     &                 istart+inumber)
                      print *,iproc,': got Bxyz from ',iprocrec,icheck
 #endif
 
-                     CALL MPI_RECV(Bevolxyz(1,istart),inumber,i3REAL8,
-     &                  iprocrec, 28, MPI_COMM_WORLD, istatus, ierr)
-                     CALL MPI_GET_COUNT(istatus,i3REAL8,icheck,ierr)
+                     CALL MPI_RECV(Bevolxyz(1,istart),inumber,
+     &                    imhdevolREAL8, iprocrec, 28, 
+     &                    MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,imhdevolREAL8,
+     &                    icheck,ierr)
                      IF (icheck.NE.inumber) THEN
                         WRITE (*,*) 'ERROR - icheck.NE.inumber 7 ',
      &                       iproc
@@ -1256,12 +1268,16 @@ c               print *,iproc,': got poten from ',iprocrec
                END DO
 
                IF (imhd.EQ.idim) THEN
-               CALL MPI_RECV(dBevolxyz(1,istartrec),3*maxnneighsentback,
-     &              MPI_REAL8,iprocrec,32,MPI_COMM_WORLD,istatus,
-     &              ierr)
+               CALL MPI_RECV(dBevolxyz(1,istartrec),
+     &                 imhdevol*maxnneighsentback,
+     &                 MPI_REAL8,iprocrec,32,MPI_COMM_WORLD,istatus,
+     &                 ierr)
                   CALL MPI_GET_COUNT(istatus,MPI_REAL8,ireturned,ierr)
-                  IF (ireturned.NE.3*nneighsentback(iprocrec+1)) THEN
-               WRITE (*,*) 'ERROR - ireturned.NE.3*nnsentback dBevolxyz'
+                  IF (ireturned.NE.imhdevol*nneighsentback(iprocrec+1))
+     &                 THEN
+               WRITE (*,*) 'ERROR - ireturned.NE.imhdevol',
+     &                    '*nnsentback dBevolxyz ',imhdevol,
+     &                    nneighsentback(iprocrec+1),ireturned
                      CALL quit
                   ENDIF
 #ifdef MPIDEBUG
@@ -1271,7 +1287,7 @@ c               print *,iproc,': got poten from ',iprocrec
                   DO l = 1, nneighsentback(iprocrec+1)
                      ipos = llistsentback(l,iprocrec+1)+1
                      jpos = istartrec + l - 1
-                     DO k = 1, 3
+                     DO k = 1, imhdevol
                         dBevolxyz(k,ipos) = dBevolxyz(k,ipos) + 
      &                       dBevolxyz(k,jpos)
                      END DO
@@ -1329,7 +1345,7 @@ c
      &                 iprocsend,31,MPI_COMM_WORLD, ierr)
 
                   IF (imhd.EQ.idim) THEN
-                     CALL MPI_SEND(dBevolxyz(1,istart),3*inumber,
+                     CALL MPI_SEND(dBevolxyz(1,istart),imhdevol*inumber,
      &                 MPI_REAL8,iprocsend,32,MPI_COMM_WORLD, ierr)
                      CALL MPI_SEND(divcurlB(1,istart),4*inumber,
      &                 MPI_REAL4,iprocsend,33,MPI_COMM_WORLD, ierr)
@@ -1362,6 +1378,7 @@ c
       CALL MPI_TYPE_FREE(i2REAL4,ierr)
       CALL MPI_TYPE_FREE(i3REAL8,ierr)
       CALL MPI_TYPE_FREE(i4REAL8,ierr)
+      CALL MPI_TYPE_FREE(imhdevolREAL8,ierr)
       CALL MPI_TYPE_FREE(i5REAL8,ierr)
 
 #ifdef MPIDEBUG

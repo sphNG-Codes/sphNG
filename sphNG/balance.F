@@ -60,6 +60,7 @@ c--Make derived types
 c
       CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(imhdevol, MPI_REAL8, imhdevolREAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL4, i4REAL4, ierr)
@@ -70,6 +71,7 @@ c
 
       CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(imhdevolREAL8,ierr)
       CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
       CALL MPI_TYPE_COMMIT(i4REAL4,ierr)
@@ -224,6 +226,11 @@ c     &       lsendlist, i4REAL8, indexMPI4, ierr)
      &                       lblocklengths, lsendlist, i4REAL8, 
      &                       indexMPI4, ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
+
+                        CALL MPI_TYPE_INDEXED(numlist(j+1), 
+     &                       lblocklengths, lsendlist, imhdevolREAL8, 
+     &                       indexMPIimhdevol, ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPIimhdevol,ierr)
 
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
 c     &       lsendlist, i3REAL8, indexMPI3, ierr)
@@ -404,17 +411,20 @@ c     &                          MPI_COMM_WORLD, ierr)
      &                       MPI_COMM_WORLD, ierr)
 
                         IF (imhd.EQ.idim) THEN
-                           CALL MPI_SEND(Bevolxyz,1,indexMPI3,j,116,
-     &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(Bevolxyz,1,indexMPIimhdevol,
+     &                          j,116,MPI_COMM_WORLD, ierr)
+
+                           CALL MPI_SEND(dumBevolxyz,1,indexMPIimhdevol,
+     &                          j,162,MPI_COMM_WORLD, ierr)
 
                            CALL MPI_SEND(Bxyz,1,indexMPI3,j,117,
      &                          MPI_COMM_WORLD, ierr)
                   
-                           CALL MPI_SEND(f1Bxyz,1,indexMPI3,j,118,
-     &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(f1Bxyz,1,indexMPIimhdevol,
+     &                          j,118,MPI_COMM_WORLD, ierr)
                   
-                           CALL MPI_SEND(f2Bxyz,1,indexMPI3,j,119,
-     &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(f2Bxyz,1,indexMPIimhdevol,
+     &                          j,119,MPI_COMM_WORLD, ierr)
 
                            CALL MPI_SEND(divcurlB,1,indexMPI44,j,160,
      &                          MPI_COMM_WORLD, ierr)
@@ -438,6 +448,7 @@ c
                         CALL MPI_TYPE_FREE(indexMPI_INT,ierr)
                         CALL MPI_TYPE_FREE(indexMPIR,ierr)
                         CALL MPI_TYPE_FREE(indexMPI3,ierr)
+                        CALL MPI_TYPE_FREE(indexMPIimhdevol,ierr)
                         CALL MPI_TYPE_FREE(indexMPI4,ierr)
                         CALL MPI_TYPE_FREE(indexMPI5,ierr)
 #ifdef MPIDEBUGT
@@ -822,9 +833,21 @@ c                  ENDIF
                ENDIF
 
                IF (imhd.EQ.idim) THEN
-                  CALL MPI_RECV(Bevolxyz(1,npartnew+1), idim, i3REAL8,
+                  CALL MPI_RECV(Bevolxyz(1,npartnew+1), idim, 
+     &                 imhdevolREAL8,
      &                 iprocrec, 116, MPI_COMM_WORLD, istatus, ierr)
-                  CALL MPI_GET_COUNT(istatus, i3REAL8, inumber, ierr)
+                  CALL MPI_GET_COUNT(istatus, imhdevolREAL8, 
+     &                 inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber'
+                     CALL quit
+                  ENDIF
+
+                  CALL MPI_RECV(dumBevolxyz(1,npartnew+1), idim, 
+     &                 imhdevolREAL8,
+     &                 iprocrec, 162, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, imhdevolREAL8, 
+     &                 inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber'
                      CALL quit
@@ -838,17 +861,21 @@ c                  ENDIF
                      CALL quit
                   ENDIF
 
-                  CALL MPI_RECV(f1Bxyz(1,npartnew+1), idim, i3REAL8,
+                  CALL MPI_RECV(f1Bxyz(1,npartnew+1), idim, 
+     &                 imhdevolREAL8,
      &                 iprocrec, 118, MPI_COMM_WORLD, istatus, ierr)
-                  CALL MPI_GET_COUNT(istatus, i3REAL8, inumber, ierr)
+                  CALL MPI_GET_COUNT(istatus, imhdevolREAL8, 
+     &                 inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber'
                      CALL quit
                   ENDIF
                   
-                  CALL MPI_RECV(f2Bxyz(1,npartnew+1), idim, i3REAL8,
+                  CALL MPI_RECV(f2Bxyz(1,npartnew+1), idim, 
+     &                 imhdevolREAL8,
      &                 iprocrec, 119, MPI_COMM_WORLD, istatus, ierr)
-                  CALL MPI_GET_COUNT(istatus, i3REAL8, inumber, ierr)
+                  CALL MPI_GET_COUNT(istatus, imhdevolREAL8, 
+     &                 inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber'
                      CALL quit
@@ -1200,6 +1227,7 @@ c
       CALL MPI_TYPE_FREE(i4REAL4,ierr)
       CALL MPI_TYPE_FREE(i2REAL4,ierr)
       CALL MPI_TYPE_FREE(i3REAL8,ierr)
+      CALL MPI_TYPE_FREE(imhdevolREAL8,ierr)
       CALL MPI_TYPE_FREE(i4REAL8,ierr)
       CALL MPI_TYPE_FREE(i5REAL8,ierr)
 c
@@ -2021,12 +2049,15 @@ c         h2mol(ito) = h2mol(ifrom)
          f2ha(i,ito) = f2ha(i,ifrom)
       END DO
       IF (imhd.EQ.idim) THEN
-         DO i = 1, 3
+         DO i = 1, imhdevol
             Bevolxyz(i,ito) = Bevolxyz(i,ifrom)
             dumBevolxyz(i,ito) = dumBevolxyz(i,ifrom)
             Bxyz(i,ito) = Bxyz(i,ifrom)
             f1Bxyz(i,ito) = f1Bxyz(i,ifrom)
             f2Bxyz(i,ito) = f2Bxyz(i,ifrom)
+         END DO
+         DO i = 1, 3
+            Bxyz(i,ito) = Bxyz(i,ifrom)
          END DO
          DO i = 1, 4
             divcurlB(i,ito) = divcurlB(i,ifrom)

@@ -348,6 +348,7 @@ C$OMP END PARALLEL DO
       CALL MPI_TYPE_CONTIGUOUS(15, MPI_REAL8, i15REAL8, ierr)
 c      CALL MPI_TYPE_CONTIGUOUS(12, MPI_REAL8, i12REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(imhdevol, MPI_REAL8, imhdevolREAL8,ierr)
       CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
@@ -355,6 +356,7 @@ c      CALL MPI_TYPE_CONTIGUOUS(12, MPI_REAL8, i12REAL8, ierr)
       CALL MPI_TYPE_COMMIT(i15REAL8,ierr)
 c      CALL MPI_TYPE_COMMIT(i12REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(imhdevolREAL8,ierr)
       CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
@@ -2324,9 +2326,9 @@ c     &                  indexMPI_INT1,ierr)
 
                            IF (imhd.EQ.idim) THEN
 c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
-c     &                  1,llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
+c     &                  1,llistsentback(1,j+1),imhdevolREAL8,indexMPI3,ierr)
                 CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
-     &                  llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
+     &             llistsentback(1,j+1),imhdevolREAL8,indexMPI3,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI3,ierr)
 
                               CALL MPI_SEND(Bevol,1,indexMPI3,j,44,
@@ -2414,9 +2416,11 @@ c      ENDIF
                   ENDIF
 
                   IF (imhd.EQ.idim) THEN
-                     CALL MPI_RECV(Bevol(1,istart),inumber,i3REAL8,
-     &                    iprocrec, 44, MPI_COMM_WORLD, istatus, ierr)
-                     CALL MPI_GET_COUNT(istatus, i3REAL8, icheck, ierr)
+                     CALL MPI_RECV(Bevol(1,istart),inumber,
+     &                    imhdevolREAL8, iprocrec, 44, MPI_COMM_WORLD, 
+     &                    istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus, imhdevolREAL8, 
+     &                    icheck, ierr)
                      IF (icheck.NE.inumber) THEN
                         WRITE (*,*) 'ERROR - icheck.NE.inumber 4 ',
      &                       iproc
@@ -2731,6 +2735,7 @@ c
       CALL MPI_TYPE_FREE(i2REAL4,ierr)
       CALL MPI_TYPE_FREE(i3REAL8,ierr)
       CALL MPI_TYPE_FREE(i4REAL8,ierr)
+      CALL MPI_TYPE_FREE(imhdevolREAL8,ierr)
       CALL MPI_TYPE_FREE(i5REAL8,ierr)
 c      CALL MPI_TYPE_FREE(i12REAL8,ierr)
       CALL MPI_TYPE_FREE(i15REAL8,ierr)

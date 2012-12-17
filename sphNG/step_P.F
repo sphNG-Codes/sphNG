@@ -2616,13 +2616,14 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst0,llist,Bevolxyz,realtransfer5to15)
 C$OMP& private(j,k)
             DO j = 1, nlst0
-               DO k = 1, 3
-                  realtransfer5to15((j-1)*3+k) = Bevolxyz(k,llist(j))
+               DO k = 1, imhdevol
+                  realtransfer5to15((j-1)*imhdevol+k) = 
+     &                 Bevolxyz(k,llist(j))
                END DO
             END DO
 C$OMP END PARALLEL DO
          ENDIF
-         CALL MPI_BCAST(realtransfer5to15,nlst0*3,MPI_REAL8,0,
+         CALL MPI_BCAST(realtransfer5to15,nlst0*imhdevol,MPI_REAL8,0,
      &        MPI_COMM_WORLD,ierr)
          IF (iproc.NE.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -2630,8 +2631,8 @@ C$OMP& shared(nlst0,llist,Bevolxyz,realtransfer5to15)
 C$OMP& private(i,j,k)
             DO j = 1, nlst0
                i = llist(j)
-               DO k = 1, 3
-                  Bevolxyz(k,i) = realtransfer5to15((j-1)*3 + k)
+               DO k = 1, imhdevol
+                  Bevolxyz(k,i) = realtransfer5to15((j-1)*imhdevol + k)
                END DO
             END DO
 C$OMP END PARALLEL DO
@@ -3266,7 +3267,7 @@ c
                      ENDDO
                   ENDIF
                   IF (imhd.EQ.idim) THEN
-                     DO l = 1, 3
+                     DO l = 1, imhdevol
                         dumBevolxyz(l,j) = Bevolxyz(l,j) 
      &                                   + deltat*f1Bxyz(l,j)
                      ENDDO

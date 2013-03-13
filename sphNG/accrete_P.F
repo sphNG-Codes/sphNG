@@ -463,7 +463,11 @@ c
                   grwtij = (grwij(index) + dgrwdx*dxx)*hmean41
                   dfptdx = (fpoten(index1) - fpoten(index))*ddvtable
                   phi = (fpoten(index) + dfptdx*dxx)/hmean
-                  IF (v2.GT.1.) phi = phi + rij1/15.0
+                  IF (v.GT.part2kernel) THEN
+                     phi = phi + rij1*part2potenkernel
+                  ELSEIF (v.GT.part1kernel) THEN
+                     phi = phi + rij1*part1potenkernel
+                  ENDIF
                ELSE
                   grwtij = 0.
                   phi = -rij1
@@ -558,7 +562,11 @@ c
                   IF (index1.GT.itable) index1 = itable
                   dfptdx = (fpoten(index1) - fpoten(index))*ddvtable
                   phi = (fpoten(index) + dfptdx*dxx)/hmean
-                  IF (v2.GT.1.) phi = phi + rij1/15.0
+                  IF (v2.GT.part2kernel**2) THEN
+                     phi = phi + rij1*part2potenkernel
+                  ELSEIF (v2.GT.part1kernel**2) THEN
+                     phi = phi + rij1*part1potenkernel
+                  ENDIF
                ELSE
                   phi = -rij1
                ENDIF

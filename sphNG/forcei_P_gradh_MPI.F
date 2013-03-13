@@ -31,6 +31,7 @@ c************************************************************
 c--this weight is equivalent to m/(rho*h^3) in the grad h version
       PARAMETER (hfact = 1.2)
       PARAMETER (weight = 1./hfact**3)
+      LOGICAL iMorris
       PARAMETER (iMorris = .FALSE.)
 
       INCLUDE 'COMMONS/physcon'
@@ -246,7 +247,7 @@ C$OMP& shared(neighb,neighover,dvtable,ddvtable,psoft)
 C$OMP& shared(fmass,fpoten,part2kernel,part1kernel,radkernel)
 C$OMP& shared(part2potenkernel,part1potenkernel,wij,grwij)
 C$OMP& shared(divv,curlv,beta,alpha,poten,dgrav,nlst0)
-C$OMP& shared(cnormk,epsil,epsil2,where,pext)
+C$OMP& shared(cnormk,doublehumpnormk,epsil,epsil2,where,pext)
 C$OMP& shared(iphase,listpm,iprint,nptmasstot,iorig)
 C$OMP& shared(alphaMMpass,alphamin,iproc)
 C$OMP& shared(h2ratio,abhpq,abeq,abHIq,abco)
@@ -683,8 +684,8 @@ c--Kernel required for gas drag calculation.
 c
                IF (gasdrag) THEN
                   dwdx = (wij(index1) - wij(index))*ddvtable
-                  wtij = (wij(index) + dwdx*dxx)*hi31*v2i*10./
-     &                 (9.*pi)
+                  wtij = (wij(index) + dwdx*dxx)*hi31*v2i*
+     &                 doublehumpnormk
                ENDIF
 c
 c--(note that kernel gradient is multiplied by gradhi)
@@ -1291,8 +1292,8 @@ c
 
                   IF (gasdrag .AND. iphase(ipart).EQ.11) THEN
                      dwdx = (wij(index1) - wij(index))*ddvtable
-                     wtij = (wij(index)+dwdx*dxx)*hj31*v2j*10./
-     &                    (9.*pi)
+                     wtij = (wij(index)+dwdx*dxx)*hj31*v2j*
+     &                    doublehumpnormk
                   ENDIF
 c
 c--(note that kernel gradient is multiplied by gradhj)

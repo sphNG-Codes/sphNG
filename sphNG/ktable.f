@@ -31,7 +31,7 @@ c
       v2max = radkernel*radkernel
       dvtable = v2max/itable
       ddvtable = itable/v2max
-      i1 = part1kernel*ddvtable
+      i1 = part1kernel*part1kernel*ddvtable
 c
 c--Build tables
 c

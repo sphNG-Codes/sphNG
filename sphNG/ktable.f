@@ -85,6 +85,10 @@ c
       selfnormkernel = 1.0
       part1potenkernel = 1.0/15.0
       part2potenkernel = 0.0
+c
+c--For dust/gas drag, need double humped kernel
+c
+      doublehumpnormk = 10./(9.*pi)
 
       RETURN
       END

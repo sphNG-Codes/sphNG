@@ -697,17 +697,12 @@ c
 c--i contribution to pressure gradient and pdv
 c
                gradp = grkerni*pro2i
-
-c                     IF (itime.EQ.100663296 .AND. icall.EQ.3) THEN
-c                        WRITE (70+iproc,*) iproc,': pr ',ipart,
-c     &                       pro2i,grkerni,pr(ipart),
-c     &                       grkerntable,hi,gradhi
-c                     ENDIF
-
-               pdvi = pdvi + grpmi*projv
-c               IF (ipart.EQ.0418 .AND. itime.GE.134217728) THEN
-c                  print *,iproc,': P0418fp ',itime,j,pdvi,grpmi,projv
-c               ENDIF
+c
+c--Only allow gas work between two gas particles
+c
+               IF (iphase(ipart).EQ.0 .AND. iphase(j).EQ.0) THEN
+                  pdvi = pdvi + grpmi*projv
+               ENDIF
 c
 c--i contribution to force softening (including pseudo-pressure term)
 c

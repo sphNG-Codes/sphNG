@@ -573,7 +573,7 @@ c--real*4
             iread = iread + 1
             READ (idisk1, END=100) (alphaMM(1,i), i=icount+1, 
      &           icount+nhydro)
-            IF (gt.NE.0.0 .AND. ifsvi.EQ.6) THEN
+            IF (gt.NE.0.0 .AND. ifsvi.GE.6) THEN
                DO i = icount+1, icount+nhydro
                   IF (alphaMM(1,i).LT.alphamin(1) .OR. 
      &                 alphaMM(1,i).GT.alphamax(1)) THEN
@@ -692,6 +692,17 @@ c
             DO j = 1, 3
                READ (idisk1, END=100) (Bxyz(j,i), i=icount+1, 
      &              icount+nmhd)
+
+c
+c--Uncomment to modify input B field
+c
+c               DO i = icount+1,
+c     &              icount+nmhd
+c                  Bxyz(1,i) = 0.
+c                  Bxyz(2,i) = 0.
+c                  Bxyz(3,i) = 10.0 + xyzmh(3,i)
+c               END DO
+
             END DO
             IF (imhdevol.EQ.4) THEN
                IF (nums4(6).NE.4) THEN
@@ -768,7 +779,7 @@ c
             ENDIF
 c--real*4
             iread = 0
-            IF (nums4(7).GT.4.AND.ifsvi.EQ.6) THEN
+            IF (nums4(7).GT.4.AND.ifsvi.GE.6) THEN
 c--skip current/div B
                DO j = 1, 4
                   iread = iread + 1
@@ -781,7 +792,7 @@ c--read artificial resistivity parameter
      &              alphaMM(isizealphaMM,icount+1:icount+min(10,nmhd))
                iread = iread + 1
             ELSE
-               IF (ifsvi.EQ.6) THEN
+               IF (ifsvi.GE.6) THEN
            WRITE(*,*) 'WARNING: resistivity parameter not found in dump'
                ENDIF
                WRITE(*,*) '=> setting alphaB=',alphamin(2),' everywhere'

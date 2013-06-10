@@ -135,7 +135,7 @@ c
             ELSE
                divvi = 0.0
             ENDIF
-            IF (ifsvi.EQ.6) THEN
+            IF (ifsvi.GE.6) THEN
                IF (imhd.EQ.idim) THEN
                   valfven2 = (Bxyz(1,i)*Bxyz(1,i) +  Bxyz(2,i)*Bxyz(2,i)
      &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)

@@ -216,7 +216,7 @@ c               print *,i,rhoi,vxyzu(4,i),etai
 
             B2i = Bxyz(1,i)**2 + Bxyz(2,i)**2 + Bxyz(3,i)**2
             vsigi = SQRT(vsound(i)**2 + B2i/rhoi)
-            IF (ifsvi.EQ.6) THEN
+            IF (ifsvi.GE.6) THEN
                etaart = alphaMMpass(2,i)*vsigi*hi
             ELSE
                etaart = alphamin(2)*vsigi*hi
@@ -297,7 +297,7 @@ c
 
                B2j = Bxyz(1,j)**2 + Bxyz(2,j)**2 + Bxyz(3,j)**2
                vsigj = SQRT(vsound(j)**2 + B2j/rhoj)
-               IF (ifsvi.EQ.6) THEN
+               IF (ifsvi.GE.6) THEN
                   etaart = alphaMMpass(2,j)*vsigj*hj
                ELSE
                   etaart = alphamin(2)*vsigj*hj

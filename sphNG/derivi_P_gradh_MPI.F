@@ -426,7 +426,7 @@ c     &    iorig(llistsentback(1,j+1)+1),MPI_INTEGER8,indexMPI_I8,ierr)
                            CALL MPI_TYPE_FREE(indexMPIimhdevol,ierr)
                         ENDIF
 
-                        IF (ifsvi.EQ.6 .OR. imhd.EQ.idim) THEN
+                        IF (ifsvi.GE.6 .OR. imhd.EQ.idim) THEN
                            CALL MPI_SEND(alphaMM,1,indexMPIalpha,j,29,
      &                          MPI_COMM_WORLD, ierr)
 #ifdef MPIDEBUG
@@ -566,7 +566,7 @@ c     &                 istart+inumber)
 #endif
                   ENDIF
 
-                  IF (ifsvi.EQ.6 .OR. imhd.EQ.idim) THEN
+                  IF (ifsvi.GE.6 .OR. imhd.EQ.idim) THEN
                      CALL MPI_RECV(alphaMM(1,istart), inumber,
      &                    ialphaREAL4, iprocrec, 29, MPI_COMM_WORLD, 
      &                    istatus, ierr)
@@ -634,8 +634,11 @@ c
             DO k = 1, imhdevol
                dBevolxyz(k,jpart) = 0.
             END DO
-            DO k = 1, 4
+            DO k = 1, 5
                divcurlB(k,jpart) = 0.
+            END DO
+            DO k = 1, 9
+               gradB(k,jpart) = 0.
             END DO
          ENDIF
       END DO
@@ -1293,12 +1296,12 @@ c               print *,iproc,': got poten from ',iprocrec
                      END DO
                   END DO
 
-               CALL MPI_RECV(divcurlB(1,istartrec),4*maxnneighsentback,
+               CALL MPI_RECV(divcurlB(1,istartrec),5*maxnneighsentback,
      &              MPI_REAL4,iprocrec,33,MPI_COMM_WORLD,istatus,
      &              ierr)
                   CALL MPI_GET_COUNT(istatus,MPI_REAL4,ireturned,ierr)
-                  IF (ireturned.NE.4*nneighsentback(iprocrec+1)) THEN
-               WRITE (*,*) 'ERROR - ireturned.NE.4*nnsentback divcurlB'
+                  IF (ireturned.NE.5*nneighsentback(iprocrec+1)) THEN
+               WRITE (*,*) 'ERROR - ireturned.NE.5*nnsentback divcurlB'
                      CALL quit
                   ENDIF
 #ifdef MPIDEBUG
@@ -1308,11 +1311,33 @@ c               print *,iproc,': got poten from ',iprocrec
                   DO l = 1, nneighsentback(iprocrec+1)
                      ipos = llistsentback(l,iprocrec+1)+1
                      jpos = istartrec + l - 1
-                     DO k = 1, 4
+                     DO k = 1, 5
                         divcurlB(k,ipos) = divcurlB(k,ipos) + 
      &                       divcurlB(k,jpos)
                      END DO
                   END DO
+
+               CALL MPI_RECV(gradB(1,istartrec),9*maxnneighsentback,
+     &              MPI_REAL4,iprocrec,34,MPI_COMM_WORLD,istatus,
+     &              ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_REAL4,ireturned,ierr)
+                  IF (ireturned.NE.9*nneighsentback(iprocrec+1)) THEN
+               WRITE (*,*) 'ERROR - ireturned.NE.9*nnsentback gradB'
+                     CALL quit
+                  ENDIF
+#ifdef MPIDEBUG
+               print *,iproc,': got gradB from ',iprocrec,
+     &              ' put into ',llistsentback(1,iprocrec+1)+1
+#endif
+                  DO l = 1, nneighsentback(iprocrec+1)
+                     ipos = llistsentback(l,iprocrec+1)+1
+                     jpos = istartrec + l - 1
+                     DO k = 1, 9
+                        gradB(k,ipos) = gradB(k,ipos) + 
+     &                       gradB(k,jpos)
+                     END DO
+                  END DO
+
                ENDIF
 
 #ifdef MPIDEBUG
@@ -1347,8 +1372,10 @@ c
                   IF (imhd.EQ.idim) THEN
                      CALL MPI_SEND(dBevolxyz(1,istart),imhdevol*inumber,
      &                 MPI_REAL8,iprocsend,32,MPI_COMM_WORLD, ierr)
-                     CALL MPI_SEND(divcurlB(1,istart),4*inumber,
+                     CALL MPI_SEND(divcurlB(1,istart),5*inumber,
      &                 MPI_REAL4,iprocsend,33,MPI_COMM_WORLD, ierr)
+                     CALL MPI_SEND(gradB(1,istart),9*inumber,
+     &                 MPI_REAL4,iprocsend,34,MPI_COMM_WORLD, ierr)
                   ENDIF
 #ifdef MPIDEBUG
                   print *,iproc,': sent forces and poten to ',iprocsend

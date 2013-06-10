@@ -1807,7 +1807,7 @@ cTEST     &                 dvdWimj*presioverrhoi2/EU0(2,i)
 c
 c--Add thermal conductivity
 c
-                  IF (ifsvi.EQ.7) THEN
+                  IF (ifsvi.EQ.17) THEN
 c                     vsig = cs - 2.0*dvdWmj05/pmjdW
                      vsig = cs
 c                  convection = (dlnTdlnP(i)-adiabaticgradient(i) + 

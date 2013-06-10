@@ -42,14 +42,14 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end,npart,listp)
 C$OMP& shared(xyzmh,dha,trho,vsound,divv,curlv)
 C$OMP& shared(iphase,iprint,ifsvi)
-C$OMP& shared(alphaMMpass,alphamin)
-C$OMP& shared(Bxyz,divcurlB,dBxyz,Bevolxyz)
+C$OMP& shared(alphaMMpass,alphamin,alphamax)
+C$OMP& shared(Bxyz,divcurlB,gradB,dBxyz,Bevolxyz)
 C$OMP& shared(ivar)
 C$OMP& private(ipart,k)
 C$OMP& private(hi,hi1,rhoi,rho1i,vsoundi)
 C$OMP& private(fi,tdecay1,source)
 C$OMP& private(Bxi,Byi,Bzi,B2i)
-C$OMP& private(vsigi,vs2i,dB2,psi)
+C$OMP& private(vsigi,vs2i,dB2,psi,gradBmag)
       DO n = nlst_in, nlst_end
          ipart = ivar(3,n)
          
@@ -80,7 +80,7 @@ c
 c--Dissipation below only applies to gas particles
 c
          IF (iphase(ipart).EQ.0) THEN
-            IF (ifsvi.EQ.6) THEN
+            IF (ifsvi.GE.6) THEN
                hi = xyzmh(5,ipart)
                hi1 = 1./hi
                rhoi = trho(ipart)
@@ -116,21 +116,45 @@ cc     &           MIN(divv(ipart)*rho1i+0.5*vsoundi*hi1,0.0)
                dha(2,ipart) = (alphamin(1)-alphaMMpass(1,ipart))*
      &              tdecay1 - MIN(divv(ipart)*rho1i,0.0) !!*fi
                IF (imhd.EQ.idim) THEN
-                  dB2 = divcurlB(1,ipart)**2 + divcurlB(2,ipart)**2
-     &                 + divcurlB(3,ipart)**2 + divcurlB(4,ipart)**2
+c                  dB2 = divcurlB(1,ipart)**2 + divcurlB(2,ipart)**2
+c     &                 + divcurlB(3,ipart)**2 + divcurlB(4,ipart)**2
+c                  IF (B2i.GT.tiny) THEN
+c                     source = SQRT(MAX(dB2*rho1i,
+c     &                    vs2i*divcurlB(1,ipart)**2/B2i))
+c                  ELSE
+c                     source = SQRT(dB2*rho1i)
+c                  ENDIF
+c                  dha(3,ipart) = (alphamin(2)-alphaMMpass(2,ipart))*
+c     &                 tdecay1 + source
+
+                  gradBmag = 0.
+                  
+c                  write (*,*) ipart,SQRT(xyzmh(1,ipart)**2 + 
+c     &                 xyzmh(2,ipart)**2 + xyzmh(3,ipart)**2),
+c     &                 gradB(9,ipart),gradB(7,ipart),gradB(8,ipart),
+c     &                 gradB(6,ipart)
+
+
+                  DO k = 1, 9
+                     gradBmag = gradBmag + gradB(k,ipart)**2
+                  END DO
+                  gradBmag = SQRT(gradBmag)
+
                   IF (B2i.GT.tiny) THEN
-                     source = SQRT(MAX(dB2*rho1i,
-     &                    vs2i*divcurlB(1,ipart)**2/B2i))
+                     dha(3,ipart) = MAX(MIN(hi * gradBmag /
+     &                    SQRT(B2i),alphamax(2) ),alphamin(2) )
                   ELSE
-                     source = SQRT(dB2*rho1i)
+                     dha(3,ipart) = 0.0
                   ENDIF
-                  dha(3,ipart) = (alphamin(2)-alphaMMpass(2,ipart))*
-     &                 tdecay1 + source
 
                   IF (imhdevol.EQ.4) THEN
                      psi = Bevolxyz(4,ipart)
+
+                     vs2i = vs2i ! * 100.0
+                     vsigi = vsigi ! * 10.0
+
                      dBxyz(4,ipart) = - vs2i*divcurlB(1,ipart)
-     &                    - 0.4*vsigi*hi1*psi
+     &                    - 0.8*vsigi*hi1*psi
      &                    - 0.5*divv(ipart)*rho1i*psi
                   ENDIF
                ENDIF

@@ -694,6 +694,38 @@ C$OMP& private(i,ipart)
             END DO
 C$OMP END PARALLEL DO
          ENDIF
+c
+c--Compute divBcleaning via subcycling (NOTE: If used with implicit resistivity
+c     there MAY NEED to be an MPI transfer between here and the above implicit
+c     resistivity call)
+c
+         IF (.FALSE.) THEN
+            CALL divBclean_subcycle(dt,npart,xyzmh,dumrho,Bevolxyz)
+
+            IF (varmhd.EQ.'Bvol') THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst_in,nlst_end,Bevolxyz,Bxyz,llist)
+C$OMP& private(i,ipart)
+               DO i = nlst_in,nlst_end
+                  ipart = llist(i)
+                  Bxyz(1,ipart) = Bevolxyz(1,ipart)
+                  Bxyz(2,ipart) = Bevolxyz(2,ipart)
+                  Bxyz(3,ipart) = Bevolxyz(3,ipart)
+               END DO
+C$OMP END PARALLEL DO
+            ELSEIF (varmhd.EQ.'Brho') THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst_in,nlst_end,Bevolxyz,Bxyz,llist,dumrho)
+C$OMP& private(i,ipart)
+               DO i = nlst_in,nlst_end
+                  ipart = llist(i)
+                  Bxyz(1,ipart) = Bevolxyz(1,ipart)*dumrho(ipart)
+                  Bxyz(2,ipart) = Bevolxyz(2,ipart)*dumrho(ipart)
+                  Bxyz(3,ipart) = Bevolxyz(3,ipart)*dumrho(ipart)
+               END DO
+C$OMP END PARALLEL DO
+            ENDIF
+         ENDIF
 
 #ifdef MPI
 c

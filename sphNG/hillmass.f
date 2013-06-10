@@ -16,7 +16,7 @@ c  sink particles to be used.
       INCLUDE 'COMMONS/typef'
       INCLUDE 'COMMONS/pxpy'
 
-      EQUIVALENCE (ilist, next1)
+c      EQUIVALENCE (ilist, next1)
       EQUIVALENCE (rr, tempsort)
 
       REAL rr(idim), hillr, hillm, hillmass, planetmass, xmass

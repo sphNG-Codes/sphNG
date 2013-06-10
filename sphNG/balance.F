@@ -51,7 +51,7 @@ c************************************************************
       INCLUDE 'COMMONS/divcurlB'
 
       DIMENSION itempsort(idim)
-      EQUIVALENCE (itempsort, next1)
+c      EQUIVALENCE (itempsort, next1)
 
       DIMENSION listtrans(idim), numlist(nummaxproc),numrecv(nummaxproc)
       DIMENSION listptmass(iptdim), listpmtrans(iptdim)
@@ -63,7 +63,7 @@ c
       CALL MPI_TYPE_CONTIGUOUS(imhdevol, MPI_REAL8, imhdevolREAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
-      CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL4, i4REAL4, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL4, i5REAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(isizealphaMM, MPI_REAL4, 
      &     ialphaREAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(isizealphaMM+1, MPI_REAL4, 
@@ -74,7 +74,7 @@ c
       CALL MPI_TYPE_COMMIT(imhdevolREAL8,ierr)
       CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
-      CALL MPI_TYPE_COMMIT(i4REAL4,ierr)
+      CALL MPI_TYPE_COMMIT(i5REAL4,ierr)
       CALL MPI_TYPE_COMMIT(ialphaREAL4,ierr)
       CALL MPI_TYPE_COMMIT(ialphaREAL41,ierr)
 
@@ -275,11 +275,11 @@ c     &       lsendlist, i2REAL4, indexMPI2, ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI2,ierr)
 
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
-c     &       lsendlist, i4REAL4, indexMPI44, ierr)
+c     &       lsendlist, i5REAL4, indexMPI54, ierr)
                         CALL MPI_TYPE_INDEXED(numlist(j+1), 
-     &                       lblocklengths, lsendlist, i4REAL4, 
-     &                       indexMPI44, ierr)
-                        CALL MPI_TYPE_COMMIT(indexMPI44,ierr)
+     &                       lblocklengths, lsendlist, i5REAL4, 
+     &                       indexMPI54, ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI54,ierr)
 
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
 c     &       lsendlist, MPI_REAL4, indexMPI1, ierr)
@@ -426,7 +426,7 @@ c     &                          MPI_COMM_WORLD, ierr)
                            CALL MPI_SEND(f2Bxyz,1,indexMPIimhdevol,
      &                          j,119,MPI_COMM_WORLD, ierr)
 
-                           CALL MPI_SEND(divcurlB,1,indexMPI44,j,160,
+                           CALL MPI_SEND(divcurlB,1,indexMPI54,j,160,
      &                          MPI_COMM_WORLD, ierr)
                         ENDIF
 
@@ -440,7 +440,7 @@ c
                         CALL MPI_TYPE_FREE(indexMPIalpha1,ierr)
                         CALL MPI_TYPE_FREE(indexMPIalpha,ierr)
                         CALL MPI_TYPE_FREE(indexMPI1,ierr)
-                        CALL MPI_TYPE_FREE(indexMPI44,ierr)
+                        CALL MPI_TYPE_FREE(indexMPI54,ierr)
                         CALL MPI_TYPE_FREE(indexMPI2,ierr)
                         CALL MPI_TYPE_FREE(indexMPI_INT8,ierr)
                         CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
@@ -881,13 +881,14 @@ c                  ENDIF
                      CALL quit
                   ENDIF
 
-                  CALL MPI_RECV(divcurlB(1,npartnew+1), idim, i4REAL4,
+                  CALL MPI_RECV(divcurlB(1,npartnew+1), idim, i5REAL4,
      &                 iprocrec, 160, MPI_COMM_WORLD, istatus, ierr)
-                  CALL MPI_GET_COUNT(istatus, i4REAL4, inumber, ierr)
+                  CALL MPI_GET_COUNT(istatus, i5REAL4, inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber'
                      CALL quit
                   ENDIF
+
                ENDIF
 
                IF (encal.EQ.'r') THEN
@@ -1224,7 +1225,7 @@ c
 
       CALL MPI_TYPE_FREE(ialphaREAL41,ierr)
       CALL MPI_TYPE_FREE(ialphaREAL4,ierr)
-      CALL MPI_TYPE_FREE(i4REAL4,ierr)
+      CALL MPI_TYPE_FREE(i5REAL4,ierr)
       CALL MPI_TYPE_FREE(i2REAL4,ierr)
       CALL MPI_TYPE_FREE(i3REAL8,ierr)
       CALL MPI_TYPE_FREE(imhdevolREAL8,ierr)
@@ -2059,7 +2060,7 @@ c         h2mol(ito) = h2mol(ifrom)
          DO i = 1, 3
             Bxyz(i,ito) = Bxyz(i,ifrom)
          END DO
-         DO i = 1, 4
+         DO i = 1, 5
             divcurlB(i,ito) = divcurlB(i,ifrom)
          END DO
       ENDIF

@@ -187,7 +187,7 @@ c
             ENDDO
 c
 c--always initialise resistivity (assumes constant value of alphamin
-c  if ifsvi.ne.6)
+c  if ifsvi.lt.6)
 c
          ELSEIF (imhd.EQ.idim .and. abs(gt).LT.tiny) THEN
             alphaMM(2,i) = alphamin(2)

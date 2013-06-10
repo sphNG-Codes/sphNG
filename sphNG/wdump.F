@@ -60,7 +60,7 @@ c#endif
       INCLUDE 'COMMONS/planetesimal'
 
       DIMENSION itempsort(idim)
-      EQUIVALENCE (itempsort, next1)
+c      EQUIVALENCE (itempsort, next1)
 
       CHARACTER*7 where
       CHARACTER*100 fileident
@@ -379,7 +379,7 @@ c
             ENDIF
          ENDIF
          nums(7) = 7
-         nums(7) = 13
+c         nums(7) = 13
          nums(8) = 0
          WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
       ENDIF
@@ -551,12 +551,12 @@ c--real*4
      &        i=1,nprint)
          WRITE(idisk1, ERR=100) (etaartificial(isort(i)),
      &        i=1,nprint)
-         DO j = 1, 3
-            WRITE (idisk1, ERR=100) (force_sym(j,isort(i)), i=1, nprint)
-         ENDDO
-         DO j = 1, 3
-            WRITE (idisk1, ERR=100) (force_an(j,isort(i)), i=1, nprint)
-         ENDDO
+c         DO j = 1, 3
+c            WRITE (idisk1, ERR=100) (force_sym(j,isort(i)), i=1, nprint)
+c         ENDDO
+c         DO j = 1, 3
+c            WRITE (idisk1, ERR=100) (force_an(j,isort(i)), i=1, nprint)
+c         ENDDO
 c--real*8
 
       ENDIF

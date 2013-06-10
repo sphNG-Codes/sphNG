@@ -3,8 +3,8 @@ c--divergence of the magnetic field and the current density J
 c
 c--resistivity values (for dump file)
 c
-      REAL*4 divcurlB
-      COMMON /divBJ/ divcurlB(4,imhd2)
+      REAL*4 divcurlB, gradB
+      COMMON /divBJ/ divcurlB(5,imhd2), gradB(9,imhd2)
 
       REAL*4 etareal,etaartificial
       COMMON /etavar/ etareal(imhd),etaartificial(imhd)

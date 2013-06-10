@@ -253,7 +253,7 @@ C$OMP& shared(alphaMMpass,alphamin,iproc)
 C$OMP& shared(h2ratio,abhpq,abeq,abHIq,abco)
 C$OMP& shared(igrp,igphi,ifsvi,iexf)
 C$OMP& shared(ifcor,iexpan,iener,damp)
-C$OMP& shared(realtime,ekcle,encal,dedxyz,acc,it1,imax)
+C$OMP& shared(realtime,ekcle,encal,dedxyz,acc,it1,imax,gradB)
 C$OMP& shared(Bxyz,dBxyz,Bextxi,Bextyi,Bextzi,B2ext,divcurlB,Bevolxyz)
 C$OMP& shared(varmhd,iupdated,listparents)
 C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug,irotpot)
@@ -303,6 +303,9 @@ C$OMP& private(Bxj,Byj,Bzj,B2j,projBi,projBj,dBx,dBy,dBz)
 C$OMP& private(dBxideali,dByideali,dBzideali,dBxdissi,dBydissi,dBzdissi)
 C$OMP& private(Beqxi,Beqyi,Beqzi,dBxiequil,dByiequil,dBziequil)
 C$OMP& private(divBi,curlBxi,curlByi,curlBzi,fanisoxi,fanisoyi,fanisozi)
+C$OMP& private(gradBxxi,gradBxyi,gradBxzi)
+C$OMP& private(gradByxi,gradByyi,gradByzi)
+C$OMP& private(gradBzxi,gradBzyi,gradBzzi)
 C$OMP& private(dsoftxi,dsoftyi,dsoftzi,vsigi,vsigj,alphaB)
 C$OMP& private(vsproji,vsprojj,termb,vs2i,vs2j,dB2,robar1,fmi)
 C$OMP& private(grkerni,grpmi,phii,dsoftterm,dsofttermi,projdB,projbext)
@@ -478,6 +481,15 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
             curlBxi = 0.
             curlByi = 0.
             curlBzi = 0.
+            gradBxxi = 0.
+            gradBxyi = 0.
+            gradBxzi = 0.
+            gradByxi = 0.
+            gradByyi = 0.
+            gradByzi = 0.
+            gradBzxi = 0.
+            gradBzyi = 0.
+            gradBzzi = 0.
             fanisoxi = 0.
             fanisoyi = 0.
             fanisozi = 0.
@@ -759,6 +771,19 @@ c
                   curlBxi = curlBxi +grpmi*(dBy*runiz -dBz*runiy)
                   curlByi = curlByi +grpmi*(dBz*runix -dBx*runiz)
                   curlBzi = curlBzi +grpmi*(dBx*runiy -dBy*runix)
+c
+c--compute magnetic gradients
+c
+                  gradBxxi = gradBxxi - grpmi*dBx*runix
+                  gradBxyi = gradBxyi - grpmi*dBx*runiy
+                  gradBxzi = gradBxzi - grpmi*dBx*runiz
+                  gradByxi = gradByxi - grpmi*dBy*runix
+                  gradByyi = gradByyi - grpmi*dBy*runiy
+                  gradByzi = gradByzi - grpmi*dBy*runiz
+                  gradBzxi = gradBzxi - grpmi*dBz*runix
+                  gradBzyi = gradBzyi - grpmi*dBz*runiy
+                  gradBzzi = gradBzzi - grpmi*dBz*runiz
+                  
 c                  curlBxi = curlBxi + weight*grkerntable*hi1*
 c     &                               (dBy*runiz - dBz*runiy)
 c                  curlByi = curlByi + weight*grkerntable*hi1*
@@ -846,7 +871,7 @@ c--Artificial and Non-artificial resistivity
 c
                      IF (j.LE.npart .OR. ibound.EQ.11.OR.ibound.EQ.12) 
      &                    THEN
-                         IF (ifsvi.EQ.6) THEN
+                         IF (ifsvi.GE.6) THEN
                             alphaB = 0.5*(alphaMMpass(2,ipart)
      &                                  + alphaMMpass(2,j))
                          ELSE
@@ -919,6 +944,7 @@ c     If ifsvi=2 then divv/curl weighted viscosity
 c     If ifsvi=6 then viscosity switch in Morris and Monaghan, 1997,
 c                  J. Comp. Phys. 136, 41-50.  This formulation does not use
 c                  beta - it sets beta to be 2*alpha automatically.
+c     If ifsvi=7 then uses MM97 switch for the alpha, but beta is fixed at 2
 c
                      f = projv
                      IF (ifsvi.EQ.2) THEN
@@ -934,6 +960,10 @@ c
                         alphamean = (alphaMMpass(1,ipart) +
      &                       alphaMMpass(1,j))/2.0
                         t12j = alphamean*grkern*f*(2.0*f - vsbar)*robar1
+                     ELSEIF (ifsvi.EQ.7) THEN
+                        alphamean = (alphaMMpass(1,ipart) +
+     &                       alphaMMpass(1,j))/2.0
+                        t12j = grkern*f*(2.0*f - alphamean*vsbar)*robar1
                      ELSE
                         t12j = grkern*f*(beta*f - alpha*vsbar)*robar1
                      ENDIF
@@ -1393,7 +1423,7 @@ c--Artificial resistivity
 c
                         IF (j.LE.npart .OR. ibound.EQ.11.OR.ibound.EQ.12
      &                                                            ) THEN
-                           IF (ifsvi.EQ.6) THEN
+                           IF (ifsvi.GE.6) THEN
                               alphaB = 0.5*(alphaMMpass(2,ipart)
      &                                  + alphaMMpass(2,j))
                            ELSE
@@ -1465,6 +1495,7 @@ c     If ifsvi=2 then divv/curl weighted viscosity
 c     If ifsvi=6 then viscosity switch in Morris and Monaghan, 1997, 
 c                  J. Comp. Phys. 136, 41-50.  This formulation does not use
 c                  beta - it sets beta to be 2*alpha automatically.
+c     If ifsvi=7 then uses MM97 switch for the alpha, but beta is fixed at 2
 c
                         f = projv
                         IF (ifsvi.EQ.2) THEN
@@ -1480,6 +1511,10 @@ c
                            alphamean = (alphaMMpass(1,ipart) + 
      &                          alphaMMpass(1,j))/2.0
                         t12j = alphamean*grkern*f*(2.0*f - vsbar)*robar1
+                        ELSEIF (ifsvi.EQ.7) THEN
+                           alphamean = (alphaMMpass(1,ipart) + 
+     &                          alphaMMpass(1,j))/2.0
+                        t12j = grkern*f*(2.0*f - alphamean*vsbar)*robar1
                         ELSE
                            t12j = grkern*f*(beta*f - alpha*vsbar)*robar1
                         ENDIF
@@ -1642,6 +1677,16 @@ c            IF (ipart.LE.npart) THEN
                divcurlB(2,ipart) = curlBxi
                divcurlB(3,ipart) = curlByi
                divcurlB(4,ipart) = curlBzi
+
+               gradB(1,ipart) = gradBxxi*rho1i
+               gradB(2,ipart) = gradBxyi*rho1i
+               gradB(3,ipart) = gradBxzi*rho1i
+               gradB(4,ipart) = gradByxi*rho1i
+               gradB(5,ipart) = gradByyi*rho1i
+               gradB(6,ipart) = gradByzi*rho1i
+               gradB(7,ipart) = gradBzxi*rho1i
+               gradB(8,ipart) = gradBzyi*rho1i
+               gradB(9,ipart) = gradBzzi*rho1i
 c            ENDIF
 c
 c--get contributions to dBxyz and force from an external B field
@@ -1707,7 +1752,7 @@ c
 c--Morris & Monaghan switch source and decay terms for both artificial viscosity
 c  and artificial resistivity (see Price & Monaghan 2005)
 c
-         IF (ifsvi.EQ.6) THEN
+         IF (ifsvi.GE.6) THEN
             vsigi = SQRT(vs2i)
             tdecay1 = 0.2*vsigi/hi
 c--balsara factor

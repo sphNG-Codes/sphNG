@@ -57,7 +57,10 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/perform'
 
       DIMENSION itempsort(idim)
-      EQUIVALENCE (itempsort, next1)
+c
+c--EQUIVALENCE seems to give trouble with fortran compiler from ~Dec 2013
+c
+c      EQUIVALENCE (itempsort, next1)
 
       INTEGER*4 int1, int2
 c
@@ -581,7 +584,7 @@ c
             END DO
          END DO
 
-         DO k = 1, 4
+         DO k = 1, 5
             DO i = 1, npart
                tempsort(i) = divcurlB(k,llist(i))
             END DO

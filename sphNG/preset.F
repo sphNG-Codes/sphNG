@@ -174,13 +174,13 @@ c
 c
 c--Initialize viscosity switch
 c
-      IF (ifsvi.EQ.6) THEN
+      IF (ifsvi.GE.6) THEN
          alphamin(1) = alpha
          alphamax(1) = beta
       ENDIF
       
       DO i = 1, npart
-         IF (ifsvi.EQ.6 .AND. abs(gt).LT.tiny .OR. 
+         IF (ifsvi.GE.6 .AND. abs(gt).LT.tiny .OR. 
      &        alphaMM(1,i).EQ.0.0) THEN
             DO k = 1, isizealphaMM
                alphaMM(k,i) = alphamin(k)

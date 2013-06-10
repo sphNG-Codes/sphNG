@@ -229,7 +229,7 @@ ccc               isteps(i) = idtini
                   END DO
                ENDIF
 
-               IF (ifsvi.EQ.6) THEN
+               IF (ifsvi.GE.6) THEN
                   DO k=1,isizealphaMM
                      dumalpha(k,i) = alphaMM(k,i)
                   ENDDO
@@ -268,7 +268,7 @@ c
                   dumBevolxyz(k,i) = Bevolxyz(k,i)
                END DO
             ENDIF
-            IF (ifsvi.EQ.6) THEN
+            IF (ifsvi.GE.6) THEN
                DO k = 1, isizealphaMM
                  dumalpha(k,i) = alphaMM(k,ireal(i))
                ENDDO
@@ -647,7 +647,7 @@ c                  dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
             ENDIF
             IF (iener.EQ.2 .AND. dumvxyzu(4,j).LT.0.0) 
      &           dumvxyzu(4,j)=0.15
-            IF (ifsvi.EQ.6) THEN
+            IF (ifsvi.GE.6) THEN
                DO k = 1, isizealphaMM
                   dumalpha(k,j) = MAX(MIN(alphamax(k),alphaMM(k,j)+
      &           deltat*f1ha(k+1,j)),alphamin(k))
@@ -657,6 +657,10 @@ c                  dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
                DO k = 1, imhdevol
                   dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
                END DO
+c
+c--In Terrence Tricco's resistivity switch the value is set, not integrated
+c
+               dumalpha(isizealphaMM,j) = f1ha(isizealphaMM + 1,j)
             ENDIF
          ENDIF
       END DO
@@ -707,7 +711,7 @@ c            dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                      ENDIF
             IF (iener.EQ.2 .AND. dumvxyzu(4,ipart).LT.0.0) 
      &           dumvxyzu(4,ipart)=0.15
-                    IF (ifsvi.EQ.6) THEN
+                    IF (ifsvi.GE.6) THEN
                        DO k = 1, isizealphaMM
                           dumalpha(k,ipart) = MAX(MIN(alphamax(k),
      &                       alphaMM(k,ipart)+deltat*f1ha(k+1,ipart)),
@@ -719,6 +723,11 @@ c            dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                            dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) 
      &                                          + deltat*f1Bxyz(k,ipart)
                         END DO
+c
+c--In Terrence Tricco's resistivity switch the value is set, not integrated
+c
+                        dumalpha(isizealphaMM,ipart) = 
+     &                       f1ha(isizealphaMM+1,ipart)
                      ENDIF
                   ENDIF
                END DO
@@ -805,7 +814,7 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
             ENDIF
          IF (iener.EQ.2 .AND. dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
-            IF (ifsvi.EQ.6) THEN
+            IF (ifsvi.GE.6) THEN
                DO l = 1, isizealphaMM
                   dumalpha(l,j) = MAX(MIN(alphamax(l),alphaMM(l,k) +
      &                 deltat*f1ha(l+1,k)),alphamin(l))
@@ -815,6 +824,10 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                DO l = 1, imhdevol
                   dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,k)
                END DO
+c
+c--In Terrence Tricco's resistivity switch the value is set, not integrated
+c
+               dumalpha(isizealphaMM,j) = f1ha(isizealphaMM+1,k)
             ENDIF
          ENDIF
       END DO
@@ -1158,7 +1171,7 @@ cc     &           dtf21*f1vxyzu(4,i) + dtf22*f2vxyzu(4,i)
 c
 c--Update viscosity switch
 c
-            IF (ifsvi.EQ.6) THEN
+            IF (ifsvi.GE.6) THEN
                DO k = 1, isizealphaMM
                   alphaMM(k,i) = MAX(MIN(alphamax(k), alphaMM(k,i) +
      &              dtf21*f1ha(k+1,i) + dtf22*f2ha(k+1,i)),alphamin(k))
@@ -1180,6 +1193,10 @@ c
                   Bevolxyz(k,i) = Bevolxyz(k,i)
      &              + dtf21*f1Bxyz(k,i) + dtf22*f2Bxyz(k,i)
                ENDDO
+c
+c--In Terrence Tricco's resistivity switch the value is set, not integrated
+c
+               alphaMM(isizealphaMM,i) = f2ha(isizealphaMM+1,i)
             ENDIF
 c
 c--Synchronize the advanced particle times with current time
@@ -1390,7 +1407,7 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
                dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
             ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
-            IF (ifsvi.EQ.6) THEN
+            IF (ifsvi.GE.6) THEN
                DO k = 1, isizealphaMM
                   dumalpha(k,j) = MAX(MIN(alphamax(k),alphaMM(k,j)+
      &              deltat*f1ha(k+1,j)),alphamin(k))
@@ -1400,6 +1417,10 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
                DO k = 1, imhdevol
                   dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
                END DO
+c
+c--In Terrence Tricco's resistivity switch the value is set, not integrated
+c
+               dumalpha(isizealphaMM,j) = f1ha(isizealphaMM+1,j)
             ENDIF
          ENDIF
       END DO
@@ -1450,7 +1471,7 @@ c           dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                      ENDIF
                      IF (iener.EQ.2 .AND. dumvxyzu(4,ipart).LT.0.0) 
      &                    dumvxyzu(4,ipart)=0.15
-                     IF (ifsvi.EQ.6) THEN
+                     IF (ifsvi.GE.6) THEN
                         DO k = 1, isizealphaMM
                            dumalpha(k,ipart) = MAX(MIN(alphamax(k),
      &                       alphaMM(k,ipart) + deltat*f1ha(k+1,ipart)),
@@ -1462,6 +1483,11 @@ c           dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                            dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) 
      &                                          + deltat*f1Bxyz(k,ipart)
                         END DO
+c
+c--In Terrence Tricco's resistivity switch the value is set, not integrated
+c
+                        dumalpha(isizealphaMM,ipart) = 
+     &                       f1ha(isizealphaMM+1,ipart)
                      ENDIF
                   ENDIF
                END DO
@@ -1549,7 +1575,7 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
             ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
-            IF (ifsvi.EQ.6) THEN
+            IF (ifsvi.GE.6) THEN
                DO l = 1, isizealphaMM
                   dumalpha(l,j) = MAX(MIN(alphamax(l), alphaMM(l,k) 
      &               + deltat*f1ha(l+1,k)),alphamin(l))
@@ -1559,6 +1585,10 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                DO l = 1, imhdevol
                   dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,k)
                END DO
+c
+c--In Terrence Tricco's resistivity switch the value is set, not integrated
+c
+               dumalpha(isizealphaMM,j) = f1ha(isizealphaMM+1,k)
             ENDIF
          ENDIF
       END DO
@@ -2199,7 +2229,7 @@ c
          rmodcr = 1.0E10
          IF (iphase(i).EQ.0) THEN
             divvi = divv(i)/rho(i)
-            IF (ifsvi.EQ.6) THEN
+            IF (ifsvi.GE.6) THEN
                IF (imhd.EQ.idim) THEN
                   valfven2 = (Bxyz(1,i)*Bxyz(1,i) +  Bxyz(2,i)*Bxyz(2,i)
      &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
@@ -2246,7 +2276,7 @@ c     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
                   aux2 = 0.0
                ENDIF
             ENDIF
-            denom = aux3 + sqrt(vsound(i)**2 + valfven2)
+            denom = aux3 + sqrt(vsound(i)**2 + valfven2) ! * 10.0
      &                   + 1.2*(aux1 + aux2)
             crstepi = 0.3*xyzmh(5,i)/denom
             rmodcr = crstepi/(dt*isteps(i)/imaxstep)
@@ -2473,7 +2503,7 @@ c
             f1vxyzu(3,i) = f2vxyzu(3,i)
             f1vxyzu(4,i) = f2vxyzu(4,i)
             f1ha(1,i) = f2ha(1,i)
-            IF (ifsvi.EQ.6) f1ha(2,i) = f2ha(2,i)
+            IF (ifsvi.GE.6) f1ha(2,i) = f2ha(2,i)
             
 c         gravx1(i) = gravx(i)
 c         gravy1(i) = gravy(i)
@@ -2974,7 +3004,7 @@ c
                   DO k = 1, 4
                      dumvxyzu(k,j) = vxyzu(k,j)
                   END DO
-                  IF (ifsvi.EQ.6) THEN
+                  IF (ifsvi.GE.6) THEN
                      DO k = 1, isizealphaMM
                         dumalpha(k,j) = alphaMM(k,j)
                      ENDDO
@@ -3004,11 +3034,17 @@ c
                      dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                   ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
-                  IF (ifsvi.EQ.6) THEN
+                  IF (ifsvi.GE.6) THEN
                      DO l=1,isizealphaMM
                         dumalpha(l,j) = MAX(MIN(alphamax(l),
      &                   alphaMM(l,k) + deltat*f1ha(1+l,k)),alphamin(l))
                      ENDDO
+c
+c--In Terrence Tricco's resistivity switch the value is set, not integrated
+c
+                     IF (imhd.EQ.idim) THEN
+                     dumalpha(isizealphaMM,j) = f1ha(isizealphaMM+l,k)
+                     ENDIF
                   ENDIF
                ENDIF
             END DO
@@ -3227,7 +3263,7 @@ c
                   DO k = 1, 4
                      dumvxyzu(k,j) = vxyzu(k,j)
                   END DO
-                  IF (ifsvi.EQ.6) THEN
+                  IF (ifsvi.GE.6) THEN
                      DO k = 1, isizealphaMM
                         dumalpha(k,j) = alphaMM(k,j)
                      ENDDO
@@ -3260,7 +3296,7 @@ c
                      dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                   ENDIF
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
-                  IF (ifsvi.EQ.6) THEN
+                  IF (ifsvi.GE.6) THEN
                      DO l=1,isizealphaMM
                         dumalpha(l,j) = MAX(MIN(alphamax(l),
      &                   alphaMM(l,k) + deltat*f1ha(l+1,k)),alphamin(l))
@@ -3271,6 +3307,10 @@ c
                         dumBevolxyz(l,j) = Bevolxyz(l,j) 
      &                                   + deltat*f1Bxyz(l,j)
                      ENDDO
+c
+c--In Terrence Tricco's resistivity switch the value is set, not integrated
+c
+                     dumalpha(isizealphaMM,j) = f1ha(isizealphaMM+1,k)
                   ENDIF
                ENDIF
             END DO

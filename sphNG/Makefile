@@ -220,7 +220,7 @@ endif
 ifeq ($(SYSTEM), gfortran)
     FC= gfortran
     FFLAGS= -O3 -Wall
-    DBLFLAG= -fdefault-real-8
+    DBLFLAG= -fdefault-real-8 -fdefault-double-8
     OMPFLAG= -fopenmp
     DEBUGFLAG= -g ##-ftrace=full -fbounds-check
     KNOWN_SYSTEM=yes

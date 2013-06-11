@@ -2,4 +2,4 @@
      &     part1potenkernel, part2potenkernel, doublehumpnormk
       COMMON /kerne / cnormk, radkernel, part1kernel, part2kernel,
      &  selfnormkernel, part1potenkernel, part2potenkernel,
-     &	doublehumpnormk
+     &  doublehumpnormk

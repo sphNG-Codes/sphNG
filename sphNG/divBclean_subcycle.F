@@ -34,35 +34,32 @@ c     &        Bxyz(2,i)**2 + Bxyz(3,i)**2)/rho(i)
       END DO
 C$OMP END DO
 
-      itimestepfac = 64
+      nsubsteps = 64 
       divBmax = 0.
 
- 100  CALL divBsubcycle(itimestepfac,dtmax,npart,xyzmh,rho,
+ 100  CALL divBsubcycle(nsubsteps,dtmax,npart,xyzmh,rho,
      &     Bevolxyz,divBmax)
 
+      ! sanity check that substepping hasn't massively screwed up the field
       IF (divBmax.GT.1.0e+10) THEN
-         IF (itimestepfac.LT.50) THEN
-            itimestepfac = itimestepfac*2
-c
-c--Restore Bevolxyz
-c
 C$OMP DO SCHEDULE(static)
+            ! reset field to pre substepping state
             DO n = 1, ncompact
                i = ivar(3,n)
 
-c               Bevolxyz(1,i) = Bxyzporig(1,i)
-c               Bevolxyz(2,i) = Bxyzporig(2,i)
-c               Bevolxyz(3,i) = Bxyzporig(3,i)
-c               Bevolxyz(4,i) = Bxyzporig(4,i)
+               Bevolxyz(1,i) = Bxyzporig(1,i)
+               Bevolxyz(2,i) = Bxyzporig(2,i)
+               Bevolxyz(3,i) = Bxyzporig(3,i)
+               Bevolxyz(4,i) = Bxyzporig(4,i)
             END DO
 C$OMP END DO
-            GOTO 100
-         ELSE
+C            GOTO 100
+C         ELSE
             WRITE (*,*) 'divB clean FAILED '
-         ENDIF
+C         ENDIF
       ENDIF
 
-      WRITE (*,*) 'divB clean end ',divBmax,itimestepfac
+C      WRITE (*,*) 'divB clean end ',divBmax,nsubsteps
 c
 c--DO not need to replace divcurlB() since it has not yet been
 c         calculated (calculated in forcei)

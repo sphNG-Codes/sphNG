@@ -116,7 +116,8 @@ c         vs2i = vsound(i)**2 + B2i*rho1i
          vs2i = vsound(i)**2 + B2i*rhoi
 
 
-         vs2i = 10.* vs2i * nsubsteps !**2
+         ! just use regular fast MHD wave speed
+c         vs2i = 10.* vs2i * nsubsteps !**2
 
 
 
@@ -127,15 +128,7 @@ c         vs2i = vsound(i)**2 + B2i*rho1i
                dti = dtmax*1.0d-12
             ELSE
                dti = dtimax*isteps(i)*1.0d-12
-
-
-
                dti = dtimax*isteps(i)
-
-
-
-
-
             ENDIF
          ELSEIF (n.LE.nlst0) THEN
             dti = dtimax*isteps(i)
@@ -143,7 +136,7 @@ c         vs2i = vsound(i)**2 + B2i*rho1i
             dti = dtimax/2.0*isteps(i)
          ENDIF
 
-         dti = dti/nsubsteps
+c         dti = dti/nsubsteps
 
          DO k = 1, ivar(1,n)
             icompact = ivar(2,n) + k
@@ -212,8 +205,9 @@ c            pmjdWrij1rhoj = pmj*dW*vsigij/rhoj
 
          vari(1,n) = rhoi
 
+         ! don't need 0.5 divv term during substepping, only when part of full MHD equations
          vari2(1,n) = vs2i
-         vari2(2,n) = 0.8*vsigi/hi + 0.5*divv(i)*rho1i
+         vari2(2,n) = 0.8*vsigi/hi !+ 0.5*divv(i)*rho1i
          vari2(3,n) = dti
       END DO
 C$OMP END DO

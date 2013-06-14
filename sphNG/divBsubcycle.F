@@ -67,11 +67,11 @@ c
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(icall,dtimax,dtmax,isteps,npart,hasghost,ireal,nghost)
-C$OMP& shared(rho,vari,ivar,ijvar,varij)
+C$OMP& shared(rho,vari,ivar,ijvar,varij,varij2,vari2)
 C$OMP& shared(xyzmh,dvtable,ddvtable,grwij,cnormk)
-C$OMP& shared(nlst0,ihasghost)
-C$OMP& shared(Bxyznew,Bxyz,dBxyz,vsound)
-C$OMP& private(n,i,j,k,icompact)
+C$OMP& shared(nlst0,ihasghost,radkernel,gradhs)
+C$OMP& shared(Bxyzpnew,Bxyzp,Bxyzphalf,dBxyzp,vsound,ncompact)
+C$OMP& private(n,i,j,k,icompact,pmi,hj,hj21,hj41,grkerni,grkernj)
 C$OMP& private(rxyi,ryzi,rxzi,rxxi,ryyi,rzzi)
 C$OMP& private(dti,dx,dy,dz)
 C$OMP& private(rij2,rij,rij1,dr,pmj,rhoi,rhoj,hi,hi21,hi41)
@@ -107,19 +107,10 @@ C$OMP DO SCHEDULE(static)
          rhoi = rho(i)
          rho1i = 1.0/rhoi
 
-
-
-
-c         B2i = Bxyz(1,i)**2 + Bxyz(2,i)**2 + Bxyz(3,i)**2
-c         vs2i = vsound(i)**2 + B2i*rho1i
          B2i = Bxyzpnew(1,i)**2 + Bxyzpnew(2,i)**2 + Bxyzpnew(3,i)**2
          vs2i = vsound(i)**2 + B2i*rhoi
-
-
          ! just use regular fast MHD wave speed
 c         vs2i = 10.* vs2i * nsubsteps !**2
-
-
 
          vsigi = sqrt(vs2i)
 
@@ -230,7 +221,7 @@ c
  50   divBinitial = 0.
 
       DO nosweep = 1, nsubsteps
-      print *, 'it ',nosweep
+c      print *, 'it ',nosweep
 c
 c--Calculate div B and dBpsi
 c
@@ -254,8 +245,10 @@ c
 c--Can now calculate half-timestep values of B and psi
 c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(ncompact,ivar,vari2,Bxyzphalf,Bxyzpnew,varinew)
+C$OMP& shared(ncompact,ivar,vari2,Bxyzphalf,Bxyzpnew,varinew,nosweep)
+C$OMP& shared(dBxyzp)
 C$OMP& private(n,i,dti,dpsidt)
+C$OMP& reduction(MAX:divBinitial)
          DO n = 1, ncompact
             i = ivar(3,n)
 c
@@ -312,11 +305,18 @@ c--Them calculate full-timestep values of B and psi
 c
          f22 = 255./256.
 
+         divBmax = 0.
+         divBmean = 0.
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(ncompact,ivar,vari2,Bxyzphalf,Bxyzpnew,varinew)
-C$OMP& private(n,i,dti)
+C$OMP& shared(ncompact,ivar,vari2,Bxyzphalf,Bxyzpnew,dBxyzp,varinew,f22)
+C$OMP& private(n,i,dti,dpsidt)
+C$OMP& reduction(MAX:divBmax)
+C$OMP& reduction(+:divBmean)
          DO n = 1, ncompact
             i = ivar(3,n)
+
+            divBmax = MAX(divBmax,ABS(varinew(4,i)))
+            divBmean = divBmean + ABS(varinew(4,i))
 c
 c--Do the 2nd bit of full timestep integration
 c
@@ -346,6 +346,7 @@ c
             END DO
          ENDIF
 
+c         print *,'it ',nosweep,divBmax,divBmean/ncompact,ncompact
 
  333     CONTINUE
 
@@ -356,17 +357,16 @@ c--Then calculate derivatives of B and psi at the end
 c
       CALL divB_dBpsi(Bxyzpnew)
 
-      divBmax = 0.
-      DO n = 1, ncompact
-         i=ivar(3,n)
-         divBmax = MAX(divBmax,ABS(varinew(4,i)))
+c      divBmax = 0.
+c      DO n = 1, ncompact
+c         i=ivar(3,n)
 
 c         DO j = 1, 3
 c            dBevolxyz(j,i) = dBevolxyz(j,i) + 
 c     &           dBxyzp(j,i)/(vari2(3,n)*nsubsteps)
 c         END DO
 c         dBevolxyz(4,i) = dBxyzp(4,i)/(vari2(3,n)*nsubsteps)
-      END DO
+c      END DO
 
       print *,'Maximum divergence is ',divBmax,nsubsteps,divBinitial
 
@@ -392,12 +392,12 @@ cC$OMP& reduction(+:totalmagenergy)
 c
 c--Copy arrays for all particles
 c
-      DO n = 1, ncompact
-         i = ivar(3,n)
+c      DO n = 1, ncompact
+c         i = ivar(3,n)
          
 c         totalmagenergy = totalmagenergy + xyzmh(4,i)*(Bxyz(1,i)**2 +
 c     &        Bxyz(2,i)**2 + Bxyz(3,i)**2)/rho(i)
-      END DO
+c      END DO
 cC$OMP END PARALLEL DO
 
 c      print *,'Final magnetic energy   = ',totalmagenergy
@@ -426,11 +426,12 @@ c
 c--Zero arrays for storing div B and dBpsi
 c
 C$OMP PARALLEL default(none)
-C$OMP& shared(ivar,ijvar,varij,varij2)
-C$OMP& shared(Bxyzpnew,iscurrent)
-C$OMP& private(i,j,k,n,divBi,dBpsix,dBpsiy,dBpsiz)
+C$OMP& shared(ivar,ijvar,vari,varij,varij2)
+C$OMP& shared(Bxyzpnew,iscurrent,varinew,ncompact)
+C$OMP& private(i,j,k,n,divBi,dBpsix,dBpsiy,dBpsiz,rhoi,rhoj)
 C$OMP& private(icompact,pmjdWirho2i,pmidWirho2i,pmjdWjrho2j)
 C$OMP& private(runix,runiy,runiz,dBx,dBy,dBz,projdB,tempval)
+C$OMP& private(pmjdWirho1i)
 C$OMP DO SCHEDULE(runtime)
       DO n = 1, ncompact
          i = ivar(3,n)

@@ -666,7 +666,8 @@ c
 c
 c--Compute implicit magnetic resistivity
 c
-      IF (imhd.EQ.idim .AND. iresist.LT.0) THEN
+      IF (imhd.EQ.idim) THEN
+       IF (iresist.LT.0) THEN
          CALL resistivity_implicit(nlst_in,nlst_end,llist,dt,itime,
      &        npart,ntot,Bxyz,xyzmh,vxyzu,dumrho,vsound,alphaMM,nit,
      &        xerror)
@@ -694,12 +695,13 @@ C$OMP& private(i,ipart)
             END DO
 C$OMP END PARALLEL DO
          ENDIF
+       ENDIF
 c
 c--Compute divBcleaning via subcycling (NOTE: If used with implicit resistivity
 c     there MAY NEED to be an MPI transfer between here and the above implicit
 c     resistivity call)
 c
-         IF (.FALSE.) THEN
+         IF (isubcycle_divB.GT.0) THEN
             CALL divBclean_subcycle(dt,npart,xyzmh,dumrho,Bevolxyz)
 
             IF (varmhd.EQ.'Bvol') THEN

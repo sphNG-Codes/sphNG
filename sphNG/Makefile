@@ -219,7 +219,7 @@ endif
 
 ifeq ($(SYSTEM), gfortran)
     FC= gfortran
-    FFLAGS= -O3 -Wall
+    FFLAGS= -m64 -mcmodel=medium -O3 -Wall
     DBLFLAG= -fdefault-real-8 -fdefault-double-8
     OMPFLAG= -fopenmp
     DEBUGFLAG= -g ##-ftrace=full -fbounds-check
@@ -244,7 +244,7 @@ endif
 
 ifeq ($(SYSTEM), ifort)
     FC= ifort
-    FFLAGS= -O3 -WB -Vaxlib -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source 
+    FFLAGS= -O3 -mcmodel=medium -shared-intel -WB -Vaxlib -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source 
     OMPFLAG= -openmp
     DBLFLAG= -r8
     DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
@@ -349,7 +349,8 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 # these are the sources required for the gradh code to compile
 
 SRCGRADH= derivi_P_gradh_MPI.F forcei_P_gradh_MPI.F  \
-        densityiterate_gradh_MPI.F hcalc_gradh.f dissipative_source.F
+        densityiterate_gradh_MPI.F hcalc_gradh.f dissipative_source.F \
+        divBclean_subcycle.F divBsubcycle.F 
 	#divBclean_mhd.f divBdiffuse.f divBiterate.f \
 	#directsum_poisson_vec_mhd_clean.f 
 

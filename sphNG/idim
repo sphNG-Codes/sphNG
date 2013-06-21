@@ -1,6 +1,7 @@
       INTEGER idim, idim2, idim3, iptdim, iptneigh, nlmax
       INTEGER mmax, mmax2, iradtrans, iradtrans2
-      INTEGER imhd, imhd2, imhd3, imhdxsph, isizealphaMM, imhdevol
+      INTEGER imhd, imhd2, imhd3, imhdxsph, isizealphaMM
+      INTEGER imhdevol, isubcycle_divB
       INTEGER idim_h2, idim_h2_2, idim_MPI
       REAL tiny
 
@@ -26,15 +27,17 @@ c      PARAMETER (iradtrans = idim)
 c
 c--For MHD need to use imhd = idim
 c
-c      PARAMETER (imhd = idim)
-      PARAMETER (imhd = 1)
+      PARAMETER (imhd = idim)
+c      PARAMETER (imhd = 1)
 c
 c--Sets the number of variables in the magnetic field array
 c	Use 3 if only need Bxyz, use 4 if need psi as well for
 c	divergence cleaning
 c
-      PARAMETER (imhdevol = 3)
-c      PARAMETER (imhdevol = 4)
+c      PARAMETER (imhdevol = 3)
+c      PARAMETER (isubcycle_divB = 0)
+      PARAMETER (imhdevol = 4)
+      PARAMETER (isubcycle_divB = 1)
 c
 c--For chemistry need to use idim_h2 = idim
 c

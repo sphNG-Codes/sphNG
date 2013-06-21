@@ -2131,7 +2131,8 @@ cTEST
                END DO
             ENDIF
 
-            IF (imhd.EQ.idim .AND. iresist.LT.0) THEN
+            IF (imhd.EQ.idim
+     &           .AND. (iresist.LT.0 .OR. isubcycle_divB.GT.0)) THEN
                DO l = 1, imhdevol
                   Bevolxyz(l,i) = dumBevolxyz(l,i)
                END DO

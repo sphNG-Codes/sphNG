@@ -41,6 +41,10 @@ c      DIMENSION dBevolxyz(imhdevol,imhd2)
       LOGICAL*1 moresweep
       REAL dx,dy,dz
 
+      REAL subcycle_dtimin, subcycle_dtimax
+      INTEGER subcycle_istepmin, subcycle_istepmax
+
+      REAL dtsize
       COMMON /implicit3/ vari2(3,idim2)
 c
 c--Allow for tracing flow
@@ -52,6 +56,8 @@ c--Set up constants in Code units
 c
       tolerance = 1.0e-3
       dtimax = dtmax/imaxstep
+
+c      print *, dtmax, imaxstep
 c
 c--Set errors to zero for iteration start
 c
@@ -65,22 +71,85 @@ c
       icompact = 0
       Bxyzmax = 0.0
 
+      subcycle_dtimax = 0.0
+      subcycle_istepmax = 0.0
+      subcycle_dtimin = huge(subcycle_dtimin)
+      subcycle_istepmin = huge(subcycle_istepmin)
+
+      dtsize = huge(dtsize)
+      vsigi = 0.0
+      hi = huge(hi)
+
+      ! Future optimization would be to calculate time step only once
+      ! rather than on each substep
+
 C$OMP PARALLEL default(none)
 C$OMP& shared(icall,dtimax,dtmax,isteps,npart,hasghost,ireal,nghost)
 C$OMP& shared(rho,vari,ivar,ijvar,varij,varij2,vari2)
 C$OMP& shared(xyzmh,dvtable,ddvtable,grwij,cnormk)
 C$OMP& shared(nlst0,ihasghost,radkernel,gradhs)
 C$OMP& shared(Bxyzpnew,Bxyzp,Bxyzphalf,dBxyzp,vsound,ncompact)
+C$OMP& private(n,i)
+C$OMP& private(rhoi, rho1i, B2i ,vs2i)
+C$OMP& reduction(MAX:vsigi)
+C$OMP& reduction(MIN:dtsize)
+C$OMP& reduction(MIN:hi)
+c
+C$OMP DO SCHEDULE(static)
+      DO n = 1, ncompact
+         i = ivar(3,n)
+
+         rhoi = rho(i)
+         rho1i = 1.0/rhoi
+
+         B2i = Bxyzpnew(1,i)**2 + Bxyzpnew(2,i)**2 + Bxyzpnew(3,i)**2
+         vs2i = vsound(i)**2 + B2i*rhoi
+
+         vsigi = MAX(vsigi, sqrt(vs2i))
+
+         IF (icall.EQ.1) THEN
+            IF (isteps(i).EQ.0) THEN
+               dtsize= MIN(dtsize, dtmax*1.0d-12)
+            ELSE
+               dtsize = MIN(dtsize, dtimax*isteps(i))
+            ENDIF
+         ELSEIF (n.LE.nlst0) THEN
+            dtsize = MIN(dtsize, dtimax*isteps(i))
+         ELSE
+            dtsize = MIN(dtsize, dtimax/2.0*isteps(i))
+         ENDIF
+
+         hi = MIN(hi, xyzmh(5,i))
+      END DO  
+C$OMP END DO
+C$OMP END PARALLEL
+
+      ! make sure that for this wave speed, the Courant condition is
+      ! upheld on all particles
+
+      vs2i = vsigi * vsigi
+      dtsize = MIN(dtsize, 0.5 * hi / vsigi)         
+c      print *, '  dtsize=', dtsize, '  vsigi=', vsigi      
+
+C$OMP PARALLEL default(none)
+C$OMP& shared(icall,dtimax,dtmax,isteps,npart,hasghost,ireal,nghost)
+C$OMP& shared(rho,vari,ivar,ijvar,varij,varij2,vari2)
+C$OMP& shared(xyzmh,dvtable,ddvtable,grwij,cnormk)
+C$OMP& shared(nlst0,ihasghost,radkernel,gradhs)
+C$OMP& shared(Bxyzpnew,Bxyzp,Bxyzphalf,dBxyzp,vsound,ncompact)
+C$OMP& shared(dtsize, vsigi, vs2i)
 C$OMP& private(n,i,j,k,icompact,pmi,hj,hj21,hj41,grkerni,grkernj)
 C$OMP& private(rxyi,ryzi,rxzi,rxxi,ryyi,rzzi)
 C$OMP& private(dti,dx,dy,dz)
 C$OMP& private(rij2,rij,rij1,dr,pmj,rhoi,rhoj,hi,hi21,hi41)
 C$OMP& private(v2,v,index,dxx,index1,dgrwdx,grwtij,dW)
 C$OMP& private(pmjdWrij1rhoj,runix,runiy,runiz,denom1)
-C$OMP& private(dBxi,dByi,dBzi,projdB,B2i,vsigi,vs2i,rho1i)
+C$OMP& private(dBxi,dByi,dBzi,projdB,rho1i)
 C$OMP& reduction(+:ihasghostcount)
 C$OMP& reduction(+:totalmagenergy)
 C$OMP& reduction(MAX:Bxyzmax)
+C$OMP& reduction(MIN:subcycle_dtimin, subcycle_istepmin)
+C$OMP& reduction(MAX:subcycle_dtimax, subcycle_istepmax)
 c
 c--Set up values that don't change during sweeps
 c
@@ -107,27 +176,36 @@ C$OMP DO SCHEDULE(static)
          rhoi = rho(i)
          rho1i = 1.0/rhoi
 
-         B2i = Bxyzpnew(1,i)**2 + Bxyzpnew(2,i)**2 + Bxyzpnew(3,i)**2
-         vs2i = vsound(i)**2 + B2i*rhoi
+c         B2i = Bxyzpnew(1,i)**2 + Bxyzpnew(2,i)**2 + Bxyzpnew(3,i)**2
+c         vs2i = vsound(i)**2 + B2i*rhoi
          ! just use regular fast MHD wave speed
 c         vs2i = 10.* vs2i * nsubsteps !**2
 
-         vsigi = sqrt(vs2i)
+c         vsigi = sqrt(vs2i)
+c
+c         IF (icall.EQ.1) THEN
+c            IF (isteps(i).EQ.0) THEN
+c               dti = dtmax*1.0d-12
+c            ELSE
+c               dti = dtimax*isteps(i)*1.0d-12
+c               dti = dtimax*isteps(i)
+cc               print *, 'icall=1, ', isteps(i), dti
+c            ENDIF
+c         ELSEIF (n.LE.nlst0) THEN
+c            dti = dtimax*isteps(i)
+cc            print *, 'n <= nlst0, ', isteps(i), dti
+c         ELSE
+c            dti = dtimax/2.0*isteps(i)
+cc            print *, 'last case ', isteps(i), dti
+c         ENDIF
+c
+c         subcycle_dtimax = MAX(subcycle_dtimax, dti)
+c         subcycle_istepmax = MAX(subcycle_istepmax, isteps(i))
+c         subcycle_dtimin = MIN(subcycle_dtimin, dti)
+c         subcycle_istepmin = MIN(subcycle_istepmin, isteps(i))
+          
+cc         dti = dti/nsubsteps
 
-         IF (icall.EQ.1) THEN
-            IF (isteps(i).EQ.0) THEN
-               dti = dtmax*1.0d-12
-            ELSE
-               dti = dtimax*isteps(i)*1.0d-12
-               dti = dtimax*isteps(i)
-            ENDIF
-         ELSEIF (n.LE.nlst0) THEN
-            dti = dtimax*isteps(i)
-         ELSE
-            dti = dtimax/2.0*isteps(i)
-         ENDIF
-
-c         dti = dti/nsubsteps
 
          DO k = 1, ivar(1,n)
             icompact = ivar(2,n) + k
@@ -199,11 +277,14 @@ c            pmjdWrij1rhoj = pmj*dW*vsigij/rhoj
          ! don't need 0.5 divv term during substepping, only when part of full MHD equations
          vari2(1,n) = vs2i
          vari2(2,n) = 0.8*vsigi/hi !+ 0.5*divv(i)*rho1i
-         vari2(3,n) = dti
+         vari2(3,n) = dtsize
       END DO
 C$OMP END DO
 C$OMP SINGLE
 
+
+c      print *, 'dti min/max: ', subcycle_dtimin, subcycle_dtimax
+c      print *, 'istep min/max: ', subcycle_istepmin, subcycle_istepmax
       IF (ihasghostcount.GE.1) ihasghost = 1
 C$OMP END SINGLE
 C$OMP DO SCHEDULE(static)
@@ -220,8 +301,10 @@ c--Begin iterating
 c
  50   divBinitial = 0.
 
+c      print *, '  dti=', vari2(3,1), '  vsigi=', vsigi      
+c      print *, '  ncompact=', ncompact
       DO nosweep = 1, nsubsteps
-c      print *, 'it ',nosweep
+c      print *, '  it ',nosweep
 c
 c--Calculate div B and dBpsi
 c
@@ -247,6 +330,7 @@ c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(ncompact,ivar,vari2,Bxyzphalf,Bxyzpnew,varinew,nosweep)
 C$OMP& shared(dBxyzp)
+C$OMP& shared(dtsize)
 C$OMP& private(n,i,dti,dpsidt)
 C$OMP& reduction(MAX:divBinitial)
          DO n = 1, ncompact
@@ -254,7 +338,8 @@ C$OMP& reduction(MAX:divBinitial)
 c
 c--Do 1st bit of full timestep integration
 c
-            dti = vari2(3,n) /256.0
+c            dti = vari2(3,n) /256.0
+            dti = dtsize /256.0
 
             Bxyzphalf(1,i) = Bxyzpnew(1,i) + varinew(1,i)*dti
 
@@ -279,7 +364,8 @@ c            ENDIF
 c
 c--Integrate to 1/2 timestep
 c
-            dti = 0.5 * vari2(3,n)
+c            dti = 0.5 * vari2(3,n)
+            dti = 0.5 * dtsize
 
             Bxyzpnew(1,i) = Bxyzpnew(1,i) + varinew(1,i)*dti
             Bxyzpnew(2,i) = Bxyzpnew(2,i) + varinew(2,i)*dti
@@ -309,6 +395,7 @@ c
          divBmean = 0.
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(ncompact,ivar,vari2,Bxyzphalf,Bxyzpnew,dBxyzp,varinew,f22)
+C$OMP& shared(dtsize)
 C$OMP& private(n,i,dti,dpsidt)
 C$OMP& reduction(MAX:divBmax)
 C$OMP& reduction(+:divBmean)
@@ -320,7 +407,8 @@ C$OMP& reduction(+:divBmean)
 c
 c--Do the 2nd bit of full timestep integration
 c
-            dti = f22 * vari2(3,n)
+c            dti = f22 * vari2(3,n)
+            dti = f22 * dtsize
 
             Bxyzpnew(1,i) = Bxyzphalf(1,i) + varinew(1,i)*dti
             Bxyzpnew(2,i) = Bxyzphalf(2,i) + varinew(2,i)*dti
@@ -334,6 +422,8 @@ c
             dBxyzp(4,i) = dBxyzp(4,i) + dpsidt*dti
          END DO
 C$OMP END PARALLEL DO
+         divBmean = divBmean / ncompact
+
 c
 c--Modify values on ghosts for next timestep
 c
@@ -350,6 +440,7 @@ c         print *,'it ',nosweep,divBmax,divBmean/ncompact,ncompact
 
  333     CONTINUE
 
+c      print *,'Mean/Max divergence is ',divBmax,divBmean
       END DO ! End loop over nsubsteps
 
 c
@@ -368,7 +459,8 @@ c         END DO
 c         dBevolxyz(4,i) = dBxyzp(4,i)/(vari2(3,n)*nsubsteps)
 c      END DO
 
-      print *,'Maximum divergence is ',divBmax,nsubsteps,divBinitial
+c      print *,'Maximum divergence is ',divBmax,nsubsteps,divBinitial
+c      print *,'Mean/Max divergence is ',divBmax,divBmean
 
 c      GOTO 50
 

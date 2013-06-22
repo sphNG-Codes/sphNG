@@ -702,6 +702,8 @@ c     there MAY NEED to be an MPI transfer between here and the above implicit
 c     resistivity call)
 c
          IF (isubcycle_divB.GT.0) THEN
+            IF (itiming) CALL getused(tdivBsub1)
+
             CALL divBclean_subcycle(dt,npart,xyzmh,dumrho,Bevolxyz)
 
             IF (varmhd.EQ.'Bvol') THEN
@@ -726,6 +728,11 @@ C$OMP& private(i,ipart)
                   Bxyz(3,ipart) = Bevolxyz(3,ipart)*dumrho(ipart)
                END DO
 C$OMP END PARALLEL DO
+            ENDIF
+
+            IF (itiming) THEN
+               CALL getused(tdivBsub2)
+               tdivBsub = tdivBsub + (tdivBsub2 - tdivBsub1)
             ENDIF
          ENDIF
 

@@ -5,19 +5,19 @@
      &  ts10, ts11, ts12, ts13, ts14, ts15, ts16, ts17, ts18, ts19,
      &  td1, td2, td3, revtreep1, revtreep2, revtreep3, revtreep4,
      &  revtreep5, tass1, tass2, tass, tsort1, tsort2, tsort,
-     &  tsortmtree1, tsortmtree2, tsortmtree
+     &  tsortmtree1, tsortmtree2, tsortmtree, tdivBsub
       REAL tins1, tginit1, tgload1, tgcall11, tgsort1, tdens1, 
      &  tforce1, tggrav1, tgnei1, tgcall21, tgcall31, tgnmisc1, 
      &  tgnstor1, tgforpt1, ttest1, tmtree1, ttreef1, trevt1,
      &  taccrete1, ts1p1, ts21, ts31, ts41, ts51, ts61, ts71, ts81,
      &  ts91, ts101, ts111, ts121, ts131, ts141, ts151, ts161, ts171, 
-     &  ts181, ts191, td11, td21, td31
+     &  ts181, ts191, td11, td21, td31, tdivBsub1
       REAL tins2, tginit2, tgload2, tgcall12, tgsort2, tdens2, 
      &  tforce2, tggrav2, tgnei2, tgcall22, tgcall32, tgnmisc2, 
      &  tgnstor2, tgforpt2, ttest2, tmtree2, ttreef2, trevt2,
      &  taccrete2, ts1p2, ts22, ts32, ts42, ts52, ts62, ts72, ts82,
      &  ts92, ts102, ts112, ts122, ts132, ts142, ts152, ts162, ts172,
-     &  ts182, ts192, td12, td22, td32
+     &  ts182, ts192, td12, td22, td32, tdivBsub2
 
       INTEGER ninit1, ninit2, ninit3, ninit4, ninit5
 
@@ -40,4 +40,5 @@
      &  ts15,ts151,ts152, ts16,ts161,ts162, ts17,ts171,ts172, 
      &  ts18,ts181,ts182, ts19,ts191,ts192, td1,td11,td12,td2,td21,td22,
      &  td3,td31,td32,
-     &  ninit1, ninit2, ninit3, ninit4, ninit5
+     &  ninit1, ninit2, ninit3, ninit4, ninit5,
+     &	tdivBsub, tdivBsub1, tdivBsub2

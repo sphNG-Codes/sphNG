@@ -323,6 +323,7 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
             tgnmisc = 0.
             tgnstor = 0.
             tgcall3 = 0.
+            tdivBsub = 0.
 
             ninit1 = 0
             ninit2 = 0
@@ -378,6 +379,7 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
 98041       FORMAT (' ass rad tran time: ', F8.3, ' min. ',F6.2,' %')
 98303       FORMAT (' sort         time: ', F8.3, ' min. ')
 98304       FORMAT (' sort - mtree time: ', F8.3, ' min. ')
+98305       FORMAT (' divBsubcycle time: ', F8.3, ' min. ',F6.2,' %')
          ELSE
             WRITE (iprint, 98020)
             WRITE (iprint, 98022) tsteponly/60., tsteponly/tstep*100.
@@ -387,6 +389,7 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
             WRITE (iprint, 98009) tforce/60.,  tforce/tstep*100.
             WRITE (iprint, 98016) tgforpt/60., tgforpt/tstep*100.
             WRITE (iprint, 98021) taccrete/60., taccrete/tstep*100.
+            WRITE (iprint, 98305) tdivBsub/60., tdivBsub/tstep*100.
             WRITE (iprint, 98034) ts10/60.,    ts10/tstep*100.
             WRITE (iprint, 98032) td1/60.,     td1/tdens*100.
             WRITE (iprint, 98033) td2/60.,     td2/tdens*100.
@@ -472,6 +475,7 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
             revtreep3 = 0.
             revtreep4 = 0.
             revtreep5 = 0.
+            tdivBsub = 0.
 
 98020       FORMAT (' TREE Timing:')
          ENDIF

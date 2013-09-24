@@ -219,6 +219,9 @@ endif
 
 ifeq ($(SYSTEM), gfortran)
     FC= gfortran
+    ifeq ($(mpi), yes)
+       FC= mpif90
+    endif
     FFLAGS= -m64 -mcmodel=medium -O3 -Wall
     DBLFLAG= -fdefault-real-8 -fdefault-double-8
     OMPFLAG= -fopenmp

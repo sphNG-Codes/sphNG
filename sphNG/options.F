@@ -149,10 +149,12 @@ c
       READ (iterm, *) igphi
       IF (imhd.EQ.idim) THEN
          READ (iterm, *) ifsvi, alpha, beta, alphamin(2), alphamax(2)
-         READ (iterm, *) iresist,etamhd
+         READ (iterm, *) ndivBsubcycles,overclean_fac,iresist,etamhd
       ELSE
          READ (iterm, *) ifsvi, alpha, beta
          READ (iterm, *)
+         ndivBsubcycles = 0
+         overclean_fac = 1.0
       ENDIF
 c      IF (ifsvi.EQ.6) THEN
          alphamin(1) = alpha

@@ -124,13 +124,15 @@ c
 88001 FORMAT(2X,I2,'  Gravity')
       IF (imhd.EQ.idim) THEN
          WRITE (iterm, 87002) ifsvi,alpha,beta,alphamin(2),alphamax(2)
-         WRITE (iterm, 87003) iresist, etamhd
+         WRITE (iterm, 87003) ndivBsubcycles, overclean_fac, iresist, 
+     &        etamhd
       ELSE
          WRITE (iterm, 87002) ifsvi,alpha,beta, 0., 0.
-         WRITE (iterm, 87003) 0, 0.
+         WRITE (iterm, 87003) 0, 1.0, 0, 0.
       ENDIF
+      IF (overclean_fac.LT.1.0) overclean_fac = 1.0
 87002 FORMAT(2X,I2,4(1X,1F6.3),' Artificial Viscosity & Resistivity')
-87003 FORMAT(2X,I2,1X,1F6.3,'  Real Resistivity (1=const,2=func),eta')
+87003 FORMAT(2X,I2,1X,1F6.3,1X,I2,1X,1F6.3,'  MHD: DivB-Subcycles, DivB-Overclean, Real Resistivity (1=const,2=func),eta')
       WRITE (iterm, 88003) ifcor
 88003 FORMAT(2X,I2,'  Coriolis Forces')
       WRITE (iterm, 88004) ichoc

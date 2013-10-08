@@ -1,2 +1,6 @@
       CHARACTER*4 varmhd
       COMMON /varmhd / varmhd
+
+      REAL overclean_fac
+      INTEGER ndivBsubcycles
+      COMMON /divBcontrol/ overclean_fac, ndivBsubcycles

@@ -666,7 +666,8 @@ c
 c
 c--Compute implicit magnetic resistivity
 c
-      IF (imhd.EQ.idim) THEN
+      IF (imhd.EQ.idim .AND. (iresist.LT.0 .OR. 
+     &     isubcycle_divB.GT.0 .AND. ndivBsubcycles.GT.0)) THEN
        IF (iresist.LT.0) THEN
          CALL resistivity_implicit(nlst_in,nlst_end,llist,dt,itime,
      &        npart,ntot,Bxyz,xyzmh,vxyzu,dumrho,vsound,alphaMM,nit,
@@ -701,10 +702,10 @@ c--Compute divBcleaning via subcycling (NOTE: If used with implicit resistivity
 c     there MAY NEED to be an MPI transfer between here and the above implicit
 c     resistivity call)
 c
-         IF (isubcycle_divB.GT.0) THEN
+         IF (isubcycle_divB.GT.0 .AND. ndivBsubcycles.GT.0) THEN
             IF (itiming) CALL getused(tdivBsub1)
 
-            CALL divBclean_subcycle(dt,npart,xyzmh,dumrho,Bevolxyz)
+            CALL divBclean_subcycle(dt,npart,ntot,xyzmh,dumrho,Bevolxyz)
 
             IF (varmhd.EQ.'Bvol') THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -766,18 +767,24 @@ c
      &                  llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI3,ierr)
 
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),imhdevolREAL8,
+     &                  indexMPIimhdevol,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPIimhdevol,ierr)
+
                         CALL MPI_SEND(Bxyz,1,indexMPI3,j,27,
      &                       MPI_COMM_WORLD, ierr)
 #ifdef MPIDEBUG
                         print *,iproc,' sent Bxyz to ',j
 #endif
 
-                        CALL MPI_SEND(Bevolxyz,1,indexMPI3,j,28,
+                        CALL MPI_SEND(Bevolxyz,1,indexMPIimhdevol,j,28,
      &                       MPI_COMM_WORLD, ierr)
 #ifdef MPIDEBUG
                         print *,iproc,' sent Bevolxyz to ',j
 #endif
 
+                        CALL MPI_TYPE_FREE(indexMPIimhdevol,ierr)
                         CALL MPI_TYPE_FREE(indexMPI3,ierr)
                      ENDIF
                   ENDIF
@@ -812,9 +819,9 @@ c
                print *,iproc,': got Bxyz from ',iprocrec,inumber
 #endif
 
-               CALL MPI_RECV(Bevolxyz(1,istart),idim,i3REAL8,
+               CALL MPI_RECV(Bevolxyz(1,istart),idim,imhdevolREAL8,
      &              iprocrec, 28, MPI_COMM_WORLD, istatus, ierr)
-               CALL MPI_GET_COUNT(istatus,i3REAL8,inumber,ierr)
+               CALL MPI_GET_COUNT(istatus,imhdevolREAL8,inumber,ierr)
                IF (icheck.NE.inumber) THEN
                   WRITE (*,*) 'ERROR - icheck.NE.inumber 17 ',
      &                 iproc
@@ -851,7 +858,7 @@ c
 
 #endif
 
-      ENDIF   ! Endif for imhd.EQ.idim and iresist<0
+      ENDIF   ! Endif for imhd.EQ.idim and iresist<0 or subcycling
 c
 c--Compute implicit radiative transfer
 c     

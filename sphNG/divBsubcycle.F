@@ -1,11 +1,19 @@
-      SUBROUTINE divBsubcycle(nsubsteps,dtmax,npart,xyzmh,rho,
+      SUBROUTINE divBsubcycle(nsubsteps,dtmax,npart,ntot,xyzmh,rho,
      &           Bxyzpnew,divBmax)
   
       INCLUDE 'idim'
+#ifdef MPIALL
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
+      INCLUDE 'COMMONS/mpidebug'
+#endif
+#ifdef MPI
+      INCLUDE 'COMMONS/mpi'
+#endif
 
       REAL dtmax,divBmax
       INTEGER npart
-      DIMENSION xyzmh(5,idim2)
+      DIMENSION xyzmh(5,mmax2)
       REAL*4 rho(idim2)
       DIMENSION Bxyzpnew(imhdevol,imhd2)
 c      DIMENSION dBevolxyz(imhdevol,imhd2)
@@ -87,17 +95,25 @@ C$OMP PARALLEL default(none)
 C$OMP& shared(icall,dtimax,dtmax,isteps,npart,hasghost,ireal,nghost)
 C$OMP& shared(rho,vari,ivar,ijvar,varij,varij2,vari2)
 C$OMP& shared(xyzmh,dvtable,ddvtable,grwij,cnormk)
-C$OMP& shared(nlst0,ihasghost,radkernel,gradhs)
-C$OMP& shared(Bxyzpnew,Bxyzp,Bxyzphalf,dBxyzp,vsound,ncompact)
-C$OMP& private(n,i)
+C$OMP& shared(nlst0,ihasghost,radkernel,gradhs,ntot)
+C$OMP& shared(Bxyzpnew,Bxyzp,Bxyzphalf,dBxyzp,vsound,ncompactlocal)
+C$OMP& private(n,i,iparttree)
 C$OMP& private(rhoi, rho1i, B2i ,vs2i)
 C$OMP& reduction(MAX:vsigi)
 C$OMP& reduction(MIN:dtsize)
 C$OMP& reduction(MIN:hi)
 c
 C$OMP DO SCHEDULE(static)
-      DO n = 1, ncompact
+      DO n = 1, ncompactlocal
          i = ivar(3,n)
+c
+c--Needed for MPI code
+c
+         IF (i.GT.ntot) THEN
+            iparttree = i + ntot + 2
+         ELSE
+            iparttree = i
+         ENDIF
 
          rhoi = rho(i)
          rho1i = 1.0/rhoi
@@ -119,10 +135,27 @@ C$OMP DO SCHEDULE(static)
             dtsize = MIN(dtsize, dtimax/2.0*isteps(i))
          ENDIF
 
-         hi = MIN(hi, xyzmh(5,i))
+         hi = MIN(hi, xyzmh(5,iparttree))
       END DO  
 C$OMP END DO
 C$OMP END PARALLEL
+
+#ifdef MPI
+c
+c--Need to get values of hi, dtsize and vsigi across all MPI processes
+c
+      CALL MPI_ALLREDUCE(dtsize,dtsizetot,1,MPI_REAL8,MPI_MIN,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_ALLREDUCE(hi,hitot,1,MPI_REAL8,MPI_MIN,
+     &     MPI_COMM_WORLD,ierr)
+      CALL MPI_ALLREDUCE(vsigi,vsigitot,1,MPI_REAL8,MPI_MAX,
+     &     MPI_COMM_WORLD,ierr)
+      dtsize = dtsizetot
+      hi = hitot
+      vsigi = vsigitot
+
+c      print *,iproc,': dtsize,hi,vsigi ',dtsize,hi,vsigi
+#endif
 
       ! make sure that for this wave speed, the Courant condition is
       ! upheld on all particles
@@ -137,10 +170,11 @@ C$OMP& shared(rho,vari,ivar,ijvar,varij,varij2,vari2)
 C$OMP& shared(xyzmh,dvtable,ddvtable,grwij,cnormk)
 C$OMP& shared(nlst0,ihasghost,radkernel,gradhs)
 C$OMP& shared(Bxyzpnew,Bxyzp,Bxyzphalf,dBxyzp,vsound,ncompact)
-C$OMP& shared(dtsize, vsigi, vs2i)
+C$OMP& shared(dtsize, vsigi, vs2i, ntot)
+C$OMP& shared(iunique,iorig, iproc)
 C$OMP& private(n,i,j,k,icompact,pmi,hj,hj21,hj41,grkerni,grkernj)
 C$OMP& private(rxyi,ryzi,rxzi,rxxi,ryyi,rzzi)
-C$OMP& private(dti,dx,dy,dz)
+C$OMP& private(dti,dx,dy,dz,iparttree)
 C$OMP& private(rij2,rij,rij1,dr,pmj,rhoi,rhoj,hi,hi21,hi41)
 C$OMP& private(v2,v,index,dxx,index1,dgrwdx,grwtij,dW)
 C$OMP& private(pmjdWrij1rhoj,runix,runiy,runiz,denom1)
@@ -156,6 +190,14 @@ c
 C$OMP DO SCHEDULE(static)
       DO n = 1, ncompact
          i = ivar(3,n)
+c
+c--Needed for MPI code
+c
+         IF (i.GT.ntot) THEN
+            iparttree = i + ntot + 2
+         ELSE
+            iparttree = i
+         ENDIF
 
          IF(hasghost(i)) THEN
             ihasghostcount = ihasghostcount + 1
@@ -169,8 +211,8 @@ C$OMP DO SCHEDULE(static)
          dByi = 0.
          dBzi = 0.
 
-         pmi = xyzmh(4,i)
-         hi = xyzmh(5,i)
+         pmi = xyzmh(4,iparttree)
+         hi = xyzmh(5,iparttree)
          hi21 = 1./(hi*hi)
          hi41 = hi21*hi21
          rhoi = rho(i)
@@ -211,9 +253,9 @@ cc         dti = dti/nsubsteps
             icompact = ivar(2,n) + k
             j = ijvar(icompact)
 
-            dx = xyzmh(1,i) - xyzmh(1,j)
-            dy = xyzmh(2,i) - xyzmh(2,j)
-            dz = xyzmh(3,i) - xyzmh(3,j)
+            dx = xyzmh(1,iparttree) - xyzmh(1,j)
+            dy = xyzmh(2,iparttree) - xyzmh(2,j)
+            dz = xyzmh(3,iparttree) - xyzmh(3,j)
             rij2 = dx*dx + dy*dy + dz*dz + tiny
             rij = SQRT(rij2)
             rij1 = 1./rij
@@ -280,72 +322,45 @@ c            pmjdWrij1rhoj = pmj*dW*vsigij/rhoj
          vari2(3,n) = dtsize
       END DO
 C$OMP END DO
-C$OMP SINGLE
-
-
-c      print *, 'dti min/max: ', subcycle_dtimin, subcycle_dtimax
-c      print *, 'istep min/max: ', subcycle_istepmin, subcycle_istepmax
-      IF (ihasghostcount.GE.1) ihasghost = 1
-C$OMP END SINGLE
-C$OMP DO SCHEDULE(static)
-      DO i = npart + 1, npart + nghost*ihasghost
-         j = ireal(i)
-         DO k = 1, 7
-c            dvdx(k,i) = dvdx(k,j)
-         END DO
-      END DO
-C$OMP END DO
 C$OMP END PARALLEL
+
+      IF (ihasghostcount.GE.1) ihasghost = 1
+cC$OMP END SINGLE
+cC$OMP DO SCHEDULE(static)
+c      DO i = npart + 1, npart + nghost*ihasghost
+c         j = ireal(i)
+c         DO k = 1, 7
+c            dvdx(k,i) = dvdx(k,j)
+c         END DO
+c      END DO
+cC$OMP END DO
 c
 c--Begin iterating
 c
  50   divBinitial = 0.
 
-c      print *, '  dti=', vari2(3,1), '  vsigi=', vsigi      
-c      print *, '  ncompact=', ncompact
       DO nosweep = 1, nsubsteps
-c      print *, '  it ',nosweep
 c
 c--Calculate div B and dBpsi
 c
-         CALL divB_dBpsi(Bxyzpnew)
-
-c         DO n = 1, ncompact
-c            i = ivar(3,n)           
-c            DO j = 1, 3
-c               dBevolxyz(j,i) = dBevolxyz(j,i) + varinew(j,i)
-c            END DO
-c            dpsidt = -vari2(1,n)*varinew(4,i) - vari2(2,n)*Bxyzpnew(4,i)
-c            dBevolxyz(4,i) = dpsidt
-c         END DO
-c
-c         GOTO 333
-
-
-
-c         STOP
+         CALL divB_dBpsi(Bxyzpnew,ntot)
 c
 c--Can now calculate half-timestep values of B and psi
 c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(ncompact,ivar,vari2,Bxyzphalf,Bxyzpnew,varinew,nosweep)
-C$OMP& shared(dBxyzp)
+C$OMP& shared(ncompactlocal,ivar,vari2,Bxyzphalf,Bxyzpnew,varinew)
+C$OMP& shared(dBxyzp,nosweep)
 C$OMP& shared(dtsize)
 C$OMP& private(n,i,dti,dpsidt)
 C$OMP& reduction(MAX:divBinitial)
-         DO n = 1, ncompact
+         DO n = 1, ncompactlocal
             i = ivar(3,n)
 c
 c--Do 1st bit of full timestep integration
 c
-c            dti = vari2(3,n) /256.0
             dti = dtsize /256.0
 
             Bxyzphalf(1,i) = Bxyzpnew(1,i) + varinew(1,i)*dti
-
-c            IF (i.EQ.1) THEN
-c            print *,'Bx/rho ',Bxyzpnew(1,i),varinew(1,i),dti
-c            ENDIF
 
             Bxyzphalf(2,i) = Bxyzpnew(2,i) + varinew(2,i)*dti
             Bxyzphalf(3,i) = Bxyzpnew(3,i) + varinew(3,i)*dti
@@ -364,7 +379,6 @@ c            ENDIF
 c
 c--Integrate to 1/2 timestep
 c
-c            dti = 0.5 * vari2(3,n)
             dti = 0.5 * dtsize
 
             Bxyzpnew(1,i) = Bxyzpnew(1,i) + varinew(1,i)*dti
@@ -385,7 +399,7 @@ c
 c
 c--Then calculate derivatives of B and psi at half-timestep
 c
-         CALL divB_dBpsi(Bxyzpnew)
+         CALL divB_dBpsi(Bxyzpnew,ntot)
 c
 c--Them calculate full-timestep values of B and psi
 c
@@ -394,12 +408,12 @@ c
          divBmax = 0.
          divBmean = 0.
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(ncompact,ivar,vari2,Bxyzphalf,Bxyzpnew,dBxyzp,varinew,f22)
-C$OMP& shared(dtsize)
+C$OMP& shared(ncompactlocal,ivar,vari2,Bxyzphalf,Bxyzpnew,dBxyzp)
+C$OMP& shared(dtsize,varinew,f22)
 C$OMP& private(n,i,dti,dpsidt)
 C$OMP& reduction(MAX:divBmax)
 C$OMP& reduction(+:divBmean)
-         DO n = 1, ncompact
+         DO n = 1, ncompactlocal
             i = ivar(3,n)
 
             divBmax = MAX(divBmax,ABS(varinew(4,i)))
@@ -407,7 +421,6 @@ C$OMP& reduction(+:divBmean)
 c
 c--Do the 2nd bit of full timestep integration
 c
-c            dti = f22 * vari2(3,n)
             dti = f22 * dtsize
 
             Bxyzpnew(1,i) = Bxyzphalf(1,i) + varinew(1,i)*dti
@@ -422,7 +435,15 @@ c            dti = f22 * vari2(3,n)
             dBxyzp(4,i) = dBxyzp(4,i) + dpsidt*dti
          END DO
 C$OMP END PARALLEL DO
-         divBmean = divBmean / ncompact
+         divBmean = divBmean / ncompactlocal
+
+c         DO n=1, ncompactlocal
+c            i = ivar(3,n)
+c            IF (ABS(varinew(4,i).EQ.divBmax)) THEN
+c               print *,iunique(iorig(i)),divBmax
+c               STOP
+c            ENDIF
+c         END DO
 
 c
 c--Modify values on ghosts for next timestep
@@ -440,13 +461,14 @@ c         print *,'it ',nosweep,divBmax,divBmean/ncompact,ncompact
 
  333     CONTINUE
 
-c      print *,'Mean/Max divergence is ',divBmax,divBmean
+c      print *,'Mean/Max divergence is ',nosweep,divBmax,divBmean,
+c     &        divBinitial
       END DO ! End loop over nsubsteps
 
 c
 c--Then calculate derivatives of B and psi at the end
 c
-      CALL divB_dBpsi(Bxyzpnew)
+      CALL divB_dBpsi(Bxyzpnew,ntot)
 
 c      divBmax = 0.
 c      DO n = 1, ncompact
@@ -504,22 +526,33 @@ c      stop
 
 
 
-      SUBROUTINE divB_dBpsi(Bxyzpnew)
+      SUBROUTINE divB_dBpsi(Bxyzpnew,ntot)
 
       INCLUDE 'idim'
+#ifdef MPIALL
+      INCLUDE 'mpif.h'
+      INCLUDE 'COMMONS/mpiall'
+#endif
+#ifdef MPI
+      INCLUDE 'COMMONS/mpi'
+#endif
 
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/implicit'
       INCLUDE 'COMMONS/implicit2'
       INCLUDE 'COMMONS/current'
 
+      INCLUDE 'COMMONS/sort'
+
       REAL Bxyzpnew(imhdevol,imhd2)
+
 c
 c--Zero arrays for storing div B and dBpsi
 c
 C$OMP PARALLEL default(none)
 C$OMP& shared(ivar,ijvar,vari,varij,varij2)
 C$OMP& shared(Bxyzpnew,iscurrent,varinew,ncompact)
+C$OMP& shared(iunique,iorig,iproc,ikeep)
 C$OMP& private(i,j,k,n,divBi,dBpsix,dBpsiy,dBpsiz,rhoi,rhoj)
 C$OMP& private(icompact,pmjdWirho2i,pmidWirho2i,pmjdWjrho2j)
 C$OMP& private(runix,runiy,runiz,dBx,dBy,dBz,projdB,tempval)
@@ -571,9 +604,6 @@ c
             dBz = Bxyzpnew(3,i)*rhoi - Bxyzpnew(3,j)*rhoj
             projdB = dBx*runix + dBy*runiy + dBz*runiz
 
-c            print *,'projdB-n ',i,j,projdB,dBx,runix,
-c     &           pmjdWirho1i*rhoi
-
             divBi = divBi - pmjdWirho1i*projdB
 c
 c--Calculate dBpsi
@@ -617,12 +647,92 @@ C$OMP ATOMIC
 
          varinew(4,i) = divBi
 
-c      print *,'divB total ',divBi
-
       END DO
 C$OMP END DO
 C$OMP END PARALLEL
 
-      RETURN
+ 50   CONTINUE
 
+#ifdef MPI
+c
+c--Need to add contributions to varinew(1-4) from other MPI processes
+c
+      istart = ntot + 1
+      istartrec = istart + inumbertotal
+      inumberreturned = 0
+      DO i = 0, numproc - 1
+         IF (iproc.EQ.i) THEN
+c
+c--Receive back quantities to be added on to local values
+c
+            DO j = 1, inumofsends
+#ifdef MPIDEBUG
+               print *,iproc,': expecting to get ',inumofsends,
+     &              ' varinew ',j
+#endif
+               CALL MPI_RECV(varinew(1,istartrec),
+     &              nelements_varinew*maxnneighsentback,
+     &              MPI_REAL8,MPI_ANY_SOURCE,153,MPI_COMM_WORLD,istatus,
+     &              ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL8, ireturned, ierr)
+               iprocrec = istatus(MPI_SOURCE)
+               IF (ireturned.NE.
+     &              nelements_varinew*nneighsentback(iprocrec+1)) THEN
+                  WRITE (*,*) 'ERROR - ireturned.NE.nelements',
+     &                 '*nnsentback varinw'
+                  CALL quit
+               ENDIF
+
+               DO l = 1, nneighsentback(iprocrec+1)
+                  ipos = llistsentback(l,iprocrec+1)+1
+                  jpos = istartrec + l - 1
+
+                  DO k = 1, 4
+                     varinew(k,ipos) = varinew(k,ipos) + varinew(k,jpos)
+                  END DO
+               END DO
+
+#ifdef MPIDEBUG
+               print *,iproc,': got varinew from ',iprocrec,
+     &              ' put into ',llistsentback(1,iprocrec+1)+1
+#endif
+
+            END DO
+c
+c--Other processes send the values back
+c
+         ELSE
+            DO jjj = 1, inumofreturns
+               IF (inumberproc(jjj).EQ.i) THEN
+                  istart = inumbercumm(jjj)
+                  inumber = inumberindiv(jjj)
+                  iprocsend = inumberproc(jjj)
+                  inumberreturned = inumberreturned + 1
+#ifdef MPIDEBUG
+                  print *,iproc,': sending varinew to ',iprocsend,
+     &                 ' istart ',istart,' returned ',inumberreturned,
+     &                 ' of ',inumofreturns
+#endif
+                  CALL MPI_SEND(varinew(1,istart),
+     &                 nelements_varinew*inumber,MPI_REAL8,
+     &                 iprocsend,153,MPI_COMM_WORLD,ierr)
+c
+c--Only need to loop over jjj until found appropriate index for process 'i'
+c     then can jump out of loop
+c
+                  GOTO 7703
+               ENDIF
+            END DO
+ 7703       CONTINUE
+         ENDIF
+c
+c--If there are no particles sent, don't need to do anything (no MPI_SEND
+c     because none will be expected)
+c
+      END DO
+#endif
+
+c 100  print *,'end of dBpsi ',iproc,varinew(4,ikeep)
+
+      RETURN
       END

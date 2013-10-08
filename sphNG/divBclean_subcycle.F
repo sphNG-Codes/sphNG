@@ -1,4 +1,4 @@
-      SUBROUTINE divBclean_subcycle(dtmax,npart,xyzmh,rho,Bevolxyz)
+      SUBROUTINE divBclean_subcycle(dtmax,npart,ntot,xyzmh,rho,Bevolxyz)
 c************************************************************
 c                                                           *
 c   This subroutine cleans up the divergence of the         *
@@ -9,8 +9,9 @@ c************************************************************
 
       INCLUDE 'idim'
       INCLUDE 'COMMONS/compact'
+      INCLUDE 'COMMONS/varmhd'
 
-      DIMENSION xyzmh(5,idim2)
+      DIMENSION xyzmh(5,mmax2)
       REAL*4 rho(idim2)
       DIMENSION Bevolxyz(imhdevol,imhd2)
       DIMENSION Bxyzporig(imhdevol,imhd)
@@ -34,10 +35,9 @@ c     &        Bxyz(2,i)**2 + Bxyz(3,i)**2)/rho(i)
       END DO
 C$OMP END DO
 
-      nsubsteps = 64 
       divBmax = 0.
 
- 100  CALL divBsubcycle(nsubsteps,dtmax,npart,xyzmh,rho,
+ 100  CALL divBsubcycle(ndivBsubcycles,dtmax,npart,ntot,xyzmh,rho,
      &     Bevolxyz,divBmax)
 
       ! sanity check that substepping hasn't massively screwed up the field
@@ -53,13 +53,13 @@ C$OMP DO SCHEDULE(static)
                Bevolxyz(4,i) = Bxyzporig(4,i)
             END DO
 C$OMP END DO
-C            GOTO 100
-C         ELSE
+c            GOTO 100
+c         ELSE
             WRITE (*,*) 'divB clean FAILED '
-C         ENDIF
+c         ENDIF
       ENDIF
 
-C      WRITE (*,*) 'divB clean end ',divBmax,nsubsteps
+c      WRITE (*,*) 'divB clean end ',divBmax,ndivBsubcycles
 c
 c--DO not need to replace divcurlB() since it has not yet been
 c         calculated (calculated in forcei)

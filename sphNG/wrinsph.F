@@ -131,7 +131,8 @@ c
          WRITE (iterm, 87003) 0, 1.0, 0, 0.
       ENDIF
 87002 FORMAT(2X,I2,4(1X,1F6.3),' Artificial Viscosity & Resistivity')
-87003 FORMAT(2X,I2,1X,1F6.3,1X,I2,1X,1F6.3,'  MHD: DivB-Subcycles, DivB-Overclean, Real Resistivity (1=const,2=func),eta')
+87003 FORMAT(2X,I2,1X,1F6.3,1X,I2,1X,1F6.3,'  MHD: DivB-Subcycles,',
+     &     ' DivB-Overclean, Real Resistivity (1=const,2=func),eta')
       WRITE (iterm, 88003) ifcor
 88003 FORMAT(2X,I2,'  Coriolis Forces')
       WRITE (iterm, 88004) ichoc

@@ -1779,7 +1779,7 @@ C$OMP& shared(phibound,nlistinactive,listinactive,variation,npart,rmind)
 C$OMP& shared(planetesimaltimestep,gasdrag,max_rplan,min_rplan)
 C$OMP& shared(pradfac,rplanet,px,py,irotpot,iplanetesimals)
 C$OMP& shared(rcyl,Bevolxyz,dumBevolxyz,planetesimalnorm)
-C$OMP& shared(pcolen,xmass)
+C$OMP& shared(pcolen,xmass,overclean_fac)
 C$OMP& shared(gasdist,nearestgas,planetmass,coremass,pi)
 #ifdef MPICOPY
 C$OMP& shared(iproc)

@@ -28,6 +28,7 @@ c************************************************************
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/divcurlB'
       INCLUDE 'COMMONS/compact'
+      INCLUDE 'COMMONS/varmhd'
 
 c      DATA epsil2/1.E-4/
 c
@@ -43,7 +44,7 @@ C$OMP& shared(nlst_in,nlst_end,npart,listp)
 C$OMP& shared(xyzmh,dha,trho,vsound,divv,curlv)
 C$OMP& shared(iphase,iprint,ifsvi)
 C$OMP& shared(alphaMMpass,alphamin,alphamax)
-C$OMP& shared(Bxyz,divcurlB,gradB,dBxyz,Bevolxyz)
+C$OMP& shared(Bxyz,divcurlB,gradB,dBxyz,Bevolxyz,overclean_fac)
 C$OMP& shared(ivar)
 C$OMP& private(ipart,k)
 C$OMP& private(hi,hi1,rhoi,rho1i,vsoundi)
@@ -150,8 +151,8 @@ c     &                 gradB(6,ipart)
                   IF (imhdevol.EQ.4) THEN
                      psi = Bevolxyz(4,ipart)
 
-                     vs2i = vs2i ! * 100.0
-                     vsigi = vsigi ! * 10.0
+                     vs2i = vs2i * overclean_fac**2
+                     vsigi = vsigi * overclean_fac
 
                      dBxyz(4,ipart) = - vs2i*divcurlB(1,ipart)
      &                    - 0.8*vsigi*hi1*psi

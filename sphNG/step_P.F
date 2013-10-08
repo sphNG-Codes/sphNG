@@ -86,6 +86,7 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/pxpy'
+      INCLUDE 'COMMONS/varmhd'
 #ifdef MPICOPY
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/mpicopy'
@@ -2277,7 +2278,7 @@ c     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
                   aux2 = 0.0
                ENDIF
             ENDIF
-            denom = aux3 + sqrt(vsound(i)**2 + valfven2) ! * 10.0
+            denom = aux3 + sqrt(vsound(i)**2 + valfven2) * overclean_fac
      &                   + 1.2*(aux1 + aux2)
             crstepi = 0.3*xyzmh(5,i)/denom
             rmodcr = crstepi/(dt*isteps(i)/imaxstep)

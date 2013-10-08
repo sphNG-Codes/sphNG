@@ -396,7 +396,15 @@ c
 99216       FORMAT(' Magnetic fields are ON, using vector potential',//)
 99217       FORMAT(' WARNING: Magnetic fields are ON',
      &             ', but unknown variable',//)
-     
+
+            IF (imhdevol.EQ.4) THEN
+               WRITE (iprint,99218)
+               WRITE (iprint,99219) ndivBsubcycles, overclean_fac
+99218          FORMAT(' Magnetic field has hyperbolic cleaning ON')
+99219          FORMAT(' Cleaning done using ',I2,
+     &              ' subcycles and overcleaning factor ',1F6.3)
+            ENDIF
+
             IF (ABS(iresist).EQ.1) THEN
                WRITE(iprint,99221) etamhd
             ELSEIF (ABS(iresist).GE.2) THEN

@@ -702,7 +702,8 @@ c--Compute divBcleaning via subcycling (NOTE: If used with implicit resistivity
 c     there MAY NEED to be an MPI transfer between here and the above implicit
 c     resistivity call)
 c
-         IF (isubcycle_divB.GT.0 .AND. ndivBsubcycles.GT.0) THEN
+         IF (imhdevol.EQ.4 .AND. 
+     &      isubcycle_divB.GT.0 .AND. ndivBsubcycles.GT.0) THEN
             IF (itiming) CALL getused(tdivBsub1)
 
             CALL divBclean_subcycle(dt,npart,ntot,xyzmh,dumrho,Bevolxyz)

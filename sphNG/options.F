@@ -157,7 +157,8 @@ c
          overclean_fac = 1.0
       ENDIF
       IF (overclean_fac.LT.1.0) overclean_fac = 1.0
-      IF (imhdevol.NE.4 .AND. overclean_fac.NE.1.0) THEN
+      IF (imhdevol.NE.4 .AND. isubcycle_divB.NE.1 .AND. 
+     &     overclean_fac.NE.1.0) THEN
          WRITE (*,*) 'ERROR - overclean_fac>1, but imhdevol.NE.4'
          CALL quit
       ENDIF

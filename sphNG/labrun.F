@@ -6,6 +6,7 @@ c                                                           *
 c************************************************************
 
       INCLUDE 'igrape'
+      INCLUDE 'svn_version.h'
 
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/actio'
@@ -26,8 +27,8 @@ c
      &        '*              WITH POINT MASSES             *', /, 1X,
      &        '*                                            *', /, 1X,
      &        '**********************************************')
-      WRITE (iprint, 99002) version
-99002 FORMAT (/, 1X, 'Current version : ', A40)
+      WRITE (iprint, 99002) svnversion
+99002 FORMAT (/, 1X, 'Current version : ', A20)
 
       IF (igrape.EQ.0) THEN
          WRITE (iprint,*) '                  RUNNING WITH BINARY TREE'

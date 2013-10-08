@@ -326,6 +326,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f chekopt.f \
 	classify_MPI.F condense.f constan.f coolcurve.f coolinmo.F cool_func.F \
 	coriol.f cyldis.f cylmas.f cylpres.f cylvel.f discboundary.f \
+	divBclean_subcycle.F divBsubcycle.F \
 	dragtable.F endrun.f energ.f energ_cooling.f eospg.f error.f \
 	evol.f externf.f externBfield.f \
 	extract.f file.f gapfactor.f getneigh.f \
@@ -352,8 +353,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 # these are the sources required for the gradh code to compile
 
 SRCGRADH= derivi_P_gradh_MPI.F forcei_P_gradh_MPI.F  \
-        densityiterate_gradh_MPI.F hcalc_gradh.f dissipative_source.F \
-        divBclean_subcycle.F divBsubcycle.F 
+        densityiterate_gradh_MPI.F hcalc_gradh.f dissipative_source.F
 	#divBclean_mhd.f divBdiffuse.f divBiterate.f \
 	#directsum_poisson_vec_mhd_clean.f 
 
@@ -572,6 +572,9 @@ checksystem:
 	@echo ""
 	@echo "Compiling sphNG for $(SYSTEM) system..........."
 	@echo ""
+	@echo "calling createsvnversion"
+	@./createsvnversion.csh
+	@echo "...done"
    else
 	@echo ""
 	@echo "make: WARNING: value of SYSTEM = $(SYSTEM) not recognised..."
@@ -622,5 +625,5 @@ updatedepends:
 include .depends
 
 clean:
-	\rm -f *.o *.mod RT/Baraffe/*.o RT/Baraffe/*.mod RT/*.o RT/*.mod sph_tree_lf_gradh sph_tree_lf_gradh_RT sph_tree_lf sph_tree_rk_gradh sph_tree_rk_gradh_RT sph_tree_rk ./utils/*.o maketables/*.o
+	\rm -f *.o *.mod RT/Baraffe/*.o RT/Baraffe/*.mod RT/*.o RT/*.mod sph_tree_lf_gradh sph_tree_lf_gradh_RT sph_tree_lf sph_tree_rk_gradh sph_tree_rk_gradh_RT sph_tree_rk ./utils/*.o maketables/*.o svn_version.h
 # DO NOT DELETE

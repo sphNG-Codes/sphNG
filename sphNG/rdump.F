@@ -70,6 +70,7 @@ c
 
       ichkl = 0
       icount = 0
+      icountinactive = 0
       icountsink = 0
       nhydrocumulative = 0
 
@@ -474,13 +475,32 @@ c--Default int
 #endif
          IF (nums1(1).GE.2) THEN
             READ (idisk1, END=100) nlistinactive,
-     &           (listinactive(i), i=icount+1,icount+nhydro-1)
+     &           (listinactive(i), i=icountinactive+1,icountinactive+
+     &           nhydro-1)
+c
+c--If reading multiple blocks onto sink process, need to re-index the
+c     inactive particles
+c
+            IF (icountinactive.GT.0) THEN
+               DO i = icountinactive+1,icountinactive+nlistinactive
+                  listinactive(i) = listinactive(i) + icount
+               END DO
+            ENDIF
             print *,'READ nlistinactive ',nlistinactive
          ENDIF
 
 c--int*1
          READ (idisk1, END=100) (iphase(i), i=icount+1, icount+nhydro)
-         print *,'iphases ',iphase(1),iphase(nhydro)
+         print *,'iphases ',iphase(1),iphase(nhydro),nums1(5),icount
+
+         DO i = icountinactive+1,icountinactive+nlistinactive
+            IF (iphase(listinactive(i)).NE.-1) THEN
+               print *,'ERROR - Read active particle as inactive ',
+     &              i,icountinactive,listinactive(i),icount,nhydro,
+     &              iphase(listinactive(i))
+               CALL quit
+            ENDIF
+         END DO
 
 c--int*2
 
@@ -491,6 +511,9 @@ c--int*8
             READ (idisk1, END=100) (iunique(i), i=icount+1,
      &           icount+nhydro)
          ENDIF
+#ifdef MPIDEBUG
+         print *,iproc,': read iunique ',iunique(icount+1)
+#endif
 
 c         DO ijk = icount+1, icount+nhydro
 c            WRITE (45,*) iunique(ijk), iphase(ijk)
@@ -852,6 +875,7 @@ c
          END DO
       ENDIF
       icount = icount + nhydro
+      icountinactive = icountinactive + nlistinactive
       icountsink = icountsink + nptmass
       print *,'Totals at this point npart, nptmass ',icount,icountsink
       IF (nblocks.NE.1) THEN
@@ -862,6 +886,7 @@ c
                CALL quit
             ENDIF
             nptmass = icountsink
+            nlistinactive = icountinactive
          ENDIF
       ENDIF
 #endif

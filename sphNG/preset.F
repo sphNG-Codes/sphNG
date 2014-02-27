@@ -62,7 +62,7 @@ c************************************************************
       CHARACTER*7 where
       CHARACTER*6 dummy
 
-      CHARACTER*100 metalfilenames, metalbase
+      CHARACTER*100 metalfilenames, metalbase, homedir, filetable
       DIMENSION metalfilenames(opmxMet_ferguson)
 
       REAL*4 rho_real4
@@ -314,14 +314,17 @@ c
 c--Read in tables of quantities
 c
       print *, 'Reading tables in preset'
+      CALL GET_ENVIRONMENT_VARIABLE('SPH_HOME',homedir)
 c
 c--Load in tables of opacity
 c
       IF (encal.EQ.'r') THEN
 c
-c--Read in low temperature opacity model
+c--Read in low temperature opacity model (used if last digit = 0)
 c
-         IF (MOD(iopmodel,10).EQ.0) THEN
+         imodop = MOD(iopmodel,10)
+         IF (imodop.EQ.0 .OR. imodop.EQ.1) THEN
+c         IF (imodop.EQ.0) THEN
 c
 c--This is also the default opacity model (for both high and low temperature)
 c     The "opacitytbl" file here is to take the full opacity table
@@ -332,28 +335,33 @@ c     But the two are split so that can allow different low-temperature and
 c     high-temperature tables to be used.
 c
 c            OPEN(UNIT=8,FILE='/home/mrbate/tables/opacitytbl')
-            OPEN(UNIT=8,
-     &           FILE='/home/mrbate/tables/opacitytbl_Pollacketal1985')
+            filetable = TRIM(homedir)//
+     &           'tables/opacitytbl_Pollacketal1985'
+            OPEN(UNIT=8,FILE=filetable)
             DO i=1, opmxtg
                READ(8,*) (optable(i,j), j=1, opmxrh)
             ENDDO
             CLOSE(8)
+         ELSEIF (MOD(iopmodel,10).EQ.1) THEN
+            WRITE (*,*) 'WARNING - optable using gas opacities only'
          ELSE
             WRITE (*,*) 'ERROR - unknown low-T opacity model'
             CALL quit
          ENDIF
 c
-c--Read in high temperature opacity modelx
+c--Read in high temperature opacity models
 c
          IF (iopmodel/10.EQ.0) THEN
 c
-c--Read in Alexander (1975) models.  These are placed into the optable
-c     so that the full optable is the same as in the original version of
+c--Read in Alexander (1975) models (iopmodel="0X").  
+c     These are placed into the optable so that the full optable 
+c     is the same as in the original version of
 c     the code (i.e. a mix of Pollack et al. 1985 and Alexander 1975)
 c
             ialexander_only = 34
-            OPEN(UNIT=8,
-     &FILE='/home/mrbate/tables/opacitytbl_Alexander1975_Model_KingIVa')
+            filetable = TRIM(homedir)//
+     &           'tables/opacitytbl_Alexander1975_Model_KingIVa'
+            OPEN(UNIT=8,FILE=filetable)
 c
 c--Skip 1st line
 c
@@ -377,10 +385,11 @@ c--End of reading in Alexander data
 c
          ELSEIF (iopmodel/10.EQ.1) THEN
 c
-c--Read in Ferguson et al. (2005), ApJ, 623, 585 models.  Note these are
-c     provided as a tar file (f05.g93.tar).  The last three lines of the
-c     file "g7.0.tron" need to be edited because the numbers are not
-c     separated by spaces, but other than that the data files are used
+c--Read in Ferguson et al. (2005), ApJ, 623, 585 models (iopmodel="1X").
+c     Note these are provided as a tar file (f05.g93.tar).  
+c     The last three lines of the file "g7.0.tron" need to be 
+c     edited because the numbers are not separated by spaces, 
+c     but other than that the data files are used
 c     as provided by the tarfile.
 c
             metaltable(1) = 0.0
@@ -400,24 +409,23 @@ c
             metaltable(15) = 0.08
             metaltable(16) = 0.1
 
-            metalbase = '/home/mrbate/tables/Fergusonetal2005/'
-            imetalbase = 37
-            metalfilenames(1) = metalbase(1:37) // 'g7.0.tron'
-            metalfilenames(2) = metalbase(1:37) // 'g7.00001.tron'
-            metalfilenames(3) = metalbase(1:37) // 'g7.00003.tron'
-            metalfilenames(4) = metalbase(1:37) // 'g7.0001.tron'
-            metalfilenames(5) = metalbase(1:37) // 'g7.0003.tron'
-            metalfilenames(6) = metalbase(1:37) // 'g7.001.tron'
-            metalfilenames(7) = metalbase(1:37) // 'g7.002.tron'
-            metalfilenames(8) = metalbase(1:37) // 'g7.004.tron'
-            metalfilenames(9) = metalbase(1:37) // 'g7.01.tron'
-            metalfilenames(10) = metalbase(1:37) // 'g7.02.tron'
-            metalfilenames(11) = metalbase(1:37) // 'g7.03.tron'
-            metalfilenames(12) = metalbase(1:37) // 'g7.04.tron'
-            metalfilenames(13) = metalbase(1:37) // 'g7.05.tron'
-            metalfilenames(14) = metalbase(1:37) // 'g7.06.tron'
-            metalfilenames(15) = metalbase(1:37) // 'g7.08.tron'
-            metalfilenames(16) = metalbase(1:37) // 'g7.1.tron'
+            metalbase = TRIM(homedir)//'tables/Fergusonetal2005/'
+            metalfilenames(1) = TRIM(metalbase) // 'g7.0.tron'
+            metalfilenames(2) = TRIM(metalbase) // 'g7.00001.tron'
+            metalfilenames(3) = TRIM(metalbase) // 'g7.00003.tron'
+            metalfilenames(4) = TRIM(metalbase) // 'g7.0001.tron'
+            metalfilenames(5) = TRIM(metalbase) // 'g7.0003.tron'
+            metalfilenames(6) = TRIM(metalbase) // 'g7.001.tron'
+            metalfilenames(7) = TRIM(metalbase) // 'g7.002.tron'
+            metalfilenames(8) = TRIM(metalbase) // 'g7.004.tron'
+            metalfilenames(9) = TRIM(metalbase) // 'g7.01.tron'
+            metalfilenames(10) = TRIM(metalbase) // 'g7.02.tron'
+            metalfilenames(11) = TRIM(metalbase) // 'g7.03.tron'
+            metalfilenames(12) = TRIM(metalbase) // 'g7.04.tron'
+            metalfilenames(13) = TRIM(metalbase) // 'g7.05.tron'
+            metalfilenames(14) = TRIM(metalbase) // 'g7.06.tron'
+            metalfilenames(15) = TRIM(metalbase) // 'g7.08.tron'
+            metalfilenames(16) = TRIM(metalbase) // 'g7.1.tron'
 c
 c--Set Z (metal contribution) from metallicity in solar units (Z=0.02)
 c
@@ -468,9 +476,10 @@ c
 c--Read in dusttable, which is required to make the interface between
 c     dust opacity and gas opacity smooth when using reduced dust opacities
 c     using the "opdenom" parameter, and when using the Alexander and
-c     Pollack tables (i.e. opcity model iopmodel=0).
+c     Pollack tables (i.e. opacity model iopmodel=0).
 c
-         OPEN(UNIT=8,FILE='/home/mrbate/tables/dusttbl2')
+         filetable = TRIM(homedir)//'tables/dusttbl2'
+         OPEN(UNIT=8,FILE=filetable)
          DO i=1, duslen
             READ(8,*) (dusttable(i,j), j=1, duswid)
          ENDDO
@@ -485,22 +494,22 @@ c
       IF (encal.EQ.'r' .OR. (encal.EQ.'i' .AND. ibound.EQ.102)
      &     .OR. ABS(iresist).GT.1) THEN
 
-         OPEN(UNIT=8,FILE='/home/mrbate/tables/gasttbl',
-     &        FORM='unformatted')
+         filetable = TRIM(homedir)//'tables/gasttbl'
+         OPEN(UNIT=8,FILE=filetable,FORM='unformatted')
          DO i=1, tgmxu
             READ(8) (tgtable(i,j), j=1, tgmxrh)
          ENDDO
          CLOSE(8)
 
-         OPEN(UNIT=8,FILE='/home/mrbate/tables/utbl',
-     &        FORM='unformatted')
+         filetable = TRIM(homedir)//'tables/utbl'
+         OPEN(UNIT=8,FILE=filetable,FORM='unformatted')
          DO i=1, umxrh
             READ(8) (utable(j,i), j=1, umxt)
          ENDDO
          CLOSE(8)
  
-         OPEN(UNIT=8,FILE='/home/mrbate/tables/molmasstbl',
-     &        FORM='unformatted')
+         filetable = TRIM(homedir)//'tables/molmasstbl'
+         OPEN(UNIT=8,FILE=filetable,FORM='unformatted')
          DO i=1, mumxu
             READ(8) (mutable(i,j), j=1, mumxrh)
          ENDDO
@@ -508,7 +517,8 @@ c
       ENDIF
 
       IF (ibound.EQ.100) THEN
-         OPEN(UNIT=8,FILE='/home/mrbate/tables/gaptbl')
+         filetable = TRIM(homedir)//'tables/gaptbl'
+         OPEN(UNIT=8,FILE=filetable)
          DO i=1, gaplen
             READ(8,*) (gaptable(i,j), j=1, gapwid)
          ENDDO
@@ -529,6 +539,7 @@ c
 c
 c--SECTION OF CODE ONLY FOR TESTING TABLES
 c
+c      IF (.TRUE.) THEN
       IF (.FALSE.) THEN
          temp_val = 1.0
          u_val_init = 8.314E+07/2.381*10.0
@@ -596,8 +607,8 @@ c
 #endif
 
       IF (iandrea.EQ.1) THEN
-         OPEN(UNIT=8,FILE=
-     &        '/home/py02baa/Code/Tables/planetesimals')
+         filetable = TRIM(homedir)//'tables/planetesimals'
+         OPEN(UNIT=8,FILE=filetable)
          READ (8,*) prmin, princ
          READ (8,*) pmmin, pminc
          pmmin = pmmin*5.9742E27/umass
@@ -605,6 +616,7 @@ c
          DO i = 1, mbins
             READ (8,*) (ptable(i,j), j = 1, rbins)
          ENDDO
+         CLOSE(8)
          DO i = 1, mbins
             DO j = 1, rbins
 c--This is column 2 from Andrea's work. Despite here original notes

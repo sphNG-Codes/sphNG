@@ -1844,9 +1844,11 @@ c         IF (ipart.GT.idim) print *,iproc,': Fx ',ipart
          fxyzu(2,ipart) = fxyzu(2,ipart) + forceyi
          fxyzu(3,ipart) = fxyzu(3,ipart) + forcezi
 
-         force_sym(1,ipart) = force_sym(1,ipart) + fanisoxi
-         force_sym(2,ipart) = force_sym(2,ipart) + fanisoyi
-         force_sym(3,ipart) = force_sym(3,ipart) + fanisozi
+         IF (imhd.EQ.idim) THEN
+            force_sym(1,ipart) = force_sym(1,ipart) + fanisoxi
+            force_sym(2,ipart) = force_sym(2,ipart) + fanisoyi
+            force_sym(3,ipart) = force_sym(3,ipart) + fanisozi
+         ENDIF
 
          poten(ipart) = poten(ipart) + poteni 
 

@@ -83,7 +83,7 @@ c
 c
 c--Magnetic energy
 c
-            IF (imhd.EQ.idim) THEN
+            IF (imhd.EQ.idim .AND. iphase(i).EQ.0) THEN
                B2i = Bxyz(1,i)**2 + Bxyz(2,i)**2 + Bxyz(3,i)**2
                tmagi = pmassi*B2i/rho(i)
                tmag = tmag + tmagi

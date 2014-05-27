@@ -84,9 +84,9 @@ ifeq ($(SYSTEM), zen)
     else
        FC= ifort
     endif
-    FFLAGS= -O3 -xT -mcmodel=medium -i-dynamic -WB -Vaxlib \
-            -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source\
-            -warn interfaces -gen-interfaces
+    FFLAGS= -O3 -xSSSE3 -mcmodel=medium -i-dynamic -WB  \
+            -warn nousage -warn uninitialized -warn unused -warn truncated_source\
+            -warn interfaces -nogen-interfaces
 # -check
 #To use above MPI check need to:
 #source /sw/sdev/itac/7.2.0.011/bin/itacvars.csh

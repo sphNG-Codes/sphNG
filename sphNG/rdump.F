@@ -775,13 +775,15 @@ c
 c--convert from B to B/rho for evolution
 c
                DO i=icount+1,icount+nmhd
-                  IF (rho(i).LE.0.) THEN
-                   WRITE(*,*) 'ERROR: rho <= 0 in rdump, evolving B/rho'
-                     CALL quit
+                  IF (iphase(i).EQ.0) THEN
+                     IF (rho(i).LE.0.) THEN
+                  WRITE(*,*) 'ERROR: rho <= 0 in rdump, evolving B/rho'
+                        CALL quit
+                     ENDIF
+                     DO j = 1,3
+                        Bevolxyz(j,i) = Bxyz(j,i)/rho(i)
+                     ENDDO
                   ENDIF
-                  DO j = 1,3
-                     Bevolxyz(j,i) = Bxyz(j,i)/rho(i)
-                  ENDDO
                ENDDO
             ELSEIF (varmhd.EQ.'Bvol') THEN
 c

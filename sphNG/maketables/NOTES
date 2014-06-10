@@ -1,17 +1,35 @@
 
 ##########################################################################
 
-Use ./maketables to create the two essential tables for using RT in sphNG;
-these are molmasstbl, and gasttbl.
+Use ./maketables to create the essential equation of state tables 
+for using RT in sphNG.
 
-This routine also creates utbl, which can be used with routine uset.f to
-obtain the internal energy that matches a given temperature.
+The 'maketables' program creates 'specheattbl' and 'molmasstbl'.  The 
+latter is used by sphNG directly.  The former used to be used directly.  
+However, it was subsequently replaced by 'gasttbl' and 'utbl'.  These 
+are created from 'specheattbl' by the invert.f programme.
+The 'gasttbl' gives the ratio of u/T (using the sphNG routine getcv.f).  
+The 'utbl' is used to get the value of specific internal energy, 'u' 
+from a given temperature (using the sphNG routine uset.f).
 
-If you wish to avoid recompiling for some reason, just run these routines:
+In June 2014, MRB extended the density range covered by the tables.
+Prior to this the density in g/cm^3 ranged from log10(rho) = -20 to +3.
+After this, the density in g/cm^3 ranged from log10(rho) = -30 to +3.
+The extension was necessary to include low-density interstellar medium 
+physics.  The new tables were called:
 
-run: ./specheat
-run: ./goinvert
-run: ./gomass
+molmasstbl_lowdens
+gasttbl_lowdens
+utbl_lowdens
+
+so older versions of the code could still use the earlier tables.
+
+At the same time, the table definitions and dimensions were all moved 
+into a single sphNG COMMONS/eostbl, which replaced the earlier:
+
+COMMONS/utbl
+COMMONS/tgtbl
+COMMONS/mutbl
 
 ##########################################################################
 

@@ -8,8 +8,10 @@ c
 c-------------------------------------------------------------------------
       PROGRAM MAKETABLE
 
+      INCLUDE '../COMMONS/eostbl'
+
       REAL*8 ltm,lrho,tm,rho,specific,uoverT,cvv,muu,mu,Rg
-      DIMENSION cvv(4602,1802),muu(4602,1802)
+      DIMENSION cvv(umxrh+1,umxt+1),muu(umxrh+1,umxt+1)
       INTEGER I,J
 
 !		PRINT *,"Rho, Tg"
@@ -26,11 +28,11 @@ c-------------------------------------------------------------------------
       OPEN(UNIT=8,FILE='specheattbl',FORM='unformatted')
 !      OPEN(UNIT=10,FILE='molmasstbl',FORM='unformatted')
 
-      DO nrho=-20000,3000,5!-20,0,0.005
+      DO nrho=-30000,3000,5! log10(density) -20,3,0.005
 
          IF(MOD(nrho,500).EQ.0) PRINT *,nrho
          lrho=nrho/1000.0
-         i=nrho/5+4001
+         i=nrho/5+eostbl_rho1
          rho=10.0**lrho
 
          DO ntm=0,9000,5!0.05,4,0.005
@@ -50,12 +52,12 @@ c         STOP
 
       ENDDO
       PRINT *,"Doing making logcv table. Writing to disk..."
-!J is temperature J = 1 to 1002 rows
-!I is density I = 1 to 4602 columns
+!J is temperature J = 1 to umxt rows
+!I is density I = 1 to umxrh columns
 
-      DO j=1,1802
-         WRITE(8) (cvv(i,j), i=1, 4601)
-!         WRITE(10) (muu(i,j), i=1, 4601)
+      DO j=1,umxt
+         WRITE(8) (cvv(i,j), i=1, umxrh)
+!         WRITE(10) (muu(i,j), i=1, umxrh)
          PRINT *,cvv(2096,j),muu(2096,j)
 c         WRITE(66,*) cvv(4600,j)
       END DO

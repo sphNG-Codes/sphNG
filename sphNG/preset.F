@@ -41,10 +41,8 @@ c************************************************************
       INCLUDE 'COMMONS/useles'
       INCLUDE 'COMMONS/gtime'
       INCLUDE 'COMMONS/optbl'
-      INCLUDE 'COMMONS/tgtbl'
-      INCLUDE 'COMMONS/mutbl'
+      INCLUDE 'COMMONS/eostbl'
       INCLUDE 'COMMONS/dusttbl'
-      INCLUDE 'COMMONS/utbl'
       INCLUDE 'COMMONS/gaptbl'
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/cgas'
@@ -494,21 +492,24 @@ c
       IF (encal.EQ.'r' .OR. (encal.EQ.'i' .AND. ibound.EQ.102)
      &     .OR. ABS(iresist).GT.1) THEN
 
-         filetable = TRIM(homedir)//'tables/gasttbl'
+c         filetable = TRIM(homedir)//'tables/gasttbl'
+         filetable = TRIM(homedir)//'tables/gasttbl_lowdens'
          OPEN(UNIT=8,FILE=filetable,FORM='unformatted')
          DO i=1, tgmxu
             READ(8) (tgtable(i,j), j=1, tgmxrh)
          ENDDO
          CLOSE(8)
 
-         filetable = TRIM(homedir)//'tables/utbl'
+c         filetable = TRIM(homedir)//'tables/utbl'
+         filetable = TRIM(homedir)//'tables/utbl_lowdens'
          OPEN(UNIT=8,FILE=filetable,FORM='unformatted')
          DO i=1, umxrh
             READ(8) (utable(j,i), j=1, umxt)
          ENDDO
          CLOSE(8)
  
-         filetable = TRIM(homedir)//'tables/molmasstbl'
+c         filetable = TRIM(homedir)//'tables/molmasstbl'
+         filetable = TRIM(homedir)//'tables/molmasstbl_lowdens'
          OPEN(UNIT=8,FILE=filetable,FORM='unformatted')
          DO i=1, mumxu
             READ(8) (mutable(i,j), j=1, mumxrh)

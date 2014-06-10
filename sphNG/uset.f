@@ -37,8 +37,7 @@
 c-- Pass in rho in code units.
 
       INCLUDE 'COMMONS/units'
-      INCLUDE 'COMMONS/utbl'
-      INCLUDE 'COMMONS/tgtbl'
+      INCLUDE 'COMMONS/eostbl'
 
       REAL ltemp, lrho, getu
       REAL rhoval1, rhoval2, tval1, tval2, rug
@@ -55,13 +54,14 @@ c-- Pass in rho in code units.
       IF(nkt1.GE.umxt) nkt1 = umxt - 1
       nkt2 = nkt1 + 1
 
-      nkrho1=INT(lrho/0.005)+4001
+      nkrho1=INT(lrho/0.005)+eostbl_rho1
       IF(lrho.LT.0.0) nkrho1=nkrho1-1
       IF(nkrho1.GE.tgmxrh) nkrho1 = tgmxrh - 1
+      IF(nkrho1.LT.1) nkrho1 = 1
       nkrho2=nkrho1+1
 
-      rhoval1=(nkrho1-4001)*0.005
-      rhoval2=(nkrho2-4001)*0.005
+      rhoval1=(nkrho1-eostbl_rho1)*0.005
+      rhoval2=(nkrho2-eostbl_rho1)*0.005
       tval1 = (nkt1 - 1)*tinc
       tval2 = (nkt2 - 1)*tinc
 

@@ -1,8 +1,7 @@
       PROGRAM testcv
 
       INCLUDE 'COMMONS/optbl'
-      INCLUDE 'COMMONS/tgtbl'
-      INCLUDE 'COMMONS/mutbl'
+      INCLUDE 'COMMONS/eostbl'
       INCLUDE 'COMMONS/units'
 
       REAL*4 rho

@@ -1,0 +1,22 @@
+      REAL*8 tgtable,mutable,utable
+
+      INTEGER tgmxu,tgmxrh
+      PARAMETER (tgmxu=1799)
+      PARAMETER (tgmxrh=6601)
+
+      INTEGER mumxu,mumxrh
+      PARAMETER (mumxu=1798)
+      PARAMETER (mumxrh=6600)
+
+      INTEGER umxt,umxrh
+      PARAMETER (umxt=1801)
+      PARAMETER (umxrh=6601)
+c
+c--This is the table location that gives a density of 10^0 = 1 g/cm^-3
+c
+      INTEGER eostbl_rho1
+      PARAMETER (eostbl_rho1=6001)
+      
+      COMMON /tgtbl/ tgtable(tgmxu,tgmxrh)
+      COMMON /mutbl/ mutable(mumxu,mumxrh)
+      COMMON /utbl/ utable(umxt,umxrh)

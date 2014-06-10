@@ -7,7 +7,7 @@
       REAL y1,y2,y3,y4,w,v,rtg
       INTEGER nkrho1,nkrho2,nku1,nku2
 
-      INCLUDE 'COMMONS/tgtbl'
+      INCLUDE 'COMMONS/eostbl'
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/physcon'
 
@@ -25,7 +25,7 @@ c
 
       lu=log10(u)
 
-      nkrho1=INT(lrho/0.005)+4001
+      nkrho1=INT(lrho/0.005)+eostbl_rho1
       IF(lrho.LT.0.0) nkrho1=nkrho1-1
       IF(nkrho1.GE.tgmxrh) nkrho1 = tgmxrh - 1
       nku1=INT(lu/0.005)-1545
@@ -35,8 +35,8 @@ c
       nkrho2=nkrho1+1
       nku2=nku1+1
 
-      rhoval1=(nkrho1-4001)*0.005
-      rhoval2=(nkrho2-4001)*0.005
+      rhoval1=(nkrho1-eostbl_rho1)*0.005
+      rhoval2=(nkrho2-eostbl_rho1)*0.005
       uval1=(nku1+1545)*0.005
       uval2=(nku2+1545)*0.005
 

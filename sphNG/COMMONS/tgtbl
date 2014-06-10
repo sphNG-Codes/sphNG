@@ -1,6 +1,0 @@
-      REAL*8 tgtable
-      INTEGER tgmxu,tgmxrh
-      PARAMETER (tgmxu=1799)
-      PARAMETER (tgmxrh=4601)
-      
-      COMMON /tgtbl/ tgtable(tgmxu,tgmxrh)

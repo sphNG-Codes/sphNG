@@ -334,7 +334,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
 	gforsa_P.f gforsn_P.f gforspt_P.f \
 	ghostp.f ghostp1.f ghostp2.f ghostp3.F ghostp11.f ghostp100.f \
 	ghostp102.f \
-	gptall.f gptfromgas.f gpti.f hdot_P.f header.F hchem.F hillmass.f \
+	gptall.f gptfromgas.f gpti.f header.F hchem.F hillmass.f \
 	homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
 	inopts.f insulate_TREE_P.F integs.F $(KERNEL) labrun.F lunit_double.f \
 	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
@@ -356,10 +356,6 @@ SRCGRADH= derivi_P_gradh_MPI.F forcei_P_gradh_MPI.F  \
         densityiterate_gradh_MPI.F hcalc_gradh.f dissipative_source.F
 	#divBclean_mhd.f divBdiffuse.f divBiterate.f \
 	#directsum_poisson_vec_mhd_clean.f 
-
-# these are the sources required for the non-gradh code to compile
-        
-SRCNONGRADH= densityi_P.f derivi_P.f forcei_P.F hcalc.f
 
 # these are the extra routines required for the radiative transfer code to compile
         
@@ -397,9 +393,6 @@ OBJBAR = $(TOBJBAR:.F=.o)
 # construct object files
 
 TOBJECTS = $(SOURCES:.f=.o) $(ZZFILE:.f=.o)
-TOBJLF = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCLF:.f=.o)
-TOBJRK = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o)
-TOBJRT = $(TOBJECTS) $(SRCNONGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o)
 TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
 TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
 TOBJGRADHLFRT = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCRT:.f=.o) $(ZEN_PIN)
@@ -408,9 +401,6 @@ TOBJGRADHRKRTBAR = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCRT:.f=.o) $
 TOBJTORUS = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCNORT:.f=.o) $(SRCTORUS:.f=.o) $(ZEN_PIN)
 
 OBJECTS = $(TOBJECTS:.F=.o) 
-OBJLF = $(TOBJLF:.F=.o) 
-OBJRK = $(TOBJRK:.F=.o) 
-OBJRT = $(TOBJRT:.F=.o) 
 OBJGRADHLF = $(TOBJGRADHLF:.F=.o) 
 OBJGRADHRK = $(TOBJGRADHRK:.F=.o) 
 OBJGRADHLFRT = $(TOBJGRADHLFRT:.F=.o)
@@ -442,12 +432,6 @@ default: gradhrk
 pin_to_cpu.o: pin_to_cpu.c
 	icc -c pin_to_cpu.c -openmp
 
-lf: checksystem checkparams sph_tree_lf
-
-rk: checksystem checkparams sph_tree_rk
-
-RT: checksystem checkparams sph_tree_RT
-
 torus: checksystem checkparams sphtorus
 
 gradh: checksystem checkparams sph_tree_lf_gradh 
@@ -462,7 +446,7 @@ gradhrkrt: checksystem checkparams sph_tree_rk_gradh_RT
 
 gradhrkrtbar: checksystem checkparams sph_tree_rk_gradh_RT_BAR
 
-all: lf rk RT gradhlf gradhrk
+all: gradhlf gradhrk
 
 sph_tree_lf_gradh: $(OBJGRADHLF)
 	@echo ""
@@ -494,24 +478,6 @@ sph_tree_rk_gradh_RT_BAR: $(OBJGRADHRKRT) $(OBJBAR)
 	@echo "It includes the Baraffe stellar evolution code"
 	@echo ""
 	$(FC) $(FFLAGS) -o $@ $(OBJGRADHRKRT) $(OBJBAR) $(LDFLAGS)
-
-sph_tree_lf: $(OBJLF)
-	@echo ""
-	@echo "This is the non-gradh, leapfrog version"
-	@echo ""
-	$(FC) $(FFLAGS) -o $@ $(OBJLF) $(LDFLAGS)
-
-sph_tree_rk: $(OBJRK)
-	@echo ""
-	@echo "This is the non-gradh, Runge-Kutta version"
-	@echo ""
-	$(FC) $(FFLAGS) -o $@ $(OBJRK) $(LDFLAGS)
-        
-sph_tree_RT: $(OBJRT)
-	@echo ""
-	@echo "This is the Radiative transfer code (Runge Kutta by default)"
-	@echo ""
-	$(FC) $(FFLAGS) -o $@ $(OBJRT) $(LDFLAGS)
 
 sphtorus: $(OBJTORUS)
 	@echo ""

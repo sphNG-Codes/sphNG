@@ -539,7 +539,7 @@ checksystem:
 	@echo "Compiling sphNG for $(SYSTEM) system..........."
 	@echo ""
 	@echo "calling createsvnversion"
-	@./createsvnversion.csh
+	@./createsvnversion.sh
 	@echo "...done"
    else
 	@echo ""

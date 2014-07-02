@@ -33,6 +33,8 @@ c--this weight is equivalent to m/(rho*h^3) in the grad h version
       PARAMETER (weight = 1./hfact**3)
       LOGICAL iMorris
       PARAMETER (iMorris = .FALSE.)
+      LOGICAL iPhantom_resistivity
+      PARAMETER (iPhantom_resistivity = .FALSE.)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -515,9 +517,14 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
             etai = 0.
          ENDIF
 c
-c--note that pressure term includes isotropic magnetic pressure         
+c--Note that pressure term includes isotropic magnetic pressure.
+c     It also allows pressure to be negativ due to an external pressure
+c     boundary (allowing the pressure to be negative may be necessary
+c     e.g. for confining a turbulent cloud
+c
 c         pro2i = (pr(ipart) - pext)*rho21i
-         pro2i = max((pr(ipart) - pext + 0.5*(B2i-B2ext)),0.0)*rho21i
+c         pro2i = max((pr(ipart) - pext + 0.5*(B2i-B2ext)),0.0)*rho21i
+         pro2i = (pr(ipart) - pext + 0.5*(B2i-B2ext))*rho21i
          vsoundi = vsound(ipart)
          vs2i = vsoundi**2 + B2i*rho1i
 
@@ -859,29 +866,44 @@ c--Signal velocity (MHD)
 c
                      vsoundj = vsound(j)
                      vs2j = vsoundj**2 + B2j*rho1j
-                     vsproji = 2.*vsoundi*projBi*sqrtrho1i
-                     vsprojj = 2.*vsoundj*projBj*SQRT(rho1j)
-                     vsigi = 0.5*(SQRT(vs2i - vsproji)
-     &                    + SQRT(vs2i + vsproji))
-                     vsigj = 0.5*(SQRT(vs2j - vsprojj)
-     &                    + SQRT(vs2j + vsprojj))
+                     IF (iPhantom_resistivity) THEN
+                        vsigi = SQRT(vs2i)
+                        vsigj = SQRT(vs2j)
+                     ELSE
+                        vsproji = 2.*vsoundi*projBi*sqrtrho1i
+                        vsprojj = 2.*vsoundj*projBj*SQRT(rho1j)
+                        vsigi = 0.5*(SQRT(vs2i - vsproji)
+     &                       + SQRT(vs2i + vsproji))
+                        vsigj = 0.5*(SQRT(vs2j - vsprojj)
+     &                       + SQRT(vs2j + vsprojj))
+                     ENDIF
                      vsbar = 0.5*(vsigi + vsigj)
 c
 c--Artificial and Non-artificial resistivity
 c
                      IF (j.LE.npart .OR. ibound.EQ.11.OR.ibound.EQ.12) 
      &                    THEN
-                         IF (ifsvi.GE.6) THEN
-                            alphaB = 0.5*(alphaMMpass(2,ipart)
-     &                                  + alphaMMpass(2,j))
-                         ELSE
-                            alphaB = alphamin(2)
-                         ENDIF
+                        IF (ifsvi.GE.6) THEN
+                           alphaB = 0.5*(alphaMMpass(2,ipart)
+     &                          + alphaMMpass(2,j))
+                        ELSE
+                           alphaB = alphamin(2)
+                        ENDIF
 c                        alphaB = 1.0
-c                        termB = alphaB*pmassj*grkern*
-c     &                       MAX(vsbar - projv,0.0)*robar1
-                        termB = alphaB*grkern*
-     &                       (vsbar + 2.0*abs(projv))*robar1
+                        IF (iPhantom_resistivity) THEN
+c
+c--Phantom version:  (the 1/robar1 is to cancel that term in the dBxdissi 
+c     equation below)
+c
+                           termB = alphaMMpass(2,ipart)*vsigi*rho21i*
+     &                          grkern/robar1
+                        ELSE
+c                           termB = alphaB*pmassj*grkern*
+c     &                           MAX(vsbar - projv,0.0)*robar1
+                           termB = alphaB*grkern*
+     &                           (vsbar + 2.0*abs(projv))*robar1
+                        ENDIF
+
                         termBpmj = termB*pmassj
 c
 c--Physical resistivity
@@ -1328,9 +1350,10 @@ c
 c
 c--j contribution to pressure gradient and isotropic mag force
 c
-c               pro2j = (pr(j) - pext)*rho1j*rho1j
-                  pro2j = max((pr(j) - pext + 0.5*(B2j-B2ext)),0.0)
-     &                 *rho1j*rho1j
+c                  pro2j = (pr(j) - pext)*rho1j*rho1j
+c                  pro2j = max((pr(j) - pext + 0.5*(B2j-B2ext)),0.0)
+c     &                 *rho1j*rho1j
+                  pro2j = (pr(j) - pext + 0.5*(B2j-B2ext))*rho1j*rho1j
                   gradp = grkernj*pro2j
 c
 c--j contribution to force softening (including pseudo-pressure term)
@@ -1411,12 +1434,17 @@ c--Signal velocity (MHD)
 c
                         vsoundj = vsound(j)
                         vs2j = vsoundj**2 + B2j*rho1j
-                        vsproji = 2.*vsoundi*projBi*sqrtrho1i
-                        vsprojj = 2.*vsoundj*projBj*SQRT(rho1j)
-                        vsigi = 0.5*(SQRT(vs2i - vsproji)
-     &                       +SQRT(vs2i + vsproji))
-                        vsigj = 0.5*(SQRT(vs2j - vsprojj)
-     &                       +SQRT(vs2j + vsprojj))
+                        IF (iPhantom_resistivity) THEN
+                           vsigi = SQRT(vs2i)
+                           vsigj = SQRT(vs2j)
+                        ELSE
+                           vsproji = 2.*vsoundi*projBi*sqrtrho1i
+                           vsprojj = 2.*vsoundj*projBj*SQRT(rho1j)
+                           vsigi = 0.5*(SQRT(vs2i - vsproji)
+     &                          +SQRT(vs2i + vsproji))
+                           vsigj = 0.5*(SQRT(vs2j - vsprojj)
+     &                          +SQRT(vs2j + vsprojj))
+                        ENDIF
                         vsbar = 0.5*(vsigi + vsigj)
 c
 c--Artificial resistivity
@@ -1429,11 +1457,21 @@ c
                            ELSE
                               alphaB = alphamin(2)
                            ENDIF
-c                        alphaB = 1.0
-c                        termB = alphaB*pmassj*grkern*
-c     &                     MAX(vsbar - projv,0.0)*robar1
-                           termB = alphaB*pmassj*grkern*
-     &                          (vsbar + 2.0*abs(projv))*robar1
+c                           alphaB = 1.0
+
+                           IF (iPhantom_resistivity) THEN
+c
+c--Phantom version:  (the 1/robar1 is to cancel that term in the dBxdissi 
+c     equation below)
+c
+                              termB = alphaMMpass(2,j)*vsigj*
+     &                             rho1j*rho1j*grkern/robar1
+                           ELSE
+c                              termB = alphaB*pmassj*grkern*
+c     &                             MAX(vsbar - projv,0.0)*robar1
+                              termB = alphaB*pmassj*grkern*
+     &                             (vsbar + 2.0*abs(projv))*robar1
+                           ENDIF
 c
 c--Real resistivity
 c

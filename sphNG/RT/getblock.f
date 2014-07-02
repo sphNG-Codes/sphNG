@@ -34,7 +34,7 @@ c*************************************
 
       IF (iphase(m).EQ.-1 .OR. iphase(m).GE.1 .AND. iptintree.EQ.0) THEN
          WRITE (iprint,*) 'ERROR: getneighi with iphase ',iphase(m)
-         CALL quit
+         CALL quit(1)
       ENDIF
 
       dxm = xyzmh(1,m) - rrx
@@ -123,7 +123,7 @@ c               qcut2 = (qrad(1,n) + rcut)**2
                IF (istack+2.GT.istacksize) THEN
                   WRITE(iprint,*)'ERROR: stack too small in getblock!',
      &                 istack+2,istacksize
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                IF (rr_closest.LT.rrm) THEN

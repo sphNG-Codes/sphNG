@@ -160,7 +160,7 @@ c
                IF (istack+2.GT.istacksize) THEN
                   WRITE(iprint,*)'ERROR: stack too small in treef!',
      &                           istack+2,istacksize
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                IF (rr.LT.qcut2) THEN
@@ -215,7 +215,7 @@ c
  125              nlistgn = nlistgn + 1
                   IF (nlistgn.GT.idim) THEN
                      WRITE (iprint,*) 'ERROR - nlistgn.GT.idim'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   listgn(nlistgn) = n
                ENDIF
@@ -257,14 +257,14 @@ c
                         neighlist(nneigh(m)) = n
                      ELSE
                         WRITE (iprint,*) 'nneigh exceeds ',nneighmax
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
                   ELSE
                      IF (nneigh(m).LT.nlmax) THEN
                         neighb(nneigh(m),m) = n
                      ELSEIF (nneigh(m).GT.nneighmax) THEN
                         WRITE (iprint,*) 'nneigh exceeds INT*2'
-                        CALL quit
+                        CALL quit(1)
                      ELSE
                         IF (nneigh(m).EQ.nlmax) THEN
 c                        write (*,*) 'over ',m,n,neighb(nlmax,m),
@@ -283,7 +283,7 @@ C$OMP CRITICAL (neighlistoverflow)
                                  WRITE (iprint,*) 'noverflow EXCEEDED',
      &                                nneigh(m), nlmax, m, iorig(m),
      &                                numoverflow
-                                 CALL quit
+                                 CALL quit(1)
                               ENDIF
 C$OMP END CRITICAL (neighlistoverflow)
                            ENDIF
@@ -293,7 +293,7 @@ C$OMP END CRITICAL (neighlistoverflow)
                            WRITE (iprint,*) 'nlovermax EXCEEDED',
      &                          nneigh(m), nlmax, m, iorig(m), 
      &                          numoverflowlocal
-                           CALL quit
+                           CALL quit(1)
                         ENDIF
                      ENDIF
                   ENDIF
@@ -302,7 +302,7 @@ C$OMP END CRITICAL (neighlistoverflow)
                   nlistga = nlistga + 1
                   IF (nlistga.GT.idim) THEN
                      WRITE (iprint,*) 'ERROR - nlistga.GT.idim'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   listga(nlistga) = n
                ENDIF
@@ -316,7 +316,7 @@ ccc                  hmean2 = rcut2
                         nptlist(iptn) = nptlist(iptn) + 1
                         IF (nptlist(iptn).GT.iptneigh) THEN
                            WRITE (iprint,*) 'ERROR - iptneigh '
-                           CALL quit
+                           CALL quit(1)
                         ELSE
                            nearpt(nptlist(iptn),iptn) = n
                         ENDIF
@@ -401,7 +401,7 @@ c*************************************
       IF (iphase(m).EQ.-1 .OR. iphase(m).GE.1 .AND. iphase(m).LT.10
      &     .AND. iptintree.EQ.0) THEN
          WRITE (iprint,*) 'ERROR: getneighi with iphase ',iphase(m)
-         CALL quit
+         CALL quit(1)
       ENDIF
 
       istack = 0
@@ -447,7 +447,7 @@ c
                   IF (istack+2.GT.istacksize) THEN
                      WRITE(iprint,*)'ERROR: stack overflow in getneighi'
      &                               ,istack+2,istacksize
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   istack = istack + 1
                   nstack(istack) = j
@@ -534,7 +534,7 @@ c
                IF (istack+2.GT.istacksize) THEN
                   WRITE(iprint,*)'ERROR: stack overflow in treelist'
      &                 , istack+2, istacksize
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                istack = istack + 1
                nstack(istack) = j
@@ -565,7 +565,7 @@ c
      &        numlist,npart,nptmass,natom
          WRITE(iprint,*)'ERROR: numlist.NE.npart in treelist ',
      &        numlist,npart,nptmass,natom
-         CALL quit
+         CALL quit(1)
       ENDIF
 
       RETURN

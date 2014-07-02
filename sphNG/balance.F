@@ -131,7 +131,7 @@ c
          IF (inumber.NE.1) THEN
             WRITE (*,*) 'ERROR - balance inumber.NE.1 ',inumber,iahead,
      &           ibehind
-            CALL quit
+            CALL quit(1)
          ENDIF
          numrecvtotal = numrecvtotal + numrecv(ibehind+1)
          IF (numrecv(ibehind+1).GT.0) inumtoget = inumtoget + 1
@@ -145,7 +145,7 @@ c
       IF (npartnew + numrecvtotal.GT.idim) THEN
          WRITE (*,*) 'ERROR - npartnew + numrecvtotal.GT.idim ',
      &        npartnew, numrecvtotal, idim
-         CALL quit
+         CALL quit(1)
       ENDIF
 
 #ifdef MPIDEBUGT
@@ -309,7 +309,7 @@ c
                         IF (numlist(j+1).GT.idim/2) THEN
                            WRITE (*,*) 'ERROR - itempsort not large',
      &                          ' enough ',numlist(j+1),j
-                           CALL quit
+                           CALL quit(1)
                         ENDIF
                         DO i = 1, numlist(j+1)
                            itempsort(i) = iorig(lsendlist(i) + 1) - 1
@@ -610,13 +610,13 @@ c
                iprocrec = istatus(MPI_SOURCE)
                IF (ii.NE.iprocrec) THEN
                   WRITE (*,*) 'ERROR - ii.NE.iprocrec ',ii,iprocrec
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                igotnumber = inumber
                IF (inumber.NE.numrecv(ii+1)) THEN
                   WRITE (*,*) 'ERROR - inumber.NE.numrecv(ii+1) ',
      &                 inumber,numrecv(ii+1),ii,iprocrec
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
 #ifdef MPIDEBUGT
@@ -628,7 +628,7 @@ c
                CALL MPI_GET_COUNT(istatus, i4REAL8, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(f1vxyzu(1,npartnew+1), idim, i4REAL8,
@@ -636,7 +636,7 @@ c
                CALL MPI_GET_COUNT(istatus, i4REAL8, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(f2vxyzu(1,npartnew+1), idim, i4REAL8,
@@ -644,7 +644,7 @@ c
                CALL MPI_GET_COUNT(istatus, i4REAL8, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(isteps(npartnew+1), idim, MPI_INTEGER,
@@ -652,7 +652,7 @@ c
                CALL MPI_GET_COUNT(istatus, MPI_INTEGER, inumber,ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(it0(npartnew+1), idim, MPI_INTEGER,
@@ -660,7 +660,7 @@ c
                CALL MPI_GET_COUNT(istatus, MPI_INTEGER, inumber,ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(it1(npartnew+1), idim, MPI_INTEGER,
@@ -668,7 +668,7 @@ c
                CALL MPI_GET_COUNT(istatus, MPI_INTEGER, inumber,ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(it2(npartnew+1), idim, MPI_INTEGER,
@@ -676,7 +676,7 @@ c
                CALL MPI_GET_COUNT(istatus, MPI_INTEGER, inumber,ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(iphase(npartnew+1), idim, MPI_INTEGER1,
@@ -684,7 +684,7 @@ c
                CALL MPI_GET_COUNT(istatus,MPI_INTEGER1,inumber,ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 #ifdef MPIDEBUGT
 c               print *,iproc,': iPHASE ',(iphase(ipart),
@@ -697,7 +697,7 @@ c     &              ' from ',iprocrec
                CALL MPI_GET_COUNT(istatus,MPI_LOGICAL,inumber,ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber iscurrent'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(notacc(npartnew+1), idim, MPI_LOGICAL,
@@ -705,7 +705,7 @@ c     &              ' from ',iprocrec
                CALL MPI_GET_COUNT(istatus,MPI_LOGICAL,inumber,ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber notacc'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(iunique(npartnew+1), idim, MPI_INTEGER8,
@@ -713,7 +713,7 @@ c     &              ' from ',iprocrec
                CALL MPI_GET_COUNT(istatus, MPI_INTEGER8,inumber,ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
 c                  DO iii = npartnew+1,npartnew+MIN(5,igotnumber)
@@ -725,7 +725,7 @@ c                  END DO
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                DO ipart = npartnew + 1, npartnew + igotnumber
@@ -737,7 +737,7 @@ c                  END DO
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber divv'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(curlv(npartnew+1), idim, MPI_REAL4,
@@ -745,7 +745,7 @@ c                  END DO
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber curlv'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(ddv(npartnew+1), idim, MPI_REAL4,
@@ -753,7 +753,7 @@ c                  END DO
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber ddv'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(pr(npartnew+1), idim, MPI_REAL4,
@@ -761,7 +761,7 @@ c                  END DO
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber pr'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(vsound(npartnew+1), idim, MPI_REAL4,
@@ -769,7 +769,7 @@ c                  END DO
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber vsound'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(poten(npartnew+1), idim, MPI_REAL4,
@@ -777,7 +777,7 @@ c                  END DO
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                IF (idim_h2.EQ.idim) THEN
@@ -786,7 +786,7 @@ c     &                 iprocrec, 158, MPI_COMM_WORLD, istatus, ierr)
 c                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
 c                  IF (inumber.NE.igotnumber) THEN
 c                     WRITE (*,*) 'ERROR - balance igotnumber h2mol'
-c                     CALL quit
+c                     CALL quit(1)
 c                  ENDIF
 
                   CALL MPI_RECV(h2ratio(npartnew+1), idim, MPI_REAL8,
@@ -794,7 +794,7 @@ c                  ENDIF
                   CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber h2ratio'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                ENDIF
 
@@ -804,7 +804,7 @@ c                  ENDIF
                   CALL MPI_GET_COUNT(istatus, i2REAL4, inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                ENDIF
 
@@ -813,7 +813,7 @@ c                  ENDIF
                CALL MPI_GET_COUNT(istatus, ialphaREAL4,inumber,ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(f1ha(1,npartnew+1), idim, ialphaREAL41,
@@ -821,7 +821,7 @@ c                  ENDIF
                CALL MPI_GET_COUNT(istatus,ialphaREAL41,inumber,ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(f2ha(1,npartnew+1), idim, ialphaREAL41,
@@ -829,7 +829,7 @@ c                  ENDIF
                CALL MPI_GET_COUNT(istatus, ialphaREAL41,inumber,ierr)
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                IF (imhd.EQ.idim) THEN
@@ -840,7 +840,7 @@ c                  ENDIF
      &                 inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(dumBevolxyz(1,npartnew+1), idim, 
@@ -850,7 +850,7 @@ c                  ENDIF
      &                 inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(Bxyz(1,npartnew+1), idim, i3REAL8,
@@ -858,7 +858,7 @@ c                  ENDIF
                   CALL MPI_GET_COUNT(istatus, i3REAL8, inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(f1Bxyz(1,npartnew+1), idim, 
@@ -868,7 +868,7 @@ c                  ENDIF
      &                 inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   
                   CALL MPI_RECV(f2Bxyz(1,npartnew+1), idim, 
@@ -878,7 +878,7 @@ c                  ENDIF
      &                 inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(divcurlB(1,npartnew+1), idim, i5REAL4,
@@ -886,7 +886,7 @@ c                  ENDIF
                   CALL MPI_GET_COUNT(istatus, i5REAL4, inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                ENDIF
@@ -897,7 +897,7 @@ c                  ENDIF
                   CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                ENDIF
 #ifdef MPIDEBUGT
@@ -913,7 +913,7 @@ c
                IF (inumber.NE.1) THEN
                   WRITE (*,*) 'ERROR - received no sink info ',iproc,
      &                 iprocrec
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (nptmassnew + nptrecv.GT.iptdim) THEN
                   WRITE (*,*) 'ERROR - nptmassnew+nptrecv.GT.iptdim',
@@ -932,7 +932,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecv1 ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(spiny(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -941,7 +941,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecv2 ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(spinz(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -950,7 +950,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecv3 ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   
                   CALL MPI_RECV(angaddx(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -959,7 +959,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecv4 ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(angaddy(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -968,7 +968,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecv5 ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(angaddz(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -977,7 +977,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecv6 ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(spinadx(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -986,7 +986,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecv7 ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(spinady(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -995,7 +995,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecv8 ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(spinadz(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -1004,7 +1004,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecv9 ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(ptmsyn(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -1013,7 +1013,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecvA ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(ptmadd(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -1022,7 +1022,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecvB ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(xmomsyn(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -1031,7 +1031,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecvC ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(ymomsyn(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -1040,7 +1040,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecvD ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(zmomsyn(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -1049,7 +1049,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecvE ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(xmomadd(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -1058,7 +1058,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecvF ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(ymomadd(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -1067,7 +1067,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecvG ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(zmomadd(nptmassnew+1),nptrecv,MPI_REAL8,
@@ -1076,7 +1076,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecvH ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
 
@@ -1087,7 +1087,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecvI ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(nactotal(nptmassnew+1),nptrecv,
@@ -1097,7 +1097,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecvJ ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   IF (encal.EQ.'r') THEN
@@ -1108,7 +1108,7 @@ c
                      IF (inumber.NE.nptrecv) THEN
                         WRITE (*,*) 'ERROR - inumber.NE.nptrecvK ',
      &                       inumber,nptrecv
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
 
                      CALL MPI_RECV(nexposedold(nptmassnew+1),nptrecv,
@@ -1118,7 +1118,7 @@ c
                      IF (inumber.NE.nptrecv) THEN
                         WRITE (*,*) 'ERROR - inumber.NE.nptrecvL ',
      &                       inumber,nptrecv
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
 
                    CALL MPI_RECV(ptmassluminosity(nptmassnew+1),nptrecv,
@@ -1128,7 +1128,7 @@ c
                      IF (inumber.NE.nptrecv) THEN
                         WRITE (*,*) 'ERROR - inumber.NE.nptrecvM ',
      &                       inumber,nptrecv
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
 
                   CALL MPI_RECV(cummulativeenergy(nptmassnew+1),nptrecv,
@@ -1138,7 +1138,7 @@ c
                      IF (inumber.NE.nptrecv) THEN
                         WRITE (*,*) 'ERROR - inumber.NE.nptrecvN ',
      &                       inumber,nptrecv
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
 
                     CALL MPI_RECV(actualcumenergy(nptmassnew+1),nptrecv,
@@ -1148,7 +1148,7 @@ c
                      IF (inumber.NE.nptrecv) THEN
                         WRITE (*,*) 'ERROR - inumber.NE.nptrecvO ',
      &                       inumber,nptrecv
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
 
                      CALL MPI_RECV(iexposedold(nptmassnew+1),nptrecv,
@@ -1158,7 +1158,7 @@ c
                      IF (inumber.NE.nptrecv) THEN
                         WRITE (*,*) 'ERROR - inumber.NE.nptrecvP ',
      &                       inumber,nptrecv
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
 
                      CALL MPI_RECV(listexposed(1,nptmassnew+1),nptrecv,
@@ -1168,7 +1168,7 @@ c
                      IF (inumber.NE.nptrecv) THEN
                         WRITE (*,*) 'ERROR - inumber.NE.nptrecvQ ',
      &                       inumber,nptrecv
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
 
                    CALL MPI_RECV(listexposedold(1,nptmassnew+1),nptrecv,
@@ -1178,7 +1178,7 @@ c
                      IF (inumber.NE.nptrecv) THEN
                         WRITE (*,*) 'ERROR - inumber.NE.nptrecvR ',
      &                       inumber,nptrecv
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
                   ENDIF
 
@@ -1189,7 +1189,7 @@ c
                   IF (inumber.NE.nptrecv) THEN
                      WRITE (*,*) 'ERROR - inumber.NE.nptrecvK ',inumber,
      &                    nptrecv
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 c
 c--Set indexing for sink particles
@@ -1378,17 +1378,17 @@ c      goto 200
             IF (ibin.GT.nbinmax .OR. ibin.GT.30 .OR. ibin.LT.0) THEN
                WRITE (*,*) 'ERROR - ibin.GT.nbinmax B ',ibin
                WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax B ',ibin
-               CALL quit
+               CALL quit(1)
             ENDIF
             nlstbins(ibin) = nlstbins(ibin) + 1
             listbins(nlstbins(ibin),ibin) = i
             IF (it1bin(ibin).NE.it1(i)) THEN
                WRITE (*,*) 'ERROR - it1bin B'
-               CALL quit
+               CALL quit(1)
             ENDIF
             IF (it2bin(ibin).NE.it2(i)) THEN
                WRITE (*,*) 'ERROR - it2bin B'
-               CALL quit
+               CALL quit(1)
             ENDIF
          ENDIF
       END DO
@@ -1432,7 +1432,7 @@ c--End of MPI-only section
 c
 #endif
 
-c 200  CALL quit
+c 200  CALL quit(1)
 
 c      IF (npart.GE.6581) THEN
 c         print *,iproc,': EXIT-6581 ',(xyzmh(ijk,6581), ijk=1,5)
@@ -1510,7 +1510,7 @@ c
             print *,iproc,': BAL inumkeep ',inumkeep
             IF (inumkeep.LT.0 .OR. inumkeep.GE.numproc) THEN
                WRITE (*,*) 'ERROR - Balance: Invalid inumkeep ',inumkeep
-               CALL quit
+               CALL quit(1)
             ENDIF
 
             IF (inumkeep.EQ.iproc) THEN
@@ -1546,7 +1546,7 @@ c
          IF (xtemp - INT(xtemp+1.0E-4).GT.1.0E-4) THEN
             WRITE (*,*) 'ERROR - numproc is not a power of two ',
      &           numproc,xtemp
-            CALL quit
+            CALL quit(1)
          ENDIF
 c
 c--Find total number of active particles on all MPI processes
@@ -1741,7 +1741,7 @@ c
          IF (xtemp - INT(xtemp+1.0E-4).GT.1.0E-4) THEN
             WRITE (*,*) 'ERROR - numproc is not a power of two ',
      &           numproc,xtemp
-            CALL quit
+            CALL quit(1)
          ENDIF
          nsplits = INT(xtemp+1.0E-4)
 
@@ -2011,7 +2011,7 @@ c*************************`***********************************
          ipt = listrealpm(ifrom)
          IF (ipt.LE.0 .OR. ipt.GT.nptmass) THEN
             WRITE (*,*) 'ERROR - ipt.LE.0 .OR. ipt.GT.nptmass'
-            CALL quit
+            CALL quit(1)
          ENDIF
          listrealpm(ito) = ipt
          listpm(ipt) = ito

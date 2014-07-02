@@ -141,14 +141,14 @@ c
 c--ERROR! unknown softening option
 c           
                   print *,' ERROR: unknown softening option in gptall'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
             ELSE
 c
 c--ERROR! unknown softening option
 c           
                print *,' ERROR: unknown softening option in gptall'
-               CALL quit
+               CALL quit(1)
             ENDIF
 c
 c--End force definition

@@ -610,7 +610,7 @@ c
                iprocrec = istatus(MPI_SOURCE)
                IF (ireturned.NE.7*nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.7*nnsentback varinw'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                DO l = 1, nneighsentback(iprocrec+1)
@@ -739,7 +739,7 @@ c
          END DO ! I-loop
 C$OMP END DO
 
-c         CALL quit
+c         CALL quit(1)
 
 #ifdef MPICOPY
 C$OMP SINGLE
@@ -974,17 +974,17 @@ c
                IF (inumberindiv(inumberreturned)*3.NE.inumber) THEN
                   WRITE (*,*) iproc,': ERR - inumberindiv ',inumber,
      &                 inumberindiv(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (inumbercumm(inumberreturned).NE.istart) THEN
                   WRITE (*,*) iproc,': ERR - inumbercumm ',istart,
      &                 inumbercumm(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (inumberproc(inumberreturned).NE.iprocrec) THEN
                   WRITE (*,*) iproc,': ERR - inumberproc ',iprocrec,
      &                 inumberproc(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
             ENDIF
          ENDIF
@@ -992,7 +992,7 @@ c
       IF (inumbertotallocal.NE.inumbertotal) THEN
          WRITE (*,*) iproc,': inumbertotallocal.NE.inumbertotal ',
      &        inumbertotallocal,inumbertotal
-         CALL quit
+         CALL quit(1)
       ENDIF
 
 #endif

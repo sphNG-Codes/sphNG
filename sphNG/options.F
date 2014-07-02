@@ -124,7 +124,7 @@ c
       IF (encal.EQ.'r') THEN
          IF (iradtrans.NE.idim) THEN
             WRITE (iprint,*) 'ERROR - iradtrans.NE.idim'
-            CALL quit
+            CALL quit(0)
          ENDIF
          READ (iterm, *) tolerance, boundtemp, bounddens, opdenom, 
      &        iopmodel, metallicity
@@ -160,7 +160,7 @@ c
       IF ((imhd.NE.idim .OR. imhdevol.NE.4) 
      &     .AND. overclean_fac.NE.1.0) THEN
          WRITE (*,*)'ERROR - overclean_fac>1, but MHD cleaning not used'
-         CALL quit
+         CALL quit(0)
       ENDIF
 c      IF (ifsvi.EQ.6) THEN
          alphamin(1) = alpha

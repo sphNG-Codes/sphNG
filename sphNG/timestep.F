@@ -339,7 +339,7 @@ C$OMP CRITICAL (writeiprint)
                END DO
                WRITE (iprint,*)'rmin ',xmindist
 
-               CALL quit
+               CALL quit(1)
 C$OMP END CRITICAL (writeiprint)
             ENDIF
          ENDIF
@@ -374,7 +374,7 @@ C$OMP END PARALLEL
          istepmingas = istepmingasnew
          IF (istepmingas.LT.2) THEN
             WRITE (iprint,*) 'ERROR - istepmingas.LT.2'
-            CALL quit
+            CALL quit(1)
          ENDIF
       ENDIF
 

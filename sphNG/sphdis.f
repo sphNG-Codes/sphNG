@@ -95,7 +95,7 @@ c
          ELSEIF (iprofr.EQ.2 .OR. prof.EQ.'e' .OR. prof.EQ.'v') THEN
             WRITE (*,99002)
 99002       FORMAT ('NOT IMPLEMENTED')
-            CALL quit
+            CALL quit(0)
          ENDIF
       ELSE
          npart = np + nptmass

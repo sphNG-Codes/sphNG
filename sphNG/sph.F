@@ -459,7 +459,7 @@ c************************************************************
 #endif
       IF (numproc.GT.nummaxproc) THEN
          WRITE (*,*) 'ERROR - numproc.GT.nummaxproc'
-         CALL quit
+         CALL quit(1)
       ENDIF
       DO i = 1, idim
          lblocklengths(i) = 1
@@ -478,7 +478,7 @@ c************************************************************
 #ifdef MPI
       IF (idim_MPI.NE.idim) THEN
          PRINT *,'ERROR - idim_MPI.NE.idim'
-         CALL quit
+         CALL quit(0)
       ENDIF
 #endif
 c
@@ -544,10 +544,10 @@ c--Read main main option for run
 c
       IF (imhd.EQ.idim .AND. imhdxsph.NE.imhd) THEN
          WRITE (*,*) 'ERROR - imhd, imhdxsph ',imhd, imhdxsph
-         CALL quit
+         CALL quit(0)
       ELSEIF (XSPH .AND. imhdxsph.NE.idim) THEN
          WRITE (*,*) 'ERROR - XSPH, imhdxsph ',XSPH, imhdxsph
-         CALL quit
+         CALL quit(0)
       ENDIF
 
 #ifdef _OPENMP
@@ -612,5 +612,6 @@ c  6) setup planet calculations
 c
       IF (job(1:7).EQ.'planet') CALL newplanet
 
-      CALL quit
+      WRITE(*,*)' Unknown command'
+      CALL quit(0)
       END

@@ -127,11 +127,11 @@ c      IF (gt.GT.50.)
 99001 FORMAT(' entry subroutine derivi_gradh')
       IF (igrape.NE.0) THEN
          WRITE (iprint,*) 'ERROR: derivi_P_gradh must have igrape.EQ.0'
-         CALL quit
+         CALL quit(1)
       ENDIF
       IF (nlmax.NE.1) THEN
          WRITE (iprint,*) 'ERROR: derivi_P_gradh must have nlmax.EQ.1'
-         CALL quit
+         CALL quit(1)
       ENDIF
 c     
 c--Set constants first time around
@@ -479,7 +479,7 @@ c
                IF (istart+inumber.GE.idim2) THEN
                   WRITE (*,*) iproc,' ERROR - istart+inumber.GE.idim ',
      &                 istart,inumber,idim,ntot,inumbertotal
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                iprocrec = istatus(MPI_SOURCE)
 
@@ -494,7 +494,7 @@ c
                   IF (icheck.NE.inumber) THEN
                      WRITE (*,*) 'ERROR - icheck.NE.inumber 200 ',
      &                    iproc
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
 #ifdef MPIDEBUG
@@ -508,7 +508,7 @@ c     &                 istart+inumber)
                   IF (icheck.NE.inumber) THEN
                      WRITE (*,*) 'ERROR - icheck.NE.inumber 4 ',
      &                    iproc
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 #ifdef MPIDEBUG
                   print *,iproc,': got pr from ',iprocrec,icheck
@@ -520,7 +520,7 @@ c     &                 istart+inumber)
                   IF (icheck.NE.inumber) THEN
                      WRITE (*,*) 'ERROR - icheck.NE.inumber 5 ',
      &                    iproc
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 #ifdef MPIDEBUG
                   print *,iproc,': got vsound from ',iprocrec,icheck
@@ -532,7 +532,7 @@ c     &                 istart+inumber)
                   IF (icheck.NE.inumber) THEN
                      WRITE (*,*) 'ERROR - icheck.NE.inumber 8 ',
      &                    iproc
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 #ifdef MPIDEBUG
                   print *,iproc,': got gradhs from ',iprocrec,icheck
@@ -545,7 +545,7 @@ c     &                 istart+inumber)
                      IF (icheck.NE.inumber) THEN
                         WRITE (*,*) 'ERROR - icheck.NE.inumber 6 ',
      &                       iproc
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
 #ifdef MPIDEBUG
                      print *,iproc,': got Bxyz from ',iprocrec,icheck
@@ -559,7 +559,7 @@ c     &                 istart+inumber)
                      IF (icheck.NE.inumber) THEN
                         WRITE (*,*) 'ERROR - icheck.NE.inumber 7 ',
      &                       iproc
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
 #ifdef MPIDEBUG
                      print *,iproc,': got Bxyz from ',iprocrec,icheck
@@ -575,7 +575,7 @@ c     &                 istart+inumber)
                      IF (icheck.NE.inumber) THEN
                         WRITE (*,*) 'ERROR - icheck.NE.inumber 8 ',
      &                       iproc
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
 #ifdef MPIDEBUG
                      print *,iproc,': got alphaMM from ',iprocrec,icheck
@@ -589,7 +589,7 @@ c     &                 istart+inumber)
                      IF (icheck.NE.inumber) THEN
                         WRITE (*,*) 'ERROR - icheck.NE.inumber 9 ',
      &                       iproc
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
 #ifdef MPIDEBUG
                      print *,iproc,': got ekcle from ',iprocrec,
@@ -609,11 +609,11 @@ c     &                 istart+inumber)
       END DO
       IF (inumbertotal.GT.idim) THEN
          WRITE (*,*) 'ERROR - inumbertotal.GT.idim ', iproc
-         CALL quit
+         CALL quit(1)
       ENDIF
       IF (inumberreturned.NE.inumofreturns) THEN
          WRITE (*,*) 'ERROR - inumberreturned.NE.inumofreturns ', iproc
-         CALL quit
+         CALL quit(1)
       ENDIF
 c
 c--Need to set up lists for remote particles and ensure
@@ -656,12 +656,12 @@ c
       IF (nlst_tot.NE.ncompact) THEN
          WRITE (*,*) 'ERROR - ncompact.NE.nlst_tot ',ncompact,nlst_tot,
      &        nlst_end
-         CALL quit
+         CALL quit(1)
       ENDIF
       IF (nlst_end.NE.ncompactlocal) THEN
          WRITE (*,*) 'ERROR - ncompactlocal.NE.nlst_end ',ncompactlocal,
      &        nlst_end,nlst_tot,ncompact
-         CALL quit
+         CALL quit(1)
       ENDIF
 c
 c--Compute implicit magnetic resistivity
@@ -813,7 +813,7 @@ c
      &                 istart,icheck,idim2,ntot,inumbertotallocal,
      &                 inumberreturned,inumofreturns,
      &                 nneightogetback(i+1)
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                iprocrec = istatus(MPI_SOURCE)
 #ifdef MPIDEBUG
@@ -826,7 +826,7 @@ c
                IF (icheck.NE.inumber) THEN
                   WRITE (*,*) 'ERROR - icheck.NE.inumber 17 ',
      &                 iproc
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 #ifdef MPIDEBUG
                print *,iproc,': got Bxyz from ',iprocrec,inumber
@@ -836,17 +836,17 @@ c
                IF (inumberindiv(inumberreturned).NE.inumber) THEN
                   WRITE (*,*) iproc,': ERR - inumberindiv B ',inumber,
      &                 inumberindiv(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (inumbercumm(inumberreturned).NE.istart) THEN
                   WRITE (*,*) iproc,': ERR - inumbercumm B ',istart,
      &                 inumbercumm(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (inumberproc(inumberreturned).NE.iprocrec) THEN
                   WRITE (*,*) iproc,': ERR - inumberprocB ',iprocrec,
      &                 inumberproc(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
             ENDIF
          ENDIF
@@ -854,7 +854,7 @@ c
       IF (inumbertotallocal.NE.inumbertotal) THEN
          WRITE (*,*) iproc,': inumbertotallocal.NE.inumbertotal ',
      &        inumbertotallocal,inumbertotal
-         CALL quit
+         CALL quit(1)
       ENDIF
 
 #endif
@@ -930,7 +930,7 @@ ccc         print 99555,iproc,icall,thermalenergy,radenergy,
 ccc     &        thermalenergy+radenergy
 ccc99555    FORMAT(I2,': ENER-B ',I1,1PE14.7,1PE14.7,1PE14.7)
 
-c         CALL quit
+c         CALL quit(1)
 
          IF (encal.EQ.'r') THEN
 c            WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
@@ -1144,7 +1144,7 @@ c
      &                 istart,icheck,idim2,ntot,inumbertotallocal,
      &                 inumberreturned,inumofreturns,
      &                 nneightogetback(i+1)
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                iprocrec = istatus(MPI_SOURCE)
 
@@ -1157,7 +1157,7 @@ c
                iprocrec = istatus(MPI_SOURCE)
                IF (icheck.NE.inumber/5) THEN
                   WRITE (*,*) iproc,': ERROR - icheck.NE.inumber/5'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
 #ifdef MPIDEBUGRT
@@ -1169,7 +1169,7 @@ c
                iprocrec = istatus(MPI_SOURCE)
                IF (icheck.NE.inumber) THEN
                   WRITE (*,*) iproc,': ERROR - icheck.NE.inumber A'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(vsound(istart), idim, MPI_REAL4,
@@ -1178,24 +1178,24 @@ c
                iprocrec = istatus(MPI_SOURCE)
                IF (icheck.NE.inumber) THEN
                   WRITE (*,*) iproc,': ERROR - icheck.NE.inumber B'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                inumbertotallocal = inumbertotallocal + inumber
                IF (inumberindiv(inumberreturned).NE.inumber) THEN
                   WRITE (*,*) iproc,': ERR - inumberindiv RT ',inumber,
      &                 inumberindiv(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (inumbercumm(inumberreturned).NE.istart) THEN
                   WRITE (*,*) iproc,': ERR - inumbercumm RT ',istart,
      &                 inumbercumm(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (inumberproc(inumberreturned).NE.iprocrec) THEN
                   WRITE (*,*) iproc,': ERR - inumberproc RT ',iprocrec,
      &                 inumberproc(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
             ENDIF
          ENDIF
@@ -1203,7 +1203,7 @@ c
       IF (inumbertotallocal.NE.inumbertotal) THEN
          WRITE (*,*) iproc,': inumbertotallocal.NE.inumbertotal ',
      &        inumbertotallocal,inumbertotal
-         CALL quit
+         CALL quit(1)
       ENDIF
 
 #endif
@@ -1249,7 +1249,7 @@ c
       istartrec = istart + inumbertotal
       IF (istartrec + maxnneighsentback.GT.idim3) THEN
          WRITE (*,*) 'ERROR - istartrec + maxnneighsentback.GT.idim3'
-         CALL quit
+         CALL quit(1)
       ENDIF
       inumberreturned = 0
       DO i = 0, numproc - 1
@@ -1276,12 +1276,12 @@ c
                IF (istartrec+ireturned.GT.idim3) THEN
                   WRITE (*,*) 'ERROR - istartrec+ireturned.GT.idim3 ',
      &                 istartrec,ireturned,idim3
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 c               iprocrec = istatus(MPI_SOURCE)
                IF (ireturned.NE.4*nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.4*nnsentback dvxyzu'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 #ifdef MPIDEBUG
                print *,iproc,': got forces from ',iprocrec,' put into ',
@@ -1299,7 +1299,7 @@ c               iprocrec = istatus(MPI_SOURCE)
                   WRITE (*,*) 'ERROR - istartrec+nneighsentback',
      &                 '(iprocrec+1).GT.idim2 ',istartrec,
      &                 nneighsentback(iprocrec+1),idim2
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_RECV(poten(istartrec),maxnneighsentback,
@@ -1307,7 +1307,7 @@ c               iprocrec = istatus(MPI_SOURCE)
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, ireturned, ierr)
                IF (ireturned.NE.nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.nnsendback poten'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 #ifdef MPIDEBUG
 c               print *,iproc,': got poten from ',iprocrec
@@ -1330,7 +1330,7 @@ c               print *,iproc,': got poten from ',iprocrec
                WRITE (*,*) 'ERROR - ireturned.NE.imhdevol',
      &                    '*nnsentback dBevolxyz ',imhdevol,
      &                    nneighsentback(iprocrec+1),ireturned
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 #ifdef MPIDEBUG
                print *,iproc,': got dBevolxyz from ',iprocrec,
@@ -1351,7 +1351,7 @@ c               print *,iproc,': got poten from ',iprocrec
                   CALL MPI_GET_COUNT(istatus,MPI_REAL4,ireturned,ierr)
                   IF (ireturned.NE.5*nneighsentback(iprocrec+1)) THEN
                WRITE (*,*) 'ERROR - ireturned.NE.5*nnsentback divcurlB'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 #ifdef MPIDEBUG
                print *,iproc,': got divcurlB from ',iprocrec,
@@ -1372,7 +1372,7 @@ c               print *,iproc,': got poten from ',iprocrec
                   CALL MPI_GET_COUNT(istatus,MPI_REAL4,ireturned,ierr)
                   IF (ireturned.NE.9*nneighsentback(iprocrec+1)) THEN
                WRITE (*,*) 'ERROR - ireturned.NE.9*nnsentback gradB'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 #ifdef MPIDEBUG
                print *,iproc,': got gradB from ',iprocrec,
@@ -1447,7 +1447,7 @@ c
 
       IF (inumberreturned.NE.inumofreturns) THEN
          WRITE (*,*) 'ERROR - inumberreturned.NE.inumofreturns ', iproc
-         CALL quit
+         CALL quit(1)
       ENDIF
 
       CALL MPI_TYPE_FREE(ialphaREAL4,ierr)

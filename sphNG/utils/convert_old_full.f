@@ -102,5 +102,5 @@ c      STOP
 
 
       SUBROUTINE endrun
-      CALL quit
+      CALL quit(0)
       END

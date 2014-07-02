@@ -143,7 +143,7 @@ c      READ (*,*) fullname
 
       END DO
 
-      CALL quit
+      CALL quit(0)
 
       END
 
@@ -162,7 +162,7 @@ c      READ (*,*) fullname
 
 
       SUBROUTINE endrun
-      CALL quit
+      CALL quit(0)
       END
 
       SUBROUTINE ghostp(ntot,npart,xyzmh,vxyzu,ekcle,Bevolxyz)

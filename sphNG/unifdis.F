@@ -179,7 +179,7 @@ c
      &            ' choices  : 1  =  change dimensions and recompile'
      &            , /, '            2  =  change input parameters')
                   READ (iread, *) ichoice
-                  IF (ichoice.EQ.1) CALL quit
+                  IF (ichoice.EQ.1) CALL quit(0)
                   notdone = 1
                   GOTO 300
                ENDIF
@@ -227,7 +227,7 @@ c
                IF (npart.GT.idim) THEN
                   WRITE (*, 99002)
                   READ (iread, *) ichoice
-                  IF (ichoice.EQ.1) CALL quit
+                  IF (ichoice.EQ.1) CALL quit(0)
                   notdone = 1
                   GOTO 300
                ENDIF
@@ -330,7 +330,7 @@ c               zstart = FLOAT(INT(zmin/stepz))*stepz + 0.5*stepz
                xstart = 0. ! to stop compiler warnings
                ystart = 0.
                zstart = 0.
-               CALL quit
+               CALL quit(0)
             ENDIF
             xi = xstart + FLOAT(k - 1)*stepx
             yi = ystart + FLOAT(l - 1)*stepy
@@ -343,7 +343,7 @@ c               zstart = FLOAT(INT(zmin/stepz))*stepz + 0.5*stepz
                IF (npart.GT.idim) THEN
                   WRITE (*, 99002)
                   READ (iread, *) ichoice
-                  IF (ichoice.EQ.1) CALL quit
+                  IF (ichoice.EQ.1) CALL quit(0)
                   notdone = 1
                   GOTO 300
                ENDIF

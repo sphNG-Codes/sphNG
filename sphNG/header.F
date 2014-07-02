@@ -452,7 +452,7 @@ c
             ELSE
                WRITE (iprint,99149)
 99149          FORMAT (' ERROR - Ptmasses in header ')
-               CALL quit
+               CALL quit(0)
             ENDIF
 
             WRITE(iprint,99016) nptmasstot

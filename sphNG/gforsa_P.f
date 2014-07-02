@@ -129,7 +129,7 @@ c
                print *,' ERROR: unknown softening option in gforsa_P'
                potn = 0.
                fff = 0.
-               CALL quit
+               CALL quit(1)
             ENDIF
 c
 c--Otherwise, both particles are gas and are not neighbours

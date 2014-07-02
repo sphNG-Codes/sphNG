@@ -85,7 +85,7 @@ c            WRITE (*,*) i,nlstbins(29),listbins(i-1,29),
 c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
 c            WRITE (iprint,*) i,nlstbins(29),listbins(i-1,29),
 c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
-c            CALL quit
+c            CALL quit(1)
 c         ENDIF
 c      END DO
 
@@ -161,7 +161,7 @@ c            WRITE (*,*) i,nlstbins(29),listbins(i-1,29),
 c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
 c            WRITE (iprint,*) i,nlstbins(29),listbins(i-1,29),
 c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
-c            CALL quit
+c            CALL quit(1)
 c         ENDIF
 c      END DO
 
@@ -220,19 +220,44 @@ C$OMP END PARALLEL
 
 c------------------------------------------------------------
 
-      SUBROUTINE quit
+      SUBROUTINE quit(iflag)
 c************************************************************
 c                                                           *
 c  This subroutine should be used instead of 'STOP'         *
 c                                                           *
 c************************************************************
       INCLUDE 'idim'
+      INCLUDE 'COMMONS/logun'
+
+      INTEGER iflag
 
 #ifdef MPIALL
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
+#endif
 
+#ifndef MPIALL
+      IF (iflag.EQ.1) THEN
+         WRITE(*,99999)
+         WRITE(iprint,99999)
+99999    FORMAT(' Quitting. Trying to dump state-of-play to FAILDUMP')
+
+         OPEN(UNIT=666, ERR=166, FILE="FAILDUMP",
+     &        FORM='unformatted', RECL=imaxrec   )
+         CALL wdump(666)
+         CLOSE(UNIT=666)
+
+         GOTO 167
+
+ 166     WRITE(*,99998)
+         WRITE(iprint,99998)
+99998    FORMAT(' Failed to write dump. Sorry.')
+      ENDIF
+#endif
+
+c Actually quit
+#ifdef MPIALL
       CALL MPI_FINALIZE(ierr)
 #endif
-      STOP
+ 167  STOP
       END

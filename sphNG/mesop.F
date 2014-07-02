@@ -190,19 +190,19 @@ c              find nearest power of two to the change ratio required
 #ifdef MPIALL
                      ENDIF
 #endif
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   nlstbins(ibin) = nlstbins(ibin) + 1
                   listbins(nlstbins(ibin),ibin) = j
                   IF (integrator.EQ.0) THEN
                      IF (it1bin(ibin).NE.it1(j)) THEN
                         WRITE (*,*) 'ERROR - it1bin mes'
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
                   ENDIF
                   IF (it2bin(ibin).NE.it2(j)) THEN
                      WRITE (*,*) 'ERROR - it2bin mes'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                ENDIF
             END DO
@@ -348,19 +348,19 @@ c
 #ifdef MPIALL
                      ENDIF
 #endif
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   nlstbins(ibin) = nlstbins(ibin) + 1
                   listbins(nlstbins(ibin),ibin) = j
                   IF (integrator.EQ.0) THEN
                      IF (it1bin(ibin).NE.it1(j)) THEN
                         WRITE (*,*) 'ERROR - it1bin mes'
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
                   ENDIF
                   IF (it2bin(ibin).NE.it2(j)) THEN
                      WRITE (*,*) 'ERROR - it2bin mes'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                ENDIF
             END DO
@@ -547,19 +547,19 @@ c
 #ifdef MPIALL
                      ENDIF
 #endif
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   nlstbins(ibin) = nlstbins(ibin) + 1
                   listbins(nlstbins(ibin),ibin) = j
                   IF (integrator.EQ.0) THEN
                      IF (it1bin(ibin).NE.it1(j)) THEN
                         WRITE (*,*) 'ERROR - it1bin mes'
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
                   ENDIF
                   IF (it2bin(ibin).NE.it2(j)) THEN
                      WRITE (*,*) 'ERROR - it2bin mes'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                ENDIF
             END DO

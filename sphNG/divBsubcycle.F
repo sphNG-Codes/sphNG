@@ -680,7 +680,7 @@ c
      &              nelements_varinew*nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.nelements',
      &                 '*nnsentback varinw'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                DO l = 1, nneighsentback(iprocrec+1)

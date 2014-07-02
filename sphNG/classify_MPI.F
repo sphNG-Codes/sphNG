@@ -26,7 +26,7 @@
          ibelong = classify_sphere(xyzmh)
       ELSE
          WRITE (*,*) 'ERROR - mpitype ',mpitype,' not defined'
-         CALL quit
+         CALL quit(1)
       ENDIF
 
       classify = ibelong
@@ -179,7 +179,7 @@ c************************************************************
 
       IF (ival.GE.numproc) THEN
          WRITE (*,*) 'ERROR - classify_cartesian ',numproc,ival
-         CALL quit
+         CALL quit(1)
       ENDIF
 #endif
 
@@ -235,7 +235,7 @@ c************************************************************
 
       IF (ival.GE.numproc) THEN
          WRITE (*,*) 'ERROR - classify_binary ',numproc,ival
-         CALL quit
+         CALL quit(1)
       ENDIF
 #endif
 

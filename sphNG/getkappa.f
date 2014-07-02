@@ -109,7 +109,7 @@ c            getkappa = 0.4*umass/udist**2
 c            RETURN
 c!     PRINT *,"GETKAPPA: Warning, low density-high temperature"
 c!     PRINT *,"How to join tables together?"
-c!     CALL quit
+c!     CALL quit(1)
 c         ENDIF
 
          grad = (val2 - val1)/0.05
@@ -330,7 +330,7 @@ c
          y8=log10(y8)
       ELSEIF (itype.NE.0) THEN
          WRITE (*,*) 'ERROR - trilinear interpolation ',itype
-         CALL quit
+         CALL quit(1)
       ENDIF
       
 c      print *,xval,table(ix,1), yval,table(1,iy)
@@ -384,7 +384,7 @@ c      print *,'trilinear ',value,y1,y2,y3,y4,y5,y6,y7,y8
          PRINT *,"are zero!"
       END IF
       
-      CALL quit
+      CALL quit(1)
       END
 
 

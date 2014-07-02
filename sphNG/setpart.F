@@ -245,7 +245,7 @@ c
                   xyzmh(5,1) = accfac*semiaxis*(0.38-0.20*LOG10(qratio))
                ELSE
                   WRITE (*,*) 'qratio < 0.05'
-                  CALL quit
+                  CALL quit(0)
                ENDIF
                IF (qratio.LT.0.5) THEN
                   xyzmh(5,2) = accfac*semiaxis*
@@ -790,7 +790,7 @@ c           move the outer boundaries to ensure periodicity of the lattice
          totvol = (4.0*pi/3.0*(rcyl2*zmax - rmind2*rmind))
          IF (totvol.LE.0.0) THEN
             WRITE(*,*) 'Negative volume'
-            CALL quit
+            CALL quit(0)
          ENDIF
       ELSEIF (igeom.EQ.6) THEN
          totvol = (4.0*pi*(rmax2*rmax - hacc*hacc*hacc)/3.0)
@@ -800,7 +800,7 @@ c           move the outer boundaries to ensure periodicity of the lattice
          totvol = (pi*2.0*hoverr*(radiusmax**2-radiusmin**2))
       ELSE
          WRITE(*,*) 'ERROR igeom'
-         CALL quit
+         CALL quit(0)
       ENDIF
 
 c
@@ -987,7 +987,7 @@ c
       END DO
       IF (n1+n2.NE.npart) THEN
          WRITE (*,*) 'ERROR - n1+n2.NE.npart'
-         CALL quit
+         CALL quit(0)
       ENDIF
       DO i = 1, n1
          iunique(i) = inum_n1(iproc+1) + i

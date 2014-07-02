@@ -101,7 +101,7 @@ c
       IF (XSPH) THEN
          WRITE (iprint,*) 'ERROR - Leap-frog and XSPH incompatible'
          WRITE (*,*) 'ERROR - Leap-frog and XSPH incompatible'
-         CALL quit
+         CALL quit(1)
       ENDIF
 c
 c--Compute next dump time and initialise variables
@@ -134,7 +134,7 @@ c
             WRITE (iprint,*)
          ELSE
             WRITE (iprint,*) 'Integrator miss-match'
-            CALL quit
+            CALL quit(1)
          ENDIF
 #ifdef MPI
       ENDIF
@@ -255,7 +255,7 @@ c            WRITE (*,*) i,nlstbins(29),listbins(i-1,29),
 c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
 c            WRITE (iprint,*) i,nlstbins(29),listbins(i-1,29),
 c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
-c            CALL quit
+c            CALL quit(1)
 c         ENDIF
 c      END DO
 
@@ -343,7 +343,7 @@ c
             ELSE
                WRITE (iprint,*) 'ERROR - individualtimesteps ',
      &              individualtimesteps
-               CALL quit
+               CALL quit(1)
             ENDIF
          ENDIF
 c
@@ -363,14 +363,14 @@ c
                IF (ibin.GT.nbinmax) THEN
                   WRITE (*,*) 'ERROR - ibin.GT.nbinmax'
                   WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                nlstbins(ibin) = nlstbins(ibin) + 1
                listbins(nlstbins(ibin),ibin) = i
                IF (it2bin(ibin).NE.it2(i)) THEN
                   WRITE (*,*) 'ERROR - it2bin'
                   WRITE (iprint,*) 'ERROR - it2bin'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
             ENDIF
          END DO
@@ -397,7 +397,7 @@ c            WRITE (*,*) i,nlstbins(29),listbins(i-1,29),
 c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
 c            WRITE (iprint,*) i,nlstbins(29),listbins(i-1,29),
 c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
-c            CALL quit
+c            CALL quit(1)
 c         ENDIF
 c      END DO
 
@@ -417,7 +417,7 @@ c            WRITE (*,*) i,nlstbins(29),listbins(i-1,29),
 c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
 c            WRITE (iprint,*) i,nlstbins(29),listbins(i-1,29),
 c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
-c            CALL quit
+c            CALL quit(1)
 c         ENDIF
 c      END DO
 c
@@ -522,7 +522,7 @@ c         WRITE (*,*) 2**i,it2bin(i),nlstbins(i),nsteplist(i)
 c         WRITE (iprint,*) 2**i,it2bin(i),nlstbins(i),
 c     &        nsteplist(i)
 c        END DO
-c        CALL quit
+c        CALL quit(1)
 c      ENDIF
 
       ioutinf = 0
@@ -542,7 +542,7 @@ c            WRITE (*,*) i,nlstbins(29),listbins(i-1,29),
 c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
 c            WRITE (iprint,*) i,nlstbins(29),listbins(i-1,29),
 c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
-c            CALL quit
+c            CALL quit(1)
 c         ENDIF
 c      END DO
 
@@ -578,11 +578,11 @@ c
                IF (ipart.GT.idim) THEN
                   WRITE (*,*) 'ERROR - ipart.GT.idim 2'
                   WRITE (iprint,*) 'ERROR - ipart.GT.idim 2'
-                  CALL quit
+                  CALL quit(1)
                ELSEIF (ipart.LE.0) THEN
                   WRITE (*,*) 'ERROR - ipart.LE.0 2'
                   WRITE (iprint,*) 'ERROR - ipart.LE.0 2'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (iphase(ipart).GE.0) THEN
                   IF (it2(ipart).NE.itime) THEN
@@ -590,7 +590,7 @@ c
                      WRITE (iprint,*) 'ERROR - it2(ipart).NE.itime 2'
                      WRITE (*,*) ipart,it2(ipart),itime,it2bin(i)
                      WRITE (*,*) it2(ipart),it0(ipart)
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   IF (it0(ipart)+isteps(ipart).NE.itime) THEN
                      WRITE (*,*) 'ERROR - it0+istep.NE.itime 2'
@@ -598,7 +598,7 @@ c
                      WRITE (*,*) isteps(ipart),it0(ipart),iphase(ipart)
                      WRITE (*,*) listpm(1),listpm(2),iproc
                      WRITE (iprint,*) 'ERROR - it0+istep.NE.itime 2'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 c
 c--Make list
@@ -607,7 +607,7 @@ c
                   IF (jj.GT.idim) THEN
                      WRITE (*,*) 'ERROR - jj.GT.idim 2'
                      WRITE (iprint,*) 'ERROR - jj.GT.idim 2'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   llist(jj) = ipart
                   IF (hasghost(ipart)) imakeghost = 1
@@ -922,7 +922,7 @@ C$OMP CRITICAL (parentlist1)
                         numberparents = numberparents + 1
                         IF (numberparents.GT.idim) THEN
                          WRITE (iprint,*) 'numberparents ',numberparents
-                           CALL quit
+                           CALL quit(1)
                         ENDIF
                         listparents(numberparents) = iparent
                      ENDIF
@@ -1002,7 +1002,7 @@ C$OMP& private(i,k,ipart,iparent)
             ipart = listpm(i)
             IF (itime.NE.it0(ipart)) THEN
                WRITE (*,*) 'ERROR - ptmass not updated'
-               CALL quit
+               CALL quit(1)
             ENDIF
 c
 c--Set flag to state that parent node in tree needs to be recalculated
@@ -1277,7 +1277,7 @@ c
       ELSE
          WRITE (iprint,*) 'ERROR - individualtimesteps',
      &        individualtimesteps
-         CALL quit
+         CALL quit(1)
       ENDIF
 
       IF (itiming) THEN
@@ -1325,7 +1325,7 @@ C$OMP CRITICAL (killparticle)
                nlstacc = nlstacc + 1
                IF (nlstacc.GT.nlstaccmax) THEN
                   WRITE (iprint,*) 'ERROR step nlstacc'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                listacc(nlstacc) = i
 
@@ -1361,14 +1361,14 @@ C$OMP CRITICAL (killparticle)
                nlstacc = nlstacc + 1
                IF (nlstacc.GT.nlstaccmax) THEN
                   WRITE (iprint,*) 'ERROR step nlstacc'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                listacc(nlstacc) = i
 
                nlistinactive = nlistinactive + 1
                IF (nlistinactive.GT.idim) THEN
                   WRITE (iprint,*) 'ERROR step nlistinactive'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                listinactive(nlistinactive) = i
 
@@ -1399,7 +1399,7 @@ C$OMP CRITICAL (killparticle)
                nlstacc = nlstacc + 1
                IF (nlstacc.GT.nlstaccmax) THEN
                   WRITE (iprint,*) 'ERROR step nlstacc'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                listacc(nlstacc) = i
 
@@ -1432,7 +1432,7 @@ C$OMP CRITICAL (killparticle)
                nlstacc = nlstacc + 1
                IF (nlstacc.GT.nlstaccmax) THEN
                   WRITE (iprint,*) 'ERROR step nlstacc'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                listacc(nlstacc) = i
 
@@ -1550,7 +1550,7 @@ c
             IF (nlstbins(i).NE.0) THEN
                WRITE (*,*) 'ERROR - nlstbins(i).NE.0'
                WRITE (iprint,*) 'ERROR - nlstbins(i).NE.0'
-               CALL quit
+               CALL quit(1)
             ENDIF
          ENDIF
       END DO
@@ -1563,7 +1563,7 @@ c
          IF (i.GT.idim) THEN
             WRITE (*,*) 'ERROR - i.GT.idim 4'
             WRITE (iprint,*) 'ERROR - i.GT.idim 4'
-            CALL quit
+            CALL quit(1)
          ELSEIF (i.LE.0) THEN
             WRITE (*,*) 'ERROR - i.LE.0 4'
             WRITE (iprint,*) 'ERROR - i.LE.0 4'
@@ -1572,26 +1572,26 @@ c
             DO i2 = 1, j
                WRITE (iprint,*) i2, llist(i2)
             END DO
-            CALL quit
+            CALL quit(1)
          ENDIF
          IF (iphase(i).NE.-1) THEN
             ibin = INT(LOG10(REAL(isteps(i)))/xlog2+0.5)
             IF (ibin.GT.nbinmax) THEN
                WRITE (*,*) 'ERROR - ibin.GT.nbinmax 4'
                WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax 4'
-               CALL quit
+               CALL quit(1)
             ENDIF
             nlstbins(ibin) = nlstbins(ibin) + 1
             IF (nlstbins(ibin).GT.idim) THEN
                WRITE (*,*) 'ERROR - nlstbins(ibin).GT.idim 4'
                WRITE (iprint,*) 'ERROR - nlstbins(ibin).GT.idim 4'
-               CALL quit
+               CALL quit(1)
             ENDIF
             listbins(nlstbins(ibin),ibin) = i
             IF (it2bin(ibin).NE.it2(i)) THEN
                WRITE (*,*) 'ERROR - it2bin 2',it2bin(ibin),it2(i),i,
      &              it0(i),itime,isteps(i)
-               CALL quit
+               CALL quit(1)
             ENDIF
          ENDIF
       END DO
@@ -1607,7 +1607,7 @@ c
          IF (ibound/10.EQ.9 .AND. nshell.GT.inshell) THEN
             IF (nlmax.EQ.1) THEN
                WRITE (*,*) 'Cannot use grad-h with shell boundaries'
-               CALL quit
+               CALL quit(1)
             ENDIF
             iaccr = 0
             ikilled = 0
@@ -1752,25 +1752,25 @@ c
                IF (ibin.GT.nbinmax) THEN
                   WRITE (*,*) 'ERROR - ibin.GT.nbinmax 5'
                   WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax 5'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                nlstbins(ibin) = nlstbins(ibin) + 1
                IF (nlstbins(ibin).GT.idim) THEN
                   WRITE (*,*) 'ERROR - nlstbins(ibin).GT.idim 5'
                   WRITE (iprint,*) 'ERROR - nlstbins(ibin).GT.idim 5'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                listbins(nlstbins(ibin),ibin) = i
 
 c               IF (it1bin(ibin).NE.it1(i)) THEN
 c                  WRITE (*,*) 'ERROR - it1bin 5',it1bin(ibin),it1(i),i,
 c     &                 it0(i),itime,isteps(i),it2(i)
-c                  CALL quit
+c                  CALL quit(1)
 c               ENDIF
                IF (it2bin(ibin).NE.it2(i)) THEN
                   WRITE (*,*) 'ERROR - it2bin 5',it2bin(ibin),it2(i),i,
      &                 it0(i),itime,isteps(i),it1(i)
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 c
 c--Check that particle is not in any other bin
@@ -1781,7 +1781,7 @@ c
                         IF (listbins(l,k).EQ.i) THEN
                            WRITE (*,*) 'Particle ',i,' in two bins!'
                            WRITE (*,*) 'Bins ',ibin,k,nlstbins(k)
-                           CALL quit
+                           CALL quit(1)
                         ENDIF
                      END DO
                   ENDIF
@@ -1802,7 +1802,7 @@ c
       IF (ibound.EQ.100) THEN
          IF (nlmax.EQ.1) THEN
             WRITE (*,*) 'Cannot use grad-h with ibound=100'
-            CALL quit
+            CALL quit(1)
          ENDIF
 c
 c--Work out how many particles to add
@@ -1843,7 +1843,7 @@ c
             IF (icountaddnpart.NE.0 .AND.
      &           icountaddnpart.NE.nlst0-nlistinactive) THEN
                WRITE (*,*) 'ERROR: icountaddnpart'
-               CALL quit
+               CALL quit(1)
             ENDIF
             npart = npart + MAX(0,nlst0-nlistinactive)
             n1 = n1 + MAX(0,nlst0-nlistinactive)
@@ -2002,25 +2002,25 @@ c
                IF (ibin.GT.nbinmax) THEN
                   WRITE (*,*) 'ERROR - ibin.GT.nbinmax 5'
                   WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax 5'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                nlstbins(ibin) = nlstbins(ibin) + 1
                IF (nlstbins(ibin).GT.idim) THEN
                   WRITE (*,*) 'ERROR - nlstbins(ibin).GT.idim 5'
                   WRITE (iprint,*) 'ERROR - nlstbins(ibin).GT.idim 5'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                listbins(nlstbins(ibin),ibin) = i
 
 c               IF (it1bin(ibin).NE.it1(i)) THEN
 c                  WRITE (*,*) 'ERROR - it1bin 5',it1bin(ibin),it1(i),i,
 c     &                 it0(i),itime,isteps(i),it2(i)
-c                  CALL quit
+c                  CALL quit(1)
 c               ENDIF
                IF (it2bin(ibin).NE.it2(i)) THEN
                   WRITE (*,*) 'ERROR - it2bin 5',it2bin(ibin),it2(i),i,
      &                 it0(i),itime,isteps(i),it1(i)
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 c
 c--Check that particle is not in any other bin
@@ -2031,7 +2031,7 @@ c
                         IF (listbins(l,k).EQ.i) THEN
                            WRITE (*,*) 'Particle ',i,' in two bins!'
                            WRITE (*,*) 'Bins ',ibin,k,nlstbins(k)
-                           CALL quit
+                           CALL quit(1)
                         ENDIF
                      END DO
                   ENDIF
@@ -2111,7 +2111,7 @@ c
                xyzmh(5,ipt1) = accfac*semiaxis*(0.38-0.20*LOG10(qratio))
             ELSE
                WRITE (iprint,*) 'ERROR: qratio < 0.05'
-               CALL quit
+               CALL quit(1)
             ENDIF
             IF (qratio.LT.0.5) THEN
                xyzmh(5,ipt2) = accfac*semiaxis*
@@ -2283,13 +2283,13 @@ c
                IF (ibin.GT.nbinmax) THEN
                   WRITE (*,*) 'ERROR - ibin.GT.nbinmax 5'
                   WRITE (iprint,*) 'ERROR - ibin.GT.nbinmax 5'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                nlstbins(ibin) = nlstbins(ibin) + 1
                listbins(nlstbins(ibin),ibin) = i
                IF (it2bin(ibin).NE.it2(i)) THEN
                   WRITE (*,*) 'ERROR - it2bin 5'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
             ENDIF
          END DO

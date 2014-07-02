@@ -93,7 +93,7 @@ c
          vsound = total/FLOAT(npart)
       ELSE
          WRITE (*,*) ' NOT IMPLEMENTED'
-         CALL quit
+         CALL quit(0)
       END IF
 
       WRITE (*,*) 'Average sound speed is ',vsound

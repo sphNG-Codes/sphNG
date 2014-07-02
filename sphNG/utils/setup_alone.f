@@ -52,7 +52,7 @@ c     &     RECL=imaxrec)
 
       CALL wdump(11)
 
-      CALL quit
+      CALL quit(0)
       END
 
 
@@ -63,7 +63,7 @@ c     &     RECL=imaxrec)
       END
 
       SUBROUTINE endrun
-      CALL quit
+      CALL quit(0)
       END
 
       SUBROUTINE ghostp(ntot,npart,xyzmh,vxyzu,ekcle,Bevolxyz)

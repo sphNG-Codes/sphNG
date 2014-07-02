@@ -59,7 +59,7 @@ c
       ELSE
          fractanhere = fractan
          WRITE (iprint,*) 'ERROR in phoenix'
-         CALL quit
+         CALL quit(1)
       ENDIF
 
       accelcent = rxy*(fractanhere*specang/rxy2)**2

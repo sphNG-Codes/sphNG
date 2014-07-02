@@ -154,7 +154,7 @@ c
             CALL MPI_GET_COUNT(istatus, MPI_INTEGER, inumber, ierr)
             IF (inumber.NE.1) THEN
                WRITE (*,*) 'ERROR - nptmassrec not received (forcei)'
-               CALL quit
+               CALL quit(1)
             ENDIF
 #ifdef MPIDEBUGS
             print *,iproc,': FORCEI send ',nptmass,' ptmasses to ',
@@ -163,13 +163,13 @@ c
             IF (nptmasslocal+nptmassrec.GT.iptdim) THEN
              WRITE (*,*) 'ERROR iptdim not large enough for all sinks',
      &              nptmasslocal,nptmassrec,iptdim
-               CALL quit
+               CALL quit(1)
             ENDIF
             IF (2*ntot+2+inumbertotal+nptmasslocal+nptmassrec-
      &           nptmass+1.GT.mmax2) THEN
                WRITE (*,*) 'ERROR mmax2 not large enough for all sinks',
      &              nptmasslocal,nptmassrec,nptmass,ntot,mmax2
-               CALL quit
+               CALL quit(1)
             ENDIF
 c
 c--Send sink particle information (xyzmh, vxyzu, iscurrent, iunique)
@@ -182,7 +182,7 @@ c
             IF (inumber.NE.nptmassrec) THEN
                WRITE (*,*) 'ERROR - inumber.NE.nptmassrec ',inumber,
      &              nptmassrec
-               CALL quit
+               CALL quit(1)
             ENDIF
 
             DO iii = nptmasslocal + 1, nptmasslocal + nptmassrec
@@ -194,7 +194,7 @@ c
          IF (nptmasslocal.NE.nptmasstot) THEN
             WRITE (*,*) 'ERROR - nptmasslocal.NE.nptmasstot ',
      &           nptmasslocal,nptmasstot
-            CALL quit
+            CALL quit(1)
          ENDIF
 #ifdef MPIDEBUGS
          print *,iproc,': FORCEI: Transfer of all sink data complete ',
@@ -338,7 +338,7 @@ c         ipart = listp(n)
          
          if (ipart.eq.0) then
             print*,' ERROR : ipart= ',ipart,'n = ',n,nlst_in
-            call quit
+            CALL quit(1)
          endif
 
 c         IF (ipart.GT.idim) print *,iproc,': F ',n,ipart
@@ -395,7 +395,7 @@ c         dha(1,ipart) = 0.0
 
          IF (iphase(ipart).EQ.-1) THEN
             WRITE(iprint,*) 'Error: Force for non-existant particle'
-            CALL quit
+            CALL quit(1)
 c
 c--For sink particles do not need pressure, viscous & gravity softening forces
 c
@@ -543,7 +543,7 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D4 ',n,k
                WRITE(iprint,*) j,iorig(j),xyzmh(1,j),xyzmh(2,j),
      &              xyzmh(3,j),vxyzu(1,j),vxyzu(2,j),vxyzu(3,j)
                WRITE(iprint,*) ipart,iorig(ipart),icall,xi,yi,zi
-               CALL quit
+               CALL quit(1)
             ENDIF
 c
 c--Gravity and potential energy
@@ -559,7 +559,7 @@ c
                   CALL modboundeulr(dx,dy,dz,dBevolx,dBevoly)
                ELSEIF (varmhd.EQ.'vecp') THEN
                   WRITE(iprint,*) 'modbound not implemented for vecp'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
             ELSE
                CALL modbound(dx,dy,dz)
@@ -2163,7 +2163,7 @@ c
                IF (n.LE.nlst_end) THEN
                   IF (ipart.GT.npart) THEN
                      WRITE (*,*) 'ERROR - ipart.GT.npart'
-                     CALL quit
+                     CALL quit(1)
                   ELSE
                      iparttree = ipart
                   ENDIF

@@ -376,7 +376,7 @@ c************************************************************
 
       IF (hi.LE.0.) THEN
          WRITE (*,*) 'Stop, hzero.LE.0 in fbound'
-         CALL quit
+         CALL quit(1)
       ENDIF
       yy = abs(rr-rmax)
       qfac = yy/hi
@@ -394,7 +394,7 @@ c************************************************************
       IF (rr.gt.rmax) THEN
          WRITE(*,*) 'ERROR! particle crossed boundary'
          WRITE(*,*) 'rr = ',rr,rmax,v2,fbound
-         CALL quit
+         CALL quit(1)
       ENDIF
       
       END FUNCTION fbound

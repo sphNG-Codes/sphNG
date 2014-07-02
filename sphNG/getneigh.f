@@ -23,7 +23,7 @@ ccc      nlist = 0
                nlist = nlist + 1
                IF (nlist.GT.nlistmax) THEN
                   WRITE (iprint,*) 'ERROR - getneigh list overflow'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                list(nlist) = i
             ENDIF

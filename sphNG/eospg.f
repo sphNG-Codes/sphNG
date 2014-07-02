@@ -32,7 +32,7 @@ c************************************************************
 
       IF (vxyzu(4,ipart).LE.0) THEN
          WRITE (*,*) 'ERROR - vxyzu(4,ipart).LE.0 ',vxyzu(4,ipart),ipart
-         CALL quit
+         CALL quit(1)
       ENDIF
 c
 c--Variable is internal energy

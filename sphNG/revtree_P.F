@@ -337,7 +337,7 @@ C$OMP DO SCHEDULE(static)
             ipart = listacc(i)
             IF (ipart.LT.1 .OR. ipart.GT.npart) THEN
                WRITE (*, *) 'ERROR - revtree listacc',ipart,nlstacc,i
-               CALL quit
+               CALL quit(1)
             ENDIF
             listpar(i) = isibdaupar(3,ipart)
             IF (iphase(ipart).EQ.-1) imfac(ipart) = 0

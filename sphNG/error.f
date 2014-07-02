@@ -24,7 +24,7 @@ c
       IF (where(1:5).EQ.'place') THEN
          WRITE (iprint, 99002)
 99002    FORMAT (' EOF on disk, check record number !')
-         CALL quit
+         CALL quit(0)
       ENDIF
 c
 c--Write error
@@ -32,7 +32,7 @@ c
       IF (where(1:5).EQ.'wdump') THEN
          WRITE (iprint, 99003) iwhat
 99003    FORMAT (' error number : ', I4)
-         CALL quit
+         CALL quit(0)
       ENDIF
 c
 c--Integration error
@@ -41,17 +41,17 @@ c
          IF (iwhat.EQ.1) THEN
             WRITE (iprint, 99004)
 99004       FORMAT (' time step is smaller than 1e-10, check data!')
-            CALL quit
+            CALL quit(1)
          ENDIF
          IF (iwhat.EQ.2) THEN
             WRITE (iprint, 99005)
 99005       FORMAT (' number of rejections greater than 10, check data')
-            CALL quit
+            CALL quit(1)
          ENDIF
          IF (iwhat.EQ.3) THEN
             WRITE (iprint, 99006)
 99006       FORMAT (' integration is not converging, nothing can help!')
-            CALL quit
+            CALL quit(1)
          ENDIF
          IF (iwhat.EQ.4) THEN
             WRITE (iprint, 99007)
@@ -72,7 +72,7 @@ c
       IF (where(1:5).EQ.'trans') THEN
          WRITE (iprint, 99009)
 99009    FORMAT (' not so many dumps on input file !')
-         CALL quit
+         CALL quit(0)
       ENDIF
 c
 c--Error in adding dumps
@@ -82,7 +82,7 @@ c
          IF (iwhat.EQ.2) THEN
             WRITE (iprint, 99010)
 99010       FORMAT (' smoothing length of both object not equal !')
-            CALL quit
+            CALL quit(0)
          ENDIF
       ENDIF
 c
@@ -91,19 +91,19 @@ c
       IF (where(1:5).EQ.'mtree') THEN
          WRITE (iprint, 99011) iwhat
 99011    FORMAT (' maximum number of nodes overflow !',I2)
-         CALL quit
+         CALL quit(1)
       ENDIF
       IF (where(1:6).EQ.'naybor') THEN
          IF (iwhat.EQ.1) WRITE (iprint, 99012) iwhat
 99012    FORMAT (' hash table too short !')
          IF (iwhat.EQ.2) WRITE (iprint, 99013) iwhat
 99013    FORMAT (' map tables too short !')
-         CALL quit
+         CALL quit(0)
       ENDIF
       IF (where(1:6).EQ.'indexx') THEN
          WRITE (iprint, 99014)
 99014    FORMAT (' nstack must be made larger !')
-         CALL quit
+         CALL quit(0)
       ENDIF
 c
 c--Error in prout
@@ -140,7 +140,7 @@ c
      &           ' usually should be 1.0',/,
      &           ' (to use etamhd = 0.0, select iresist=1) ')
 
-         CALL quit
+         CALL quit(0)
       ENDIF
 c
       IF (where(1:7).EQ.'density') THEN
@@ -185,7 +185,7 @@ c
          IF (iwhat.EQ.1) WRITE (iprint,*)'   Units: udist'
          IF (iwhat.EQ.2) WRITE (iprint,*)'   Units: umass'
          IF (iwhat.EQ.4) WRITE (iprint,*)'   Units: umagfd'
-         CALL quit
+         CALL quit(0)
       ENDIF
 c
 c--Number of gas particles less than minimum value
@@ -276,19 +276,19 @@ c
       IF (where(1:6).EQ.'derivi' .AND. iwhat.EQ.1) THEN
          WRITE (iprint, 99040)
 99040    FORMAT (' GRAPE flag igrape not defined')
-         CALL quit
+         CALL quit(0)
       ENDIF
       IF (where(1:5).EQ.'insul' .AND. iwhat.EQ.2) THEN
          WRITE (iprint, 99045)
 99045    FORMAT (' Code compiled with insulate_TREE rather',
      &        ' than insulate_GRAPE')
-         CALL quit
+         CALL quit(0)
       ENDIF
       IF (where(1:5).EQ.'insul' .AND. iwhat.EQ.3) THEN
          WRITE (iprint, 99050)
 99050    FORMAT (' Code compiled with insulate_GRAPE rather',
      &        ' than insulate_TREE')
-         CALL quit
+         CALL quit(0)
       ENDIF
 c
 c--Number of point masses exceeds dimensions
@@ -302,7 +302,9 @@ c
 c
 c--quit by default on unknown errors
 c
-      CALL quit
+      WRITE(iprint, 99000)
+99000 FORMAT(' ERROR: Unknown error.')
+      CALL quit(0)
 
       RETURN
       END

@@ -344,7 +344,7 @@ c            OPEN(UNIT=8,FILE='/home/mrbate/tables/opacitytbl')
             WRITE (*,*) 'WARNING - optable using gas opacities only'
          ELSE
             WRITE (*,*) 'ERROR - unknown low-T opacity model'
-            CALL quit
+            CALL quit(0)
          ENDIF
 c
 c--Read in high temperature opacity models
@@ -468,7 +468,7 @@ c
             WRITE (*,*) 'Going with Alexander 1975 high-T model'
          ELSE
             WRITE (*,*) 'ERROR - unknown low-H opacity model'
-            CALL quit
+            CALL quit(0)
          ENDIF
 c
 c--Read in dusttable, which is required to make the interface between
@@ -562,7 +562,7 @@ c     &           u_val/cv_val,op_val/umass*udist**2
             END DO
          END DO
 
-         CALL quit
+         CALL quit(0)
       ENDIF
 c
 c--END SECTION OF CODE FOR TESTING TABLES
@@ -673,7 +673,7 @@ c
 99003    FORMAT(A7,'.',I3)
       ELSE
          WRITE (*,*) 'ERROR: string ',iproc
-         CALL quit
+         CALL quit(0)
       ENDIF
 
       RETURN

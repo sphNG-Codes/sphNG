@@ -54,7 +54,7 @@ c      print *,'num threads', inumthreads
 c      inumthreads = 4
       IF(inumthreads.GT.nmaxthreads) THEN
          WRITE (*,*) 'ERROR - inumthreads.GT.nmaxthreads'
-         CALL quit
+         CALL quit(1)
       ENDIF
 c
 c--Produce an x-sorted list
@@ -172,7 +172,7 @@ c                  if (k.LT.100)
 c     &                 print *,'swapping ',imove,k,xnext,jpos
                   IF (imove.EQ.imax) THEN
                      print *,'imove.EQ.imax'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   next1p(k) = imove
                   ipoint(jpos) = ipoint(jpos) + 1
@@ -213,7 +213,7 @@ c     already there)
 c               
                   IF (imove.EQ.0) THEN
                      print *,'imove.EQ.0'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   next1p(k) = imove
                   ipoint(jpos) = ipoint(jpos) - 1
@@ -256,7 +256,7 @@ c     already there)
 c               
                   IF (imove.EQ.imax) THEN
                      print *,'imove.EQ.imax'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   next2p(k) = imove
                   ipoint(jpos) = ipoint(jpos) + 1
@@ -297,7 +297,7 @@ c     already there)
 c               
                   IF (imove.EQ.0) THEN
                      print *,'imove.EQ.0'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   next2p(k) = imove
                   ipoint(jpos) = ipoint(jpos) - 1
@@ -340,7 +340,7 @@ c     already there)
 c               
                   IF (imove.EQ.imax) THEN
                      print *,'imove.EQ.imax'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   next3p(k) = imove
                   ipoint(jpos) = ipoint(jpos) + 1
@@ -381,7 +381,7 @@ c     already there)
 c               
                   IF (imove.EQ.0) THEN
                      print *,'imove.EQ.0'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   next3p(k) = imove
                   ipoint(jpos) = ipoint(jpos) - 1

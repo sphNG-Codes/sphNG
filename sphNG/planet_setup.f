@@ -553,7 +553,7 @@ c
          totvol = (pi*2.0*hoverr*(radiusmax**2-radiusmin**2))
       ELSE
          WRITE(*,*) 'ERROR igeom'
-         CALL quit
+         CALL quit(0)
       ENDIF
 
 c

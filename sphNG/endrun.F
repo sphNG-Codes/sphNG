@@ -65,5 +65,5 @@ c
          CLOSE (inotify)
       ENDIF
 
-      CALL quit
+      CALL quit(0)
       END

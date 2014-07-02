@@ -130,7 +130,7 @@ C$OMP DO SCHEDULE(runtime)
          j = llist(i)
          IF (iremove(j).NE.-1) THEN
             WRITE (*,*) 'ERROR - accrete iremove ',iremove(j),j,nlst0
-            CALL quit
+            CALL quit(1)
          ENDIF
          IF (iphase(j).EQ.0 .OR. iphase(j).EQ.11) iremove(j) = 0
       END DO
@@ -189,7 +189,7 @@ c
                         igotnumber = inumber/5
                         IF (ntot+inumbertotal+igotnumber.GT.idim) THEN
                            WRITE (*,*) 'ERROR - ntot+igotnumber.GT.idim'
-                           CALL quit
+                           CALL quit(1)
                         ENDIF
                         naccreteback(j+1) = igotnumber
 #ifdef MPIDEBUGS
@@ -204,7 +204,7 @@ c
                            IF (inumber.NE.4*igotnumber) THEN
                               WRITE (iprint,*) 'ERROR - Sink form1 ',
      &                             inumber,igotnumber
-                              CALL quit
+                              CALL quit(1)
                            ENDIF
 
                            CALL MPI_RECV(f1vxyzu(1,ntot+inumbertotal+1),
@@ -215,7 +215,7 @@ c
                            IF (inumber.NE.4*igotnumber) THEN
                               WRITE (iprint,*) 'ERROR - Sink form2 ',
      &                             inumber,igotnumber
-                              CALL quit
+                              CALL quit(1)
                            ENDIF
 
                            CALL MPI_RECV(rho(ntot+inumbertotal+1), 
@@ -226,7 +226,7 @@ c
                            IF (inumber.NE.igotnumber) THEN
                               WRITE (iprint,*) 'ERROR - Sink form3 ',
      &                             inumber,igotnumber
-                              CALL quit
+                              CALL quit(1)
                            ENDIF
                         ENDIF
                         inumbertotal = inumbertotal + igotnumber
@@ -257,7 +257,7 @@ c
                CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
                IF (inumber.NE.5) THEN
                   WRITE (iprint,*) 'ERROR - Particle test ',inumber
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 #ifdef MPIDEBUGS
       print *,iproc,': CREATE: received candidate data'
@@ -680,7 +680,7 @@ c            WRITE (iprint,*) 'Test ',jj,j,r2,iremove(j)
                   nlstacc = nlstacc + 1
                   IF (nlstacc.GT.nlstaccmax) THEN
                      WRITE (iprint,*) 'ERROR nlstacc ',nlstacc
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   listacc(nlstacc) = j
                   numberacclocal = numberacclocal + 1
@@ -871,7 +871,7 @@ c
                IF (inumber.NE.inumbertotal) THEN
                   WRITE (iprint,*) 'ERROR - inumber.NE.inumbertotal ',
      &                 inumber,inumbertotal
-                  CALL quit
+                  CALL quit(1)
                ENDIF
             ENDIF
             DO i = ntot + 1, ntot + inumbertotal
@@ -889,11 +889,11 @@ c
                IF (inumber.NE.nlist) THEN
                   WRITE (*,*) 'ERROR - nlist.NE.inumber ',
      &                 iproc,iproccreate,nlist,inumber
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (ntot+inumber.GT.idim) THEN
                   WRITE (*,*) 'ERROR - ntot+inumber.GT.idim'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 #ifdef MPIDEBUGS
          print *,iproc,': CREATE: got back iremove data ',inumber
@@ -909,7 +909,7 @@ c
                      nlstacc = nlstacc + 1
                      IF (nlstacc.GT.nlstaccmax) THEN
                         WRITE (iprint,*) 'ERROR nlstacc 2 ',nlstacc
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
                      listacc(nlstacc) = nearl(i)+1
                   ENDIF
@@ -1003,7 +1003,7 @@ c
          CALL MPI_GET_COUNT(istatus, MPI_INTEGER, inumber, ierr)
          IF (inumber.NE.1) THEN
             WRITE (*,*) 'ERROR - nptmassrec not received'
-            CALL quit
+            CALL quit(1)
          ENDIF
 #ifdef MPIDEBUGS
          print *,iproc,': sent ',nptmass,' to ',iahead,' and received ',
@@ -1013,12 +1013,12 @@ c
          IF (nptmasslocal+nptmassrec.GT.iptdim) THEN
             WRITE (*,*) 'ERROR iptdim not large enough for all sinks',
      &           nptmasslocal,nptmassrec,iptdim
-            CALL quit
+            CALL quit(1)
          ENDIF
          IF (ntot+nptmasslocal+nptmassrec-nptmass.GT.idim) THEN
             WRITE (*,*) 'ERROR idim not large enough for all sinks',
      &           nptmasslocal,nptmassrec,nptmass,ntot,idim
-            CALL quit
+            CALL quit(1)
          ENDIF
 c
 c--Send sink particle information (xyzmh, vxyzu, iscurrent, iunique)
@@ -1030,7 +1030,7 @@ c
          IF (inumber.NE.nptmassrec) THEN
             WRITE (*,*) 'ERROR - inumber.NE.nptmassrec ',inumber,
      &           nptmassrec
-            CALL quit
+            CALL quit(1)
          ENDIF
 #ifdef MPIDEBUGS
          print *,iproc,': sent xyzmh sent/received'
@@ -1049,7 +1049,7 @@ c
          IF (inumber.NE.nptmassrec) THEN
             WRITE (*,*) 'ERROR - inumber.NE.nptmassrec ',inumber,
      &           nptmassrec
-            CALL quit
+            CALL quit(1)
          ENDIF
 #ifdef MPIDEBUGS
          print *,iproc,': sent vxyzu sent/received'
@@ -1062,7 +1062,7 @@ c
          IF (inumber.NE.nptmassrec) THEN
             WRITE (*,*) 'ERROR - inumber.NE.nptmassrec 2 ',inumber,
      &           nptmassrec
-            CALL quit
+            CALL quit(1)
          ENDIF
 #ifdef MPIDEBUGS
          print *,iproc,': sent iscurrent sent/received'
@@ -1075,7 +1075,7 @@ c
          IF (inumber.NE.nptmassrec) THEN
             WRITE (*,*) 'ERROR - inumber.NE.nptmassrec 3 ',inumber,
      &           nptmassrec
-            CALL quit
+            CALL quit(1)
          ENDIF
 
          nptmasslocal = nptmasslocal + nptmassrec
@@ -1148,7 +1148,7 @@ c
                   nptlist(iii) = nptlist(iii) + 1
                   IF (nptlist(iii).GT.iptneigh) THEN
                      WRITE (iprint,*) 'ERROR - acc, iptneigh'
-                     CALL quit
+                     CALL quit(1)
                   ELSE
                      nearpt(nptlist(iii),iii) = j
                   ENDIF
@@ -1217,13 +1217,13 @@ c
          CALL MPI_GET_COUNT(istatus, MPI_INTEGER, inumber, ierr)
          IF (inumber.NE.1) THEN
             WRITE (*,*) 'ERROR - number of accretable not received'
-            CALL quit
+            CALL quit(1)
          ENDIF
          IF (ntot+nptmasstot+nneightogetback(iahead+1).GT.idim) THEN
             WRITE (*,*) 'ERROR - nneightogetback(iahead+1).GT.idim ',
      &           ntot,nptmasstot,nneightogetback(iahead+1),iproc,
      &           iahead
-            CALL quit
+            CALL quit(1)
          ENDIF
 #ifdef MPIDEBUGS
          print *,iproc,': Send ',nneighsentback(ibehind+1),' to ',
@@ -1251,7 +1251,7 @@ c
          IF (inumber.NE.nneightogetback(iahead+1)) THEN
             WRITE (*,*) 'ERROR - inum.NE.nneightogetback(iahead+1) 1 ',
      &           inumber,nneightogetback(iahead+1),iproc,iahead
-            CALL quit
+            CALL quit(1)
          ENDIF
 #ifdef MPIDEBUGS
          print *,iproc,': Sent xyzmh to ',ibehind,iahead
@@ -1265,7 +1265,7 @@ c
          IF (inumber.NE.nneightogetback(iahead+1)) THEN
             WRITE (*,*) 'ERROR - inum.NE.nneightogetback(iahead+1) 2 ',
      &           inumber,nneightogetback(iahead+1),iproc,iahead
-            CALL quit
+            CALL quit(1)
          ENDIF
 #ifdef MPIDEBUGS
          print *,iproc,': Sent vxyzu to ',ibehind,iahead
@@ -1279,7 +1279,7 @@ c
          IF (inumber.NE.nneightogetback(iahead+1)) THEN
             WRITE (*,*) 'ERROR - inum.NE.nneightogetback(iahead+1) 3 ',
      &           inumber,nneightogetback(iahead+1),iproc,iahead
-            CALL quit
+            CALL quit(1)
          ENDIF
 
          CALL MPI_SENDRECV(notacc, 1, indexMPIL, ibehind, 89,
@@ -1290,7 +1290,7 @@ c
          IF (inumber.NE.nneightogetback(iahead+1)) THEN
             WRITE (*,*) 'ERROR - inum.NE.nneightogetback(iahead+1) 4 ',
      &           inumber,nneightogetback(iahead+1),iproc,iahead
-            CALL quit
+            CALL quit(1)
          ENDIF
 
          inumbercumm(iahead+1) = nneighforeign
@@ -1378,7 +1378,7 @@ c
                   IF (ii.LE.nlst0) ncompare = ncompare + 1
                   IF (nptlist(iii).GT.iptneigh) THEN
                      WRITE (iprint,*) 'ERROR - acc, iptneigh'
-                     CALL quit
+                     CALL quit(1)
                   ELSE
                      nearpt(nptlist(iii),iii) = j
                   ENDIF
@@ -1419,7 +1419,7 @@ cc     &              dumxyzmh(1,j),dumxyzmh(2,j),
 cc     &              dumxyzmh(3,j)
 cc            END DO
 
-c            CALL quit
+c            CALL quit(1)
 cc         ENDIF
 c
 c--Perform accretion
@@ -1547,7 +1547,7 @@ c
                         nlstacc = nlstacc + 1
                         IF (nlstacc.GT.nlstaccmax) THEN
                            WRITE (iprint,*) 'ERROR nlstacc ',nlstacc
-                           CALL quit
+                           CALL quit(1)
                         ENDIF
                         listacc(nlstacc) = j
                         numberacclocal = numberacclocal + 1
@@ -1713,7 +1713,7 @@ c
             WRITE (*,*) 'ERROR - Not enough room incoming iremoves ',
      &           ntot,nptmasstot,nneighforeign,
      &           nneighsentback(ibehind+1),iproc,ibehind
-            CALL quit
+            CALL quit(1)
          ENDIF
          jstore = ntot + nptmasstot + nneighforeign + 1
 
@@ -1725,7 +1725,7 @@ c
          IF (inumber.NE.nneighsentback(ibehind+1)) THEN
             WRITE (*,*) 'ERROR - inumber.NE.nneighsentback(ibehind+1) ',
      &           iproc, inumber, nneighsentback(ibehind+1), ibehind
-            CALL quit
+            CALL quit(1)
          ENDIF
          nmaxback = MAX(nmaxback,nneighsentback(ibehind+1))
 c
@@ -1747,7 +1747,7 @@ c
          IF (istore+nneighsentback(ibehind+1).GT.idim) THEN
          WRITE (*,*) 'ERROR - istore+nneighsentback(ibehind+1).GT.idim',
      &           istore,nneighsentback(ibehind+1),idim
-            CALL quit
+            CALL quit(1)
          ENDIF
          CALL MPI_SENDRECV(iunique, 1, indexMPIU, iahead, 91, 
      &        iunique(istore), 
@@ -1757,7 +1757,7 @@ c
          IF (inumber.NE.nneighsentback(ibehind+1)) THEN
             WRITE (*,*) 'ERROR - inumber.NE.nneighsentback(ibehind+1)2',
      &           iproc, inumber, nneighsentback(ibehind+1), ibehind
-            CALL quit
+            CALL quit(1)
          ENDIF
          numberbackcumm = numberbackcumm + nneighsentback(ibehind+1)
 
@@ -1777,7 +1777,7 @@ c
                nlstacc = nlstacc + 1
                IF (nlstacc.GT.nlstaccmax) THEN
                   WRITE (iprint,*) 'ERROR nlstacc 3 ',nlstacc
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                listacc(nlstacc) = llistsentback(iii,ibehind+1)+1
                iaccretedby(listacc(nlstacc)) = istore+iii-1
@@ -1974,7 +1974,7 @@ cC$OMP CRITICAL(mergesinks)
                                  IF (nlstacc.GT.nlstaccmax) THEN
                                     WRITE (iprint,*) 'ERROR nlstacc ',
      &                                   nlstacc
-                                    CALL quit
+                                    CALL quit(1)
                                  ENDIF
                                  listacc(nlstacc) = iptm2
                                  numberacclocal = numberacclocal + 1
@@ -2083,7 +2083,7 @@ c
       IF (imergetot.GT.1) THEN
          WRITE (*,*) 'ERROR - Some MPI processes merged sinks but ',
      &        'others did not! ',iproc,numproc,imerge,imergetot
-         CALL quit
+         CALL quit(1)
       ENDIF
       IF (imergetot.GE.2) THEN
          CALL MPI_ALLREDUCE(imerged1,iuniquetot,1,MPI_INTEGER8,
@@ -2091,14 +2091,14 @@ c
          IF (iuniquetot.NE.numproc*imerged1) THEN
             WRITE (*,*) 'ERROR - Primary of sink merger is different ',
      &           iproc,numproc,iuniquetot,listpm(i1list),i1list,imerged1
-            CALL quit
+            CALL quit(1)
          ENDIF
          CALL MPI_ALLREDUCE(imerged2,iuniquetot,1,MPI_INTEGER8,
      &        MPI_SUM,MPI_COMM_WORLD,ierr)
          IF (iuniquetot.NE.numproc*imerged2) THEN
            WRITE (*,*) 'ERROR - Secondary of sink merger is different ',
      &           iproc,numproc,iuniquetot,listpm(i2list),i1list,imerged2
-            CALL quit
+            CALL quit(1)
          ENDIF
       ENDIF
 #ifdef MPIDEBUGS

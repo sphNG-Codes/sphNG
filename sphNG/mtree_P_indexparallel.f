@@ -145,7 +145,7 @@ c      DO i = 1, nactive
 c         write (43,*) list(next3(i)),xyzmh(3,list(next3(i)))
 c      END DO
 
-c      CALL quit
+c      CALL quit(1)
 
       
 C$OMP PARALLEL default(none)
@@ -403,7 +403,7 @@ C$OMP SINGLE
             WRITE (iprint,99101) l, xyzmh(1,l), xyzmh(2,l), xyzmh(3,l)
 99101       FORMAT (I8, 1F12.7, 1F12.7, 1F12.7)
          END DO   
-         CALL quit
+         CALL quit(1)
       ENDIF
 C$OMP END SINGLE
 c
@@ -541,7 +541,7 @@ C$OMP SINGLE
          nactive = nglob - 1
       ELSE
          WRITE (iprint,*) 'ERROR - nactive>idim'
-         CALL quit
+         CALL quit(1)
       ENDIF
 C$OMP END SINGLE
 

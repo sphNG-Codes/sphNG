@@ -307,7 +307,7 @@ c
             ELSE
                WRITE (iprint,*) 'ERROR - istellarfeedback ',
      &              istellarfeedback
-               CALL quit
+               CALL quit(1)
             ENDIF
          END DO
       ENDIF
@@ -701,7 +701,7 @@ c
          ELSE
             WRITE (iprint,*) 'ERROR - istellarfeedback ',
      &           istellarfeedback
-            CALL quit
+            CALL quit(1)
          ENDIF
 
       END DO
@@ -741,7 +741,7 @@ c
                      nexposed(iptn) = nexposed(iptn) + 1
                      IF (nexposed(iptn).GT.nmaxexposed) THEN
                         WRITE (*,*) 'ERROR - nmaxexposed exceeded'
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
                      listexposed(nexposed(iptn),iptn) = i
 
@@ -1215,7 +1215,7 @@ c
                iprocrec = istatus(MPI_SOURCE)
                IF (ireturned.NE.9*nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.9*nnsentback dvdx'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                DO l = 1, nneighsentback(iprocrec+1)
@@ -1467,7 +1467,7 @@ c
                iprocrec = istatus(MPI_SOURCE)
                IF (ireturned.NE.3*nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.3*nnsentback dedxyz'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                DO l = 1, nneighsentback(iprocrec+1)
@@ -1684,17 +1684,17 @@ c                  print *,'REC ',jjj,transfer(jjj)
                IF (inumberindiv(inumberreturned).NE.inumber) THEN
                   WRITE (*,*) iproc,': ERR - inumberindiv ',inumber,
      &                 inumberindiv(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (inumbercumm(inumberreturned).NE.istart+1) THEN
                   WRITE (*,*) iproc,': ERR - inumbercumm ',istart+1,
      &                 inumbercumm(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (inumberproc(inumberreturned).NE.iprocrec) THEN
                   WRITE (*,*) iproc,': ERR - inumberproc ',iprocrec,
      &                 inumberproc(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
             ENDIF
          ENDIF
@@ -1702,7 +1702,7 @@ c                  print *,'REC ',jjj,transfer(jjj)
       IF (inumbertotallocal.NE.inumbertotal) THEN
          WRITE (*,*) iproc,': inumbertotallocal.NE.inumbertotal ',
      &        inumbertotallocal,inumbertotal
-         CALL quit
+         CALL quit(1)
       ENDIF
 
 C$OMP END SINGLE
@@ -1813,7 +1813,7 @@ c                     vsig = cs - 2.0*dvdWmj05/pmjdW
 c                  convection = (dlnTdlnP(i)-adiabaticgradient(i) + 
 c     &                    dlnTdlnP(j)-adiabaticgradient(j))/2.0
                      WRITE (*,*) 'ERROR - dlnTdlnP not impl'
-                     CALL quit
+                     CALL quit(1)
 
 c  should make gradient sub-adiabatic and really stop convection
                      convection = convection + 0.1
@@ -1973,7 +1973,7 @@ c
      &              nelements_varinew*nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.nelements',
      &                 '*nnsentback varinw'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                DO l = 1, nneighsentback(iprocrec+1)
@@ -2108,7 +2108,7 @@ c     &                 dvdWimj,rhoj,rhomean,dvdWjmj,vmu,pmjdW,
 c     &                 dWidrlightrhorhom,dvdWimi
 c               END DO
 c
-cc               CALL quit
+cc               CALL quit(1)
 c            ENDIF
 
 c            pres_denominator = varinew(4,i)
@@ -2651,7 +2651,7 @@ c     &           ) THEN
 c            PRINT *,"Completed Phase 1 ",nosweep," iterations with",
 c     &           " tolerances E ",maxerrE2," U ",maxerrU2
 c            iphase1 = iphase1 + 1
-c            CALL quit
+c            CALL quit(1)
 c            GOTO 1150
 c         ENDIF
          ENDIF
@@ -2865,17 +2865,17 @@ c
                IF (inumberindiv(inumberreturned)*5.NE.inumber) THEN
                   WRITE (*,*) iproc,': ERR - inumberindiv ',inumber,
      &                 inumberindiv(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (inumbercumm(inumberreturned).NE.istart) THEN
                   WRITE (*,*) iproc,': ERR - inumbercumm ',istart,
      &                 inumbercumm(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (inumberproc(inumberreturned).NE.iprocrec) THEN
                   WRITE (*,*) iproc,': ERR - inumberproc ',iprocrec,
      &                 inumberproc(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
             ENDIF
          ENDIF
@@ -2883,7 +2883,7 @@ c
       IF (inumbertotallocal.NE.inumbertotal) THEN
          WRITE (*,*) iproc,': inumbertotallocal.NE.inumbertotal ',
      &        inumbertotallocal,inumbertotal
-         CALL quit
+         CALL quit(1)
       ENDIF
 
 #endif
@@ -3001,7 +3001,7 @@ C$OMP END PARALLEL DO
 
 c      write (*,*) 'exit gsimpl',ekcle(2,22)
 
-c      CALL quit
+c      CALL quit(1)
 
  999  CONTINUE
 
@@ -3112,7 +3112,7 @@ c
                iprocrec = istatus(MPI_SOURCE)
                IF (ireturned.NE.nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.nnsentback varinw'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                DO l = 1, nneighsentback(iprocrec+1)
@@ -3365,7 +3365,7 @@ c
                iprocrec = istatus(MPI_SOURCE)
                IF (ireturned.NE.nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.nnsentback varinw'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                DO l = 1, nneighsentback(iprocrec+1)
@@ -3609,17 +3609,17 @@ c
                IF (inumberindiv(inumberreturned)*2.NE.inumber) THEN
                   WRITE (*,*) iproc,': inumberindiv ',inumber,
      &                 inumberindiv(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (inumbercumm(inumberreturned).NE.istart+1) THEN
                   WRITE (*,*) iproc,': inumbercumm ',istart+1,
      &                 inumbercumm(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (inumberproc(inumberreturned).NE.iprocrec) THEN
                   WRITE (*,*) iproc,': inumberproc ',iprocrec,
      &                 inumberproc(inumberreturned),inumberreturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
             ENDIF
          ENDIF
@@ -3627,7 +3627,7 @@ c
       IF (inumbertotallocal.NE.inumbertotal) THEN
          WRITE (*,*) iproc,': inumbertotallocal.NE.inumbertotal ',
      &        inumbertotallocal,inumbertotal
-         CALL quit
+         CALL quit(1)
       ENDIF
 
 #endif

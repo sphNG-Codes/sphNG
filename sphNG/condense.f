@@ -42,7 +42,7 @@ c
          CLOSE (19)
          GOTO 100
  50      WRITE (*,*) 'ERROR - Gaussian_Data'
-         CALL quit
+         CALL quit(0)
  100  ENDIF
 
       ians = 'n'

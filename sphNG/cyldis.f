@@ -84,7 +84,7 @@ c************************************************************
          
          WRITE (*,99001)
 99001        FORMAT ('NOT IMPLEMENTED')
-         CALL quit
+         CALL quit(0)
       ENDIF
 
       DO i = nptmass + 1, npart

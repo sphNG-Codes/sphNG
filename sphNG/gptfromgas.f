@@ -37,7 +37,7 @@ c
 
       IF (iphase(ipart).LE.0 .OR. iphase(ipart).GE.10) THEN
          WRITE (*,*) 'ERROR - gptfromgas called by non-sink'
-         CALL quit
+         CALL quit(1)
       ENDIF
 c
 c--Needed for MPI code

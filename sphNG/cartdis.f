@@ -34,11 +34,11 @@ c
          npart = np + nptmass
          WRITE (*,99002)
 99002    FORMAT (' NOT IMPLEMENTED')
-         CALL quit
+         CALL quit(0)
       ELSE IF (idist.EQ.2) THEN   
          npart = np + nptmass
          WRITE (*,99002)
-         CALL quit
+         CALL quit(0)
       ELSE
          npart = np + nptmass
          rcyl2 = rcyl * rcyl 

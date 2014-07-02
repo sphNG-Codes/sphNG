@@ -50,7 +50,7 @@ c
       ELSE
          drhoi = 0.
          WRITE(*,*) ' rho <= tiny in externalBfield !!!'
-         CALL quit
+         CALL quit(1)
       ENDIF
 
 c============ choose external B field profile ===============

@@ -82,15 +82,15 @@ c
       READ (idisk1, END=300) int1i,r1i,int2i,i1i,int3i
       IF (int1i.NE.int1) THEN
          WRITE (*,*) 'ERROR 1 in rdump: ENDIANNESS wrong?'
-         CALL quit
+         CALL quit(0)
       ENDIF
       IF (int2i.NE.int2) THEN
          WRITE (*,*) 'ERROR 2 in rdump: default integer size wrong'
-         CALL quit
+         CALL quit(0)
       ENDIF
       IF (int3i.NE.int1) THEN
          WRITE (*,*) 'ERROR 3 in rdump: default real size wrong'
-         CALL quit
+         CALL quit(0)
       ENDIF
       READ (idisk1, END=300) fileident
 c
@@ -100,7 +100,7 @@ c--Default int
       READ (idisk1, END=300) number
       IF (number.NE.6) THEN
          WRITE (*,*) 'ERROR 4 in rdump'
-         CALL quit
+         CALL quit(0)
       ENDIF
       READ (idisk1, END=300) np1,n11,n12
 c--int*1, int*2, int*4, int*8
@@ -111,7 +111,7 @@ c--Default real
       READ (idisk1, END=300) number
       IF (number.NE.14) THEN
          WRITE (*,*) 'ERROR 5 in rdump'
-         CALL quit
+         CALL quit(0)
       ENDIF
       READ (idisk1, END=300) t1, dtmax1, gamma1, rhozero1, RK21,
      &     escap1, tkin1, tgrav1, tterm1
@@ -121,7 +121,7 @@ c--real*8
       READ (idisk1, END=300) number
       IF (number.NE.3) THEN
          WRITE (*,*) 'ERROR 6 in rdump'
-         CALL quit
+         CALL quit(0)
       ENDIF
       READ (idisk1, END=300) udist, umass, utime
 c
@@ -132,7 +132,7 @@ c
       READ (idisk1, END=300) number
       IF (number.LT.2 .OR. number.GT.4) THEN
          WRITE (*,*) 'ERROR 7 in rdump'
-         CALL quit
+         CALL quit(0)
       ENDIF
 c
 c--Read array type 1 header
@@ -140,7 +140,7 @@ c
       READ (idisk1, END=300) number8, (nums(i), i=1,8)
       IF (number8.NE.np1) THEN
          WRITE (*,*) 'ERROR 8 in rdump: npart wrong'
-         CALL quit
+         CALL quit(0)
       ENDIF
       np1 = number8
 c
@@ -158,7 +158,7 @@ c
      &        number8.NE.np1) THEN
             WRITE (*,*) 'ERROR 9 in rdump: iradtrans wrong ',number8,
      &           iradtrans,np1
-            CALL quit
+            CALL quit(0)
          ENDIF
          nradtrans = number8
       ENDIF
@@ -172,7 +172,7 @@ c
      &        number8.NE.np1) THEN
             WRITE (*,*) 'ERROR 10 in rdump: imhd wrong ',number8,
      &           imhd,np1
-            CALL quit
+            CALL quit(0)
          ENDIF
          nmhd = number8
       ENDIF
@@ -299,15 +299,15 @@ c
       READ (idisk1, END=300) int1i,r1i,int2i,i1i,int3i
       IF (int1i.NE.int1) THEN
          WRITE (*,*) 'ERROR 1 in rdump: ENDIANNESS wrong?'
-         CALL quit
+         CALL quit(0)
       ENDIF
       IF (int2i.NE.int2) THEN
          WRITE (*,*) 'ERROR 2 in rdump: default integer size wrong'
-         CALL quit
+         CALL quit(0)
       ENDIF
       IF (int3i.NE.int1) THEN
          WRITE (*,*) 'ERROR 3 in rdump: default real size wrong'
-         CALL quit
+         CALL quit(0)
       ENDIF
       READ (idisk1, END=300) fileident
 c
@@ -317,7 +317,7 @@ c--Default int
       READ (idisk1, END=300) number
       IF (number.NE.6) THEN
          WRITE (*,*) 'ERROR 4 in rdump'
-         CALL quit
+         CALL quit(0)
       ENDIF
       READ (idisk1, END=300) np2,n21,n22
 c--int*1, int*2, int*4, int*8
@@ -328,7 +328,7 @@ c--Default real
       READ (idisk1, END=300) number
       IF (number.NE.14) THEN
          WRITE (*,*) 'ERROR 5 in rdump'
-         CALL quit
+         CALL quit(0)
       ENDIF
       READ (idisk1, END=300) t2, dtmax2, gamma2, rhozero2, RK22,
      &     escap2, tkin2, tgrav2, tterm2
@@ -338,7 +338,7 @@ c--real*8
       READ (idisk1, END=300) number
       IF (number.NE.3) THEN
          WRITE (*,*) 'ERROR 6 in rdump'
-         CALL quit
+         CALL quit(0)
       ENDIF
       READ (idisk1, END=300) udist, umass, utime
 c
@@ -349,7 +349,7 @@ c
       READ (idisk1, END=300) number
       IF (number.LT.2 .OR. number.GT.4) THEN
          WRITE (*,*) 'ERROR 7 in rdump'
-         CALL quit
+         CALL quit(0)
       ENDIF
 c
 c--Read array type 1 header
@@ -357,7 +357,7 @@ c
       READ (idisk1, END=300) number8, (nums(i), i=1,8)
       IF (number8.NE.np2) THEN
          WRITE (*,*) 'ERROR 8 in rdump: npart wrong'
-         CALL quit
+         CALL quit(0)
       ENDIF
       np2 = number8
 c
@@ -374,7 +374,7 @@ c
      &        number8.NE.np2) THEN
             WRITE (*,*) 'ERROR 9 in rdump: iradtrans wrong ',number8,
      &           iradtrans,np2
-            CALL quit
+            CALL quit(0)
          ENDIF
          nradtrans = number8
       ENDIF
@@ -387,7 +387,7 @@ c
      &        number8.NE.np2) THEN
             WRITE (*,*) 'ERROR 10 in rdump: imhd wrong ',number8,
      &           imhd,np2
-            CALL quit
+            CALL quit(0)
          ENDIF
          nmhd = number8
       ENDIF

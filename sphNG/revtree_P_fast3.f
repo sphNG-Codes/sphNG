@@ -242,7 +242,7 @@ c      ENDIF
             IF (ipart.LT.1 .OR. ipart.GT.npart) THEN
                WRITE (iprint, *) 'ERROR - revtree listacc',
      &                           ipart,nlstacc,i
-               CALL quit
+               CALL quit(1)
             ENDIF
             imfac(ipart) = 0
             iparent = isibdaupar(3,ipart)
@@ -339,7 +339,7 @@ c               new = listparents(list(i)+numberstart-1)
                   DO j = MAX(1,i-10),numberparents
                WRITE (*,*) j,listparents(j),iflagtree(listparents(j))
                   END DO
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                iflagtree(new) = .FALSE.
@@ -435,7 +435,7 @@ C$OMP CRITICAL(parentlist5)
                      numnextlevel = numnextlevel + 1
                      IF (numnextlevel.GT.idim) THEN
                         WRITE (*,*) 'parentlist5 ',numnextlevel
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
                      listparents(numnextlevel) = iparent
                   ENDIF
@@ -455,7 +455,7 @@ c               new = listparents(list(i) + numberstart - 1)
 
                IF (.NOT.iflagtree(new)) THEN
                   WRITE (iprint, *) 'ERROR - revtreeX2',new,i
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                iflagtree(new) = .FALSE.
@@ -543,7 +543,7 @@ c
                         numnextlevel = numnextlevel + 1
                         IF (numnextlevel.GT.idim) THEN
                            WRITE (*,*) 'parentlist6 ',numnextlevel
-                           CALL quit
+                           CALL quit(1)
                         ENDIF
                         listparents(numnextlevel) = iparent
                      ENDIF

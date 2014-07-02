@@ -643,7 +643,7 @@ c
             itempsort(i) = iunique(i)
          ELSE
             WRITE (*,*) 'ERROR - iunique(i).GE.',huge(i)
-            CALL quit
+            CALL quit(0)
          ENDIF
       END DO
       WRITE (idisk1, ERR=100) (itempsort(i), i=1, npart)

@@ -57,7 +57,7 @@ c
  100     Nstep = Nstep * 2
          IF (Nstep.GT.1000000) THEN
             WRITE (iprint,*) 'ERROR in divBdiffuse: Nsteps > 10^6'
-            CALL quit
+            CALL quit(1)
          ENDIF
 
       END DO

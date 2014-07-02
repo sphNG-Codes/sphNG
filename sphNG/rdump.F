@@ -110,15 +110,15 @@ c
 
       IF (int1i.NE.int1) THEN
          WRITE (*,*) 'ERROR 1 in rdump: ENDIANNESS wrong?'
-         CALL quit
+         CALL quit(0)
       ENDIF
       IF (int2i.NE.int2) THEN
          WRITE (*,*) 'ERROR 2 in rdump: default real size wrong'
-         CALL quit
+         CALL quit(0)
       ENDIF
       IF (int3i.NE.int1) THEN
          WRITE (*,*) 'ERROR 3 in rdump: default integer size wrong'
-         CALL quit
+         CALL quit(0)
       ENDIF
       READ (idisk1, END=100) fileident
 c
@@ -129,7 +129,7 @@ c--Default int
       print *,'number ints ',number
       IF (number.LT.6) THEN
          WRITE (*,*) 'ERROR 4 in rdump: not enough default ints'
-         CALL quit
+         CALL quit(0)
       ENDIF
       IF (number.EQ.9+NTAB) THEN
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
@@ -158,7 +158,7 @@ c--Default int
       ENDIF
       IF (npart.GT.idim .AND. nblocks.EQ.1) THEN
          WRITE (*,*) 'ERROR in rdump: npart>idim'
-         CALL quit
+         CALL quit(0)
       ENDIF
 c--int*1, int*2, int*4, int*8
       DO i = 1, 3
@@ -177,7 +177,7 @@ c--Default real
       print *,'number real ',number
       IF (number.LT.14) THEN
          WRITE (*,*) 'ERROR 5 in rdump: not enough default reals'
-         CALL quit
+         CALL quit(0)
       ENDIF
 c--need to read hzero for problems which utilise 
 c  the monaghan-style external boundary force
@@ -218,7 +218,7 @@ c  D.Price 14.5.07
       ELSE
          IF (iexf.EQ.10) THEN
             WRITE(*,*) 'ERROR: hzero not found in rdump'
-            CALL quit
+            CALL quit(0)
          ENDIF
          hzero = 0.
       ENDIF
@@ -290,7 +290,7 @@ c--real*8
       READ (idisk1, END=100) number
       IF (number.LT.3) THEN
          WRITE (*,*) 'ERROR 6 in rdump: nreal8 too small header'
-         CALL quit
+         CALL quit(0)
       ENDIF
       IF (imhd.EQ.idim) THEN
          IF (number.GT.3) THEN
@@ -327,14 +327,14 @@ c
       IF (number.LT.2 .OR. number/nblocks.LT.2 .OR. 
      &     numberexp.EQ.4 .AND.number/nblocks.NE.4) THEN
          WRITE (*,*) 'ERROR 7 in rdump ', number, numberexp
-         CALL quit
+         CALL quit(0)
 #ifdef MPI
       ELSEIF (nblocks.NE.1 .AND. nblocks.NE.numproc) THEN
          WRITE (*,*) 'ERROR in rdump: nblocks.NE.numproc ',
      &        nblocks,numberexp,numproc
          WRITE (*,*) 'Cannot start up job with different number of MPI',
      &        ' processes'
-         CALL quit
+         CALL quit(0)
 #endif
       ENDIF
       numberarray = number/nblocks
@@ -354,7 +354,7 @@ c
       IF (number8.LT.npart .AND. nblocks.EQ.1 .OR. number8.GT.idim) THEN
          WRITE (*,*) 'ERROR 8 in rdump: npart wrong',number8,
      &           npart, idim
-         CALL quit
+         CALL quit(0)
       ENDIF
 #ifdef MPI
       IF (nblocks.EQ.1 .OR. nblocks.NE.1 .AND. iproc.EQ.iblock-1) THEN
@@ -362,7 +362,7 @@ c
       nhydro = min(number8,npart)
       IF (iskip.EQ.1 .AND. icount + nhydro.GT.idim) THEN
          WRITE (*,*) 'ERROR - idim exceeded'
-         CALL quit
+         CALL quit(0)
       ENDIF
 #ifdef MPI
       ELSE
@@ -380,7 +380,7 @@ c
       IF (number8.GT.iptdim) THEN
          WRITE(*,*) 'ERROR 8.5 in rdump: nptmass exceeds dimensions!!',
      &            number8,iptdim
-         CALL quit
+         CALL quit(0)
       ENDIF
 #ifdef MPI
       IF (nblocks.EQ.1 .OR. nblocks.NE.1 .AND. iproc.EQ.iblock-1) THEN
@@ -402,7 +402,7 @@ c
      &      (number8.GT.iradtrans)) THEN
             WRITE (*,*) 'ERROR 9 in rdump: iradtrans wrong ',number8,
      &           iradtrans,npart
-            CALL quit
+            CALL quit(0)
          ENDIF
          nradtrans = min(number8,npart)
       ELSE
@@ -418,7 +418,7 @@ c
      &      (number8.GT.imhd)) THEN
             WRITE (*,*) 'ERROR 10 in rdump: imhd wrong ',number8,
      &           imhd,npart
-            CALL quit
+            CALL quit(0)
          ENDIF
          nmhd = min(number8,npart)
       ELSE
@@ -498,7 +498,7 @@ c--int*1
                print *,'ERROR - Read active particle as inactive ',
      &              i,icountinactive,listinactive(i),icount,nhydro,
      &              iphase(listinactive(i))
-               CALL quit
+               CALL quit(0)
             ENDIF
          END DO
 
@@ -546,7 +546,7 @@ c--Default real
             IF (nums1(6).LT.iwanted) THEN
                WRITE (iprint,*) 'ERROR - nums1(6).LT.iwanted ',
      &              nums1(6),iwanted
-               CALL quit
+               CALL quit(0)
             ENDIF
 
             READ (idisk1, END=100) (h2ratio(i), i=icount+1,
@@ -603,7 +603,7 @@ c--real*4
                      alphaMM(1,i) = alphamin(1)
 c                     WRITE (*,*) 'ERROR in rdump - alphaMM(1,i).LE.0 ',
 c     &                    i,(alphaMM(1,j),j=1,10)
-c                     CALL quit
+c                     CALL quit(0)
                   ENDIF
                END DO
             ENDIF
@@ -710,7 +710,7 @@ c--read B field from dump
 c
             IF (nums4(6).LT.3) THEN
                WRITE(*,*) 'ERROR: no MHD variables in dump file'
-               CALL quit
+               CALL quit(0)
             ENDIF
             DO j = 1, 3
                READ (idisk1, END=100) (Bxyz(j,i), i=icount+1, 
@@ -754,7 +754,7 @@ c
                ELSE
                   WRITE(*,*) 'ERROR: Cannot start Euler potentials run'
                   WRITE(*,*) '       from non-Euler potentials dump'
-                  CALL quit
+                  CALL quit(0)
                ENDIF
             ELSEIF (varmhd.EQ.'vecp') THEN
                IF (nums4(6).GE.6) THEN
@@ -768,7 +768,7 @@ c
                ELSE
                   WRITE(*,*) 'ERROR: Cannot start vec potentials run'
                   WRITE(*,*) '       from non-vec potentials dump'
-                  CALL quit
+                  CALL quit(0)
                ENDIF
             ELSEIF (varmhd.EQ.'Brho') THEN
 c
@@ -778,7 +778,7 @@ c
                   IF (iphase(i).EQ.0) THEN
                      IF (rho(i).LE.0.) THEN
                   WRITE(*,*) 'ERROR: rho <= 0 in rdump, evolving B/rho'
-                        CALL quit
+                        CALL quit(0)
                      ENDIF
                      DO j = 1,3
                         Bevolxyz(j,i) = Bxyz(j,i)/rho(i)
@@ -800,7 +800,7 @@ c
                   READ (idisk1, END=100) (Bevolxyz(j,i), i=icount+1,
      &                 icount+nmhd)
                END DO
-               IF (iskip.EQ.0) CALL quit
+               IF (iskip.EQ.0) CALL quit(0)
             ENDIF
 c--real*4
             iread = 0
@@ -885,7 +885,7 @@ c
             IF (icount.NE.npart) THEN
                WRITE (*,*) 'ERROR - rdump: icount.NE.npart ',
      &              icount,npart,nblocks,iblock
-               CALL quit
+               CALL quit(0)
             ENDIF
             nptmass = icountsink
             nlistinactive = icountinactive
@@ -1715,13 +1715,13 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
          END DO
       ELSE
          PRINT *,' Currently invalid number of processes ',numproc
-         CALL quit
+         CALL quit(0)
       ENDIF
 
       ELSE
          PRINT *,' Currently invalid MPI domain decompostion ',numproc,
      &        mpitype
-         CALL quit
+         CALL quit(0)
       ENDIF
       
       nptmassnew = 0
@@ -1733,7 +1733,7 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
      &           iphase(listpm(nptmassnew)).GE.10) THEN
                WRITE (*,*) 'ERROR - iphase(listpm(nptmassnew)).LE.0 ',
      &              nptmassnew,iphase(listpm(nptmassnew))
-               CALL quit
+               CALL quit(0)
             ENDIF
             spinx(nptmassnew) = spinx(i)
             spiny(nptmassnew) = spiny(i)
@@ -1758,7 +1758,7 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
      &              'nlistinactivenew)).NE.-1 ',
      &              nlistinactivenew,listinactive(nlistinactivenew),
      &              iphase(listinactive(nlistinactivenew))
-               CALL quit
+               CALL quit(0)
             ENDIF
          ENDIF
       END DO

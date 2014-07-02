@@ -142,7 +142,7 @@ c
                print *,' ERROR: unknown softening option in gforspt_P'
                potn = 0.
                fff = 0.
-               CALL quit
+               CALL quit(1)
             ENDIF
 c
 c--End force definition

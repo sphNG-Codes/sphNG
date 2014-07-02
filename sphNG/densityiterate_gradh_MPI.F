@@ -176,7 +176,7 @@ c
          IF (nptmasssend.NE.nptmass) THEN
             WRITE (*,*) 'ERROR - nptmasssend.NE.nptmass ',nptmasssend,
      &           nptmass
-            CALL quit
+            CALL quit(1)
          ENDIF
       ENDIF
 #endif
@@ -278,7 +278,7 @@ c
                deltat = (dt*isteps(ipart))/imaxstep
             ELSE
                WRITE (*,*) 'ERROR - it1 AND it2 .NE. itime'
-               CALL quit
+               CALL quit(1)
             ENDIF
 
             hchange = - dhdrhoi*divv(ipart)*deltat
@@ -431,7 +431,7 @@ c
                IF (2*ntot+3+inumber.GE.mmax2) THEN
                   WRITE (*,*) iproc,': ERROR - 2*ntot+3+inumber',
      &                 '.GE.mmax2'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
 #ifdef MPIDEBUG
@@ -445,12 +445,12 @@ c
                CALL MPI_GET_COUNT(istatus,MPI_INTEGER1,igotnumber,ierr)
                IF (ntot+1+inumber.GE.idim2) THEN
                   WRITE (*,*) iproc,': ERROR - ntot+1+inumber.GE.idim'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (igotnumber.NE.inumber) THEN
                   WRITE (iprint, *) 'ERROR - igotnumber.NE.inumber:',
      &                 'iphase'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 #ifdef MPIDEBUG
                IF (itime.EQ.2097152)
@@ -469,7 +469,7 @@ c
                   IF (nptmasslocal2.GT.iptdim) THEN
                      WRITE (*,*) 'ERROR - nptmasslocal2.GT.iptdim ',
      &                    nptmasslocal2, igotnumber
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                ENDIF
 
@@ -510,7 +510,7 @@ c
                   CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
                   IF (2*ntot+3+inumber.GE.mmax2) THEN
                  WRITE (*,*) iproc,': ERROR - 2*ntot+3+inumber.GE.mmax2'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
 #ifdef MPIDEBUG
@@ -524,12 +524,12 @@ c
      &                 ierr)
                   IF (ntot+1+inumber.GE.idim2) THEN
                   WRITE (*,*) iproc,': ERROR - ntot+1+inumber.GE.idim2'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   IF (igotnumber.NE.inumber) THEN
                      WRITE (iprint, *) 'ERROR - igotnumber.NE.inumber:',
      &                    ' iphase'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 #ifdef MPIDEBUG
                   print *,iproc,': Received iphase ',inumber,
@@ -546,7 +546,7 @@ c
                      IF (nptmasslocal2.GT.iptdim) THEN
                         WRITE (*,*) 'ERROR - nptmasslocal2.GT.iptdim ',
      &                       nptmasslocal2, igotnumber
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
                   ENDIF
                ENDIF
@@ -559,12 +559,12 @@ c
                ipart = i + ntot
                IF (ipart.GT.idim2) THEN
                   WRITE (*,*) 'ipart.GT.idim2'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
                   IF (iteration.NE.1) THEN
                      WRITE (*,*) 'ERROR - iteration.NE.1'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
                   nptmasslocal = nptmasslocal + 1
                   listpm(nptmasslocal) = ipart
@@ -584,7 +584,7 @@ c     &                 iuniquestoreold(nptmasslocal),nptmasstotlast
                IF (nptmasslocal2.NE.nptmasslocal) THEN
                   WRITE (*,*) 'ERROR - nptmasslocal2.NE.nptmasslocal ',
      &                 nptmasslocal2,nptmasslocal
-                  CALL quit
+                  CALL quit(1)
                ENDIF
             ENDIF
 
@@ -597,7 +597,7 @@ C$OMP& private(i,ipart,nneighlocal)
                ipart = i + ntot
                IF (ipart.GT.idim2) THEN
                   WRITE (*,*) 'ipart.GT.idim2'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                CALL densitygradh(ipart,npart,ntot,nlstdo_tot,xyzmh,
      &              nneighlocal,dvxyzu)
@@ -660,7 +660,7 @@ c
                CALL MPI_GET_COUNT(istatus,MPI_INTEGER,inumberneigh,ierr)
                IF (inumreturn+inumberneigh.GT.ineighproc) THEN
                WRITE (*,*) 'ERROR - inumreturn+inumberneigh.GT.ineighp'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
 #ifdef MPIDEBUG
@@ -695,7 +695,7 @@ c     &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
 
                IF (inumberneigh.GT.ineighproc) THEN
                   WRITE (*,*) 'ERROR - inumberneigh.GT.ineighproc'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                CALL MPI_SENDRECV(rho, 1, indexMPI1return, ibehind, 11,
@@ -704,12 +704,12 @@ c     &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
                CALL MPI_GET_COUNT(istatus,MPI_REAL4,icheck,ierr)
                IF (icheck.GT.ineighproc) THEN
                   WRITE (*,*) 'ERROR - icheck.GT.ineighproc 1 ',icheck
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                IF (icheck.NE.inumberneigh) THEN
                   WRITE (*,*) 'ERROR - icheck.NE.inumberneigh 1 ',
      &                 iproc
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
 #ifdef MPIDEBUG
@@ -723,7 +723,7 @@ c     &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
                IF (icheck.NE.inumberneigh) THEN
                   WRITE (*,*) 'ERROR - icheck.NE.inumberneigh 1 ',
      &                 iproc
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
 #ifdef MPIDEBUG
@@ -737,7 +737,7 @@ c     &           llistrec,MPI_INTEGER,indexMPI_I1return,ierr)
                IF (icheck.NE.inumberneigh) THEN
                   WRITE (*,*) 'ERROR - icheck.NE.inumberneigh 1 ',
      &                 iproc
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 #ifdef MPIDEBUG
                print *,iproc,': sent nneigh'
@@ -813,7 +813,7 @@ c
                   WRITE (*,*) iproc,
      &                 ': ERROR - ntotplusinumber+nlstsend.GE.idim3 ',
      &                 ntotplusinumber,nlstsend,idim3,npart,ntot
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                CALL MPI_SENDRECV(dvxyzu(1,ntot+1),4*inumber,
      &              MPI_REAL8,ibehind,15,dvxyzu(1,ntotplusinumber+1),
@@ -822,7 +822,7 @@ c
                CALL MPI_GET_COUNT(istatus,MPI_REAL8,ireturned,ierr)
                IF (ireturned.NE.4*nlstsend) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.4*nlstsend dvxyz'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -859,7 +859,7 @@ c
                         IF (inumberneigh.GT.ineighproc) THEN
                            WRITE (*,*) 'ERROR - ',
      &                          'inumberneigh.GT.ineighp'
-                           CALL quit
+                           CALL quit(1)
                         ENDIF
 #ifdef MPIDEBUG
                         print *,iproc,': got indices ',inumberneigh,
@@ -872,12 +872,12 @@ c
                         IF (icheck.GT.ineighproc) THEN
                            WRITE (*,*) 'ERROR - icheck.GT.',
      &                          'ineighproc 1 ',icheck
-                           CALL quit
+                           CALL quit(1)
                         ENDIF
                         IF (icheck.NE.inumberneigh) THEN
                            WRITE (*,*) 'ERROR - icheck.NE.',
      &                          'inumberneigh 1 ',iproc
-                           CALL quit
+                           CALL quit(1)
                         ENDIF
 #ifdef MPIDEBUG
                         print *,iproc,': got rho ',icheck
@@ -890,7 +890,7 @@ c
                         IF (icheck.NE.inumberneigh) THEN
                            WRITE (*,*) 'ERROR - icheck.NE.',
      &                          'inumberneigh 1 ',iproc
-                           CALL quit
+                           CALL quit(1)
                         ENDIF
 #ifdef MPIDEBUG
                         print *,iproc,': got gradh ',icheck
@@ -910,7 +910,7 @@ c
                         IF (icheck.NE.inumberneigh) THEN
                            WRITE (*,*) 'ERROR - icheck.NE.',
      &                          'inumberneigh 1 ',iproc
-                           CALL quit
+                           CALL quit(1)
                         ENDIF
 #ifdef MPIDEBUG
                         print *,iproc,': sent nneigh'
@@ -980,7 +980,7 @@ c
                            WRITE (*,*) iproc,
      &                  ': ERROR - ntotplusinumber+nlstsend.GE.idim ',
      &                  ntotplusinumber,nlstsend,idim,npart,ntot
-                           CALL quit
+                           CALL quit(1)
                         ENDIF
                         CALL MPI_RECV(dvxyzu(1,ntotplusinumber+1),
      &                       4*nlstsend, MPI_REAL8, iahead, 15, 
@@ -990,7 +990,7 @@ c
                         IF (ireturned.NE.4*nlstsend) THEN
                            WRITE (*,*) 'ERROR - ireturned.NE.',
      &                          '4*nlstsend dvxyz'
-                           CALL quit
+                           CALL quit(1)
                         ENDIF
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -1094,7 +1094,7 @@ c
                IF (nptmasslocal2.NE.nptmasstot) THEN
                   WRITE (*,*) 'ERROR - nptmasslocal2.NE.nptmasstot ',
      &                 nptmasslocal2, nptmasstot
-                  CALL quit
+                  CALL quit(1)
                ENDIF
             ENDIF
          ENDIF
@@ -1157,7 +1157,7 @@ c
          IF (nneighlocal.GT.nneighmax) THEN
             WRITE (iprint,*) 'ERROR: nneighlocal exceeds nneighmax'
             WRITE (iprint,*) iorig(ipart),nneighlocal,nneighmax
-            CALL quit
+            CALL quit(1)
          ENDIF
 c
 c--gradhi value is stored in dumrho temporarily
@@ -1321,7 +1321,7 @@ C$OMP END CRITICAL (listcompact)
                IF (icompacthere+nneighlocal.GT.icompactmax) THEN
                   WRITE (*,*) 'ERROR - compact not large enough DI ',
      &                 icompacthere, nneighlocal, icompactmax
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                ivar(1,ncompacthere) = nneighlocal
                ivar(2,ncompacthere) = icompacthere
@@ -1347,7 +1347,7 @@ C$OMP CRITICAL (listupdated)
 C$OMP END CRITICAL (listupdated)
                      IF (numberupdated.GT.idim) THEN
                         WRITE (iprint,*) 'ERROR - numberupdated.GT.idim'
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
 #ifdef MPICOPY
 c
@@ -1601,7 +1601,7 @@ c
 #ifdef MPIALL
       CALL MPI_BARRIER(MPI_COMM_WORLD,ierr)
 #endif
-      CALL quit
+      CALL quit(1)
 
  30   CONTINUE
 
@@ -2371,7 +2371,7 @@ c     &              MPI_ANY_SOURCE, 40, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
                IF (istart+ntot+2+inumber.GT.mmax2) THEN
                   WRITE (*,*) 'ERROR - istart+ntot+2+inumber.GT.mmax2'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                iprocrec = istatus(MPI_SOURCE)
 
@@ -2387,7 +2387,7 @@ c      ENDIF
                IF (istart+inumber.GT.idim2) THEN
                   WRITE (*,*) 'ERROR - istart+inumber.GT.idim2 ',
      &                 istart,inumber
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 
                IF (inumber.GT.0) THEN
@@ -2397,7 +2397,7 @@ c      ENDIF
                   IF (icheck.NE.inumber) THEN
                      WRITE (*,*) 'ERROR - icheck.NE.inumber 1 ',
      &                    iproc
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(dumrho(istart),inumber,MPI_REAL4,
@@ -2406,7 +2406,7 @@ c      ENDIF
                   IF (icheck.NE.inumber) THEN
                      WRITE (*,*) 'ERROR - icheck.NE.inumber 2 ',
      &                    iproc
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   CALL MPI_RECV(iphase(istart),inumber,MPI_INTEGER1,
@@ -2415,7 +2415,7 @@ c      ENDIF
                   IF (icheck.NE.inumber) THEN
                      WRITE (*,*) 'ERROR - icheck.NE.inumber 3 ',
      &                    iproc
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 
                   IF (imhd.EQ.idim) THEN
@@ -2427,7 +2427,7 @@ c      ENDIF
                      IF (icheck.NE.inumber) THEN
                         WRITE (*,*) 'ERROR - icheck.NE.inumber 4 ',
      &                       iproc
-                        CALL quit
+                        CALL quit(1)
                      ENDIF
 #ifdef MPIDEBUG
                      print *,iproc,': got Bevol from ',iprocrec,icheck,
@@ -2451,12 +2451,12 @@ c      ENDIF
       IF (inumbertotal.GT.idim) THEN
          WRITE (*,*) 'ERROR - inumbertotal.GT.idim ', iproc,
      &        inumbertotal,idim,(inumberindiv(ix),ix=1,8)
-         CALL quit
+         CALL quit(1)
       ENDIF
       IF (inumberreturned.NE.inumofreturns) THEN
          WRITE (*,*) 'ERROR1 - inumberreturned.NE.inumofreturns ',iproc,
      &        inumberreturned,inumofreturns
-         CALL quit
+         CALL quit(1)
       ENDIF
 
 #ifdef MPIDEBUG
@@ -2503,7 +2503,7 @@ C$OMP END CRITICAL (listcompact2)
          IF (icompacthere+nneighlocal.GT.icompactmax) THEN
             WRITE (*,*) 'ERROR - compact not large enough DI ',
      &           icompacthere, nneighlocal, icompactmax
-            CALL quit
+            CALL quit(1)
          ENDIF
          ivar(1,ncompacthere) = nneighlocal
          ivar(2,ncompacthere) = icompacthere
@@ -2521,7 +2521,7 @@ C$OMP CRITICAL (listupdated)
 C$OMP END CRITICAL (listupdated)
                IF (numberupdated.GT.idim) THEN
                   WRITE (iprint,*) 'ERROR - numberupdated.GT.idim'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                listparents(numberupdated) = jpart
             ENDIF
@@ -2546,7 +2546,7 @@ c
       istartrec = istart + inumbertotal
       IF (istartrec + maxnneighsentback.GT.2*idim) THEN
          WRITE (*,*) 'ERROR - istartrec + maxnneighsentback.GT.2*idim'
-         CALL quit
+         CALL quit(1)
       ENDIF
       inumberreturned = 0
       DO i = 0, numproc - 1
@@ -2573,13 +2573,13 @@ c               ENDIF
                IF (istartrec+ireturned.GT.idim2) THEN
                   WRITE (*,*) 'ERROR - istartrec+ireturned.GT.idim2 ',
      &                 istartrec,ireturned
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                iprocrec = istatus(MPI_SOURCE)
                IF (ireturned.NE.nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.nnsentback divv ',
      &                 ireturned,nneighsentback(iprocrec+1)
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 #ifdef MPIDEBUG
                print *,iproc,': got divv from ',iprocrec,' put into ',
@@ -2601,7 +2601,7 @@ C$OMP END PARALLEL DO
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, ireturned, ierr)
                IF (ireturned.NE.nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.nnsendback curlv'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 #ifdef MPIDEBUG
                print *,iproc,': got curlv from ',iprocrec,radkernel,
@@ -2623,7 +2623,7 @@ C$OMP END PARALLEL DO
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, ireturned, ierr)
                IF (ireturned.NE.2*nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.nnsendback gradhs'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 #ifdef MPIDEBUG
 c      IF (itime.EQ.000)
@@ -2651,7 +2651,7 @@ c
                   CALL MPI_GET_COUNT(istatus,MPI_REAL8,ireturned,ierr)
                   IF (ireturned.NE.15*nneighsentback(iprocrec+1)) THEN
                      WRITE (*,*) 'ERROR - ireturned.NE.nnsendbk gradmhd'
-                     CALL quit
+                     CALL quit(1)
                   ENDIF
 #ifdef MPIDEBUG
                   print *,iproc,': got gradMHD from ',iprocrec
@@ -2732,7 +2732,7 @@ c
       IF (inumberreturned.NE.inumofreturns) THEN
          WRITE (*,*) 'ERROR2 - inumberreturned.NE.inumofreturns ',iproc,
      &        inumberreturned,inumofreturns
-         CALL quit
+         CALL quit(1)
       ENDIF
 
       CALL MPI_TYPE_FREE(i2REAL4,ierr)
@@ -3063,7 +3063,7 @@ c
          END DO
          IF (irhonex.EQ.0) THEN
             WRITE(iprint,*)'Failed to find densest particle ',rhonext
-            CALL quit
+            CALL quit(1)
          ENDIF
 c
 c--Make sure that all neighbours of point mass candidate are being
@@ -3195,7 +3195,7 @@ c
                itest = 2*ntot+inumbertotal+3
                IF (itest.GT.mmax2) THEN
                   WRITE (*,*) 'ERROR - itest.GT.mmax2 ',itest,mmax2
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                CALL MPI_RECV(xyzmh(1,itest), 5, MPI_REAL8,
      &              MPI_ANY_SOURCE, 60, MPI_COMM_WORLD, istatus, ierr)
@@ -3203,7 +3203,7 @@ c
                iprocrec = istatus(MPI_SOURCE)
                IF (inumber.NE.5) THEN
                   WRITE (iprint,*) 'ERROR - Particle test ',inumber
-                  CALL quit
+                  CALL quit(1)
                ENDIF
 c
 c--Find neighbours of this particle and test to see whether they are all
@@ -3254,7 +3254,7 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 c      IF (itime.EQ.000)
 c           print *,iproc,': Exited densityiterate'
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
-c      CALL quit
+c      CALL quit(1)
 #endif
 
 c      print *,'Exited densityiterate'
@@ -3328,7 +3328,7 @@ c
                iptcur = listrealpm(ipart)
                IF (listpm(iptcur).NE.ipart) THEN
                   WRITE (*,*) 'ERROR - listpm(iptcur).NE.ipart'
-                  CALL quit
+                  CALL quit(1)
                ENDIF
                gravxyzpstore(1,iptcur) = fsx
                gravxyzpstore(2,iptcur) = fsy
@@ -3340,7 +3340,7 @@ c
          iptcur = listrealpm(ipart)
          IF (listpm(iptcur).NE.ipart) THEN
             WRITE (*,*) 'ERROR - listpm(iptcur).NE.ipart'
-            CALL quit
+            CALL quit(1)
          ENDIF
          fsx = gravxyzpstore(1,iptcur)
          fsy = gravxyzpstore(2,iptcur)
@@ -3557,7 +3557,7 @@ c
          ELSEIF (varmhd.EQ.'vecp') THEN
             write(iprint,*) 
      &           'densityiterate: modbound not implemented for vecp'
-            CALL quit
+            CALL quit(1)
          ELSE
             CALL modbound(dx,dy,dz)
          ENDIF

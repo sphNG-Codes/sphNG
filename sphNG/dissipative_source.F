@@ -56,7 +56,7 @@ C$OMP& private(vsigi,vs2i,dB2,psi,gradBmag)
          
          IF (ipart.EQ.0) THEN
             print*,' ERROR : ipart= ',ipart,'n = ',n,nlst_in
-            CALL quit
+            CALL quit(1)
          ENDIF
 c
 c--Check for MPI code
@@ -64,12 +64,12 @@ c
          IF (ipart.GT.npart) THEN
             WRITE (iprint,*) 'Error: dissipative_source called ',
      &           'for non-local particle ',ipart,npart
-            CALL quit
+            CALL quit(1)
          ENDIF
       
          IF (iphase(ipart).EQ.-1) THEN
             WRITE(iprint,*) 'Error: Force for non-existant particle'
-            CALL quit
+            CALL quit(1)
          ENDIF
 c
 c--Zero dissipation for particle ipart [Note: dha(1,) is historical]

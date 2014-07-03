@@ -258,8 +258,14 @@ c
       rocen1 = 0.
       DO i = 1, npart
          IF (iunique(iorig(i)).LE.n1 .AND. iphase(i).GE.0) THEN
+#ifdef MPI
+            dz = xyzmh(3,i) - zlocationmpi
+            d2 = (xyzmh(1,i) - xlocationmpi)**2 + 
+     &           (xyzmh(2,i) - ylocationmpi)**2 + dz*dz
+#else
             dz = xyzmh(3,i) - cmz1
             d2 = (xyzmh(1,i) - cmx1)**2 + (xyzmh(2,i) - cmy1)**2 +dz*dz
+#endif
             dmax1 = MAX(dmax1, d2)
             zmax1 = MAX(zmax1, ABS(dz))
             IF (d2.LT.rmin2 .AND. 
@@ -287,8 +293,14 @@ c
       rocen2 = 0.
       DO i = 1, npart
          IF (iunique(iorig(i)).GT.n1 .AND. iphase(i).GE.0) THEN
+#ifdef MPI
+            dz = xyzmh(3,i) - zlocationmpi
+            d2 = (xyzmh(1,i) - xlocationmpi)**2 + 
+     &           (xyzmh(2,i) - ylocationmpi)**2 + dz*dz
+#else
             dz = xyzmh(3,i) - cmz2
             d2 = (xyzmh(1,i) - cmx2)**2 + (xyzmh(2,i) - cmy2)**2 +dz*dz
+#endif
             dmax2 = MAX(dmax2, d2)
             zmax2 = MAX(zmax2, ABS(dz))
             IF (d2.LT.rmin2 .AND. 

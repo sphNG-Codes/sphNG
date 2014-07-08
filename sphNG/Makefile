@@ -225,7 +225,7 @@ ifeq ($(SYSTEM), gfortran)
     FFLAGS= -m64 -mcmodel=medium -O3 -Wall
     DBLFLAG= -fdefault-real-8 -fdefault-double-8
     OMPFLAG= -fopenmp
-    DEBUGFLAG= -g ##-ftrace=full -fbounds-check
+    DEBUGFLAG= -g -fcheck=all
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -fconvert=big-endian
     ENDIANFLAGLITTLE= -fconvert=little-endian

@@ -111,7 +111,7 @@ c
 c--Format version. Change this ONLY if the dump format
 c  is incompatible with previous formats
 c
-      iversion = 2
+      iversion = 1
 c
 c--Write output file
 c

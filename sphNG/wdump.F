@@ -4,6 +4,7 @@ c                                                           *
 c  This routine ONLY writes a dump on disk                  *
 c                                                           *
 c************************************************************
+      !IMPLICIT NONE
 
       INCLUDE 'idim'
       INCLUDE 'igrape'
@@ -64,15 +65,22 @@ c      EQUIVALENCE (itempsort, next1)
 
       CHARACTER*7 where
       CHARACTER*100 fileident
-      INTEGER*4 int1, int2
+      CHARACTER*16 tagarr(10)
+      INTEGER*4 int1, int2, int1o
       INTEGER*8 number8
       DIMENSION nums(8)
+      INTEGER iversion
+      CHARACTER*1 labelx(3)
+      PARAMETER (labelx = (/'x','y','z'/))
 c
 c--Standard numbers
 c
-      PARAMETER (int1=690706,int2=780806)
+      PARAMETER (int1=060769,int2=060878)
+      PARAMETER (int1o=690706)
 
       DATA where/'wdump'/
+      
+      tagarr = ''
 c
 c=-set nprint = npart by default
 c
@@ -98,19 +106,23 @@ c
 c
 c--Write dump file
 c----------------------
-      i1 = int1
       r1 = real(int2)
+c
+c--Format version. Change this ONLY if the dump format
+c  is incompatible with previous formats
+c
+      iversion = 2
 c
 c--Write output file
 c
 #ifdef MPICOPY
       IF (iproc.EQ.0) THEN
 #endif
-      WRITE (idisk1, ERR=100) int1,r1,int2,i1,int1
+      WRITE (idisk1, ERR=100) int1,r1,int2,iversion,int1o
       IF (ifulldump.EQ.0) THEN
-         WRITE (idisk1, ERR=100) fileident('F')
+         WRITE (idisk1, ERR=100) fileident('FT')
       ELSE
-         WRITE (idisk1, ERR=100) fileident('S')
+         WRITE (idisk1, ERR=100) fileident('ST')
       ENDIF
 #ifdef MPICOPY
       ENDIF
@@ -186,6 +198,12 @@ c
 c--Default int
       number = 12 + NTAB
       WRITE (idisk1, ERR=100) number
+
+      WRITE (idisk1, ERR=100) tag('nparttot'),tag('n1'),tag('n2'),
+     &      tag('nreassigntot'),tag('naccretetot'),tag('nkilltot'),
+     &      tag('nblocks'),tag('iyr'),tag('idum'),(tag('iv'),i=1,NTAB),
+     &      tag('iplanetesimals'),tag('irotpot'),tag('idragscheme')
+
       WRITE (idisk1, ERR=100) nparttot,n1,n2,nreassigntot,
      &     naccretetot,nkilltot,nblocks,iyr,idum,
      &     (iv(i),i=1,NTAB), iplanetesimals, irotpot,
@@ -199,6 +217,7 @@ c--int*8
       number = 1
       WRITE (idisk1, ERR=100) number
 
+      WRITE (idisk1, ERR=100) tag('iuniquemax')
       WRITE (idisk1, ERR=100) iuniquemax
 c--Default real
 c
@@ -247,6 +266,18 @@ c
       WRITE (idisk1, ERR=100) number
 
 c      print *,'stuff ',gt, dtmax, gamma, rhozero, RK2
+      
+      WRITE (idisk1, ERR=100) 
+     &  tag('gt'),tag('dtmax'),tag('gamma'),tag('rhozero'),tag('RK2'),
+     &  tag((/'escap','tkin ','tgrav','tterm'/)),
+     &  tag((/'anglostx','anglosty','anglostz'/)),
+     &  tag((/'specang ','ptmassin','tmag    '/)),
+     &  tag((/'Bextx','Bexty','Bextz'/)),
+     &  tag((/'hzero   ','uzero_n2','hmass   ','gapfac  '/)), 
+     &  tag('pmassinitial'),tag('sdprof'),
+     &  tag('rorbit_orig'),tag((/'min_rplan','max_rplan'/)),
+     &  tag('planetesimalmass'),
+     &  tag('coremass_orig'),tag('coremass')
 
       WRITE (idisk1, ERR=100) gt, dtmax, gamma, rhozero, RK2,
      &     escaptot, tkintot, tgravtot, ttermtot, 
@@ -262,6 +293,9 @@ c--real*4
 c--real*8
       number = 4
       WRITE (idisk1, ERR=100) number
+
+      WRITE (idisk1, ERR=100)
+     &      tag((/'udist ','umass ','utime ','umagfd'/))
       WRITE (idisk1, ERR=100) udist, umass, utime, umagfd
 c
 c--Arrays
@@ -390,13 +424,16 @@ c
 c--Array length 1 arrays
 c      
 c--Default int
+      WRITE (idisk1, ERR=100) tag('isteps')
       WRITE (idisk1, ERR=100) (isteps(isort(i)), i=1, nprint)
       DO i = nlistinactive + 1, nprint
          listinactive(i) = 1
       END DO
+      WRITE (idisk1, ERR=100) tag('listinactive')
       WRITE (idisk1, ERR=100) nlistinactive,(iorig(listinactive(i)),  
      &     i=1, nprint-1)
 c--int*1
+      WRITE (idisk1, ERR=100) tag('iphase')
       WRITE (idisk1, ERR=100) (iphase(isort(i)), i=1, nprint)
 c--int*2
 
@@ -406,29 +443,44 @@ c--int*8
 c
 c--NOTE: iunique is not sorted
 c
+      WRITE (idisk1, ERR=100) tag('iunique')
       WRITE (idisk1, ERR=100) (iunique(i), i=1, nprint)
 c--Default real
+      tagarr(1:5) = (/'x','y','z','m','h'/)
       DO j = 1, 5
+         WRITE (idisk1, ERR=100) tag(tagarr(j))
          WRITE (idisk1, ERR=100) (xyzmh(j,isort(i)), i=1, nprint)
       END DO
+      tagarr(1:4) = (/'vx','vy','vz','u '/)
       DO j = 1, 4
+         WRITE (idisk1, ERR=100) tag(tagarr(j))
          WRITE (idisk1, ERR=100) (vxyzu(j,isort(i)), i=1, nprint)
       END DO     
       IF (iener.EQ.4) THEN
+         WRITE (idisk1, ERR=100) tag('h2ratio')
          WRITE (idisk1, ERR=100) (h2ratio(isort(i)), i=1, nprint)
+         WRITE (idisk1, ERR=100) tag('abHIq')
          WRITE (idisk1, ERR=100) (abHIq(isort(i)), i=1, nprint)
+         WRITE (idisk1, ERR=100) tag('abhpq')
          WRITE (idisk1, ERR=100) (abhpq(isort(i)), i=1, nprint)
+         WRITE (idisk1, ERR=100) tag('abeq')
          WRITE (idisk1, ERR=100) (abeq(isort(i)), i=1, nprint)
+         WRITE (idisk1, ERR=100) tag('abco')
          WRITE (idisk1, ERR=100) (abco(isort(i)), i=1, nprint)         
       ENDIF       
 c--real*4
+      WRITE (idisk1, ERR=100) tag('rho')
       WRITE (idisk1, ERR=100) (rho(isort(i)), i=1, nprint)
       IF (nlmax.EQ.1) THEN
+         WRITE (idisk1, ERR=100) tag('gradh')
          WRITE (idisk1, ERR=100) (gradhs(1,isort(i)), i=1, nprint)      
+         WRITE (idisk1, ERR=100) tag('gradsoft')
          WRITE (idisk1, ERR=100) (gradhs(2,isort(i)), i=1, nprint)
       ELSE
+         WRITE (idisk1, ERR=100) tag('dgrav')
          WRITE (idisk1, ERR=100) (dgrav(isort(i)), i=1, nprint)      
       ENDIF
+      WRITE (idisk1, ERR=100) tag('alpha')
       WRITE (idisk1, ERR=100) (alphaMM(1,isort(i)), i=1, nprint)
 c--real*8
 
@@ -440,6 +492,7 @@ c--Array length 2 arrays
 c
 
 c--Default int
+      WRITE (idisk1, ERR=100) tag('listpm')
       WRITE (idisk1, ERR=100) (iorig(listpm(i)), i=1,nptmass)
 c--int*1
 
@@ -450,14 +503,23 @@ c--int*4
 c--int*8
 
 c--Default real
+      WRITE (idisk1, ERR=100) tag('spinx')
       WRITE (idisk1, ERR=100) (spinx(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) tag('spiny')
       WRITE (idisk1, ERR=100) (spiny(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) tag('spinz')
       WRITE (idisk1, ERR=100) (spinz(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) tag('angaddx')
       WRITE (idisk1, ERR=100) (angaddx(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) tag('angaddy')
       WRITE (idisk1, ERR=100) (angaddy(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) tag('angaddz')
       WRITE (idisk1, ERR=100) (angaddz(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) tag('spinadx')
       WRITE (idisk1, ERR=100) (spinadx(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) tag('spinady')
       WRITE (idisk1, ERR=100) (spinady(i),i=1,nptmass)
+      WRITE (idisk1, ERR=100) tag('spinadz')
       WRITE (idisk1, ERR=100) (spinadz(i),i=1,nptmass)
 c--real*4
 
@@ -481,7 +543,10 @@ c--int*4
 c--int*8
 
 c--Default real
+         tagarr(1:5) = (/tag('Erad'),tag('opacity'),tag('Cv'),
+     &                   tag('lambda'),tag('EddingtonFactor')/)
          DO j = 1, 5
+            WRITE (idisk1, ERR=100) tag(tagarr(j))
             WRITE (idisk1, ERR=100) (ekcle(j,isort(i)), i=1, nprint)
          END DO
 c--real*4
@@ -509,20 +574,28 @@ c--Dump B (not whatever the evolved MHD variable is)
 c
          IF (varmhd.EQ.'Brho') THEN
             DO j = 1, 3
+               WRITE (idisk1, ERR=100) tag('B'//labelx(j))
                WRITE (idisk1, ERR=100) 
      &            (Bevolxyz(j,isort(i))*rho(isort(i)), i=1, nprint)
             END DO
             DO j = 4, imhdevol
+               WRITE (idisk1, ERR=100) tag('psi')
                WRITE (idisk1, ERR=100) 
      &            (Bevolxyz(j,isort(i)), i=1, nprint)
             END DO
          ELSEIF (varmhd.EQ.'Bvol') THEN
             DO j = 1,imhdevol
-               WRITE (idisk1, ERR=100) 
+               IF (j.LE.3) THEN
+                  WRITE (idisk1, ERR=100) tag('B'//labelx(j))
+               ELSE
+                  WRITE (idisk1, ERR=100) tag('Bevol')
+               ENDIF
+               WRITE (idisk1, ERR=100)
      &            (Bevolxyz(j,isort(i)), i=1, nprint)
             END DO         
          ELSE
             DO j = 1, 3
+               WRITE (idisk1, ERR=100) tag('B'//labelx(j))
                WRITE (idisk1, ERR=100) 
      &            (Bxyz(j,isort(i)), i=1, nprint)
             END DO         
@@ -530,25 +603,36 @@ c
 c
 c--Dump Euler/vector potentials if necessary
 c
+         tagarr(1:2)=(/'EulerAlpha','EulerBeta '/)
          IF (varmhd.EQ.'eulr') THEN
             DO j = 1, 2
+               WRITE (idisk1, ERR=100) tag(tagarr(j))
                WRITE (idisk1, ERR=100) 
      &            (Bevolxyz(j,isort(i)), i=1, nprint)
             END DO
          ELSEIF (varmhd.EQ.'vecp') THEN
             DO j = 1, 3
+               WRITE (idisk1, ERR=100) tag('A'//labelx(j))
                WRITE (idisk1, ERR=100) 
      &            (Bevolxyz(j,isort(i)), i=1, nprint)
             END DO
          ENDIF
 c--real*4
          DO j = 1, 4
+            IF (j.EQ.1) THEN
+               WRITE (idisk1, ERR=100) tag('divB')
+            ELSE
+               WRITE (idisk1, ERR=100) tag('curlB'//labelx(j-1))
+            ENDIF
             WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, nprint)
          ENDDO
+         WRITE(idisk1, ERR=100) tag('alphaB')
          WRITE(idisk1, ERR=100) (alphaMM(isizealphaMM,isort(i)),
      &        i=1,nprint)
+         WRITE(idisk1, ERR=100) tag('EtaReal')
          WRITE(idisk1, ERR=100) (etareal(isort(i)),
      &        i=1,nprint)
+         WRITE(idisk1, ERR=100) tag('EtaArtificial')
          WRITE(idisk1, ERR=100) (etaartificial(isort(i)),
      &        i=1,nprint)
 c         DO j = 1, 3
@@ -628,8 +712,10 @@ c
 c--Array length 1 arrays
 c
 c--Default int
+c      WRITE (idisk1, ERR=100) tag('isteps')
 c      WRITE (idisk1, ERR=100) (isteps(isort(i)), i=1, npart)
 c--int*1
+      WRITE (idisk1, ERR=100) tag('iphase')
       WRITE (idisk1, ERR=100) (iphase(isort(i)), i=1, npart)
 c--int*2
 
@@ -646,31 +732,41 @@ c
             CALL quit(0)
          ENDIF
       END DO
+      WRITE (idisk1, ERR=100) tag('iunique')
       WRITE (idisk1, ERR=100) (itempsort(i), i=1, npart)
 
 c--int*8
 
 c--Default real
+      tagarr(1:5) = (/'x','y','z','m','h'/)
       DO j = 1, jlen
+         WRITE (idisk1, ERR=100) tag(tagarr(j))
          WRITE (idisk1, ERR=100) (xyzmh(j,isort(i)), i=1, npart)
       END DO
+c      tagarr(1:4) = (/'vx','vy','vz','u '/)
 c      DO j = 1, 4
+c         WRITE (idisk1, ERR=100) tag(tagarr(j))
 c         WRITE (idisk1, ERR=100) (vxyzu(j,isort(i)), i=1, npart)
 c      END DO
 c--real*4
+      WRITE (idisk1, ERR=100) tag('rho')
       WRITE (idisk1, ERR=100) (rho(isort(i)), i=1, npart)
 c--Dump smoothing length as a real*4 to save space
       DO i = 1, npart
-         dq(i) = xyzmh(5,i)
+         dq(i) = real(xyzmh(5,i),kind=4)
       END DO
+      WRITE (idisk1, ERR=100) tag('h')
       WRITE (idisk1, ERR=100) (dq(isort(i)), i=1, npart)
 c--Dump internal energy as a real*4 to save space
       DO i = 1, npart
-         dq(i) = vxyzu(4,i)
+         dq(i) = real(vxyzu(4,i),kind=4)
       END DO
+      WRITE (idisk1, ERR=100) tag('u')
       WRITE (idisk1, ERR=100) (dq(isort(i)), i=1, npart)
 
+c      WRITE (idisk1, ERR=100) tag('dgrav')
 c      WRITE (idisk1, ERR=100) (dgrav(isort(i)), i=1, npart)
+c      WRITE (idisk1, ERR=100) tag('alpha')
 c     WRITE (idisk1, ERR=100) (alphaMM(1,isort(i)), i=1, npart)
 c--real*8
 
@@ -678,6 +774,7 @@ c
 c--Array length 2 arrays
 c
 c--Default int
+      WRITE (idisk1, ERR=100) tag('listpm')
       WRITE (idisk1, ERR=100) (iorig(listpm(i)), i=1,nptmass)
 c--int*1
 
@@ -688,6 +785,7 @@ c--int*4
 c--int*8
 
 c--Default real
+      WRITE (idisk1, ERR=100) tag('m')
       WRITE (idisk1, ERR=100) (xyzmh(4,listpm(i)), i=1,nptmass)
 c      WRITE (idisk1, ERR=100) (spinx(i),i=1,nptmass)
 c      WRITE (idisk1, ERR=100) (spiny(i),i=1,nptmass)
@@ -720,12 +818,14 @@ c--Default real
 
 c--real*4
          DO i = 1, npart
-            dq(i) = ekcle(1,i)
+            dq(i) = real(ekcle(1,i),kind=4)
          END DO
+         WRITE (idisk1, ERR=100) tag('Erad')
          WRITE (idisk1, ERR=100) (dq(isort(i)), i=1, npart)
          DO i = 1, npart
-            dq(i) = ekcle(3,i)
+            dq(i) = real(ekcle(3,i),kind=4)
          END DO
+         WRITE (idisk1, ERR=100) tag('Cv')
          WRITE (idisk1, ERR=100) (dq(isort(i)), i=1, npart)
 
 c--real*8
@@ -753,8 +853,9 @@ c  Dump B not B/rho
 c
          DO j = 1, 3
             DO i = 1, npart
-               dq(i) = Bxyz(j,i)
+               dq(i) = real(Bxyz(j,i),kind=4)
             END DO
+            WRITE (idisk1, ERR=100) tag('B'//labelx(j))
             WRITE (idisk1, ERR=100) (dq(isort(i)), i=1, npart)
          END DO
 
@@ -799,7 +900,23 @@ c
  100  CALL error(where, 1)
 
       RETURN
-      END
+      
+      CONTAINS
+
+      ELEMENTAL FUNCTION tag(label)
+c*********************************************************************
+c  contruct tag, padded or truncated to 16-characters based on input
+c  string
+c*********************************************************************
+      IMPLICIT NONE
+      CHARACTER*16 tag
+      CHARACTER(LEN=*), INTENT(IN) :: label
+
+      tag = adjustl(label)
+
+      END FUNCTION tag
+
+      END SUBROUTINE wdump
 
 c---------------------------------------------------------------------
 
@@ -813,23 +930,23 @@ c*********************************************************************
       INCLUDE 'idim'
       INCLUDE 'COMMONS/varmhd'
       CHARACTER*100 fileident
-      CHARACTER*1 firstchar
+      CHARACTER*2 firstchar
 
       fileident = firstchar//'sphNG:'
       IF (nlmax.EQ.1) THEN
-         fileident = fileident(1:7) // 'gradh=on, '
+         fileident = fileident(1:8) // 'gradh=on, '
       ELSE
-         fileident = fileident(1:7) // 'gradh=off,'
+         fileident = fileident(1:8) // 'gradh=off,'
       ENDIF
       IF (imhd.EQ.idim) THEN
-         fileident = fileident(1:17) // 'MHD='//varmhd(1:4)//','
+         fileident = fileident(1:18) // 'MHD='//varmhd(1:4)//','
       ELSE
-         fileident = fileident(1:17) // 'MHD=none,'
+         fileident = fileident(1:18) // 'MHD=none,'
       ENDIF
       IF (iradtrans.EQ.idim) THEN
-         fileident = fileident(1:26) // 'RT=on '
+         fileident = fileident(1:27) // 'RT=on '
       ELSE
-         fileident = fileident(1:26) // 'RT=off'
+         fileident = fileident(1:27) // 'RT=off'
       ENDIF
 
       END FUNCTION fileident

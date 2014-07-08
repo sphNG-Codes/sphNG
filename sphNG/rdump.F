@@ -59,9 +59,12 @@ c      INCLUDE 'COMMONS/torq'
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
       INTEGER*8 number8
+      CHARACTER*16 tagsreal(128),tagi
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
       PARAMETER (idimhead = 30)
       DIMENSION rheader(idimhead)
+      INTEGER iversion, maxversion
+      LOGICAL tagged
 c     
 c--Read
 c
@@ -85,6 +88,13 @@ c--Standard numbers
 c
       int1 = 690706
       int2 = 780806
+      int1alt = 060769
+      int2alt = 060878
+c
+c--format version readable by this routine
+c
+      maxversion = 1
+      tagged = .false.
 c
 c--Read ouput file
 c
@@ -104,15 +114,15 @@ c
 
       print *,'reading header'
 
-      READ (idisk1, END=100) int1i,r1i,int2i,i1i,int3i
+      READ (idisk1, END=100) int1i,r1i,int2i,iversion,int3i
 
       print *,'have read header'
 
-      IF (int1i.NE.int1) THEN
+      IF (int1i.NE.int1 .and. int1i.NE.int1alt) THEN
          WRITE (*,*) 'ERROR 1 in rdump: ENDIANNESS wrong?'
          CALL quit(0)
       ENDIF
-      IF (int2i.NE.int2) THEN
+      IF (int2i.NE.int2 .and. int2i.NE.int2alt) THEN
          WRITE (*,*) 'ERROR 2 in rdump: default real size wrong'
          CALL quit(0)
       ENDIF
@@ -120,7 +130,22 @@ c
          WRITE (*,*) 'ERROR 3 in rdump: default integer size wrong'
          CALL quit(0)
       ENDIF
+c
+c--handle version numbers
+c  version 0 had iversion=690706
+c
+      IF (iversion.EQ.int1) THEN
+         iversion = 0
+      ENDIF
+      IF (iversion.GT.maxversion) THEN
+         WRITE (*,*) 'ERROR 4 in rdump: format version is ',iversion,
+     &        ' but this version of sphNG can only read ',maxversion
+      ENDIF
+
       READ (idisk1, END=100) fileident
+      IF (fileident(2:2).EQ.'T') THEN
+         tagged = .true.
+      ENDIF
 c
 c--Single values
 c
@@ -131,6 +156,7 @@ c--Default int
          WRITE (*,*) 'ERROR 4 in rdump: not enough default ints'
          CALL quit(0)
       ENDIF
+      IF (tagged) READ (idisk1, END=100) ! skip tags
       IF (number.EQ.9+NTAB) THEN
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks,iyr,idum,(iv(i), i=1,NTAB)
@@ -168,6 +194,7 @@ c--int*1, int*2, int*4, int*8
       READ (idisk1, END=100) number
       print *,'number int8 ',number
       IF (number.EQ.1) THEN
+         IF (tagged) READ (idisk1, END=100) ! skip tags
          READ (idisk1, END=100) iuniquemax
       ELSE
          iuniquemax = npart
@@ -179,110 +206,89 @@ c--Default real
          WRITE (*,*) 'ERROR 5 in rdump: not enough default reals'
          CALL quit(0)
       ENDIF
-c--need to read hzero for problems which utilise 
-c  the monaghan-style external boundary force
-c  D.Price 14.5.07
+
+      IF (tagged) THEN
+c--read the actual tags from tagged dump files
+         READ (idisk1, END=100) tagsreal(1:number)
+      ELSE
+c--fake the tags for older formats
+         tagsreal(1:30) = 
+     &  (/'gt              ','dtmax           ','gamma           ',
+     &    'rhozero         ','RK2             ','escap           ',
+     &    'tkin            ','tgrav           ','tterm           ',
+     &    'anglostx        ','anglosty        ','anglostz        ',
+     &    'specang         ','ptmassin        ','tmag            ',
+     &    'Bextx           ','Bexty           ','Bextz           ',
+     &    'hzero           ','uzero_n2        ','hmass           ',
+     &    'gapfac          ','                ','sdprof          ',
+     &    'rorbit_orig     ','min_rplan       ','max_rplan       ',
+     &    'planetesimalmass','coremass_orig   ','coremass        '/)
+      ENDIF
       READ (idisk1, END=100) (rheader(i),i=1,min(number,idimhead))
-      gt = rheader(1)
-      dtmaxdp = rheader(2)
-      gamma = rheader(3)
-      rhozero = rheader(4)
-      RK2 = rheader(5)
-      escap = rheader(6)
-      tkin = rheader(7)
-      tgrav = rheader(8)
-      tterm = rheader(9)
-      anglostx = rheader(10)
-      anglosty = rheader(11)
-      anglostz = rheader(12)
-      specang = rheader(13)
-      ptmassin = rheader(14)
-      IF (imhd.EQ.idim .and. number.GE.18) THEN
-         tmag = rheader(15)
-         Bextx = rheader(16)
-         Bexty = rheader(17)
-         Bextz = rheader(18)
+c
+c--extract variables from the header
+c     
+      CALL extract('gt',gt,rheader,tagsreal,number,ierr)
+      IF (ierr.NE.0) CALL quit(0)
+      CALL extract('dtmax',dtmaxdp,rheader,tagsreal,number,ierr)
+      IF (ierr.NE.0) CALL quit(0)
+      CALL extract('gamma',gamma,rheader,tagsreal,number,ierr)
+      IF (ierr.NE.0) CALL quit(0)
+      CALL extract('rhozero',rhozero,rheader,tagsreal,number,ierr)
+      IF (ierr.NE.0) CALL quit(0)
+      CALL extract('RK2',RK2,rheader,tagsreal,number,ierr)
+      IF (ierr.NE.0) CALL quit(0)
+      CALL extract('escap',escap,rheader,tagsreal,number,ierr)
+      CALL extract('tkin',tkin,rheader,tagsreal,number,ierr)
+      CALL extract('tgrav',tgrav,rheader,tagsreal,number,ierr)
+      CALL extract('tterm',tterm,rheader,tagsreal,number,ierr)
+      CALL extract('anglostx',anglostx,rheader,tagsreal,number,ierr)
+      CALL extract('anglosty',anglosty,rheader,tagsreal,number,ierr)
+      CALL extract('anglostz',anglostz,rheader,tagsreal,number,ierr)
+      CALL extract('specang',specang,rheader,tagsreal,number,ierr)
+      CALL extract('ptmassin',ptmassin,rheader,tagsreal,number,ierr)
+      IF (imhd.EQ.idim) THEN
+         CALL extract('tmag',tmag,rheader,tagsreal,number,ierr)
+         CALL extract('Bextx',Bextx,rheader,tagsreal,number,ierr)
+         CALL extract('Bexty',Bexty,rheader,tagsreal,number,ierr)
+         CALL extract('Bextz',Bextz,rheader,tagsreal,number,ierr)
          WRITE(*,*) 'External field found, Bext = ',Bextx,Bexty,Bextz
-      ELSE
-         IF (imhd.EQ.idim) THEN
-            WRITE(*,*) 'WARNING: dump does not contain external field'
-            WRITE(*,*) '         (setting to zero)'
-         ENDIF
-         Bextx = 0.
-         Bexty = 0.
-         Bextz = 0.
       ENDIF
-      IF (number.GE.19) THEN
-         hzero = rheader(19)
-         WRITE(*,*) ' read hzero = ',hzero
-      ELSE
-         IF (iexf.EQ.10) THEN
-            WRITE(*,*) 'ERROR: hzero not found in rdump'
-            CALL quit(0)
-         ENDIF
-         hzero = 0.
-      ENDIF
-      IF (number.GE.20 .AND. n2.GT.0) THEN
-         uzero_n2 = rheader(20)
+      CALL extract('hzero',hzero,rheader,tagsreal,number,ierr)
+      IF (iexf.EQ.10 .and. ierr.NE.0) CALL quit(0)      
+      CALL extract('uzero_n2',uzero_n2,rheader,tagsreal,number,ierr)
+      IF (n2.GT.0) THEN
          WRITE(*,*) ' read u for surrounding medium = ',uzero_n2
-      ELSE
-         uzero_n2 = 0.
       ENDIF
-      IF (number.GE.21) THEN
-         hmass = rheader(21)
-      ELSE
-         hmass = 0.
-      ENDIF
-      IF (number.GE.22) THEN
-         gapfac = rheader(22)
-      ELSE
-         gapfac = 0.
-      ENDIF
-      IF (number.GE.24) THEN
-         sdprof = rheader(24)
-      ELSE
+      CALL extract('hmass',hmass,rheader,tagsreal,number,ierr)
+      CALL extract('gapfac',gapfac,rheader,tagsreal,number,ierr)
+      CALL extract('sdprof',sdprof,rheader,tagsreal,number,ierr)
+      IF (ierr.NE.0) THEN
          sdprof = -0.5
          print *, 'Surface density pre vary (goes as r^-0.5)'
       ENDIF
-      IF (number.GE.25) THEN
-         rorbit_orig = rheader(25)
-         IF (imigrate.GT.0)
-     &        rorbitmax = (rorbitmax - rorbit_orig)/pmrate
-      ELSE
-         rorbit_orig = 0.0
-         rorbitmax = 0.0
-      ENDIF
-      IF (number.GE.27) THEN
-         min_rplan = rheader(26)
-         max_rplan = rheader(27)
-         print *, 'Setting planetesimal boundaries; check values.'
-         print *, 'r_min = ', min_rplan
-         print *, 'r_max = ', max_rplan
+      CALL extract('rorbit_orig',rorbit_orig,
+     &             rheader,tagsreal,number,ierr)
+      IF (imigrate.GT.0) rorbitmax = (rorbitmax - rorbit_orig)/pmrate
+      CALL extract('min_rplan',min_rplan,rheader,tagsreal,number,ierr)
+      CALL extract('max_rplan',max_rplan,rheader,tagsreal,number,ierr)
+      IF (ierr.NE.0) max_rplan = 1.0E6
+      print *, 'Setting planetesimal boundaries; check values.'
+      print *, 'r_min = ', min_rplan
+      print *, 'r_max = ', max_rplan
+      IF (.NOT.tagged) THEN
          print *, 'DO NOT USE CODE WITH DUMPS MADE FROM APRIL 2011'
          print *, ' AND BEFORE 16/05/2011. For these, reals 26, 27 are'
          print *, ' planetesimal radius and density respectively.'
-      ELSE
-         min_rplan = 0.0
-         max_rplan = 1.0E6
       ENDIF
-      IF (number.GE.28) THEN
-         planetesimalmass = rheader(28)
-         print *, 'Planetesimal mass ', planetesimalmass
-      ELSE
-         planetesimalmass = 0.0
-      ENDIF
-      IF (number.GE.29) THEN
-         coremass_orig = rheader(29)
-         print *, 'Core mass orig ', coremass_orig
-      ELSE
-         coremass_orig = 0.0
-      ENDIF
-      IF (number.GE.30) THEN
-         coremass = rheader(30)
-         print *, 'Core mass running record ', coremass
-      ELSE
-         coremass = 0.0
-      ENDIF
+      CALL extract('planetesimalmass',planetesimalmass,
+     &             rheader,tagsreal,number,ierr)
+      print *, 'Planetesimal mass ', planetesimalmass
+      CALL extract('coremass_orig',coremass_orig,
+     &             rheader,tagsreal,number,ierr)
+      print *, 'Core mass orig ', coremass_orig
+      CALL extract('coremass',coremass,rheader,tagsreal,number,ierr)
+      print *, 'Core mass running record ', coremass
 
 c--real*4
       READ (idisk1, END=100) number
@@ -292,6 +298,7 @@ c--real*8
          WRITE (*,*) 'ERROR 6 in rdump: nreal8 too small header'
          CALL quit(0)
       ENDIF
+      IF (tagged) READ (idisk1, END=100) ! skip tags
       IF (imhd.EQ.idim) THEN
          IF (number.GT.3) THEN
             READ (idisk1, END=100) udisti, umassi, utimei, umagfdi
@@ -438,23 +445,27 @@ c
 #endif
          DO j = 1, 8
             DO k = 1, nums1(j)
+               IF (tagged) READ (idisk1, END=100) ! skip tags
                READ (idisk1, END=100)
             END DO
          END DO
          DO j = 1, 8
             DO k = 1, nums2(j)
+               IF (tagged) READ (idisk1, END=100) ! skip tags
                READ (idisk1, END=100)
             END DO
          END DO
          IF (numberarray.GE.3) THEN
             DO j = 1, 8
                DO k = 1, nums3(j)
+                  IF (tagged) READ (idisk1, END=100) ! skip tags
                   READ (idisk1, END=100)
                END DO
             END DO
             IF (numberarray.GE.4) THEN
                DO j = 1, 8
                   DO k = 1, nums4(j)
+                     IF (tagged) READ (idisk1, END=100) ! skip tags
                      READ (idisk1, END=100)
                   END DO
                END DO
@@ -469,11 +480,13 @@ c
          print *,iproc,': Reading data block'
 #endif
 c--Default int
+         IF (tagged) READ (idisk1, END=100) ! skip tags
          READ (idisk1, END=100) (isteps(i), i=icount+1, icount+nhydro)
 #ifdef MPIDEBUG
          print *,iproc,': read isteps ',isteps(1)
 #endif
          IF (nums1(1).GE.2) THEN
+            IF (tagged) READ (idisk1, END=100) ! skip tags
             READ (idisk1, END=100) nlistinactive,
      &           (listinactive(i), i=icountinactive+1,icountinactive+
      &           nhydro-1)
@@ -490,6 +503,12 @@ c
          ENDIF
 
 c--int*1
+         IF (tagged) THEN
+            READ (idisk1, END=100) tagi
+            IF (trim(tagi).NE.'iphase') THEN
+               print*,' WARNING: iphase does not match tag '//trim(tagi)
+            ENDIF
+         ENDIF
          READ (idisk1, END=100) (iphase(i), i=icount+1, icount+nhydro)
          print *,'iphases ',iphase(1),iphase(nhydro),nums1(5),icount
 
@@ -508,6 +527,7 @@ c--int*4
 
 c--int*8
          IF (nums1(5).GE.1) THEN
+            IF (tagged) READ (idisk1, END=100) ! skip tags
             READ (idisk1, END=100) (iunique(i), i=icount+1,
      &           icount+nhydro)
          ENDIF
@@ -527,11 +547,16 @@ c         END DO
          ENDIF
 c--Default real
          DO j = 1, 5
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+c               print*,trim(tagi)
+            ENDIF
             READ (idisk1, END=100) (xyzmh(j,i), i=icount+1, 
      &           icount+nhydro)
          END DO
 
          DO j = 1, 4
+            IF (tagged) READ (idisk1, END=100) tagi
             READ (idisk1, END=100) (vxyzu(j,i), i=icount+1, 
      &           icount+nhydro)
          END DO
@@ -549,33 +574,42 @@ c--Default real
                CALL quit(0)
             ENDIF
 
+            IF (tagged) READ (idisk1, END=100)
             READ (idisk1, END=100) (h2ratio(i), i=icount+1,
      &               icount+nhydro)
+            IF (tagged) READ (idisk1, END=100)
             READ (idisk1, END=100) (abHIq(i), i=icount+1,
      &           icount+nhydro)
+            IF (tagged) READ (idisk1, END=100)
             READ (idisk1, END=100) (abhpq(i), i=icount+1,
      &           icount+nhydro)
+            IF (tagged) READ (idisk1, END=100)
             READ (idisk1, END=100) (abeq(i), i=icount+1,
      &           icount+nhydro)
+            IF (tagged) READ (idisk1, END=100)
             READ (idisk1, END=100) (abco(i), i=icount+1,
      &           icount+nhydro)
           ENDIF
 c--skip unnecessary reals
          IF (nums1(6).GT.iwanted) THEN
             DO j=1,nums1(6)-iwanted
+               IF (tagged) READ (idisk1, END=100)
                READ (idisk1, END=100)
             END DO
          ENDIF
 c--real*4
+         IF (tagged) READ (idisk1, END=100) ! skip tags
          READ (idisk1, END=100) (rho(i), i=icount+1, icount+nhydro)
          iread = 1
          IF (nlmax.EQ.1) THEN
             IF (nums1(7).GE.2) THEN
+               IF (tagged) READ (idisk1, END=100) ! skip tags
                READ (idisk1, END=100) (gradhs(1,i), i=icount+1, 
      &              icount+nhydro)
                iread = iread + 1
             ENDIF
             IF (nums1(7).GE.3) THEN
+               IF (tagged) READ (idisk1, END=100) ! skip tags
                READ (idisk1, END=100) (gradhs(2,i), i=icount+1, 
      &              icount+nhydro)
                iread = iread + 1
@@ -585,6 +619,7 @@ c--real*4
             END DO
          ELSE
             iread = 2
+            IF (tagged) READ (idisk1, END=100) ! skip tags
             READ (idisk1, END=100) (dgrav(i), i=icount+1, icount+nhydro)
             IF (gt.EQ.0.0) THEN
                DO j = icount+1, icount+nhydro
@@ -594,6 +629,7 @@ c--real*4
          ENDIF
          IF (nums1(7).GT.iread) THEN
             iread = iread + 1
+            IF (tagged) READ (idisk1, END=100) ! skip tags
             READ (idisk1, END=100) (alphaMM(1,i), i=icount+1, 
      &           icount+nhydro)
             IF (gt.NE.0.0 .AND. ifsvi.GE.6) THEN
@@ -611,6 +647,7 @@ c                     CALL quit(0)
 c--skip unnecessary real*4's
          IF (nums1(7).GT.iread) THEN
             DO j=1,nums1(7)-iread
+               IF (tagged) READ (idisk1, END=100) ! skip tags
                READ (idisk1, END=100)
             ENDDO
          ENDIF
@@ -623,6 +660,7 @@ c
 c--Read array type 2 arrays
 c
 c--Default int
+         IF (tagged) READ (idisk1, END=100) ! skip tags
          READ (idisk1, END=100) (listpm(i), i=icountsink+1,
      &        icountsink+nptmass)
 
@@ -635,28 +673,38 @@ c--int*4
 c--int*8
 
 c--Default real
+         IF (tagged) READ (idisk1, END=100) ! skip tags
          READ (idisk1, END=100) (spinx(i),i=icountsink+1,
      &        icountsink+nptmass)
+         IF (tagged) READ (idisk1, END=100) ! skip tags
          READ (idisk1, END=100) (spiny(i),i=icountsink+1,
      &        icountsink+nptmass)
+         IF (tagged) READ (idisk1, END=100) ! skip tags
          READ (idisk1, END=100) (spinz(i),i=icountsink+1,
      &        icountsink+nptmass)
+         IF (tagged) READ (idisk1, END=100) ! skip tags
          READ (idisk1, END=100) (angaddx(i),i=icountsink+1,
      &        icountsink+nptmass)
+         IF (tagged) READ (idisk1, END=100) ! skip tags
          READ (idisk1, END=100) (angaddy(i),i=icountsink+1,
      &        icountsink+nptmass)
+         IF (tagged) READ (idisk1, END=100) ! skip tags
          READ (idisk1, END=100) (angaddz(i),i=icountsink+1,
      &        icountsink+nptmass)
+         IF (tagged) READ (idisk1, END=100) ! skip tags
          READ (idisk1, END=100) (spinadx(i),i=icountsink+1,
      &        icountsink+nptmass)
+         IF (tagged) READ (idisk1, END=100) ! skip tags
          READ (idisk1, END=100) (spinady(i),i=icountsink+1,
      &        icountsink+nptmass)
+         IF (tagged) READ (idisk1, END=100) ! skip tags
          READ (idisk1, END=100) (spinadz(i),i=icountsink+1,
      &        icountsink+nptmass)
 c--real*4
 
 c--real*8
          DO i = 1, nums2(8)
+            IF (tagged) READ (idisk1, END=100) ! skip tags
             READ (idisk1, END=100)
          END DO
 
@@ -673,6 +721,7 @@ c--int*1
 
 c--int*2
             DO i = 1, nums3(3)
+               IF (tagged) READ (idisk1, END=100) ! skip tags
                READ (idisk1, END=100)
             END DO
 c--int*4
@@ -681,6 +730,7 @@ c--int*8
 
 c--Default real
             DO j = 1, 5
+               IF (tagged) READ (idisk1, END=100) ! skip tags
                READ (idisk1, END=100) (ekcle(j,i), i=icount+1, 
      &              icount+nradtrans)
             END DO
@@ -713,6 +763,7 @@ c
                CALL quit(0)
             ENDIF
             DO j = 1, 3
+               IF (tagged) READ (idisk1, END=100) ! skip tags
                READ (idisk1, END=100) (Bxyz(j,i), i=icount+1, 
      &              icount+nmhd)
 
@@ -732,6 +783,7 @@ c               END DO
                   WRITE(*,*) 'WARNING: imhdevol.EQ.4 but nums4(6)=',
      &                 nums4(6)
                ELSE
+                  IF (tagged) READ (idisk1, END=100) ! skip tags
                   READ (idisk1, END=100) (Bevolxyz(4,i), i=icount+1,
      &              icount+nmhd)
                ENDIF
@@ -745,6 +797,7 @@ c
             IF (varmhd.EQ.'eulr') THEN
                IF (nums4(6).GE.5) THEN
                   DO j = 1, 2
+                     IF (tagged) READ (idisk1, END=100) ! skip tags
                      READ (idisk1, END=100) (Bevolxyz(j,i), i=icount+1, 
      &                    icount+nmhd)
                   END DO
@@ -759,6 +812,7 @@ c
             ELSEIF (varmhd.EQ.'vecp') THEN
                IF (nums4(6).GE.6) THEN
                   DO j = 1, 3
+                     IF (tagged) READ (idisk1, END=100) ! skip tags
                      READ (idisk1, END=100) (Bevolxyz(j,i), i=icount+1, 
      &                    icount+nmhd)
                   END DO
@@ -797,6 +851,7 @@ c
             ELSE
                WRITE (*,*) 'unknown MHD variable in rdump'
                DO j = imhdevol+1, MIN(nums4(6),6)
+                  IF (tagged) READ (idisk1, END=100) ! skip tags
                   READ (idisk1, END=100) (Bevolxyz(j,i), i=icount+1,
      &                 icount+nmhd)
                END DO
@@ -808,9 +863,11 @@ c--real*4
 c--skip current/div B
                DO j = 1, 4
                   iread = iread + 1
+                  IF (tagged) READ (idisk1, END=100) ! skip tags
                   READ (idisk1, END=100)
                END DO
 c--read artificial resistivity parameter
+               IF (tagged) READ (idisk1, END=100) ! skip tags
                READ (idisk1, END=100) (alphaMM(isizealphaMM,i), 
      &              i=icount+1, icount+nmhd)
                WRITE(*,*) 'alpha B read: first few = ',
@@ -826,6 +883,7 @@ c--read artificial resistivity parameter
                ENDDO
             ENDIF
             DO i = iread + 1, nums4(7)
+               IF (tagged) READ (idisk1, END=100) ! skip tags
                READ (idisk1, END=100)
             END DO
 c--real*8
@@ -944,8 +1002,41 @@ c
 #endif
 
       RETURN
-      END
+      
+      CONTAINS
 
+      !------------------------------------------
+      ! extraction of single real*8 variables
+      !------------------------------------------
+      SUBROUTINE extract(tag,rval,rarr,tags,ntags,ierr)
+      CHARACTER(LEN=*),      INTENT(IN)  :: TAG
+      REAL,                  INTENT(OUT) :: RVAL
+      REAL,                  INTENT(IN)  :: RARR(:)
+      CHARACTER(LEN=16),     INTENT(IN)  :: TAGS(:)
+      INTEGER,               INTENT(IN)  :: NTAGS
+      INTEGER,               INTENT(OUT) :: IERR
+      LOGICAL :: MATCHED
+      INTEGER :: I
+
+      ierr = 1
+      matched = .false.
+      rval = 0.0 ! default if not found
+      over_tags: do i=1,min(ntags,size(tags))
+         if (trim(tags(i))==trim(adjustl(tag))) then
+            if (size(rarr) >= i) then
+               rval = rarr(i)
+               matched = .true.
+            endif
+            exit over_tags  ! only match first occurrence
+         endif
+      enddo over_tags
+      if (matched) ierr = 0
+      if (ierr.NE.0) print "(a)",' ERROR: could not find '//
+     &                            trim(adjustl(tag))//' in header'
+
+      END SUBROUTINE extract
+
+      END SUBROUTINE rdump
 
 c============================================================
 

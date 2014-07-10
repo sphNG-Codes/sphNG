@@ -4,13 +4,19 @@
 Use ./maketables to create the essential equation of state tables 
 for using RT in sphNG.
 
-The 'maketables' program creates 'specheattbl' and 'molmasstbl'.  The 
-latter is used by sphNG directly.  The former used to be used directly.  
+The 'maketables' program creates 'specheattbl'.  This table used 
+to be used directly.  
 However, it was subsequently replaced by 'gasttbl' and 'utbl'.  These 
 are created from 'specheattbl' by the invert.f programme.
 The 'gasttbl' gives the ratio of u/T (using the sphNG routine getcv.f).  
 The 'utbl' is used to get the value of specific internal energy, 'u' 
 from a given temperature (using the sphNG routine uset.f).
+At the same time, the invert.f routine creates the 'molmasstbl' table
+which holds the inverse of the molecular mass (i.e. 1/mu).  This used
+to be done by the program 'molecmass.f', but in July 2014 the invert.f
+program was modified to do both (to avoid having two versions of the
+"same" code. The program 'molecmass.f' is now depreciated, and has
+been removed from the repository (version -r1670).
 
 In June 2014, MRB extended the density range covered by the tables.
 Prior to this the density in g/cm^3 ranged from log10(rho) = -20 to +3.

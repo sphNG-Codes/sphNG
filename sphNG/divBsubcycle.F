@@ -58,7 +58,7 @@ c
 c--Allow for tracing flow
 c
       IF (itrace.EQ.'all') WRITE (iprint, 250)
-  250 FORMAT(' entry subroutine divBiterate')
+  250 FORMAT(' entry subroutine divBsubcycle')
 c
 c--Set up constants in Code units
 c

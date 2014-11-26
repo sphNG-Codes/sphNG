@@ -322,7 +322,8 @@ OBJKERNEL= $(KERNEL:.f=.o)
 
 # these are the sources common to all compilations
 
-SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F boundry.f \
+SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F \
+	bonnorebert.f boundry.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f chekopt.f \
 	classify_MPI.F condense.f constan.f coolcurve.f coolinmo.F cool_func.F \
 	coriol.f cyldis.f cylmas.f cylpres.f cylvel.f discboundary.f \

@@ -1,0 +1,5 @@
+	INTEGER nbonnor, ibelast
+	PARAMETER (nbonnor = 300000)
+	REAL*4 bonnor_radmass
+	COMMON /bonnortbl/ bonnor_radmass(2,nbonnor), ibelast
+

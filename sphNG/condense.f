@@ -18,6 +18,7 @@ c************************************************************
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/maspres'
       INCLUDE 'COMMONS/ptmass'
+      INCLUDE 'COMMONS/bonnortbl'
 
       DIMENSION gauss(1001)
 
@@ -31,8 +32,12 @@ c
       third = 1./3.
       rmax2 = rmax*rmax
 
-      WRITE (*,*) 'Do you want exp[-3 x^2], r^-1 or r^-2 (0, 1 or 2)?'
+      WRITE (*,*) 'Do you want exp[-3 x^2], r^-1, or r^-2, or ',
+     &     'Bonnor-Ebert sphere (0, 1, 2 or 3)?'
       READ (iread,*) islope
+
+      ians = 'n'
+88001 FORMAT (A1)
 
       IF (islope.EQ.0) THEN
          OPEN (19, FILE='/home/mbate/Important/Gaussian_Data')
@@ -43,25 +48,31 @@ c
          GOTO 100
  50      WRITE (*,*) 'ERROR - Gaussian_Data'
          CALL quit(0)
- 100  ENDIF
-
-      ians = 'n'
-      IF (islope.EQ.1 .OR. islope.EQ.2) THEN
+      ELSEIF (islope.EQ.1 .OR. islope.EQ.2) THEN
          WRITE (*,*) 'Change particle masses to be uniform density?'
          READ (iread,88001) ians
+      ELSEIF (islope.EQ.3) THEN
+         WRITE (*,*) 'Enter concentration parameter, xi'
+         READ (iread,*) xi
+         CALL bonnorebert(xi)
+      ELSE
+         WRITE (*,*) 'ERROR - Invalid choice'
+         CALL quit
       ENDIF
-88001 FORMAT (A1)
 
-      fractot = 0.
+ 100  fractot = 0.
       rnew = 1.
       DO i = nptmass + 1, npart
+         IF (MOD(i,100000).EQ.0) print *,'Done ',i,' particles'
          xi = xyzmh(1,i)
          yi = xyzmh(2,i)
          zi = xyzmh(3,i)
          r2 = xi*xi + yi*yi + zi*zi
          r1 = SQRT(r2)
          r1rm = r1/rmax
-
+c
+c--Gaussian density profile
+c
          IF (islope.EQ.0) THEN
             xmassfraccontained = r1rm**3
             DO ipos = 1, 1001
@@ -72,10 +83,46 @@ c
             diff = (value1 - xmassfraccontained)/(value1 - value2)
             rnew = rmax*(ipos - 1 - diff)/1000.0
          ENDIF
-
+c
+c--Power-law density profiles
+c
          IF (islope.EQ.1) rnew = rmax*(r1rm**(1.50))
          IF (islope.EQ.2) rnew = rmax*(r1rm**(3.00))
+c
+c--Bonnor-Ebert density profile
+c
+         IF (islope.EQ.3) THEN
+            xmassfraccontained = r1rm**3
+            ipos1 = 1
+            ipos2 = ibelast
+ 240        iposnew = (ipos1+ipos2)/2
 
+            IF (xmassfraccontained.LT.bonnor_radmass(2,iposnew)) THEN
+               ipos2=iposnew
+            ELSE
+               ipos1=iposnew
+            ENDIF
+            IF (ipos2-ipos1.LE.1) THEN
+               ipos = ipos1
+               GOTO 250
+            ENDIF
+            GOTO 240
+
+ 250        IF (ipos.LT.2) THEN
+               ipos = 2
+            ELSEIF (ipos.GT.ibelast) THEN
+               ipos = ibelast-1
+            ENDIF
+            value1 = bonnor_radmass(2,ipos)
+            value2 = bonnor_radmass(2,ipos-1)
+            diff = (value1 - xmassfraccontained)/(value1 - value2)
+            rnew = rmax*(bonnor_radmass(1,ipos) - 
+     &           diff*(bonnor_radmass(1,ipos) - 
+     &           bonnor_radmass(1,ipos-1)))
+         ENDIF
+c
+c--Set actual particle quantities
+c
          xyzmh(1,i) = rnew*xi/r1
          xyzmh(2,i) = rnew*yi/r1
          xyzmh(3,i) = rnew*zi/r1

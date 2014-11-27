@@ -6,9 +6,9 @@ of state tables for using RT in sphNG.
 
 To compile these you need to compile "like" (depending on your options):
 
-ifort -O3 -axAVX -ipo -mcmodel=medium -WB -warn nousage -warn uninitialized -warn unused -warn truncated_source -warn interfaces -nogen-interfaces -convert big_endian -r8 -o maketables maketables.f specificheat.f
+ifort -O3 -mcmodel=medium -WB -warn nousage -warn uninitialized -warn unused -warn truncated_source -warn interfaces -nogen-interfaces -convert big_endian -r8 -o maketables maketables.f specificheat.f
 
-ifort -O3 -axAVX -ipo -mcmodel=medium -WB -warn nousage -warn uninitialized -warn unused -warn truncated_source -warn interfaces -nogen-interfaces -convert big_endian -r8 -o invert invert.f specificheat.f ../getcv.f
+ifort -O3 -mcmodel=medium -WB -warn nousage -warn uninitialized -warn unused -warn truncated_source -warn interfaces -nogen-interfaces -convert big_endian -r8 -o invert invert.f specificheat.f ../getcv.f
 
 
 The 'maketables' program creates 'specheattbl'.  This table used 

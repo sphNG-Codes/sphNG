@@ -32,7 +32,7 @@
       RETURN
       END
 
-      FUNCTION getu (rho, boundtempl)
+      FUNCTION getu(rho, temp_in)
 
 c-- Pass in rho in code units.
 
@@ -48,7 +48,7 @@ c-- Pass in rho in code units.
       tinc = 0.005
 
       lrho = log10(rho*umass/udist**3)
-      ltemp = log10(boundtempl)
+      ltemp = log10(temp_in)
 
       nkt1 = 1 + INT(ltemp/tinc)
       IF(nkt1.GE.umxt) nkt1 = umxt - 1
@@ -85,8 +85,38 @@ c     $     CALL FAILED2(0,lu,lrho,nkrho1,nkrho2,nkt1,nkt2)
       v=(ltemp-tval1)/(tval2-tval1)
                                 !     Final value of log10 energies
       rug=(1.0-v)*(1.0-w)*y1+v*(1.0-w)*y2+w*v*y3+(1.0-v)*w*y4
-      getu = 10.0**rug/uergg
-      
+      u_got = 10.0**rug/uergg
+
+c
+c--Then uses Newton-Raphson iteration to get the value consistent with
+c     getcv().  Without this, the values can differ by ~1%
+c
+      iteration = 0
+ 100  u_last = u_got
+      t_check = u_got/getcv(rho, u_got)
+      IF (u_got.LT.100.) THEN
+         u_plus = u_got*1.01
+      ELSE
+         u_plus = u_got + 1.0
+      ENDIF
+      u_delta = u_plus-u_got
+      t_plus = u_plus/getcv(rho, u_plus)
+
+      func = t_check - temp_in
+      derivative = (t_plus-t_check)/u_delta
+      u_got = u_got - func/derivative
+
+      IF (ABS(u_got-u_last).GT.1.E-5) THEN
+         iteration = iteration + 1
+         IF (iteration.GT.100) THEN
+            WRITE (*,*) 'ERROR - getu failed ',u_got,temp_in
+            CALL quit(1)
+         ENDIF
+         GOTO 100
+      ENDIF
+
+      getu = u_got
+
       RETURN
 
       END FUNCTION getu

@@ -55,6 +55,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/Bxyz'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/planetesimal'
+      INCLUDE 'COMMONS/raddust'
 
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
@@ -64,7 +65,7 @@ c      INCLUDE 'COMMONS/torq'
       PARAMETER (idimhead = 30)
       DIMENSION rheader(idimhead)
       INTEGER iversion, maxversion
-      LOGICAL tagged
+      LOGICAL tagged, isequential
 c     
 c--Read
 c
@@ -94,24 +95,33 @@ c
 c--format version readable by this routine
 c
       maxversion = 1
-      tagged = .false.
+      tagged = .FALSE.
 c
 c--Read ouput file
 c
+c--This section (and another section below) force MPI processes to read
+c     the dump file sequentially (for file systems that do not cope well
+c     with multiple simultaneous reads).
+c
+      isequential = .FALSE.
+      IF (isequential) THEN
 #ifdef MPI
-      nowgo = 0
+         nowgo = 0
 #ifdef MPIDEBUG
-      print *,iproc,': About to read file'
+         print *,iproc,': About to read file'
 #endif
-      IF (iproc.GT.0) THEN
-         CALL MPI_RECV(nowgo,1,MPI_INTEGER,iproc-1,99,MPI_COMM_WORLD,
-     &        istatus,ierr)
+         IF (iproc.GT.0) THEN
+            CALL MPI_RECV(nowgo,1,MPI_INTEGER,iproc-1,99,MPI_COMM_WORLD,
+     &           istatus,ierr)
 #ifdef MPIDEBUG
-         print *,iproc,': Reading file'
+            print *,iproc,': Reading file'
+#endif
+         ENDIF
 #endif
       ENDIF
-#endif
-
+c
+c--End of sequential reads section
+c
       print *,'reading header'
 
       READ (idisk1, END=100) int1i,r1i,int2i,iversion,int3i
@@ -734,8 +744,24 @@ c--Default real
                READ (idisk1, END=100) (ekcle(j,i), i=icount+1, 
      &              icount+nradtrans)
             END DO
+            ireadekcle = 5
+            IF (idustRT.GT.0 .AND. nums3(6).GE.7) THEN
+               DO j = 1, 2
+                  IF (tagged) READ (idisk1, END=100) ! skip tags
+                  READ (idisk1, END=100) (dust_tk(j,i), i=icount+1,
+     &                 icount+nradtrans)
+               END DO
+               ireadekcle = ireadekcle + 2
+            ENDIF
+            DO j = 1, nums3(6) - ireadekcle
+               IF (tagged) READ (idisk1, END=100) ! skip tags
+               READ (idisk1, END=100)
+            END DO
 c--real*4
-
+            DO j = 1, nums3(7)
+               IF (tagged) READ (idisk1, END=100) ! skip tags
+               READ (idisk1, END=100)
+            END DO
 c--real*8
 
          ENDIF
@@ -955,17 +981,23 @@ c--End loop over blocks
 c
       END DO
 #ifdef MPI
-      IF (iproc.LT.numproc-1) THEN
+c
+c--This is the second section that is required to force sequential MPI
+c     reads of the dump file by different MPI processors.
+c
+      IF (isequential) THEN
+         IF (iproc.LT.numproc-1) THEN
 #ifdef MPIDEBUG
-         print *,iproc,' Finished reading'
+            print *,iproc,' Finished reading'
 #endif
-         nowgo = 1
-         CALL MPI_SEND(nowgo,1,MPI_INTEGER,iproc+1,99,MPI_COMM_WORLD,
-     &        ierr)
-      ELSE
+            nowgo = 1
+            CALL MPI_SEND(nowgo,1,MPI_INTEGER,iproc+1,99,MPI_COMM_WORLD,
+     &           ierr)
+         ELSE
 #ifdef MPIDEBUG
-         print *,iproc,' Finished reading'
+            print *,iproc,' Finished reading'
 #endif
+         ENDIF
       ENDIF
 c
 c--Set global number of sink particles
@@ -1019,7 +1051,7 @@ c
       INTEGER :: I
 
       ierr = 1
-      matched = .false.
+      matched = .FALSE.
       rval = 0.0 ! default if not found
       over_tags: do i=1,min(ntags,size(tags))
          if (trim(tags(i))==trim(adjustl(tag))) then

@@ -59,6 +59,8 @@ c#endif
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/planetesimal'
+      INCLUDE 'COMMONS/raddust'
+      INCLUDE 'COMMONS/interstellar'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -381,7 +383,9 @@ c
             nums(4) = 0
             nums(5) = 0
             nums(6) = 5
+            IF (idustRT.GT.0) nums(6) = nums(6) + 2
             nums(7) = 0
+            IF (idustRT.GT.0) nums(7) = nums(7) + nchemistry
             nums(8) = 0
          ELSE
             number8 = 0
@@ -549,8 +553,23 @@ c--Default real
             WRITE (idisk1, ERR=100) tag(tagarr(j))
             WRITE (idisk1, ERR=100) (ekcle(j,isort(i)), i=1, nprint)
          END DO
+         IF (idustRT.GT.0) THEN
+            tagarr(1:2) = (/tag('DustTemperature'),
+     &           tag('DustOpacity')/)
+            DO j = 1, 2
+               WRITE (idisk1, ERR=100) tag(tagarr(j))
+               WRITE (idisk1, ERR=100) (dust_tk(j,isort(i)),i=1,nprint)
+            END DO
+         ENDIF
 c--real*4
-
+         IF (idustRT.GT.0) THEN
+            tagarr(1:3) = (/tag('Cplus'),tag('AtomicC'),tag('CO')/)
+            DO j = 1, nchemistry
+               WRITE (idisk1, ERR=100) tag(tagarr(j))
+               WRITE (idisk1, ERR=100) (chemistry(j,isort(i)), i=1, 
+     &              nprint)
+            END DO
+         ENDIF
 c--real*8
 
       ENDIF

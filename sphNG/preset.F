@@ -648,7 +648,24 @@ c
             print *, 'Building ZEUS table for mass', hmass
             CALL zeustable
          ENDIF
-      ENDIF 
+      ENDIF
+c
+c--Build tables for diffuse interstellar medium model (Bate & Keto 2015)
+c
+      IF (idustRT.GT.0) THEN
+c
+c--Build table of sightlines on a sphere
+c
+         CALL buildsightlines
+c
+c--Build tables for interstellar radiation field, photoelectric heating,
+c     and the Planck mean dust opacity
+c
+         CALL build_interstellar_radiation_table
+         CALL build_photoelectric_table
+         CALL build_planck_mean_table
+      ENDIF
+
       IF (itrace.EQ.'all') WRITE(iprint,250)
  250  FORMAT(' exit subroutine preset')
 #ifdef MPIALL

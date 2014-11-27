@@ -38,7 +38,6 @@ c************************************************************
 
       INTEGER istack, nlistga, nlistgn
 
-
       PARAMETER (istacksize=200)
       DIMENSION nstack(istacksize), listga(idim), listgn(idim)
       SAVE nstack, listga, listgn
@@ -333,13 +332,6 @@ ccc                  hmean2 = rcut2
          mpar = isibdaupar(3,mpar)
          GOTO 100
       ENDIF
-
-c      DO i = 1, nlstbins(29)-1
-c         IF (listbins(i,29).NE.i+94296) THEN
-c            WRITE (*,*) 'listbins(i,29).NE.i+94296 , M2',m
-c            WRITE (iprint,*) 'listbins(i,29).NE.i+94296 , M2',m
-c         ENDIF
-c      END DO
 c
 c--Calculate gravity forces if needed
 c
@@ -355,13 +347,14 @@ c
          CALL gforsn(m,ntot,nlistgn,listgn,xyzmh,fsx,fsy,fsz,epot)
       ENDIF
       epot = -epot
-
-c      DO i = 1, nlstbins(29)-1
-c         IF (listbins(i,29).NE.i+94296) THEN
-c            WRITE (*,*) 'listbins(i,29).NE.i+94296 , M3',m
-c            WRITE (iprint,*) 'listbins(i,29).NE.i+94296 , M3',m
-c         ENDIF
-c      END DO
+c
+c--Calculate column density to particle if needed (NOTE that the IF does
+c     not refer to encal='r' because this should be called during the
+c     set up of the initial conditions (i.e. from setpart.f)
+c
+      IF (idustRT.GT.0 .AND. iradtrans.EQ.idim) THEN
+         CALL column_density(m,ntot,nlistga,listga,nlistgn,listgn,xyzmh)
+      ENDIF
 
  900  RETURN
       END

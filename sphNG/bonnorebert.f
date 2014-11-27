@@ -53,12 +53,12 @@ c
             j = j + 1
             IF (j.GT.nbonnor) THEN
                WRITE (*,*) 'ERROR - Bonnor Ebert table too small'
-               CALL quit
+               CALL quit(0)
             ENDIF
          ENDIF
       END DO
       WRITE(*,*) 'ERROR: xi is too large for loop ',xi,loop,ximax
-      CALL quit
+      CALL quit(0)
 
  200  CONTINUE
       ibelast = j - 1

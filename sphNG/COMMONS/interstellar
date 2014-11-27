@@ -1,0 +1,55 @@
+c
+c--Contains many parameters and tables required for the duffuse 
+c	 interstellar medium model originally developed by 
+c	 Bate & Keto (2015).
+c
+c
+c--Switches to turn on/off different ISM physics:
+c	 Cosmic ray heating of the gas
+c	 Photoelectric heating of the gas
+c	 Atomic and molecular line radiative cooling
+c	 Dust-gas collisional thermal coupling
+c	 The mid-infrared (MIR) and Draine (UV) contributions to the
+c	    interstellar radiation field (ISRF)
+c
+      LOGICAL iDRT_cosmic_ray, iDRT_line
+      LOGICAL iDRT_gasdust, iDRT_photoelectric
+      PARAMETER (iDRT_cosmic_ray = .TRUE.)
+      PARAMETER (iDRT_photoelectric = .TRUE.)
+      PARAMETER (iDRT_line = .TRUE.)
+      PARAMETER (iDRT_gasdust =.TRUE.)
+
+      LOGICAL iISR_MIR, iISR_Draine
+      PARAMETER (iISR_MIR = .TRUE.)
+      PARAMETER (iISR_Draine = .TRUE.)
+c
+c--Parameters for the tables that store the effects of dust extinction
+c	 (i.e. attenutation) on the local ISRF and UV radiation fields.
+c	 Also store the Planck mean opacties for the frequency-dependent
+c	 dust opacity.
+c
+      INTEGER nISRpoints
+      PARAMETER (nISRpoints = 350)
+      REAL xISRlogfac
+      PARAMETER (xISRlogfac = 0.04)
+      REAL*8 ISR_table, Ge_ISR_table
+
+      INTEGER nPlanckPoints
+      PARAMETER (nPlanckPoints = 20000)
+      REAL*8 Planck_table
+
+      COMMON /column/ ISR_table(nISRpoints), Ge_ISR_table(nISRpoints),
+     &	     Planck_table(nPlanckPoints*idustRT+1)
+
+      REAL*4 heatingISR
+      COMMON /extinc/ heatingISR(3,iradtrans2*idustRT+1)
+c
+c--Chemical model.  Currently only keeps track of carbon:
+c	    1: C+
+c	    2: C
+c	    3: CO
+c
+      INTEGER nchemistry
+      PARAMETER (nchemistry = 3)
+      REAL*4 chemistry
+      COMMON /chem/ chemistry(nchemistry, iradtrans2*idustRT+1)

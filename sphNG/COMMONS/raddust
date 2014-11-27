@@ -1,0 +1,3 @@
+      REAL dust_tk
+      
+      COMMON /raddust/ dust_tk(2,iradtrans2*idustRT+1)

@@ -27,8 +27,9 @@ c--Allow for tracing flow
 c
       IF (itrace.EQ.'all') WRITE(iprint, 99001)
 99001 FORMAT (' entry subroutine ktable')
+
       WRITE (iprint, 99002)
-99002 FORMAT (' KTABLE: M6 quintic ')
+99002 FORMAT (/,' SPH Kernel : M6 quintic ',/)
 c
 c--Maximum interaction length and step size
 c

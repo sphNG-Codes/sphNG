@@ -24,8 +24,7 @@ c
 99001 FORMAT (' entry subroutine ktable')
 
       WRITE (iprint, 99002)
-99002 FORMAT (' KTABLE: M4 cubic ')
-
+99002 FORMAT (/,' SPH Kernel : M4 cubic ',/)
 c
 c--Maximum interaction length and step size
 c

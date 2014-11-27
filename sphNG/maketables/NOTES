@@ -1,8 +1,15 @@
 
 ##########################################################################
 
-Use ./maketables to create the essential equation of state tables 
-for using RT in sphNG.
+Use ./maketables followed by ./invert to create the essential equation 
+of state tables for using RT in sphNG.
+
+To compile these you need to compile "like" (depending on your options):
+
+ifort -O3 -axAVX -ipo -mcmodel=medium -WB -warn nousage -warn uninitialized -warn unused -warn truncated_source -warn interfaces -nogen-interfaces -convert big_endian -r8 -o maketables maketables.f specificheat.f
+
+ifort -O3 -axAVX -ipo -mcmodel=medium -WB -warn nousage -warn uninitialized -warn unused -warn truncated_source -warn interfaces -nogen-interfaces -convert big_endian -r8 -o invert invert.f specificheat.f ../getcv.f
+
 
 The 'maketables' program creates 'specheattbl'.  This table used 
 to be used directly.  
@@ -11,6 +18,7 @@ are created from 'specheattbl' by the invert.f programme.
 The 'gasttbl' gives the ratio of u/T (using the sphNG routine getcv.f).  
 The 'utbl' is used to get the value of specific internal energy, 'u' 
 from a given temperature (using the sphNG routine uset.f).
+
 At the same time, the invert.f routine creates the 'molmasstbl' table
 which holds the inverse of the molecular mass (i.e. 1/mu).  This used
 to be done by the program 'molecmass.f', but in July 2014 the invert.f

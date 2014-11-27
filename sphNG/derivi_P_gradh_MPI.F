@@ -109,6 +109,8 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/initpt'
       INCLUDE 'COMMONS/planetesimal'
+      INCLUDE 'COMMONS/raddust'
+      INCLUDE 'COMMONS/interstellar'
 
       DIMENSION dedxyz(3,iradtrans2)
 #ifdef MPI
@@ -279,6 +281,7 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
       CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, imhdevolREAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL8, i2REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(isizealphaMM,MPI_REAL4,ialphaREAL4,ierr)
 
@@ -286,6 +289,7 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
       CALL MPI_TYPE_COMMIT(imhdevolREAL8,ierr)
       CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i2REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
       CALL MPI_TYPE_COMMIT(ialphaREAL4,ierr)
 
@@ -350,6 +354,13 @@ c     &                  1,llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
                 CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
      &                  llistsentback(1,j+1),i5REAL8,indexMPI5,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI5,ierr)
+                           IF (idustRT.GT.0) THEN
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),i2REAL8,indexMPI2,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),i2REAL8,indexMPI2,ierr)
+                              CALL MPI_TYPE_COMMIT(indexMPI2,ierr)
+                           ENDIF
                         ENDIF
 
                         IF (imhd.EQ.idim) THEN
@@ -368,10 +379,10 @@ c     &                  1,llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
                         ENDIF
 
 c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
-c     &                  1,llistsentback(1,j+1),i2REAL4,indexMPI2,ierr)
+c     &                  1,llistsentback(1,j+1),i2REAL4,indexMPI2r4,ierr)
                 CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
-     &                  llistsentback(1,j+1),i2REAL4,indexMPI2,ierr)
-                        CALL MPI_TYPE_COMMIT(indexMPI2,ierr)
+     &                  llistsentback(1,j+1),i2REAL4,indexMPI2r4,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI2r4,ierr)
 
 c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
 c     &                  1,llistsentback(1,j+1),ialphaREAL4,
@@ -403,7 +414,7 @@ c     &    iorig(llistsentback(1,j+1)+1),MPI_INTEGER8,indexMPI_I8,ierr)
                         print *,iproc,' sent vsound to ',j
 #endif
 
-                        CALL MPI_SEND(gradhs,1,indexMPI2,j,26,
+                        CALL MPI_SEND(gradhs,1,indexMPI2r4,j,26,
      &                       MPI_COMM_WORLD, ierr)
 #ifdef MPIDEBUG
                         print *,iproc,' sent gradhs to ',j
@@ -441,11 +452,25 @@ c     &    iorig(llistsentback(1,j+1)+1),MPI_INTEGER8,indexMPI_I8,ierr)
                            print *,iproc,' sent ekcle to ',j
 #endif
                            CALL MPI_TYPE_FREE(indexMPI5,ierr)
+
+                           IF (idustRT.GT.0) THEN
+                              CALL MPI_SEND(dust_tk,1,indexMPI2,j,231,
+     &                             MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                              print *,iproc,' sent dust_tk to ',j
+#endif
+                              CALL MPI_SEND(heatingISR,1,indexMPI2,j,
+     &                             232,MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                              print *,iproc,' sent heatingISR to ',j
+#endif
+                              CALL MPI_TYPE_FREE(indexMPI2,ierr)
+                           ENDIF
                         ENDIF
 
                         CALL MPI_TYPE_FREE(indexMPI_I8,ierr)
                         CALL MPI_TYPE_FREE(indexMPIalpha,ierr)
-                        CALL MPI_TYPE_FREE(indexMPI2,ierr)
+                        CALL MPI_TYPE_FREE(indexMPI2r4,ierr)
                         CALL MPI_TYPE_FREE(indexMPI1,ierr)
                         ENDIF
 
@@ -595,6 +620,34 @@ c     &                 istart+inumber)
                      print *,iproc,': got ekcle from ',iprocrec,
      &                    icheck,istart
 #endif
+                     IF (idustRT.GT.0) THEN
+                        CALL MPI_RECV(dust_tk(1,istart),inumber,i2REAL8,
+     &                       iprocrec, 231, MPI_COMM_WORLD,istatus,ierr)
+                        CALL MPI_GET_COUNT(istatus,i2REAL8,icheck,ierr)
+                        IF (icheck.NE.inumber) THEN
+                           WRITE (*,*) 'ERROR - icheck.NE.inumber 10 ',
+     &                          iproc
+                           CALL quit
+                        ENDIF
+#ifdef MPIDEBUG
+                        print *,iproc,': got dust_tk from ',iprocrec,
+     &                       icheck,istart
+#endif
+
+                        CALL MPI_RECV(heatingISR(1,istart),inumber,
+     &                       i2REAL8, iprocrec, 232, 
+     &                       MPI_COMM_WORLD,istatus,ierr)
+                        CALL MPI_GET_COUNT(istatus,i2REAL8,icheck,ierr)
+                        IF (icheck.NE.inumber) THEN
+                           WRITE (*,*) 'ERROR - icheck.NE.inumber 11 ',
+     &                          iproc
+                           CALL quit
+                        ENDIF
+#ifdef MPIDEBUG
+                        print *,iproc,': got heatingISR from ',iprocrec,
+     &                       icheck,istart
+#endif
+                     ENDIF
                   ENDIF
                ENDIF
                inumbertotal = inumbertotal + inumber
@@ -1106,6 +1159,19 @@ c
 #ifdef MPIDEBUGRT
                         print *,iproc,' sent ekcle'
 #endif
+                        IF (idustRT.GT.0) THEN
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                llistsentback(1,j+1),i2REAL8,indexDust,ierr)
+                        CALL MPI_TYPE_COMMIT(indexDust,ierr)
+
+                        CALL MPI_SEND(dust_tk,1,indexDust,j,214,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_TYPE_FREE(indexDust,ierr)
+#ifdef MPIDEBUGRT
+                        print *,iproc,' sent dust_tk'
+#endif
+                        ENDIF
 
                 CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
      &                llistsentback(1,j+1),MPI_REAL4,indexMPI_R4,ierr)
@@ -1163,6 +1229,21 @@ c
 #ifdef MPIDEBUGRT
                print *,iproc,': got ekcle from ',iprocrec,inumber
 #endif
+               IF (idustRT.GT.0) THEN
+                  CALL MPI_RECV(dust_tk(1,istart), idim, MPI_REAL8,
+     &                 i, 214, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  iprocrec = istatus(MPI_SOURCE)
+                  IF (icheck.NE.inumber/2) THEN
+                     WRITE (*,*) iproc,': ERROR - icheck.NE.inumber/2'
+                     CALL quit
+                  ENDIF
+
+#ifdef MPIDEBUGRT
+                  print *,iproc,': got dust_tk from ',iprocrec,inumber
+#endif
+               ENDIF
+
                CALL MPI_RECV(pr(istart), idim, MPI_REAL4,
      &              i, 212, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
@@ -1452,6 +1533,7 @@ c
 
       CALL MPI_TYPE_FREE(ialphaREAL4,ierr)
       CALL MPI_TYPE_FREE(i2REAL4,ierr)
+      CALL MPI_TYPE_FREE(i2REAL8,ierr)
       CALL MPI_TYPE_FREE(i3REAL8,ierr)
       CALL MPI_TYPE_FREE(i4REAL8,ierr)
       CALL MPI_TYPE_FREE(imhdevolREAL8,ierr)

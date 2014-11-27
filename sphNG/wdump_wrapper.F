@@ -55,6 +55,8 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/f2'
       INCLUDE 'COMMONS/abundances'
       INCLUDE 'COMMONS/perform'
+      INCLUDE 'COMMONS/raddust'
+      INCLUDE 'COMMONS/interstellar'
 
       DIMENSION itempsort(idim)
 c
@@ -523,7 +525,7 @@ c
          END DO
       ENDIF
 c
-c--ekcle, dumekcle
+c--ekcle, dumekcle, dust, heatingISR, chemistry
 c
       IF (encal.EQ.'r') THEN
          DO k = 1, 5
@@ -541,6 +543,32 @@ c
                dumekcle(k,i) = tempsort(i)
             END DO
          END DO
+         IF (idustRT.GT.0) THEN
+            DO k = 1, 2
+               DO i = 1, npart
+                  tempsort(i) = dust_tk(k,llist(i))
+               END DO
+               DO i = 1, npart
+                  dust_tk(k,i) = tempsort(i)
+               END DO
+            END DO
+            DO k = 1, 3
+               DO i = 1, npart
+                  tempsort(i) = heatingISR(k,llist(i))
+               END DO
+               DO i = 1, npart
+                  heatingISR(k,i) = tempsort(i)
+               END DO
+            END DO
+            DO k = 1, nchemistry
+               DO i = 1, npart
+                  tempsort(i) = chemistry(k,llist(i))
+               END DO
+               DO i = 1, npart
+                  chemistry(k,i) = tempsort(i)
+               END DO
+            END DO
+         ENDIF
       ENDIF
 c
 c--Bevolxyz, dumBevolxyz, Bxyz, f1Bxyz, f2Bxyz

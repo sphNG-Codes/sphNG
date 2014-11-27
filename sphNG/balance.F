@@ -49,6 +49,8 @@ c************************************************************
       INCLUDE 'COMMONS/eosq'
       INCLUDE 'COMMONS/abundances'
       INCLUDE 'COMMONS/divcurlB'
+      INCLUDE 'COMMONS/raddust'
+      INCLUDE 'COMMONS/interstellar'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -62,7 +64,10 @@ c
       CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(imhdevol, MPI_REAL8, imhdevolREAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL8, i2REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL4, i3REAL4, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(nchemistry, MPI_REAL4, iCREAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL4, i5REAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(isizealphaMM, MPI_REAL4, 
      &     ialphaREAL4, ierr)
@@ -73,7 +78,10 @@ c
       CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
       CALL MPI_TYPE_COMMIT(imhdevolREAL8,ierr)
       CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i2REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
+      CALL MPI_TYPE_COMMIT(i3REAL4,ierr)
+      CALL MPI_TYPE_COMMIT(iCREAL4,ierr)
       CALL MPI_TYPE_COMMIT(i5REAL4,ierr)
       CALL MPI_TYPE_COMMIT(ialphaREAL4,ierr)
       CALL MPI_TYPE_COMMIT(ialphaREAL41,ierr)
@@ -240,6 +248,13 @@ c     &       lsendlist, i3REAL8, indexMPI3, ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI3,ierr)
 
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
+c     &       lsendlist, i2REAL8, indexMPI2, ierr)
+                        CALL MPI_TYPE_INDEXED(numlist(j+1), 
+     &                       lblocklengths, lsendlist, i2REAL8, 
+     &                       indexMPI2, ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI2,ierr)
+
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
 c     &       lsendlist, MPI_REAL8, indexMPIR, ierr)
                         CALL MPI_TYPE_INDEXED(numlist(j+1), 
      &                       lblocklengths, lsendlist, MPI_REAL8, 
@@ -268,11 +283,25 @@ c     &       lsendlist, MPI_LOGICAL, indexMPI_L, ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI_L,ierr)
 
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
-c     &       lsendlist, i2REAL4, indexMPI2, ierr)
+c     &       lsendlist, i2REAL4, indexMPI24, ierr)
                         CALL MPI_TYPE_INDEXED(numlist(j+1), 
      &                       lblocklengths, lsendlist, i2REAL4, 
-     &                       indexMPI2, ierr)
-                        CALL MPI_TYPE_COMMIT(indexMPI2,ierr)
+     &                       indexMPI24, ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI24,ierr)
+
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
+c     &       lsendlist, i3REAL4, indexMPI34, ierr)
+                        CALL MPI_TYPE_INDEXED(numlist(j+1), 
+     &                       lblocklengths, lsendlist, i3REAL4, 
+     &                       indexMPI34, ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI34,ierr)
+
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
+c     &       lsendlist, iCREAL4, indexMPIC4, ierr)
+                        CALL MPI_TYPE_INDEXED(numlist(j+1), 
+     &                       lblocklengths, lsendlist, iCREAL4, 
+     &                       indexMPIC4, ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPIC4,ierr)
 
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
 c     &       lsendlist, i5REAL4, indexMPI54, ierr)
@@ -397,7 +426,7 @@ c     &                          MPI_COMM_WORLD, ierr)
                         ENDIF
 
                         IF (nlmax.EQ.1) THEN
-                           CALL MPI_SEND(gradhs,1,indexMPI2,j,112,
+                           CALL MPI_SEND(gradhs,1,indexMPI24,j,112,
      &                          MPI_COMM_WORLD, ierr)
                         ENDIF
 
@@ -433,6 +462,14 @@ c     &                          MPI_COMM_WORLD, ierr)
                         IF (encal.EQ.'r') THEN
                            CALL MPI_SEND(ekcle,1,indexMPI5,j,142,
      &                          MPI_COMM_WORLD, ierr)
+                           IF (idustRT.GT.0) THEN
+                              CALL MPI_SEND(dust_tk,1,indexMPI2,j,163,
+     &                             MPI_COMM_WORLD, ierr)
+                              CALL MPI_SEND(heatingISR,1,indexMPI34,j,
+     &                             164,MPI_COMM_WORLD, ierr)
+                              CALL MPI_SEND(chemistry,1,indexMPIC4,j,
+     &                             165,MPI_COMM_WORLD, ierr)
+                           ENDIF
                         ENDIF
 c
 c--Deallocate types
@@ -441,12 +478,15 @@ c
                         CALL MPI_TYPE_FREE(indexMPIalpha,ierr)
                         CALL MPI_TYPE_FREE(indexMPI1,ierr)
                         CALL MPI_TYPE_FREE(indexMPI54,ierr)
-                        CALL MPI_TYPE_FREE(indexMPI2,ierr)
+                        CALL MPI_TYPE_FREE(indexMPI34,ierr)
+                        CALL MPI_TYPE_FREE(indexMPIC4,ierr)
+                        CALL MPI_TYPE_FREE(indexMPI24,ierr)
                         CALL MPI_TYPE_FREE(indexMPI_INT8,ierr)
                         CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
                         CALL MPI_TYPE_FREE(indexMPI_L,ierr)
                         CALL MPI_TYPE_FREE(indexMPI_INT,ierr)
                         CALL MPI_TYPE_FREE(indexMPIR,ierr)
+                        CALL MPI_TYPE_FREE(indexMPI2,ierr)
                         CALL MPI_TYPE_FREE(indexMPI3,ierr)
                         CALL MPI_TYPE_FREE(indexMPIimhdevol,ierr)
                         CALL MPI_TYPE_FREE(indexMPI4,ierr)
@@ -896,9 +936,38 @@ c                  ENDIF
      &                 iprocrec, 142, MPI_COMM_WORLD, istatus, ierr)
                   CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
-                     WRITE (*,*) 'ERROR - balance igotnumber'
+                     WRITE (*,*) 'ERROR - balance igotnumber ekcle'
                      CALL quit(1)
                   ENDIF
+
+                  IF (idustRT.GT.0) THEN
+                     CALL MPI_RECV(dust_tk(1,npartnew+1), idim, i2REAL8,
+     &                    iprocrec, 163, MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus, i2REAL8, inumber, ierr)
+                     IF (inumber.NE.igotnumber) THEN
+                        WRITE (*,*) 'ERROR - balance igotnumber dust'
+                        CALL quit
+                     ENDIF
+
+                     CALL MPI_RECV(heatingISR(1,npartnew+1), idim,
+     &                    i3REAL4, iprocrec, 164, MPI_COMM_WORLD, 
+     &                    istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus, i3REAL4, inumber, ierr)
+                     IF (inumber.NE.igotnumber) THEN
+                        WRITE (*,*) 'ERROR - balance igotnumber heating'
+                        CALL quit
+                     ENDIF
+
+                     CALL MPI_RECV(chemistry(1,npartnew+1), idim,
+     &                    iCREAL4, iprocrec, 165, MPI_COMM_WORLD, 
+     &                    istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus, iCREAL4, inumber, ierr)
+                     IF (inumber.NE.igotnumber) THEN
+                        WRITE (*,*) 'ERROR - balance igotnumber chem'
+                        CALL quit
+                     ENDIF
+                  ENDIF
+
                ENDIF
 #ifdef MPIDEBUGT
                print *,iproc,': Received transfer of ',inumber,' from ',
@@ -1226,7 +1295,10 @@ c
       CALL MPI_TYPE_FREE(ialphaREAL41,ierr)
       CALL MPI_TYPE_FREE(ialphaREAL4,ierr)
       CALL MPI_TYPE_FREE(i5REAL4,ierr)
+      CALL MPI_TYPE_FREE(iCREAL4,ierr)
+      CALL MPI_TYPE_FREE(i3REAL4,ierr)
       CALL MPI_TYPE_FREE(i2REAL4,ierr)
+      CALL MPI_TYPE_FREE(i2REAL8,ierr)
       CALL MPI_TYPE_FREE(i3REAL8,ierr)
       CALL MPI_TYPE_FREE(imhdevolREAL8,ierr)
       CALL MPI_TYPE_FREE(i4REAL8,ierr)
@@ -1991,6 +2063,8 @@ c*************************`***********************************
       INCLUDE 'COMMONS/eosq'
       INCLUDE 'COMMONS/abundances'
       INCLUDE 'COMMONS/divcurlB'
+      INCLUDE 'COMMONS/raddust'
+      INCLUDE 'COMMONS/interstellar'
 
       DO i = 1, 5
          xyzmh(i,ito) = xyzmh(i,ifrom)
@@ -2069,6 +2143,17 @@ c         h2mol(ito) = h2mol(ifrom)
             ekcle(i,ito) = ekcle(i,ifrom)
             dumekcle(i,ito) = dumekcle(i,ifrom)
          END DO
+         IF (idustRT.GT.0) THEN
+            DO i = 1, 2
+               dust_tk(i,ito) = dust_tk(i,ifrom)
+            END DO
+            DO i = 1, 3
+               heatingISR(i,ito) = heatingISR(i,ifrom)
+            END DO
+            DO i = 1, nchemistry
+               chemistry(i,ito) = chemistry(i,ifrom)
+            END DO
+         ENDIF
       ENDIF
 
       RETURN

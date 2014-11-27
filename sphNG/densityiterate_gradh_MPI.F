@@ -45,6 +45,7 @@ c--Neides=INT(4./3.*pi*8.*hfact**3))
 c--this weight is equivalent to m/(rho*h^3) in the grad h version
       PARAMETER (weight = 1./hfact**3)
 
+      INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
       INCLUDE 'COMMONS/tlist'
@@ -90,6 +91,9 @@ c      INCLUDE 'COMMONS/vsmooth'
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/divcurlB'
       INCLUDE 'COMMONS/pxpy'
+      INCLUDE 'COMMONS/raddust'
+      INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/sightlines'
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
@@ -242,7 +246,7 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstdo,ldolist,isucceed,xyzmh,hi_old,it1,isteps,imaxstep)
 C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)
 C$OMP& shared(iphase,dBxyz,divcurlB,gradB,force_sym,force_an,it0,itime)
-C$OMP& shared(curlv,gradhs)
+C$OMP& shared(curlv,gradhs,sightcolumns)
 C$OMP& shared(planetesimaltimestep,planetesimalnorm,iplanetesimals)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend)
@@ -323,6 +327,13 @@ c            ENDIF
                force_an(k,ipart) = 0.
             END DO
          ENDIF
+#ifdef MPI
+         IF (idustRT.GT.0) THEN
+            DO k = 1, nsightlinesmax
+               sightcolumns(k,ipart) = 0.
+            END DO
+         ENDIF
+#endif
          IF (iplanetesimals.GT.0) THEN
             planetesimaltimestep(ipart) = 0.0
             planetesimalnorm(ipart) = 0.0
@@ -838,6 +849,43 @@ C$OMP& private(l,ipos,jpos)
                END DO
 C$OMP END PARALLEL DO
 c
+c--Receive back quantities for column densities on sightlines (if req)
+c
+               IF (idustRT.GT.0) THEN
+
+                  CALL MPI_SENDRECV(sightcolumns(1,ntot+1),
+     &                 nsightlinesmax*inumber,
+     &                 MPI_REAL4,ibehind,16,
+     &                 sightcolumns(1,ntotplusinumber+1),
+     &                 nsightlinesmax*nlstsend,MPI_REAL4, iahead, 16,
+     &                 MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_REAL4,ireturned,ierr)
+                  IF (ireturned.NE.nsightlinesmax*nlstsend) THEN
+                     WRITE (*,*) 'ERROR - ireturned.NE.',
+     &                    'nsightlinesmax*nlstsend'
+                     CALL quit
+                  ENDIF
+
+#ifdef MPIDEBUG
+                  print *,iproc,': transferred sightcolumns ',ibehind,
+     &                 iahead
+#endif
+
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlstsend,lsendlist,ntotplusinumber,sightcolumns)
+C$OMP& private(l,ipos,jpos)
+                  DO l = 1, nlstsend
+                     ipos = lsendlist(l) + 1
+                     jpos = ntotplusinumber + l
+
+                     DO k = 1, nsightlinesmax
+                        sightcolumns(k,ipos) = sightcolumns(k,ipos) +
+     &                       sightcolumns(k,jpos)
+                     END DO
+                  END DO
+C$OMP END PARALLEL DO
+               ENDIF
+c
 c--End circular send/receive
 c
             ELSE
@@ -1006,6 +1054,41 @@ C$OMP& private(l,ipos,jpos)
                            END DO
                         END DO
 C$OMP END PARALLEL DO
+
+c
+c--Receive back quantities for column densities on sightlines (if req)
+c
+                        IF (idustRT.GT.0) THEN
+
+                        CALL MPI_RECV(sightcolumns(1,ntotplusinumber+1),
+     &                     nsightlinesmax*nlstsend, MPI_REAL4, iahead, 
+     &                     16, MPI_COMM_WORLD,istatus,ierr)
+                        CALL MPI_GET_COUNT(istatus,MPI_REAL4,
+     &                       ireturned,ierr)
+                        IF (ireturned.NE.nsightlinesmax*nlstsend) THEN
+                           WRITE (*,*) 'ERROR - ireturned.NE.',
+     &                          'nsightlinesmax*nlstsend'
+                           CALL quit
+                        ENDIF
+#ifdef MPIDEBUG
+                        print *,iproc,': got sightcolumns from ',iahead
+#endif
+
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlstsend,lsendlist,ntotplusinumber,sightcolumns)
+C$OMP& private(l,ipos,jpos)
+                        DO l = 1, nlstsend
+                           ipos = lsendlist(l) + 1
+                           jpos = ntotplusinumber + l
+
+                           DO k = 1, nsightlinesmax
+                              sightcolumns(k,ipos) = 
+     &                        sightcolumns(k,ipos) +sightcolumns(k,jpos)
+                           END DO
+                        END DO
+C$OMP END PARALLEL DO
+                        ENDIF
+
                      ENDIF
                   END DO
                ELSE
@@ -1078,6 +1161,13 @@ c
                   CALL MPI_SEND(dvxyzu(1,ntot+1),4*inumber,
      &                 MPI_REAL8,ibehind,15,
      &                 MPI_COMM_WORLD, istatus, ierr)
+
+                  IF (idustRT.GT.0) THEN
+                     CALL MPI_SEND(sightcolumns(1,ntot+1),
+     &                    nsightlinesmax*inumber,
+     &                    MPI_REAL4,ibehind,16,
+     &                    MPI_COMM_WORLD, istatus, ierr)
+                  ENDIF
                ENDIF
 c
 c--End send/receive of data
@@ -1120,8 +1210,10 @@ C$OMP& shared(dumrho,iscurrent,ibound,ireal)
 C$OMP& shared(isteps,it0,it1,imax,imaxstep,dt,itime)
 C$OMP& shared(varmhd,Bevol,Bxyz,vsmooth,Bsmooth,nlstdo,ldolist)
 C$OMP& shared(dvxyzu,hi_old,isucceed,poten,isend,numproc,iproc,gradmhd)
-C$OMP& shared(ivar,ijvar,ncompact,icompact,iteration)
+C$OMP& shared(ivar,ijvar,ncompact,icompact,iteration,dust_tk)
 C$OMP& shared(hminbisec,hmaxbisec,iupdated,nlistupdated,listparents)
+C$OMP& shared(heatingISR,sightcolumns,nsightlines,umass,udist,c,gmw)
+C$OMP& shared(chemistry)
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend,ijvartemp,listparentstemp)
 #endif
@@ -1133,9 +1225,12 @@ C$OMP& private(index,dxx,index1,dwdx,wtij,dgrwdx,grwtij)
 C$OMP& private(projv,procurlvx,procurlvy,procurlvz)
 C$OMP& private(l,iptcur,dphi,dwdhi,dpotdh,numneighi)
 C$OMP& private(numneighreal,rhohi,dhdrhoi,omegai,func,dfdh1)
-C$OMP& private(hnew,deltarho)
+C$OMP& private(hnew,deltarho,heatingISRival,dust_gas)
 C$OMP& private(nneighlocal,nneighi,ncompacthere,icompacthere)
-C$OMP& private(numberupdated)
+C$OMP& private(numberupdated,dust_kappai,photo,dust_cooling)
+C$OMP& private(cooling,gas_dust,cosmic_ray,func_gas,derivative)
+C$OMP& private(heatingISRi,Gphotoelectrici,ext,exp_Av)
+C$OMP& private(u_found,cv_val,gas_temp,ijk,frac_change)
 C$OMP& reduction(MAX:rhonext,imaxit)
 C$OMP& reduction(+:inumit,inumfixed,inumrecalc,nwarnup,nwarndown)
 C$OMP& reduction(+:nwarnroundoff,nbisection,numsucceeded)
@@ -1285,18 +1380,101 @@ c
                poten(ipart) = dvxyzu(4,ipart)
 
                IF (iphase(ipart).EQ.0) THEN
+                  IF (iradtrans.EQ.idim) THEN
+c
+c--Calculating the ISR attenuation factors for a non-MPI calculation can
+c     be done in column_density.F.  However, it needs to be done here for
+c     the MPI code (see comments in column_density.F).
+c
+#ifdef MPI
+                  IF (idustRT.GT.0) THEN
+                     heatingISRi = 0.
+                     Gphotoelectrici = 0.
+                     exp_Av = 0.
+                     DO k = 1, nsightlines
+c
+c--Based on Zucconi et al. (2001)
+c
+                        ext = sightcolumns(k,ipart)*umass/udist**2 *
+     &                       Qv(c/0.0000550)/(gmw*1.67E-24)
+
+                        heatingISRi = heatingISRi + get_heatingISR(ext)
+                        Gphotoelectrici = Gphotoelectrici +
+     &                       get_Gphotoelectric(ext)
+                        exp_Av = exp_Av + EXP(-ext)
+                     END DO
+                     heatingISR(1,ipart) = heatingISRi/nsightlines
+                     heatingISR(2,ipart) = Gphotoelectrici/nsightlines
+                     heatingISR(3,ipart) = exp_Av/nsightlines
+                  ENDIF
+#endif
 c
 c--Set e(i) for the first time around because density only set here
 c     This sets radiation and matter to have same initial temperature
 c
                   IF (icall.EQ.1 .AND. encal.EQ.'r') THEN
                      IF (ekcle(1,ipart).EQ.0.0) THEN
-                       ekcle(3,ipart) = getcv(rho(ipart),vxyzu(4,ipart))
-                        ekcle(1,ipart) = uradconst*(vxyzu(4,ipart)/
-     &                      ekcle(3,ipart))**4/rho(ipart)
+                        IF (idustRT.GT.0) THEN
+c
+c--Set temperature of the radiation to be 1 K initially (i.e. negligible)
+c
+                           ekcle(1,ipart) = uradconst/rho(ipart)
+
+                           gas_temp = gas_temperature_equilibrium(
+     &                          ipart,dust_temperature(ipart,uradconst,
+     &                          0.0,vxyzu(4,ipart),ekcle,
+     &                          rhoi,dust_kappai,dust_cooling,
+     &                          heatingISRival,dust_gas),rhoi,photo,
+     &                          cooling,gas_dust,cosmic_ray,func_gas,
+     &                          derivative)
+
+                           vxyzu(4,ipart) = getu(rho(ipart),gas_temp)
+                           ekcle(3,ipart) = 
+     &                          getcv(rho(ipart),vxyzu(4,ipart))
+
+                           dust_tk(1,ipart) = dust_temperature(ipart,
+     &                          uradconst,0.0,vxyzu(4,ipart),ekcle,
+     &                          rhoi,dust_kappai,dust_cooling,
+     &                          heatingISRival,dust_gas)
+                           dust_tk(2,ipart) = dust_kappai
+
+c                        IF (iproc.EQ.0) THEN
+cC$OMP CRITICAL (write19)
+ccc                           IF (rhoi.GT.0.05 .AND. rhoi.LT.0.08)
+c                       WRITE (19,445) SQRT(xyzmh(1,ipart)**2+
+c     &                       xyzmh(2,ipart)**2+xyzmh(3,ipart)**2),
+c     &                       vxyzu(4,ipart)/ekcle(3,ipart),
+c     &                       dust_temperature(ipart,uradconst,
+c     &                       0.0,vxyzu(4,ipart),ekcle,
+c     &                       rhoi,dust_kappai,dust_cooling,
+c     &                       heatingISRival,dust_gas),
+c     &                       dust_kappai,rhoi,photo,
+c     &                       dust_cooling,heatingISRival,dust_gas,
+c     &                       cooling,gas_dust,cosmic_ray,func_gas,
+c     &                       derivative,gas_temp,vxyzu(4,ipart),
+c     &                       ekcle(3,ipart),chemistry(1,ipart),
+c     &                       chemistry(2,ipart),chemistry(3,ipart),
+c     &                       heatingISR(3,ipart),ipart
+cC$OMP END CRITICAL (write19)
+c 445                   FORMAT(21(1PE12.5,1X),I8)
+c                        ENDIF
+                        ELSE
+c
+c--Set specific radiation energy to be in thermal equilibrium with the
+c     matter initially
+c
+                           ekcle(3,ipart) =
+     &                          getcv(rho(ipart),vxyzu(4,ipart))
+                           ekcle(1,ipart) = uradconst*(vxyzu(4,ipart)/
+     &                          ekcle(3,ipart))**4/rho(ipart)
+                        ENDIF
+c
+c--Set opacities
+c
                         ekcle(2,ipart) = getkappa(vxyzu(4,ipart),
      &                       ekcle(3,ipart),rho(ipart))
                      ENDIF
+                  ENDIF
                   ENDIF
 c
 c--Pressure and sound velocity from ideal gas law...
@@ -1326,6 +1504,7 @@ C$OMP END CRITICAL (listcompact)
                ivar(1,ncompacthere) = nneighlocal
                ivar(2,ncompacthere) = icompacthere
                ivar(3,ncompacthere) = ipart
+
                DO k = 1, nneighlocal
                   j = neighlist(k)
 #ifdef MPICOPY
@@ -1490,7 +1669,7 @@ c
       IF (iteration.NE.maxiterations) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstdo,ldolist,rho,dumrho,divv,curlv,gradhs,nneigh)
-C$OMP& shared(dvxyzu,poten)
+C$OMP& shared(dvxyzu,poten,dust_tk)
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend)
 #endif
@@ -1511,6 +1690,11 @@ C$OMP& private(n,ipart,k)
             DO k = 1, 4
                dvxyzu(k,ipart) = 0.
             END DO
+            IF (idustRT.GT.0) THEN
+               DO k = 1, 2
+                  dust_tk(k,ipart) = 0.
+               END DO
+            ENDIF
             poten(ipart) = 0.
          END DO
 C$OMP END PARALLEL DO
@@ -2556,15 +2740,9 @@ c--Receive back forces, du, potential energy to be added on to local values
 c
             DO j = 1, inumofsends
 #ifdef MPIDEBUG
-c      IF (itime.EQ.000)
-                    print *,iproc,': expecting to get ',inumofsends,
+               print *,iproc,': expecting to get ',inumofsends,
      &              ' divv contributions ',j,
      &              ' with maxnneighsentback ',maxnneighsentback
-c               IF (iproc.EQ.14) THEN
-c                  DO iii = 0, numproc -1
-c                     print *,iproc,': LIST ',iii,nneighsentback(iii+1)
-c                  END DO
-c               ENDIF
 #endif
                CALL MPI_RECV(divv(istartrec),maxnneighsentback,
      &              MPI_REAL4,MPI_ANY_SOURCE,50,MPI_COMM_WORLD,istatus,
@@ -2669,7 +2847,6 @@ C$OMP& private(l,ipos,jpos)
                   END DO
 C$OMP END PARALLEL DO
                ENDIF
-
             END DO
 c
 c--Other processes send the forces back
@@ -2681,20 +2858,12 @@ c
                   inumber = inumberindiv(jjj)
                   iprocsend = inumberproc(jjj)
                   inumberreturned = inumberreturned + 1
-
 #ifdef MPIDEBUG
-c      IF (itime.EQ.000)
                    print *,iproc,': sending forces to ',iprocsend,
      &                 ' istart ',istart,' number ',inumber,
      &                 ' returned ',inumberreturned,
      &                 ' of ',inumofreturns,xyzmh(1,1)
 #endif
-c                  iloop = iloop + 1
-c                  print *,'SETTING iloop ',iloop
-c                  IF (iloop.EQ.2 .and. inumber.EQ.5360) THEN
-c                     inumber = 1
-c                  ENDIF
-
                   CALL MPI_SEND(divv(istart),inumber,MPI_REAL4,
      &                 iprocsend,50,MPI_COMM_WORLD, ierr)
                   CALL MPI_SEND(curlv(istart),inumber,MPI_REAL4,
@@ -2703,7 +2872,6 @@ c                  ENDIF
      &                 iprocsend,52,MPI_COMM_WORLD, ierr)
 
 #ifdef MPIDEBUG
-c      IF (itime.EQ.000)
                        print *,iproc,': sent divv,curlv,gradhs to ',
      &                 iprocsend,' and has sent ',inumber,' values'
 #endif
@@ -2715,7 +2883,6 @@ c                     CALL MPI_SEND(gradmhd(1,istart),inumber,i12REAL8,
 c     &                    iprocsend,53,MPI_COMM_WORLD, ierr)
                      CALL MPI_SEND(gradmhd(1,istart),inumber,i15REAL8,
      &                    iprocsend,53,MPI_COMM_WORLD, ierr)
-
                   ENDIF
 
                   GOTO 7765
@@ -2934,7 +3101,7 @@ C$OMP PARALLEL default(none)
 C$OMP& shared(npart,ntot,ireal,rho,dumrho,xyzmh,pr,vsound,divv,curlv)
 C$OMP& shared(vxyzu,gradhs,Bxyz,encal,ibound,ekcle,varmhd,listp,Bevol)
 C$OMP& shared(nlst_in,nlst_end,listparents,nlistupdated,iupdated,icall)
-C$OMP& shared(dt,itime,iphase)
+C$OMP& shared(dt,itime,iphase,dust_tk)
 C$OMP& private(i,j,k,ipart)
 c
 c--Update density and quantities depending on density for inactive particles
@@ -2971,13 +3138,19 @@ C$OMP DO SCHEDULE (runtime)
                Bxyz(3,i) = Bxyz(3,j)            
             ENDIF
          ENDIF
-         IF (encal.EQ.'r' .AND. ibound/10.EQ.10) THEN
-            IF(icall.EQ.1) THEN
-               DO k=1,5
-                  ekcle(k,i) = ekcle(k,j)
-               END DO
-            ELSE
-               ekcle(1,i) = ekcle(1,j)
+         IF (encal.EQ.'r') THEN
+            IF (ibound/10.EQ.10) THEN
+               IF(icall.EQ.1) THEN
+                  DO k=1,5
+                     ekcle(k,i) = ekcle(k,j)
+                  END DO
+               ELSE
+                  ekcle(1,i) = ekcle(1,j)
+               ENDIF
+            ENDIF
+            IF (idustRT.GT.0) THEN
+               dust_tk(1,i) = dust_tk(1,j)
+               dust_tk(2,i) = dust_tk(2,j)
             ENDIF
          ENDIF
       END DO

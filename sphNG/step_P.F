@@ -377,6 +377,7 @@ c         DO i = 1, npart
                DO k = 1, 5
                   ekcle(k,i) = dumekcle(k,i)
                END DO
+               IF (i.GT.npart) vxyzu(4,i) = dumvxyzu(4,i)
             ENDIF
 
 c            gravx1(i) = gravx(i)

@@ -31,6 +31,7 @@ c************************************************************
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/raddust'
 
       CHARACTER*7 where
       REAL*4 rhoreal4
@@ -129,6 +130,10 @@ c                  vxyzu(4,nptot) = boundtemp*ekcle(3,nptot)
                ENDIF
                ekcle(4,nptot) = ekcle(4,i)
                ekcle(5,nptot) = ekcle(5,i)
+               IF (idustRT.GT.0) THEN
+                  dust_tk(1,nptot) = dust_tk(1,i)
+                  dust_tk(2,nptot) = dust_tk(2,i)
+               ENDIF
             ENDIF
             IF (imhd.EQ.idim) THEN
                DO j=1,imhdevol

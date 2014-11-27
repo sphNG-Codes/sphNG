@@ -26,6 +26,7 @@ c************************************************************
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/raddust'
 
       CHARACTER*7 where
 
@@ -657,6 +658,10 @@ c
                   vxyzu(4,k) = 0.704097133431896
                   ekcle(1,k) = uradconst*(vxyzu(4,k)/
      &              ekcle(3,k))**4/50.226017
+                  IF (idustRT.GT.0) THEN
+                     dust_tk(1,k) = dust_tk(1,i)
+                     dust_tk(2,k) = dust_tk(2,i)
+                  ENDIF
                ENDIF
             ENDDO
          ENDIF

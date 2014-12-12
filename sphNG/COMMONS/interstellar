@@ -41,15 +41,24 @@ c
       COMMON /column/ ISR_table(nISRpoints), Ge_ISR_table(nISRpoints),
      &	     Planck_table(nPlanckPoints*idustRT+1)
 
+      INTEGER nheatingISR
+      PARAMETER (nheatingISR = 4)
       REAL*4 heatingISR
-      COMMON /extinc/ heatingISR(3,iradtrans2*idustRT+1)
+      COMMON /extinc/ heatingISR(nheatingISR,iradtrans2*idustRT+1)
 c
 c--Chemical model.  Currently only keeps track of carbon:
 c	    1: C+
 c	    2: C
 c	    3: CO
 c
-      INTEGER nchemistry
+c--Also evolves H_2 fraction (as opposed to atomic hydrogen).
+c	The h2frac array needs to be twice as big as idim to allow 
+c	h2frac to be stored on the tree nodes so that the H_2 column
+c	density can be calculated for H_2 self-shielding.
+c
+      INTEGER nchemistry, nh2frac
       PARAMETER (nchemistry = 3)
-      REAL*4 chemistry
-      COMMON /chem/ chemistry(nchemistry, iradtrans2*idustRT+1)
+      PARAMETER (nh2frac = iradtrans2*idustRT+2)
+      REAL*4 chemistry, h2frac, dh2dt
+      COMMON /chem/ chemistry(nchemistry, iradtrans*idustRT+1),
+     &	     h2frac(nh2frac), dh2dt(iradtrans*idustRT+1)

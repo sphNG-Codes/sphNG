@@ -21,6 +21,7 @@ c************************************************************
       INCLUDE 'COMMONS/nextmpt'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/perform'
+      INCLUDE 'COMMONS/interstellar'
 
       DIMENSION listpar(idim),listparnew(idim)
 
@@ -41,7 +42,7 @@ c      IF (nlst.GT.100 .OR. ipartialrevtree.EQ.0) THEN
       IF (itiming) CALL getused(revtreeptemp1)
 
 C$OMP PARALLEL default(none)
-C$OMP& shared(natom,npart,imfac)
+C$OMP& shared(natom,npart,imfac,h2frac)
 C$OMP& shared(nactatom,listmap,iphase,iflagtree)
 C$OMP& private(j,ipart)
 
@@ -56,6 +57,11 @@ C$OMP DO SCHEDULE(static)
          ELSE
             imfac(ipart) = 1
          ENDIF
+         IF (idustRT.GT.0) THEN
+            IF (ipart.GT.npart .OR. iphase(ipart).NE.0) THEN
+               h2frac(ipart) = 0.
+            ENDIF
+         ENDIF
       END DO
 C$OMP END DO
 C$OMP END PARALLEL
@@ -66,7 +72,7 @@ C$OMP END PARALLEL
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(ilevel,level,natom,isibdaupar)
-C$OMP& shared(qrad,xyzmh,imfac)
+C$OMP& shared(qrad,xyzmh,imfac,h2frac)
 C$OMP& private(new,l,ll,fl,fll,emred,difx,dify,difz,rr,pmassl,pmassll)
 C$OMP& private(xll,yll,zll,smoothingll)
 
@@ -154,6 +160,9 @@ c
                qrad(5,new) = qrad(5,new) + qrad(5,ll)
                qrad(6,new) = qrad(6,new) + qrad(6,ll)
                qrad(7,new) = qrad(7,new) + qrad(7,ll)
+            ENDIF
+            IF (idustRT.GT.0) THEN
+               h2frac(new) = h2frac(l)*fl+h2frac(ll)*fll
             ENDIF
          END DO
 C$OMP END DO
@@ -244,6 +253,9 @@ c
                qrad(5,new) = qrad(5,new) + qrad(5,ll)
                qrad(6,new) = qrad(6,new) + qrad(6,ll)
                qrad(7,new) = qrad(7,new) + qrad(7,ll)
+            ENDIF
+            IF (idustRT.GT.0) THEN
+               h2frac(new) = h2frac(l)*fl+h2frac(ll)*fll
             ENDIF
          END DO
 
@@ -359,7 +371,7 @@ c         print *,'Revtree nlistpar ',nlistpar,nlstacc
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(natom,npart,xyzmh,imfac,isibdaupar,nlst,llist)
-C$OMP& shared(revtree_lock,listpar)
+C$OMP& shared(revtree_lock,listpar,h2frac)
 C$OMP& shared(nactatom,listmap,iflagtree,ipar,iphase,nlistpar)
 C$OMP& private(j,ipart,iparent)
 
@@ -390,6 +402,11 @@ C$OMP DO SCHEDULE(static)
             ELSE
                imfac(ipart) = 1
             ENDIF
+            IF (idustRT.GT.0) THEN
+               IF (ipart.GT.npart .OR. iphase(ipart).NE.0) THEN
+                  h2frac(ipart) = 0.
+               ENDIF
+            ENDIF
          END DO
 C$OMP END DO
 C$OMP END PARALLEL
@@ -411,7 +428,7 @@ c         print *,'Revtree nlistpar doing ',nlistpar
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(ilevel,level,natom,isibdaupar,revtree_lock)
-C$OMP& shared(qrad,xyzmh,imfac,listpar,listparnew)
+C$OMP& shared(qrad,xyzmh,imfac,listpar,listparnew,h2frac)
 C$OMP& shared(iflagtree,ipar,nlevel,nlistpar,nlistparnew)
 C$OMP& private(i,new,l,ll,fl,fll,emred,difx,dify,difz,rr,iparent)
 C$OMP& private(pmassl,pmassll,oldmass,oldh,oldqrad)
@@ -526,6 +543,9 @@ c
                qrad(5,new) = qrad(5,new) + qrad(5,ll)
                qrad(6,new) = qrad(6,new) + qrad(6,ll)
                qrad(7,new) = qrad(7,new) + qrad(7,ll)
+            ENDIF
+            IF (idustRT.GT.0) THEN
+               h2frac(new) = h2frac(l)*fl+h2frac(ll)*fll
             ENDIF
 
 c            IF (ilevel.LT.nlevel .OR. 

@@ -385,7 +385,8 @@ c
             nums(6) = 5
             IF (idustRT.GT.0) nums(6) = nums(6) + 2
             nums(7) = 0
-            IF (idustRT.GT.0) nums(7) = nums(7) + nchemistry
+            IF (idustRT.GT.0) nums(7) = nums(7) + nchemistry + 
+     &           nheatingISR + 2
             nums(8) = 0
          ELSE
             number8 = 0
@@ -569,6 +570,21 @@ c--real*4
                WRITE (idisk1, ERR=100) (chemistry(j,isort(i)), i=1, 
      &              nprint)
             END DO
+
+            tagarr(1:4) = (/tag('HeatingISR'),tag('Gphotoelectric'),
+     &           tag('Extinction'),tag('H2SelfShielding')/)
+            DO j = 1, nheatingISR
+               WRITE (idisk1, ERR=100) tag(tagarr(j))
+               WRITE (idisk1, ERR=100) (heatingISR(j,isort(i)), i=1, 
+     &              nprint)
+            END DO
+
+            WRITE (idisk1, ERR=100) tag('H2Frac')
+            WRITE (idisk1, ERR=100) (h2frac(isort(i)), i=1, 
+     &           nprint)
+            WRITE (idisk1, ERR=100) tag('dH2dt')
+            WRITE (idisk1, ERR=100) (dh2dt(isort(i)), i=1, 
+     &           nprint)
          ENDIF
 c--real*8
 

@@ -66,7 +66,7 @@ c
       CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL8, i2REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
-      CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL4, i3REAL4, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(nheatingISR, MPI_REAL4, iHREAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(nchemistry, MPI_REAL4, iCREAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL4, i5REAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(isizealphaMM, MPI_REAL4, 
@@ -80,7 +80,7 @@ c
       CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
-      CALL MPI_TYPE_COMMIT(i3REAL4,ierr)
+      CALL MPI_TYPE_COMMIT(iHREAL4,ierr)
       CALL MPI_TYPE_COMMIT(iCREAL4,ierr)
       CALL MPI_TYPE_COMMIT(i5REAL4,ierr)
       CALL MPI_TYPE_COMMIT(ialphaREAL4,ierr)
@@ -290,11 +290,11 @@ c     &       lsendlist, i2REAL4, indexMPI24, ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI24,ierr)
 
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
-c     &       lsendlist, i3REAL4, indexMPI34, ierr)
+c     &       lsendlist, iHREAL4, indexMPIH4, ierr)
                         CALL MPI_TYPE_INDEXED(numlist(j+1), 
-     &                       lblocklengths, lsendlist, i3REAL4, 
-     &                       indexMPI34, ierr)
-                        CALL MPI_TYPE_COMMIT(indexMPI34,ierr)
+     &                       lblocklengths, lsendlist, iHREAL4, 
+     &                       indexMPIH4, ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPIH4,ierr)
 
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
 c     &       lsendlist, iCREAL4, indexMPIC4, ierr)
@@ -465,10 +465,14 @@ c     &                          MPI_COMM_WORLD, ierr)
                            IF (idustRT.GT.0) THEN
                               CALL MPI_SEND(dust_tk,1,indexMPI2,j,163,
      &                             MPI_COMM_WORLD, ierr)
-                              CALL MPI_SEND(heatingISR,1,indexMPI34,j,
+                              CALL MPI_SEND(heatingISR,1,indexMPIH4,j,
      &                             164,MPI_COMM_WORLD, ierr)
                               CALL MPI_SEND(chemistry,1,indexMPIC4,j,
      &                             165,MPI_COMM_WORLD, ierr)
+                              CALL MPI_SEND(h2frac,1,indexMPI1,j,
+     &                             166,MPI_COMM_WORLD, ierr)
+                              CALL MPI_SEND(dh2dt,1,indexMPI1,j,
+     &                             167,MPI_COMM_WORLD, ierr)
                            ENDIF
                         ENDIF
 c
@@ -478,7 +482,7 @@ c
                         CALL MPI_TYPE_FREE(indexMPIalpha,ierr)
                         CALL MPI_TYPE_FREE(indexMPI1,ierr)
                         CALL MPI_TYPE_FREE(indexMPI54,ierr)
-                        CALL MPI_TYPE_FREE(indexMPI34,ierr)
+                        CALL MPI_TYPE_FREE(indexMPIH4,ierr)
                         CALL MPI_TYPE_FREE(indexMPIC4,ierr)
                         CALL MPI_TYPE_FREE(indexMPI24,ierr)
                         CALL MPI_TYPE_FREE(indexMPI_INT8,ierr)
@@ -950,9 +954,9 @@ c                  ENDIF
                      ENDIF
 
                      CALL MPI_RECV(heatingISR(1,npartnew+1), idim,
-     &                    i3REAL4, iprocrec, 164, MPI_COMM_WORLD, 
+     &                    iHREAL4, iprocrec, 164, MPI_COMM_WORLD, 
      &                    istatus, ierr)
-                     CALL MPI_GET_COUNT(istatus, i3REAL4, inumber, ierr)
+                     CALL MPI_GET_COUNT(istatus, iHREAL4, inumber, ierr)
                      IF (inumber.NE.igotnumber) THEN
                         WRITE (*,*) 'ERROR - balance igotnumber heating'
                         CALL quit
@@ -966,6 +970,25 @@ c                  ENDIF
                         WRITE (*,*) 'ERROR - balance igotnumber chem'
                         CALL quit
                      ENDIF
+
+                     CALL MPI_RECV(h2frac(npartnew+1), idim, MPI_REAL4,
+     &                    iprocrec, 166, MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus, MPI_REAL4, 
+     &                    inumber, ierr)
+                     IF (inumber.NE.igotnumber) THEN
+                        WRITE (*,*) 'ERROR - balance igotnumber h2frac'
+                        CALL quit
+                     ENDIF
+
+                     CALL MPI_RECV(dh2dt(npartnew+1), idim, MPI_REAL4,
+     &                    iprocrec, 167, MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus, MPI_REAL4, 
+     &                    inumber, ierr)
+                     IF (inumber.NE.igotnumber) THEN
+                        WRITE (*,*) 'ERROR - balance igotnumber dh2dt'
+                        CALL quit
+                     ENDIF
+
                   ENDIF
 
                ENDIF
@@ -1296,7 +1319,7 @@ c
       CALL MPI_TYPE_FREE(ialphaREAL4,ierr)
       CALL MPI_TYPE_FREE(i5REAL4,ierr)
       CALL MPI_TYPE_FREE(iCREAL4,ierr)
-      CALL MPI_TYPE_FREE(i3REAL4,ierr)
+      CALL MPI_TYPE_FREE(iHREAL4,ierr)
       CALL MPI_TYPE_FREE(i2REAL4,ierr)
       CALL MPI_TYPE_FREE(i2REAL8,ierr)
       CALL MPI_TYPE_FREE(i3REAL8,ierr)
@@ -2147,12 +2170,14 @@ c         h2mol(ito) = h2mol(ifrom)
             DO i = 1, 2
                dust_tk(i,ito) = dust_tk(i,ifrom)
             END DO
-            DO i = 1, 3
+            DO i = 1, nheatingISR
                heatingISR(i,ito) = heatingISR(i,ifrom)
             END DO
             DO i = 1, nchemistry
                chemistry(i,ito) = chemistry(i,ifrom)
             END DO
+            h2frac(ito) = h2frac(ifrom)
+            dh2dt(ito) = dh2dt(ifrom)
          ENDIF
       ENDIF
 

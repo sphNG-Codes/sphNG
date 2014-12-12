@@ -18,6 +18,7 @@ c************************************************************
       INCLUDE 'COMMONS/mpi'
 #endif
 
+      INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/dum'
@@ -87,6 +88,7 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/interstellar'
 #ifdef MPICOPY
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/mpicopy'
@@ -1006,7 +1008,7 @@ C$OMP& shared(torqv,torqc,it0,itime,imaxdens,cnormk,iener)
 C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,dumekcle,vsmooth)
 C$OMP& shared(ifsvi,alphaMM,alphamax,encal,dumBevolxyz,Bevolxyz)
-C$OMP& shared(pdvvisc,alphamin)
+C$OMP& shared(pdvvisc,alphamin,utime,h2frac,dh2dt,gmw,udens,rho)
 C$OMP& private(i,j,k,dtfull,dtf21,dtf22,xold,yold,delvx,delvy,delvz)
 C$OMP& private(vxstore,vystore,dx,dy,delgx,delgy,delpx,delpy)
 C$OMP& private(delax,delay,extraxt,extrayt,extraxg,extrayg)
@@ -1152,6 +1154,15 @@ cccc               vxyzu(4,i) = dumvxyzu(4,i)
 
 cc               vxyzu(4,i) = vxyzu(4,i) + 
 cc     &           dtf21*f1vxyzu(4,i) + dtf22*f2vxyzu(4,i)
+
+c
+c--Evolve molecular hydrogen fraction if encal='r' and idustRT=1
+c
+               IF (idustRT.GT.0) THEN
+                  h2frac(i) = MIN(0.5,MAX(0.0,h2frac(i) +
+     &                 dh2dt(i)*dtfull*utime*gmw*mH/(rho(i)*udens) ))
+               ENDIF
+
             ELSEIF (encal.EQ.'m') THEN
                vxyzu(4,i) = dumvxyzu(4,i)
             ELSE

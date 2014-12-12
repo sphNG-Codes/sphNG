@@ -32,7 +32,6 @@ c************************************************************
       INCLUDE 'COMMONS/ptsoft'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/ptmass'
-      INCLUDE 'COMMONS/column'
       INCLUDE 'COMMONS/sightlines'
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/astrcon'
@@ -44,7 +43,7 @@ c     (e.g. writing out from step_P.F before calculation is run).
 c
 c      COMMON /stuff/ columndens(idim)
 
-      REAL get_heatingISR
+c      REAL get_heatingISR
       DIMENSION listga(idim), listgn(idim), xyzmh(5,mmax2)
 c
 c--The columndensity array needs to be thread private because treef_P.F

@@ -22,6 +22,7 @@ c************************************************************
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/phase'
+      INCLUDE 'COMMONS/interstellar'
 
       DIMENSION xyzmap(3,ncbrt)
       LOGICAL*1 iused(idim)
@@ -36,6 +37,10 @@ c      IF (itrace.EQ.'all') WRITE (iprint, 99001)
 c99001 FORMAT (' entry subroutine mtree')
 
       third = 1./3.
+
+      IF (idustRT.GT.0) THEN
+         IF (nh2frac.NE.mmax) CALL error(where,5)
+      ENDIF
 
       natom = nnatom
       nactatom = 0
@@ -63,6 +68,7 @@ C$OMP& shared(ihash,nhash,key,nglob)
 C$OMP& private(l,new,n,ll,fl,fll,emred,difx,dify,difz,rr)
 C$OMP& shared(icbrt,icbrt1,xyzmap,level,imfac,levelnum)
 C$OMP& shared(next1,next2,next3,third,nactold,iprint,newold,nlevel)
+C$OMP& shared(h2frac)
 C$OMP& private(m,np,mm,iz,iy,ix,nc,ddd,xnp,ynp,znp)
 C$OMP& private(lllx,llux,llly,lluy,lllz,lluz,llx,lux,lly,luy,llz,luz)
 C$OMP& private(jx,icjx,jy,icjy,jz,k,d,dmin,nwal)
@@ -78,6 +84,11 @@ C$OMP DO SCHEDULE(runtime)
             imfac(ipart) = 0
          ELSE
             imfac(ipart) = 1
+         ENDIF
+         IF (idustRT.GT.0) THEN
+            IF (ipart.GT.npart .OR. iphase(ipart).NE.0) THEN
+               h2frac(ipart) = 0.
+            ENDIF
          ENDIF
          isibdaupar(1,ipart) = 0
          isibdaupar(2,ipart) = 0
@@ -438,6 +449,9 @@ c
                   qrad(3,new) = qrad(3,new) + qrad(3,ll)
                   qrad(6,new) = qrad(6,new) + qrad(6,ll)
                   qrad(4,new) = qrad(4,new) + qrad(4,ll)
+               ENDIF
+               IF (idustRT.GT.0) THEN
+                  h2frac(new) = h2frac(l)*fl+h2frac(ll)*fll
                ENDIF
                isibdaupar(1,new) = 0
                isibdaupar(2,new) = l

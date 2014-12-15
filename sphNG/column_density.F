@@ -49,7 +49,7 @@ c
 c--The columndensity array needs to be thread private because treef_P.F
 c     which calls this subroutine is called by multiple OpenMP threads
 c
-      DIMENSION columndensity(nsightlinesmax)
+      DIMENSION columndensity(nsightlinesmax,2)
       SAVE columndensity
 C$OMP THREADPRIVATE(columndensity)
 
@@ -79,9 +79,11 @@ c
       ENDIF
 
       columndensitymean = 0.
+      h2columnmean = 0.
 
       DO k = 1, nsightlines
-         columndensity(k) = 0.
+         columndensity(k,1) = 0.
+         columndensity(k,2) = 0.
       END DO
 c
 c--Don't distinguish between atoms and nodes
@@ -102,6 +104,15 @@ c
             sizenode = 2.0*xyzmh(5,n)
          ENDIF
 c
+c--Excludes the mass of ghost particles & sink particles (skips 'leaves'
+c     that have imfac=0)
+c
+         IF (n.LE.natom .AND. imfac(n).EQ.0) THEN
+            GOTO 101
+         ELSE
+            pmassn = xyzmh(4,n)
+         ENDIF
+c
 c--If one of the particles is a point mass or a star particle, then ignore
 c
          IF (j.GT. nlistga .OR. j.LE.nlistga .AND. .NOT. 
@@ -119,13 +130,10 @@ c
             difx = difx/rad
             dify = dify/rad
             difz = difz/rad
-            angle_node = sizenode/rad
-
-            IF (n.LE.natom) THEN
-               pmassn = imfac(n)*xyzmh(4,n)
-            ELSE
-               pmassn = xyzmh(4,n)
-            ENDIF
+            angle_node = ATAN(sizenode/rad)
+            angle_node2 = angle_node**2
+            angle_pixel2 = 4.0/nsightlines   ! pi's cancel
+            angle_pixel = SQRT(angle_pixel2)
 
             DO k = 1, nsightlines
 c
@@ -135,34 +143,73 @@ c     cos(angle) = dot product of normalised vectors
 c
                cos_angle = difx*sightline(1,k) + dify*sightline(2,k) + 
      &              difz*sightline(3,k)
+c
+c--Ensure that cos_angle lies between -1 and 1 (rounding error can cause
+c     trouble because of the finite precision of the HEALpix vectors)
+c
+               cos_angle = MIN(1.0,MAX(-1.0,cos_angle))
+               centres = ACOS(cos_angle)
 
-               v = 2.0*ABS(ACOS(cos_angle)/ATAN(angle_node))
+c
+c--Calculate overlap of two circles on the 'sky' -- the area of the HEALPix
+c     pixel (4*pi/nsightlines) and the area of the tree node
+c
+               fraction = 0.
+c
+c--No overlap
+c
+               IF (angle_node+angle_pixel.LE.centres
+     &              .OR. cos_angle.LT.0) THEN
+                  GOTO 99
+c
+c--Node entirely within pixel
+c
+               ELSEIF (centres+angle_node.LE.angle_pixel) THEN
+                  fraction = angle_node2/angle_pixel2
+c
+c--Pixel entirely within node
+c
+               ELSEIF (centres+angle_pixel.LE.angle_node) THEN
+                  fraction = 1.0
+c
+c--Non-trivial overlap calculation
+c
+               ELSE
+                  centres2 = centres**2
 
-               IF (v.LT.2.0 .AND. cos_angle.GT.0.0) THEN
-                  columndensity(k) = columndensity(k) + 
-     &                 pmassn/(pi*sizenode**2)
-c
-c--If we only wanted columndensity could use the expression below, but
-c     with MPI we need to add the contributions from other MPI processes
-c     and then calculate the extinction which is a non-linear function 
-c     of the column density (i.e. exp(-tau) ).
-c
-c                  columndensitymean = columndensitymean + 
-c     &                 pmassn/(pi*sizenode**2)
-c
-c--Also tried other possible expressions (for example specifically 
-c     integrating the column density through a particle based on the 
-c     impact parameter of the ray).  But this was not found to produce
-c     a better result and is more complicated.
-c
-c                  impact_parameter = MIN(1000,INT(ncolumntable/4.0*
-c     &                 v**2)+1)
-c                  columndensity(k) = columndensity(k) + 
-c     &                 pmassn/((0.5*sizenode)**2)
-c     &                 *coltable(impact_parameter)
-c     &                 /(2.0*pi)
-c
+                  CBD = (angle_node2 + centres2 -angle_pixel2)/
+     &                 (2.0*angle_node*centres)
+                  IF (ABS(CBD).GT.1.) THEN 
+                     print *,'ERROR - column_density.F 1 ',CBD
+                     CALL quit(1)
+                  ENDIF
+                  CBD = ACOS(CBD)
+                  CAD = (angle_pixel2 + centres2 -angle_node2)/
+     &                 (2.0*angle_pixel*centres)
+                  IF (ABS(CAD).GT.1.) THEN 
+                     print *,'ERROR - column_density.F 2 ',CBD
+                     CALL quit(1)
+                  ENDIF
+                  CAD = ACOS(CAD)
+                  value = (-centres+angle_node+angle_pixel)*
+     &                 (centres+angle_node-angle_pixel)*
+     &                 (centres-angle_node+angle_pixel)*
+     &                 (+centres+angle_node+angle_pixel)
+                  IF (value.LT.0.) THEN
+                     print *,'ERROR - column_density.F 3 ',value
+                     CALL quit(1)
+                  ENDIF
+                  fraction = (angle_node2*CBD + angle_pixel2*CAD -
+     &                 0.5*SQRT(value))
+     &                 / (pi*angle_pixel2)
                ENDIF
+
+               contribution = pmassn/(pi*sizenode**2)*fraction
+               columndensity(k,1) = columndensity(k,1) + contribution
+               columndensity(k,2) = columndensity(k,2) + 
+     &              contribution*h2frac(n)
+
+ 99            CONTINUE
             END DO
          ENDIF
  101  CONTINUE
@@ -186,24 +233,33 @@ c     gravitational forces which also come from the tree).
 c
       IF (m.GT.ntot) THEN
          DO k = 1, nsightlines
-            sightcolumns(k,m) = columndensity(k)
+            sightcolumns(k,1,m) = columndensity(k,1)
+            sightcolumns(k,2,m) = columndensity(k,2)
          END DO
       ELSE
          DO k = 1, nsightlines
-            sightcolumns(k,m) = sightcolumns(k,m) + columndensity(k)
+            sightcolumns(k,1,m) = sightcolumns(k,1,m) + 
+     &           columndensity(k,1)
+            sightcolumns(k,2,m) = sightcolumns(k,2,m) + 
+     &           columndensity(k,2)
          END DO
       ENDIF
 #else
       heatingISRi = 0.
       Gphotoelectrici = 0.
       exp_Av = 0.
+      selfshield = 0.
       DO k = 1, nsightlines
-         columndensitymean = columndensitymean + columndensity(k)
+         columndensitymean = columndensitymean + columndensity(k,1)
 c
 c--Based on Zucconi et al. (2001)
 c
-         ext = columndensity(k)*umass/udist**2 *
-     &     Qv(c/0.0000550)/(gmw*1.67E-24)
+         columnnumberdensity = columndensity(k,1)*
+     &        umass/udist**2 /(gmw*1.67E-24)
+         h2column = columndensity(k,2)*
+     &        umass/udist**2 /(gmw*1.67E-24)
+
+         ext = columnnumberdensity * Qv(c/0.0000550)
 c         ext = 0.
 
 c
@@ -212,13 +268,20 @@ c     heating of the gas, and the value of the optical extinction (A_V)
 c
          heatingISRi = heatingISRi + get_heatingISR(ext)
          Gphotoelectrici = Gphotoelectrici + get_Gphotoelectric(ext)
-         exp_Av = exp_Av + EXP(-ext)
+         expext = EXP(-ext)
+         exp_Av = exp_Av + expext
+
+         selfval = SQRT(1.0+h2column/(5.0E+14))
+         selffac = 0.965/(1.0+h2column/(5.0E+14))**2 +
+     &        0.035/selfval*EXP(-8.5E-4*selfval)
+         selfshield = selfshield + expext**3.74 * selffac
       END DO
       columndensitymean = columndensitymean/nsightlines
 c      columndens(m) = columndensitymean
       heatingISR(1,m) = heatingISRi/nsightlines
       heatingISR(2,m) = Gphotoelectrici/nsightlines
       heatingISR(3,m) = exp_Av/nsightlines
+      heatingISR(4,m) = selfshield/nsightlines
 c
 c--Print out the progress (if required)
 c

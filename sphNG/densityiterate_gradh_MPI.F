@@ -330,7 +330,8 @@ c            ENDIF
 #ifdef MPI
          IF (idustRT.GT.0) THEN
             DO k = 1, nsightlinesmax
-               sightcolumns(k,ipart) = 0.
+               sightcolumns(k,1,ipart) = 0.
+               sightcolumns(k,2,ipart) = 0.
             END DO
          ENDIF
 #endif
@@ -853,16 +854,16 @@ c--Receive back quantities for column densities on sightlines (if req)
 c
                IF (idustRT.GT.0) THEN
 
-                  CALL MPI_SENDRECV(sightcolumns(1,ntot+1),
-     &                 nsightlinesmax*inumber,
+                  CALL MPI_SENDRECV(sightcolumns(1,1,ntot+1),
+     &                 nsightlinesmax*2*inumber,
      &                 MPI_REAL4,ibehind,16,
-     &                 sightcolumns(1,ntotplusinumber+1),
-     &                 nsightlinesmax*nlstsend,MPI_REAL4, iahead, 16,
+     &                 sightcolumns(1,1,ntotplusinumber+1),
+     &                 nsightlinesmax*2*nlstsend,MPI_REAL4, iahead, 16,
      &                 MPI_COMM_WORLD, istatus, ierr)
                   CALL MPI_GET_COUNT(istatus,MPI_REAL4,ireturned,ierr)
-                  IF (ireturned.NE.nsightlinesmax*nlstsend) THEN
+                  IF (ireturned.NE.nsightlinesmax*2*nlstsend) THEN
                      WRITE (*,*) 'ERROR - ireturned.NE.',
-     &                    'nsightlinesmax*nlstsend'
+     &                    'nsightlinesmax*2*nlstsend'
                      CALL quit
                   ENDIF
 
@@ -879,8 +880,10 @@ C$OMP& private(l,ipos,jpos)
                      jpos = ntotplusinumber + l
 
                      DO k = 1, nsightlinesmax
-                        sightcolumns(k,ipos) = sightcolumns(k,ipos) +
-     &                       sightcolumns(k,jpos)
+                        sightcolumns(k,1,ipos) =sightcolumns(k,1,ipos) +
+     &                       sightcolumns(k,1,jpos)
+                        sightcolumns(k,2,ipos) =sightcolumns(k,2,ipos) +
+     &                       sightcolumns(k,2,jpos)
                      END DO
                   END DO
 C$OMP END PARALLEL DO
@@ -1060,14 +1063,15 @@ c--Receive back quantities for column densities on sightlines (if req)
 c
                         IF (idustRT.GT.0) THEN
 
-                        CALL MPI_RECV(sightcolumns(1,ntotplusinumber+1),
-     &                     nsightlinesmax*nlstsend, MPI_REAL4, iahead, 
+                        CALL MPI_RECV(sightcolumns(1,1,
+     &                     ntotplusinumber+1),
+     &                     nsightlinesmax*2*nlstsend, MPI_REAL4, iahead, 
      &                     16, MPI_COMM_WORLD,istatus,ierr)
                         CALL MPI_GET_COUNT(istatus,MPI_REAL4,
      &                       ireturned,ierr)
-                        IF (ireturned.NE.nsightlinesmax*nlstsend) THEN
+                        IF (ireturned.NE.nsightlinesmax*2*nlstsend) THEN
                            WRITE (*,*) 'ERROR - ireturned.NE.',
-     &                          'nsightlinesmax*nlstsend'
+     &                          'nsightlinesmax*2*nlstsend'
                            CALL quit
                         ENDIF
 #ifdef MPIDEBUG
@@ -1082,8 +1086,12 @@ C$OMP& private(l,ipos,jpos)
                            jpos = ntotplusinumber + l
 
                            DO k = 1, nsightlinesmax
-                              sightcolumns(k,ipos) = 
-     &                        sightcolumns(k,ipos) +sightcolumns(k,jpos)
+                              sightcolumns(k,1,ipos) = 
+     &                             sightcolumns(k,1,ipos) +
+     &                             sightcolumns(k,1,jpos)
+                              sightcolumns(k,2,ipos) = 
+     &                             sightcolumns(k,2,ipos) +
+     &                             sightcolumns(k,2,jpos)
                            END DO
                         END DO
 C$OMP END PARALLEL DO
@@ -1163,8 +1171,8 @@ c
      &                 MPI_COMM_WORLD, istatus, ierr)
 
                   IF (idustRT.GT.0) THEN
-                     CALL MPI_SEND(sightcolumns(1,ntot+1),
-     &                    nsightlinesmax*inumber,
+                     CALL MPI_SEND(sightcolumns(1,1,ntot+1),
+     &                    nsightlinesmax*2*inumber,
      &                    MPI_REAL4,ibehind,16,
      &                    MPI_COMM_WORLD, istatus, ierr)
                   ENDIF
@@ -1213,7 +1221,7 @@ C$OMP& shared(dvxyzu,hi_old,isucceed,poten,isend,numproc,iproc,gradmhd)
 C$OMP& shared(ivar,ijvar,ncompact,icompact,iteration,dust_tk)
 C$OMP& shared(hminbisec,hmaxbisec,iupdated,nlistupdated,listparents)
 C$OMP& shared(heatingISR,sightcolumns,nsightlines,umass,udist,c,gmw)
-C$OMP& shared(chemistry)
+C$OMP& shared(chemistry,h2frac,dh2dt)
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend,ijvartemp,listparentstemp)
 #endif
@@ -1230,7 +1238,8 @@ C$OMP& private(nneighlocal,nneighi,ncompacthere,icompacthere)
 C$OMP& private(numberupdated,dust_kappai,photo,dust_cooling)
 C$OMP& private(cooling,gas_dust,cosmic_ray,func_gas,derivative)
 C$OMP& private(heatingISRi,Gphotoelectrici,ext,exp_Av)
-C$OMP& private(u_found,cv_val,gas_temp,ijk,frac_change)
+C$OMP& private(u_found,cv_val,gas_temp,ijk,frac_change,h2column)
+C$OMP& private(columnnumberdensity,expext,selfval,selffac,selfshield)
 C$OMP& reduction(MAX:rhonext,imaxit)
 C$OMP& reduction(+:inumit,inumfixed,inumrecalc,nwarnup,nwarndown)
 C$OMP& reduction(+:nwarnroundoff,nbisection,numsucceeded)
@@ -1391,21 +1400,33 @@ c
                      heatingISRi = 0.
                      Gphotoelectrici = 0.
                      exp_Av = 0.
+                     selfshield = 0.
                      DO k = 1, nsightlines
 c
 c--Based on Zucconi et al. (2001)
 c
-                        ext = sightcolumns(k,ipart)*umass/udist**2 *
-     &                       Qv(c/0.0000550)/(gmw*1.67E-24)
+                        columnnumberdensity = sightcolumns(k,1,ipart)*
+     &                       umass/udist**2 /(gmw*1.67E-24)
+                        h2column = sightcolumns(k,2,ipart)*
+     &                       umass/udist**2 /(gmw*1.67E-24)
+
+                        ext = columnnumberdensity * Qv(c/0.0000550)
 
                         heatingISRi = heatingISRi + get_heatingISR(ext)
                         Gphotoelectrici = Gphotoelectrici +
      &                       get_Gphotoelectric(ext)
-                        exp_Av = exp_Av + EXP(-ext)
+                        expext = EXP(-ext)
+                        exp_Av = exp_Av + expext
+
+                        selfval = SQRT(1.0+h2column/(5.0E+14))
+                        selffac = 0.965/(1.0+h2column/(5.0E+14))**2 +
+     &                       0.035/selfval*EXP(-8.5E-4*selfval)
+                        selfshield = selfshield + expext**3.74 * selffac
                      END DO
                      heatingISR(1,ipart) = heatingISRi/nsightlines
                      heatingISR(2,ipart) = Gphotoelectrici/nsightlines
                      heatingISR(3,ipart) = exp_Av/nsightlines
+                     heatingISR(4,ipart) = selfshield/nsightlines
                   ENDIF
 #endif
 c
@@ -1419,6 +1440,12 @@ c
 c--Set temperature of the radiation to be 1 K initially (i.e. negligible)
 c
                            ekcle(1,ipart) = uradconst/rho(ipart)
+c
+c--Set gas initially to be entirely atomic or entirely molecular
+c
+c                           h2frac(ipart) = 0.0
+                           h2frac(ipart) = 1.0
+                           dh2dt(ipart) = 0.0
 
                            gas_temp = gas_temperature_equilibrium(
      &                          ipart,dust_temperature(ipart,uradconst,
@@ -1670,6 +1697,9 @@ c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstdo,ldolist,rho,dumrho,divv,curlv,gradhs,nneigh)
 C$OMP& shared(dvxyzu,poten,dust_tk)
+#ifdef MPI
+C$OMP& shared(sightcolumns)
+#endif
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend)
 #endif
@@ -1694,6 +1724,12 @@ C$OMP& private(n,ipart,k)
                DO k = 1, 2
                   dust_tk(k,ipart) = 0.
                END DO
+#ifdef MPI
+               DO k = 1, nsightlinesmax
+                  sightcolumns(k,1,ipart) = 0.
+                  sightcolumns(k,2,ipart) = 0.
+               END DO
+#endif
             ENDIF
             poten(ipart) = 0.
          END DO
@@ -3422,7 +3458,7 @@ c
       IF (itrace.EQ.'all') WRITE (iprint,300)
   300 FORMAT ('exit subroutine densityiterate')
 
-#ifdef MPI
+#ifdef MPIDEBUG
 c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 c      IF (itime.EQ.000)
 c           print *,iproc,': Exited densityiterate'

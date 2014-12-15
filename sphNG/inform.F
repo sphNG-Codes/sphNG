@@ -40,6 +40,8 @@ c************************************************************
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/planetesimal'
+      INCLUDE 'COMMONS/raddust'
+      INCLUDE 'COMMONS/interstellar'
 
       CHARACTER*7 where
 c
@@ -95,6 +97,16 @@ c
       hmi2 = 1.E30
       hma2 = 0.
 
+      h2mass1 = 0.
+      tdmax1 = 0.
+      tdmin1 = 1.0E+10
+      tdmean1 = 0.
+
+      h2mass2 = 0.
+      tdmax2 = 0.
+      tdmin2 = 1.0E+10
+      tdmean2 = 0.
+
       fmas1 = 0.
       fmas2 = 0.
 
@@ -130,6 +142,15 @@ c
                temprad = (ekcle(1,i)*rho(i)/uradconst)**0.25
                trmean1 = trmean1 + temprad
                trmax1 = MAX(trmax1, temprad)
+
+               IF (idustRT.GT.0) THEN
+                  tdmean1 = tdmean1 + dust_tk(1,i)
+                  tdmax1 = MAX(tdmax1, dust_tk(1,i))
+                  tdmin1 = MIN(tdmin1, dust_tk(1,i))
+
+                  h2mass1 = h2mass1 + pmassi*h2frac(i)
+               ENDIF
+
             ELSEIF (encal.EQ.'m') THEN
                tempgas = vxyzu(4,i)/getcv(rho(i),vxyzu(4,i))
                tgmean1 = tgmean1 + tempgas
@@ -169,6 +190,9 @@ c
       romean1 = romean1/n1new
       tgmean1 = tgmean1/n1new
       trmean1 = trmean1/n1new
+      IF (idustRT.GT.0) THEN
+         tdmean1 = tdmean1/n1new
+      ENDIF
 c
 c--If doing accretion on to binary, then recentre the centre of mass and
 c     set the centre of mass velocity to zero
@@ -220,6 +244,15 @@ c
                   temprad = (ekcle(1,i)*rho(i)/uradconst)**0.25
                   trmean2 = trmean2 + temprad
                   trmax2 = MAX(trmax2, temprad)
+
+                  IF (idustRT.GT.0) THEN
+                     tdmean2 = tdmean2 + dust_tk(1,i)
+                     tdmax2 = MAX(tdmax2, dust_tk(1,i))
+                     tdmin2 = MIN(tdmin2, dust_tk(1,i))
+
+                     h2mass2 = h2mass2 + pmassi*h2frac(i)
+                  ENDIF
+
                ELSEIF (encal.EQ.'m') THEN
                   tempgas = vxyzu(4,i)/getcv(rho(i),vxyzu(4,i))
                   tgmean2 = tgmean2 + tempgas
@@ -247,6 +280,9 @@ c
          romean2 = romean2/n2new
          tgmean2 = tgmean2/n2new
          trmean2 = trmean2/n2new
+         IF (idustRT.GT.0) THEN
+            tdmean2 = tdmean2/n1new
+         ENDIF
       ENDIF
 c
 c--Compute maximum distance

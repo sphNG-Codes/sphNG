@@ -110,6 +110,12 @@ c         n1tot = n1
          trmean1tot = trmean1
          trmax1tot = trmax1
          trcen1tot = trcen1
+         IF (idustRT.GT.0) THEN
+            tdmean1tot = tdmean1
+            tdmax1tot = tdmax1
+            tdmin1tot = tdmin1
+            h2mass1tot = h2mass1
+         ENDIF
 
 c         n2tot = n2
          cmx2tot = cmx2
@@ -133,6 +139,12 @@ c         n2tot = n2
          trmean2tot = trmean2
          trmax2tot = trmax2
          trcen2tot = trcen2
+         IF (idustRT.GT.0) THEN
+            tdmean2tot = tdmean2
+            tdmax2tot = tdmax2
+            tdmin2tot = tdmin2
+            h2mass2tot = h2mass2
+         ENDIF
 
 #ifdef MPI
          CALL MPI_REDUCE(npart,nparttot,1,MPI_INTEGER,
@@ -251,6 +263,20 @@ c     &     MPI_COMM_WORLD,ierr)
          CALL MPI_REDUCE(trcen1,trcen1tot,1,MPI_REAL8,MPI_SUM,0,
      &        MPI_COMM_WORLD,ierr)
          trcen1tot = trcen1tot/numproc
+
+         IF (idustRT.GT.0) THEN
+            CALL MPI_REDUCE(tdmean1*n1new,tdmean1tot,1,MPI_REAL8,
+     &           MPI_SUM,0,MPI_COMM_WORLD,ierr)
+            IF (n1newtot.NE.0) THEN
+               tdmean1tot = tdmean1tot/n1newtot
+            ENDIF
+            CALL MPI_REDUCE(tdmax1,tdmax1tot,1,MPI_REAL8,MPI_MAX,0,
+     &           MPI_COMM_WORLD,ierr)
+            CALL MPI_REDUCE(tdmin1,tdmin1tot,1,MPI_REAL8,MPI_MIN,0,
+     &           MPI_COMM_WORLD,ierr)
+            CALL MPI_REDUCE(h2mass1,h2mass1tot,1,MPI_REAL8,
+     &           MPI_SUM,0,MPI_COMM_WORLD,ierr)            
+         ENDIF
 c
 c--n1 and n2 are kept as global constant values
 c
@@ -322,6 +348,20 @@ c     &     MPI_COMM_WORLD,ierr)
          CALL MPI_REDUCE(trcen2,trcen2tot,1,MPI_REAL8,MPI_SUM,0,
      &        MPI_COMM_WORLD,ierr)
          trcen2tot = trcen2tot/numproc
+
+         IF (idustRT.GT.0) THEN
+            CALL MPI_REDUCE(tdmean2*n2new,tdmean2tot,1,MPI_REAL8,
+     &           MPI_SUM,0,MPI_COMM_WORLD,ierr)
+            IF (n2newtot.NE.0) THEN
+               tdmean2tot = tdmean2tot/n2newtot
+            ENDIF
+            CALL MPI_REDUCE(tdmax2,tdmax2tot,1,MPI_REAL8,MPI_MAX,0,
+     &           MPI_COMM_WORLD,ierr)
+            CALL MPI_REDUCE(tdmin2,tdmin2tot,1,MPI_REAL8,MPI_MIN,0,
+     &           MPI_COMM_WORLD,ierr)
+            CALL MPI_REDUCE(h2mass2,h2mass2tot,1,MPI_REAL8,
+     &           MPI_SUM,0,MPI_COMM_WORLD,ierr)            
+         ENDIF
 
          IF (imhd.EQ.idim) THEN
             CALL MPI_REDUCE(betamhdmin,betamhdmintot,1,MPI_REAL8,
@@ -648,6 +688,14 @@ c
             WRITE (iprint, 99106, ERR=100)trmean1tot,trmax1tot,trcen1tot
 99106       FORMAT (' temper. rad. mean :', 1PE14.5, ' max:', 
      &           1PE14.5, ' cen:', 1PE14.5)
+            IF (idustRT.GT.0) THEN
+               WRITE (iprint, 99107, ERR=100) tdmean1tot,tdmax1tot,
+     &              tdmin1tot
+99107          FORMAT (' dust temper. mean :', 1PE14.5, ' max:', 
+     &              1PE14.5, ' min:', 1PE14.5)
+               WRITE (iprint, 99108, ERR=100) h2mass1tot
+99108          FORMAT (' H_2 total mass    :', 1PE14.5)
+            ENDIF
          ENDIF
 c
 c--Object no 2
@@ -671,6 +719,11 @@ c
      &           ' cen:', 1PE14.5, /)
             IF (encal.EQ.'r' .OR. encal.EQ.'m') THEN
                WRITE (iprint, 99106, ERR=100) trmean2, trmax2, trcen2
+               IF (idustRT.GT.0) THEN
+                  WRITE (iprint, 99107, ERR=100) tdmean1tot,tdmax1tot,
+     &                 tdmin1tot
+                  WRITE (iprint, 99108, ERR=100) h2mass1tot
+               ENDIF
             ENDIF
          ENDIF
 #ifdef MPI

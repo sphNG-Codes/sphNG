@@ -283,6 +283,7 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
       CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL8, i2REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(nheatingISR, MPI_REAL4, iHREAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(isizealphaMM,MPI_REAL4,ialphaREAL4,ierr)
 
       CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
@@ -291,6 +292,7 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
       CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
+      CALL MPI_TYPE_COMMIT(iHREAL4,ierr)
       CALL MPI_TYPE_COMMIT(ialphaREAL4,ierr)
 
 #ifdef MPIDEBUG
@@ -360,6 +362,11 @@ c     &                  1,llistsentback(1,j+1),i2REAL8,indexMPI2,ierr)
                 CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
      &                  llistsentback(1,j+1),i2REAL8,indexMPI2,ierr)
                               CALL MPI_TYPE_COMMIT(indexMPI2,ierr)
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),iHREAL4,indexMPIH4,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),iHREAL4,indexMPIH4,ierr)
+                              CALL MPI_TYPE_COMMIT(indexMPIH4,ierr)
                            ENDIF
                         ENDIF
 
@@ -459,12 +466,13 @@ c     &    iorig(llistsentback(1,j+1)+1),MPI_INTEGER8,indexMPI_I8,ierr)
 #ifdef MPIDEBUG
                               print *,iproc,' sent dust_tk to ',j
 #endif
-                              CALL MPI_SEND(heatingISR,1,indexMPI2,j,
+                              CALL MPI_SEND(heatingISR,1,indexMPIH4,j,
      &                             232,MPI_COMM_WORLD, ierr)
 #ifdef MPIDEBUG
                               print *,iproc,' sent heatingISR to ',j
 #endif
                               CALL MPI_TYPE_FREE(indexMPI2,ierr)
+                              CALL MPI_TYPE_FREE(indexMPIH4,ierr)
                            ENDIF
                         ENDIF
 
@@ -635,9 +643,9 @@ c     &                 istart+inumber)
 #endif
 
                         CALL MPI_RECV(heatingISR(1,istart),inumber,
-     &                       i2REAL8, iprocrec, 232, 
+     &                       iHREAL4, iprocrec, 232, 
      &                       MPI_COMM_WORLD,istatus,ierr)
-                        CALL MPI_GET_COUNT(istatus,i2REAL8,icheck,ierr)
+                        CALL MPI_GET_COUNT(istatus,iHREAL4,icheck,ierr)
                         IF (icheck.NE.inumber) THEN
                            WRITE (*,*) 'ERROR - icheck.NE.inumber 11 ',
      &                          iproc
@@ -1532,6 +1540,7 @@ c
       ENDIF
 
       CALL MPI_TYPE_FREE(ialphaREAL4,ierr)
+      CALL MPI_TYPE_FREE(iHREAL4,ierr)
       CALL MPI_TYPE_FREE(i2REAL4,ierr)
       CALL MPI_TYPE_FREE(i2REAL8,ierr)
       CALL MPI_TYPE_FREE(i3REAL8,ierr)

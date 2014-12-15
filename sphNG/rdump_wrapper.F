@@ -53,6 +53,8 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/savernd'
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/abundances'
+      INCLUDE 'COMMONS/raddust'
+      INCLUDE 'COMMONS/interstellar'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -223,7 +225,45 @@ c
             DO i = 1, npart
                ekcle(k,i) = tempsort(i)
             END DO
-         ENDDO
+         END DO
+         IF (idustRT.GT.0) THEN
+            DO k = 1, 2
+               DO i = 1, npart
+                  tempsort(i) = dust_tk(k,iorig(i))
+               END DO
+               DO i = 1, npart
+                  dust_tk(k,i) = tempsort(i)
+               END DO
+            END DO
+            DO k = 1, nchemistry
+               DO i = 1, npart
+                  tempsort(i) = chemistry(k,iorig(i))
+               END DO
+               DO i = 1, npart
+                  chemistry(k,i) = tempsort(i)
+               END DO
+            END DO
+            DO k = 1, nheatingISR
+               DO i = 1, npart
+                  tempsort(i) = heatingISR(k,iorig(i))
+               END DO
+               DO i = 1, npart
+                  heatingISR(k,i) = tempsort(i)
+               END DO
+            END DO
+            DO i = 1, npart
+               tempsort(i) = h2frac(iorig(i))
+            END DO
+            DO i = 1, npart
+               h2frac(i) = tempsort(i)
+            END DO
+            DO i = 1, npart
+               tempsort(i) = dh2dt(iorig(i))
+            END DO
+            DO i = 1, npart
+               dh2dt(i) = tempsort(i)
+            END DO
+         ENDIF
       ENDIF
       IF (imhd.EQ.idim) THEN
          DO k = 1, imhdevol

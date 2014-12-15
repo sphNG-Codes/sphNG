@@ -552,14 +552,6 @@ c
                   dust_tk(k,i) = tempsort(i)
                END DO
             END DO
-            DO k = 1, 3
-               DO i = 1, npart
-                  tempsort(i) = heatingISR(k,llist(i))
-               END DO
-               DO i = 1, npart
-                  heatingISR(k,i) = tempsort(i)
-               END DO
-            END DO
             DO k = 1, nchemistry
                DO i = 1, npart
                   tempsort(i) = chemistry(k,llist(i))
@@ -567,6 +559,26 @@ c
                DO i = 1, npart
                   chemistry(k,i) = tempsort(i)
                END DO
+            END DO
+            DO k = 1, nheatingISR
+               DO i = 1, npart
+                  tempsort(i) = heatingISR(k,llist(i))
+               END DO
+               DO i = 1, npart
+                  heatingISR(k,i) = tempsort(i)
+               END DO
+            END DO
+            DO i = 1, npart
+               tempsort(i) = h2frac(llist(i))
+            END DO
+            DO i = 1, npart
+               h2frac(i) = tempsort(i)
+            END DO
+            DO i = 1, npart
+               tempsort(i) = dh2dt(llist(i))
+            END DO
+            DO i = 1, npart
+               dh2dt(i) = tempsort(i)
             END DO
          ENDIF
       ENDIF

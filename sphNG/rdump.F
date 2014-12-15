@@ -56,6 +56,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/raddust'
+      INCLUDE 'COMMONS/interstellar'
 
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
@@ -758,10 +759,32 @@ c--Default real
                READ (idisk1, END=100)
             END DO
 c--real*4
-            DO j = 1, nums3(7)
+            IF (idustRT.GT.0) THEN
+               DO j = 1, nchemistry
+                  IF (tagged) READ (idisk1, END=100) ! skip tags
+                  READ (idisk1, END=100) (chemistry(j,i), i=icount+1, 
+     &                 icount+nradtrans)
+               END DO
+               DO j = 1, nheatingISR
+                  IF (tagged) READ (idisk1, END=100) ! skip tags
+                  READ (idisk1, END=100) (heatingISR(j,i), i=icount+1, 
+     &                 icount+nradtrans)
+               END DO
                IF (tagged) READ (idisk1, END=100) ! skip tags
-               READ (idisk1, END=100)
-            END DO
+               READ (idisk1, END=100) (h2frac(i), i=icount+1, 
+     &              icount+nradtrans)
+               IF (tagged) READ (idisk1, END=100) ! skip tags
+               READ (idisk1, END=100) (dh2dt(i), i=icount+1, 
+     &              icount+nradtrans)
+               DO j = 1, nums3(7) - nchemistry - nheatingISR - 2
+                  READ (idisk1, END=100)
+               END DO
+            ELSE
+               DO j = 1, nums3(7)
+                  IF (tagged) READ (idisk1, END=100) ! skip tags
+                  READ (idisk1, END=100)
+               END DO
+            ENDIF
 c--real*8
 
          ENDIF

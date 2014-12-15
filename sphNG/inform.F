@@ -147,8 +147,10 @@ c
                   tdmean1 = tdmean1 + dust_tk(1,i)
                   tdmax1 = MAX(tdmax1, dust_tk(1,i))
                   tdmin1 = MIN(tdmin1, dust_tk(1,i))
-
-                  h2mass1 = h2mass1 + pmassi*h2frac(i)
+c
+c--The factor of two is because h2frac=0.5 when fully molecular
+c
+                  h2mass1 = h2mass1 + pmassi*2.0*h2frac(i)
                ENDIF
 
             ELSEIF (encal.EQ.'m') THEN
@@ -250,7 +252,7 @@ c
                      tdmax2 = MAX(tdmax2, dust_tk(1,i))
                      tdmin2 = MIN(tdmin2, dust_tk(1,i))
 
-                     h2mass2 = h2mass2 + pmassi*h2frac(i)
+                     h2mass2 = h2mass2 + pmassi*2.0*h2frac(i)
                   ENDIF
 
                ELSEIF (encal.EQ.'m') THEN

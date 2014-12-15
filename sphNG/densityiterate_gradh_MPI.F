@@ -1441,10 +1441,10 @@ c--Set temperature of the radiation to be 1 K initially (i.e. negligible)
 c
                            ekcle(1,ipart) = uradconst/rho(ipart)
 c
-c--Set gas initially to be entirely atomic or entirely molecular
+c--Set gas initially to be entirely atomic or entirely molecular (=0.5)
 c
 c                           h2frac(ipart) = 0.0
-                           h2frac(ipart) = 1.0
+                           h2frac(ipart) = 0.5
                            dh2dt(ipart) = 0.0
 
                            gas_temp = gas_temperature_equilibrium(

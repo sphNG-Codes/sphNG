@@ -77,16 +77,16 @@ c     &           alphaMM,moresweep,nit,error,istepmindone)
 c            ELSE
             CALL GSIMPLS(increment*dt/Nstep,dt,itime,
      &           npart,ntot,ekcle,xyzmh,vxyzu,dedxyz,trho,
-     &           alphaMM,moresweep,nit,error,istepmindone)
+     &           alphaMM,moresweep,nit,errorE,errorU,istepmindone)
 c            ENDIF
 
 c            IF (moresweep) GOTO 100
 
             IF (moresweep) THEN
-         print *,'Integration failed - using U & E values anyway ',
-     &              nlst_end
-       WRITE(iprint,*) 'Integration failed - using U & E values anyway',
-     &        nlst_end
+               print 38000, nlst_end, errorU, errorE
+               WRITE(iprint,38000) nlst_end, errorU, errorE
+38000          FORMAT('Integration failed - using U & E values anyway ',
+     &              I8,1X,1PE11.4,1X,1PE11.4)
                GOTO 150
             ENDIF
 

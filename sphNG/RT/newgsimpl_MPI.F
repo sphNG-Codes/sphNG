@@ -1,5 +1,6 @@
       SUBROUTINE GSIMPLS(dtdo,dtmax,itime,npart,ntot,ekcle,xyzmh,vxyzu,
-     &     dedxyz,rho,alphaMMpass,moresweep,nit,error,istepmindone)
+     &     dedxyz,rho,alphaMMpass,moresweep,nit,errorE,errorU,
+     &     istepmindone)
   
       INCLUDE 'idim'
       INCLUDE 'igrape'
@@ -2918,7 +2919,8 @@ c
  998  CONTINUE
 
       nit = nosweep
-      error = MAX(maxerrE2,maxerrU2)
+      errorE = maxerrE2
+      errorU = maxerrU2
 c
 c--And that done, return everything to ASS
 c

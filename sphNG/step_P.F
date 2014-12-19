@@ -89,6 +89,7 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/units'
 #ifdef MPICOPY
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/mpicopy'

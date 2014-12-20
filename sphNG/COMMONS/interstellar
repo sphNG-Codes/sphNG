@@ -58,7 +58,7 @@ c	density can be calculated for H_2 self-shielding.
 c
       INTEGER nchemistry, nh2frac
       PARAMETER (nchemistry = 3)
-      PARAMETER (nh2frac = iradtrans2*idustRT+2)
+      PARAMETER (nh2frac = iradtrans*idustRT*2+2)
       REAL*4 chemistry, h2frac, dh2dt
       COMMON /chem/ chemistry(nchemistry, iradtrans*idustRT+1),
      &	     h2frac(nh2frac), dh2dt(iradtrans*idustRT+1)

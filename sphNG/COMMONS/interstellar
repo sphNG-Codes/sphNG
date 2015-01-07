@@ -12,12 +12,18 @@ c	 Dust-gas collisional thermal coupling
 c	 The mid-infrared (MIR) and Draine (UV) contributions to the
 c	    interstellar radiation field (ISRF)
 c
-      LOGICAL iDRT_cosmic_ray, iDRT_line
-      LOGICAL iDRT_gasdust, iDRT_photoelectric
+      LOGICAL iDRT_cosmic_ray, iDRT_line, iDRT_photoelectric
+      INTEGER iDRT_gasdust
       PARAMETER (iDRT_cosmic_ray = .TRUE.)
       PARAMETER (iDRT_photoelectric = .TRUE.)
       PARAMETER (iDRT_line = .TRUE.)
-      PARAMETER (iDRT_gasdust =.TRUE.)
+c
+c--Switches on/off dust-gas collisional thermal coupling
+c	    0: Switched off
+c	    1: Keto & Field (2005) coupling
+c	    2: Clark & Glover (2012a) coupling (about 6 times larger)
+c
+      PARAMETER (iDRT_gasdust = 2)
 
       LOGICAL iISR_MIR, iISR_Draine
       PARAMETER (iISR_MIR = .TRUE.)

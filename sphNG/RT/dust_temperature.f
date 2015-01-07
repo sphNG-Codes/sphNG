@@ -648,7 +648,8 @@ c
       REAL log_depletion
       REAL xdiff24, xdiff34, cooling_log3, cooling_log4
       REAL xpos1,xpos2,xpos3,xpos4
-      REAL xnH, xne, brackets, G0, recombination,phiPAH
+      REAL xnH, xne, brackets, G0, recombination, phiPAH
+      REAL oxygen
       REAL electron_fraction, x_Cplus
       REAL carbon_chemistry, depletion, cooling_line_rate_dep
       REAL h2_formation_rate, h2_formation
@@ -928,6 +929,14 @@ c
          cooling_line_rate = cooling_line_rate + 
      &        x_Cplus *
      &        3E-27*EXP(-92./gas_temp) * xnH**2 * metallicity
+c
+c--Add oxygen OI cooling from equation C3 of Wolfire et al. (2003)
+c
+         oxygen = 2.5E-27 * xnH**2 * (gas_temp/100.0)**0.4 * metallicity
+         IF (gas_temp.GT.6.0) oxygen = oxygen * EXP(-228.0/gas_temp)
+c         oxygen = 0.
+
+         cooling_line_rate = cooling_line_rate + oxygen
 c
 c--Add recombination cooling (Glover & MacLow 2007; Wolfire et al 2003;
 c     Bakes & Tielens 1994)

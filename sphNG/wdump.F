@@ -623,7 +623,7 @@ c
                IF (j.LE.3) THEN
                   WRITE (idisk1, ERR=100) tag('B'//labelx(j))
                ELSE
-                  WRITE (idisk1, ERR=100) tag('Bevol')
+                  WRITE (idisk1, ERR=100) tag('psi')
                ENDIF
                WRITE (idisk1, ERR=100)
      &            (Bevolxyz(j,isort(i)), i=1, nprint)

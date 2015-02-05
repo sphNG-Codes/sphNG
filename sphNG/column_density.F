@@ -45,6 +45,7 @@ c      COMMON /stuff/ columndens(idim)
 
 c      REAL get_heatingISR
       DIMENSION listga(idim), listgn(idim), xyzmh(5,mmax2)
+      LOGICAL itest
 c
 c--The columndensity array needs to be thread private because treef_P.F
 c     which calls this subroutine is called by multiple OpenMP threads
@@ -107,16 +108,20 @@ c
 c--Excludes the mass of ghost particles & sink particles (skips 'leaves'
 c     that have imfac=0)
 c
-         IF (n.LE.natom .AND. imfac(n).EQ.0) THEN
-            GOTO 101
-         ELSE
-            pmassn = xyzmh(4,n)
+         IF (n.LE.natom) THEN
+            IF (imfac(n).EQ.0) GOTO 101
          ENDIF
+         pmassn = xyzmh(4,n)
+         
 c
 c--If one of the particles is a point mass or a star particle, then ignore
 c
-         IF (j.GT. nlistga .OR. j.LE.nlistga .AND. .NOT. 
-     &        (iphase(n).GE.1 .AND. iphase(n).LE.10)) THEN
+         IF (j.LE.nlistga) THEN
+            itest = .NOT. (iphase(n).GE.1 .AND. iphase(n).LE.10)
+         ELSE
+            itest = .FALSE.
+         ENDIF
+         IF (j.GT. nlistga .OR. itest) THEN
 
             difx = xyzmh(1,n) - rrx
             dify = xyzmh(2,n) - rry

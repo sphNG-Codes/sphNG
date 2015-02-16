@@ -236,8 +236,13 @@ c************************************************************
       INCLUDE 'COMMONS/mpiall'
 #endif
 
+      LOGICAL ionce
+      DATA ionce/.TRUE./
+
 #ifndef MPIALL
-      IF (iflag.EQ.1) THEN
+      IF (iflag.EQ.1.AND.ionce) THEN
+c Prevent infinite loops
+         ionce = .FALSE.
          WRITE(*,99999)
          WRITE(iprint,99999)
 99999    FORMAT(' Quitting. Trying to dump state-of-play to FAILDUMP')

@@ -1565,8 +1565,8 @@ c     (which is essentially a very small fraction of the original forcei
 c     routine).
 c
       CALL dissipative_source(nlst_in,nlst_end,nlst_tot,llist,itime,
-     &     npart,ntot,xyzmh,dha,dumrho,vsound,alphaMM,Bxyz,Bevolxyz,
-     &     dBevolxyz)
+     &     npart,ntot,xyzmh,vxyzu,dha,dumrho,vsound,alphaMM,
+     &     Bxyz,Bevolxyz,dBevolxyz,ekcle)
 
 #ifdef MPIDEBUG
       print *,iproc,': Exited derivi ',itime

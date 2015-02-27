@@ -243,8 +243,7 @@ c--Now find actual solution using Newton-Raphson method
 c
       DO i = 1, 10000
          t_last = t_found
-         cooling = cooling_line_rate(ipart,t_found,xnH2,metallicity,
-     &        h2formi)
+         cooling = cooling_line_rate(ipart,t_found,xnH2,metallicity)
          photoelectric = photoelectric_heating(ipart,t_found,xnH2,
      &        metallicity)
 
@@ -270,7 +269,7 @@ c
 c--Use numerical derivative to calculation dcooling/dT
 c
          dcooling_dT = cooling_line_rate(ipart,t_found+1.0,xnH2,
-     &        metallicity,h2formi) - cooling
+     &        metallicity) - cooling
          dphotoelectric_dT = photoelectric_heating(ipart,t_found+1.0,
      &        xnH2,metallicity) - photoelectric
 
@@ -652,7 +651,6 @@ c
       REAL oxygen
       REAL electron_fraction, x_Cplus
       REAL carbon_chemistry, depletion, cooling_line_rate_dep
-      REAL h2_formation_rate, h2_formation
       INTEGER ipos,ipos_depletion,ipart
 
       REAL Goldsmith2001_table2(3,7), Goldsmith2001_depletion(2,5,4)
@@ -933,7 +931,11 @@ c
 c--Add oxygen OI cooling from equation C3 of Wolfire et al. (2003)
 c
          oxygen = 2.5E-27 * xnH**2 * (gas_temp/100.0)**0.4 * metallicity
-         IF (gas_temp.GT.6.0) oxygen = oxygen * EXP(-228.0/gas_temp)
+         IF (gas_temp.GT.4.0) THEN
+            oxygen = oxygen * EXP(-228.0/gas_temp)
+         ELSE
+            oxygen = 0.
+         ENDIF
 c         oxygen = 0.
 
          cooling_line_rate = cooling_line_rate + oxygen
@@ -965,10 +967,9 @@ c         recombination = 0.
 
 
 c-----------------------------------------------------------
-      FUNCTION h2_formation(ipart,gas_temp,dust_temp,xnH2,metallicity,
-     &     grain_formation_rate)
+      FUNCTION h2_formation(ipart,gas_temp,dust_temp,xnH2)
 c
-c--Based on 
+c--Based on Glover et al. 2010 (rate 165 in appendix)
 c     
       IMPLICIT NONE
 
@@ -976,12 +977,13 @@ c
 
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/rbnd'
 
       INTEGER ipart
-      REAL gas_temp,dust_temp,xnH2,metallicity,grain_formation_rate
+      REAL gas_temp,dust_temp,xnH2,grain_formation_rate
       REAL h2_formation,fA,fB
 
-      REAL xnH,G0,destruction_rate,self_shield,xval
+      REAL xnH,G0
 c
 c--nH is twice nH2, where nH is actually the number density of protons from
 c     hydrogen (i.e. it does not depend on the fractions of H and H_2 )
@@ -999,23 +1001,94 @@ c
       fB = 1.0/(1.0 + 0.04*SQRT(gas_temp + dust_temp) + 0.002*gas_temp
      &     + 8.0E-06*gas_temp**2)
       grain_formation_rate = 3.0E-18*SQRT(gas_temp) * fA * fB *
-     &     xnH * (1.0-2.0*h2frac(ipart))*xnH * metallicity
+     &     ((1.0-2.0*h2frac(ipart))*xnH)**2 * metallicity
+
+      h2_formation = grain_formation_rate
+c
+c--Energy released is 4.48eV times the formation rate (eV in erg),
+c     with H_2 formation *heating* the gas
+c
+      RETURN
+      END
+
+c-----------------------------------------------------------
+      FUNCTION h2_destruction(ipart,xnH2,icosmic_ray)
+c
+c--Based on table B2 of Glover et al. (2010).
+c     
+      IMPLICIT NONE
+
+      INCLUDE 'idim'
+
+      INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/physcon'
+
+      INTEGER ipart
+      REAL gas_temp,dust_temp,xnH2
+      REAL h2_destruction
+c
+c--The passed logical "icosmic_ray" allows the code to turn off the
+c     cosmic ray component of H_2 destruction when including heating
+c     in the thermal energy equation, but turn it on for evolving the
+c     abundance of H_2 itself.  This is because the H_2 destruction
+c     heating by photodissociation includes an amount for the destruction
+c     itself, but also a significant amount due to H_2 pumping from UV
+c     photons that do not result in H_2 destruction but do heat the gas.
+c     This extra pumping term is assumed to be proportional to the H_2
+c     destruction rate (which should not include cosmic ray destruction).
+c
+c     In practice the cosmic ray destruction is usually very small, 
+c     so it actually doesn't matter whether it is turned
+c     on or off for the thermal behaviour.
+c
+      LOGICAL icosmic_ray
+
+      REAL xnH,G0
+c
+c--nH is twice nH2, where nH is actually the number density of protons from
+c     hydrogen (i.e. it does not depend on the fractions of H and H_2 )
+c
+      xnH = 2.0*xnH2
+      G0 = 1.0
 c
 c--Table B2 of Glover et al. (2010), and Section 2.2.
-c     Does not currently include cosmic ray dissociation.
+c     Includes cosmic ray dissociation.
 c     Self-shielding and dust extinction is included in the 
 c     photodissociation through the "heatingISR(4,i)" term
 c     which is calculated via the TreeCol routine (needs H_2 
 c     column density as well as dust extinction).
 c
-      destruction_rate = (1.2E-17 + 5.6E-11*G0*heatingISR(4,ipart))*
-     &     xnH*h2frac(ipart)
+      IF (icosmic_ray) THEN
+         h2_destruction = 1.2E-17
+      ELSE
+         h2_destruction = 0.
+      ENDIF
+      h2_destruction = h2_destruction + 5.6E-11*G0*heatingISR(4,ipart)
+      h2_destruction = h2_destruction * xnH*h2frac(ipart)
 
-      h2_formation = grain_formation_rate - destruction_rate
+      RETURN
+      END
+
+c-----------------------------------------------------------
+      FUNCTION criticaln(ipart, gas_temp)
 c
-c--Energy released is 4.48eV times the formation rate (eV in erg),
-c     with H_2 formation *heating* the gas
+c--Based on Glover & MacLow (2007a)
 c
+      IMPLICIT NONE
+
+      INCLUDE 'idim'
+      INCLUDE 'COMMONS/interstellar'
+
+      INTEGER ipart
+      REAL gas_temp, criticaln
+      REAL t4, crit_H, crit_H2
+
+      t4 = gas_temp / 1.0E+4
+      crit_H = 10**(3.0-0.461*t4 - 0.327*t4**2)
+      crit_H2 = 10**(4.845 - 1.3*t4 + 1.62*t4**2)
+      criticaln = 1.0/( (1.0-2.0*h2frac(ipart))/crit_H + 
+     &     2*h2frac(ipart)/crit_H2 )
+
       RETURN
       END
 
@@ -1030,6 +1103,7 @@ c
 
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/rbnd'
 
       INTEGER ipart
       REAL carbon_chemistry,xnH2,gas_temp,depletion
@@ -1058,9 +1132,9 @@ c      depletion = 1.0
 c
 c--Set carbon fractions
 c
-      chemistry(1,ipart) = x_Cplus
-      chemistry(2,ipart) = x_C
-      chemistry(3,ipart) = x_CO * depletion
+      chemistry(1,ipart) = x_Cplus * metallicity
+      chemistry(2,ipart) = x_C * metallicity
+      chemistry(3,ipart) = x_CO * depletion * metallicity
 
       carbon_chemistry = x_Cplus
 c      carbon_chemistry = 0.

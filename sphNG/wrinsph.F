@@ -1,4 +1,3 @@
-
       SUBROUTINE wrinsph
 c************************************************************
 c                                                           *
@@ -50,6 +49,7 @@ c************************************************************
       INCLUDE 'COMMONS/prdrag'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/planetesimal'
+      INCLUDE 'COMMONS/interstellar'
 c
 c--Allow for tracing flow
 c
@@ -96,6 +96,13 @@ c
      &    ' Implicit radiative transfer',
      &    ' tolerance, boundtemp, bounddens, opacity divisor,'
      &    ' opacity model, metallicity')
+      ENDIF
+      IF (idustRT.GT.0) THEN
+         IF (iatomic) THEN
+            WRITE (iterm, 99006) 'a'
+         ELSE
+            WRITE (iterm, 99006) 'm'
+         ENDIF
       ENDIF
 
 #ifdef MPI

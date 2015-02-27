@@ -1221,7 +1221,7 @@ C$OMP& shared(dvxyzu,hi_old,isucceed,poten,isend,numproc,iproc,gradmhd)
 C$OMP& shared(ivar,ijvar,ncompact,icompact,iteration,dust_tk)
 C$OMP& shared(hminbisec,hmaxbisec,iupdated,nlistupdated,listparents)
 C$OMP& shared(heatingISR,sightcolumns,nsightlines,umass,udist,c,gmw)
-C$OMP& shared(chemistry,h2frac,dh2dt)
+C$OMP& shared(chemistry,h2frac,dh2dt,iatomic)
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend,ijvartemp,listparentstemp)
 #endif
@@ -1443,9 +1443,13 @@ c
 c
 c--Set gas initially to be entirely atomic or entirely molecular (=0.5)
 c
-c                           h2frac(ipart) = 0.0
-                           h2frac(ipart) = 0.5
-                           dh2dt(ipart) = 0.0
+                           IF (iatomic) THEN
+                              h2frac(ipart) = 0.0
+                           ELSE
+                              h2frac(ipart) = 0.5
+                           ENDIF
+                           dh2dt(1,ipart) = 0.0
+                           dh2dt(2,ipart) = 0.0
 
                            gas_temp = gas_temperature_equilibrium(
      &                          ipart,dust_temperature(ipart,uradconst,

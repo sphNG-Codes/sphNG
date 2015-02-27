@@ -90,6 +90,7 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/raddust'
 #ifdef MPICOPY
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/mpicopy'
@@ -1007,7 +1008,7 @@ C$OMP& shared(gravx,gravy,gradpx,gradpy,artvix,artviy,gravx1,gravy1)
 C$OMP& shared(gradpx1,gradpy1,artvix1,artviy1,torqt,torqg,torqp)
 C$OMP& shared(torqv,torqc,it0,itime,imaxdens,cnormk,iener)
 C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
-C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,dumekcle,vsmooth)
+C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,vsmooth)
 C$OMP& shared(ifsvi,alphaMM,alphamax,encal,dumBevolxyz,Bevolxyz)
 C$OMP& shared(pdvvisc,alphamin,utime,h2frac,dh2dt,gmw,udens,rho)
 C$OMP& private(i,j,k,dtfull,dtf21,dtf22,xold,yold,delvx,delvy,delvz)
@@ -1161,7 +1162,7 @@ c--Evolve molecular hydrogen fraction if encal='r' and idustRT=1
 c
                IF (idustRT.GT.0) THEN
                   h2frac(i) = MIN(0.5,MAX(0.0,h2frac(i) +
-     &                 dh2dt(i)*dtfull*utime*gmw*mH/(rho(i)*udens) ))
+     &                  dtf21*dh2dt(1,i) + dtf22*dh2dt(2,i) ))
                ENDIF
 
             ELSEIF (encal.EQ.'m') THEN
@@ -1793,6 +1794,7 @@ C$OMP& shared(pradfac,rplanet,px,py,irotpot,iplanetesimals)
 C$OMP& shared(rcyl,Bevolxyz,dumBevolxyz,planetesimalnorm)
 C$OMP& shared(pcolen,xmass,overclean_fac)
 C$OMP& shared(gasdist,nearestgas,planetmass,coremass,pi)
+C$OMP& shared(dh2dt)
 #ifdef MPICOPY
 C$OMP& shared(iproc)
 #endif
@@ -2519,6 +2521,10 @@ c
             f1ha(1,i) = f2ha(1,i)
             IF (ifsvi.GE.6) f1ha(2,i) = f2ha(2,i)
             
+            IF (idustRT.GT.0) THEN
+               dh2dt(1,i) = dh2dt(2,i)
+            ENDIF
+
 c         gravx1(i) = gravx(i)
 c         gravy1(i) = gravy(i)
 c         gradpx1(i) = gradpx(i)

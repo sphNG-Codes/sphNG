@@ -8,23 +8,28 @@ c--Switches to turn on/off different ISM physics:
 c	 Cosmic ray heating of the gas
 c	 Photoelectric heating of the gas
 c	 Atomic and molecular line radiative cooling
+c	 H_2 formation heating
 c	 Dust-gas collisional thermal coupling
 c	 The mid-infrared (MIR) and Draine (UV) contributions to the
 c	    interstellar radiation field (ISRF)
 c
       LOGICAL iDRT_cosmic_ray, iDRT_line, iDRT_photoelectric
-      INTEGER iDRT_gasdust
+      INTEGER iDRT_gasdust, iH2formation_heating
       PARAMETER (iDRT_cosmic_ray = .TRUE.)
       PARAMETER (iDRT_photoelectric = .TRUE.)
       PARAMETER (iDRT_line = .TRUE.)
+      PARAMETER (iH2formation_heating = .TRUE.)
 c
 c--Switches on/off dust-gas collisional thermal coupling
 c	    0: Switched off
 c	    1: Keto & Field (2005) coupling
-c	    2: Clark & Glover (2012a) coupling (about 6 times larger)
+c	    2: Clark & Glover (2012a) coupling (about 15 times larger)
 c
       PARAMETER (iDRT_gasdust = 2)
-
+c
+c--Parameters for the Interstellar Radiation field.  Switch on/off the
+c     mid-infrared component of the ISR, and the UV Draine component.
+c
       LOGICAL iISR_MIR, iISR_Draine
       PARAMETER (iISR_MIR = .TRUE.)
       PARAMETER (iISR_Draine = .TRUE.)
@@ -62,9 +67,11 @@ c	The h2frac array needs to be twice as big as idim to allow
 c	h2frac to be stored on the tree nodes so that the H_2 column
 c	density can be calculated for H_2 self-shielding.
 c
+      LOGICAL iatomic
+      COMMON /cheml/ iatomic
       INTEGER nchemistry, nh2frac
       PARAMETER (nchemistry = 3)
       PARAMETER (nh2frac = iradtrans*idustRT*2+2)
       REAL*4 chemistry, h2frac, dh2dt
       COMMON /chem/ chemistry(nchemistry, iradtrans*idustRT+1),
-     &	     h2frac(nh2frac), dh2dt(iradtrans*idustRT+1)
+     &	     h2frac(nh2frac), dh2dt(2,iradtrans*idustRT+1)

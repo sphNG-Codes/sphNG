@@ -471,7 +471,7 @@ c     &                          MPI_COMM_WORLD, ierr)
      &                             165,MPI_COMM_WORLD, ierr)
                               CALL MPI_SEND(h2frac,1,indexMPI1,j,
      &                             166,MPI_COMM_WORLD, ierr)
-                              CALL MPI_SEND(dh2dt,1,indexMPI1,j,
+                              CALL MPI_SEND(dh2dt,1,indexMPI24,j,
      &                             167,MPI_COMM_WORLD, ierr)
                            ENDIF
                         ENDIF
@@ -980,9 +980,9 @@ c                  ENDIF
                         CALL quit
                      ENDIF
 
-                     CALL MPI_RECV(dh2dt(npartnew+1), idim, MPI_REAL4,
+                     CALL MPI_RECV(dh2dt(1,npartnew+1), idim, i2REAL4,
      &                    iprocrec, 167, MPI_COMM_WORLD, istatus, ierr)
-                     CALL MPI_GET_COUNT(istatus, MPI_REAL4, 
+                     CALL MPI_GET_COUNT(istatus, i2REAL4, 
      &                    inumber, ierr)
                      IF (inumber.NE.igotnumber) THEN
                         WRITE (*,*) 'ERROR - balance igotnumber dh2dt'
@@ -2177,7 +2177,9 @@ c         h2mol(ito) = h2mol(ifrom)
                chemistry(i,ito) = chemistry(i,ifrom)
             END DO
             h2frac(ito) = h2frac(ifrom)
-            dh2dt(ito) = dh2dt(ifrom)
+            DO i = 1, 2
+               dh2dt(i,ito) = dh2dt(i,ifrom)
+            END DO
          ENDIF
       ENDIF
 

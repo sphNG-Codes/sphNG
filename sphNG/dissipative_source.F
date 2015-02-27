@@ -1,6 +1,6 @@
       SUBROUTINE dissipative_source(nlst_in,nlst_end,nlst_tot,listp,
-     &     itime,npart,ntot,xyzmh,dha,trho,vsound,alphaMMpass,Bxyz,
-     &     Bevolxyz,dBxyz)
+     &     itime,npart,ntot,xyzmh,vxyzu,dha,trho,vsound,alphaMMpass,
+     &     Bxyz,Bevolxyz,dBxyz,ekcle)
 c************************************************************
 c                                                           *
 c  This subroutine computes the dissipative source terms    *
@@ -13,12 +13,13 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,mmax2)
+      DIMENSION xyzmh(5,mmax2),vxyzu(4,idim2)
       REAL*4 trho(idim2),vsound(idim2)
       REAL*4 dha(1+isizealphaMM,idim2),alphaMMpass(isizealphaMM,idim2)
       DIMENSION listp(idim2)
       DIMENSION Bxyz(3,imhd2)
       DIMENSION Bevolxyz(imhdevol,imhd3),dBxyz(imhdevol,imhd3)
+      DIMENSION ekcle(5,iradtrans2)
 
       INCLUDE 'COMMONS/numpa'
       INCLUDE 'COMMONS/typef'
@@ -29,6 +30,12 @@ c************************************************************
       INCLUDE 'COMMONS/divcurlB'
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/astrcon'
+      INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/call'
+      INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/raddust'
 
 c      DATA epsil2/1.E-4/
 c
@@ -46,11 +53,13 @@ C$OMP& shared(iphase,iprint,ifsvi)
 C$OMP& shared(alphaMMpass,alphamin,alphamax)
 C$OMP& shared(Bxyz,divcurlB,gradB,dBxyz,Bevolxyz,overclean_fac)
 C$OMP& shared(ivar)
+C$OMP& shared(dh2dt,dust_tk,vxyzu,ekcle,utime,gmw,udens,icall)
 C$OMP& private(ipart,k)
 C$OMP& private(hi,hi1,rhoi,rho1i,vsoundi)
 C$OMP& private(fi,tdecay1,source)
 C$OMP& private(Bxi,Byi,Bzi,B2i)
 C$OMP& private(vsigi,vs2i,dB2,psi,gradBmag)
+C$OMP& private(dust_temp,gas_temp,xnH2,ih2pos)
       DO n = nlst_in, nlst_end
          ipart = ivar(3,n)
          
@@ -78,9 +87,32 @@ c
             dha(k,ipart) = 0.0
          END DO
 c
-c--Dissipation below only applies to gas particles
+c--Dissipation and H_2 formation below only applies to gas particles
 c
          IF (iphase(ipart).EQ.0) THEN
+c
+c--Evolution of H_2
+c
+            IF (idustRT.GT.0) THEN
+c
+c--Position value to allow full timestep and half timestep derivatives
+c     to be used (as in normal R-K integrator)
+c
+               ih2pos = MIN(2,icall)
+               dust_temp = dust_tk(1,ipart)
+               gas_temp = vxyzu(4,ipart)/ekcle(3,ipart)
+               xnH2 = trho(ipart)*udens/(gmw*mH)
+               dh2dt(ih2pos,ipart) = h2_formation(ipart,gas_temp,
+     &              dust_temp,xnH2) - h2_destruction(ipart,xnH2,.TRUE.)
+c
+c--Convert to code units
+c
+               dh2dt(ih2pos,ipart) = dh2dt(ih2pos,ipart)*
+     &              utime*gmw*mH/(2.0*trho(ipart)*udens)
+            ENDIF
+c
+c--Dissipative terms
+c
             IF (ifsvi.GE.6) THEN
                hi = xyzmh(5,ipart)
                hi1 = 1./hi

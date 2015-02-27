@@ -583,7 +583,7 @@ c--real*4
             WRITE (idisk1, ERR=100) (h2frac(isort(i)), i=1, 
      &           nprint)
             WRITE (idisk1, ERR=100) tag('dH2dt')
-            WRITE (idisk1, ERR=100) (dh2dt(isort(i)), i=1, 
+            WRITE (idisk1, ERR=100) (dh2dt(1,isort(i)), i=1, 
      &           nprint)
          ENDIF
 c--real*8

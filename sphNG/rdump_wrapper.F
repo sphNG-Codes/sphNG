@@ -257,11 +257,13 @@ c
             DO i = 1, npart
                h2frac(i) = tempsort(i)
             END DO
-            DO i = 1, npart
-               tempsort(i) = dh2dt(iorig(i))
-            END DO
-            DO i = 1, npart
-               dh2dt(i) = tempsort(i)
+            DO k = 1, 2
+               DO i = 1, npart
+                  tempsort(i) = dh2dt(k,iorig(i))
+               END DO
+               DO i = 1, npart
+                  dh2dt(k,i) = tempsort(i)
+               END DO
             END DO
          ENDIF
       ENDIF

@@ -775,7 +775,7 @@ c--real*4
                   READ (idisk1, END=100) (h2frac(i), i=icount+1, 
      &                 icount+nradtrans)
                   IF (tagged) READ (idisk1, END=100) ! skip tags
-                  READ (idisk1, END=100) (dh2dt(i), i=icount+1, 
+                  READ (idisk1, END=100) (dh2dt(1,i), i=icount+1, 
      &                 icount+nradtrans)
                   DO j = 1, nums3(7) - nchemistry - nheatingISR - 2
                      READ (idisk1, END=100)

@@ -50,6 +50,9 @@ c************************************************************
       INCLUDE 'COMMONS/prdrag'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/planetesimal'
+      INCLUDE 'COMMONS/interstellar'
+
+      CHARACTER*1 iatomic_molecular
 c
 c--Allow for tracing flow
 c
@@ -128,6 +131,11 @@ c
          ENDIF
          READ (iterm, *) tolerance, boundtemp, bounddens, opdenom, 
      &        iopmodel, metallicity
+      ENDIF
+      iatomic = .FALSE.
+      IF (idustRT.GT.0) THEN
+         READ (iterm, 99006) iatomic_molecular
+         IF (iatomic_molecular.EQ.'a') iatomic = .TRUE.
       ENDIF
 
       print *,'Opacity model ',iopmodel

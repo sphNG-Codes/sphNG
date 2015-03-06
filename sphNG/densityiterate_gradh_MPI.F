@@ -1450,6 +1450,15 @@ c
                            ENDIF
                            dh2dt(1,ipart) = 0.0
                            dh2dt(2,ipart) = 0.0
+c
+c--If starting from a dump file without radiative transfer information,
+c     need to define a starting value of U/T, otherwise the call to 
+c     dust_temperature.f below will fail.
+c
+                           IF (ekcle(3,ipart).LE.0.0) THEN
+                              ekcle(3,ipart) = 
+     &                             getcv(rho(ipart),vxyzu(4,ipart))
+                           ENDIF
 
                            gas_temp = gas_temperature_equilibrium(
      &                          ipart,dust_temperature(ipart,uradconst,

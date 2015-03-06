@@ -5,12 +5,16 @@ c  This routine writes the title page                       *
 c                                                           *
 c************************************************************
 
+      INCLUDE 'idim'
       INCLUDE 'igrape'
       INCLUDE 'svn_version.h'
 
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/actio'
       INCLUDE 'COMMONS/infor'
+#ifdef MPIALL
+      INCLUDE 'COMMONS/mpiall'
+#endif
 
 c--Get time and date
 c
@@ -23,7 +27,7 @@ c
 99001 FORMAT ('1', /, 1X,
      &        '**********************************************', /, 1X,
      &        '*                                            *', /, 1X,
-     &        '*      S P H - 3 D - TIMESTEPS - GRAPE       *', /, 1X,
+     &        '*            sphNG - 3 D - RT - MHD          *', /, 1X,
      &        '*              WITH POINT MASSES             *', /, 1X,
      &        '*                                            *', /, 1X,
      &        '**********************************************')
@@ -41,6 +45,10 @@ c
 #endif
 #ifdef MPI
       WRITE (iprint, *) 'Compiled using MPI'
+#endif
+#ifdef MPIALL
+      WRITE (iprint, 99100) numproc
+99100 FORMAT (' Running with ',I5,' MPI processes')
 #endif
 
       WRITE (iprint, 99003)namerun, job, iday, imon, iyear, ih, im, is

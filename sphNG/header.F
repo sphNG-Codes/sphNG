@@ -55,6 +55,7 @@ c************************************************************
       INCLUDE 'COMMONS/h2'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/planetesimal'
+      INCLUDE 'COMMONS/interstellar'
 
       REAL*8 angmom
 
@@ -343,16 +344,46 @@ c
      &           ' binary tree accuracy param.     : ', 1PE12.3, /,
      &           ' RK2 tolerance - gas             : ', 1PE12.3, /,
      &           '               - point masses    : ', 1PE12.3, /,
-     &           '               - smoothing length: ', 1PE12.3, //)
+     &           '               - smoothing length: ', 1PE12.3, /)
          IF (encal.EQ.'r') THEN
             WRITE (iprint, 99113) tolerance
-99113       FORMAT (' Radiative transfer tolerance    : ',1PE12.3, //)
+99113       FORMAT (' Radiative transfer tolerance    : ',1PE12.3, /)
             WRITE (iprint, 99613) opdenom
-99613       FORMAT (' Opacity Denominator             : ',1PE12.3, //)
+99613       FORMAT (' Opacity Denominator             : ',1PE12.3)
             WRITE (iprint, 99614) iopmodel
-99614       FORMAT (' Opacity model                   : ',I3, //)
+99614       FORMAT (' Opacity model                   :   ',I3)
             WRITE (iprint, 99615) metallicity
-99615       FORMAT (' Metallicity                     : ',1PE12.3, //)
+99615       FORMAT (' Metallicity                     : ',1PE12.3, /)
+            IF (idustRT.GT.0) THEN
+               WRITE (iprint, 99620)
+               WRITE (iprint, 99622) iDRT_cosmic_ray
+               WRITE (iprint, 99624) iDRT_photoelectric
+               WRITE (iprint, 99626) iH2formation_heating
+               WRITE (iprint, 99628) iDRT_line
+               WRITE (iprint, 99630) iCHEM_depletion
+               WRITE (iprint, 99632) iDRT_gasdust
+               WRITE (iprint, 99634) iISR_MIR
+               WRITE (iprint, 99636) iISR_Draine
+               IF (iatomic) THEN
+                  WRITE (iprint, 99650)
+               ELSE
+                  WRITE (iprint, 99651)
+               ENDIF
+99620          FORMAT(' Diffuse ISM model used')
+99622          FORMAT('    Heating: Cosmic ray                   : ',L1)
+99624          FORMAT('             Photoelectric                : ',L1)
+99626          FORMAT('             H2 formation on dust grains  : ',L1)
+99628          FORMAT('    Cooling: Molecular line (Goldsmith01) : ',L1)
+99630          FORMAT('             Molecular depletion allowed  : ',L1)
+99632          FORMAT('    Gas-Dust Thermal Coupling             : ',I1)
+99634          FORMAT('    Interstellar Radiation Field: Mid-IR  : ',L1)
+99636          FORMAT('                                Draine UV : ',L1)
+99650          FORMAT('    Initial conditions : Fully Atomic', //)
+99651          FORMAT('    Initial conditions : Fully Molecular', //)
+            ELSE
+               WRITE (iprint, 99699)
+99699          FORMAT(' Diffuse ISM model not used', //)
+            ENDIF
          ELSEIF (encal.EQ.'c') THEN
             WRITE (iprint, 99313) coolingrate
 99313       FORMAT (' Cooling Rate                    : ',1PE12.3, //)

@@ -14,11 +14,13 @@ c	 The mid-infrared (MIR) and Draine (UV) contributions to the
 c	    interstellar radiation field (ISRF)
 c
       LOGICAL iDRT_cosmic_ray, iDRT_line, iDRT_photoelectric
-      INTEGER iDRT_gasdust, iH2formation_heating
+      INTEGER iDRT_gasdust
+      LOGICAL iH2formation_heating, iCHEM_depletion
       PARAMETER (iDRT_cosmic_ray = .TRUE.)
       PARAMETER (iDRT_photoelectric = .TRUE.)
       PARAMETER (iDRT_line = .TRUE.)
       PARAMETER (iH2formation_heating = .TRUE.)
+      PARAMETER (iCHEM_depletion = .TRUE.)
 c
 c--Switches on/off dust-gas collisional thermal coupling
 c	    0: Switched off

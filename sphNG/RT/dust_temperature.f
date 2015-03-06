@@ -594,7 +594,7 @@ c
      &        6.919E+03*E_eV**3)*planckconst*E_eV
       ENDIF
 
-      xJ_is = val !  / 10.
+      xJ_is = val
 
       RETURN
       END
@@ -1118,17 +1118,21 @@ c
       x_Cplus = 1.0 / (1. + x_CO_Cplus + x_C_Cplus)
       x_C = x_C_Cplus * x_Cplus
       x_CO = x_CO_Cplus * x_Cplus
+
+      IF (iCHEM_depletion) THEN
 c
 c--Need to calculate depletion of CO from gas to grains
 c
-      Vtherm = SQRT(8.0*boltzmannk*gas_temp/(pi*30*mH))
+         Vtherm = SQRT(8.0*boltzmannk*gas_temp/(pi*30*mH))
 c--Tau is in seconds
-      tau_on = 1.0 / (1.0*4.0E-10*xnH2*3.4E-12*Vtherm)
+         tau_on = 1.0 / (1.0*4.0E-10*xnH2*3.4E-12*Vtherm)
 c--The 1/3 is assuming a cosmic ray ionisation rate of 3x10^-17
-      tau_off = 1.04E+14 * (1/3.)
+         tau_off = 1.04E+14 * (1/3.)
 
-      depletion = tau_on / (tau_on + tau_off)
-c      depletion = 1.0
+         depletion = tau_on / (tau_on + tau_off)
+      ELSE
+         depletion = 1.0
+      ENDIF
 c
 c--Set carbon fractions
 c
@@ -1271,7 +1275,6 @@ c
       IF (iDRT_gasdust.EQ.1) THEN
          gas_dust_collisional_term = 1.0E-33*(xnH2**2)*SQRT(gas_temp)*
      &              metallicity
-c     &  * 10.
       ELSEIF (iDRT_gasdust.EQ.2) THEN
          IF (gas_temp.GT.4.0) THEN
             expfac = 1.0-0.8*EXP(-75.0/gas_temp)
@@ -1304,7 +1307,7 @@ c
       REAL*8 cosmic_ray_heating,xnH2
 
       IF (iDRT_cosmic_ray) THEN
-         cosmic_ray_heating = 1.0E-27*xnH2 ! * 10.
+         cosmic_ray_heating = 1.0E-27*xnH2
       ELSE
          cosmic_ray_heating = 0.
       ENDIF
@@ -1347,7 +1350,7 @@ c      ep = 0.05
 
       IF (iDRT_photoelectric) THEN
          photoelectric_heating = 1.3E-24*ep*G0
-     &        *xnH  *metallicity  ! * 10.
+     &        *xnH  *metallicity
       ELSE
          photoelectric_heating = 0.
       ENDIF

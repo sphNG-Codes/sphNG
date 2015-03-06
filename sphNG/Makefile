@@ -118,7 +118,7 @@ ifeq ($(SYSTEM), complexity)
 #
     OMPFLAG= -openmp #-DZEN
     DBLFLAG= -r8
-    DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
+    DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk -heap-arrays
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -convert big_endian
     ENDIANFLAGLITTLE= -convert little_endian
@@ -361,7 +361,8 @@ SRCGRADH= derivi_P_gradh_MPI.F forcei_P_gradh_MPI.F  \
 # these are the extra routines required for the radiative transfer code to compile
         
 SRCRT= ass.f RT/newgsimpl_MPI.f RT/boundaryparticle.f quartic_gs1t.f \
-	RT/getblock.f 
+	RT/getblock.f RT/dust_temperature.f \
+	column_density.F buildsightlines.f
 SRCNORT = ass_dummy.f
 
 # these are the extra routines required for Monte-Carlo radiative transfer

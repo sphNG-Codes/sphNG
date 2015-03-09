@@ -72,6 +72,8 @@ c      INCLUDE 'COMMONS/rad2'
       INCLUDE 'COMMONS/bodys'
       INCLUDE 'COMMONS/implicit'
       INCLUDE 'COMMONS/implicit2'
+      INCLUDE 'COMMONS/raddust'
+      INCLUDE 'COMMONS/interstellar'
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
@@ -86,6 +88,7 @@ c      INCLUDE 'COMMONS/rad2'
       REAL U1i,E1i
 
       REAL*4 dvdx
+      REAL*4 rhoreal4
       COMMON /rtvarr5/ dvdx(9,iradtrans2)
 
       INTEGER nosweep,lwst,hgst,stepa
@@ -120,6 +123,10 @@ c      DIMENSION fractionexposed(nmaxexposed)
 #endif
 
       REAL mu
+c
+c--Array to keep values in for debugging particle that is not converging
+c
+      DIMENSION xkeep(20)
 
       LOGICAL ifirst
       DATA ifirst/.TRUE./
@@ -890,6 +897,7 @@ C$OMP& shared(dvdx,ihasghost,iflag,origEU,vsmooth,iphase,ifullstep)
 C$OMP& shared(ntot,ncompactlocal,radkernel,gradhs,ncompact)
 C$OMP& shared(ibound,hmass_e,e_planetesimal,iandrea)
 C$OMP& shared(prmin,princ,pmmin,pminc,ptable,udist)
+C$OMP& shared(dust_tk)
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend)
 #endif
@@ -906,6 +914,7 @@ C$OMP& private(dWidrlightrhorhom,pmjdWrijrhoi,dvdotdrs,dvs)
 C$OMP& private(dWjdrlightrhorhom,dWiidrlightrhorhom,cv_effective)
 C$OMP& private(pmjdWrunix,pmjdWruniy,pmjdWruniz,dvxs,dvys,dvzs)
 C$OMP& private(iparttree)
+C$OMP& private(dust_kappai,dust_cooling,heatingISRi,dust_gas)
 C$OMP& reduction(+:ihasghostcount)
 c
 c--Set up values that don't change during sweeps
@@ -932,6 +941,16 @@ c
 
             ekcle(3,i) = GETCV(rho(i),vxyzu(4,i))
             ekcle(2,i) = GETKAPPA(vxyzu(4,i),ekcle(3,i),rho(i))
+c
+c--Diffuse ISM: Set dust temperature and opacity
+c
+            IF (idustRT.GT.0 .AND. n.LE.ncompactlocal) THEN
+               rhoi = rho(i)
+               dust_tk(1,i) = dust_temperature(i,uradconst,
+     &              ekcle(1,i),vxyzu(4,i),ekcle,rhoi,
+     &              dust_kappai,dust_cooling,heatingISRi,dust_gas)
+               dust_tk(2,i) = dust_kappai
+            ENDIF
 c
 c--Note that CV and Kappa have already been done in ASS
 c
@@ -1079,12 +1098,6 @@ c
                   dWj = 0.
                ENDIF
 
-c               IF (iunique(iorig(i)).EQ.79225 .OR. 
-c     &              iunique(iorig(i)).EQ.79225) THEN
-c                  print *,'NON-DW ',dWi,dWj
-c                  print *,'NON-D ',v2i,rij,2.0*hi,2.0*hj
-c               ENDIF
-
                dvx = vxyzu(1,i) - vxyzu(1,j)
                dvy = vxyzu(2,i) - vxyzu(2,j)
                dvz = vxyzu(3,i) - vxyzu(3,j)
@@ -1118,15 +1131,6 @@ cc               vmu = dvs
                dvdWimi = pmi*dvs*dWi*gradhs(1,i)
                dvdWjmj = pmj*dvs*dWj*gradhs(1,j)
 
-
-c               if (iunique(iorig(i)).EQ.3863) THEN
-c                  print *,iproc,': DVD ',i,k,ivar(1,n),
-c     &                 iunique(iorig(j)),
-c     &                 dvdWimj,pmj,dvs,dWi,gradhs(1,i),gradhs(1,j),
-c     &                 xyzmh(1,iparttree),xyzmh(1,j)
-c               endif
-
-
                dWidrlightrhorhom = lightspeed*dWi/dr*pmj/(rhoi*rhoj)
                dWiidrlightrhorhom = lightspeed*dWi/dr*pmi/(rhoi*rhoj)
                dWjdrlightrhorhom = lightspeed*dWj/dr*pmj/(rhoi*rhoj)
@@ -1152,12 +1156,6 @@ c
                varij(2,icompact) = dWiidrlightrhorhom
                varij(3,icompact) = dWidrlightrhorhom
                varij(4,icompact) = dWjdrlightrhorhom
-c               varij(5,icompact) = dvdWimj
-c               varij(6,icompact) = dvdWimi
-c               varij(7,icompact) = dvdWjmj
-c               varij(8,icompact) = rhomean
-c               varij(9,icompact) = vmu
-c               varij(10,icompact) = pmj*dWi
 
                varij2(1,icompact) = pmjdWrunix
                varij2(2,icompact) = pmjdWruniy
@@ -1257,6 +1255,94 @@ c--If there are no particles sent, don't need to do anything (no MPI_SEND
 c     because none will be expected)
 c
       END DO
+c     
+c--When using idustRT.GT.0, also need to transfer values of dust_tk
+c
+      IF (idustRT.GT.0) THEN
+         inumbertotallocal = 0
+         inumberreturned = 0
+         DO i = 0, numproc - 1
+            IF (iproc.EQ.i) THEN
+               IF (nneighsentanyatall) THEN
+c
+c--Otherwise this process does not need to send any particle back!
+c
+c--Send active node data to be processed by other processes.  Data from all
+c     other processes is received before any processing is done.  This
+c     is because here it is assumed that the total number of remote particles
+c     on which forces need to be calculated by this MPI process is less
+c     than idim.
+c
+                  DO j = 0, numproc - 1
+                     IF (j.NE.iproc) THEN
+c
+c--Only sends anything at all to another MPI process if it needs to (the
+c     other MPI process knows when it doesn't need to expect anything)
+c
+                        IF (nneighsentany(j+1)) THEN
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &             1,llistsentback(1,j+1),i2REAL8,indexDust,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                llistsentback(1,j+1),i2REAL8,indexDust,ierr)
+                CALL MPI_TYPE_COMMIT(indexDust,ierr)
+
+                           CALL MPI_SEND(dust_tk,1,indexDust,j,161,
+     &                        MPI_COMM_WORLD, ierr)
+
+                           CALL MPI_TYPE_FREE(indexDust,ierr)
+#ifdef MPIDEBUGRT
+                           print *,iproc,' sent dust_tk (1)'
+#endif
+                        ENDIF
+                     ENDIF
+                  END DO
+               ENDIF
+c
+c--Other processes receive the particles being sent
+c
+            ELSE
+               IF (inumberreturned.LT.inumofreturns .AND.
+     &              nneightogetback(i+1).GT.0) THEN
+                  inumberreturned = inumberreturned + 1
+#ifdef MPIDEBUGRT
+                  print *,iproc,': receiving dust_tk (1) data ',
+     &                 inumberreturned,inumofreturns
+#endif
+                  istart = ntot + inumbertotallocal + 1
+                  CALL MPI_RECV(dust_tk(1,istart), idim, MPI_REAL8,
+     &                 i, 161, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  iprocrec = istatus(MPI_SOURCE)
+
+#ifdef MPIDEBUGRT
+                  print *,iproc,': got dust_tk (1) from ',iprocrec,
+     &                 inumber
+#endif
+                  inumbertotallocal = inumbertotallocal + inumber/2
+                  IF (inumberindiv(inumberreturned)*2.NE.inumber) THEN
+                     WRITE (*,*) iproc,': ERR - inumberindiv ',inumber,
+     &                 inumberindiv(inumberreturned),inumberreturned
+                     CALL quit
+                  ENDIF
+                  IF (inumbercumm(inumberreturned).NE.istart) THEN
+                     WRITE (*,*) iproc,': ERR - inumbercumm ',istart,
+     &                    inumbercumm(inumberreturned),inumberreturned
+                     CALL quit
+                  ENDIF
+                  IF (inumberproc(inumberreturned).NE.iprocrec) THEN
+                     WRITE (*,*) iproc,': ERR - inumberproc ',iprocrec,
+     &                    inumberproc(inumberreturned),inumberreturned
+                     CALL quit
+                  ENDIF
+               ENDIF
+            ENDIF
+         END DO
+         IF (inumbertotallocal.NE.inumbertotal) THEN
+            WRITE (*,*) iproc,': inumbertotallocal.NE.inumbertotal ',
+     &           inumbertotallocal,inumbertotal
+            CALL quit
+         ENDIF
+      ENDIF
 
 #endif
 
@@ -1280,27 +1366,6 @@ c      print *,iproc, 'begin iterations '
       maxerrE2last = 1.0E+30
       maxerrU2last = 1.0E+30
 
-c      IF (itime.EQ.136314880) THEN
-c         WRITE (40+iproc,*) 'vedv ',(vxyzu(kkk,123246),kkk=1,4),
-c     &        (ekcle(kkk,123246),kkk=1,5),(dvdx(kkk,123246),kkk=1,9)
-c         DO n=1, ncompact
-c            IF (ivar(3,n).EQ.123246) THEN
-c               WRITE (40+iproc,*) 'compact ',
-c     &              (ivar(kkk,n),kkk=1,3),vari(1,n),vari(2,n)
-c               WRITE (40+iproc,*) 'neigh '
-c               DO k = 1, ivar(1,n)
-c                  icompact = ivar(2,n) + k
-c                  j = ijvar(icompact)
-c                  WRITE (40+iproc,*) j,(varij(kkk,icompact),kkk=1,4),
-c     &                 (varij2(kkk,icompact),kkk=1,3),
-c     &                 (vxyzu(kkk,j),kkk=1,4),(ekcle(kkk,j),kkk=1,5),
-c     &                 (gradhs(kkk,j),kkk=1,2)
-c               END DO
-c            ENDIF
-c         END DO
-c      ENDIF
-
-
       DO nosweep = 1, nswmax
 c         print *,iproc, 'it ',nosweep
 c
@@ -1317,7 +1382,7 @@ C$OMP& shared(dedxyz,ekcle,EU0,uradconst,lightspeed,rho,itime)
 C$OMP& shared(nosweep,boundtemp,bounddens)
 C$OMP& shared(npart,nghost,ihasghost,ireal,dvdx,ncompact)
 C$OMP& shared(origEU,moresweep,xyzmh,gamma,alpha,beta,Rg,gmw)
-C$OMP& shared(udens,radconst,iflag,icall,ifsvi,alphaMMpass)
+C$OMP& shared(radconst,iflag,icall,ifsvi,alphaMMpass)
 C$OMP& shared(iphase,maxerrU2last)
 C$OMP& shared(stellarenergy,addenergyparticle,maxerrE2last,varinew)
 C$OMP& shared(ncompactlocal,iscurrent)
@@ -1328,6 +1393,7 @@ C$OMP& shared(hoverr,ibound)
 C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)
 C$OMP& shared(e_planetesimal,pcolen)
 C$OMP& shared(iunique,iorig,n1,n2)
+C$OMP& shared(udens,uergcc,utime,dust_tk,heatingISR,metallicity)
 #ifdef MPI
 C$OMP& shared(istart,ntot,istartrec,inumbertotal,inumberreturned)
 C$OMP& shared(numproc,iproc,inumofsends,maxnneighsentback,istatus)
@@ -1355,13 +1421,24 @@ C$OMP& private(gradE1i,tsr1i,moresweep2,U1i,E1i,dUcomb,dEcomb)
 C$OMP& private(presioverrhoi2,presjoverrhoj2,pmjdW,convection)
 C$OMP& private(cvcold,ucold,ecold,residualE,residualU,alphamean)
 C$OMP& private(stellarradiation,xchange,maxerrU2old,tempval1,tempval2)
+C$OMP& private(gas_temp,xnH2,gas_dust_val,dustgammaval,dustbetaval)
+C$OMP& private(tfour_dust,gas_dust_cooling,dust_tempi,dust_kappai)
+C$OMP& private(cooling_line,cosmic_ray,photoelectric,dust_cooling)
+C$OMP& private(heatingISRi,dust_gas,dust_term,betaval_d)
+C$OMP& private(dust_heating,gas_dust_dustT,opacity)
+C$OMP& private(ieqtype,rhoreal4,func_plus,func_old)
+C$OMP& private(u_found,u_last,u_plus,cv1,cooling_line1,itry)
+C$OMP& private(t_found,t_last,t_orig,t_plus,tdiff)
+C$OMP& private(cooling_line2,dline_du,func,derivative,iterationloop)
+C$OMP& private(photoelectric1,photoelectric2,dphoto_du)
+C$OMP& private(errU2,errorEi,h2form,h2form1,h2form2,dh2form_dt)
 #ifdef MPI
 C$OMP& private(l)
 #endif
 #ifdef MPICOPY
 C$OMP& private(ierr)
 #endif
-C$OMP& reduction(MAX:maxerrU2)
+C$OMP& shared(maxerrU2,xkeep)
 C$OMP& reduction(MAX:maxerrE2)
 
 #ifdef MPICOPY
@@ -1526,8 +1603,23 @@ C$OMP DO SCHEDULE(runtime)
      &              dedxyz(3,i)**2)
 
                rhoi = vari(2,n)
+c
+c--If using diffuse ISM, use Rosseland mean opacity from the frequency
+c     dependent opacity when dust temperatures are cold (T_d<100 K).
+c     Otherwise use the tabulated grey dust opacities.
+c
+               IF (idustRT.GT.0 .AND. dust_tk(1,i).LT.100.) THEN
+                  opacity = dust_tk(2,i)
+               ELSE
+                  opacity = ekcle(2,i)
+               ENDIF
+               IF (opacity.LE.0.) THEN
+                  WRITE (*,*) 'ERROR - opacity1 ',opacity,
+     &              dust_tk(1,i),ekcle(2,i),dust_tk(2,i),i
+                  CALL quit(1)
+               ENDIF
 
-               tsr1i = ABS(gradE1i)/(EU0(1,i)*(rhoi**2)*ekcle(2,i))
+               tsr1i = ABS(gradE1i)/(EU0(1,i)*(rhoi**2)*opacity)
 
                ekcle(4,i) = (2. + tsr1i ) / (6. + 3.0*tsr1i + tsr1i**2) 
                ekcle(5,i) = ekcle(4,i) + ekcle(4,i)**2 * tsr1i**2
@@ -1708,6 +1800,11 @@ C$OMP DO SCHEDULE(runtime)
             dedxyz(1,i) = dedxyz(1,j)
             dedxyz(2,i) = dedxyz(2,j)
             dedxyz(3,i) = dedxyz(3,j)
+
+            IF (idustRT.GT.0) THEN
+               dust_tk(1,i) = dust_tk(1,j)
+               dust_tk(2,i) = dust_tk(2,j)
+            ENDIF
          END DO
 C$OMP END DO
 
@@ -1752,8 +1849,34 @@ c
 c
 c--Set c*lambda/kappa*rho term for current quantities
 c
-                     bi = ekcle(4,i)/(ekcle(2,i)*rhoi)
-                     bj = ekcle(4,j)/(ekcle(2,j)*rhoj)
+               IF (idustRT.GT.0 .AND. dust_tk(1,i).LT.100.) THEN
+                  opacity = dust_tk(2,i)
+               ELSE
+                  opacity = ekcle(2,i)
+               ENDIF
+               IF (opacity.LE.0.) THEN
+                  WRITE (*,*) 'ERROR - opacity2 ',opacity,
+     &              dust_tk(1,i),ekcle(2,i),dust_tk(2,i),i
+                  CALL quit(1)
+               ENDIF
+               bi = ekcle(4,i)/(opacity*rhoi)
+
+               IF (idustRT.GT.0 .AND. dust_tk(1,j).LT.100.) THEN
+                  opacity = dust_tk(2,j)
+               ELSE
+                  opacity = ekcle(2,j)
+               ENDIF
+               IF (opacity.LE.0.) THEN
+                  WRITE (*,*) 'ERROR - opacity3 ',opacity,
+     &              dust_tk(1,j),ekcle(2,j),dust_tk(2,j),j,npart
+                  CALL quit(1)
+               ENDIF
+               bj = ekcle(4,j)/(opacity*rhoj)
+c
+c--Choose the 'average' diffusion value.  The (bi+bj) quantity biased in
+c     favour of the particle with the lowest opacity.  The other average
+c     is that original recommended in Cleary & Monaghan for heat diffusion.
+c
 c               b1 = (4.0*bi*bj)/(bi+bj)
                      b1 = bi + bj
 c	    
@@ -1948,7 +2071,7 @@ C$OMP DO SCHEDULE(runtime)
             diffusion_numerator = varinew(1,i)
             diffusion_denominator = varinew(2,i)
 c            pres_numerator = varinew(3,i)
-            pres_numerator = 0.
+c            pres_numerator = 0.
 
             pres_numerator = pdvvisc(i)/dti
 
@@ -1979,9 +2102,6 @@ c
 
 c         radpresdenom=0.0
 
-            tfour=uradconst*lightspeed*ekcle(2,i)* 
-     &         ((rhoi*EU0(1,i)/uradconst) - ((EU0(2,i)/ekcle(3,i))**4))
-
             stellarradiation = (dti*stellarenergy(i) + 
      &           addenergyparticle(i))/xyzmh(4,i)
 c            stellarradiation = 0.
@@ -1991,19 +2111,406 @@ c
             betaval = lightspeed*ekcle(2,i)*rhoi*dti
             chival = dti*(diffusion_denominator-radpresdenom/EU0(1,I))-
      &         betaval
-
             gammaval = uradconst*lightspeed*ekcle(2,i)/(ekcle(3,i))**4
+
+            tfour=uradconst*lightspeed*ekcle(2,i)* 
+     &         ((rhoi*EU0(1,i)/uradconst) - ((EU0(2,i)/ekcle(3,i))**4))
+c
+c--For idustRT>0, replace the gas-dust coupling term in the u equation
+c     by the dust-radiation term, but keep the T_d rather than T_g
+c
+            IF (idustRT.GT.0) THEN
+               rhoreal4 = rhoi
+               ekcle(2,i) = GETKAPPA(EU0(2,i),ekcle(3,i),rhoreal4)
+               dust_tempi = dust_temperature(i,uradconst,
+     &              EU0(1,i),EU0(2,i),ekcle,rhoi,dust_kappai,
+     &              dust_cooling,heatingISRi,dust_gas)
+               gas_temp = EU0(2,i)/ekcle(3,i)
+               xnH2 = rhoi*udens/(gmw*mH)
+            ENDIF
+c
+c--For low densities and temperatures, use the form of the equations that
+c     includes the gas-dust coupling term.  Also explicitly set the gas
+c     opacity to zero (i.e. betaval=gammaval=tfour=0).  This works well
+c     until the gas-dust coupling term gets very large, where upon the
+c     convergence fails because even a small difference (<1 K) in the
+c     gas and dust temperatures results in a large term.  The gas-dust
+c     coupling term potentially becomes large for high densities, but 
+c     a density criterion alone is not sufficient.  What we really want
+c     to see is that the matter is well coupled with the radiation field
+c     already.  So if we have high densities AND the difference between
+c     the temperatures of the dust and local radiation field is small
+c     (<1 K), then we abandon the gas-dust coupling term.
+c
+            IF (idustRT.GT.0 
+     &      .AND. ABS(dust_tempi-(rhoi*EU0(1,i)/uradconst)**0.25).GT.1.0
+     &           .AND. xnH2.LT.1.0E+11/metallicity) THEN
+               ieqtype = 3
+
+               betaval = 0.
+               gammaval = 0.
+               tfour = 0.
+
+               betaval_d = 0.
+
+               chival = dti*(diffusion_denominator-
+     &              radpresdenom/EU0(1,I))-betaval - betaval_d
+
+               gas_dust_val = 0.
+               dustbetaval = 0.
+
+               tfour_dust = 0.
+
+               gas_dust_val = gas_dust_collisional_term(
+     &              xnH2,metallicity,gas_temp) / rhoi/uergcc*utime
+c
+c--Implement crude effect of dust sublimation on gas-dust thermal coupling
+c
+
+               IF (gas_temp.GT.1000.0) gas_dust_val = MAX(gas_dust_val*
+     &              (1500.0-gas_temp)/500.0, 0.0)
+               gas_dust_cooling = gas_dust_val*(gas_temp - dust_tempi)
+               gas_dust_dustT = gas_dust_val*dust_tempi
+
+               cosmic_ray = cosmic_ray_heating(xnH2) /rhoi/uergcc*utime
+c
+c--This adds the dust heating term into the equations.  
+c
+               dust_heating = heatingISRi/uergg*utime
+
+               cooling_line = 
+     &              cooling_line_rate(i,gas_temp,xnH2,metallicity)/
+     &              rhoi/uergcc*utime
+c
+c--H_2 formation heating
+c
+               IF (iH2formation_heating) THEN
+                  h2form = h2_formation(i,gas_temp,dust_tempi,xnH2) *
+     &                 4.48*eleccharge/rhoi/uergcc*utime
+c
+c--Potentially add heating from UV destruction and pumping of H_2
+c     (see Bate 2015) for effect of this.
+c
+c     &                 + h2_destruction(i,xnH2,.FALSE.) *
+c     &            (0.4 + 2.0/(1.0+criticaln(i,gas_temp)/(2.0*xnH2)))*
+c     &                 eleccharge/rhoi/uergcc*utime
+               ELSE
+                  h2form = 0.
+               ENDIF
+
+               dustgammaval = 0.
+               dust_term = 0.
+
+               photoelectric =
+     &              photoelectric_heating(i,gas_temp,xnH2,metallicity)/
+     &              rhoi/uergcc*utime
+c
+c--Replaces the gas-dust coupling term in the u equation by the dust-radiation
+c     term and assumes that T_g=T_d so that the dust-radiation term is
+c     actually the gas-radiation term (i.e. uses kappa from opacity tables
+c     which is based on the gas temperature, and uses (u/cv) rather than T_d.)
+c
+            ELSEIF (idustRT.GT.0
+c     &              .AND. (
+c     &              dust_tempi.GE.100. .OR.
+c     &              xnH2.GE.1.0E+10)
+     &              ) THEN
+               ieqtype = 2
+
+               gas_temp = EU0(2,i)/ekcle(3,i)
+               xnH2 = rhoi*udens/(gmw*mH)
+c
+c--Use existing values of betaval, gammaval, chival, tfour
+c     because the values from getkappa include both
+c     the gas and dust opacities already.
+c
+               gas_dust_val = 0.
+               dustgammaval = 0.
+               dustbetaval = 0.
+               tfour_dust = 0.
+               gas_dust_cooling = 0.
+               dust_heating = 0.
+               dust_term = 0.
+c
+               cosmic_ray = cosmic_ray_heating(xnH2) /rhoi/uergcc*utime
+c
+c--This adds the dust heating term into the equations.  However, because the
+c     above assumption is that T_g=T_d, this makes the low-density gas
+c     as hot as the dust whereas in fact it should be a lot cooler.
+c
+               cosmic_ray = cosmic_ray + heatingISRi/uergg*utime
+
+               cooling_line = 
+     &              cooling_line_rate(i,gas_temp,xnH2,metallicity)/
+     &              rhoi/uergcc*utime
+c
+c--H_2 formation heating
+c
+               IF (iH2formation_heating) THEN
+                  h2form = h2_formation(i,gas_temp,dust_tempi,xnH2)*
+     &                 4.48*eleccharge/rhoi/uergcc*utime
+c
+c--Potentially add heating from UV destruction and pumping of H_2
+c     (see Bate 2015) for effect of this.
+c
+c     &                 + h2_destruction(i,xnH2,.FALSE.) *
+c     &              (0.4 + 2.0/(1.0+criticaln(i,gas_temp)/(2.0*xnH2)))*
+c     &                 eleccharge/rhoi/uergcc*utime
+               ELSE
+                  h2form = 0.
+               ENDIF
+
+               photoelectric =
+     &              photoelectric_heating(i,gas_temp,xnH2,metallicity)/
+     &              rhoi/uergcc*utime
+c
+c--Else, this is the original version of radiative transfer
+c     (Whitehouse & Bate 2006), which does not include the 
+c     diffuse ISM model of Bate (2015).
+c
+            ELSE
+               dust_tempi = 0.
+               gas_dust_val = 0.
+               dustgammaval = 0.
+               dustbetaval = 0.
+               tfour_dust = 0.
+               gas_dust_cooling = 0.
+
+               cosmic_ray = 0.
+               cooling_line = 0.
+               photoelectric = 0.
+               h2form = 0.
+
+               dust_heating = 0.
+               dust_term = 0.
+            ENDIF
+
 
             u4term = gammaval*dti*(dti*(diffusion_denominator-
      &           radpresdenom/EU0(1,I)) - 1.0)
-            u1term = (chival-1.0)*(1.0-dti*pres_denominator)
-            u0term = betaval*origEU(1,i) + (chival-1.0)*(-origEU(2,i)-
-     &           dti*pres_numerator - dti*e_planetesimal(i)) + 
+            u1term = (chival-1.0)*(1.0-dti*pres_denominator
+     &           + dti*gas_dust_val/ekcle(3,i)
+     &           ) 
+     &           - betaval*dti*gas_dust_val/ekcle(3,i)
+            u0term = betaval*(origEU(1,i) -
+     &           dti*gas_dust_val*dust_tempi + dti*dust_heating) + 
+     &           (chival-1.0)*(-origEU(2,i)-
+     &           dti*pres_numerator - dti*e_planetesimal(i)
+     &           - dti*gas_dust_val*dust_tempi - dti*cosmic_ray
+     &           + dti*cooling_line - dti*photoelectric
+     &           - dti*h2form
+     &           + dti*dust_term) + 
      &           dti*diffusion_numerator*betaval +
      &           stellarradiation*betaval - (chival-1.0)*pcolen(i)
 
-            IF (u1term.GT.0.0 .AND. u0term.GT.0.0 .OR. u1term.LT.0.0 
-     &           .AND. u0term.LT.0.0) THEN
+            moresweep2 = .FALSE.
+
+c
+c--If u4term is very small and -u0term/u1term.GT.0 then this is solution
+c     otherwise need to do something else
+c
+            IF (ABS(u4term/u1term).GT.1e-10 .OR. -u0term/u1term.LT.0.
+     &           .OR. ieqtype.EQ.3
+     &           ) THEN
+c
+c--Quartic solution won't work (imaginery)
+c
+               IF (u1term.GT.0.0 .AND. u0term.GT.0.0 .OR. u1term.LT.0.0 
+     &              .AND. u0term.LT.0.0
+     &              .OR. ieqtype.EQ.3
+     &              ) THEN
+
+                  IF (idustRT.GT.0 .AND. ieqtype.EQ.2) THEN
+                     WRITE (*,*) 'ERROR - ieqtype=2 ',
+     &                    u4term,u1term,u0term,gas_temp
+                     CALL quit
+                  ENDIF
+
+                  IF (idustRT.GT.0 .AND. ieqtype.EQ.3) THEN
+c
+c--If line cooling term is too big, need to solve for U1i using Newton-Raphson
+c     so that it doesn't go negative
+c
+                     itry = 1
+ 231                 u_found = EU0(2,i)
+                     rhoreal4 = rhoi
+                     t_found = EU0(2,i)/GETCV(rhoreal4,u_found)
+                     t_orig = t_found
+                     DO iterationloop = 1, 100
+                        u_last = u_found
+                        t_last = t_found
+
+                        u_found = getu(rhoreal4,t_found)
+                        cv1 = GETCV(rhoreal4,u_found)
+                        t_found = u_found/cv1
+c
+c--For calculating numerical derivative with gas temperature, 
+c     set t_plus to be 1 K higher, or 1% higher if temperature is small
+c
+                        IF (t_found.GT.10.) THEN
+                           t_plus = t_found + 1.0
+                        ELSE
+                           t_plus = t_found * 1.01
+                        ENDIF
+                        tdiff = t_plus - t_found
+                        u_plus = getu(rhoreal4,t_plus)
+c
+c--Molecular line cooling
+c
+                        cooling_line1 =
+     &                  cooling_line_rate(i,t_found,xnH2,
+     &                       metallicity)/
+     &                       rhoi/uergcc*utime
+                        cooling_line2 =
+     &                  cooling_line_rate(i,t_plus,xnH2,
+     &                       metallicity)/
+     &                       rhoi/uergcc*utime
+
+                        dline_du = (cooling_line2-cooling_line1)/tdiff
+c
+c--H_2 formation heating
+c
+                        IF (iH2formation_heating) THEN
+                           h2form1 = h2_formation(i,t_found,dust_tempi,
+     &                          xnH2)*4.48*eleccharge/
+     &                          rhoi/uergcc*utime
+c
+c--Potentially add heating from UV destruction and pumping of H_2
+c     (see Bate 2015) for effect of this.
+c
+c     &                          + h2_destruction(i,xnH2,.FALSE.) *
+c     &               (0.4 + 2.0/(1.0+criticaln(i,t_found)/(2.0*xnH2)))*
+c     &                          eleccharge/rhoi/uergcc*utime
+                           h2form2 = h2_formation(i,t_plus,dust_tempi,
+     &                          xnH2)*4.48*eleccharge/
+     &                          rhoi/uergcc*utime
+c
+c--Potentially add heating from UV destruction and pumping of H_2
+c     (see Bate 2015) for effect of this.
+c
+c     &                          + h2_destruction(i,xnH2,.FALSE.) *
+c     &               (0.4 + 2.0/(1.0+criticaln(i,t_plus)/(2.0*xnH2)))*
+c     &                          eleccharge/rhoi/uergcc*utime
+
+                           dh2form_dt = (h2form2-h2form1)/tdiff
+                        ELSE
+                           h2form1 = 0.
+                           h2form2 = 0.
+                           dh2form_dt = 0.
+                        ENDIF
+c
+c--Photoelectric heating
+c
+                        photoelectric1 =
+     &                  photoelectric_heating(i,t_found,xnH2,
+     &                       metallicity)/
+     &                       rhoi/uergcc*utime
+                        photoelectric2 =
+     &                  photoelectric_heating(i,t_plus,xnH2,
+     &                       metallicity)/
+     &                       rhoi/uergcc*utime
+
+                        dphoto_du = (photoelectric2-photoelectric1)/
+     &                       tdiff
+c
+c--Now perform Newton-Raphson iteration
+c
+                        func = u_found + dti*gas_dust_val*
+     &                       (u_found/cv1 - dust_tempi)
+     &                       - origEU(2,i) - dti*pres_numerator
+     &                       - dti*e_planetesimal(i) - dti*cosmic_ray
+     &                       + dti*cooling_line1 - dti*photoelectric1
+     &                       + dti*dust_term
+     &                       - dti*h2form1
+
+                        derivative = (u_plus - u_found)/tdiff +
+     &                       dti*gas_dust_val
+     &                       + dti*dline_du - dti*dphoto_du
+     &                       - dti*dh2form_dt
+c
+c--If failed, do it again, but this time print out diagnostics
+c
+                        IF (itry.EQ.2) THEN
+C$OMP CRITICAL(nrprint)
+                           print *,'N-R',iterationloop,i,t_orig,rhoi
+                           print *,'t_f,t_p',
+     &                          t_found,t_plus
+                           print *,'u_f,u_l,u_p',
+     &                          u_found,u_last,u_plus,cv1
+                           print *,
+     &                     dti*gas_dust_val*(u_found/cv1 - dust_tempi),
+     &                          origEU(2,i),-dti*cosmic_ray,
+     &                          dti*cooling_line1,-dti*photoelectric1,
+     &                          dust_tempi,-dti*pres_numerator,
+     &                          dust_term,func,derivative
+                           print *,u_plus,u_found,tdiff,
+     &                          (u_plus - u_found)/tdiff,
+     &                          dti*gas_dust_val,dti*dline_du,
+     &                          - dti*dphoto_du,photoelectric2,
+     &                          photoelectric1
+
+C$OMP END CRITICAL(nrprint)
+                        ENDIF
+c
+c--Limit the change to be no larger than a certain fraction each iteration
+c
+                        func_old = func
+                        IF (func/derivative / t_found .GT. 0.3) THEN
+                           func = 0.3*derivative * t_found
+                        ELSEIF (func/derivative / t_found.LT.-0.3) THEN
+                           func = -0.3*derivative * t_found
+                        ENDIF
+                        t_found = t_found - func/derivative
+
+                        IF (t_found.LT.1.) THEN
+cC$OMP CRITICAL(nrprint)
+c                           WRITE (81,*) 'T<1: ',i,t_found,
+c     &                          t_found+func/derivative,func,derivative,
+c     &                          func_old,- dti*h2form1,- dti*dh2form_dt
+cC$OMP END CRITICAL(nrprint)
+                           t_found = 1.
+                        ENDIF
+
+                        u_found = getu(rhoreal4,t_found)
+c
+c--Test for success
+c
+                        IF (ABS((t_found - t_last)/t_orig).LT.1E-3)
+     &                       THEN
+                           U1i = getu(rhoreal4,t_found)
+                           ekcle(3,i) = cv1
+                           photoelectric = photoelectric1
+                           cooling_line = cooling_line1
+                           h2form = h2form1
+                           GOTO 233
+                        ENDIF
+                     END DO
+C$OMP CRITICAL(quart)
+                     print *,"N-R failed for ieqtype=3, try again"
+            print *,"ngs ",u4term,u1term,u0term,betaval,chival,gammaval
+            print *,"    ",ekcle(2,i),rhoi,dti
+            print *,"    ",diffusion_denominator,diffusion_numerator
+            print *,"    ",pres_denominator,pres_numerator,uradconst
+            print *,"    ",radpresdenom,EU0(1,I),EU0(2,I),ekcle(3,i)
+            print *,"    ",lightspeed,origEU(1,i),origEU(2,i)
+            print *,"    ",dti*gas_dust_val*dust_tempi
+            print *,"    ",dti*dust_heating,dti*gas_dust_val*dust_tempi
+            print *,"    ",dti*cosmic_ray,dti*cooling_line
+            print *,"    ",dti*photoelectric,dti*dust_term
+            print *,"    ",ieqtype,u_found,u_last,u_plus,cv1
+            print *,"    ",cooling_line1,cooling_line2,dline_du,func
+            print *,"    ",derivative,h2form1,h2form2,dh2form_dt
+C$OMP END CRITICAL(quart)
+                     IF (itry.EQ.1) THEN
+                        itry = 2
+                        GOTO 231
+                     ELSE
+C$OMP CRITICAL (moresweepset)
+                        moresweep=.TRUE.
+C$OMP END CRITICAL (moresweepset)
+                        GOTO 200
+                     ENDIF
+                  ENDIF
 C$OMP CRITICAL(quart)
             print *,"ngs ",u4term,u1term,u0term,betaval,chival,gammaval
             print *,"    ",ekcle(2,i),rhoi,dti
@@ -2011,21 +2518,35 @@ C$OMP CRITICAL(quart)
             print *,"    ",pres_denominator,pres_numerator,uradconst
             print *,"    ",radpresdenom,EU0(1,I),EU0(2,I),ekcle(3,i)
             print *,"    ",lightspeed,origEU(1,i),origEU(2,i)
+            print *,"    ",dti*gas_dust_val*dust_tempi
+            print *,"    ",dti*dust_heating,dti*gas_dust_val*dust_tempi
+            print *,"    ",dti*cosmic_ray,dti*cooling_line
+            print *,"    ",dti*photoelectric,dti*dust_term,dti*h2form
+            print *,"    ",ieqtype
 C$OMP END CRITICAL(quart)
 C$OMP CRITICAL (moresweepset)
                moresweep=.TRUE.
 C$OMP END CRITICAL (moresweepset)
-               GOTO 200
+                  GOTO 200
+               ENDIF
+
+               u1term = u1term/u4term
+               u0term = u0term/u4term
+
+               CALL quartic_gs1t(u1term,u0term,EU0(2,I),U1i,
+     &              moresweep2,i)
+            ELSE
+c
+c--Ignore u^4 term as it is insignificantly small
+c
+               U1i = -u0term/u1term
+
+               IF (U1i/EU0(2,i).LT.0.8) U1i = 0.8*EU0(2,i)
+
+c               print *,'Ignore u^4 ',U1i,origEU(2,i),u1term,u0term
             ENDIF
 
-            u1term = u1term/u4term
-            u0term = u0term/u4term
-
-            moresweep2 = .FALSE.
-
-            CALL quartic_gs1t(u1term,u0term,EU0(2,I),U1i,moresweep2,i)
-
-            IF (moresweep2) THEN
+ 233        IF (moresweep2) THEN
 C$OMP CRITICAL (moresweepset)
                moresweep=.TRUE.
                PRINT *,"Info: ",EU0(2,I)/ekcle(3,i),xyzmh(1,i),
@@ -2040,13 +2561,60 @@ C$OMP END CRITICAL (moresweepset)
                GOTO 200
             ENDIF
 
-            E1i = (origEU(1,i)+dti*diffusion_numerator+gammaval*dti*
-     &           U1i**4 + stellarradiation)/(1.0-chival)
+
+c            IF (U1i/ekcle(3,i).LT.3. .AND. U1i.LT.origEU(2,i)) THEN
+c               WRITE (91,*) 'Tgas<3K ',i,u0term,u1term,u4term,ieqtype,
+c     &              ekcle(3,i),U1i,chival,pres_denominator,betaval,
+c     &              dti,origEU(1,i),dust_heating,
+c     &                          gas_dust_val,cooling_line,
+c     &                          dust_tempi,origEU(2,i),pres_numerator,
+c     &                          cosmic_ray,photoelectric,dust_term,
+c     &              diffusion_numerator,stellarradiation,h2form
+c            ENDIF
+
+c            IF (ABS(u4term/u1term).GT.1.0E-1) THEN
+c               E1i = (origEU(1,i)+dti*diffusion_numerator+gammaval*dti*
+c     &           U1i**4 + dustgammaval*dti + dti*gas_dust_cooling
+c     &              + dti*dust_heating
+c     &              + stellarradiation)/
+c     &           (1.0-chival+dustbetaval)
+c            ELSE
+               E1i = (origEU(1,i)+dti*diffusion_numerator
+     &              + gammaval*dti*U1i**4
+     &              + dustgammaval*dti
+     &              + dti*gas_dust_val*(U1i/ekcle(3,i)-dust_tempi)
+     &              + dti*dust_heating
+     &              + stellarradiation)/
+     &              (1.0-chival+dustbetaval)
+               IF (E1i.LT.0.) THEN
+                  WRITE (*,*) 'E1i<0 ',i,origEU(1,i),
+     &                 diffusion_numerator,gammaval*U1i**4,
+     &                 dustgammaval,dust_heating,
+     &                 chival,dustbetaval,(1.0-chival+dustbetaval),
+     &                 gas_dust_val*(U1i/ekcle(3,i)-dust_tempi),
+     &                 dti,U1i/ekcle(3,i),dust_tempi,xnH2,
+     &                 uradconst*lightspeed,ekcle(2,i),
+     &                 ekcle(3,i),U1i
+               ENDIF
+c            ENDIF
 
             dUcomb = pres_numerator + pres_denominator*EU0(2,I) + tfour
+     &           - gas_dust_cooling + cosmic_ray - cooling_line
+     &           + photoelectric + h2form
      &           + e_planetesimal(i) + pcolen(i)
             dEcomb = diffusion_numerator + diffusion_denominator*
      &           EU0(1,I) - tfour - radpresdenom + stellarradiation
+     &           - tfour_dust + dust_heating 
+     &           + gas_dust_cooling
+
+
+            IF (U1i.LE.0.) THEN
+               print *,'Uli failed ',u0term,u1term,u4term,
+     &              origEU(2,i),dti,
+     &              dUcomb,pres_numerator,pres_denominator*EU0(2,I),
+     &              tfour,gas_dust_cooling,cosmic_ray,cooling_line,
+     &              h2form
+            ENDIF
 c
 c--Tests for negativity
 c
@@ -2070,8 +2638,21 @@ c--And the error is...
 c
 c            IF (EU0(2,I)/ekcle(3,i).GT.1.E+30) THEN
             IF (EU0(2,I)/ekcle(3,i).GT.0.0) THEN
-               maxerrE2 = MAX(maxerrE2,1.0*ABS((EU0(1,I) - E1i) /E1i) 
-     &              )
+               errorEi = 1.0*ABS((EU0(1,I) - E1i) /E1i)
+               maxerrE2 = MAX(maxerrE2,errorEi) 
+
+               IF (maxerrE2.EQ.errorEi) THEN
+#ifdef MPI
+                  IF (iproc.EQ.0) THEN
+#endif
+cC$OMP CRITICAL (errorE)
+c                     WRITE (*,*) 'errorE ',i,errorEi,EU0(1,I),E1i,
+c     &                    dEcomb
+cC$OMP END CRITICAL (errorE)
+#ifdef MPI
+                  ENDIF
+#endif
+               ENDIF
 
                residualE = 0.0
             ELSE
@@ -2091,14 +2672,60 @@ c     &           dti - EU0(2,I))/EU0(2,I)))
 
             IF (EU0(2,I)/ekcle(3,i).GT.2000.0) THEN
 c            IF (EU0(2,I)/ekcle(3,i).GT.1.0E+30) THEN
+C$OMP CRITICAL(maxerrU2_crit)
                maxerrU2 = MAX(maxerrU2,1.0*ABS((EU0(2,I) - U1i) /U1i)
      &              )
+C$OMP END CRITICAL(maxerrU2_crit)
 
                residualU = 0.0
             ELSE
                maxerrU2old = maxerrU2
-               maxerrU2 = MAX(maxerrU2,ABS((origEU(2,i)+(dUcomb)* 
-     &              dti - U1i)/U1i))
+               errU2 = ABS((origEU(2,i)+(dUcomb)*
+     &              dti - U1i)/U1i)
+C$OMP CRITICAL(maxerrU2_crit)
+               maxerrU2 = MAX(maxerrU2,errU2)
+
+               IF (maxerrU2.EQ.errU2) THEN
+                  xkeep(1) = i
+                  xkeep(2) = origEU(2,i)
+                  xkeep(3) = dUcomb
+                  xkeep(4) = U1i
+                  xkeep(5) = dti
+                  xkeep(6) = pres_numerator
+                  xkeep(7) = pres_denominator*EU0(2,i)
+                  xkeep(8) = tfour
+                  xkeep(9) = gas_dust_cooling
+                  xkeep(10) = cosmic_ray
+                  xkeep(11) = cooling_line
+                  xkeep(12) = photoelectric
+                  xkeep(13) = EU0(2,i)
+                  xkeep(14) = U1i/ekcle(3,i)
+                  xkeep(15) = errU2
+                  xkeep(16) = u4term
+                  xkeep(17) = u1term
+                  xkeep(18) = u0term
+                  xkeep(19) = h2form
+               ENDIF
+C$OMP END CRITICAL(maxerrU2_crit)
+
+c               IF ( ABS((origEU(2,i)+(dUcomb)*
+c     &              dti - U1i)/U1i) .GT. 1.0) THEN
+c                  print *,'Uerr>1 ',i,dust_tempi,gas_temp,xnH2,
+c     &                 origEU(2,i),U1i,dUcomb*dti,EU0(2,I),
+c     &                 pres_numerator,pres_denominator*EU0(2,I),
+c     &                 tfour,gas_dust_cooling,cosmic_ray,cooling_line,
+c     &                 uradconst*lightspeed,ekcle(2,i),dust_kappai,
+c     &                 (rhoi*EU0(1,i)/uradconst),
+c     &                 ((EU0(2,i)/ekcle(3,i))**4),
+c     &                 (rhoi*EU0(1,i)/uradconst)**0.25,
+c     &                 EU0(2,i)/ekcle(3,i)
+c               ENDIF
+
+c               print 99558,iproc,i,dUcomb,origEU(2,i),U1i,
+c     &              origEU(2,i) + (dUcomb)*dti - U1i,U1i-origEU(2,i)
+99558          FORMAT(I1,': YYU ',I6,1PE12.5,1PE12.5,1PE12.5,1PE12.5,
+     &              1PE12.5)
+
 
                IF (maxerrU2.NE.maxerrU2old) THEN
 C$OMP CRITICAL (storeUerror)
@@ -2123,6 +2750,14 @@ c
 
             ekcle(3,i) = GETCV(rho(i),EU0(2,i))
             ekcle(2,i) = GETKAPPA(EU0(2,i),ekcle(3,i),rho(i))
+
+            IF (idustRT.GT.0) THEN
+               rhoi = rho(i)
+               dust_tk(1,i) = dust_temperature(i,uradconst,
+     &              ekcle(1,i),EU0(2,i),ekcle,rhoi,
+     &              dust_kappai,dust_cooling,heatingISRi,dust_gas)
+               dust_tk(2,i) = dust_kappai
+            ENDIF
 
  200        CONTINUE
             ENDIF
@@ -2211,6 +2846,39 @@ C$OMP SINGLE
 #ifdef MPIDEBUG
       print *,iproc,': EU0(1-2) move ',numbertodoherekeep
 #endif
+
+      IF (idustRT.GT.0) THEN
+c
+c--Transfer dust_tk(1-2,i)
+c
+c--All processes transfer their dust_tk(1-2) data
+c
+         CALL MPI_ALLGATHERV(dust_tk,1,indexMPI_INT1,
+     &        realtransfer5to15,irecvcounti,idisplacementsi,i2REAL8,
+     &        MPI_COMM_WORLD,ierr)
+C$OMP END SINGLE
+c
+c--Put dust_tk(1-2) data into correct places in dust_tk
+c
+C$OMP DO SCHEDULE(runtime)
+         DO j = 0, numproc - 1
+            IF (j.NE.iproc) THEN
+               DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &              irecvcounti(j+1)
+                  DO k = 1, 2
+                     dust_tk(k,llisttrans(i) + 1) =
+     &                    realtransfer5to15((i-1)*2 + k)
+                  END DO
+               END DO
+            ENDIF
+         END DO
+C$OMP END DO
+C$OMP SINGLE
+#ifdef MPIDEBUG
+         print *,iproc,': dust_tk(1-2) move ',numbertodoherekeep
+#endif
+      ENDIF
+
       CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
 C$OMP END SINGLE
 #endif
@@ -2219,6 +2887,10 @@ C$OMP DO SCHEDULE(runtime)
          DO i = npart + 1, npart + nghost*ihasghost
             j = ireal(i)
             ekcle(2,i) = ekcle(2,j)
+            IF (idustRT.GT.0) THEN
+               dust_tk(1,i) = dust_tk(1,j)
+               dust_tk(2,i) = dust_tk(2,j)
+            ENDIF
          END DO
 C$OMP END DO
 C$OMP END PARALLEL
@@ -2264,7 +2936,19 @@ c         ENDIF
 c
 c--The actual test
 c
+#ifdef MPIALL
+         IF (iproc.EQ.0) THEN
+#endif
+c         print *,'tolerance ',nosweep,tolerance,maxerrE2,maxerrU2
+         WRITE (*,38000) nosweep,tolerance,maxerrE2**2,maxerrU2
+38000    FORMAT('tolerance E U ',I4,1X,3(1PE12.5,1X))
+c         print *,'errU ',(xkeep(ijk),ijk=1,19)
+#ifdef MPIALL
+         ENDIF
+#endif
+
          IF(maxerrE2.LE.tolerance.AND.maxerrU2.LE.tolerance) THEN
+c         IF(maxerrE2**2.LE.tolerance.AND.maxerrU2.LE.tolerance) THEN
 c            PRINT *,"Complete with ",nosweep," iterations"
             GOTO 150
          ENDIF
@@ -2281,7 +2965,8 @@ c         GOTO 333
 c            GOTO 332
 
             IF (nosweep.GT.10) THEN
-               IF (maxerrE2.GT.0.99999*xmaxerr1old(itest).AND.
+               IF (maxerrE2.GT.tolerance .AND. 
+     &              maxerrE2.GT.0.99999*xmaxerr1old(itest).AND.
      &              maxerrE2.LT.1.00001*xmaxerr1old(itest)) THEN
                   DO iii = 1, numcomp
                      IF (maxerrE2.GT.0.99999*xmaxerrcomp1(iii).AND.
@@ -2298,7 +2983,8 @@ c            GOTO 332
                   PRINT *,"GSIMPL: Almost Non-convergence ",
      &                 maxerrE2,(xmaxerr1old(ii),ii=1,ntests)
                ENDIF
-               IF (maxerrU2.GT.0.99999*xmaxerr2old(itest).AND.
+               IF (maxerrU2.GT.tolerance .AND.
+     &              maxerrU2.GT.0.99999*xmaxerr2old(itest).AND.
      &              maxerrU2.LT.1.00001*xmaxerr2old(itest)) THEN
                   DO iii = 1, numcomp
                      IF (maxerrU2.GT.0.99999*xmaxerrcomp2(iii).AND.
@@ -2385,6 +3071,21 @@ c     &             1,llistsentback(1,j+1),i5REAL8,indexekcle,ierr)
 #ifdef MPIDEBUGRT
                         print *,iproc,' sent ekcle'
 #endif
+                        IF (idustRT.GT.0) THEN
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &             1,llistsentback(1,j+1),i2REAL8,indexDust,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                llistsentback(1,j+1),i2REAL8,indexDust,ierr)
+                CALL MPI_TYPE_COMMIT(indexDust,ierr)
+
+                        CALL MPI_SEND(dust_tk,1,indexDust,j,159,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_TYPE_FREE(indexDust,ierr)
+#ifdef MPIDEBUGRT
+                        print *,iproc,' sent dust_tk'
+#endif
+                        ENDIF
                      ENDIF
                   ENDIF
                END DO
@@ -2423,6 +3124,18 @@ c
      &                 inumberindiv(inumberreturned),inumberreturned
                   CALL quit(1)
                ENDIF
+
+               IF (idustRT.GT.0) THEN
+                  CALL MPI_RECV(dust_tk(1,istart), idim, MPI_REAL8,
+     &                 i, 159, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  iprocrec = istatus(MPI_SOURCE)
+
+#ifdef MPIDEBUGRT
+                  print *,iproc,': got dust_tk from ',iprocrec,inumber
+#endif
+               ENDIF
+
                IF (inumbercumm(inumberreturned).NE.istart) THEN
                   WRITE (*,*) iproc,': ERR - inumbercumm ',istart,
      &                 inumbercumm(inumberreturned),inumberreturned
@@ -2449,6 +3162,7 @@ c
 c--Maximum number of iterations reached
 c
       PRINT *,"GSIMPL: Warning. Maximum iterations reached"
+      WRITE (iprint,*) 'Max iter., errs E,U ',maxerrE2,maxerrU2
       IF (iphase1.GE.10) THEN
          moresweep = .TRUE.
          GOTO 998
@@ -2465,7 +3179,8 @@ c
 #ifdef MPI
       IF (iproc.EQ.0) THEN
 #endif
-      PRINT *,"Succeeded with ",nosweep," iterations ",maxerrE2,maxerrU2
+      WRITE (*,38001) nosweep,maxerrE2,maxerrU2
+38001 FORMAT('Succeeded with ',I4,' iterations E U ',2(1PE12.5,1X))
 #ifdef MPI
       ENDIF
 #endif
@@ -2487,11 +3202,13 @@ C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)
 C$OMP& shared(gamma,dedxyz)
 C$OMP& shared(iunique,iorig,n1,n2,uzero_n2)
 C$OMP& shared(ifullstep,pcolen)
+C$OMP& shared(dust_tk)
 C$OMP& private(temp, rho0)
 C$OMP& private(boundtest,radu)
 C$OMP& private(bounddenslocal,izoverh,mu)
 C$OMP& private(n,i)
 C$OMP& private(cvcold,ucold,ecold,cv_effective)
+C$OMP& private(rhoi,dust_kappai,dust_cooling,heatingISRi,dust_gas)
       DO n = 1, ncompactlocal
          i = ivar(3,n)
          IF (iphase(i).EQ.0) THEN
@@ -2507,6 +3224,13 @@ C$OMP& private(cvcold,ucold,ecold,cv_effective)
                dedxyz(1,i) = 0.
                dedxyz(2,i) = 0.
                dedxyz(3,i) = 0.
+               IF (idustRT.GT.0) THEN
+                  rhoi = rho(i)
+                  dust_tk(1,i) = dust_temperature(i,uradconst,
+     &                 ekcle(1,i),vxyzu(4,i),ekcle,rhoi,
+     &                 dust_kappai,dust_cooling,heatingISRi,dust_gas)
+                  dust_tk(2,i) = dust_kappai
+               ENDIF
             ELSE
                cvcold = 1.5*Rg/(gmw*uergg)
 
@@ -2537,6 +3261,13 @@ C$OMP& private(cvcold,ucold,ecold,cv_effective)
                ENDIF
                ekcle(3,i) = GETCV(rho(i),vxyzu(4,i))
                ekcle(2,i) = GETKAPPA(vxyzu(4,i),ekcle(3,i),rho(i))
+               IF (idustRT.GT.0) THEN
+                  rhoi = rho(i)
+                  dust_tk(1,i) = dust_temperature(i,uradconst,
+     &                 ekcle(1,i),vxyzu(4,i),ekcle,rhoi,
+     &                 dust_kappai,dust_cooling,heatingISRi,dust_gas)
+                  dust_tk(2,i) = dust_kappai
+               ENDIF
             ENDIF
 c
 c--Zero collision energy array after its addition.

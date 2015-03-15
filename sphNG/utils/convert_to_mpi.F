@@ -1,6 +1,8 @@
       PROGRAM convert_to_mpi
 c
 c--Converts full sphNG scalar dump to an MPI dump file (i.e. multiple blocks)
+c     Also converts an MPI dump file to a scalar dump file if the code is
+c     compiled as a scalar process.
 c
 c--NOTE: To make a small memory footprint you need to:
 c     1) Set idim_MPI=1 in idim

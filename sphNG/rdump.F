@@ -969,8 +969,6 @@ c         ENDIF
 c      ENDIF
 
 10000 CONTINUE
-
-      IF (iblock.EQ.nblocks) print *,iproc,': KEEPING ',npart,nptmass
 c
 c--End if to allow skipping of blocks of file belonging to other processes
 c
@@ -1001,9 +999,21 @@ c
       ENDIF
 #endif
 c
+c--If found block for this process, can skip rest of file
+c
+#ifdef MPI
+      IF (nblocks.NE.1 .AND. iproc.EQ.iblock-1) THEN
+#ifdef MPIDEBUG
+         print *,iproc,': Skipping remainder of dump file ',iblock
+#endif
+         GOTO 11000
+      ENDIF
+#endif
+c
 c--End loop over blocks
 c
       END DO
+11000 CONTINUE
 #ifdef MPI
 c
 c--This is the second section that is required to force sequential MPI

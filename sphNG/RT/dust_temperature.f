@@ -188,7 +188,7 @@ c      CALL quit
 
  222  dust_temperature = t_found
       IF (t_found.GT.1500.0) THEN
-         WRITE (*,*) 'ERROR - dust temperature > 1500 K'
+c         WRITE (*,*) 'ERROR - dust temperature > 1500 K'
 c         CALL quit
       ENDIF
 c

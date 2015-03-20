@@ -1863,10 +1863,25 @@ c
                      ELSE
                         opacity = ekcle(2,j)
                      ENDIF
+c
+c--Check for zero or negative opacity, but only for particles in object
+c     "n1", or ghosts if there is no object "n2" (typically particles in
+c     "n2" (and their ghosts) have no opacity).
+c
                      IF (opacity.LE.0.) THEN
-                        WRITE (*,*) 'ERROR - opacity3 ',opacity,
-     &                    dust_tk(1,j),ekcle(2,j),dust_tk(2,j),j,npart
-                        CALL quit(1)
+                        IF (n2.EQ.0) THEN
+                           WRITE (*,*) 'ERROR - opacity3 ',opacity,
+     &                          dust_tk(1,j),ekcle(2,j),dust_tk(2,j),j,
+     &                          npart
+                           CALL quit(1)
+                        ELSEIF (j.LT.npart) THEN
+                           IF (iunique(iorig(j)).LE.n1) THEN
+                              WRITE (*,*) 'ERROR - opacity4 ',opacity,
+     &                             dust_tk(1,j),ekcle(2,j),dust_tk(2,j),
+     &                             j,npart
+                              CALL quit(1)
+                           ENDIF
+                        ENDIF
                      ENDIF
                      bj = ekcle(4,j)/(opacity*rhoj)
 c

@@ -1619,11 +1619,19 @@ c Set velocity dispersion parameter
             vxyzu(2,i) =  alpha * xtild - xyzmh(1,i)*velsub
             vxyzu(3,i) = 0.
          ELSEIF (iok.EQ.'s') THEN
+c Added protective if to prevent mistakes when 
+c  fracrotoffset == fracrotgrad == 0
+           IF (fracrotgrad.GT.tiny) THEN
             vxyzu(1,i) = -angvel * xyzmh(2,i) * (fracrotoffset + 
      &           xyzmh(3,i)*fracrotgrad)
             vxyzu(2,i) =  angvel * xyzmh(1,i) * (fracrotoffset + 
      &           xyzmh(3,i)*fracrotgrad)
             vxyzu(3,i) = 0.
+           ELSE
+            vxyzu(1,i) = -angvel * xyzmh(2,i)
+            vxyzu(2,i) =  angvel * xyzmh(1,i)
+            vxyzu(3,i) = 0.
+           ENDIF
          ELSEIF (iok.EQ.'d' .AND. igeom.EQ.6) THEN 
             rxy2 = xyzmh(1,i)**2 + xyzmh(2,i)**2
             rxy = SQRT(rxy2)

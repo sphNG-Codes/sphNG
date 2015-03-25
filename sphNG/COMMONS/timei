@@ -1,2 +1,3 @@
+      INTEGER it0,it1,isteps,imax,imaxstep,iteighth,integrator
       COMMON /timei/  it0(idim),it1(idim),isteps(idim),imax,imaxstep,
      &                iteighth,integrator

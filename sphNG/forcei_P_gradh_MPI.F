@@ -354,8 +354,6 @@ c
             iparttree = ipart
          ENDIF
       
-ccc         CALL treef(ipart,npart,ntot,xyzmh,acc,0,fxi,fyi,fzi,poteni)
-
          forcexi = 0.
          forceyi = 0.
          forcezi = 0.

@@ -549,6 +549,15 @@ c
          WRITE (*,*) 'ERROR - XSPH, imhdxsph ',XSPH, imhdxsph
          CALL quit(0)
       ENDIF
+      IF (idustRT.LT.0 .OR. idustRT.GT.1) THEN
+         WRITE (*,*) 'ERROR - idustRT'
+         CALL quit(0)
+      ENDIF
+      IF (ioptimise_column.LT.0 .OR. ioptimise_column.GT.1 .OR.
+     &     (ioptimise_column.EQ.1 .AND. idustRT.NE.1)) THEN
+         WRITE (*,*) 'ERROR - ioptimise_column'
+         CALL quit(0)
+      ENDIF
 
 #ifdef _OPENMP
       DO i = 1, idim2/10+1

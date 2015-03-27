@@ -119,7 +119,7 @@ c
       iproblem = itime
 #ifdef MPIALL
 #ifdef MPIDEBUG
-      print *,iproc,': Entered densityiterate ',itime
+      print *,iproc,': Entered densityiterate ',itime,nlst_end
 #endif
 #else
 c      print *,': Entered densityiterate ',itime
@@ -414,6 +414,12 @@ c     &       MPI_INTEGER1, indexMPI_INT1, ierr)
          CALL MPI_TYPE_INDEXED(nlstsend, lblocklengths, lsendlist, 
      &        MPI_INTEGER1, indexMPI_INT1, ierr)
          CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nlstsend, 1, lsendlist, 
+c     &       MPI_INTEGER, indexMPI_INT, ierr)
+         CALL MPI_TYPE_INDEXED(nlstsend, lblocklengths, lsendlist, 
+     &        MPI_INTEGER, indexMPI_INT, ierr)
+         CALL MPI_TYPE_COMMIT(indexMPI_INT,ierr)
 c
 c--There are two implementations, one for balanced jobs, one for unbalanced
 c
@@ -469,6 +475,25 @@ c
      &              print *,iproc,': Received iphase ',inumber
 #endif
 
+               IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
+                  CALL MPI_SENDRECV(icolumnnext,1,indexMPI_INT,
+     &                 iahead, 103,
+     &                 icolumnnext(ntot+1), idim, MPI_INTEGER, 
+     &                 ibehind, 103, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_INTEGER,
+     &                 igotnumber,ierr)
+                  IF (ntot+1+inumber.GE.idim2) THEN
+                     WRITE (*,*) iproc,
+     &                    ': ERROR - ntot+1+inumber.GE.idim (2)'
+                     CALL quit(1)
+                  ENDIF
+                  IF (igotnumber.NE.inumber) THEN
+                     WRITE (iprint, *) 
+     &                    'ERROR - igotnumber.NE.inumber: colnext'
+                     CALL quit(1)
+                  ENDIF
+               ENDIF
+
                IF (iteration.EQ.1) THEN
                   CALL MPI_SENDRECV(iuniquesend, nptmasssend, 
      &                 MPI_INTEGER8, iahead, 9,
@@ -503,6 +528,12 @@ c
 
                         CALL MPI_SEND(iphase,1,indexMPI_INT1,jj,1,
      &                       MPI_COMM_WORLD, ierr)
+
+                        IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) 
+     &                       THEN
+                           CALL MPI_SEND(icolumnnext,1,indexMPI_INT,
+     &                          jj,103,MPI_COMM_WORLD, ierr)
+                        ENDIF
 
                         IF (iteration.EQ.1) THEN
                            CALL MPI_SEND(iuniquesend,nptmasssend,
@@ -547,6 +578,28 @@ c
                   print *,iproc,': Received iphase ',inumber,
      &                 ' from ',ibehind,iphase(ntot+1)
 #endif
+
+                  IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
+                     CALL MPI_RECV(icolumnnext(ntot+1),idim,
+     &                    MPI_INTEGER, ibehind, 103, 
+     &                    MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_INTEGER,igotnumber,
+     &                    ierr)
+                     IF (ntot+1+inumber.GE.idim2) THEN
+                        WRITE (*,*) iproc,
+     &                       ': ERROR - ntot+1+inumber.GE.idim2'
+                        CALL quit(1)
+                     ENDIF
+                     IF (igotnumber.NE.inumber) THEN
+                        WRITE (iprint, *) 
+     &                       'ERROR - igotnumber.NE.inumber: colnext'
+                        CALL quit(1)
+                     ENDIF
+#ifdef MPIDEBUG
+                     print *,iproc,': Received icolumnnext ',inumber,
+     &                    ' from ',ibehind,iphase(ntot+1)
+#endif
+                  ENDIF
 
                   IF (iteration.EQ.1) THEN
                      CALL MPI_RECV(iuniquestore(nptmasslocal2+1), 
@@ -600,10 +653,13 @@ c     &                 iuniquestoreold(nptmasslocal),nptmasstotlast
                ENDIF
             ENDIF
 
+c            IF (iproc.EQ.58 .OR. iproc.EQ.59) print *,iproc,
+c     &           ' received-icol ',inumber,ntot + inumber,iteration
+
             inumreturn = 0
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(inumber,ntot,npart,xyzmh,dvxyzu,inumreturn,llistrec)
-C$OMP& shared(nlstdo_tot)
+C$OMP& shared(nlstdo_tot,itime,iproc)
 C$OMP& private(i,ipart,nneighlocal)
             DO i = 1, inumber
                ipart = i + ntot
@@ -611,8 +667,14 @@ C$OMP& private(i,ipart,nneighlocal)
                   WRITE (*,*) 'ipart.GT.idim2'
                   CALL quit(1)
                ENDIF
-               CALL densitygradh(ipart,npart,ntot,nlstdo_tot,xyzmh,
-     &              nneighlocal,dvxyzu)
+
+c               IF (itime.EQ.276824064 .AND. 
+c     &              (iproc.EQ.58 .OR. iproc.EQ.59)) THEN
+c                  print *,iproc,' doing-densgrad ',i,ipart
+c               ENDIF
+
+               CALL densitygradh(ipart,itime,npart,ntot,nlstdo_tot,
+     &              xyzmh,nneighlocal,dvxyzu)
 c
 c--Make a list of indices to return densities
 c
@@ -1186,6 +1248,7 @@ c--END OF FOREIGN CONTRIBUTIONS
 c
          END DO
  444     CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+         CALL MPI_TYPE_FREE(indexMPI_INT,ierr)
          CALL MPI_TYPE_FREE(indexMPI5,ierr)
          IF (individualtimesteps.NE.2) THEN
             IF (iteration.EQ.1) THEN
@@ -1221,7 +1284,7 @@ C$OMP& shared(dvxyzu,hi_old,isucceed,poten,isend,numproc,iproc,gradmhd)
 C$OMP& shared(ivar,ijvar,ncompact,icompact,iteration,dust_tk)
 C$OMP& shared(hminbisec,hmaxbisec,iupdated,nlistupdated,listparents)
 C$OMP& shared(heatingISR,sightcolumns,nsightlines,umass,udist,c,gmw)
-C$OMP& shared(chemistry,h2frac,dh2dt,iatomic)
+C$OMP& shared(chemistry,h2frac,dh2dt,iatomic,icolumnnext,icolumnsteps)
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend,ijvartemp,listparentstemp)
 #endif
@@ -1253,7 +1316,7 @@ c
 c--Adds on local contributions to rho, gradh, and nneigh and long-range
 c       gravity
 c
-         CALL densitygradh(ipart,npart,ntot,nlstdo_tot,xyzmh,
+         CALL densitygradh(ipart,itime,npart,ntot,nlstdo_tot,xyzmh,
      &        nneighlocal,dvxyzu)
 
          IF (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10) THEN
@@ -1397,6 +1460,15 @@ c     the MPI code (see comments in column_density.F).
 c
 #ifdef MPI
                   IF (idustRT.GT.0) THEN
+                     IF (ioptimise_column.EQ.1) THEN
+                        IF (itime.LT.icolumnnext(ipart)) GOTO 500
+                        IF (itime.GT.icolumnnext(ipart)) THEN
+                           WRITE (*,*) 
+     &                          'ERROR - itime.GT.icolumnnext(ipart) ',
+     &                          itime,icolumnnext(ipart), ipart
+                        ENDIF
+                     ENDIF
+
                      heatingISRi = 0.
                      Gphotoelectrici = 0.
                      exp_Av = 0.
@@ -1433,7 +1505,7 @@ c
 c--Set e(i) for the first time around because density only set here
 c     This sets radiation and matter to have same initial temperature
 c
-                  IF (icall.EQ.1 .AND. encal.EQ.'r') THEN
+ 500              IF (icall.EQ.1 .AND. encal.EQ.'r') THEN
                      IF (ekcle(1,ipart).EQ.0.0) THEN
                         IF (idustRT.GT.0) THEN
 c
@@ -2708,7 +2780,7 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(inumbertotal,ntot,listp,nlst_end,iphase,hasghost)
 C$OMP& shared(npart,xyzmh,acc,nneigh,vxyzu,Bevol,gradmhd)
 C$OMP& shared(ncompact,icompact,ivar,ijvar,iscurrent)
-C$OMP& shared(iupdated,nlistupdated,listparents,iprint)
+C$OMP& shared(iupdated,nlistupdated,listparents,iprint,itime)
 C$OMP& private(fsx,fsy,fsz,epot,nneighlocal,ncompacthere,icompacthere)
 C$OMP& private(i,k,ipart,jpart,numberupdated)
       DO i = 1, inumbertotal
@@ -2717,7 +2789,7 @@ C$OMP& private(i,k,ipart,jpart,numberupdated)
          listp(nlst_end + i) = ipart
          hasghost(ipart) = .FALSE.
 
-         CALL treef(ipart,npart,ntot,xyzmh,acc,0,fsx,fsy,fsz,epot)
+         CALL treef(ipart,itime,npart,ntot,xyzmh,acc,0,fsx,fsy,fsz,epot)
 
          nneighlocal = nneigh(ipart)
 
@@ -3479,7 +3551,7 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 c      CALL quit(1)
 #endif
 
-c      print *,'Exited densityiterate'
+c      print *,'Exited densityiterate ',itime
 
 c      IF (itime.EQ.100663296 .AND. icall.EQ.3) THEN
 c         DO i = nlst_in, nlst_end
@@ -3497,7 +3569,7 @@ c=============================================================================
 c
 c--Subroutine for calculating rho, gradh and number of neighbours
 c
-      SUBROUTINE densitygradh(ipart,npart,ntot,nlst_doing,
+      SUBROUTINE densitygradh(ipart,itime,npart,ntot,nlst_doing,
      &     xyzmh,numneighi,dvxyzu)
 
       INCLUDE 'idim'
@@ -3543,7 +3615,8 @@ c
 
       IF (nlst_doing.GT.nptmasstot .OR. nptmasstot.NE.nptmasstotlast
      &     .OR. iptintree.EQ.2 .OR. initialptm.EQ.5) THEN
-         CALL treef(ipart,npart,ntot,xyzmh,acc,igphi,fsx,fsy,fsz,epot)
+         CALL treef(ipart,itime,npart,ntot,xyzmh,acc,igphi,
+     &        fsx,fsy,fsz,epot)
 
          IF (iptintree.NE.2) THEN
             IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN

@@ -1,4 +1,4 @@
-      SUBROUTINE insulate(itype, ntot, npart, xyzmh, fxyzu)
+      SUBROUTINE insulate(itype, itime, ntot, npart, xyzmh, fxyzu)
 c************************************************************
 c                                                           *
 c  The purpose of this subroutine is to insulate the main   *
@@ -99,7 +99,7 @@ c      END DO
 
 C$OMP PARALLEL default(none), shared(nlst,npart,ntot,acc,igphi)
 C$OMP& shared(llist,xyzmh,fxyzu,poten,iphase)
-C$OMP& shared(gravxyzpstore,ireset,neighb)
+C$OMP& shared(gravxyzpstore,ireset,neighb,itime)
 C$OMP& private(i,ipart,fsx,fsy,fsz,epot)
 C$OMP DO SCHEDULE(runtime)
          DO 100 i = 1, nlst
@@ -111,8 +111,8 @@ c
 c--Walk through the tree to get the neighbours, the acceleration
 c     and the potential due to outside 2h particles
 c
-            CALL treef(ipart,npart,ntot,xyzmh,acc,igphi,fsx,fsy,fsz,
-     &           epot)
+            CALL treef(ipart,itime,npart,ntot,xyzmh,acc,igphi,
+     &           fsx,fsy,fsz,epot)
 
             IF (igphi.NE.0 .OR. (iphase(ipart).GE.1 .AND. 
      &               iphase(ipart).LT.10 .AND. iptintree.EQ.1)) THEN
@@ -127,7 +127,6 @@ c
                poten(ipart) = 0.
             ENDIF
 
-c            CALL treef(ipart,npart,ntot,xyzmh,0.0,igphi,fsx,fsy,fsz,epot)
             gravxyzpstore(1,ipart) = fsx
             gravxyzpstore(2,ipart) = fsy
             gravxyzpstore(3,ipart) = fsz
@@ -182,7 +181,7 @@ c     particles for all the particles in the list
 c
 
 C$OMP PARALLEL default(none), shared(nlst,npart,ntot,acc,igphi)
-C$OMP& shared(llist,xyzmh,iphase)
+C$OMP& shared(llist,xyzmh,iphase,itime)
 C$OMP& private(i,ipart,fsx,fsy,fsz,epot)
 C$OMP DO SCHEDULE(runtime)
          DO 200 i = 1, nlst
@@ -193,8 +192,8 @@ c
 c--Walk through the tree to get the neighbours, the acceleration
 c     and the potential due to outside 2h particles
 c
-            CALL treef(ipart,npart,ntot,xyzmh,acc,igphi,fsx,fsy,fsz,
-     &           epot)
+            CALL treef(ipart,itime,npart,ntot,xyzmh,acc,igphi,
+     &           fsx,fsy,fsz,epot)
 
  200     CONTINUE
 C$OMP END DO

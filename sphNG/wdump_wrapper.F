@@ -333,6 +333,26 @@ c
          isteps(i) = itempsort(i)
       END DO
 c
+c--icolumnsteps
+c
+      IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
+         DO i = 1, npart
+            itempsort(i) = icolumnsteps(llist(i))
+         END DO
+         DO i = 1, npart
+            icolumnsteps(i) = itempsort(i)
+         END DO
+c
+c--icolumnnext
+c
+         DO i = 1, npart
+            itempsort(i) = icolumnnext(llist(i))
+         END DO
+         DO i = 1, npart
+            icolumnnext(i) = itempsort(i)
+         END DO
+      ENDIF
+c
 c--iphase
 c
       DO i = 1, npart
@@ -568,6 +588,16 @@ c
                   heatingISR(k,i) = tempsort(i)
                END DO
             END DO
+            IF (ioptimise_column.EQ.1) THEN
+               DO k = 1, 2
+                  DO i = 1, npart
+                     tempsort(i) = heatingISRold(k,llist(i))
+                  END DO
+                  DO i = 1, npart
+                     heatingISRold(k,i) = tempsort(i)
+                  END DO
+               END DO
+            ENDIF
             DO i = 1, npart
                tempsort(i) = h2frac(llist(i))
             END DO
@@ -684,7 +714,8 @@ c
 
       IF (itiming) CALL getused(tsortmtree1)
 
-      CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)
+      CALL insulate(1,0,ntot,npart,dumxyzmh,f1vxyzu)
+c      CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)
 
       IF (itiming) THEN
          CALL getused(tsortmtree2)

@@ -3,6 +3,7 @@
       INTEGER imhd, imhd2, imhd3, imhdxsph, isizealphaMM
       INTEGER imhdevol, isubcycle_divB
       INTEGER idim_h2, idim_h2_2, idim_MPI
+      INTEGER ioptimise_column
       REAL tiny
 
       PARAMETER (idim=2001000)
@@ -29,6 +30,14 @@ c--For radiative transfer that separates gas and dust need idustRT = 1
 c
 c      PARAMETER (idustRT = 1)
       PARAMETER (idustRT = 0)
+c
+c--With idustRT = 1, the ioptimise_column parameter determines whether the
+c	column densities are calculated every (half-)timestep (0), 
+c	or less frequently (=1) [ever full timestep or even less often].
+c	Tolerence is set in column_density.F file.
+c
+c      PARAMETER (ioptimise_column = 1)
+      PARAMETER (ioptimise_column = 0)
 c
 c--For MHD need to use imhd = idim
 c

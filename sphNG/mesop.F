@@ -31,6 +31,7 @@ c************************************************************
       INCLUDE 'COMMONS/densi'
       INCLUDE 'COMMONS/sync'
       INCLUDE 'COMMONS/polyk2'
+      INCLUDE 'COMMONS/interstellar'
 
       CHARACTER*20 string(10)
       CHARACTER*7 where
@@ -150,6 +151,17 @@ c              find nearest power of two to the change ratio required
                      isteps(j) = isteps(j)*ifactor
                      it1(j) = isteps(j)/2
                      it2(j) = isteps(j)
+
+                     IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
+                        IF (iphase(j).EQ.0) THEN
+                           icolumnsteps(j) = 
+     &                          MIN(icolumnsteps(j),imaxnew)
+                           icolumnsteps(j) = icolumnsteps(j)*ifactor
+                           icolumnsteps(j) =
+     &                          MAX(icolumnsteps(j),isteps(j))
+                           icolumnnext(j) = icolumnsteps(j)
+                        ENDIF
+                     ENDIF
                   ENDIF
                END DO
             ELSEIF (ipower.GT.0) THEN
@@ -168,6 +180,15 @@ c              find nearest power of two to the change ratio required
                      isteps(j) = isteps(j)/ifactor
                      it1(j) = isteps(j)/2
                      it2(j) = isteps(j)
+
+                     IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
+                        IF (iphase(j).EQ.0) THEN
+                           icolumnsteps(j) = icolumnsteps(j)/ifactor
+                           icolumnsteps(j) = 
+     &                          MAX(icolumnsteps(j),isteps(j))
+                           icolumnnext(j) = icolumnsteps(j)
+                        ENDIF
+                     ENDIF
                   ENDIF
                END DO
             ENDIF
@@ -308,6 +329,17 @@ c
                      isteps(j) = isteps(j)*ifactor
                      it1(j) = isteps(j)/2
                      it2(j) = isteps(j)
+
+                     IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
+                        IF (iphase(j).EQ.0) THEN
+                           icolumnsteps(j) = 
+     &                          MIN(icolumnsteps(j),imaxnew)
+                           icolumnsteps(j) = icolumnsteps(j)*ifactor
+                           icolumnsteps(j) = 
+     &                          MAX(icolumnsteps(j),isteps(j))
+                           icolumnnext(j) = icolumnsteps(j)
+                        ENDIF
+                     ENDIF
                   ENDIF
                END DO
             ELSEIF (ipower.GT.0) THEN
@@ -326,6 +358,15 @@ c
                      isteps(j) = isteps(j)/ifactor
                      it1(j) = isteps(j)/2
                      it2(j) = isteps(j)
+
+                     IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
+                        IF (iphase(j).EQ.0) THEN
+                           icolumnsteps(j) = icolumnsteps(j)/ifactor
+                           icolumnsteps(j) = 
+     &                          MAX(icolumnsteps(j),isteps(j))
+                           icolumnnext(j) = icolumnsteps(j)
+                        ENDIF
+                     ENDIF
                   ENDIF
                END DO
             ENDIF
@@ -474,6 +515,17 @@ c
                      isteps(j) = isteps(j)*ifactor
                      it1(j) = isteps(j)/2
                      it2(j) = isteps(j)
+
+                     IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
+                        IF (iphase(j).EQ.0) THEN
+                           icolumnsteps(j) = 
+     &                          MIN(icolumnsteps(j),imaxnew)
+                           icolumnsteps(j) = icolumnsteps(j)*ifactor
+                           icolumnsteps(j) = 
+     &                          MAX(icolumnsteps(j),isteps(j))
+                           icolumnnext(j) = icolumnsteps(j)
+                        ENDIF
+                     ENDIF
                   ENDIF
                END DO
             ELSEIF (ipower.GT.0 .AND. 
@@ -503,6 +555,15 @@ c
                      isteps(j) = isteps(j)/ifactor
                      it1(j) = isteps(j)/2
                      it2(j) = isteps(j)
+
+                     IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
+                        IF (iphase(j).EQ.0) THEN
+                           icolumnsteps(j) = icolumnsteps(j)/ifactor
+                           icolumnsteps(j) = 
+     &                          MAX(icolumnsteps(j),isteps(j))
+                           icolumnnext(j) = icolumnsteps(j)
+                        ENDIF
+                     ENDIF
                   ENDIF
                END DO
             ELSE

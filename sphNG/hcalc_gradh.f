@@ -34,6 +34,7 @@ c************************************************************
       INCLUDE 'COMMONS/timeextra'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/interstellar'
       
       CHARACTER*4 varmhdtemp
 c
@@ -69,6 +70,8 @@ c      neimax = 120
          it0(i) = 0
          it1(i) = 0
          it2(i) = 0
+         IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1)
+     &        icolumnnext(i) = 0
       END DO
 
       CALL ghostp(ntot, npart, xyzmh, vxyzu, ekcle, Bevolxyz)
@@ -104,7 +107,7 @@ c      neimax = 120
             END DO
          ENDIF
          WRITE(*,*) ' Making tree'
-         CALL insulate(1, ntot, npart, dumxyzmh, f1vxyzu)
+         CALL insulate(1, 0, ntot, npart, dumxyzmh, f1vxyzu)
       ENDIF
 
       icount = 0

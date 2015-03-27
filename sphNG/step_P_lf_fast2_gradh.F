@@ -238,7 +238,7 @@ c--Make the tree
 c
          IF (igrape.EQ.0 .AND. (nactive.NE.nptmass .OR. 
      &                                      iptintree.GT.0)) THEN
-            CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)
+            CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
          ENDIF
 c
 c--Compute forces on all particles
@@ -1117,9 +1117,9 @@ c--Make or update the tree
 c
       IF (iwillupdatetree) THEN
          IF (imaketree) THEN
-            CALL insulate(1, ntot, npart, dumxyzmh, f1vxyzu)
+            CALL insulate(1, itime, ntot, npart, dumxyzmh, f1vxyzu)
          ELSEIF (irevise) THEN
-            CALL insulate(2, ntot, npart, dumxyzmh, f1vxyzu)
+            CALL insulate(2, itime, ntot, npart, dumxyzmh, f1vxyzu)
          ELSEIF (numberparents.NE.0) THEN
             WRITE (*,*) 'ERROR: Setting iflagtree to ZERO'
             WRITE (iprint,*) 'ERROR: Setting iflagtree to ZERO'
@@ -1686,7 +1686,7 @@ c
      &      deltat)
 
             IF (igrape.EQ.0) THEN
-               CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)
+               CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
             ENDIF
 
             neighmean = (neimax + neimin)/2
@@ -1700,7 +1700,7 @@ c
  2000          ichkloop = ichkloop + 1
 
                IF (igrape.EQ.0) THEN
-                  CALL insulate(3,ntot,npart,dumxyzmh,f1vxyzu)
+                  CALL insulate(3,itime,ntot,npart,dumxyzmh,f1vxyzu)
                   numneigh = nneigh(i)
                ELSE
                   nlist = 0
@@ -1913,7 +1913,7 @@ c
 c--Rebuild the tree
 c
             IF (igrape.EQ.0) THEN
-               CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)
+               CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
             ENDIF
 c
 c--Set smoothing lengths of new particles
@@ -1929,7 +1929,7 @@ c
  2001          ichkloop = ichkloop + 1
 
                IF (igrape.EQ.0) THEN
-                  CALL insulate(3,ntot,npart,dumxyzmh,f1vxyzu)
+                  CALL insulate(3,itime,ntot,npart,dumxyzmh,f1vxyzu)
                   numneigh = nneigh(i)
                ELSE
                   nlist = 0

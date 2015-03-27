@@ -48,8 +48,9 @@ c************************************************************
       INCLUDE 'COMMONS/recor'
       INCLUDE 'COMMONS/gaptbl'
       INCLUDE 'COMMONS/initpt'
+      INCLUDE 'COMMONS/interstellar'
 
-      DIMENSION nsteplist(30),nsteplisttot(30)
+      DIMENSION nsteplist(2,30),nsteplisttot(2,30)
       INTEGER nstepphase(2,30)
 c
 c--Allow for tracing flow
@@ -183,7 +184,8 @@ c
 c--Report number of particles with each timestep
 c
       DO j = 1, 30
-         nsteplist(j) = 0
+         nsteplist(1,j) = 0
+         nsteplist(2,j) = 0
          nstepphase(1,j) = 0
          nstepphase(2,j) = 0
       END DO
@@ -196,27 +198,39 @@ c
             dttime = dtmax*isteps(j)/imaxstep
             ipostime = INT((LOG10(dtmax/dttime) * 3.3219281) + 1.01)
             IF ((ipostime.GE.1) .AND. (ipostime.LE.29)) THEN
-               nsteplist(ipostime) = nsteplist(ipostime) + 1
+               nsteplist(1,ipostime) = nsteplist(1,ipostime) + 1
                IF (iphase(j).EQ.0)
      &              nstepphase(1,ipostime) = nstepphase(1,ipostime) + 1
                IF (iphase(j).GT.0)
      &              nstepphase(2,ipostime) = nstepphase(2,ipostime) + 1
             ELSE
-               nsteplist(30) = nsteplist(30) + 1
+               nsteplist(1,30) = nsteplist(1,30) + 1
                IF (iphase(j).EQ.0)
      &              nstepphase(1,30) = nstepphase(1,30) + 1
                IF (iphase(j).GT.0)
      &              nstepphase(2,30) = nstepphase(2,30) + 1
             ENDIF
+
+            IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1 
+     &           .AND. iphase(j).EQ.0) THEN
+               dttime = dtmax*icolumnsteps(j)/imaxstep
+               ipostime = INT((LOG10(dtmax/dttime) * 3.3219281) + 1.01)
+               IF ((ipostime.GE.1) .AND. (ipostime.LE.29)) THEN
+                  nsteplist(2,ipostime) = nsteplist(2,ipostime)+1
+               ELSE
+                  nsteplist(2,30) = nsteplist(2,30) + 1
+               ENDIF
+            ENDIF
          ENDIF
       END DO
 
       DO j = 1, 30
-         nsteplisttot(j) = nsteplist(j)
+         nsteplisttot(1,j) = nsteplist(1,j)
+         nsteplisttot(2,j) = nsteplist(2,j)
       END DO
 
 #ifdef MPI
-      CALL MPI_REDUCE(nsteplist,nsteplisttot,30,MPI_INTEGER,MPI_SUM,0,
+      CALL MPI_REDUCE(nsteplist,nsteplisttot,2*30,MPI_INTEGER,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(nactive,nactivetot,1,MPI_INTEGER,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
@@ -229,17 +243,23 @@ c
 99100 FORMAT ('Timestep distribution ',I10,' number active ',I10)
 
       DO j = 0, 29
-         WRITE (iprint,99102) j, dtmax/2**j, nsteplisttot(j+1),
-     &        nstepphase(1,j+1),nstepphase(2,j+1)
+         IF (ioptimise_column.NE.1) THEN
+            WRITE (iprint,99102) j, dtmax/2**j, nsteplisttot(1,j+1),
+     &           nstepphase(1,j+1),nstepphase(2,j+1)
+         ELSE
+            WRITE (iprint,99103) j, dtmax/2**j, nsteplisttot(1,j+1),
+     &           nstepphase(1,j+1),nstepphase(2,j+1),nsteplisttot(2,j+1)
+         ENDIF
       END DO
 99101 FORMAT (I2,1PE12.4,I10)
 99102 FORMAT (I2,1PE12.4,I8,I8,I8)
+99103 FORMAT (I2,1PE12.4,I8,I8,I8,I8)
 
 #ifdef MPI
       ELSE
          WRITE (40+iproc,99100) npart, nactive
          DO j = 0, 29
-            WRITE (40+iproc,99101) j, dtmax/2**j, nsteplist(j+1)
+            WRITE (40+iproc,99101) j, dtmax/2**j, nsteplist(1,j+1)
          END DO
       ENDIF
 #endif

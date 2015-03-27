@@ -199,6 +199,8 @@ ccc               isteps(i) = idtini
                IF (gt.EQ.0.0) isteps(i) = idtini
                it1(i) = isteps(i)/2
                it2(i) = isteps(i)
+               IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1)
+     &              icolumnnext(i) = 0
                ibin = INT(LOG10(REAL(isteps(i)))/xlog2+0.5)
                IF (ibin.GT.nbinmax) THEN
                   WRITE (*,*) 'ERROR - ibin.GT.nbinmax'
@@ -286,7 +288,7 @@ c
 c      WRITE (*,*) 'passed 1'
          IF (igrape.EQ.0 .AND. (nactive.NE.nptmass .OR. 
      &                                      iptintree.GT.0)) THEN
-            CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)
+            CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
          ENDIF
 c
 c--Compute forces on all particles
@@ -381,6 +383,14 @@ c         DO i = 1, npart
                DO k = 1, 5
                   ekcle(k,i) = dumekcle(k,i)
                END DO
+            ENDIF
+
+            IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
+               IF (i.LE.npart) THEN
+                  IF (iphase(i).EQ.0) THEN
+                     CALL optimise_column_density(i,itime,ntot)
+                  ENDIF
+               ENDIF
             ENDIF
 
 c            gravx1(i) = gravx(i)
@@ -863,9 +873,9 @@ ccc         IF (nlst.GE.ncrit .OR. iaccr.EQ.1 .OR. ikilled.EQ.1) THEN
             icreate = 0
 ccc            iaccr = 0
 ccc            ikilled = 0
-            CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)
+            CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
          ELSEIF (iptintree.GT.0 .OR. nlst.GT.nptmass) THEN
-            CALL insulate(2,ntot,npart,dumxyzmh,f1vxyzu)
+            CALL insulate(2,itime,ntot,npart,dumxyzmh,f1vxyzu)
          ENDIF
          iaccr = 0
          ikilled = 0
@@ -1634,9 +1644,9 @@ ccc     &        idonebound.EQ.1 .OR. iaccr.EQ.1 .OR. ikilled.EQ.1) THEN
                icreate = 0
 ccc            iaccr = 0
 ccc            ikilled = 0
-            CALL insulate(1, ntot, npart, dumxyzmh, f1vxyzu)
+            CALL insulate(1, itime, ntot, npart, dumxyzmh, f1vxyzu)
          ELSEIF (iptintree.GT.0 .OR. nlst.GT.nptmass) THEN
-            CALL insulate(2, ntot, npart, dumxyzmh, f1vxyzu)
+            CALL insulate(2, itime, ntot, npart, dumxyzmh, f1vxyzu)
          ENDIF
          iaccr = 0
          ikilled = 0
@@ -1794,7 +1804,7 @@ C$OMP& shared(pradfac,rplanet,px,py,irotpot,iplanetesimals)
 C$OMP& shared(rcyl,Bevolxyz,dumBevolxyz,planetesimalnorm)
 C$OMP& shared(pcolen,xmass,overclean_fac)
 C$OMP& shared(gasdist,nearestgas,planetmass,coremass,pi)
-C$OMP& shared(dh2dt)
+C$OMP& shared(dh2dt,icolumnsteps,icolumnnext)
 #ifdef MPICOPY
 C$OMP& shared(iproc)
 #endif
@@ -2393,7 +2403,8 @@ c
                print *,'ERROR - ibin.LT.0 .OR. ibin.GT.30 ',ibin,stepi,
      &              dt,isteps(i),i,rmod,rmod1,rmodcr,rmodcr2,rmodgd,
      &              xyzmh(5,i),
-     &              vsound(i),alphaMM(1,i),denom,crstepi,iphase(i)
+     &              vsound(i),alphaMM(1,i),denom,crstepi,iphase(i),
+     &              force21, force22, force2
                IF (ibin.LT.0) THEN
                   CALL quit(1)
                ELSE
@@ -2694,6 +2705,7 @@ C$OMP END PARALLEL DO
       ENDIF
 
 #endif
+c--endif for MPICOPY section
 
       IF (itiming) THEN
          CALL getused(ts152)
@@ -2766,6 +2778,42 @@ c
      &        individualtimesteps
          CALL quit(1)
       ENDIF
+c
+c--Optimisation so that if column density doesn't change much from step to
+c     step, don't recalculate it every particle time step.  Next time
+c     to calculate column density needs to be set here after particle
+c     has converged on its smoothing length (i.e. it is not still being
+c     iterated over).
+c
+      IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst0,llist,iphase,itime,icolumnnext,icolumnsteps,ntot)
+C$OMP& shared(isteps,it1,it2,imaxstep)
+C$OMP& private(ipart,j)
+         DO j = 1, nlst0
+            ipart = llist(j)
+            IF (iphase(ipart).EQ.0) THEN
+               IF (itime.GE.icolumnnext(ipart)) THEN
+                  IF (itime.GT.icolumnnext(ipart)) THEN
+                     WRITE (*,*) 
+     &                    'ERROR - itime.GT.icolumnnext(ipart)3 ',
+     &                    itime,icolumnnext(ipart), ipart
+                  ENDIF
+                  CALL optimise_column_density(ipart,itime,ntot)
+
+                  icolumnsteps(ipart) = MAX(icolumnsteps(ipart),
+     &                 isteps(ipart))
+                  icolumnnext(ipart) = itime + icolumnsteps(ipart)
+                  IF (icolumnnext(ipart).LT.it2(ipart)) 
+     &                 icolumnnext(ipart) = it2(ipart)
+                  icolumnnext(ipart) = MIN(icolumnnext(ipart), imaxstep)
+               ENDIF
+            ENDIF
+         END DO
+C$OMP END PARALLEL DO
+      ENDIF
+
+
 
 c      print *,'Done timesteps 2'
 
@@ -3070,7 +3118,7 @@ c
             END DO
 
             IF (igrape.EQ.0) THEN
-               CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)
+               CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
             ENDIF
 
             neighmean = (neimax + neimin)/2
@@ -3084,7 +3132,7 @@ c
  2000          ichkloop = ichkloop + 1
 
                IF (igrape.EQ.0) THEN
-                  CALL insulate(3,ntot,npart,dumxyzmh,f1vxyzu)
+                  CALL insulate(3,itime,ntot,npart,dumxyzmh,f1vxyzu)
                   numneigh = nneigh(i)
                ELSE
                   nlist = 0
@@ -3338,7 +3386,7 @@ c
 c--Rebuild the tree
 c
             IF (igrape.EQ.0) THEN
-               CALL insulate(1,ntot,npart,dumxyzmh,f1vxyzu)
+               CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
             ENDIF
 c
 c--Smoothing lengths now set in densityiterate, skip this or crash.
@@ -3358,7 +3406,7 @@ c
  2001          ichkloop = ichkloop + 1
 
                IF (igrape.EQ.0) THEN
-                  CALL insulate(3,ntot,npart,dumxyzmh,f1vxyzu)
+                  CALL insulate(3,itime,ntot,npart,dumxyzmh,f1vxyzu)
                   numneigh = nneigh(i)
                ELSE
                   nlist = 0
@@ -3739,6 +3787,12 @@ c         WRITE (iprint,*) 'itime.GE.itnext'
                it0(i) = 0
                it1(i) = isteps(i)/2
                it2(i) = isteps(i)
+
+               IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1 .AND. 
+     &              iphase(i).EQ.0) THEN            
+                  icolumnsteps(i) = MAX(icolumnsteps(i),isteps(i))
+                  icolumnnext(i) = icolumnsteps(i)
+               ENDIF
 
                ibin = INT(LOG10(REAL(isteps(i)))/xlog2+0.5)
                IF (ibin.GT.nbinmax) THEN

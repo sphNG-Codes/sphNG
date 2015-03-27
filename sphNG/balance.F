@@ -375,6 +375,15 @@ c
                         CALL MPI_SEND(isteps,1,indexMPI_INT,j,104,
      &                       MPI_COMM_WORLD, ierr)
 
+                        IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) 
+     &                       THEN
+                           CALL MPI_SEND(icolumnsteps,1,indexMPI_INT,j,
+     &                          168,MPI_COMM_WORLD, ierr)
+
+                           CALL MPI_SEND(icolumnnext,1,indexMPI_INT,j,
+     &                          169,MPI_COMM_WORLD, ierr)
+                        ENDIF
+
                         CALL MPI_SEND(it0,1,indexMPI_INT,j,105,
      &                       MPI_COMM_WORLD, ierr)
 
@@ -467,6 +476,10 @@ c     &                          MPI_COMM_WORLD, ierr)
      &                             MPI_COMM_WORLD, ierr)
                               CALL MPI_SEND(heatingISR,1,indexMPIH4,j,
      &                             164,MPI_COMM_WORLD, ierr)
+                              IF (ioptimise_column.EQ.1) THEN
+                               CALL MPI_SEND(heatingISRold,1,indexMPI24,
+     &                                j,170,MPI_COMM_WORLD, ierr)
+                              ENDIF
                               CALL MPI_SEND(chemistry,1,indexMPIC4,j,
      &                             165,MPI_COMM_WORLD, ierr)
                               CALL MPI_SEND(h2frac,1,indexMPI1,j,
@@ -697,6 +710,26 @@ c
                IF (inumber.NE.igotnumber) THEN
                   WRITE (*,*) 'ERROR - balance igotnumber'
                   CALL quit(1)
+               ENDIF
+
+               IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
+                  CALL MPI_RECV(icolumnsteps(npartnew+1), idim, 
+     &                 MPI_INTEGER,
+     &                 iprocrec, 168, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_INTEGER, inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber'
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_RECV(icolumnnext(npartnew+1), idim, 
+     &                 MPI_INTEGER,
+     &                 iprocrec, 169, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_INTEGER, inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber'
+                     CALL quit(1)
+                  ENDIF
                ENDIF
 
                CALL MPI_RECV(it0(npartnew+1), idim, MPI_INTEGER,
@@ -960,6 +993,17 @@ c                  ENDIF
                      IF (inumber.NE.igotnumber) THEN
                         WRITE (*,*) 'ERROR - balance igotnumber heating'
                         CALL quit
+                     ENDIF
+
+                     IF (ioptimise_column.EQ.1) THEN
+                        CALL MPI_RECV(heatingISRold(1,npartnew+1), idim,
+     &                       i2REAL4, iprocrec, 170, MPI_COMM_WORLD, 
+     &                       istatus, ierr)
+                        CALL MPI_GET_COUNT(istatus,i2REAL4,inumber,ierr)
+                        IF (inumber.NE.igotnumber) THEN
+                        WRITE (*,*) 'ERROR - balance igotnumber heating'
+                           CALL quit
+                        ENDIF
                      ENDIF
 
                      CALL MPI_RECV(chemistry(1,npartnew+1), idim,
@@ -1469,6 +1513,12 @@ c      goto 200
             it1(i) = isteps(i)/2
             it2(i) = isteps(i)
 
+            IF (idustRT.GT.0  .AND. ioptimise_column.EQ.1 
+     &           .AND. iphase(i).EQ.0) THEN
+               icolumnsteps(i) = MAX(icolumnsteps(i),isteps(i))
+               icolumnnext(i) = icolumnsteps(i)
+            ENDIF
+
             ibin = INT(LOG10(REAL(isteps(i)))/xlog2+0.5)
             IF (ibin.GT.nbinmax .OR. ibin.GT.30 .OR. ibin.LT.0) THEN
                WRITE (*,*) 'ERROR - ibin.GT.nbinmax B ',ibin
@@ -1521,7 +1571,7 @@ c
 #ifdef MPIDEBUGT
       print *,iproc,': Balance is making tree ',ntot, npart
 #endif
-      CALL insulate(1, ntot, npart, dumxyzmh, f1vxyzu)
+      CALL insulate(1, 0, ntot, npart, dumxyzmh, f1vxyzu)
 c
 c--End of MPI-only section
 c
@@ -2100,6 +2150,10 @@ c*************************`***********************************
          f2vxyzu(i,ito) = f2vxyzu(i,ifrom)         
       END DO
       isteps(ito) = isteps(ifrom)
+      IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
+         icolumnsteps(ito) = icolumnsteps(ifrom)
+         icolumnnext(ito) = icolumnnext(ifrom)
+      ENDIF
       it0(ito) = it0(ifrom)
       it1(ito) = it1(ifrom)
       it2(ito) = it2(ifrom)
@@ -2173,6 +2227,11 @@ c         h2mol(ito) = h2mol(ifrom)
             DO i = 1, nheatingISR
                heatingISR(i,ito) = heatingISR(i,ifrom)
             END DO
+            IF (ioptimise_column.EQ.1) THEN
+               DO i = 1, 2
+                  heatingISRold(i,ito) = heatingISRold(i,ifrom)
+               END DO
+            ENDIF
             DO i = 1, nchemistry
                chemistry(i,ito) = chemistry(i,ifrom)
             END DO

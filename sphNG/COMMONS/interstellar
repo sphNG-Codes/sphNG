@@ -56,8 +56,13 @@ c
 
       INTEGER nheatingISR
       PARAMETER (nheatingISR = 4)
-      REAL*4 heatingISR
+      REAL*4 heatingISR, heatingISRold
+      INTEGER icolumnsteps,icolumnnext
       COMMON /extinc/ heatingISR(nheatingISR,iradtrans2*idustRT+1)
+      COMMON /extinc2/ 
+     &	     heatingISRold(2,iradtrans*idustRT*ioptimise_column+1),
+     &	     icolumnsteps(iradtrans*idustRT*ioptimise_column+1),
+     &	     icolumnnext(iradtrans2*idustRT*ioptimise_column+1)
 c
 c--Chemical model.  Currently only keeps track of carbon:
 c	    1: C+

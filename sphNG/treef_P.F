@@ -1,4 +1,5 @@
-      SUBROUTINE treef(m,npart,ntot,xyzmh,acc,igrav,fsx,fsy,fsz,epot)
+      SUBROUTINE treef(m,itime,npart,ntot,xyzmh,acc,igrav,
+     &     fsx,fsy,fsz,epot)
 c
 c************************************************************
 c                                                           *
@@ -352,8 +353,16 @@ c--Calculate column density to particle if needed (NOTE that the IF does
 c     not refer to encal='r' because this should be called during the
 c     set up of the initial conditions (i.e. from setpart.f)
 c
-      IF (idustRT.GT.0 .AND. iradtrans.EQ.idim) THEN
-         CALL column_density(m,ntot,nlistga,listga,nlistgn,listgn,xyzmh)
+c--NOTE: The test for igrav=0 is important because in densityiterate()
+c     there is a 2nd call to treef after gravity, neighbours, density,
+c     etc, have been found to calculate contributions to divv, curlv,etc
+c     from remote nodes.  This call only calculates neighbours (igrav=0)
+c     and so doesn't do the full tree walk that the main call does.
+c
+      IF (idustRT.GT.0 .AND. iradtrans.EQ.idim .AND. igrav.NE.0
+     &     .AND. iphase(m).EQ.0) THEN
+         CALL column_density(m,itime,ntot,nlistga,listga,
+     &        nlistgn,listgn,xyzmh)
       ENDIF
 
  900  RETURN

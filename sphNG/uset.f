@@ -51,13 +51,20 @@ c-- Pass in rho in code units.
       ltemp = log10(temp_in)
 
       nkt1 = 1 + INT(ltemp/tinc)
-      IF(nkt1.GE.umxt) nkt1 = umxt - 1
+      IF (nkt1.GE.umxt) THEN
+         nkt1 = umxt - 1
+      ELSEIF (nkt1.LT.1) THEN
+         nkt1 = 1
+      ENDIF
       nkt2 = nkt1 + 1
 
       nkrho1=INT(lrho/0.005)+eostbl_rho1
-      IF(lrho.LT.0.0) nkrho1=nkrho1-1
-      IF(nkrho1.GE.tgmxrh) nkrho1 = tgmxrh - 1
-      IF(nkrho1.LT.1) nkrho1 = 1
+      IF (lrho.LT.0.0) nkrho1=nkrho1-1
+      IF (nkrho1.GE.tgmxrh) THEN
+         nkrho1 = tgmxrh - 1
+      ELSEIF (nkrho1.LT.1) THEN
+         nkrho1 = 1
+      ENDIF
       nkrho2=nkrho1+1
 
       rhoval1=(nkrho1-eostbl_rho1)*0.005

@@ -35,7 +35,7 @@ c      PARAMETER (maxline=27010)
       COMMON /gridv/ ilinex,iliney
       COMMON /origi/ cmx, cmy, cmz
       COMMON /scale/ vmin, vmax
-      COMMON /phase/ sinksize, sinkrho, denshigh, ihigh
+      COMMON /phase2/ sinksize, sinkrho, denshigh, ihigh
       COMMON /numfile/ nfile
       COMMON /columntab/ coltable(1000)
 c

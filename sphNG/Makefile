@@ -510,6 +510,11 @@ convertfs: checksystem checkparams utils/convert_full_small.o wdump.o rdump.o er
 convertof: checksystem checkparams utils/convert_old_full.o wdump.o error.o
 	$(FC) $(FFLAGS) -o $@ utils/convert_old_full.o wdump.o error.o
 
+# 3D movie processing
+
+movie3DRG: checksystem checkparams utils/movie3DRG/imcol3DNG_zoom_DT.o rdump.o error.o utils/movie3DRG/grid_P_DT.o utils/movie3DRG/buildcol.o utils/movie3DRG/origin.o
+	$(FC) $(FFLAGS) -o $@ utils/movie3DRG/imcol3DNG_zoom_DT.o rdump.o error.o utils/movie3DRG/grid_P_DT.o utils/movie3DRG/buildcol.o utils/movie3DRG/origin.o
+
 ptmass: utils/ptmassmerge.o
 	$(FC) $(FFLAGS) -o $@ utils/ptmassmerge.o
 
@@ -593,5 +598,5 @@ updatedepends:
 include .depends
 
 clean:
-	\rm -f *.o *.mod RT/Baraffe/*.o RT/Baraffe/*.mod RT/*.o RT/*.mod sph_tree_lf_gradh sph_tree_lf_gradh_RT sph_tree_lf sph_tree_rk_gradh sph_tree_rk_gradh_RT sph_tree_rk ./utils/*.o maketables/*.o svn_version.h
+	\rm -f *.o *.mod RT/Baraffe/*.o RT/Baraffe/*.mod RT/*.o RT/*.mod sph_tree_lf_gradh sph_tree_lf_gradh_RT sph_tree_lf sph_tree_rk_gradh sph_tree_rk_gradh_RT sph_tree_rk ./utils/*.o ./utils/*/*.o maketables/*.o svn_version.h
 # DO NOT DELETE

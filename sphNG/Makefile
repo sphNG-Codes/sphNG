@@ -93,7 +93,7 @@ ifeq ($(SYSTEM), zen)
 #
     OMPFLAG= -openmp #-DZEN
     DBLFLAG= -r8
-    DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
+    DEBUGFLAG= -check all -traceback -g -fpe0 -fp-stack-check -heap-arrays
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -convert big_endian
     ENDIANFLAGLITTLE= -convert little_endian
@@ -118,7 +118,7 @@ ifeq ($(SYSTEM), complexity)
 #
     OMPFLAG= -openmp #-DZEN
     DBLFLAG= -r8
-    DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk -heap-arrays
+    DEBUGFLAG= -check all -traceback -g -fpe0 -fp-stack-check -heap-arrays
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -convert big_endian
     ENDIANFLAGLITTLE= -convert little_endian

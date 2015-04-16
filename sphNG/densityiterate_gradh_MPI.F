@@ -3575,7 +3575,7 @@ c
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
-      DIMENSION xyzmh(5,mmax2), dvxyzu(4,idim2)
+      DIMENSION xyzmh(5,mmax2), dvxyzu(4,idim3)
 
       INCLUDE 'COMMONS/nlim'
       INCLUDE 'COMMONS/btree'

@@ -1112,12 +1112,18 @@ c
 
       G0 = 1.0
 
-      x_CO_Cplus = 1./23333. * xnH2 / (G0*heatingISR(3,ipart))**3.2
-      x_C_Cplus = 1./350000. * xnH2 / (G0*heatingISR(3,ipart))**2.6
+      IF (heatingISR(3,ipart).LT.tiny) THEN
+         x_Cplus = 0.
+         x_C = 0.
+         x_CO = 1.
+      ELSE
+         x_CO_Cplus = 1./23333. * xnH2 / (G0*heatingISR(3,ipart)**3.2)
+         x_C_Cplus = 1./350000. * xnH2 / (G0*heatingISR(3,ipart)**2.6)
 
-      x_Cplus = 1.0 / (1. + x_CO_Cplus + x_C_Cplus)
-      x_C = x_C_Cplus * x_Cplus
-      x_CO = x_CO_Cplus * x_Cplus
+         x_Cplus = 1.0 / (1. + x_CO_Cplus + x_C_Cplus)
+         x_C = x_C_Cplus * x_Cplus
+         x_CO = x_CO_Cplus * x_Cplus
+      ENDIF
 
       IF (iCHEM_depletion) THEN
 c

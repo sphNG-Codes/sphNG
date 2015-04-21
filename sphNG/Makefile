@@ -325,7 +325,7 @@ OBJKERNEL= $(KERNEL:.f=.o)
 SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F \
 	bonnorebert.f boundry.f buildsightlines.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f chekopt.f \
-	classify_MPI.F column_density.F condense.f constan.f 
+	classify_MPI.F condense.f constan.f \
 	coolcurve.f coolinmo.F cool_func.F \
 	coriol.f cyldis.f cylmas.f cylpres.f cylvel.f discboundary.f \
 	divBclean_subcycle.F divBsubcycle.F \
@@ -340,7 +340,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F \
 	homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
 	inopts.f insulate_TREE_P.F integs.F $(KERNEL) labrun.F lunit_double.f \
 	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
-	newrun.f options.f phoenix.f phoenix2.f \
+	newrun.f options.f optimise_column_density.f phoenix.f phoenix2.f \
 	place.f planetpotential.f planet_setup.f planetesimals.f potential.f \
 	preset.F \
 	prout.F ran1.f rdump.F rdump_wrapper.F read_dragtable.f reduce.f \
@@ -362,7 +362,7 @@ SRCGRADH= derivi_P_gradh_MPI.F forcei_P_gradh_MPI.F  \
 # these are the extra routines required for the radiative transfer code to compile
         
 SRCRT= ass.f RT/newgsimpl_MPI.f RT/boundaryparticle.f quartic_gs1t.f \
-	RT/getblock.f RT/dust_temperature.f
+	RT/getblock.f RT/dust_temperature.f column_density.F 
 SRCNORT = ass_dummy.f
 
 # these are the extra routines required for Monte-Carlo radiative transfer

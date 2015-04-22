@@ -131,6 +131,11 @@ c
          ENDIF
          READ (iterm, *) tolerance, boundtemp, bounddens, opdenom, 
      &        iopmodel, metallicity
+         IF (idustRT.GT.0 .AND. boundtemp.NE.1.0) THEN
+            WRITE (iprint,*) 'ERROR - boundtemp should be 1 K for ',
+     &           'RT with diffuse ISM physics'
+            CALL quit(0)
+         ENDIF
       ENDIF
       iatomic = .FALSE.
       IF (idustRT.GT.0) THEN

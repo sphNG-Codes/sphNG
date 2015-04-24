@@ -2234,14 +2234,18 @@ c
                      tdiff = t_plus - t_found
                      u_plus = getu(rhoreal4,t_plus)
 c
-c--Molecular line cooling
+c--Molecular line cooling.  NOTE that because cooling_line_rate() sets the
+c     abundances of carbon (in the chemistry() array) it it important that
+c     the t_found call is done after the t_plus call otherwise the carbon
+c     abundance that is stored in the chemistry() array is produced using
+c     the wrong temperature!
 c
-                     cooling_line1 =
-     &                    cooling_line_rate(i,t_found,xnH2,
-     &                    metallicity)/
-     &                    rhoi/uergcc*utime
                      cooling_line2 =
      &                    cooling_line_rate(i,t_plus,xnH2,
+     &                    metallicity)/
+     &                    rhoi/uergcc*utime
+                     cooling_line1 =
+     &                    cooling_line_rate(i,t_found,xnH2,
      &                    metallicity)/
      &                    rhoi/uergcc*utime
 

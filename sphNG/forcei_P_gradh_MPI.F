@@ -978,7 +978,11 @@ c
                         fanisoyi = fanisoyi + pmassj*fanisoy
                         fanisozi = fanisozi + pmassj*fanisoz
 c
-c--Set first IF to disable haverage on anisotropic MHD force equation
+c--Set first IF to disable haverage on anisotropic MHD force equation.
+c     In the non-haverage formalism with the Borve correction 
+c     (subtracting off the full B div B term) there is no anisotropic
+c     force term that involves W(hi), and the W(hj) term is done by
+c     particle j and added to the force on i (i.e. in Part 2 below).
 c                     ELSEIF(.FALSE.)THEN
                      ELSEIF (ihaverage) THEN 
 c

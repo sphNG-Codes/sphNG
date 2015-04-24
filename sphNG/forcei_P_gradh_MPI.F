@@ -31,10 +31,37 @@ c************************************************************
 c--this weight is equivalent to m/(rho*h^3) in the grad h version
       PARAMETER (hfact = 1.2)
       PARAMETER (weight = 1./hfact**3)
+c
+c--Parameters for switching between different implementations of SPMHD.
+c     FALSE is normal for both iMorris and iPhantom_resistivity
+c
       LOGICAL iMorris
       PARAMETER (iMorris = .FALSE.)
       LOGICAL iPhantom_resistivity
       PARAMETER (iPhantom_resistivity = .FALSE.)
+c
+c--Whether or not to use an average h formalism for two of the MHD 
+c     equations: the anisotropic magnetic force, and the induction 
+c     equation.  All other equations continue to use h_i and h_j.
+c     See Lewis, Bate & Price (2015, MNRAS) for more details.
+c     NOTE: ihaverage also requires imhd = idim (i.e. MHD is used).
+c
+      LOGICAL ihaverage_switch
+      PARAMETER (ihaverage_switch = .TRUE.)
+      LOGICAL ihaverage
+      PARAMETER (ihaverage = (ihaverage_switch .AND. imhd.EQ.idim))
+c
+c--If ihaverage is TRUE, then four different forms of average can be
+c     used.  Standard is to use '0'.  See Lewis, Bate, Monaghan & Price
+c     (2015, SPHERIC conference proceedings for more details).
+c
+c     0 => arithmetic
+c     1 => geometric
+c     2 => harmonic
+c     3 => quadratic
+c
+      INTEGER ihavtype
+      PARAMETER (ihavtype = 0)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
@@ -97,6 +124,9 @@ c
       COMMON /locks / forcei_lock(idim2/10+1),revtree_lock
 #endif
 
+      LOGICAL ifirst
+      DATA ifirst/.TRUE./
+
       DATA where/'forcei'/
       DATA epsil/1.E-2/
       DATA epsil2/1.E-4/
@@ -113,6 +143,25 @@ c
       print *,iproc,': Entered forcei ',itime
 #endif
 #endif
+c
+c---------- FIRST TIME AROUND ----------
+c
+      IF (ifirst) THEN
+#ifdef MPIALL
+         IF (iproc.EQ.0) THEN
+#endif
+            IF (ihaverage) THEN
+               WRITE (iprint,251) ihavtype
+ 251           FORMAT (' MHD using h_average formalism: ihavtype = ',I1)
+            ENDIF
+#ifdef MPIALL
+         ENDIF
+#endif
+         ifirst = .FALSE.
+      ENDIF
+c
+c---------- END FIRST TIME AROUND ----------
+c
 
 #ifdef DGRID
       IF (gasdrag) dragqchange(:,:,:) = 0.0
@@ -286,10 +335,11 @@ C$OMP& private(pdvi,dqi,rhoi,pro2i,pro2j,vsoundi,k,j,hj,dx,dy,dz)
 C$OMP& private(dragr,dragp,dragt,idragr,idragp,idragt)
 #endif
 C$OMP& private(dq_drag,dq_dragi,dq_dragj)
-C$OMP& private(rho1i,rho21i,sqrtrho1i,rho1j)
+C$OMP& private(rho1i,rho21i,sqrtrho1i,rho1j,rho21j)
 C$OMP& private(rij2,rij,rij1,pmassj,runix,runiy,runiz,hmean,hmean21)
 C$OMP& private(hi1,hi21,hi31,hi41,v2i,vi)
 C$OMP& private(hj1,hj21,hj31,hj41,v2j,vj)
+C$OMP& private(hav1,hav21,hav41,v2av,vav,grkernav,hav)
 C$OMP& private(index,dxx,index1,rij2grav,rijgrav,fm)
 C$OMP& private(phi,dphi,dfmassdx,dfptdx,dpotdh,xmasj,rhoj,robar)
 C$OMP& private(wtij,dwdx,dgrwdx,grwtij,grpm,dvx,dvy,dvz,projv,vsbar)
@@ -320,6 +370,7 @@ C$OMP& private(forceBanx,forceBany,forceBanz)
 C$OMP& private(dBpsix,dBpsiy,dBpsiz,dBpsixj,dBpsiyj,dBpsizj)
 C$OMP& private(t12jpmassi,t12jpmassj,r32grav,forcexi,forceyi,forcezi)
 C$OMP& private(Bevoldotdv,termBpmi,termBpmj,termetapmj,termetapmi)
+C$OMP& private(dBxidealj,dByidealj,dBzidealj)
 C$OMP& private(dBxdissj,dBydissj,dBzdissj,dBxyz_xi,dBxyz_yi,dBxyz_zi)
 C$OMP& private(ioffset,etai,etaj,ui,uj,dqj)
 #ifdef MPICOPY
@@ -579,6 +630,26 @@ c
             hj21 = hj1*hj1
             hj31 = hj21*hj1
             hj41 = hj21*hj21
+
+            IF (ihaverage) THEN
+               IF (ihavtype.EQ.0) THEN
+                  hav = 0.5*(hi+hj)
+               ELSEIF (ihavtype.EQ.1) THEN
+                  hav = SQRT(hi*hj)
+               ELSEIF (ihavtype.EQ.2) THEN
+                  hav = (2.0*hi*hj)/(hi+hj)
+               ELSEIF (ihavtype.EQ.3) THEN
+                  hav = SQRT( 0.5*(hi*hi+hj*hj) )
+               ELSE
+                  WRITE (iprint,99008) ihavtype
+                  WRITE (*,99008) ihavtype
+99008             FORMAT(' ERROR - Unimplemented ihavtype = ',I2)
+                  CALL quit(0)
+               ENDIF
+               hav1 = 1./hav
+               hav21 = hav1*hav1
+               hav41 = hav21*hav21
+            ENDIF
 c
 c--Added for gas-dust drag
 c
@@ -607,8 +678,15 @@ c
             vi = rij*hi1
             v2j = rij2*hj21
             vj = rij*hj1
+            IF (ihaverage) THEN
+               v2av = rij2*hav21
+               vav = rij*hav1
+            ELSE
+               vav = 1.0E+10
+            ENDIF
             rhoj = trho(j)
             rho1j = 1./rhoj
+            rho21j = rho1j*rho1j
             robar1 = 2./(rhoi + rhoj)
 
             IF (imhd.EQ.idim) THEN
@@ -690,25 +768,46 @@ c
 c--Using hi
 c
             dsoftterm = 0.
-            IF (vi.LT.radkernel) THEN
-               index = v2i*ddvtable
-               index1 = index + 1
-               IF (index1.GT.itable) index1 = itable
-               dxx = v2i - index*dvtable               
-               dgrwdx = (grwij(index1)-grwij(index))*ddvtable ! slope
+            wtij = 0.
+            IF (vi.LT.radkernel .OR. vav.LT.radkernel) THEN
+               IF (vi.LT.radkernel) THEN
+                  index = v2i*ddvtable
+                  index1 = index + 1
+                  IF (index1.GT.itable) index1 = itable
+                  dxx = v2i - index*dvtable               
+                  dgrwdx = (grwij(index1)-grwij(index))*ddvtable ! slope
 c
 c--Kernel required for gas drag calculation.
 c
-               IF (gasdrag) THEN
-                  dwdx = (wij(index1) - wij(index))*ddvtable
-                  wtij = (wij(index) + dwdx*dxx)*hi31*v2i*
-     &                 doublehumpnormk
-               ENDIF
+                  IF (gasdrag) THEN
+                     dwdx = (wij(index1) - wij(index))*ddvtable
+                     wtij = (wij(index) + dwdx*dxx)*hi31*v2i*
+     &                    doublehumpnormk
+                  ENDIF
 c
 c--(note that kernel gradient is multiplied by gradhi)
 c
-               grkerntable = (grwij(index)+ dgrwdx*dxx)*cnormk
-               grkerni = grkerntable*hi41*gradhi
+                  grkerntable = (grwij(index)+ dgrwdx*dxx)*cnormk
+                  grkerni = grkerntable*hi41*gradhi
+               ELSE
+                  grkerni = 0.
+               ENDIF
+
+               IF (vav.LT.radkernel) THEN
+                  index = v2av*ddvtable
+                  index1 = index + 1
+                  IF (index1.GT.itable) index1 = itable
+                  dxx = v2av - index*dvtable               
+                  dgrwdx = (grwij(index1)-grwij(index))*ddvtable ! slope
+c
+c--(note that haverage kernel gradient is NOT multiplied by gradhi)
+c
+                  grkerntable = (grwij(index)+ dgrwdx*dxx)*cnormk
+                  grkernav = grkerntable*hav41
+               ELSE
+                  grkernav = 0.
+               ENDIF
+
                grpmi = grkerni*pmassj
 c
 c--i contribution to pressure gradient and pdv
@@ -724,22 +823,33 @@ c
 c--i contribution to force softening (including pseudo-pressure term)
 c
                IF (isoft.EQ.0) THEN
-                  dfmassdx = (fmass(index1) - fmass(index))*ddvtable
-                  fmi = (fmass(index) + dfmassdx*dxx)
-                  dfptdx = (fpoten(index1) - fpoten(index))*ddvtable
-                  phii = (fpoten(index) + dfptdx*dxx)*hi1
-                  IF (vi.GT.part2kernel) THEN
-                     phii = phii + rij1*part2potenkernel
-                  ELSEIF (vi.GT.part1kernel) THEN
-                     phii = phii + rij1*part1potenkernel
+                  IF (vi.LT.radkernel) THEN
+                     dfmassdx = (fmass(index1) - fmass(index))*ddvtable
+                     fmi = (fmass(index) + dfmassdx*dxx)
+                     dfptdx = (fpoten(index1) - fpoten(index))*ddvtable
+                     phii = (fpoten(index) + dfptdx*dxx)*hi1
+                     IF (vi.GT.part2kernel) THEN
+                        phii = phii + rij1*part2potenkernel
+                     ELSEIF (vi.GT.part1kernel) THEN
+                        phii = phii + rij1*part1potenkernel
+                     ENDIF
+                     dsoftterm = 0.5*grkerni*gradsofti
+                  ELSE
+                     fmi = 1.
+                     phii = -rij1
                   ENDIF
-                  dsoftterm = 0.5*grkerni*gradsofti
                ENDIF
 
                IF (imhd.EQ.idim .AND. iphase(ipart).EQ.0 .AND.
      &                                           iphase(j).EQ.0) THEN
 c
-c--time derivative terms
+c--Zero j terms for safety
+c
+                  dBxidealj = 0.
+                  dByidealj = 0.
+                  dBzidealj = 0.
+c
+c--Time derivative terms of `ideal' B field
 c
                   IF (varmhd.EQ.'vecp') THEN
 c--Axel Gauge dA_i /dt = -A^j grad_i v_j
@@ -747,15 +857,45 @@ c--Axel Gauge dA_i /dt = -A^j grad_i v_j
                    dBxideali = dBxideali + Bevoldotdv*grpmi*runix
                    dByideali = dByideali + Bevoldotdv*grpmi*runiy
                    dBzideali = dBzideali + Bevoldotdv*grpmi*runiz
-c--alternative Gauge dA_i /dt = v^j grad_i A_j
+c--Alternative Gauge dA_i /dt = v^j grad_i A_j
 c                   Bevoldotdv = vxi*dBevolx + vyi*dBevoly + vzi*dBevolz
 c                   dBxideali = dBxideali - Bevoldotdv*grpmi*runix
 c                   dByideali = dByideali - Bevoldotdv*grpmi*runiy
 c                   dBzideali = dBzideali - Bevoldotdv*grpmi*runiz
                   ELSE
-                   dBxideali = dBxideali - grpmi*dvx*projBi
-                   dByideali = dByideali - grpmi*dvy*projBi
-                   dBzideali = dBzideali - grpmi*dvz*projBi
+c
+c--Set first IF to disable haverage on induction equation
+c                     IF(.TRUE.)THEN
+                     IF (.NOT.ihaverage) THEN
+c
+c--Standard Borve form
+c
+                        dBxideali = dBxideali - grpmi*dvx*projBi
+                        dByideali = dByideali - grpmi*dvy*projBi
+                        dBzideali = dBzideali - grpmi*dvz*projBi
+                     ELSE
+c
+c--haverage Borve formalism 
+c     For the derivation of the inequalties, think Iolanthe
+c     "And noble statesmen do not itch, To interfere with matters which,
+c     They do not understand"
+c
+c--Do Part 1 unconditionally
+c
+                        dBxideali= dBxideali -grkernav*pmassj*dvx*projBi
+                        dByideali= dByideali -grkernav*pmassj*dvy*projBi
+                        dBzideali= dBzideali -grkernav*pmassj*dvz*projBi
+c
+c--If we can see j, but j can't see us, do j's field too
+c     Do this here, not with the force in P2 because of inosink 
+c     protective IF
+c
+                        IF (iscurrent(j).AND.vj.GT.radkernel) THEN
+                           dBxidealj =       -grkernav*pmassi*dvx*projBj
+                           dByidealj =       -grkernav*pmassi*dvy*projBj
+                           dBzidealj =       -grkernav*pmassi*dvz*projBj
+                      ENDIF 
+                   ENDIF
                   ENDIF
 c
 c--time derivative of equilibrium B field, iBext.ne.0
@@ -813,8 +953,6 @@ c--Pressure force
 c
                   gradpi = gradp*pmassj
                   gradxi = gradxi - gradpi*runix
-c                  IF (iproc.EQ.0 .AND. ipart.EQ.1164) 
-c     &                 print *,j,- gradpi*runix
                   gradyi = gradyi - gradpi*runiy
                   gradzi = gradzi - gradpi*runiz
 
@@ -839,14 +977,19 @@ c
                         fanisoxi = fanisoxi + pmassj*fanisox
                         fanisoyi = fanisoyi + pmassj*fanisoy
                         fanisozi = fanisozi + pmassj*fanisoz
-                     ELSE
 c
-c--Anisotropic magnetic force (Borve formalism)
+c--Set first IF to disable haverage on anisotropic MHD force equation
+c                     ELSEIF(.FALSE.)THEN
+                     ELSEIF (ihaverage) THEN 
 c
-c                        Borve_temp = pmassj*grkerni*projBi*rho1i*rho1i
-c                        fanisoxi = fanisoxi + Borve_temp*Bxi
-c                        fanisoyi = fanisoyi + Borve_temp*Byi
-c                        fanisozi = fanisozi + Borve_temp*Bzi
+c--Anisotropic magnetic force (Borve formalism) - haverage formalism
+c     Do Part 1 unconditionally
+c     Part 2 is inside the icurrent(j) IF
+c
+                         Borve_temp = pmassj*grkernav*projBj*rho1j*rho1j
+                         fanisoxi = fanisoxi + Borve_temp*(Bxj-Bxi)
+                         fanisoyi = fanisoyi + Borve_temp*(Byj-Byi)
+                         fanisozi = fanisozi + Borve_temp*(Bzj-Bzi)
                      ENDIF
 c
 c--Evolution of psi
@@ -990,18 +1133,9 @@ c
 
                      t12jpmassj = t12j*pmassj
 
-c                  IF (iproc.EQ.0 .AND. ipart.EQ.1164) 
-c     &            print *,' j ',j,t12j,projv,alphamean,grkern,f,robar1
-
-
                      artxi = artxi - t12jpmassj*runix
                      artyi = artyi - t12jpmassj*runiy
                      artzi = artzi - t12jpmassj*runiz
-
-c                     IF (ipart.EQ.0418) THEN
-c                        print *,' P0418dq ',j,t12jpmassj,projv
-c                     ENDIF
-
 
                      dqi = dqi + t12jpmassj*projv
                   ELSE
@@ -1019,9 +1153,8 @@ c
 
                      f_drag_co = getcd(rhoi, dvij, vsoundi,
      &                    ipart, idragscheme)
-                     
+
                      f_drag_i = f_drag_co*projv*wtij*pmassj
-                        
 
                      ptsi = ptsi +  pmassj*wtij/(rhoi*rhoi*f_drag_co/3.)
                      ptsnormi = ptsnormi +  pmassj*wtij/rhoi
@@ -1050,7 +1183,7 @@ c--Add terms to particle j (if j is active)
 c-------------------------
 c
                   IF (iscurrent(j)) THEN
-                     
+
                      forcex = 0.
                      forcey = 0.
                      forcez = 0.
@@ -1088,7 +1221,20 @@ c
 c
 c--Anisotropic magnetic force (Borve formalism)
 c
-                           Borve_temp =pmassi*grkerni*projBi*rho1i*rho1i
+c--Set first IF to disable haverage on anisotropic MHD force equation
+c                           IF(.TRUE.)THEN
+                           IF (.NOT.ihaverage) THEN
+c Normal
+                              Borve_temp =
+     &                             pmassi*grkerni*projBi*rho1i*rho1i
+                           ELSEIF (vj.GT.radkernel) THEN
+c haverage
+                              Borve_temp =
+     &                             pmassi*grkernav*projBi*rho1i*rho1i
+                           ELSE
+c hav but done in j's part 1
+                              Borve_temp = 0.
+                           ENDIF
                            forcex = forcex - Borve_temp*(Bxi-Bxj)
                            forcey = forcey - Borve_temp*(Byi-Byj)
                            forcez = forcez - Borve_temp*(Bzi-Bzj)
@@ -1200,7 +1346,6 @@ c
                      force_an(3,j) = forceBanz
 
                      dq(j) = dq(j) + dqj
-c                     print *, 'index 1', idragr, idragp, idragt
 
 #ifdef DGRID
                      IF (gasdrag) THEN
@@ -1219,9 +1364,15 @@ C$OMP END CRITICAL
                      ENDIF
 
                      IF (imhd.EQ.idim) THEN
-                        dBxyz(1,j) = dBxyz(1,j) - dBxdissj
-                        dBxyz(2,j) = dBxyz(2,j) - dBydissj
-                        dBxyz(3,j) = dBxyz(3,j) - dBzdissj
+c
+c--NOTE: dBxidealj = 0. unless haverage code
+c
+                        dBxyz(1,j) = dBxyz(1,j) - dBxdissj 
+     &                             + dBxidealj*rho21j
+                        dBxyz(2,j) = dBxyz(2,j) - dBydissj 
+     &                             + dByidealj*rho21j
+                        dBxyz(3,j) = dBxyz(3,j) - dBzdissj 
+     &                             + dBzidealj*rho21j
                         IF (imhdevol.EQ.4) THEN
                            dBxyz(1,j) = dBxyz(1,j) + dBpsixj
                            dBxyz(2,j) = dBxyz(2,j) + dBpsiyj
@@ -1239,7 +1390,6 @@ c
             ELSE
                grkerni = 0.
                fmi = 1.
-ccc               fmi = 0.
                phii = -rij1
             ENDIF
 c
@@ -1268,12 +1418,6 @@ c
                IF (j.LE.npart) THEN
                   xmasj = fm*pmassj*r32grav
                   gravxi = gravxi - xmasj*dx
-
-
-c                  IF (iproc.EQ.0 .AND. ipart.EQ.1164)
-c     &                 print *,j,- xmasj*dx,' ipart '
-
-
                   gravyi = gravyi - xmasj*dy
                   gravzi = gravzi - xmasj*dz
                   poteni = poteni + phi*pmassj
@@ -1328,23 +1472,43 @@ c
             IF (.NOT.iscurrent(j)) THEN
 
                dsofttermj = 0.
-               IF (vj.LT.radkernel) THEN
-                  index = v2j*ddvtable
-                  index1 = index + 1
-                  IF (index1.GT.itable) index1 = itable
-                  dxx = v2j - index*dvtable
-                  dgrwdx = (grwij(index1)-grwij(index))*ddvtable ! slope
+               wtij = 0.
+               IF (vj.LT.radkernel .OR. vav.LT.radkernel) THEN
+                  IF (vj.LT.radkernel) THEN
+                     index = v2j*ddvtable
+                     index1 = index + 1
+                     IF (index1.GT.itable) index1 = itable
+                     dxx = v2j - index*dvtable
+                     dgrwdx = (grwij(index1)-grwij(index))*ddvtable 
 
-                  IF (gasdrag .AND. iphase(ipart).EQ.11) THEN
-                     dwdx = (wij(index1) - wij(index))*ddvtable
-                     wtij = (wij(index)+dwdx*dxx)*hj31*v2j*
-     &                    doublehumpnormk
-                  ENDIF
+                     IF (gasdrag .AND. iphase(ipart).EQ.11) THEN
+                        dwdx = (wij(index1) - wij(index))*ddvtable
+                        wtij = (wij(index)+dwdx*dxx)*hj31*v2j*
+     &                       doublehumpnormk
+                     ENDIF
 c
 c--(note that kernel gradient is multiplied by gradhj)
 c
-                  grkernj = (grwij(index)+ dgrwdx*dxx)*
-     &                      cnormk*hj41*gradhs(1,j)
+                     grkernj = (grwij(index)+ dgrwdx*dxx)*
+     &                    cnormk*hj41*gradhs(1,j)
+                  ELSE
+                     grkernj = 0.
+                  ENDIF
+
+                  IF (vav.LT.radkernel) THEN
+                     index = v2av*ddvtable
+                     index1 = index + 1
+                     IF (index1.GT.itable) index1 = itable
+                     dxx = v2av - index*dvtable
+                     dgrwdx = (grwij(index1)-grwij(index))*ddvtable 
+c
+c--(note that haverage kernel gradient is NOT multiplied by gradhj)
+c
+                     grkernav = (grwij(index)+ dgrwdx*dxx)*
+     &                    cnormk*hav41
+                  ELSE
+                     grkernav = 0.
+                  ENDIF
 c
 c--j contribution to pressure gradient and isotropic mag force
 c
@@ -1357,16 +1521,21 @@ c
 c--j contribution to force softening (including pseudo-pressure term)
 c
                   IF (isoft.EQ.0 .OR. isoft.EQ.2) THEN
-                     dfmassdx = (fmass(index1) - fmass(index))*ddvtable
-                     fmj = (fmass(index) + dfmassdx*dxx)
-                     dfptdx = (fpoten(index1) - fpoten(index))*ddvtable
-                     phij = (fpoten(index) + dfptdx*dxx)*hj1
-                     IF (vj.GT.part2kernel) THEN
-                        phij = phij + rij1*part2potenkernel
-                     ELSEIF (vj.GT.part1kernel) THEN
-                        phij = phij + rij1*part1potenkernel
+                     IF (vj.LT.radkernel) THEN
+                        dfmassdx= (fmass(index1) -fmass(index))*ddvtable
+                        fmj = (fmass(index) + dfmassdx*dxx)
+                        dfptdx= (fpoten(index1) -fpoten(index))*ddvtable
+                        phij = (fpoten(index) + dfptdx*dxx)*hj1
+                        IF (vj.GT.part2kernel) THEN
+                           phij = phij + rij1*part2potenkernel
+                        ELSEIF (vj.GT.part1kernel) THEN
+                           phij = phij + rij1*part1potenkernel
+                        ENDIF
+                        dsofttermj = 0.5*grkernj*pmassj*gradhs(2,j)
+                     ELSE
+                        fmj = 1.
+                        phij = -rij1
                      ENDIF
-                     dsofttermj = 0.5*grkernj*pmassj*gradhs(2,j)
                   ENDIF
 c
 c--If i and j are not across a sink particle
@@ -1411,7 +1580,17 @@ c
 c--Anisotropic magnetic force (Borve formalism)
 c
                         ELSE
-                           Borve_temp =pmassj*grkernj*projBj*rho1j*rho1j
+c
+c--Set first IF to disable haverage on anisotropic MHD force equation
+c                           IF(.TRUE.)THEN
+                           IF (.NOT.ihaverage) THEN
+c Normal
+                              Borve_temp =
+     &                             pmassj*grkernj*projBj*rho1j*rho1j
+                           ELSE
+c haverage but done in Part 1 so a No-op
+                              Borve_temp = 0.
+                           ENDIF
                            fanisoxi = fanisoxi + Borve_temp*(Bxj-Bxi)
                            fanisoyi = fanisoyi + Borve_temp*(Byj-Byi)
                            fanisozi = fanisozi + Borve_temp*(Bzj-Bzi)
@@ -1600,7 +1779,6 @@ c
                ELSE
                   grkernj = 0.
                   fmj = 1.
-ccc                  fmj = 0.
                   phij = -rij1
                ENDIF
 c
@@ -1633,12 +1811,6 @@ c--Gravitational force calculation
 c
                   IF (j.LE.npart) THEN
                      xmasj = fm*pmassj/(rij2grav*rijgrav)
-
-
-c                  IF (iproc.EQ.0 .AND. ipart.EQ.1164)
-c     &                 print *,j, - xmasj*dx,' j-inactive '
-
-
                      gravxi = gravxi - xmasj*dx
                      gravyi = gravyi - xmasj*dy
                      gravzi = gravzi - xmasj*dz
@@ -1660,10 +1832,6 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D5 ',n
 ccc            forcexi = gravxi
 ccc            forceyi = gravyi
 ccc            forcezi = gravzi
-
-c            IF (iproc.EQ.0 .AND. ipart.EQ.1164) print *,'gravxi ',
-c     &           gravxi
-
 c
 c--Add self contribution to potential
 c
@@ -1691,11 +1859,6 @@ c
             forcexi = forcexi + gradxi
             forceyi = forceyi + gradyi
             forcezi = forcezi + gradzi
-
-c            IF (ipart.EQ.1164) THEN
-c               print *,iproc,ipart,gradxi,xyzmh(1,ipart),
-c     &           xyzmh(2,ipart),xyzmh(3,ipart)
-c            ENDIF
          ENDIF
 c
 c--Anisotropic magnetic force, div/curl B

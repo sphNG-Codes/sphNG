@@ -1112,9 +1112,9 @@ c
 
       G0 = 1.0
 
-      IF (heatingISR(3,ipart).LT.tiny) THEN
+      IF (heatingISR(3,ipart).LT.1.0E-10) THEN
          x_Cplus = 0.
-         x_C = 0.
+         x_C = 23333./350000. * heatingISR(3,ipart)**0.6
          x_CO = 1.
       ELSE
          x_CO_Cplus = 1./23333. * xnH2 / (G0*heatingISR(3,ipart)**3.2)

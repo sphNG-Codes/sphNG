@@ -2051,7 +2051,7 @@ c
 
       IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim) CALL hcalc
 
-      IF (igeom.EQ.10 .AND. use_tprof) CALL uset
+      IF (igeom.EQ.10 .AND. use_tprof .AND. encal.EQ.'r') CALL uset
 
       IF (imhd.NE.idim) THEN
          Bextx = 0.

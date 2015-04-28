@@ -998,27 +998,36 @@ c            WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
             CALL ASS(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
      &           xyzmh,vxyzu,ekcle,dumrho,dedxyz,alphaMM)
          ELSEIF (ibound.EQ.102 .AND. use_tprof) THEN
-c-- Added for Isothermal whole disc case with t-profile
+c
+c--Added for Isothermal whole disc case with t-profile
+c
             rho0 = 0.2
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end,llist,xyzmh,gamma,gmw,iphase)
-C$OMP& shared(hoverr,tprof,Rg,uergg,vxyzu,rho0,rho)
+C$OMP& shared(hoverr,tprof,Rg,uergg,vxyzu,rho0,rho,encal)
 C$OMP& private(i,j,radius,boundtempl)
             DO j = nlst_in, nlst_end
                i = llist(j)
                IF (iphase(i).EQ.0) THEN
                   radius = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
-                  boundtempl =  gmw*hoverr**2*radius**
-     &                 (tprof+1)/((Rg/uergg)*gamma*radius)
-                  vxyzu(4,i) = getu(rho(i), boundtempl)
-                  IF (rho(i).GT.rho0) THEN
-                     vxyzu(4,i) = vxyzu(4,i)*(rho(i)/rho0)**0.8
+                  IF (encal.EQ.'r') THEN
+                     boundtempl =  gmw*hoverr**2*radius**
+     &                    (tprof+1)/((Rg/uergg)*gamma*radius)
+                     vxyzu(4,i) = getu(rho(i), boundtempl)
+                     IF (rho(i).GT.rho0) THEN
+                        vxyzu(4,i) = vxyzu(4,i)*(rho(i)/rho0)**0.8
+                     ENDIF
+                  ELSE
+                     vxyzu(4,i) = hoverr**2*radius**tprof/
+     &                    (gamma*(gamma-1.0))
                   ENDIF
                ENDIF
             END DO
 C$OMP END PARALLEL DO
          ELSEIF (ibound.EQ.100 .OR. ibound.EQ.102) THEN
+c
 c--Added for Isothermal disc section case and whole disc with u profile
+c
             rho0 = 0.2
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end,llist,xyzmh,gamma,iphase)

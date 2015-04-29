@@ -243,7 +243,8 @@ c
                nptmass = nptmass + numpt
 c--Moves particles near new and existing point masses to avoid the
 c--disc struggling to adapt to the sudden addition.
-               IF (ibound.EQ.102 .AND. ipttype.EQ.5) THEN
+               IF ((ibound.EQ.102 .OR. ibound.EQ.103) 
+     &              .AND. ipttype.EQ.5) THEN
                   print *, 'Enter a radius for the planet surface'
                   READ (*,*) rplanet
                   hacc = 1.0E-8

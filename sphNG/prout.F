@@ -558,7 +558,7 @@ c
 99409       FORMAT (' injection adjustment factor   : ', 1PE14.5)
          ENDIF
          
-         IF (ibound.EQ.102) THEN
+         IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
             IF (initialptm.EQ.5) THEN
 11408          FORMAT(' radius of planet (',I2, ') surface : ', 1PE14.5)
                DO i = 1, nptmass

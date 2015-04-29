@@ -310,7 +310,8 @@ c
 c
 c--Additional constraint for planet with surface for migration
 c
-               IF (ibound.EQ.102 .AND. initialptm.EQ.5) THEN
+               IF ((ibound.EQ.102 .OR. ibound.EQ.103)
+     &              .AND. initialptm.EQ.5) THEN
                   DO j = 1, nptmass
                      IF (iphase(listpm(j)).EQ.5) THEN
                         radiushill2 = (xyzmh(4,listpm(j))/(3.*xmass))
@@ -1246,7 +1247,8 @@ c
 c
 c--Additional constraint for planet with surface for migration
 c
-         IF (ibound.EQ.102 .AND. initialptm.EQ.5) THEN
+         IF ((ibound.EQ.102 .OR. ibound.EQ.103)
+     &        .AND. initialptm.EQ.5) THEN
             DO j = 1, nptmass
                IF (iphase(listpm(j)).EQ.5) THEN
                   radiushill2 = (xyzmh(4,listpm(j))/(3.*xmass))**(2./3.)
@@ -1386,7 +1388,7 @@ C$OMP END CRITICAL (killparticle)
 c
 c--Dead particle boundaries - planet embedded in whole disc
 c
-         IF (ibound.EQ.102) THEN
+         IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
             r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
             IF ((r2.GT.rcyl**2 .AND. iphase(i).EQ.0) .OR.
      &           (r2.LE.rmind**2 .AND. iphase(i).GT.0) .OR.

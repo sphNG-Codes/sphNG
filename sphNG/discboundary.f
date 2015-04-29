@@ -35,10 +35,10 @@ c FM: produce array of the boundary height for radii from rmin to rcyl
          IF (ibound.EQ.101) boundtempl = (gmw/(gamma*Rg/uergg))
      &        *hoverr**2*G*Mstar_init/R_o*(R_o/radius)**0.5
 
-         IF (ibound.EQ.102 .AND. use_tprof) THEN
+         IF ((ibound.EQ.102 .OR. ibound.EQ.103) .AND. use_tprof) THEN
             boundtempl = gmw*hoverr**2*radius**
      &           (tprof+1)/((Rg/uergg)*gamma*radius)
-         ELSEIF (ibound.EQ.102) THEN
+         ELSEIF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
             boundtempl = gmw*hoverr**2/((Rg/uergg)*
      &           gamma*radius)
          ELSE
@@ -53,7 +53,8 @@ c FM: produce array of the boundary height for radii from rmin to rcyl
 
          IF (ibound.EQ.101) sigma_init = hoverr/(2*pi)*Mstar_init/
      &        (R_o*R_out**3)**0.25*(R_o/radius)
-         IF (ibound.EQ.102) sigma_init = (75.0*udist**2/umass)*
+         IF (ibound.EQ.102.OR. ibound.EQ.103) 
+     &        sigma_init = (75.0*udist**2/umass)*
      &        signorm/radius**0.5
 
          x = 1.0-2.0/(kappa*sigma_init)

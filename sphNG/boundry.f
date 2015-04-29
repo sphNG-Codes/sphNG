@@ -334,6 +334,73 @@ c            IF (ichan.NE.0) THEN
 c               idonebound = 1
 c            ENDIF         
  500     CONTINUE         
+      ELSE IF ( ibound.EQ.103 ) THEN
+c
+c--Global disc boundaries, but with enforced sub-Keplerian motions near
+c     inner and outer boundaries.
+c
+         DO 550 j = 1, nlst0
+            i = list(j)
+            IF (iphase(i).NE.0) GOTO 550
+            delta = (1.3-ran1(1))*0.5*xyzmh(5,i)
+            rcyld = rcyl - 0.05
+            rmindd = rmind + 0.05
+            zmind = zmin + delta
+            zmaxd = zmax - delta
+            ichan = 0
+            r2 = xyzmh(1,i)*xyzmh(1,i) + xyzmh(2,i)*xyzmh(2,i)
+
+            IF (r2.GT.rcyld*rcyld) THEN
+               iouter = iouter + 1
+               r = SQRT(r2)
+               yi = xyzmh(2,i)
+               xi = xyzmh(1,i)
+c
+c--Set particles in the boundary to move with sub-Keplerian velocity
+c
+               vk = xmass/SQRT(r)
+               vg = vk*SQRT((1.0-3.0*(vsound(i)/vk)**2))
+               ang1 = ATAN2(yi,xi)
+               vxyzu(1,i) = - vg*SIN(ang1)
+               vxyzu(2,i) = vg*COS(ang1)
+               vxyzu(3,i) = 0.0
+            ENDIF
+            IF (r2.LT.rmindd*rmindd) THEN
+               iinner = iinner + 1
+               r = sqrt(r2)
+               yi = xyzmh(2,i)
+               xi = xyzmh(1,i)
+c
+c--Set particles in the boundary to move with sub-Keplerian velocity
+c
+               vk = xmass/SQRT(r)
+               vg = vk*SQRT((1.0-3.0*(vsound(i)/vk)**2))
+               ang1 = ATAN2(yi,xi)
+               vxyzu(1,i) = - vg*SIN(ang1)
+               vxyzu(2,i) = vg*COS(ang1)
+               vxyzu(3,i) = 0.0
+            ENDIF
+
+            IF (xyzmh(3,i).LE.zmin) THEN
+               ichan = ichan + 1
+               vxyzu(3,i) = 0.
+               xyzmh(3,i) = zmind
+            ENDIF
+            IF (xyzmh(3,i).GE.zmax) THEN
+               ichan = ichan + 1
+               vxyzu(3,i) = 0.
+               xyzmh(3,i) = zmaxd
+            ENDIF
+c
+c--idonebound should be set if a particle has been moved as it 
+c     affects the tree structure (changing its velocity doesn't).
+c
+            IF (ichan.NE.0) THEN
+               iouter = iouter + 1
+               idonebound = 1
+            ENDIF
+ 550     CONTINUE
+
       ENDIF
 
       IF (iinner.NE.0) WRITE (iprint,99009) iinner

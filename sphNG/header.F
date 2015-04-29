@@ -254,7 +254,7 @@ c
      &           '  disc H/R        : ',1PE12.4,/,
      &           '  planet mass     : ',1PE12.4,/,
      &           '  planet radius   : ',1PE12.4,/)
-         ELSEIF (ibound.EQ.102) THEN
+         ELSEIF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
             IF (nptmass.GT.0) THEN
                WRITE (iprint,99535) rcyl,rmind,
      &              signorm,sdprof,tprof,hoverr

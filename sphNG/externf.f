@@ -143,7 +143,8 @@ c
 c
 c--Inner disc edge boundary which acts only on gas
 c
-         IF (ibound.EQ.102 .AND. iphase(ipart).EQ.0) THEN
+         IF ((ibound.EQ.102 .OR. ibound.EQ.103)
+     &        .AND. iphase(ipart).EQ.0) THEN
             range = 0.005
             rlmin = rmind - (2.*range)
             

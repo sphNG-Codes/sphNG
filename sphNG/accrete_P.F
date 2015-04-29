@@ -1528,10 +1528,10 @@ c
 
                IF(vpotdif.LE.0. .AND. specangmom2.LT.specangmomhacc2
      &              .OR. r2.LT.haccall2 .OR. iphase(i).EQ.1 .OR.
-     &              ibound.EQ.102) THEN
+     &              ibound.EQ.102 .OR. ibound.EQ.103) THEN
 
 c--haccall<haccmin, but haccall cannot be set for an individual planet.
-c  Therefore, for ibound=102 get through above condition to below,
+c  Therefore, for ibound=102 or 103 get through above condition to below,
 c  where haccmin is set based on xyzmh(5,i), which is planet radius.
 
                   IF (r2.LT.haccmin2 .OR. (iphase(i).EQ.3 .AND.

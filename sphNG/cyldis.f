@@ -73,7 +73,8 @@ c************************************************************
      &                 GOTO 101
                ENDDO
 
-            ELSEIF (ibound.EQ.102 .AND. irotpot.EQ.1) THEN
+            ELSEIF ((ibound.EQ.102 .OR. ibound.EQ.103)
+     &              .AND. irotpot.EQ.1) THEN
                rtemp = sqrt((xyzmh(1,i)-rorbit_orig)**2 +
      &              xyzmh(2,i)**2 + xyzmh(3,i)**2)
                IF (rtemp.LE.(rplanet*pradfac(1)*2.1)) GOTO 101

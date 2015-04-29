@@ -37,7 +37,7 @@ c************************************************************
  1102 FORMAT ('Please enter the maximum inclination: ')
       READ (*,*) inclination_p
 
-      IF (ibound.EQ.102) THEN
+      IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
          WRITE (*,1103)
  1103    FORMAT ('Enter the minimum and maximum semi-major axis:')
          READ (*,*) mina, maxa
@@ -92,7 +92,7 @@ c************************************************************
       l = ran1(1)*2.*pi         !Called longitude in Wyatt 2003, but
                                 !is equivalent to the mean anomaly
 c         a = ran1(1)*(maxa-mina) + mina !semi-major axis
-      IF (ibound.EQ.102) THEN
+      IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
          IF (abs(sdprof+2.0).LT.tiny) THEN
             a = exp((log(maxa)-log(mina))*ran1(1) + log(mina))
          ELSE
@@ -168,7 +168,7 @@ c
 c--Ensure no planetesimal is initially placed too near a planet,
 c  or beyond relevant boundaries.
 c
-      IF (ibound.EQ.102 .AND. nptmass.GE.1) THEN
+      IF ((ibound.EQ.102 .OR. ibound.EQ.103) .AND. nptmass.GE.1) THEN
          DO j = 1, nptmass
             rtemp = sqrt((xyzmh(1,i)-xyzmh(1,listpm(j)))**2
      &           + (xyzmh(2,i)-xyzmh(2,listpm(j)))**2
@@ -176,7 +176,8 @@ c
             IF (rtemp.LE.(xyzmh(5,listpm(j))*pradfac(j)*2.1))
      &           GOTO 100
          ENDDO
-      ELSEIF (ibound.EQ.102 .AND. irotpot.EQ.1) THEN
+      ELSEIF ((ibound.EQ.102 .OR. ibound.EQ.103) 
+     &        .AND. irotpot.EQ.1) THEN
          rtemp = sqrt((xyzmh(1,i)-rorbit_orig)**2 +
      &        xyzmh(2,i)**2 + xyzmh(3,i)**2)
          IF (rtemp.LE.(rplanet*pradfac(1)*2.1)) GOTO 100

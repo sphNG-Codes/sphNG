@@ -586,12 +586,14 @@ c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
      &     ' constant angular momentum',/,
      &  '                              91 : constant N infall,',
      &     ' constant omega',/,
-     &  '                             100 : planet in disc',/,
-     &  '                             102 : planet in whole disc')
+     &  '                             100 : planet in disc section',/,
+     &  '                             102 : planet in whole disc',/,
+     &  '                             103 : planet in whole disc',
+     &  ' (sub-Kep in/out)')
       READ (iread, *) ibound
       IF (ibound.LT.0 .OR. (ibound.GT.11 .AND. ibound.NE.90 .AND.
      &     ibound.NE.91 .AND. ibound.NE.100 .AND.
-     &     ibound.NE.102)) GOTO 150
+     &     ibound.NE.102 .AND. ibound.NE.103)) GOTO 150
       IF (ibound.EQ.7) THEN
          WRITE(*,88111)
 88111    FORMAT(/,'   What is the external temperature (units K) ',/,
@@ -1123,7 +1125,7 @@ c
 c
 c--Set e.o.s. related quantities
 c
-      IF (ibound.EQ.102) THEN
+      IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
          IF (initialptm.EQ.5) THEN
 99021 FORMAT ('For migration with a planet surface, momentum',/
      &           'conservation near the sink particle is key.',/
@@ -1192,7 +1194,8 @@ c
      &        '   Variable gamma, p=A*rho^gamma (v)',/,
      &        '      critical rho (s) = ', 1PE14.5, 1PE14.5, 1PE14.5)
          READ (iread, 99004) encal
-         IF (encal.EQ.'i' .AND. (ibound.EQ.102.OR.ibound.EQ.100)) THEN
+         IF (encal.EQ.'i' .AND. (ibound.EQ.100 .OR. ibound.EQ.102
+     &        .OR. ibound.EQ.103)) THEN
             gamma = 5.0/3.0
          ELSE IF (encal.EQ.'p') THEN
             WRITE (*,99032)

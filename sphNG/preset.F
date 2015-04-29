@@ -489,7 +489,8 @@ c--End reading of opacity tables
 c
 c--Read in equation of state tables
 c      
-      IF (encal.EQ.'r' .OR. (encal.EQ.'i' .AND. ibound.EQ.102)
+      IF (encal.EQ.'r' .OR. 
+     &     (encal.EQ.'i' .AND. (ibound.EQ.102 .OR. ibound.EQ.103))
      &     .OR. ABS(iresist).GT.1) THEN
 
 c         filetable = TRIM(homedir)//'tables/gasttbl'
@@ -629,7 +630,8 @@ c  originally stated.
          ENDDO
       ENDIF
 
-      IF ((ibound.EQ.101 .OR. ibound.EQ.102) .AND. encal.EQ.'r') THEN
+      IF ((ibound.EQ.101 .OR. ibound.EQ.102 .OR. ibound.EQ.103) 
+     &     .AND. encal.EQ.'r') THEN
          CALL discboundary(ibound)
          print *, 'Disc optically thin boundary set'
       ENDIF

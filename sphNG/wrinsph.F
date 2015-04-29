@@ -220,7 +220,7 @@ c
      &        '  Rad variation, Phi, flowrate, sigma, HoverR, partmass')
       ENDIF
 
-      IF (ibound.EQ.102) THEN
+      IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
 88071    FORMAT(3X, L1, ' t-profile switch')
          WRITE (iterm, 88071) use_tprof
          IF (use_tprof) WRITE (iterm, 88072) tprof
@@ -254,7 +254,9 @@ c
          WRITE (iterm, 88040) xmass
 88040    FORMAT(2X,1PE12.5,'  External Forces Mass')
       ENDIF
-      IF (iexf.EQ.7 .OR. (ibound.EQ.102 .AND. initialptm.EQ.0)) THEN
+      IF (iexf.EQ.7 .OR. (
+     &     (ibound.EQ.102 .OR. ibound.EQ.103)
+     &     .AND. initialptm.EQ.0)) THEN
          WRITE (iterm, 88043) planetmass
 88043    FORMAT(2X,1PE15.8,'  Planet Mass')
          WRITE (iterm, 88045) rplanet
@@ -269,7 +271,7 @@ c
          ENDIF
       ENDIF
 
-      IF (ibound.EQ.102 .AND. initialptm.EQ.5) THEN
+      IF ((ibound.EQ.102 .OR. ibound.EQ.103) .AND. initialptm.EQ.5) THEN
 88047       FORMAT(2X,1PE12.5,'  Uniform Timestep radius')
             WRITE (iterm, 88047) uniformtslim
       ENDIF

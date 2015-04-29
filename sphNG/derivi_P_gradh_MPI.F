@@ -142,7 +142,7 @@ c
       nlst_in = 1
       nlst_end = nlst
 
-      IF (iexf.EQ.7 .OR. ibound.EQ.102) THEN
+      IF (iexf.EQ.7 .OR. ibound.EQ.102 .OR. ibound.EQ.103) THEN
          realtime = dt*itime/imaxstep+gt
          IF (rplanet.GT.1.0E-10) THEN
             pradfac(1) = (rplanet + (0.01*exp(-4.*realtime/pi)))/rplanet
@@ -926,7 +926,8 @@ c--Compute implicit radiative transfer
 c     
       IF (itiming) CALL getused(tass1)
 
-      IF(encal.EQ.'r' .OR. (encal.EQ.'i' .AND. ibound.EQ.102) 
+      IF(encal.EQ.'r' .OR. (encal.EQ.'i' .AND. 
+     &     (ibound.EQ.102 .OR. ibound.EQ.103)) 
      &     .OR. (encal.EQ.'i' .AND. ibound.EQ.100)) THEN
 
 ccc         thermalenergy = 0.
@@ -997,7 +998,8 @@ c         CALL quit(1)
 c            WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
             CALL ASS(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
      &           xyzmh,vxyzu,ekcle,dumrho,dedxyz,alphaMM)
-         ELSEIF (ibound.EQ.102 .AND. use_tprof) THEN
+         ELSEIF ((ibound.EQ.102 .OR. ibound.EQ.103) 
+     &           .AND. use_tprof) THEN
 c
 c--Added for Isothermal whole disc case with t-profile
 c
@@ -1024,7 +1026,8 @@ C$OMP& private(i,j,radius,boundtempl)
                ENDIF
             END DO
 C$OMP END PARALLEL DO
-         ELSEIF (ibound.EQ.100 .OR. ibound.EQ.102) THEN
+         ELSEIF (ibound.EQ.100 .OR. ibound.EQ.102 .OR. 
+     &           ibound.EQ.103) THEN
 c
 c--Added for Isothermal disc section case and whole disc with u profile
 c

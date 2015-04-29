@@ -250,7 +250,7 @@ c      ENDIF
      &        hoverr,partm
       ENDIF
 
-      IF (ibound.EQ.102) THEN
+      IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
          READ (iterm, *) use_tprof
          IF (use_tprof) READ (iterm, *) tprof
          READ (iterm, *) prswitch
@@ -278,7 +278,8 @@ c      ENDIF
       IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7) THEN
          READ (iterm, *) xmass
       ENDIF
-      IF (iexf.EQ.7 .OR. (ibound.EQ.102 .AND. initialptm.EQ.0)) THEN
+      IF (iexf.EQ.7 .OR. ((ibound.EQ.102 .OR. ibound.EQ.103)
+     &     .AND. initialptm.EQ.0)) THEN
          READ (iterm, *) planetmass
          READ (iterm, *) rplanet
          IF (iexf.EQ.7) THEN
@@ -288,7 +289,7 @@ c      ENDIF
          ENDIF
       ENDIF
 
-      IF (ibound.EQ.102 .AND. initialptm.EQ.5) THEN
+      IF ((ibound.EQ.102 .OR. ibound.EQ.103) .AND. initialptm.EQ.5) THEN
             READ (iterm, *) uniformtslim
             uniformtslim2 = uniformtslim*uniformtslim
       ENDIF

@@ -21,6 +21,8 @@ c************************************************************
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/tokamak'
+      INCLUDE 'COMMONS/eosq'
+      INCLUDE 'COMMONS/xforce'
 c
 c--Allow for tracing flow
 c

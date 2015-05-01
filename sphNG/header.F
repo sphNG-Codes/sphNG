@@ -298,10 +298,13 @@ c
      &                 'Total migration distance (AU)    :', 1PE12.4,/)
             ENDIF
          ENDIF
-
+c
+c--Planetesimal output for Ben Ayliffe's explicit single-size 
+c     implementation
+c
          IF (iplanetesimals.GT.0) THEN
-            WRITE (iprint, 11002) r_planetesimal*udist/1.0E5,
-     &           rho_planetesimal*udens
+            WRITE (iprint, 11002) r_planetesimals(1)*udist/1.0E5,
+     &           rho_planetesimals(1)*udens
 11002       FORMAT (' Planetesimal radius (km) : ', 1PE12.4,/,
      &           ' Planetesimal density (g/cm^3) : ', 1PE12.4,/)
          ENDIF

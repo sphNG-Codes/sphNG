@@ -18,7 +18,11 @@ c************************************************************
 
       REAL rho_g, dvij, cs
       REAL getcd_pmc, getcd_bb, getcd_lp
+      REAL r_planetesimal, rho_planetesimal
       INTEGER iregime, ipart, idragscheme
+
+      r_planetesimal = r_planetesimals(1)
+      rho_planetesimal = rho_planetesimals(1)
 
       IF (idragscheme.EQ.0) THEN
 c
@@ -123,7 +127,11 @@ c************************************************************
       REAL dvij, cs, coeff
       REAL getcv, get1overmu
       REAL reynolds, knudsen, mach
+      REAL r_planetesimal, rho_planetesimal
       INTEGER iregime, ipart
+
+      r_planetesimal = r_planetesimals(1)
+      rho_planetesimal = rho_planetesimals(1)
 
 c--Constant from Stepinski & Valageas 1996 (I).
       iregime = 0               ! Stokes
@@ -223,9 +231,13 @@ c************************************************************
       REAL reynolds
       REAL gamma_l, muvisc, muconst, lambda_mfp
       REAL getcv, get1overmu
+      REAL r_planetesimal, rho_planetesimal
       INTEGER idrag_structure, iregime
 
       REAL dragcoeff, volfrac_gas
+
+      r_planetesimal = r_planetesimals(1)
+      rho_planetesimal = rho_planetesimals(1)
 
       dragcoeff = 0.
       volfrac_gas = 1.0

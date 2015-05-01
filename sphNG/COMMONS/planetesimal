@@ -1,14 +1,20 @@
-      REAL r_planetesimal, rho_planetesimal, min_rplan, max_rplan
+      INTEGER nplanetesimal_maxtype
+      PARAMETER (nplanetesimal_maxtype=10)
+
+      REAL r_planetesimals, rho_planetesimals, min_rplan, max_rplan
       REAL eccentricity_p, inclination_p, planetesimalmass, gasdist
       REAL*4 planetesimaltimestep,planetesimalnorm
-      INTEGER nearestgas
+      INTEGER nearestgas, n_planetesimal_types
       LOGICAL gasdrag
+      CHARACTER*1 iplanetesimal_info
 
       COMMON /planetesimalr4/ planetesimaltimestep(idim),
      &                       planetesimalnorm(idim)
       COMMON /planetesimal_l/ gasdrag      
-      COMMON /planetesimal_i/ nearestgas(idim)
-      COMMON /planetesimal / r_planetesimal, rho_planetesimal,
-     &                       min_rplan, max_rplan, 
-     &                       eccentricity_p, inclination_p,
+      COMMON /planetesimal_i/ n_planetesimal_types, nearestgas(idim)
+      COMMON /planetesimal_c/ iplanetesimal_info
+      COMMON /planetesimal / r_planetesimals(nplanetesimal_maxtype), 
+     &	     		     rho_planetesimals(nplanetesimal_maxtype),
+     &			     min_rplan, max_rplan, 
+     &			     eccentricity_p, inclination_p,
      &                       planetesimalmass, gasdist(idim)

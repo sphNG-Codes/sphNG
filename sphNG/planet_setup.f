@@ -600,6 +600,9 @@ c
 
          IF (iplans.EQ.'b') THEN
 
+            iplanetesimal_info = 'p'
+            n_planetesimal_types = 1
+
             DO i = nptmass + 1, npart
                iphase(i) = 0
                rho(i) = 0.
@@ -624,10 +627,10 @@ c 1184       READ (*,*) nplanetesimals
             
             WRITE (*, 11093)
             READ (*,*) psize
-            r_planetesimal = psize*1.E5/udist
+            r_planetesimals(1) = psize*1.E5/udist
             WRITE (*, 11092)
             READ (*,*) pdensity
-            rho_planetesimal = pdensity/udens
+            rho_planetesimals(1) = pdensity/udens
             
             WRITE (*, 11097)
             gasdrag = .true.
@@ -690,6 +693,10 @@ c--iplanetesimals = 0 - gas only, 1 - planetesimals only, 2 - both.
 c
             iplanetesimals = 1
             IF (iplans.EQ.'b' .OR. iplans.EQ.'B') THEN
+
+               iplanetesimal_info = 'p'
+               n_planetesimal_types = 1
+
                iplanetesimals = 2
                WRITE (*,99114)
                READ (*, *) signorm
@@ -732,11 +739,11 @@ c
                WRITE (*, 11093)
 11093          FORMAT ('Enter radius of plantesimals in km')
                READ (*,*) psize
-               r_planetesimal = psize*1.E5/udist
+               r_planetesimals(1) = psize*1.E5/udist
                WRITE (*, 11092)
 11092          FORMAT ('Enter density of plantesimals (g/cm3)')
                READ (*,*) pdensity
-               rho_planetesimal = pdensity/udens
+               rho_planetesimals(1) = pdensity/udens
 
                WRITE (*, 11097)
                gasdrag = .true.

@@ -232,20 +232,8 @@ c      ENDIF
       ENDIF
 
       imigrate = 0
-      r_planetesimal = 0.0
-      rho_planetesimal = 0.0
       use_tprof = .FALSE.
-      prswitch = .FALSE.
-      gasdrag = .FALSE.
       IF (ibound.EQ.100) THEN
-         READ (iterm, *) gasdrag
-         IF (gasdrag) THEN
-            READ (iterm, *) r_planetesimal
-            r_planetesimal = r_planetesimal*1.E5/udist
-            READ (iterm, *) rho_planetesimal
-            rho_planetesimal = rho_planetesimal/udens
-            print *, 'r_pla ', r_planetesimal, rho_planetesimal
-         ENDIF
          READ (iterm, *) variation,phibound,flowrate,signorm,
      &        hoverr,partm
       ENDIF
@@ -253,16 +241,6 @@ c      ENDIF
       IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
          READ (iterm, *) use_tprof
          IF (use_tprof) READ (iterm, *) tprof
-         READ (iterm, *) prswitch
-         IF (prswitch) READ (iterm, *) pbeta
-         READ (iterm, *) gasdrag
-         IF (gasdrag) THEN
-            READ (iterm, *) r_planetesimal
-            r_planetesimal = r_planetesimal*1.E5/udist
-            READ (iterm, *) rho_planetesimal
-            rho_planetesimal = rho_planetesimal/udens
-            print *, 'r_pla ', r_planetesimal, rho_planetesimal
-         ENDIF
          READ (iterm, *) signorm,hoverr,partm
          READ (iterm, *) imigrate
          IF (imigrate.EQ.1) THEN
@@ -331,9 +309,44 @@ c
           ENDIF
       ENDIF
 c
+c--Parameters for planetesimals and dust
+c
+      n_planetesimal_types = 0
+      r_planetesimals(1:10) = 0.0
+      rho_planetesimals(1:10) = 0.0
+      READ (iterm, 99006, END=200) iplanetesimal_info
+      IF (iplanetesimal_info.EQ.'p') THEN
+         READ (iterm, *) n_planetesimal_types
+         IF (n_planetesimal_types.GT.nplanetesimal_maxtype) THEN
+            WRITE (*,*) 
+     &           'ERROR - n_planetesimal_types.GT.nplanetesimal_maxtype'
+            CALL quit(0)
+         ELSEIF (n_planetesimal_types.LT.1) THEN
+            WRITE (*,*) 'ERROR - n_planetesimal_types.LT.1'
+            CALL quit(0)
+         ENDIF
+         DO i = 1, n_planetesimal_types
+            READ (iterm, *) r_planetesimals(i), rho_planetesimals(i)
+            r_planetesimals(i) = r_planetesimals(i)/udist
+            rho_planetesimals(i) = rho_planetesimals(i)/udens
+         END DO
+         gasdrag = .FALSE.
+         prswitch = .FALSE.
+         READ (iterm, *, END=300) gasdrag
+         READ (iterm, *, END=400) prswitch
+         IF (prswitch) READ (iterm, *) pbeta
+      ENDIF
+      GOTO 1000
+c
+c--Note missing planetesimal and dust data
+c
+ 200  WRITE (*,*) 'NOTE: No planetesimal information has been given'
+ 300  WRITE (*,*) 'NOTE: Explicit gasdrag is assumed to be FALSE'
+ 400  WRITE (*,*) 'NOTE: Poynting-Robertson is assumed to be OFF'
+c
 c--Check for consistency
 c
-      CALL chekopt
+ 1000 CALL chekopt
 
       IF (idebug(1:7).EQ.'options') THEN
          WRITE (iprint, 99004) igrp, igphi, ifsvi, ifcor, ichoc, iener,

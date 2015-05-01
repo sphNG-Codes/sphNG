@@ -209,11 +209,6 @@ c
      &        '  New Part. Vels., Nshell, and Rshell')
       ENDIF
       IF (ibound.EQ.100) THEN
-         WRITE (iterm, 11070) gasdrag
-         IF (gasdrag) THEN
-            WRITE (iterm, 11080) r_planetesimal*udist/1.E5
-            WRITE (iterm, 11081) rho_planetesimal*udens
-         ENDIF
          WRITE (iterm, 88039) variation,phibound,flowrate,signorm,
      &        hoverr,partm
 88039    FORMAT(2X,7(1PE12.5,1X),
@@ -225,18 +220,6 @@ c
          WRITE (iterm, 88071) use_tprof
          IF (use_tprof) WRITE (iterm, 88072) tprof
 88072    FORMAT(2X,1PE12.5, '  Temperature profile')
-11071    FORMAT(3X, L1, ' PR-drag & rad. pres. switch')
-         WRITE (iterm, 11071) prswitch
-         IF (prswitch) WRITE (iterm, 11073) pbeta
-11073    FORMAT(2X,1PE12.5, ' grain beta (Burns et al. 1979)')
-         WRITE (iterm, 11070) gasdrag
-11070    FORMAT(3X,L1, ' planetesimal-gas drag')
-         IF (gasdrag) THEN
-            WRITE (iterm, 11080) r_planetesimal*udist/1.E5
-11080       FORMAT (2X,1PE12.5, ' planetesimal radius (km)')
-            WRITE (iterm, 11081) rho_planetesimal*udens
-11081       FORMAT (2X,1PE12.5, ' planetesimal density (g/cm3)')
-         ENDIF
          WRITE (iterm, 88073) signorm, hoverr,partm
 88073    FORMAT(2X,3(1PE12.5,1X),'  sigma, HoverR, partmass')
          WRITE (iterm, 11074) imigrate
@@ -314,7 +297,28 @@ c
      &                        xmin, xmax, ymin, ymax, zmin, zmax
          ENDIF
       ENDIF
-88050  FORMAT(8(1X,1PE12.5))
+88050 FORMAT(8(1X,1PE12.5))
+c
+c--Parameters for planetesimals and dust
+c
+      IF (iplanetesimal_info.EQ.'p') THEN
+         WRITE (iterm, 99006) iplanetesimal_info
+         WRITE (iterm, 11060) n_planetesimal_types
+11060    FORMAT(3X, I2, ' Number of planetesimal types')
+         DO i = 1, n_planetesimal_types
+            r_planetesimal = r_planetesimals(i)*udist
+            rho_planetesimal = rho_planetesimals(i)*udens
+            WRITE (iterm, 11064) r_planetesimal,rho_planetesimal
+11064       FORMAT (4X,2(1X,1PE12.5),
+     &           ' planetesimal radius (cm), density (g/cm^3)')
+         END DO
+         WRITE (iterm, 11070) gasdrag
+11070    FORMAT(3X,L1, ' Explicit planetesimal-gas drag')
+         WRITE (iterm, 11071) prswitch
+11071    FORMAT(3X, L1, ' PR-drag & rad. pres. switch')
+         IF (prswitch) WRITE (iterm, 11073) pbeta
+11073    FORMAT(2X,1PE12.5, ' grain beta (Burns et al. 1979)')
+      ENDIF
 c
 c--Check for consistency
 c

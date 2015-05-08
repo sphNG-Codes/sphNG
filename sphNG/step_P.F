@@ -234,12 +234,11 @@ ccc               isteps(i) = idtini
                   DO k = 1, imhdevol
                      dumBevolxyz(k,i) = Bevolxyz(k,i)
                   END DO
+                  dumalpha(isizealphaMM,i) = alphaMM(isizealphaMM,i)
                ENDIF
 
                IF (ifsvi.GE.6) THEN
-                  DO k=1,isizealphaMM
-                     dumalpha(k,i) = alphaMM(k,i)
-                  ENDDO
+                  dumalpha(1,i) = alphaMM(1,i)
                ENDIF
 
 c               IF (ran1(1).LT.0.001) THEN
@@ -274,11 +273,10 @@ c
                DO k = 1, imhdevol
                   dumBevolxyz(k,i) = Bevolxyz(k,i)
                END DO
+               dumalpha(isizealphaMM,i) = alphaMM(isizealphaMM,ireal(i))
             ENDIF
             IF (ifsvi.GE.6) THEN
-               DO k = 1, isizealphaMM
-                 dumalpha(k,i) = alphaMM(k,ireal(i))
-               ENDDO
+               dumalpha(1,i) = alphaMM(1,ireal(i))
             ENDIF
          END DO
          itime = 0
@@ -1790,6 +1788,7 @@ C$OMP& shared(nlst0,nlst1,llist,iscurrent,dumvxyzu)
 C$OMP& shared(dum2vxyz,it1,it2,imax,igphi,encal)
 C$OMP& shared(vxyzu,dgrav,dumxyzmh)
 C$OMP& shared(f1vxyzu,f1ha,f2vxyzu,f2ha,Bxyz,iexf)
+C$OMP& shared(f1Bxyz,f2Bxyz,dumalpha)
 C$OMP& shared(tol,tolh,tolptm,dt,isteps,imaxstep,e1,small,divv,rho)
 C$OMP& shared(alpha,beta,vsound,xlog2,gravx,gravy,gravz,gradpx,gradpy)
 C$OMP& shared(gradpz,artvix,artviy,artviz,gravx1,gravy1,gradpx1,gradpy1)
@@ -2146,6 +2145,16 @@ c       updated at the full timestep above, then put into dumu(i)
 c       but the derivi call doesn't alter them, so putting them back
 c       into u(i) again changes nothing.
 c
+c     When using implicit resistivity or magnetic subcycling, again
+c       the values of Bevolxyz are changed by the call to DERIVI and
+c       these changes must be copied across into the actual variables
+c       from their dummy values that were passed to DERIVI.
+c
+c     When using implicit gasdrag, the same applies to velocities.
+c
+c     Finally, the same applies to the smoothing length when using the
+c       grad-h formalism.
+c
 cTEST
          IF (iphase(i).EQ.0) THEN
             vxyzu(4,i) = dumvxyzu(4,i)
@@ -2161,6 +2170,12 @@ cTEST
                DO l = 1, imhdevol
                   Bevolxyz(l,i) = dumBevolxyz(l,i)
                END DO
+c
+c--In Terrence Tricco's resistivity switch the value is set, not integrated
+c     The value must be stored in alphaMM from dumalpha so that it is 
+c     dumped correctly to the dump file and used on start up.
+c
+               alphaMM(isizealphaMM,i) = dumalpha(isizealphaMM,i)
             ENDIF
 
             IF (gasdrag) THEN
@@ -2515,7 +2530,11 @@ C$OMP END DO
       ENDIF
 #endif
 c
-c--Update f1 quantities
+c--Update f1 quantities.  For particles that have just had derivatives
+c     evaluated at their full timestep, these quantities need to be
+c     transferred and stored in the "f1" arrays for use when performing
+c     the full RK integration step (which combines derivatives from
+c     the past full step (f1) and half-timestep derivatives (in f2).
 c
 C$OMP DO SCHEDULE(runtime)
       DO j = 1, nlst0
@@ -2523,15 +2542,33 @@ C$OMP DO SCHEDULE(runtime)
 
          IF (iphase(i).GE.0) THEN
 c
-c--Reset variables
+c--Move variables to the "f1" arrays
 c
-            f1vxyzu(1,i) = f2vxyzu(1,i)
-            f1vxyzu(2,i) = f2vxyzu(2,i)
-            f1vxyzu(3,i) = f2vxyzu(3,i)
-            f1vxyzu(4,i) = f2vxyzu(4,i)
+            DO k = 1, 4
+               f1vxyzu(k,i) = f2vxyzu(k,i)
+            END DO
+
+            IF (imhd.EQ.idim) THEN
+               DO k = 1, imhdevol
+                  f1Bxyz(k,i) = f2Bxyz(k,i)
+               END DO
+            ENDIF
+c
+c--The f1ha/f2ha quantities are:
+c     1:  The time derivative of the smoothing length (which is
+c         historical and is no longer used since density and h are now
+c         set iteratively).
+c     2:  The time derivative of the viscoity alpha parameter
+c     3:  The time derivative of the artificial resistivity parameter
+c         (which is not used because the code currently uses Terrence
+c         Tricco's switch which is calculated directly, not integrated).
+c
             f1ha(1,i) = f2ha(1,i)
             IF (ifsvi.GE.6) f1ha(2,i) = f2ha(2,i)
-            
+            IF (isizealphaMM.GE.2) f1ha(3,i) = f2ha(3,i)
+c
+c--This is the time derivative of the H_2 fraction
+c
             IF (idustRT.GT.0) THEN
                dh2dt(1,i) = dh2dt(2,i)
             ENDIF

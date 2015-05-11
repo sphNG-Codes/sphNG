@@ -1,5 +1,5 @@
       INTEGER idim, idim2, idim3, iptdim, iptneigh, nlmax
-      INTEGER mmax, mmax2, iradtrans, iradtrans2, idustRT
+      INTEGER mmax, mmax2, iradtrans, iradtrans2, idustRT, idustIMPL
       INTEGER imhd, imhd2, imhd3, imhdxsph, isizealphaMM
       INTEGER imhdevol, isubcycle_divB
       INTEGER idim_h2, idim_h2_2, idim_MPI

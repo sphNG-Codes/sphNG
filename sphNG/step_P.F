@@ -1943,15 +1943,32 @@ C$OMP END CRITICAL (killparticle)
 c
 c--Dead particle boundaries - planet embedded in whole disc
 c
-         IF (ibound.EQ.102) THEN
+         IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
             killme = .false.
-            IF (iphase(i).EQ.0) THEN
+c
+c--Note: Ben Ayliffe used spherical radius, whereas Pablo Loren-Aguilar
+c     uses cylindrical radius.  Ben also did not kill gas inside rmind,
+c     and he did not kill planetesimals at r>rcyl or r<min_rplan
+c
+            IF (ibound.EQ.102) THEN
                r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
-               IF (r2.GT.rcyl**2) killme = .true.
-            ELSEIF (iphase(i).EQ.11) THEN
+            ELSE
+               r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2
+            ENDIF
+            IF (iphase(i).EQ.0) THEN
+               IF (ibound.EQ.102) THEN
+                  IF (r2.GT.rcyl**2) killme = .true.
+               ELSE
+                  IF (r2.GT.rcyl**2 .OR. r2.LT.rmind**2) killme = .true.
+               ENDIF
+            ELSEIF (iphase(i).GE.11) THEN
                CALL semimajoraxis(i, eccentricity, smaxis)
                IF (smaxis.LT.min_rplan .OR. smaxis.GT.max_rplan)
      &              killme = .true.
+               IF (ibound.EQ.103) THEN
+                  IF (r2.GT.rcyl**2.OR.r2.LT.min_rplan**2)
+     &                 killme = .true.
+               ENDIF
             ENDIF
             IF (killme) THEN
                ipkill = iphase(i)
@@ -1991,7 +2008,7 @@ c
 c--Kill planetesimals approaching planet modelled as potential.
 c
          IF ((irotpot.EQ.1 .OR. iexf.EQ.7) .AND. iplanetesimals.GT.0
-     &        .AND. iphase(i).EQ.11) THEN
+     &        .AND. iphase(i).GE.11) THEN
             IF (irotpot.EQ.1) r2 = (xyzmh(1,i)-px)**2 +
      &           (xyzmh(2,i)-py)**2 + xyzmh(3,i)**2
             IF (iexf.EQ.7) r2 = (xyzmh(1,i)-1.0)**2 +
@@ -2155,7 +2172,6 @@ c
 c     Finally, the same applies to the smoothing length when using the
 c       grad-h formalism.
 c
-cTEST
          IF (iphase(i).EQ.0) THEN
             vxyzu(4,i) = dumvxyzu(4,i)
 
@@ -2205,6 +2221,10 @@ c
 C$OMP DO SCHEDULE(runtime)
       DO j = 1, nlst0
          i = llist(j)
+c
+c--Exclude any killed particles
+c
+         IF (iphase(i).LT.0) GOTO 7778
 c
 c--Follow point masses with greater accuracy than the gas particles 
 c
@@ -2362,7 +2382,7 @@ c     &              planetesimalnorm(i)
 c
 c--Dust timestep from gas-dust drag
 c
-            IF (iphase(i).EQ.11 .AND. gasdrag .AND.
+            IF (iphase(i).GE.11 .AND. gasdrag .AND.
      &           planetesimalnorm(i).GT.0.0) THEN
                rmodgd = 0.1*planetesimaltimestep(i)/planetesimalnorm(i)/
      &              (dt*isteps(i)/imaxstep)
@@ -2524,6 +2544,8 @@ c
          IF (iphase(i).EQ.0) istepmingas = MIN(istepmingas, isteps(i))
          it1(i) = it0(i) + isteps(i)/2
          it2(i) = it0(i) + isteps(i)
+
+ 7778    CONTINUE
       END DO
 C$OMP END DO
 #ifdef MPICOPY
@@ -2753,15 +2775,22 @@ c--endif for MPICOPY section
 c
 c--All particles on smallest timestep
 c
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(npart,isteps,it0,it1,it2,istepmin)
+C$OMP& private(i)
          DO i = 1, npart
             isteps(i) = istepmin
             it1(i) = it0(i) + isteps(i)/2
             it2(i) = it0(i) + isteps(i)
          END DO
+C$OMP END PARALLEL DO
       ELSEIF (individualtimesteps.EQ.1) THEN
 c
 c--Sinks ALL on smallest timestep
 c
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nptmass,listpm,isteps,it0,it1,it2,istepmin)
+C$OMP& private(i,iptcur)
          DO i = 1, nptmass
             iptcur = listpm(i)
             IF (istepmin.LT.isteps(iptcur)) THEN
@@ -2770,10 +2799,12 @@ c
                it2(iptcur) = it0(iptcur) + isteps(iptcur)
             ENDIF
          END DO
+C$OMP END PARALLEL DO
 c
 c--Additional constraint for planet with surface for migration
 c
-         IF (ibound.EQ.102 .AND. initialptm.EQ.5) THEN
+         IF ((ibound.EQ.102 .OR. ibound.EQ.103)
+     &        .AND. initialptm.EQ.5) THEN
             DO j = 1, nptmass
                IF (iphase(listpm(j)).EQ.5) THEN
                   radiushill2 = (xyzmh(4,listpm(j))/(3.*xmass))**(2./3.)

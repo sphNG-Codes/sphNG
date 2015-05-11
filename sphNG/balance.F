@@ -51,6 +51,7 @@ c************************************************************
       INCLUDE 'COMMONS/divcurlB'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/dustimplicit'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -431,6 +432,11 @@ c                           CALL MPI_SEND(h2mol,1,indexMPIR,j,158,
 c     &                          MPI_COMM_WORLD, ierr)
 
                            CALL MPI_SEND(h2ratio,1,indexMPIR,j,159,
+     &                          MPI_COMM_WORLD, ierr)
+                        ENDIF
+
+                        IF (idustIMPL.GT.0) THEN
+                           CALL MPI_SEND(dustnorm,1,indexMPIR,j,171,
      &                          MPI_COMM_WORLD, ierr)
                         ENDIF
 
@@ -871,6 +877,16 @@ c                  ENDIF
                   CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber h2ratio'
+                     CALL quit(1)
+                  ENDIF
+               ENDIF
+
+               IF (idustIMPL.GT.0) THEN
+                  CALL MPI_RECV(dustnorm(npartnew+1), idim, MPI_REAL8,
+     &                 iprocrec, 171, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber dustnorm'
                      CALL quit(1)
                   ENDIF
                ENDIF
@@ -2138,6 +2154,7 @@ c*************************`***********************************
       INCLUDE 'COMMONS/divcurlB'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/dustimplicit'
 
       DO i = 1, 5
          xyzmh(i,ito) = xyzmh(i,ifrom)
@@ -2187,6 +2204,7 @@ c      isort(ifrom) = 0
 c         h2mol(ito) = h2mol(ifrom)
          h2ratio(ito) = h2ratio(ifrom)
       ENDIF
+      IF (idustIMPL.GT.0) dustnorm(ito) = dustnorm(ifrom)
       iscurrent(ito) = iscurrent(ifrom)
       notacc(ito) = notacc(ifrom)
       DO i = 1, 2

@@ -53,6 +53,11 @@ c      PARAMETER (isubcycle_divB = 0)
       PARAMETER (imhdevol = 4)
       PARAMETER (isubcycle_divB = 1)
 c
+c--Allows semi-implicit dust drag to be used
+c
+c      PARAMETER (idustIMPL = 1)
+      PARAMETER (idustIMPL = 0)
+c
 c--For chemistry need to use idim_h2 = idim
 c
 c      PARAMETER (idim_h2 = idim)

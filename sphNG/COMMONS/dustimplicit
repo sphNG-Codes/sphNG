@@ -1,0 +1,3 @@
+      REAL dustnorm, rhoG, vxyzu_change
+      COMMON /dustimplicit/ dustnorm(idustIMPL*idim2),
+     &	     rhoG(idustIMPL*idim2),vxyzu_change(4,idustIMPL*idim2)

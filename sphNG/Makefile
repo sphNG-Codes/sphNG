@@ -339,7 +339,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F \
 	gptall.f gptfromgas.f gpti.f header.F hchem.F hillmass.f \
 	homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
 	inopts.f insulate_TREE_P.F integs.F $(KERNEL) labrun.F lunit_double.f \
-	mainop.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
+	mainop.f makedust.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
 	newrun.f options.f optimise_column_density.f phoenix.f phoenix2.f \
 	place.f planetpotential.f planet_setup.f planetesimals.f potential.f \
 	preset.F \

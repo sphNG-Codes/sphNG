@@ -620,6 +620,10 @@ c
 c  6) setup planet calculations
 c
       IF (job(1:7).EQ.'planet') CALL newplanet
+c
+c  7) add dust to existing dump file (e.g. relaxed disc)
+c
+      IF (job(1:8).EQ.'makedust') CALL makedust
 
       WRITE(*,*)' Unknown command'
       CALL quit(0)

@@ -355,7 +355,8 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F \
 # these are the sources required for the gradh code to compile
 
 SRCGRADH= derivi_P_gradh_MPI.F forcei_P_gradh_MPI.F  \
-        densityiterate_gradh_MPI.F hcalc_gradh.f dissipative_source.F
+        densityiterate_gradh_MPI.F divv_gradhsoft.F \
+	hcalc_gradh.f dissipative_source.F
 	#divBclean_mhd.f divBdiffuse.f divBiterate.f \
 	#directsum_poisson_vec_mhd_clean.f 
 

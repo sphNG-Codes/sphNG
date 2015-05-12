@@ -168,33 +168,27 @@ c--Find self-consistent density and smoothing length for all the particles
 c     in the list.  Only calculate density etc for non-sinks.
 c     for Euler potentials, this also means get B from grad alpha x grad beta
 c
-
-c
-c--For MPI may need to call even if nothing but sinks being done because
-c     other processes may be doing gas particles
-c
-#ifdef MPI
-#else
-c      IF (nlst_end.GT.nptmass) THEN
-#endif
-         IF (itiming) CALL getused(tdens1)
+      IF (itiming) CALL getused(tdens1)
 
 #ifdef MPIDEBUG
-         print *,iproc,' DERIVI: calling densityiterate_gradh'
+      print *,iproc,' DERIVI: calling densityiterate_gradh'
 #endif
 
-         CALL densityiterate_gradh(dt,npart,ntot,xyzmh,vxyzu,dvxyzu,
-     &        nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz,
-     &        dBevolxyz)
+      CALL densityiterate_gradh(dt,npart,ntot,xyzmh,vxyzu,dvxyzu,
+     &     nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz,
+     &     dBevolxyz)
 
 #ifdef MPIDEBUG
-         print *,iproc,' DERIVI: called densityiterate_gradh'
+      print *,iproc,' DERIVI: called densityiterate_gradh'
 #endif
 
-         IF (itiming) THEN
-            CALL getused(tdens2)
-            tdens = tdens + (tdens2 - tdens1)
-         ENDIF
+      IF (itiming) THEN
+         CALL getused(tdens2)
+         tdens = tdens + (tdens2 - tdens1)
+      ENDIF
+
+      CALL divv_gradhsoft(dt,npart,ntot,xyzmh,vxyzu,
+     &     nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz)
 
 c         IF (encal.EQ.'v' .OR. encal.EQ.'i') THEN
 c            CALL montecarloRT(npart, xyzmh, vxyzu, dumrho, 

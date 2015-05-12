@@ -2318,208 +2318,10 @@ c
 c--FINISHED CALCULATION OF NEIGHBOURS, DENSITY, AND LONG-RANGE GRAVITY
 c
 c
-c--Now calculated local contributions to divv, curlv, etc
+c--BEGIN MPI SECTION
 c
-      IF (itiming) CALL getused(td31)
-
-C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(nlst_in,nlst_end)
-C$OMP& shared(xyzmh,vxyzu,pr,vsound,rho,ekcle,Bevol)
-C$OMP& shared(iphase,uradconst,icall,encal)
-C$OMP& shared(numproc,iproc,gradmhd,npart,ntot)
-C$OMP& shared(ivar,ijvar)
-#ifdef MPICOPY
-C$OMP& shared(numberstart,numberend)
-#endif
-C$OMP& private(n,ipart,k)
-C$OMP& private(nneighlocal)
-#ifdef MPICOPY
-      DO n = numberstart, numberend
-#else
-      DO n = nlst_in, nlst_end
-#endif
-         ipart = ivar(3,n)
-         IF (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10) THEN
-c
-c--Calculate other quantities using the interaction list from local process
-c
-            nneighlocal = ivar(1,n)
-
-            CALL divvcurlvgrad(ipart,npart,ntot,xyzmh,vxyzu,Bevol,
-     &           nneighlocal,ijvar(ivar(2,n)+1),gradmhd)
-         ENDIF
-      END DO
-C$OMP END PARALLEL DO
-
-      IF (itiming) THEN
-         CALL getused(td32)
-         td3 = td3 + (td32 - td31)
-      ENDIF
-#ifdef MPICOPY
-c
-c--For MPICOPY job, need to transfer gradhs(1-2) between processes.  This 
-c     needs to be done here because gradhs(1) is required for calculating
-c     the final values of divv and curlv
-c
-c     Also need to transfer the other products of divvcurlvgrad which
-c     are: divv(), curlv(), and gradmhd(1-15,i)
-c
-c--Transfer gradhs(1-2)
-c
-      CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
-      CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
-
-      CALL MPI_TYPE_INDEXED(numbertodoherekeep, 
-     &     lblocklengths, llisttrans(numberstart),
-     &     i2REAL4, indexMPI_INT1, ierr)
-      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
-c
-c--All processes transfer their gradhs(1-2) data
-c
-      CALL MPI_ALLGATHERV(gradhs,1,indexMPI_INT1,
-     &     real4transfer2,irecvcounti,idisplacementsi,i2REAL4,
-     &     MPI_COMM_WORLD,ierr)
-c
-c--Put gradhs(1-2) data into correct places in gradhs(1-2)
-c
-C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,real4transfer2)
-C$OMP&shared(gradhs,numproc,iproc)
-C$OMP&private(i,j,k)
-      DO j = 0, numproc - 1
-         IF (j.NE.iproc) THEN
-            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
-     &           irecvcounti(j+1)
-               DO k = 1, 2
-                  gradhs(k,llisttrans(i) + 1) = 
-     &                 real4transfer2((i-1)*2 + k)
-               END DO
-            END DO
-         ENDIF
-      END DO
-C$OMP END PARALLEL DO
-#ifdef MPIDEBUG
-      print *,iproc,': gradhs(1-2) move ',1,numbertodo*iproc,
-     &     numbertodo*(iproc+1)+1, nlstdo_tot
-#endif
-
-      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
-      CALL MPI_TYPE_FREE(i2REAL4,ierr)
-c
-c--Transfer divv() and curlv()
-c
-      CALL MPI_TYPE_INDEXED(numbertodoherekeep, 
-     &     lblocklengths, llisttrans(numberstart),
-     &     MPI_REAL4, indexMPI_INT1, ierr)
-      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
-c
-c--All processes transfer their divv() data
-c
-      CALL MPI_ALLGATHERV(divv,1,indexMPI_INT1,
-     &     real4transfer2,irecvcounti,idisplacementsi,MPI_REAL4,
-     &     MPI_COMM_WORLD,ierr)
-c
-c--Put divv() data into correct places in divv()
-c
-C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,real4transfer2)
-C$OMP&shared(divv,numproc,iproc)
-C$OMP&private(i,j)
-      DO j = 0, numproc - 1
-         IF (j.NE.iproc) THEN
-            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
-     &           irecvcounti(j+1)
-               divv(llisttrans(i) + 1) = 
-     &              real4transfer2(i)
-            END DO
-         ENDIF
-      END DO
-C$OMP END PARALLEL DO
-#ifdef MPIDEBUG
-      print *,iproc,': divv() move ',1,numbertodo*iproc,
-     &     numbertodo*(iproc+1)+1, nlstdo_tot
-#endif
-c
-c--All processes transfer their curlv() data
-c
-      CALL MPI_ALLGATHERV(curlv,1,indexMPI_INT1,
-     &     real4transfer2,irecvcounti,idisplacementsi,MPI_REAL4,
-     &     MPI_COMM_WORLD,ierr)
-c
-c--Put curlv() data into correct places in curlv()
-c
-C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,real4transfer2)
-C$OMP&shared(curlv,numproc,iproc)
-C$OMP&private(i,j)
-      DO j = 0, numproc - 1
-         IF (j.NE.iproc) THEN
-            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
-     &           irecvcounti(j+1)
-               curlv(llisttrans(i) + 1) = 
-     &              real4transfer2(i)
-            END DO
-         ENDIF
-      END DO
-C$OMP END PARALLEL DO
-#ifdef MPIDEBUG
-      print *,iproc,': curlv() move ',1,numbertodo*iproc,
-     &     numbertodo*(iproc+1)+1, nlstdo_tot
-#endif
-
-      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
-
-      IF (imhd.EQ.idim) THEN
-         IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
-c
-c--Transfer gradmhd(1-15)
-c
-      CALL MPI_TYPE_CONTIGUOUS(15, MPI_REAL8, i15REAL8, ierr)
-      CALL MPI_TYPE_COMMIT(i15REAL8,ierr)
-
-      CALL MPI_TYPE_INDEXED(numbertodoherekeep, 
-     &     lblocklengths, llisttrans(numberstart),
-     &     i15REAL8, indexMPI_INT1, ierr)
-      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
-c
-c--All processes transfer their gradmhd(1-15) data
-c
-      CALL MPI_ALLGATHERV(gradmhd,1,indexMPI_INT1,
-     &     realtransfer5to15,irecvcounti,idisplacementsi,i15REAL8,
-     &     MPI_COMM_WORLD,ierr)
-c
-c--Put gradmhd(1-15) data into correct places in gradmhd(1-15)
-c
-C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,realtransfer5to15)
-C$OMP&shared(gradmhd,numproc,iproc)
-C$OMP&private(i,j,k)
-      DO j = 0, numproc - 1
-         IF (j.NE.iproc) THEN
-            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
-     &           irecvcounti(j+1)
-               DO k = 1, 15
-                  gradmhd(k,llisttrans(i) + 1) = 
-     &                 realtransfer5to15((i-1)*15 + k)
-               END DO
-            END DO
-         ENDIF
-      END DO
-C$OMP END PARALLEL DO
-#ifdef MPIDEBUG
-      print *,iproc,': gradmhd(1-15) move ',1,numbertodo*iproc,
-     &     numbertodo*(iproc+1)+1, nlstdo_tot
-#endif
-
-      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
-      CALL MPI_TYPE_FREE(i15REAL8,ierr)
-
-         ENDIF
-      ENDIF
-#endif
-c
-c--For MPI job, need to add contributions to other quantities (such as divv,
-c     curlv, etc) from other MPI processes
+c--For MPI job, need to transfer quantities of particles that interact
+c     with other MPI processes to those processes.
 c
 #ifdef MPIALL
       IF (itiming) CALL getused(td21)
@@ -2773,12 +2575,14 @@ c      IF (itime.EQ.000) THEN
 c      ENDIF
 #endif
 c
-c--Calculate ONLY neighbours lists for remote particles, then contributions
-c     to divv, curlv, and Euler potential alpha and beta, etc
+c--END -- Have transferred quantities to other MPI processes
+c
+c
+c--Calculate ONLY neighbours lists for remote particles
 c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(inumbertotal,ntot,listp,nlst_end,iphase,hasghost)
-C$OMP& shared(npart,xyzmh,acc,nneigh,vxyzu,Bevol,gradmhd)
+C$OMP& shared(npart,xyzmh,acc,nneigh)
 C$OMP& shared(ncompact,icompact,ivar,ijvar,iscurrent)
 C$OMP& shared(iupdated,nlistupdated,listparents,iprint,itime)
 C$OMP& private(fsx,fsy,fsz,epot,nneighlocal,ncompacthere,icompacthere)
@@ -2786,15 +2590,12 @@ C$OMP& private(i,k,ipart,jpart,numberupdated)
       DO i = 1, inumbertotal
 
          ipart = ntot + i
+
          listp(nlst_end + i) = ipart
          hasghost(ipart) = .FALSE.
 
          CALL treef(ipart,itime,npart,ntot,xyzmh,acc,0,fsx,fsy,fsz,epot)
-
          nneighlocal = nneigh(ipart)
-
-         CALL divvcurlvgrad(ipart,npart,ntot,xyzmh,vxyzu,Bevol,
-     &        nneighlocal,neighlist,gradmhd)
 c
 c--Set up compact list of neighbours within h_i and non-active neighbours
 c     within h_j
@@ -2833,12 +2634,250 @@ C$OMP END CRITICAL (listupdated)
          END DO
       END DO
 C$OMP END PARALLEL DO
+#endif
+c
+c--END MPI SECTION
+c
+c
+c--Copy changed values onto ghost particles
+c
+C$OMP PARALLEL DO SCHEDULE (runtime) default(none)
+C$OMP& shared(npart,ntot,ireal,rho,dumrho,xyzmh)
+C$OMP& private(i,j)
+      DO i = npart + 1, ntot
+         j = ireal(i)
+         rho(i) = rho(j)
+         dumrho(i) = dumrho(j)
+         xyzmh(5,i) = xyzmh(5,j)
+      END DO
+C$OMP END PARALLEL DO
+c
+c--Now calculate local contributions to divv, curlv, etc
+c
+      IF (itiming) CALL getused(td31)
+
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst_in,nlst_end)
+C$OMP& shared(xyzmh,vxyzu,pr,vsound,rho,ekcle,Bevol)
+C$OMP& shared(iphase,uradconst,icall,encal)
+C$OMP& shared(numproc,iproc,gradmhd,npart,ntot)
+C$OMP& shared(ivar,ijvar)
+#ifdef MPICOPY
+C$OMP& shared(numberstart,numberend)
+#endif
+C$OMP& private(n,ipart,k)
+C$OMP& private(nneighlocal)
+#ifdef MPICOPY
+      DO n = numberstart, numberend
+#else
+      DO n = nlst_in, nlst_end
+#endif
+         ipart = ivar(3,n)
+         IF (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10) THEN
+c
+c--Calculate other quantities using the interaction list from local process
+c
+            nneighlocal = ivar(1,n)
+
+            CALL divvcurlvgrad(ipart,npart,ntot,xyzmh,vxyzu,Bevol,
+     &           nneighlocal,ijvar(ivar(2,n)+1),gradmhd)
+         ENDIF
+      END DO
+C$OMP END PARALLEL DO
+
+      IF (itiming) THEN
+         CALL getused(td32)
+         td3 = td3 + (td32 - td31)
+      ENDIF
+#ifdef MPICOPY
+c
+c--For MPICOPY job, need to transfer gradhs(1-2) between processes.  This 
+c     needs to be done here because gradhs(1) is required for calculating
+c     the final values of divv and curlv
+c
+c     Also need to transfer the other products of divvcurlvgrad which
+c     are: divv(), curlv(), and gradmhd(1-15,i)
+c
+c--Transfer gradhs(1-2)
+c
+      CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
+      CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
+
+      CALL MPI_TYPE_INDEXED(numbertodoherekeep, 
+     &     lblocklengths, llisttrans(numberstart),
+     &     i2REAL4, indexMPI_INT1, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+c
+c--All processes transfer their gradhs(1-2) data
+c
+      CALL MPI_ALLGATHERV(gradhs,1,indexMPI_INT1,
+     &     real4transfer2,irecvcounti,idisplacementsi,i2REAL4,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put gradhs(1-2) data into correct places in gradhs(1-2)
+c
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,real4transfer2)
+C$OMP&shared(gradhs,numproc,iproc)
+C$OMP&private(i,j,k)
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               DO k = 1, 2
+                  gradhs(k,llisttrans(i) + 1) = 
+     &                 real4transfer2((i-1)*2 + k)
+               END DO
+            END DO
+         ENDIF
+      END DO
+C$OMP END PARALLEL DO
+#ifdef MPIDEBUG
+      print *,iproc,': gradhs(1-2) move ',1,numbertodo*iproc,
+     &     numbertodo*(iproc+1)+1, nlstdo_tot
+#endif
+
+      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+      CALL MPI_TYPE_FREE(i2REAL4,ierr)
+c
+c--Transfer divv() and curlv()
+c
+      CALL MPI_TYPE_INDEXED(numbertodoherekeep, 
+     &     lblocklengths, llisttrans(numberstart),
+     &     MPI_REAL4, indexMPI_INT1, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+c
+c--All processes transfer their divv() data
+c
+      CALL MPI_ALLGATHERV(divv,1,indexMPI_INT1,
+     &     real4transfer2,irecvcounti,idisplacementsi,MPI_REAL4,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put divv() data into correct places in divv()
+c
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,real4transfer2)
+C$OMP&shared(divv,numproc,iproc)
+C$OMP&private(i,j)
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               divv(llisttrans(i) + 1) = 
+     &              real4transfer2(i)
+            END DO
+         ENDIF
+      END DO
+C$OMP END PARALLEL DO
+#ifdef MPIDEBUG
+      print *,iproc,': divv() move ',1,numbertodo*iproc,
+     &     numbertodo*(iproc+1)+1, nlstdo_tot
+#endif
+c
+c--All processes transfer their curlv() data
+c
+      CALL MPI_ALLGATHERV(curlv,1,indexMPI_INT1,
+     &     real4transfer2,irecvcounti,idisplacementsi,MPI_REAL4,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put curlv() data into correct places in curlv()
+c
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,real4transfer2)
+C$OMP&shared(curlv,numproc,iproc)
+C$OMP&private(i,j)
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               curlv(llisttrans(i) + 1) = 
+     &              real4transfer2(i)
+            END DO
+         ENDIF
+      END DO
+C$OMP END PARALLEL DO
+#ifdef MPIDEBUG
+      print *,iproc,': curlv() move ',1,numbertodo*iproc,
+     &     numbertodo*(iproc+1)+1, nlstdo_tot
+#endif
+
+      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+
+      IF (imhd.EQ.idim) THEN
+         IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
+c
+c--Transfer gradmhd(1-15)
+c
+      CALL MPI_TYPE_CONTIGUOUS(15, MPI_REAL8, i15REAL8, ierr)
+      CALL MPI_TYPE_COMMIT(i15REAL8,ierr)
+
+      CALL MPI_TYPE_INDEXED(numbertodoherekeep, 
+     &     lblocklengths, llisttrans(numberstart),
+     &     i15REAL8, indexMPI_INT1, ierr)
+      CALL MPI_TYPE_COMMIT(indexMPI_INT1,ierr)
+c
+c--All processes transfer their gradmhd(1-15) data
+c
+      CALL MPI_ALLGATHERV(gradmhd,1,indexMPI_INT1,
+     &     realtransfer5to15,irecvcounti,idisplacementsi,i15REAL8,
+     &     MPI_COMM_WORLD,ierr)
+c
+c--Put gradmhd(1-15) data into correct places in gradmhd(1-15)
+c
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP&shared(idisplacementsi,irecvcounti,llisttrans,realtransfer5to15)
+C$OMP&shared(gradmhd,numproc,iproc)
+C$OMP&private(i,j,k)
+      DO j = 0, numproc - 1
+         IF (j.NE.iproc) THEN
+            DO i = idisplacementsi(j+1)+1,idisplacementsi(j+1) +
+     &           irecvcounti(j+1)
+               DO k = 1, 15
+                  gradmhd(k,llisttrans(i) + 1) = 
+     &                 realtransfer5to15((i-1)*15 + k)
+               END DO
+            END DO
+         ENDIF
+      END DO
+C$OMP END PARALLEL DO
+#ifdef MPIDEBUG
+      print *,iproc,': gradmhd(1-15) move ',1,numbertodo*iproc,
+     &     numbertodo*(iproc+1)+1, nlstdo_tot
+#endif
+
+      CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
+      CALL MPI_TYPE_FREE(i15REAL8,ierr)
+
+         ENDIF
+      ENDIF
+#endif
+c
+c--END OF MPICOPY SECTION
+c
+
+#ifdef MPI
+c
+c--For MPI job, need to add contributions to other quantities (such as divv,
+c     curlv, etc) from other MPI processes
+c
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(inumbertotal,ntot)
+C$OMP& shared(npart,xyzmh,vxyzu,Bevol,gradmhd)
+C$OMP& shared(ncompactlocal,ivar,ijvar)
+C$OMP& private(nneighlocal,ncompacthere)
+C$OMP& private(i,ipart)
+      DO i = 1, inumbertotal
+         ncompacthere = ncompactlocal + i
+         ipart = ivar(3,ncompacthere)
+         nneighlocal = ivar(1,ncompacthere)
+
+         CALL divvcurlvgrad(ipart,npart,ntot,xyzmh,vxyzu,Bevol,
+     &        nneighlocal,ijvar(ivar(2,ncompacthere)+1),gradmhd)
+      END DO
+C$OMP END PARALLEL DO
 
 #ifdef MPIDEBUG
       print *,iproc,': has calculated all divvcurlgrad ',inumbertotal
-c         IF (iproc.EQ.2) print *,iproc,':G',dvxyzu(1,ntot + 1+2054-1),
-c     &              dvxyzu(2,ntot+1+2054-1),dvxyzu(3,ntot+1+2054-1),
-c     &     ntot+1+2054-1,ntot
 #endif
 
 c      STOP

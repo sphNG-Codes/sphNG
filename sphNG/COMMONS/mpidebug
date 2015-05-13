@@ -1,2 +1,4 @@
+      INTEGER iprocdebug,iloop,iparticlex,iparticley,iproblem
+
       COMMON /mpidebug/ iprocdebug,iloop,iparticlex,iparticley,
      &                    iproblem

@@ -329,6 +329,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F \
 	coolcurve.f coolinmo.F cool_func.F \
 	coriol.f cyldis.f cylmas.f cylpres.f cylvel.f discboundary.f \
 	divBclean_subcycle.F divBsubcycle.F \
+	dust_implicit.F dust_drag.F dust_norm_rhoG.F \
 	dragtable.F endrun.f energ.f energ_cooling.f eospg.f error.f \
 	evol.f externf.f externBfield.f \
 	extract.f file.f gapfactor.f getneigh.f \
@@ -338,7 +339,8 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F \
 	ghostp102.f \
 	gptall.f gptfromgas.f gpti.f header.F hchem.F hillmass.f \
 	homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
-	inopts.f insulate_TREE_P.F integs.F $(KERNEL) labrun.F lunit_double.f \
+	inopts.f insulate_TREE_P.F integs.F $(KERNEL) \
+	labrun.F lunit_double.f \
 	mainop.f makedust.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
 	newrun.f options.f optimise_column_density.f phoenix.f phoenix2.f \
 	place.f planetpotential.f planet_setup.f planetesimals.f potential.f \

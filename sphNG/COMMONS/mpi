@@ -1,5 +1,6 @@
       INTEGER nparttot, nactivetot, n1tot, n2tot, iproccreate,
-     &      maxnneighsentback, inumofreturns, inumbertotal
+     &      maxnneighsentback, inumofreturns, inumbertotal,
+     &	    inumofsends
 
       REAL fmas1tot, fmas2tot, xlocationmpi, ylocationmpi,
      &     zlocationmpi, densmpi
@@ -11,7 +12,10 @@
       INTEGER lsendlist, llistrec, nneighsentback, nneightogetback, 
      &        nneighsink, nneighforeignsink, ibelongptmass,
      &        llistsentback, inumberindiv, inumbercumm, 
-     &        inumberproc
+     &        inumberproc, nsplit
+
+      REAL splitcoords, binarysplits, xyzmax, xyzmin, searchxyzmax,
+     &	   searchxyzmin
 
       COMMON /mpiint/ nparttot, nactivetot, n1tot, n2tot, iproccreate,
      &           maxnneighsentback,inumofreturns, inumbertotal, 

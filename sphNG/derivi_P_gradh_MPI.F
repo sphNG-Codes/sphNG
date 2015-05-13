@@ -186,7 +186,20 @@ c
          CALL getused(tdens2)
          tdens = tdens + (tdens2 - tdens1)
       ENDIF
-
+c
+c--For dust-gas drag, using the implicit method of Loren-Aguilar & Bate
+c     (2015), need to call the routine here because it directly changes
+c     particle velocities, and this needs to be done before other 
+c     quantities that use the velocities are needed.
+c
+      IF (idustIMPL.GT.0) THEN
+         CALL dust_implicit (dt,npart,ntot,xyzmh,vxyzu,
+     &            nlst_in,nlst_end,itime)
+      ENDIF
+c
+c--Now calculate other quantities that are needed to calculate the forces 
+c     on particles (divv, graviational softening, curlv, etc).
+c
       CALL divv_gradhsoft(dt,npart,ntot,xyzmh,vxyzu,
      &     nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz)
 

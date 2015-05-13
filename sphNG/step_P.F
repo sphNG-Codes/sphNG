@@ -2172,6 +2172,14 @@ c
 c     Finally, the same applies to the smoothing length when using the
 c       grad-h formalism.
 c
+         IF (idustIMPL.GT.0) THEN
+            IF (iphase(i).GE.0) THEN
+               vxyzu(1,i) = dumvxyzu(1,i)
+               vxyzu(2,i) = dumvxyzu(2,i)
+               vxyzu(3,i) = dumvxyzu(3,i)
+            ENDIF
+         ENDIF
+
          IF (iphase(i).EQ.0) THEN
             vxyzu(4,i) = dumvxyzu(4,i)
 

@@ -67,7 +67,7 @@ c
       imaxstep = imax/2
 
       nactive = 0
-      DO i = 1, npart
+      DO i = 1, idim
          isort(i) = i
          iorig(i) = i
       END DO
@@ -122,8 +122,8 @@ c
      &     'out of ',npart,' total'
  50   PRINT *,'How many dust particles do you want?'
       READ (*,*) ndustpart
-      IF (nactive+ndustpart.GT.npart) THEN
-         PRINT *,'ERROR - number must be <= to ',npart-nactive
+      IF (nactive+ndustpart.GT.idim) THEN
+         PRINT *,'ERROR - number must be <= to ',idim-nactive
          GOTO 50
       ENDIF
 
@@ -134,7 +134,7 @@ c
      &     gas_mass_inside/ngas_inside,dust_particle_mass
 
       ndust = 0
-      DO j = 1, npart
+      DO j = 1, idim
          IF (iphase(j).EQ.-1) THEN
 c
 c--Disk distribution
@@ -167,9 +167,16 @@ c
             iphase(j)  = 11
             isteps(j)  = isteps(i)
 
-            IF (ndust.EQ.ndustpart) GOTO 100
+            IF (ndust.EQ.ndustpart) THEN
+               npart = j
+               GOTO 100
+            ENDIF
          ENDIF
       ENDDO
+
+      PRINT *,'FAILED -- only managed to create ',ndust,' particles ',
+     &     'before running out of space'
+      STOP
 
  100  nlstacc = 0
       nlistinactive = 0

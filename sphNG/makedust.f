@@ -135,7 +135,7 @@ c
 
       ndust = 0
       DO j = 1, idim
-         IF (iphase(j).EQ.-1) THEN
+         IF (iphase(j).EQ.-1 .OR. j.GT.npart) THEN
 c
 c--Disk distribution
 c

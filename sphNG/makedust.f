@@ -201,6 +201,12 @@ c
 c
 c--Dump new file
 c
+c
+c--Zero time (but not quite, so that the timesteps are still used when
+c     starting the code).
+c
+      gt = 1.0E-20
+
       CALL wrinsph
 
       ifulldump = 0

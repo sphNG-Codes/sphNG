@@ -102,7 +102,8 @@ c     that are neighbours of active particles for updating their densities etc
       INTEGER*1 isucceed(idim)
       REAL*4 hminbisec(idim),hmaxbisec(idim)
 
-      DIMENSION ldolist(idim),hi_old(idim)
+      DIMENSION ldolist(idim),hi_old(idim),hi_2back(idim)
+      LOGICAL*1 iconvergence1,iconvergence2,iconvergence3
 #ifdef MPI
       DIMENSION nneighrec(ineighproc),nneighsentbackold(nummaxproc)
       REAL*4 rhorec(ineighproc), dumrhorec(ineighproc), rhonextmax
@@ -1275,7 +1276,7 @@ C$OMP& shared(nneigh,selfnormkernel)
 C$OMP& shared(cnormk,radkernel,dvtable,ddvtable,wij,grwij)
 C$OMP& shared(listpm,iphase,dphidh,uradconst,icall,encal)
 C$OMP& shared(iprint,nptmass,iptmass,iorig,third)
-C$OMP& shared(dumrho,iscurrent,ibound,ireal)
+C$OMP& shared(dumrho,iscurrent,ibound,ireal,hi_2back)
 C$OMP& shared(isteps,it0,it1,imax,imaxstep,dt,itime)
 C$OMP& shared(varmhd,Bevol,Bxyz,nlstdo,ldolist)
 C$OMP& shared(dvxyzu,hi_old,isucceed,poten,isend,numproc,iproc)
@@ -1298,9 +1299,10 @@ C$OMP& private(hnew,deltarho,heatingISRival,dust_gas)
 C$OMP& private(nneighlocal,nneighi,ncompacthere,icompacthere)
 C$OMP& private(numberupdated,dust_kappai,photo,dust_cooling)
 C$OMP& private(cooling,gas_dust,cosmic_ray,func_gas,derivative)
-C$OMP& private(heatingISRi,Gphotoelectrici,ext,exp_Av)
+C$OMP& private(heatingISRi,Gphotoelectrici,ext,exp_Av,itemp)
 C$OMP& private(u_found,cv_val,gas_temp,ijk,frac_change,h2column)
 C$OMP& private(columnnumberdensity,expext,selfval,selffac,selfshield)
+C$OMP& private(iconvergence1,iconvergence2,iconvergence3)
 C$OMP& reduction(MAX:rhonext,imaxit)
 C$OMP& reduction(+:inumit,inumfixed,inumrecalc,nwarnup,nwarndown)
 C$OMP& reduction(+:nwarnroundoff,nbisection,numsucceeded)
@@ -1316,221 +1318,258 @@ c       gravity
 c
          CALL densitygradh(ipart,itime,npart,ntot,nlstdo_tot,xyzmh,
      &        nneighlocal,dvxyzu)
-
+c
+c--Non-sink particles
+c
          IF (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10) THEN
 
-         IF (nneighlocal.GT.nneighmax) THEN
-            WRITE (iprint,*) 'ERROR: nneighlocal exceeds nneighmax'
-            WRITE (iprint,*) iorig(ipart),nneighlocal,nneighmax
-            CALL quit(1)
-         ENDIF
+            IF (nneighlocal.GT.nneighmax) THEN
+               WRITE (iprint,*) 'ERROR: nneighlocal exceeds nneighmax'
+               WRITE (iprint,*) iorig(ipart),nneighlocal,nneighmax
+               CALL quit(1)
+            ENDIF
 c
 c--gradhi value is stored in dumrho temporarily
 c
-         gradhi = dumrho(ipart)
-         rhoi = rho(ipart)
+            gradhi = dumrho(ipart)
+            rhoi = rho(ipart)
 
-         pmassi = xyzmh(4,ipart)
-         hi = xyzmh(5,ipart)
-         hi1 = 1.0/hi
-         hi_oldi = hi_old(ipart)
-         nneighi = nneigh(ipart)
+            pmassi = xyzmh(4,ipart)
+            hi = xyzmh(5,ipart)
+            hi1 = 1.0/hi
+            hi_oldi = hi_old(ipart)
+            nneighi = nneigh(ipart)
 
 c
 c--Iteration business
 c  These lines define the relationship between h and rho
 c     omega is the term in the denominator as in Monaghan(2001)
 c
-         rhohi = pmassi*(hfact*hi1)**3 - rhomin
-         dhdrhoi = -hi/(3.*(rhoi + rhomin))
-         omegai = 1. - dhdrhoi*gradhi
-         func = rhohi - rhoi
+            rhohi = pmassi*(hfact*hi1)**3 - rhomin
+            dhdrhoi = -hi/(3.*(rhoi + rhomin))
+            omegai = 1. - dhdrhoi*gradhi
+            func = rhohi - rhoi
 
-         IF (isucceed(ipart).NE.-1) THEN
+            IF (isucceed(ipart).NE.-1) THEN
 c
 c--Newton-Raphson iteration
 c
-            dfdh1 = dhdrhoi/omegai
-            hnew = hi - func*dfdh1
-c               write(iprint,*)
-c     &          'newton raphson (',iteration,'): hnew = ',hnew
-         ELSE
+               dfdh1 = dhdrhoi/omegai
+               hnew = hi - func*dfdh1
+            ELSE
 c
 c--Bisection iteration
 c
-            IF (func.lt. 0.) THEN
-               hmaxbisec(ipart) = hi
-            ELSE
-               hminbisec(ipart) = hi
+               IF (func.lt. 0.) THEN
+                  hmaxbisec(ipart) = hi
+               ELSE
+                  hminbisec(ipart) = hi
+               ENDIF
+               hnew = 0.5*(hminbisec(ipart) + hmaxbisec(ipart))
+               write(iprint,*) 'bisection (',iteration,'): hnew =',
+     &              hnew,ipart,hi,func,hmaxbisec(ipart),hminbisec(ipart)
             ENDIF
-            hnew = 0.5*(hminbisec(ipart) + hmaxbisec(ipart))
-            write(iprint,*) 'bisection (',iteration,'): hnew =',
-     &           hnew,ipart,hi,func,hmaxbisec(ipart),hminbisec(ipart)
-c            write(*,*) 'bisection (',iteration,'): hnew =',hnew,ipart,
-c     &           hi,func,hmaxbisec(ipart),hminbisec(ipart),nneighi,
-c     &           gradhi,rhoi,rhohi,dhdrhoi,omegai
-         ENDIF
 c
 c--Don't allow sudden jumps to huge numbers of neighbours
 c  (Newton-Raphson only)
 c
-         IF (isucceed(ipart).NE.-1) THEN
-            IF (hnew.GT.1.2*hi) THEN
-               nwarnup = nwarnup + 1
-               hnew = 1.2*hi
-            ELSEIF (hnew.LT.0.8*hi) THEN
-               nwarndown = nwarndown + 1
-               hnew = 0.8*hi
+            IF (isucceed(ipart).NE.-1) THEN
+               IF (hnew.GT.1.2*hi) THEN
+                  nwarnup = nwarnup + 1
+                  hnew = 1.2*hi
+               ELSEIF (hnew.LT.0.8*hi) THEN
+                  nwarndown = nwarndown + 1
+                  hnew = 0.8*hi
+               ENDIF
             ENDIF
-         ENDIF
+c
+c--Output data if a single particle is failing to converge
+c
+c            IF (nlstdo.EQ.1) THEN
+c               itemp = ldolist(nlstdo)
+c               WRITE (66,77666) itemp,xyzmh(1,itemp),xyzmh(2,itemp),
+c     &              hnew,omegai,isucceed(itemp),iteration,
+c     &              maxitsnr,nneighi,hi,hi_oldi,hi_2back(itemp)
+c77666          FORMAT(I8,1X,4(1PE12.5,1X),4(I5,1X),3(1PE12.5,1X))
+c            ENDIF
 
-c         IF (itime.GE.142868480)
-c     &  write(*,*)'H-stuff ',hnew,hi,hi_oldi,omegai,nneighi,
-c     &        isucceed(ipart),iphase(ipart),ipart
-
-         IF ((hnew.LE.0. .OR. omegai.LE.tiny .OR. 
-     &        iteration.EQ.maxitsnr .OR. nneighi.LE.0) 
-     &        .AND. isucceed(ipart).NE.-1) THEN
+            IF ((hnew.LE.0. .OR. omegai.LE.tiny .OR. 
+     &           iteration.EQ.maxitsnr .OR. nneighi.LE.0) 
+     &           .AND. isucceed(ipart).NE.-1) THEN
 c
 c--Switch to Bisection if not converging or running into trouble
 c
-            WRITE(iprint,*) 'WARNING: switching to bisection on'//
-     &           ' particle ',iorig(ipart),ipart,'(',ipart,') hi = ',hi,
-     &           ' hnew = ',hnew
-c            WRITE(*,*) 'WARNING: switching to bisection on'//
-c     &           ' particle ',iorig(ipart),'(',ipart,') hi = ',hi,
-c     &           ' hnew = ',hnew,nneighi,gradhi,rhoi,rhohi,dhdrhoi,
-c     &           omegai,iteration
-            IF (nneighi.LE.0) THEN
-               WRITE(iprint,*) '(particle has no neighbours) ',nneighi
-            ENDIF
-            IF (omegai.LE.tiny) THEN
-               WRITE(iprint,*) '(omega < tiny) ',omegai
-            ENDIF
-            IF (iteration.EQ.maxitsnr) THEN
-               WRITE(iprint,*) '(more than ',maxitsnr,' iterations)'
-            ENDIF
+               WRITE(iprint,*) 'WARNING: switching to bisection on'//
+     &              ' particle ',iorig(ipart),ipart,'(',ipart,') hi = ',
+     &              hi,' hnew = ',hnew
+c               WRITE(*,*) 'WARNING: switching to bisection on'//
+c     &              ' particle ',iorig(ipart),'(',ipart,') hi = ',hi,
+c     &              ' hnew = ',hnew,nneighi,gradhi,rhoi,rhohi,dhdrhoi,
+c     &              omegai,iteration
+               IF (nneighi.LE.0) THEN
+                  WRITE(iprint,*) '(particle has no neighbours) ',
+     &                 nneighi
+               ENDIF
+               IF (omegai.LE.tiny) THEN
+                  WRITE(iprint,*) '(omega < tiny) ',omegai
+               ENDIF
+               IF (iteration.EQ.maxitsnr) THEN
+                  WRITE(iprint,*) '(more than ',maxitsnr,' iterations)'
+               ENDIF
 
-            nbisection = nbisection + 1
-            isucceed(ipart) = -1
-            hminbisec(ipart) = 0.
-            hmaxbisec(ipart) = 1.e6
+               nbisection = nbisection + 1
+               isucceed(ipart) = -1
+               hminbisec(ipart) = 0.
+               hmaxbisec(ipart) = 1.e6
 !--Don't have to start with ridiculous h, 
 !  just something reasonably big between above limits
-            hnew = 2.*hi_oldi
+               hnew = 2.*hi_oldi
 !               hnew = 0.5*(hminbisec(ipart) + hmaxbisec(ipart))
 c
 c--Otherwise check for convergence
 c
-         ELSEIF (ABS((hnew-hi)/hi_oldi).LT.htol.AND.isucceed(ipart).EQ.0
-     &           .AND. ABS((hnew-hi)/hi).LT.htol
-     &           .OR. ABS((hnew-hi)/hi_oldi).LT.1.0E-6
-     &           .AND. ABS((hnew-hi)/hi).LT.htol
-     &           ) THEN
-
-            imaxit = MAX(imaxit, iteration)
-            inumit = inumit + iteration
-            IF (isucceed(ipart).EQ.-1) THEN
-               write(iprint,*) 'SWITCH BACK TO N-R ',ipart,hnew,hi
-c               write(*,*) 'SWITCH BACK TO N-R ',ipart,hnew,hi
-               isucceed(ipart) = 0  ! switch back to N-R
             ELSE
+               iconvergence1 = (ABS((hnew-hi)/hi_oldi).LT.htol
+     &              .AND.isucceed(ipart).EQ.0
+     &              .AND. ABS((hnew-hi)/hi).LT.htol)
+               iconvergence2 = ABS((hnew-hi)/hi_oldi).LT.1.0E-6
+     &              .AND. ABS((hnew-hi)/hi).LT.htol
+c
+c--Type 3 convergence was added because very ocassionally, a single 
+c     particle would get stuck oscillating between two solutions,
+c     for example, between solutions with 63 or 64 neighbours where
+c     h differed by slightly more than the required tolerance.
+c
+               iconvergence3 = (iteration.GT.maxitsnr .AND.
+     &              isucceed(ipart).EQ.0 .AND.
+     &              ABS((hi_2back(ipart)-hnew)/hi_oldi).LT.1.0E-8)
+
+               IF (iconvergence1 .OR. iconvergence2 .OR.
+     &              iconvergence3) THEN
+
+                  imaxit = MAX(imaxit, iteration)
+                  inumit = inumit + iteration
+                  IF (isucceed(ipart).EQ.-1) THEN
+                     write(iprint,*) 'SWITCH BACK TO N-R ',ipart,hnew,hi
+c                     write(*,*) 'SWITCH BACK TO N-R ',ipart,hnew,hi
+                     isucceed(ipart) = 0 ! switch back to N-R
+                  ELSE
+                     IF (iconvergence3 .AND. .NOT. iconvergence1) THEN
+                        WRITE (iprint,11003) ipart,hnew,hi,
+     &                       hi_2back(ipart),hi_oldi,xyzmh(ipart,1),
+     &                       xyzmh(ipart,2),xyzmh(ipart,3)
+                        WRITE (*,11003) ipart,hnew,hi,
+     &                       hi_2back(ipart),hi_oldi,xyzmh(ipart,1),
+     &                       xyzmh(ipart,2),xyzmh(ipart,3)
+11003                   FORMAT ('N-R got stuck oscillating ',I9,
+     &                       7(1X,1PE12.5))
+                     ENDIF
 c
 c--Store quantities if converged
 c
-               isucceed(ipart) = 1
-               numsucceeded = numsucceeded + 1
+                     isucceed(ipart) = 1
+                     numsucceeded = numsucceeded + 1
 
-               rho(ipart) = rhoi
-               dumrho(ipart) = rhoi
+                     rho(ipart) = rhoi
+                     dumrho(ipart) = rhoi
 
-               xyzmh(5,ipart) = hi
-               gradhs(1,ipart) = 1./omegai
+                     xyzmh(5,ipart) = hi
+                     gradhs(1,ipart) = 1./omegai
 
-               poten(ipart) = dvxyzu(4,ipart)
+                     poten(ipart) = dvxyzu(4,ipart)
 
-               IF (iphase(ipart).EQ.0) THEN
-                  IF (iradtrans.EQ.idim) THEN
+                     IF (iphase(ipart).EQ.0) THEN
+                        IF (iradtrans.EQ.idim) THEN
 c
 c--Calculating the ISR attenuation factors for a non-MPI calculation can
 c     be done in column_density.F.  However, it needs to be done here for
 c     the MPI code (see comments in column_density.F).
 c
 #ifdef MPI
-                  IF (idustRT.GT.0) THEN
-                     IF (ioptimise_column.EQ.1) THEN
-                        IF (itime.LT.icolumnnext(ipart)) GOTO 500
-                        IF (itime.GT.icolumnnext(ipart)) THEN
-                           WRITE (*,*) 
-     &                          'ERROR - itime.GT.icolumnnext(ipart) ',
-     &                          itime,icolumnnext(ipart), ipart
-                        ENDIF
-                     ENDIF
+                           IF (idustRT.GT.0) THEN
+                              IF (ioptimise_column.EQ.1) THEN
 
-                     heatingISRi = 0.
-                     Gphotoelectrici = 0.
-                     exp_Av = 0.
-                     selfshield = 0.
-                     DO k = 1, nsightlines
+                              IF (itime.LT.icolumnnext(ipart)) GOTO 500
+                              IF (itime.GT.icolumnnext(ipart)) THEN
+                                 WRITE (*,*) 
+     &                           'ERROR - itime.GT.icolumnnext(ipart) ',
+     &                                itime,icolumnnext(ipart),ipart
+                              ENDIF
+                              ENDIF
+
+                              heatingISRi = 0.
+                              Gphotoelectrici = 0.
+                              exp_Av = 0.
+                              selfshield = 0.
+                              DO k = 1, nsightlines
 c
 c--Based on Zucconi et al. (2001)
 c
-                        columnnumberdensity = sightcolumns(k,1,ipart)*
-     &                       umass/udist**2 /(gmw*1.67E-24)
-                        h2column = sightcolumns(k,2,ipart)*
-     &                       umass/udist**2 /(gmw*1.67E-24)
+                                 columnnumberdensity = 
+     &                                sightcolumns(k,1,ipart)*
+     &                                umass/udist**2 /(gmw*1.67E-24)
+                                 h2column = sightcolumns(k,2,ipart)*
+     &                                umass/udist**2 /(gmw*1.67E-24)
 
-                        ext = columnnumberdensity * Qv(c/0.0000550)
+                                 ext = columnnumberdensity * 
+     &                                Qv(c/0.0000550)
 
-                        heatingISRi = heatingISRi + get_heatingISR(ext)
-                        Gphotoelectrici = Gphotoelectrici +
-     &                       get_Gphotoelectric(ext)
-                        expext = EXP(-ext)
-                        exp_Av = exp_Av + expext
+                                 heatingISRi = heatingISRi + 
+     &                                get_heatingISR(ext)
+                                 Gphotoelectrici = Gphotoelectrici +
+     &                                get_Gphotoelectric(ext)
+                                 expext = EXP(-ext)
+                                 exp_Av = exp_Av + expext
 
-                        selfval = SQRT(1.0+h2column/(5.0E+14))
-                        selffac = 0.965/(1.0+h2column/(5.0E+14))**2 +
-     &                       0.035/selfval*EXP(-8.5E-4*selfval)
-                        selfshield = selfshield + expext**3.74 * selffac
-                     END DO
-                     heatingISR(1,ipart) = heatingISRi/nsightlines
-                     heatingISR(2,ipart) = Gphotoelectrici/nsightlines
-                     heatingISR(3,ipart) = exp_Av/nsightlines
-                     heatingISR(4,ipart) = selfshield/nsightlines
-                  ENDIF
+                                 selfval = SQRT(1.0+h2column/(5.0E+14))
+                                 selffac = 
+     &                                0.965/(1.0+h2column/(5.0E+14))**2+
+     &                                0.035/selfval*EXP(-8.5E-4*selfval)
+                                 selfshield = selfshield + 
+     &                                expext**3.74 * selffac
+                              END DO
+                              heatingISR(1,ipart) = 
+     &                             heatingISRi/nsightlines
+                              heatingISR(2,ipart) = 
+     &                             Gphotoelectrici/nsightlines
+                              heatingISR(3,ipart) = exp_Av/nsightlines
+                              heatingISR(4,ipart) = 
+     &                             selfshield/nsightlines
+                           ENDIF
 #endif
 c
 c--Set e(i) for the first time around because density only set here
 c     This sets radiation and matter to have same initial temperature
 c
- 500              IF (icall.EQ.1 .AND. encal.EQ.'r') THEN
-                     IF (ekcle(1,ipart).EQ.0.0) THEN
-                        IF (idustRT.GT.0) THEN
+ 500                       IF (icall.EQ.1 .AND. encal.EQ.'r') THEN
+                              IF (ekcle(1,ipart).EQ.0.0) THEN
+                                 IF (idustRT.GT.0) THEN
 c
 c--Set temperature of the radiation to be 1 K initially (i.e. negligible)
 c
-                           ekcle(1,ipart) = uradconst/rho(ipart)
+                                    ekcle(1,ipart) =uradconst/rho(ipart)
 c
 c--Set gas initially to be entirely atomic or entirely molecular (=0.5)
 c
-                           IF (iatomic) THEN
-                              h2frac(ipart) = 0.0
-                           ELSE
-                              h2frac(ipart) = 0.5
-                           ENDIF
-                           dh2dt(1,ipart) = 0.0
-                           dh2dt(2,ipart) = 0.0
+                                    IF (iatomic) THEN
+                                       h2frac(ipart) = 0.0
+                                    ELSE
+                                       h2frac(ipart) = 0.5
+                                    ENDIF
+                                    dh2dt(1,ipart) = 0.0
+                                    dh2dt(2,ipart) = 0.0
 c
 c--If starting from a dump file without radiative transfer information,
 c     need to define a starting value of U/T, otherwise the call to 
 c     dust_temperature.f below will fail.
 c
-                           IF (ekcle(3,ipart).LE.0.0) THEN
-                              ekcle(3,ipart) = 
-     &                             getcv(rho(ipart),vxyzu(4,ipart))
-                           ENDIF
+                                    IF (ekcle(3,ipart).LE.0.0) THEN
+                                       ekcle(3,ipart) = 
+     &                                 getcv(rho(ipart),vxyzu(4,ipart))
+                                    ENDIF
 
-                           gas_temp = gas_temperature_equilibrium(
+                                    gas_temp = 
+     &                                   gas_temperature_equilibrium(
      &                          ipart,dust_temperature(ipart,uradconst,
      &                          0.0,vxyzu(4,ipart),ekcle,
      &                          rhoi,dust_kappai,dust_cooling,
@@ -1538,15 +1577,17 @@ c
      &                          cooling,gas_dust,cosmic_ray,func_gas,
      &                          derivative)
 
-                           vxyzu(4,ipart) = getu(rho(ipart),gas_temp)
-                           ekcle(3,ipart) = 
-     &                          getcv(rho(ipart),vxyzu(4,ipart))
+                                    vxyzu(4,ipart) = 
+     &                                   getu(rho(ipart),gas_temp)
+                                    ekcle(3,ipart) = 
+     &                                getcv(rho(ipart),vxyzu(4,ipart))
 
-                           dust_tk(1,ipart) = dust_temperature(ipart,
+                                    dust_tk(1,ipart) = 
+     &                                   dust_temperature(ipart,
      &                          uradconst,0.0,vxyzu(4,ipart),ekcle,
      &                          rhoi,dust_kappai,dust_cooling,
      &                          heatingISRival,dust_gas)
-                           dust_tk(2,ipart) = dust_kappai
+                                    dust_tk(2,ipart) = dust_kappai
 
 c                        IF (iproc.EQ.0) THEN
 cC$OMP CRITICAL (write19)
@@ -1568,85 +1609,90 @@ c     &                       heatingISR(3,ipart),ipart
 cC$OMP END CRITICAL (write19)
 c 445                   FORMAT(21(1PE12.5,1X),I8)
 c                        ENDIF
-                        ELSE
+                                 ELSE
 c
 c--Set specific radiation energy to be in thermal equilibrium with the
 c     matter initially
 c
-                           ekcle(3,ipart) =
-     &                          getcv(rho(ipart),vxyzu(4,ipart))
-                           ekcle(1,ipart) = uradconst*(vxyzu(4,ipart)/
-     &                          ekcle(3,ipart))**4/rho(ipart)
-                        ENDIF
+                                    ekcle(3,ipart) =
+     &                                getcv(rho(ipart),vxyzu(4,ipart))
+                                    ekcle(1,ipart) = 
+     &                                   uradconst*(vxyzu(4,ipart)/
+     &                                   ekcle(3,ipart))**4/rho(ipart)
+                                 ENDIF
 c
 c--Set opacities
 c
-                        ekcle(2,ipart) = getkappa(vxyzu(4,ipart),
-     &                       ekcle(3,ipart),rho(ipart))
-                     ENDIF
-                  ENDIF
-                  ENDIF
+                                 ekcle(2,ipart) = 
+     &                                getkappa(vxyzu(4,ipart),
+     &                                ekcle(3,ipart),rho(ipart))
+                              ENDIF
+                           ENDIF
+                        ENDIF
 c
 c--Pressure and sound velocity from ideal gas law...
 c
-                  CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
-               ENDIF
+                        CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
+                     ENDIF
 c
 c--Set up compact list of neighbours within h_i and non-active neighbours
 c     within h_j
 c
 C$OMP CRITICAL (listcompact)
-               ncompact = ncompact + 1
-               ncompacthere = ncompact
-               icompacthere = icompact
-               icompact = icompact + nneighlocal
+                     ncompact = ncompact + 1
+                     ncompacthere = ncompact
+                     icompacthere = icompact
+                     icompact = icompact + nneighlocal
 C$OMP END CRITICAL (listcompact)
-               IF (icompacthere+nneighlocal.GT.icompactmax) THEN
-                  WRITE (*,*) 'ERROR - compact not large enough DI ',
-     &                 icompacthere, nneighlocal, icompactmax
-                  CALL quit(1)
-               ENDIF
-               ivar(1,ncompacthere) = nneighlocal
-               ivar(2,ncompacthere) = icompacthere
-               ivar(3,ncompacthere) = ipart
+                     IF (icompacthere+nneighlocal.GT.icompactmax) THEN
+                        WRITE (*,*) 
+     &                       'ERROR - compact not large enough DI ',
+     &                       icompacthere, nneighlocal, icompactmax
+                        CALL quit(1)
+                     ENDIF
+                     ivar(1,ncompacthere) = nneighlocal
+                     ivar(2,ncompacthere) = icompacthere
+                     ivar(3,ncompacthere) = ipart
 
-               DO k = 1, nneighlocal
-                  j = neighlist(k)
+                     DO k = 1, nneighlocal
+                        j = neighlist(k)
 #ifdef MPICOPY
 c
 c--For MPICOPY need to store neighbours in temp array that is combined
 c     into ijvar() across all processes later
 c
-                  ijvartemp(icompacthere + k) = j
+                        ijvartemp(icompacthere + k) = j
 #else
-                  ijvar(icompacthere + k) = j
+                        ijvar(icompacthere + k) = j
 #endif
-                  IF (.NOT.iscurrent(j) .AND. .NOT.iupdated(j) 
-     &                 .AND. j.LE.npart) THEN
-                     iupdated(j) = .TRUE.
+                        IF (.NOT.iscurrent(j) .AND. .NOT.iupdated(j) 
+     &                       .AND. j.LE.npart) THEN
+                           iupdated(j) = .TRUE.
 C$OMP FLUSH(iupdated)
 C$OMP CRITICAL (listupdated)
-                     nlistupdated = nlistupdated + 1
-                     numberupdated = nlistupdated
+                           nlistupdated = nlistupdated + 1
+                           numberupdated = nlistupdated
 C$OMP END CRITICAL (listupdated)
-                     IF (numberupdated.GT.idim) THEN
-                        WRITE (iprint,*) 'ERROR - numberupdated.GT.idim'
-                        CALL quit(1)
-                     ENDIF
+                           IF (numberupdated.GT.idim) THEN
+                              WRITE (iprint,*) 
+     &                             'ERROR - numberupdated.GT.idim'
+                              CALL quit(1)
+                           ENDIF
 #ifdef MPICOPY
 c
 c--For MPICOPY need to store parents list in temp array that is combined
 c     across all processes later
 c
-                     listparentstemp(numberupdated) = j
+                           listparentstemp(numberupdated) = j
 #else
-                     listparents(numberupdated) = j
+                           listparents(numberupdated) = j
 #endif
-                  ENDIF
-               END DO
+                        ENDIF
+                     END DO
 
+                  ENDIF
+               ENDIF
             ENDIF
-         ENDIF
 
          ELSE
 c
@@ -1681,7 +1727,10 @@ c
 #endif
 
 c         hi_old(ipart) = hi
-         IF (isucceed(ipart).NE.1) xyzmh(5,ipart) = hnew
+         IF (isucceed(ipart).NE.1) THEN
+            hi_2back(ipart) = hi
+            xyzmh(5,ipart) = hnew
+         ENDIF
 
       END DO
 C$OMP END PARALLEL DO
@@ -1865,6 +1914,9 @@ c
       WRITE (*,*) 'ERROR: density iteration failed for ',
      &     numberend-numberstart,' particles ',ifinished,iproc
 #else
+#ifdef MPI
+      IF (nlstdo.GT.0) THEN
+#endif
       WRITE (iprint,*) 'ERROR: density iteration failed for ',nlstdo,
      &     ' particles ',ifinished,iproc
 c
@@ -1882,6 +1934,7 @@ c
       WRITE (65,11001) itemp, iphase(itemp), nneigh(itemp), rho(itemp),
      &     xyzmh(1,itemp), xyzmh(2,itemp), xyzmh(3,itemp),
      &     xyzmh(5,itemp), 0, iscurrent(itemp)
+      WRITE (65,*)
       DO k = 1, nneigh(itemp)
          iitemp = neighlist(k)
          rtemp = SQRT((xyzmh(1,itemp)-xyzmh(1,iitemp))**2 + 
@@ -1895,6 +1948,9 @@ c
 
       WRITE (*,*) 'ERROR: density iteration failed for ',nlstdo,
      &     ' particles ',ifinished,iproc
+#ifdef MPI
+      ENDIF
+#endif
 #endif
 #ifdef MPIALL
       CALL MPI_BARRIER(MPI_COMM_WORLD,ierr)

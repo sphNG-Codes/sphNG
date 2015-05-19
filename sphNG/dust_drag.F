@@ -128,7 +128,7 @@ c
 c--Loop over neighbouring particles
 c
          ioffset = ivar(2,n)
-         DO k = 1,ivar(1,n)
+         DO k = 1, ivar(1,n)
 c
 c--Get gas neighbouring particle index from the list
 c
@@ -191,68 +191,65 @@ c
                   wk_j = doublehumpnormk*(wij(index) + dwdx*dxx)*u2_j/
      &                 h3_j
                   wk_sym   = wk_j
-               ELSE
-                  wk_sym   = 0.0
-               ENDIF
 c
 c--Constant drag
 c
-c           ts   = mD_Ks/(1.0+m_ipart/mG(ipart))
+c              ts   = mD_Ks/(1.0+m_ipart/mG(ipart))
 c
 c--Epstein profile
 c
-               ts = mD_Ks/(dumrho(ipart)+dumrho(j))
+                  ts = mD_Ks/(dumrho(ipart)+dumrho(j))
 c
 c--Non-linear profile
 c
-c           ts   = mD_Ks/((dumrho(ipart)+dumrho(j))*vDG(ipart))
+c              ts   = mD_Ks/((dumrho(ipart)+dumrho(j))*vDG(ipart))
 c
 c--Chi calculation
 c
-               IF (ts.GT.0.0) THEN
-                  beta = 1.0/(dumrho(ipart)+ dumrho(j))
-                  IF (n.GT.nlst0) THEN
-                     chi = beta*(1.0-dexp(-0.5*deltat/ts))
+                  IF (ts.GT.0.0) THEN
+                     beta = 1.0/(dumrho(ipart)+ dumrho(j))
+                     IF (n.GT.nlst0) THEN
+                        chi = beta*(1.0-dexp(-0.5*deltat/ts))
+                     ELSE
+                        chi = beta*(1.0-dexp(-deltat/ts))
+                     ENDIF
                   ELSE
-                     chi = beta*(1.0-dexp(-deltat/ts))
+                     WRITE (*,*) 'ERROR - ts.LE.0.0 ',ts,ipart
+                     CALL quit(1)
                   ENDIF
-               ELSE
-                  WRITE (*,*) 'ERROR - ts.LE.0.0 ',ts,ipart
-                  CALL quit(1)
-               ENDIF
 c
 c--Careful with norm!!!
 c
-               IF (dustnorm(ipart).EQ.0.0) THEN
-                  WRITE (*,*) 'ERROR - dustnorm(ipart).EQ.0.0 ',ipart,
-     &                 dustnorm(ipart)
-                  CALL quit(1)
-               ENDIF
+                  IF (dustnorm(ipart).EQ.0.0) THEN
+                     WRITE (*,*) 'ERROR - dustnorm(ipart).EQ.0.0 ',
+     &                    ipart,dustnorm(ipart),ivar(1,n),j,u2_j,wk_sym
+                     CALL quit(1)
+                  ENDIF
 c
 c--Change dust velocity
 c
-               vxyzu_change(1,ipart) = vxyzu_change(1,ipart) - nu*m_j*
-     &              chi*scalar*drx*wk_sym/dustnorm(ipart)
-               vxyzu_change(2,ipart) = vxyzu_change(2,ipart) - nu*m_j*
-     &              chi*scalar*dry*wk_sym/dustnorm(ipart)
-               vxyzu_change(3,ipart) = vxyzu_change(3,ipart) - nu*m_j*
-     &              chi*scalar*drz*wk_sym/dustnorm(ipart)
+                  vxyzu_change(1,ipart) = vxyzu_change(1,ipart) - 
+     &                 nu*m_j*chi*scalar*drx*wk_sym/dustnorm(ipart)
+                  vxyzu_change(2,ipart) = vxyzu_change(2,ipart) - 
+     &                 nu*m_j*chi*scalar*dry*wk_sym/dustnorm(ipart)
+                  vxyzu_change(3,ipart) = vxyzu_change(3,ipart) - 
+     &                 nu*m_j*chi*scalar*drz*wk_sym/dustnorm(ipart)
 c
 c--Change gas velocity and internal energy
 c
 C$OMP ATOMIC
-               vxyzu_change(1,j) = vxyzu_change(1,j) + nu*m_ipart*
-     &              chi*scalar*drx*wk_sym/dustnorm(ipart)
+                  vxyzu_change(1,j) = vxyzu_change(1,j) + nu*m_ipart*
+     &                 chi*scalar*drx*wk_sym/dustnorm(ipart)
 C$OMP ATOMIC
-               vxyzu_change(2,j) = vxyzu_change(2,j) + nu*m_ipart*
-     &              chi*scalar*dry*wk_sym/dustnorm(ipart)
+                  vxyzu_change(2,j) = vxyzu_change(2,j) + nu*m_ipart*
+     &                 chi*scalar*dry*wk_sym/dustnorm(ipart)
 C$OMP ATOMIC
-               vxyzu_change(3,j) = vxyzu_change(3,j) + nu*m_ipart*
-     &              chi*scalar*drz*wk_sym/dustnorm(ipart)
+                  vxyzu_change(3,j) = vxyzu_change(3,j) + nu*m_ipart*
+     &                 chi*scalar*drz*wk_sym/dustnorm(ipart)
 cC$OMP ATOMIC
 c               vxyzu_change(4,j)=vxyzu_change(4,j) + nu*m_ipart*
 c     &              chi*scalar*scalar*wk_sym/dustnorm(ipart)
-
+               ENDIF
             ENDIF
          END DO                 ! End of GAS neighbors loop
  40   END DO                    ! End of DUST particles loop

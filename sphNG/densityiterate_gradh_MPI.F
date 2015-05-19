@@ -248,7 +248,7 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstdo,ldolist,isucceed,xyzmh,hi_old,it1,isteps,imaxstep)
 C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)
 C$OMP& shared(iphase,dBxyz,divcurlB,gradB,force_sym,force_an,it0,itime)
-C$OMP& shared(curlv,gradhs,sightcolumns)
+C$OMP& shared(curlv,gradhs,sightcolumns,hi_2back)
 C$OMP& shared(planetesimaltimestep,planetesimalnorm,iplanetesimals)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend)
@@ -274,6 +274,7 @@ c
             pmassi = xyzmh(4,ipart)
             hi = xyzmh(5,ipart)
             hi_old(ipart) = hi
+            hi_2back(ipart) = hi
 c
 c--Predict h
 c

@@ -1,19 +1,24 @@
 /* grab - Grabs specified bits of a file and writes them to another
      output file */
 
-#include "getline.c"
+//#include "getline.c"
+
+#include <stdio.h>
 
 double
 time,timeff,mean_density,max_density,cen_density,total,ke,pot,
 internal,mag,ang,jean,utime,udens,uang,umagfd,alpha,beta,maxtot,
 mintot,lin,divBmax,divBmean,Jmax,Jmean,divBhmax,max_beta,min_beta,
 mean_beta,fluxtot,crosshel,min_b,mean_b,max_b;
-char line[120];
+//char line[120];
+char *line = NULL;
+size_t len = 0;
 
 main()
  {  mintot = 1.0E+33;
     maxtot = -1.0E+33;
-    while (getline(line,sizeof(line))>0) {
+//    while (getline(line,sizeof(line))>0) {
+    while (getline(&line, &len, stdin) > 0) {
        if (sscanf(line, "             density    :%le time        :%le", &udens,&utime)==2)
           ;
        else if (sscanf(line, " ang. mom. :%le mag field :%le", &uang, &umagfd)==2)
@@ -57,7 +62,7 @@ main()
           printf("%e ",Jmean);}
        else if (sscanf(line, "  divB*h/B max : %le", &divBhmax)==1)
           printf("%e ",divBhmax);
-       else if (sscanf(line, " total magnetic flux  (int nabla.B dV)   :%le",&fluxtot)==1)
+       else if (sscanf(line, " total magnetic flux  (int div B dV)   :%le",&fluxtot)==1)
           printf("%e ",fluxtot);
        else if (sscanf(line, " total cross helicity (int v.B dV) :%le",&crosshel)==1)
           printf("%e ",crosshel);  	  

@@ -113,7 +113,6 @@ c
          llist(i) = i
          IF (iphase(i).EQ.-1) THEN
             tempsort(i) = LOG(REAL(imax))/LOG(2.0)
-            istepmax = imax
          ELSE
             IF (gt.EQ.0.0 .OR. isteps(i).EQ.0) THEN
                tempsort(i) = (xyzmh(1,i)-xminimum)/xrange
@@ -125,6 +124,14 @@ c
             istepmax = MAX(istepmax, isteps(i))
          ENDIF
       END DO
+#ifdef MPI
+      CALL MPI_ALLREDUCE(istepmin, istepmintot, 1, MPI_INTEGER, MPI_MIN,
+     &     MPI_COMM_WORLD,ierr)
+      istepmin = istepmintot
+      CALL MPI_ALLREDUCE(istepmax, istepmaxtot, 1, MPI_INTEGER, MPI_MAX,
+     &     MPI_COMM_WORLD,ierr)
+      istepmax = istepmaxtot
+#endif
 c
 c--Initialise timesteps to be consistent with integration method
 c

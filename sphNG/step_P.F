@@ -1235,7 +1235,8 @@ c
 c--Total number of advanced particles
 c
       idonebound = 0
-      IF (ibound.GT.0 .AND. ibound.LT.7 .OR. ibound.EQ.11) 
+      IF (ibound.GT.0 .AND. ibound.LT.7 .OR. ibound.EQ.11 
+     &     .OR. ibound.EQ.103) 
      &     CALL boundry(npart,
      &     llist, nlst0, xyzmh, vxyzu, idonebound)
 c

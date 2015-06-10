@@ -127,6 +127,8 @@ c      print *,': Entered densityiterate ',itime
 
       IF (itiming) CALL getused(td11)
 
+      distancemax = MAX(rmax, xmax, ymax, zmax, rcyl)
+
       uradconst = radconst/uergcc
       third = 1./3.
       rhonext = 0.
@@ -1273,7 +1275,7 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstdo_tot,npart,ntot,listp,divv,curlv,gradhs)
 C$OMP& shared(xyzmh,vxyzu,pr,vsound,rho,ekcle,rhomin)
-C$OMP& shared(nneigh,selfnormkernel)
+C$OMP& shared(nneigh,selfnormkernel,distancemax)
 C$OMP& shared(cnormk,radkernel,dvtable,ddvtable,wij,grwij)
 C$OMP& shared(listpm,iphase,dphidh,uradconst,icall,encal)
 C$OMP& shared(iprint,nptmass,iptmass,iorig,third)
@@ -1421,7 +1423,7 @@ c     &              omegai,iteration
                nbisection = nbisection + 1
                isucceed(ipart) = -1
                hminbisec(ipart) = 0.
-               hmaxbisec(ipart) = 1.e6
+               hmaxbisec(ipart) = 2.0*distancemax
 !--Don't have to start with ridiculous h, 
 !  just something reasonably big between above limits
                hnew = 2.*hi_oldi
@@ -1446,7 +1448,9 @@ c
      &              ABS((hi_2back(ipart)-hnew)/hi_oldi).LT.1.0E-8)
 
                IF (iconvergence1 .OR. iconvergence2 .OR.
-     &              iconvergence3) THEN
+     &              iconvergence3
+c     &              .OR. (iteration.GE.maxiterations-1)
+     &              ) THEN
 
                   imaxit = MAX(imaxit, iteration)
                   inumit = inumit + iteration

@@ -29,6 +29,7 @@ c************************************************************
       INCLUDE 'COMMONS/setBfield'
       INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/cylinder'
+      INCLUDE 'COMMONS/nonidealsetup'
       
       INTEGER iBfield      
       CHARACTER*1 isetB

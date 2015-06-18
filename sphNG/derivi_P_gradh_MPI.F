@@ -926,8 +926,15 @@ c
       ENDIF
 
 #endif
-
       ENDIF   ! Endif for imhd.EQ.idim and iresist<0 or subcycling
+#ifdef NONIDEAL
+c
+c--Now calculate magnetic current.  Need to do this after the final values
+c     of magnetic field (Bxyz) have been determined.
+c
+      IF (imhd.EQ.idim) THEN
+      ENDIF
+#endif ! NONIDEAL
 c
 c--Compute implicit radiative transfer
 c     

@@ -95,6 +95,9 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/mpicopy'
 #endif
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nonideal'
+#endif
 
       DIMENSION nsteplist(30)
       INTEGER*8 nneightotsave
@@ -1808,6 +1811,10 @@ C$OMP& shared(dh2dt,icolumnsteps,icolumnnext)
 #ifdef MPICOPY
 C$OMP& shared(iproc)
 #endif
+#ifdef NONIDEAL
+C$OMP& shared(iohmic,ihall,iambipolar)
+C$OMP& private(dtohmi,dthalli,dtambii,eta_ohmi,eta_halli,eta_ambii)
+#endif
 #ifdef DGRID
 C$OMP& shared(dragenergy)
 C$OMP& private(dragr,dragp,dragt,idragr,idragp,idragt)
@@ -1815,13 +1822,13 @@ C$OMP& private(dragr,dragp,dragt,idragr,idragp,idragt)
 C$OMP& private(rtemp,rtempm,k,keepk)
 C$OMP& private(ig,rp,pvel,theta,pvx,pvy,dvx,dvy,dvz,vmagnitude2)
 C$OMP& private(ipkill,rlim,eccentricity,smaxis,killme)
-C$OMP& private(phiparticle,rmodgd)
+C$OMP& private(phiparticle,rmodgd,rmodap)
 C$OMP& private(i,j,l,tolpart,errBx,errBy,errBz)
 C$OMP& private(errx,erry,errz,errvx,errvy,errvz,erru,errh,errm)
 C$OMP& private(errdivtol,rap,rmod1,divvi,aux1,aux2,aux3,denom,valfven2)
 C$OMP& private(crstepi,rmodcr,force21,force22,force2,rmodcr2,rmod)
 C$OMP& private(stepi,ibin,factor,istep2,irat,r2,pmassi,rmodsg1,rmodsg2)
-C$OMP& private(Bxi,Byi,Bzi,xi,yi,zi,dti,dteta,rmodeta,etai,rmodcool)
+C$OMP& private(Bxi,Byi,Bzi,B2i,xi,yi,zi,dti,dteta,rmodeta,etai,rmodcool)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin,istepmingas)
 C$OMP& reduction(+:istepeta,etafac)
@@ -2354,28 +2361,56 @@ c
 c--Decide which time step to take
 c
             rmod = MIN(rmod1, rmodcr, rmodcr2)
-
-c Timestep for ISM heating / cooling (from Simon Glover)
-
+c
+c--Timestep for ISM heating / cooling (from Simon Glover)
+c
             IF (iener.EQ.4) THEN
                 rmodsg1=(0.05*ABS(vxyzu(4,i)/f1vxyzu(4,i)))
      &          /(dt*isteps(i)/imaxstep)
                 rmodsg2=(0.05*ABS(vxyzu(4,i)/f2vxyzu(4,i)))
      &          /(dt*isteps(i)/imaxstep)
-               rmod=MIN(rmod,rmodsg1,rmodsg2)
+                rmod=MIN(rmod,rmodsg1,rmodsg2)
             END IF 
-
 c
 c--Gas timestep from gas-dust drag
 c
             IF (gasdrag .AND. planetesimalnorm(i).GT.0.0) THEN
                rmodgd = 0.1*planetesimaltimestep(i)/planetesimalnorm(i)/
      &              (dt*isteps(i)/imaxstep)
-c            IF (rmod.GT.rmodgd) print *, 'Use rmodgd G ', rmod, rmodgd,
-c     &              planetesimalnorm(i)
                rmod = MIN(rmod, rmodgd)
             ENDIF
 
+#ifdef NONIDEAL
+c
+c--Gas timestep from non-ideal MHD
+c
+            IF (imhd.EQ.idim) THEN
+               Bxi = Bxyz(1,i)
+               Byi = Bxyz(2,i)
+               Bzi = Bxyz(3,i)
+               IF (iBext.GT.0 .AND. iexf.NE.9) THEN
+                  xi  = xyzmh(1,i)
+                  yi  = xyzmh(2,i)
+                  zi  = xyzmh(3,i)
+                  Bxi = Bxi + BEXTERNAL(xi,yi,zi,1)
+                  Byi = Byi + BEXTERNAL(xi,yi,zi,2)
+                  Bzi = Bzi + BEXTERNAL(xi,yi,zi,3)
+               ENDIF
+               B2i = (Bxi*Bxi +  Byi*Byi + Bzi*Bzi)
+               call nicil_get_eta(eta_ohmi,eta_halli,eta_ambii,SQRT(B2i)
+     &              ,rho(i),vsound(i))
+               call nimhd_get_dt(dtohmi,dthalli,dtambii,xyzmh(5,i)
+     &              ,eta_ohmi,eta_halli,eta_ambii)
+               dtohmi  = dtohmi / (dt*isteps(i)/imaxstep)
+               dthalli = dthalli/ (dt*isteps(i)/imaxstep)
+               dtambii = dtambii/ (dt*isteps(i)/imaxstep)
+               rmod    = MIN(rmod,dtohmi,dthalli,dtambii)
+            ENDIF
+#endif
+
+c
+c--Gas timestep from Clare's cooling
+c
             IF (encal.EQ.'c') THEN
                IF (nptmass.LE.0) THEN
                   WRITE (*,*) 'ERROR - nptmass.LE.0 for encal.EQ.c'

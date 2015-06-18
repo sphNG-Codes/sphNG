@@ -1,0 +1,2 @@
+      REAL*4 jcurrent
+      COMMON / nonidealA / jcurrent(3,imhd2)

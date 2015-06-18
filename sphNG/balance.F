@@ -52,6 +52,9 @@ c************************************************************
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/dustimplicit'
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nonideal'
+#endif
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -66,6 +69,7 @@ c
       CALL MPI_TYPE_CONTIGUOUS(imhdevol, MPI_REAL8, imhdevolREAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL8, i2REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL4, i3REAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(nheatingISR, MPI_REAL4, iHREAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(nchemistry, MPI_REAL4, iCREAL4, ierr)
@@ -80,6 +84,7 @@ c
       CALL MPI_TYPE_COMMIT(imhdevolREAL8,ierr)
       CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i3REAL4,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
       CALL MPI_TYPE_COMMIT(iHREAL4,ierr)
       CALL MPI_TYPE_COMMIT(iCREAL4,ierr)
@@ -284,6 +289,13 @@ c     &       lsendlist, MPI_LOGICAL, indexMPI_L, ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI_L,ierr)
 
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
+c     &       lsendlist, i3REAL4, indexMPI34, ierr)
+                        CALL MPI_TYPE_INDEXED(numlist(j+1), 
+     &                       lblocklengths, lsendlist, i3REAL4, 
+     &                       indexMPI34, ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI34,ierr)
+
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
 c     &       lsendlist, i2REAL4, indexMPI24, ierr)
                         CALL MPI_TYPE_INDEXED(numlist(j+1), 
      &                       lblocklengths, lsendlist, i2REAL4, 
@@ -472,6 +484,10 @@ c     &                          MPI_COMM_WORLD, ierr)
 
                            CALL MPI_SEND(divcurlB,1,indexMPI54,j,160,
      &                          MPI_COMM_WORLD, ierr)
+#ifdef NONIDEAL
+                           CALL MPI_SEND(jcurrent,1,indexMPI34,j,172,
+     &                          MPI_COMM_WORLD, ierr)
+#endif
                         ENDIF
 
                         IF (encal.EQ.'r') THEN
@@ -504,6 +520,7 @@ c
                         CALL MPI_TYPE_FREE(indexMPIH4,ierr)
                         CALL MPI_TYPE_FREE(indexMPIC4,ierr)
                         CALL MPI_TYPE_FREE(indexMPI24,ierr)
+                        CALL MPI_TYPE_FREE(indexMPI34,ierr)
                         CALL MPI_TYPE_FREE(indexMPI_INT8,ierr)
                         CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
                         CALL MPI_TYPE_FREE(indexMPI_L,ierr)
@@ -981,7 +998,15 @@ c                  ENDIF
                      WRITE (*,*) 'ERROR - balance igotnumber'
                      CALL quit(1)
                   ENDIF
-
+#ifdef NONIDEAL
+                  CALL MPI_RECV(jcurrent(1,npartnew+1), idim, i3REAL4,
+     &                 iprocrec, 172, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, i3REAL4, inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber'
+                     CALL quit(1)
+                  ENDIF
+#endif
                ENDIF
 
                IF (encal.EQ.'r') THEN
@@ -1381,6 +1406,7 @@ c
       CALL MPI_TYPE_FREE(iCREAL4,ierr)
       CALL MPI_TYPE_FREE(iHREAL4,ierr)
       CALL MPI_TYPE_FREE(i2REAL4,ierr)
+      CALL MPI_TYPE_FREE(i3REAL4,ierr)
       CALL MPI_TYPE_FREE(i2REAL8,ierr)
       CALL MPI_TYPE_FREE(i3REAL8,ierr)
       CALL MPI_TYPE_FREE(imhdevolREAL8,ierr)
@@ -2155,6 +2181,9 @@ c*************************`***********************************
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/dustimplicit'
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nonideal'
+#endif
 
       DO i = 1, 5
          xyzmh(i,ito) = xyzmh(i,ifrom)
@@ -2232,6 +2261,11 @@ c         h2mol(ito) = h2mol(ifrom)
          DO i = 1, 5
             divcurlB(i,ito) = divcurlB(i,ifrom)
          END DO
+#ifdef NONIDEAL
+         DO i = 1, 3
+            jcurrent(i,ito) = jcurrent(i,ifrom)
+         END DO
+#endif
       ENDIF
       IF (iradtrans.EQ.idim) THEN
          DO i = 1, 5

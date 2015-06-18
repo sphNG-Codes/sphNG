@@ -305,6 +305,10 @@ ifeq ($(dgrid), yes)
     FPPFLAGS+=${FPP_SEP}-DDGRID
 endif
 
+ifeq ($(nonideal), yes)
+    FPPFLAGS+=${FPP_SEP}-DNONIDEAL
+endif
+
 # do double precision flag last (append only to FFLAGS)
 
 ZZFFLAGS := ${FFLAGS}
@@ -341,8 +345,9 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F \
 	homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
 	inopts.f insulate_TREE_P.F integs.F $(KERNEL) \
 	labrun.F lunit_double.f \
-	mainop.f makedust.f makeplot.f mesop.f mhdparams_mhd.f modif.f mtree_P.f \
-	newrun.f options.f optimise_column_density.f phoenix.f phoenix2.f \
+	mainop.f makedust.f makeplot.f mesop.f mhdparams_mhd.f \
+	modif.f mtree_P.f newrun.f options.f \
+	optimise_column_density.f phoenix.f phoenix2.f \
 	place.f planetpotential.f planet_setup.f planetesimals.f potential.f \
 	preset.F \
 	prout.F ran1.f rdump.F rdump_wrapper.F read_dragtable.f reduce.f \
@@ -372,6 +377,11 @@ SRCNORT = ass_dummy.f
         
 SRCTORUS= montecarloRT.F
 
+# these are the extra routines required for non-ideal MHD
+ifeq ($(nonideal), yes)
+SRCNONIDEAL= calc_curlB.F
+endif
+
 # timestepping routine
 
 SRCRK = step_P.F revtree_P.F
@@ -397,7 +407,7 @@ OBJBAR = $(TOBJBAR:.F=.o)
 
 # construct object files
 
-TOBJECTS = $(SOURCES:.f=.o) $(ZZFILE:.f=.o)
+TOBJECTS = $(SOURCES:.f=.o) $(ZZFILE:.f=.o) $(SRCNONIDEAL:.f=.o)
 TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
 TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
 TOBJGRADHLFRT = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCRT:.f=.o) $(ZEN_PIN)

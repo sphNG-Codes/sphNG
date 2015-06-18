@@ -667,6 +667,12 @@ c
          CALL build_photoelectric_table
          CALL build_planck_mean_table
       ENDIF
+c
+c--Initialise non-ideal MHD
+c
+#ifdef NONIDEAL
+      CALL nicil_initial(utime,udist,umass,umagfd)
+#endif
 
       IF (itrace.EQ.'all') WRITE(iprint,250)
  250  FORMAT(' exit subroutine preset')

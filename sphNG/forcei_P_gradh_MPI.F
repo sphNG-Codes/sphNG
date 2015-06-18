@@ -111,6 +111,9 @@ c
 c--Used for listparents list to keep a list of iupdated
 c
       INCLUDE 'COMMONS/treecom_P'
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nonideal'
+#endif
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
@@ -123,6 +126,13 @@ c
       INTEGER*8 forcei_lock,revtree_lock
       COMMON /locks / forcei_lock(idim2/10+1),revtree_lock
 #endif
+
+#ifdef NONIDEAL
+      REAL*4 dBohmi(3),dBohmj(3),dBhalli(3),dBhallj(3)
+      REAL*4 dBambii(3),dBambij(3)
+      REAL*4 jcb(3),jcbcb(3)
+#endif
+      REAL*4 dBnonideali(3),dBnonidealj(3)
 
       LOGICAL ifirst
       DATA ifirst/.TRUE./
@@ -318,6 +328,13 @@ C$OMP& shared(itot)
 #ifdef DGRID
 C$OMP& shared(dragenergy,dragqchange,px,py,pz)
 #endif
+#ifdef NONIDEAL
+C$OMP& shared(jcurrent)
+C$OMP& private(Bi,Bi1,Bj,Bj1,dBnonideal)
+C$OMP& private(dBohmi,dBohmj,dBhalli,dBhallj,dBambii,dBambij,jcb,jcbcb)
+C$OMP& private(eta_ohmi,eta_halli,eta_ambii)
+C$OMP& private(eta_ohmj,eta_hallj,eta_ambij)
+#endif
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend,numbertodoherekeep)
 C$OMP& shared(realtransfer5to15,llisttrans,idisplacementsi,irecvcounti)
@@ -353,6 +370,7 @@ C$OMP& private(gradhi,gradsofti,gradp,gradpi,gradpj)
 C$OMP& private(Bxi,Byi,Bzi,B2i,Bevolxi,Bevolyi,Bevolzi)
 C$OMP& private(Bxj,Byj,Bzj,B2j,projBi,projBj,dBx,dBy,dBz)
 C$OMP& private(dBxideali,dByideali,dBzideali,dBxdissi,dBydissi,dBzdissi)
+C$OMP& private(dBnonideali,dBnonidealj)
 C$OMP& private(Beqxi,Beqyi,Beqzi,dBxiequil,dByiequil,dBziequil)
 C$OMP& private(divBi,curlBxi,curlByi,curlBzi,fanisoxi,fanisoyi,fanisozi)
 C$OMP& private(gradBxxi,gradBxyi,gradBxzi)
@@ -525,6 +543,7 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
             dBxdissi = 0.
             dBydissi = 0.
             dBzdissi = 0.
+            dBnonideali = 0.
             dBxiequil = 0.
             dByiequil = 0.
             dBziequil = 0.
@@ -1085,6 +1104,22 @@ c                        dBydissi = dBydissi +
 c     &                             (5.*runiy*projdB-3.*dBy)
 c                        dBzdissi = dBzdissi +
 c     &                             (5.*runiz*projdB-3.*dBz)
+#ifdef NONIDEAL
+c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
+                           Bi = SQRT(B2i)
+                           Bi1 = 1.0/Bi
+                           CALL nicil_get_eta(eta_ohmi,eta_halli
+     &                          ,eta_ambii,Bi,rhoi,vsoundi)
+                           CALL nimhd_get_jcbcb(jcbcb,jcb
+     &                          ,jcurrent(:,ipart),Bxi,Byi,Bzi,Bi1)
+                           CALL nimhd_get_sphdBdt(dBnonideal
+     &                          ,eta_ohmi,eta_halli,eta_ambii
+     &                          ,jcurrent(:,ipart),jcb,jcbcb
+     &                          ,runix,runiy,runiz)
+                           dBnonideali = dBnonideali
+     &                                 - dBnonideal
+     &                                 * (pmassj*rho1i*rho1i)*grkerni
+#endif
                         ENDIF
 c
 c--add contribution to thermal energy
@@ -1266,6 +1301,8 @@ c
                         dBxdissj = 0.
                         dBydissj = 0.
                         dBzdissj = 0.
+                        dBnonidealj = 0.
+
                         termeta = (etai+etaj)*grkern*rij1
                         termetapmi = termeta*pmassi*rho1i
 
@@ -1287,6 +1324,10 @@ c--physical
                            dBxdissj = dBxdissj + termetapmi*dBx*rho1j
                            dBydissj = dBydissj + termetapmi*dBy*rho1j
                            dBzdissj = dBzdissj + termetapmi*dBz*rho1j
+#ifdef NONIDEAL
+                           dBnonidealj = -dBnonideal
+     &                                   * (pmassi*rho1i*rho1i)*grkerni
+#endif
                         ENDIF
 c
 c--add contribution to thermal energy
@@ -1371,11 +1412,11 @@ C$OMP END CRITICAL
 c
 c--NOTE: dBxidealj = 0. unless haverage code
 c
-                        dBxyz(1,j) = dBxyz(1,j) - dBxdissj 
+                        dBxyz(1,j) = dBxyz(1,j) -dBxdissj-dBnonidealj(1)
      &                             + dBxidealj*rho21j
-                        dBxyz(2,j) = dBxyz(2,j) - dBydissj 
+                        dBxyz(2,j) = dBxyz(2,j) -dBydissj-dBnonidealj(2)
      &                             + dByidealj*rho21j
-                        dBxyz(3,j) = dBxyz(3,j) - dBzdissj 
+                        dBxyz(3,j) = dBxyz(3,j) -dBzdissj-dBnonidealj(3)
      &                             + dBzidealj*rho21j
                         IF (imhdevol.EQ.4) THEN
                            dBxyz(1,j) = dBxyz(1,j) + dBpsixj
@@ -1688,6 +1729,23 @@ c                           dBydissi = dBydissi +
 c     &                             (5.*runiy*projdB-3.*dBy)
 c                           dBzdissi = dBzdissi +                    
 c     &                             (5.*runiz*projdB-3.*dBz)
+#ifdef NONIDEAL
+c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
+                              Bj  = SQRT(B2j)
+                              Bj1 = 1.0/Bj
+                              CALL nicil_get_eta(eta_ohmj,eta_hallj
+     &                             ,eta_ambij,Bj,rhoj,vsound(j))
+                              CALL nimhd_get_jcbcb(jcbcb,jcb,
+     &                             jcurrent(:,j),Bxj,Byj,Bzj,Bj1)
+                              CALL nimhd_get_sphdBdt(dBnonideal
+     &                             ,eta_ohmj,eta_hallj,eta_ambij
+     &                             ,jcurrent(:,j),jcb,jcbcb
+     &                             ,runix,runiy,runiz)
+                              dBnonideali = dBnonideali
+     &                                    - dBnonideal
+     &                                    * (pmassj*rho1j*rho1j)*grkernj
+
+#endif
                            ENDIF
 c
 c--Add contribution to thermal energy
@@ -1916,11 +1974,14 @@ c
             dBxyz_zi = 0.
             IF (varmhd(1:1).EQ.'B') THEN
                dBxyz_xi = dBxyz_xi +
-     &                        ((dBxideali+dBxiequil)*rho21i + dBxdissi)
+     &                        ((dBxideali+dBxiequil)*rho21i 
+     &                        + dBxdissi + dBnonideali(1))
                dBxyz_yi = dBxyz_yi + 
-     &                        ((dByideali+dByiequil)*rho21i + dBydissi)
+     &                        ((dByideali+dByiequil)*rho21i 
+     &                        + dBydissi + dBnonideali(2))
                dBxyz_zi = dBxyz_zi +
-     &                        ((dBzideali+dBziequil)*rho21i + dBzdissi)
+     &                        ((dBzideali+dBziequil)*rho21i 
+     &                        + dBzdissi + dBnonideali(3))
                
                !--add contribution from external B field advection
                dBxyz_xi = dBxyz_xi - advBx*rho1i

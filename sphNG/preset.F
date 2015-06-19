@@ -6,6 +6,9 @@ c     option is defined before integration begins.          *
 c                                                           *
 c************************************************************
 
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
@@ -671,7 +674,7 @@ c
 c--Initialise non-ideal MHD
 c
 #ifdef NONIDEAL
-      CALL nicil_initial(utime,udist,umass,umagfd)
+      CALL nicil_initial(utime,udist,umass,umagfd,iprint_in=iprint)
 #endif
 
       IF (itrace.EQ.'all') WRITE(iprint,250)

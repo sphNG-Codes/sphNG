@@ -7,6 +7,9 @@ c     a second-order Runge-Kutta-Fehlberg method.           *
 c                                                           *
 c************************************************************
 
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
@@ -2398,7 +2401,7 @@ c
                ENDIF
                B2i = (Bxi*Bxi +  Byi*Byi + Bzi*Bzi)
                call nicil_get_eta(eta_ohmi,eta_halli,eta_ambii,SQRT(B2i)
-     &              ,rho(i),vsound(i))
+     &              ,dble(rho(i)),dble(vsound(i)))
                call nimhd_get_dt(dtohmi,dthalli,dtambii,xyzmh(5,i)
      &              ,eta_ohmi,eta_halli,eta_ambii)
                dtohmi  = dtohmi / (dt*isteps(i)/imaxstep)

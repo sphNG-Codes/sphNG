@@ -1,0 +1,4 @@
+      use nicil, only: nicil_initial,nicil_get_eta
+      use nicil, only: nimhd_get_jcbcb,nimhd_get_sphdBdt
+      use nicil, only: nimhd_get_dudt, nimhd_get_dt
+      use nicil, only: nicil_ionR_get_Zgrain

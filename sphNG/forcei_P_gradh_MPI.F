@@ -7,6 +7,9 @@ c  This subroutine computes the forces on particle ipart    *
 c                                                           *
 c************************************************************
 
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
@@ -130,7 +133,7 @@ c
 #ifdef NONIDEAL
       REAL*4 dBohmi(3),dBohmj(3),dBhalli(3),dBhallj(3)
       REAL*4 dBambii(3),dBambij(3)
-      REAL*4 jcb(3),jcbcb(3)
+      REAL*8 dBnonideal(3),jcb(3),jcbcb(3)
 #endif
       REAL*4 dBnonideali(3),dBnonidealj(3)
 
@@ -1109,12 +1112,12 @@ c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
                            Bi = SQRT(B2i)
                            Bi1 = 1.0/Bi
                            CALL nicil_get_eta(eta_ohmi,eta_halli
-     &                          ,eta_ambii,Bi,rhoi,vsoundi)
+     &                          ,eta_ambii,Bi,rhoi,dble(vsoundi))
                            CALL nimhd_get_jcbcb(jcbcb,jcb
-     &                          ,jcurrent(:,ipart),Bxi,Byi,Bzi,Bi1)
+     &                         ,dble(jcurrent(:,ipart)),Bxi,Byi,Bzi,Bi1)
                            CALL nimhd_get_sphdBdt(dBnonideal
      &                          ,eta_ohmi,eta_halli,eta_ambii
-     &                          ,jcurrent(:,ipart),jcb,jcbcb
+     &                          ,dble(jcurrent(:,ipart)),jcb,jcbcb
      &                          ,runix,runiy,runiz)
                            dBnonideali = dBnonideali
      &                                 - dBnonideal
@@ -1734,12 +1737,12 @@ c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
                               Bj  = SQRT(B2j)
                               Bj1 = 1.0/Bj
                               CALL nicil_get_eta(eta_ohmj,eta_hallj
-     &                             ,eta_ambij,Bj,rhoj,vsound(j))
-                              CALL nimhd_get_jcbcb(jcbcb,jcb,
-     &                             jcurrent(:,j),Bxj,Byj,Bzj,Bj1)
+     &                             ,eta_ambij,Bj,rhoj,dble(vsound(j)))
+                              CALL nimhd_get_jcbcb(jcbcb,jcb
+     &                             ,dble(jcurrent(:,j)),Bxj,Byj,Bzj,Bj1)
                               CALL nimhd_get_sphdBdt(dBnonideal
      &                             ,eta_ohmj,eta_hallj,eta_ambij
-     &                             ,jcurrent(:,j),jcb,jcbcb
+     &                             ,dble(jcurrent(:,j)),jcb,jcbcb
      &                             ,runix,runiy,runiz)
                               dBnonideali = dBnonideali
      &                                    - dBnonideal

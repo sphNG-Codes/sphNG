@@ -20,9 +20,9 @@ c*****************************************************************
 
       INCLUDE 'COMMONS/kerne'
       INCLUDE 'COMMONS/table'
-#ifdef NONIDEAL
+c#ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
-#endif
+c#endif
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/gradhterms'
@@ -229,78 +229,6 @@ C$OMP& private(i,j,k)
          END DO
       END DO
 C$OMP END PARALLEL DO
-      RETURN
-      END
 
-c-----------------------------------------------------------------------
-
-c*****************************************************************
-c
-c     This calculates the ambipolar diffusion term (i.e. D x gradW)
-c     where D==TauAP*JxBxB
-c
-c*****************************************************************
-
-      SUBROUTINE calc_ambi(jcur,dBambipolar,Bx,By,Bz,dx,dy,dz
-     1                   ,tauAP,pmass,rho1,grkern)
-      real*4 term,tauAP
-      real*4 jcur(3),jcb(3),jcbcb(3),dBambipolar(3)
-c
-      jcb(1)  = jcur(2)*Bz - jcur(3)*By
-      jcb(2)  = jcur(3)*Bx - jcur(1)*Bz
-      jcb(3)  = jcur(1)*By - jcur(2)*Bx
-c     Calculate JxBxB
-      jcbcb(1)= jcb(2)*Bz - jcb(3)*By
-      jcbcb(2)= jcb(3)*Bx - jcb(1)*Bz
-      jcbcb(3)= jcb(1)*By - jcb(2)*Bx
-c     Calculate D x gradW
-      term           = -(tauAP*rho1)*(pmass*rho1*rho1)*grkern
-      dBambipolar(1) = (jcbcb(2)*dz - jcbcb(3)*dy)*term
-      dBambipolar(2) = (jcbcb(3)*dx - jcbcb(1)*dz)*term
-      dBambipolar(3) = (jcbcb(1)*dy - jcbcb(2)*dx)*term
-c
-      RETURN
-      END
-
-c-----------------------------------------------------------------------
-
-c*****************************************************************
-c
-c     This calculates JxB and JxBxB
-c
-c*****************************************************************
-
-      SUBROUTINE get_jcbcb(jcbcb,jcb,jcur,Bx,By,Bz)
-      real*4 jcur(3),jcb(3),jcbcb(3)
-c
-      jcb(1)  = jcur(2)*Bz - jcur(3)*By
-      jcb(2)  = jcur(3)*Bx - jcur(1)*Bz
-      jcb(3)  = jcur(1)*By - jcur(2)*Bx
-c
-      jcbcb(1)= jcb(2)*Bz - jcb(3)*By
-      jcbcb(2)= jcb(3)*Bx - jcb(1)*Bz
-      jcbcb(3)= jcb(1)*By - jcb(2)*Bx
-c
-      RETURN
-      END
-
-c-----------------------------------------------------------------------
-
-c*****************************************************************
-c
-c     This performs a simple cross product of D x dr, where
-c     D = J for Ohmic condictivity
-c     D = J x B for Hall resisitivity
-c     D = J x B x B for ambipolar diffusion
-c
-c*****************************************************************
-
-      SUBROUTINE get_DcrossR(dBnonideal,D_in,dx,dy,dz,eta,sphterm)
-      real*4 dBnonideal(3),D_in(3),eta
-c
-      dBnonideal(1) = (D_in(2)*dz - D_in(3)*dy)*eta*sphterm
-      dBnonideal(2) = (D_in(3)*dx - D_in(1)*dz)*eta*sphterm
-      dBnonideal(3) = (D_in(1)*dy - D_in(2)*dx)*eta*sphterm
-c
       RETURN
       END

@@ -933,6 +933,7 @@ c--Now calculate magnetic current.  Need to do this after the final values
 c     of magnetic field (Bxyz) have been determined.
 c
       IF (imhd.EQ.idim) THEN
+         CALL calc_curlB(nlst_in,nlst_tot,ntot,npart,xyzmh,Bxyz,dumrho)
       ENDIF
 #endif ! NONIDEAL
 c

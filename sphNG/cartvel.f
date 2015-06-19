@@ -191,8 +191,6 @@ c
                   kpiLy = 2.0*pi/ABS(rymax(j)-rymin(j))*ky(j)
                   kpiLz = 2.0*pi/ABS(rzmax(j)-rzmin(j))*kz(j)
                   
-                  print *,'kpiLz',i,kpiLz,pi,kz(j),kx(j),valfven
-
                   IF (vxyzu(1,i).EQ.1.0E10) THEN
                      vxyzu(1,i) = vampx(j)*valfven*SIN( kpiLx*xyzmh(1,i)
      1                    + kpiLy*xyzmh(2,i)

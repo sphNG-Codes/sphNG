@@ -380,6 +380,7 @@ SRCTORUS= montecarloRT.F
 # these are the extra routines required for non-ideal MHD
 ifeq ($(nonideal), yes)
 SRCNONIDEAL= calc_curlB.F
+SRCNI = nicil.F90
 endif
 
 # timestepping routine
@@ -397,6 +398,7 @@ SRCBAR = RT/Baraffe/1.f RT/Baraffe/gasrad.f RT/Baraffe/sr_all.f \
 TOBJBAR = $(SRCBAR:.f=.o)
 OBJBAR = $(TOBJBAR:.F=.o)
 
+
 #FFLAGS := -save ${ZZFFLAGS}
 
 # these routines compiled single precision and with -save
@@ -407,7 +409,7 @@ OBJBAR = $(TOBJBAR:.F=.o)
 
 # construct object files
 
-TOBJECTS = $(SOURCES:.f=.o) $(ZZFILE:.f=.o) $(SRCNONIDEAL:.f=.o)
+TOBJECTS =  $(SRCNI:.F90=.o) $(SOURCES:.f=.o) $(ZZFILE:.f=.o) $(SRCNONIDEAL:.F=.o)
 TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
 TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
 TOBJGRADHLFRT = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCRT:.f=.o) $(ZEN_PIN)
@@ -422,6 +424,13 @@ OBJGRADHLFRT = $(TOBJGRADHLFRT:.F=.o)
 OBJGRADHRKRT = $(TOBJGRADHRKRT:.F=.o)
 OBJGRADHRKRTBAR = $(TOBJGRADHRKRTBAR:.F=.o) 
 OBJTORUS = $(TOBJTORUS:.F=.o) 
+
+# to ensure that the .mod file is made
+ifeq ($(nonideal), yes)
+.SUFFIXES: .F90 
+%.o : %.F90
+	$(FC) $(FFLAGS) -c -o $(SRCNI:.F90=.o) $<
+endif
 
 # default action for "make"
 default: gradhrk

@@ -1,0 +1,5 @@
+c
+c--To carry the Alfven velocity from setBfield_mhd to cartvel
+c
+      REAL valfven
+      COMMON / nonidealV / valfven

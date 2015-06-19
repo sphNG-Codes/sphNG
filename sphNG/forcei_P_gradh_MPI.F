@@ -712,49 +712,52 @@ c
             robar1 = 2./(rhoi + rhoj)
 
             IF (imhd.EQ.idim) THEN
-             IF (iphase(ipart).EQ.0 .AND. iphase(j).EQ.0) THEN
-               Bxj = Bxyz(1,j)
-               Byj = Bxyz(2,j)
-               Bzj = Bxyz(3,j)
-#ifndef PERIODIC_NO_GHOSTS ! if not done above
-               IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
-                  dBevolx = Bevolxi - Bevolxyz(1,j)
-                  dBevoly = Bevolyi - Bevolxyz(2,j)
-                  dBevolz = Bevolzi - Bevolxyz(3,j)
-               ENDIF
+#ifdef NONIDEAL
+               dBnonideal = 0.
 #endif
-               dBx = Bxi - Bxj
-               dBy = Byi - Byj
-               dBz = Bzi - Bzj
-               B2j = Bxj**2 + Byj**2 + Bzj**2
-               projBi = Bxi*runix + Byi*runiy + Bzi*runiz
-               projBj = Bxj*runix + Byj*runiy + Bzj*runiz
-               projdB = dBx*runix + dBy*runiy + dBz*runiz
+               IF (iphase(ipart).EQ.0 .AND. iphase(j).EQ.0) THEN
+                  Bxj = Bxyz(1,j)
+                  Byj = Bxyz(2,j)
+                  Bzj = Bxyz(3,j)
+#ifndef PERIODIC_NO_GHOSTS ! if not done above
+                  IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
+                     dBevolx = Bevolxi - Bevolxyz(1,j)
+                     dBevoly = Bevolyi - Bevolxyz(2,j)
+                     dBevolz = Bevolzi - Bevolxyz(3,j)
+                  ENDIF
+#endif
+                  dBx = Bxi - Bxj
+                  dBy = Byi - Byj
+                  dBz = Bzi - Bzj
+                  B2j = Bxj**2 + Byj**2 + Bzj**2
+                  projBi = Bxi*runix + Byi*runiy + Bzi*runiz
+                  projBj = Bxj*runix + Byj*runiy + Bzj*runiz
+                  projdB = dBx*runix + dBy*runiy + dBz*runiz
                
-               projBeqi = Beqxi*runix + Beqyi*runiy + Beqzi*runiz
-               projBext = Bextxi*runix + Bextyi*runiy + Bextzi*runiz
+                  projBeqi = Beqxi*runix + Beqyi*runiy + Beqzi*runiz
+                  projBext = Bextxi*runix + Bextyi*runiy + Bextzi*runiz
 c               projBrho2i = (projBi - projBext)*rho21i
 c               projBrho2j = (projBj - projBext)*rho1j*rho1j
-               IF (iresist.GE.2) THEN
-                  etaj = etafunc(rhoj,uj,etamhd,iresist)
-               ELSEIF (iresist.EQ.1) THEN
-                  etaj = etamhd
+                  IF (iresist.GE.2) THEN
+                     etaj = etafunc(rhoj,uj,etamhd,iresist)
+                  ELSEIF (iresist.EQ.1) THEN
+                     etaj = etamhd
+                  ELSE
+                     etaj = 0.
+                  ENDIF
                ELSE
+                  Bxj = 0.
+                  Byj = 0.
+                  Bzj = 0.
+                  dBx = 0.
+                  dBy = 0.
+                  dBz = 0.
+                  B2j = 0.
+                  projBi = 0.
+                  projBj = 0.
+                  projdB = 0.
                   etaj = 0.
                ENDIF
-             ELSE
-               Bxj = 0.
-               Byj = 0.
-               Bzj = 0.
-               dBx = 0.
-               dBy = 0.
-               dBz = 0.
-               B2j = 0.
-               projBi = 0.
-               projBj = 0.
-               projdB = 0.
-               etaj = 0.
-             ENDIF
             ENDIF
 c
 c--Determine whether or not there is a sink particle between i and j

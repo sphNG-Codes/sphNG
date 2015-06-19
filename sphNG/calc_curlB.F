@@ -20,9 +20,9 @@ c*****************************************************************
 
       INCLUDE 'COMMONS/kerne'
       INCLUDE 'COMMONS/table'
-c#ifdef NONIDEAL
+#ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
-c#endif
+#endif
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/gradhterms'
@@ -41,6 +41,11 @@ C$OMP& private(gradhi,grkerntable,grkerni,grpmi,rhoi,rhoi1)
          numneigh = ivar(1,n)
          ioffset  = ivar(2,n)
          ipart    = ivar(3,n)
+
+         DO k = 1, 3
+            jcurrent(k,ipart) = 0.
+         END DO
+
          IF (ipart.GT.npart) THEN
             iparttree = ipart + ntot + 2
          ELSE
@@ -146,7 +151,7 @@ c
                   CALL quit(1)
                ENDIF
                iprocrec = istatus(MPI_SOURCE)
-               IF (ireturned.NE.nneighsentback(iprocrec+1)) THEN
+               IF (ireturned.NE.3*nneighsentback(iprocrec+1)) THEN
                   WRITE (*,*) 'ERROR - ireturned.NE.nnsentback jcurr ',
      &                 ireturned,nneighsentback(iprocrec+1)
                   CALL quit(1)

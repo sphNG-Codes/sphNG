@@ -50,7 +50,7 @@ c     See Lewis, Bate & Price (2015, MNRAS) for more details.
 c     NOTE: ihaverage also requires imhd = idim (i.e. MHD is used).
 c
       LOGICAL ihaverage_switch
-      PARAMETER (ihaverage_switch = .TRUE.)
+      PARAMETER (ihaverage_switch = .FALSE.)
       LOGICAL ihaverage
       PARAMETER (ihaverage = (ihaverage_switch .AND. imhd.EQ.idim))
 c

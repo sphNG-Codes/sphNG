@@ -624,6 +624,10 @@ c
 c  7) add dust to existing dump file (e.g. relaxed disc)
 c
       IF (job(1:8).EQ.'makedust') CALL makedust
+c
+c  8) add dust to existing dump file (e.g. relaxed disc)
+c
+      IF (job(1:8).EQ.'makeplot') CALL makeplot
 
       WRITE(*,*)' Unknown command'
       CALL quit(0)

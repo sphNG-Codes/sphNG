@@ -15,6 +15,10 @@ c************************************************************
 #ifdef MPI
       INCLUDE 'COMMONS/mpi'
 #endif
+c
+c--Turn tests for sink particle creation on or off
+c
+      PARAMETER (isinktest = .TRUE.)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/units'
@@ -582,7 +586,7 @@ c
          betatotal = ABS(trot/tgrav)
          alphatot = alphapt + betatotal
          total = tterm + tgrav + tkin
-         IF(alphapt.GT.0.5 .AND. encal.NE.'r') THEN
+         IF(alphapt.GT.0.5 .AND. encal.NE.'r' .AND. isinktest) THEN
             WRITE(iprint,99001)
             WRITE(iprint,*)'Ptmass failed on alpha = ',alphapt
             WRITE(iprint,99003)total,tterm,tgrav,tkin,xmjeans,
@@ -591,7 +595,8 @@ c
             icreate = 0
             CALL FLUSH (iprint)
             GOTO 100
-         ELSE IF (alphatot.GT.1.0 .AND. encal.NE.'r') THEN
+         ELSE IF (alphatot.GT.1.0 .AND. encal.NE.'r' .AND. 
+     &           isinktest) THEN
             WRITE(iprint,99001)
             WRITE(iprint,*)'Ptmass failed on alpha + beta = ',
      &                     alphapt,betatotal
@@ -601,7 +606,7 @@ c
             icreate = 0
             CALL FLUSH (iprint)
             GOTO 100
-         ELSE IF(total.GE.0 .AND. encal.NE.'r') THEN
+         ELSE IF(total.GE.0 .AND. encal.NE.'r'  .AND. isinktest) THEN
             WRITE(iprint,99001)
             WRITE(iprint,*)'Ptmass failed on total energy (pos) = ', 
      &           total

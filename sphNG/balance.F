@@ -2251,7 +2251,6 @@ c         h2mol(ito) = h2mol(ifrom)
          DO i = 1, imhdevol
             Bevolxyz(i,ito) = Bevolxyz(i,ifrom)
             dumBevolxyz(i,ito) = dumBevolxyz(i,ifrom)
-            Bxyz(i,ito) = Bxyz(i,ifrom)
             f1Bxyz(i,ito) = f1Bxyz(i,ifrom)
             f2Bxyz(i,ito) = f2Bxyz(i,ifrom)
          END DO

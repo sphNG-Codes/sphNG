@@ -39,11 +39,13 @@ module nicil
  logical, private :: g_cnst            = .true.           ! Calcualate coefficient for ambipolar diffusion
  !--Set ionisation type (can have one or both = true)
  logical, private :: ion_rays          = .true.           ! Include ionisation from cosmic (or x-) rays (=true)
- logical, private :: ion_thermal       = .true.           ! Include thermal ionisation (=true)
+ logical, private :: ion_thermal       = .false.           ! Include thermal ionisation (=true)
+ !--Use metallicity (.true.) or abundances (.false.)
+ logical, private :: use_metalXY       = .true.
  !--Assume that all the Hydrogen is molecular Hydrogen (used only for calculating mean molecular mass)
  logical, private :: H_is_H2           = .true.
  !--Use constant resistivity coefficients for all three resistivity terms
- logical, private :: eta_constant      = .true. 
+ logical, private :: eta_constant      = .false. 
  !
  real,    private :: T_thresh          = 1.0e3            ! Temperature [K] above which non-ideal MHD will turn off
  !
@@ -63,8 +65,12 @@ module nicil
  !real,   private :: Z_electron        = -1.0             ! Ionisation parameter: Charge on electron (definition)
  !real,   private :: Z_ion             =  1.0             ! Ionisation parameter: Charge on ion (assumption)
  !
+ !--Metallicities (used if use_metalXY=.true.)
  !--Thermal ionisation
- integer, parameter :: nelements       =     5            ! Number of elements
+ real,    private   :: metal_X         =     0.70         ! Mass fraction of Hydrogen
+ real,    private   :: metal_Y         =     0.28         ! Mass fraction of Helium
+ integer, parameter :: nelements_max   =     5            ! Maximum number of elements
+ integer, private   :: nelements       =     5            ! Number of elements
  integer, parameter :: n_nuin          =  1000            ! Number of ni_inT_coef values to pre-caculate
  real,    parameter :: se              =    1.0           ! Electron ticking coefficient: se \in (1.0d-3, 1.0)
  real,    parameter :: m_min           =    1.0           ! minimum ion mass (units of m_proton) in the table
@@ -72,9 +78,9 @@ module nicil
  !--The number of species
  integer, parameter :: nspecies        =    5             ! The number of charged species (do not modify)
  !--Resistivity coefficients (if fixed as constants)
- real,    private   :: n_e_cnst        = 1.0e7            ! Constant electron number density
- real,    private   :: rho_i_cnst      = 0.1              ! Density of ionised gas
- real,    private   :: gamma_AD        = 1000.0           ! Collisional coupling coefficient
+ real,    private   :: n_e_cnst        = 1.0e7            ! Constant electron number density  [>0: n_{cm^-3};      <0: |n_code|]
+ real,    private   :: rho_i_cnst      = -0.1             ! Density of ionised gas            [>0: r_{g/cm^3};     <0: |r_code|]
+ real,    private   :: gamma_AD        = -1000.0          ! Collisional coupling coefficient  [>0: g_{cm^3/(s g)}; <0: |g_code|]
  logical, private   :: hall_lt_zero    = .false.          ! The sign of the Hall coefficient
  !
  !--Physical Constants (CGS)
@@ -102,11 +108,12 @@ module nicil
  real,    private :: sigma_coef,sigmavenXbyT,sigmavenYbyT,sigmavenX_LR,sigmavenY_LR
  real,    private :: eta_ohm_cnst,eta_hall_cnst,eta_ambi_cnst
  real,    private :: Saha_coef,y_ionT_coef,tau0_coef,tau_coef
- real,    private :: log_abunj(nelements),mj(nelements),abundancej(nelements),mass_frac(nelements)
- real,    private :: depletionj(nelements),chij(nelements),gej(nelements)
+ real,    private :: log_abunj(nelements_max),mj(nelements_max),abundancej(nelements_max)
+ real,    private :: mass_frac(nelements_max)
+ real,    private :: depletionj(nelements_max),chij(nelements_max),gej(nelements_max)
  real,    private :: dm_ion,nu_inT_coef(n_nuin)
- real,    private :: metal_X,metal_Y,umass0,unit_density0
- character(2), private :: symj(nelements)
+ real,    private :: umass0,unit_density0
+ character(2), private :: symj(nelements_max)
  !
  !--Subroutines
  public  :: nicil_initial,nicil_get_eta
@@ -126,37 +133,61 @@ contains
 ! ionisation
 subroutine nicil_initial_species
  !  
- gej           =  2.0             ! Statistical weight of the electron
- !--Hydrogen
- symj(1)       = "H"              ! Chemical Symbol
- log_abunj(1)  = 12.0             ! Log abundance
- mj(1)         =  1.01            ! Mass [m_proton]
- chij(1)       = 13.60            ! Ionisation potential eV]
- depletionj(1) =  0.0             ! Depletion factor
- !--Helium 
- symj(2)       = "He"             ! Chemical Symbol
- log_abunj(2)  = 10.93            ! Log abundance
- mj(2)         =  4.00            ! Mass [m_proton]
- chij(2)       = 24.59            ! Ionisation potential [eV]
- depletionj(2) =  0.0             ! Depletion factor
- !--Sodium 
- symj(3)       = "Na"             ! Chemical Symbol
- log_abunj(3)  =  6.24            ! Log abundance
- mj(3)         = 22.98            ! Mass [m_proton]
- chij(3)       =  5.14            ! Ionisation potential [eV]
- depletionj(3) = -0.92            ! Depletion factor
- !--Magnesium 
- symj(4)       = "Mg"             ! Chemical Symbol
- log_abunj(4)  =  7.60            ! Log abundance
- mj(4)         = 24.31            ! Mass [m_proton]
- chij(4)       =  7.65            ! Ionisation potential [eV]
- depletionj(4) = -0.92            ! Depletion factor
- !--Potassium 
- symj(5)       = "K"              ! Chemical Symbol
- log_abunj(5)  =  5.03            ! Log abundance
- mj(5)         = 39.10            ! Mass [m_proton]
- chij(5)       =  4.34            ! Ionisation potential [eV]
- depletionj(5) = -0.92            ! Depletion factor
+ !--Initialise/Zero the values
+ log_abunj     = 0.0
+ chij          = 0.0
+ depletionj    = 0.0
+ mj            = 0.0
+ gej           = 2.0             ! Statistical weight of the electron
+ if (use_metalXY) then
+   if (metal_X + metal_Y > 1.0) call nicil_fatal('nicil_initial','metal_X + metal_Y > 1')
+   nelements     = 2
+   !--Hydrogen
+   symj(1)       = "H"              ! Chemical Symbol
+   mj(1)         =  1.00            ! Mass [m_proton]
+   chij(1)       = 13.60            ! Ionisation potential eV]
+   mass_frac(1)  = metal_X
+   !--Helium 
+   symj(2)       = "He"             ! Chemical Symbol
+   mj(2)         =  4.00            ! Mass [m_proton]
+   chij(2)       = 24.59            ! Ionisation potential [eV]
+   mass_frac(2)  = metal_Y
+ else
+   !--Hydrogen
+   symj(1)       = "H"              ! Chemical Symbol
+   log_abunj(1)  = 12.0             ! Log abundance
+   mj(1)         =  1.01            ! Mass [m_proton]
+   chij(1)       = 13.60            ! Ionisation potential eV]
+   depletionj(1) =  0.0             ! Depletion factor
+   !--Helium 
+   symj(2)       = "He"             ! Chemical Symbol
+   log_abunj(2)  = 10.93            ! Log abundance
+   mj(2)         =  4.00            ! Mass [m_proton]
+   chij(2)       = 24.59            ! Ionisation potential [eV]
+   depletionj(2) =  0.0             ! Depletion factor
+   !--Sodium 
+   symj(3)       = "Na"             ! Chemical Symbol
+   log_abunj(3)  =  6.24            ! Log abundance
+   mj(3)         = 22.98            ! Mass [m_proton]
+   chij(3)       =  5.14            ! Ionisation potential [eV]
+   depletionj(3) = -0.92            ! Depletion factor
+   !--Magnesium 
+   symj(4)       = "Mg"             ! Chemical Symbol
+   log_abunj(4)  =  7.60            ! Log abundance
+   mj(4)         = 24.31            ! Mass [m_proton]
+   chij(4)       =  7.65            ! Ionisation potential [eV]
+   depletionj(4) = -0.92            ! Depletion factor
+   !--Potassium 
+   symj(5)       = "K"              ! Chemical Symbol
+   log_abunj(5)  =  5.03            ! Log abundance
+   mj(5)         = 39.10            ! Mass [m_proton]
+   chij(5)       =  4.34            ! Ionisation potential [eV]
+   depletionj(5) = -0.92            ! Depletion factor
+ end if
+ !
+ !--Verify that H & He are in the correct array entries
+ if (trim(symj(1))/="H" ) call nicil_fatal('nicil_test_eta','Hygrogen does not have the correct array number of 1')
+ if (trim(symj(2))/="He") call nicil_fatal('nicil_test_eta','Helium does not have the correct array number of 2')
  !
 end subroutine nicil_initial_species
 !======================================================================!
@@ -190,19 +221,30 @@ subroutine nicil_initial(utime,udist,umass,unit_Bfield,Z_grainR,n_electron,iprin
  !--Initialise species properties for thermal ionisation & Calculate abundances & mass fractions
  !  By construction, Sum (abundancej), Sum(mass_frac) == 1 
  call nicil_initial_species
- n_rel       = 0.0
- mass_total  = 0.0
+ !--Calculate metallicities or abundances, as required
+ if (use_metalXY) then
+   ! Note: Abundance is approximate since we do not explicity accound for Z
+   mass_total    = 1.0/(metal_X/mj(1) + metal_Y/mj(2))
+   abundancej(1) = metal_X*(mass_total)/(mj(1))
+   abundancej(2) = metal_Y*(mass_total)/(mj(2))
+ else
+   n_rel       = 0.0
+   mass_total  = 0.0
+   do j = 1,nelements
+     nj_rel(j) = 10**(log_abunj(j) - 12.0 + depletionj(j))  ! Number density relative to H
+     n_rel     = n_rel + nj_rel(j)
+   end do
+   do j = 1,nelements
+     abundancej(j) = nj_rel(j)/n_rel                        ! Abundance
+     mass_total    = mass_total + mj(j)*abundancej(j)
+   end do
+   do j = 1,nelements
+     mass_frac(j)  = mj(j)*abundancej(j)/mass_total
+   end do
+ end if
+ !--Calculate the mean molar mass
  meanmolmass = 0.0
  do j = 1,nelements
-   nj_rel(j) = 10**(log_abunj(j) - 12.0 + depletionj(j))  ! Number density relative to H
-   n_rel     = n_rel + nj_rel(j)
- end do
- do j = 1,nelements
-   abundancej(j) = nj_rel(j)/n_rel                     ! Abundance
-   mass_total    = mass_total + mj(j)*abundancej(j)
- end do
- do j = 1,nelements
-   mass_frac(j)  = mj(j)*abundancej(j)/mass_total
    if (H_is_H2 .and.  trim(symj(j))=="H") then 
      meanmolmass = meanmolmass + mass_frac(j)/(2.0*mj(j))
    else
@@ -233,15 +275,9 @@ subroutine nicil_initial(utime,udist,umass,unit_Bfield,Z_grainR,n_electron,iprin
    a01_grain       =  5.0/3.0*a0_grain*a1_grain                       &      ! Average grain radius (approximately MRN)
                    * (a1_grain**1.5-a0_grain**1.5)/(a1_grain**2.5-a0_grain**2.5)
  end if
- if (trim(symj(1))=="H") then
+ if (.not. use_metalXY) then
    metal_X         = mass_frac(1)                                          ! Metallicity of Hydrogen
- else
-   call nicil_fatal('nicil_test_eta','Hygrogen does not have the correct array number of 1')
- end if
- if (trim(symj(2))=="He") then
    metal_Y         = mass_frac(2)                                          ! Metallicity of Helium
- else
-   call nicil_fatal('nicil_test_eta','Helium does not have the correct array number of 1')
  end if
  !
  !--Initialise variables (Code unit variables)
@@ -349,8 +385,13 @@ subroutine nicil_initial(utime,udist,umass,unit_Bfield,Z_grainR,n_electron,iprin
  end if
  !
  !--Set constant coefficients
- eta_ohm_cnst  = mass_electron_cgs*c**2/(fourpi*qe**2*n_e_cnst)                                 / unit_eta
- eta_hall_cnst = c/(fourpi*qe*n_e_cnst)                         *  unit_Bfield                  / unit_eta
+ !  Convert between code & physical as required
+ if (n_e_cnst   < 0.0) n_e_cnst   = -n_e_cnst   / udist**3
+ if (rho_i_cnst < 0.0) rho_i_cnst = -rho_i_cnst * unit_density
+ if (gamma_AD   < 0.0) gamma_AD   = -gamma_AD   /(unit_density*utime)
+ !  Calculate the coefficients
+ eta_ohm_cnst  = mass_electron_cgs*c**2/(fourpi*qe**2*n_e_cnst)                                / unit_eta
+ eta_hall_cnst = c/(fourpi*qe*n_e_cnst)                        *  unit_Bfield                  / unit_eta
  eta_ambi_cnst = 1.0/(fourpi*gamma_AD*rho_i_cnst)              * (unit_Bfield**2/unit_density) / unit_eta
  if (hall_lt_zero) eta_hall_cnst = -eta_hall_cnst
  !

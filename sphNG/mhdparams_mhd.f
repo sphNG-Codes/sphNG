@@ -149,7 +149,7 @@ c
             valphaBmax = MAX(valphaBmax, alphaMM(2,i))
             valphaBmin = MIN(valphaBmin, alphaMM(2,i))
 
-c            IF (iresist.GE.2) THEN
+            IF (iresist.GE.2) THEN
                etai = etafunc(rhoi,vxyzu(4,i),etamhd,iresist)
                etamax = MAX(etamax, etai)
                etamin = MIN(etamin, etai)
@@ -172,7 +172,7 @@ c            IF (iresist.GE.2) THEN
                   etarealoverartav = etarealoverartav + ratio
                   ietacount = ietacount + 1
                ENDIF
-c           ENDIF
+            ENDIF
          ENDIF
       ENDDO
       

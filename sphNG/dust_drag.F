@@ -26,6 +26,7 @@ c
       INCLUDE 'COMMONS/timei'
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/dustimplicit'
+      INCLUDE 'COMMONS/cgas'
 c 
 c--MPI headers
 c
@@ -53,7 +54,7 @@ c
       REAL      m_ipart, m_j, scalar, ddvx, ddvy, ddvz, dr, 
      &          dr2, drx, dry, drz, chi, h_j, h2_j, h3_j, 
      &          wk_j, wk_sym, wk_sym2, nu,
-     &          mD_Ks, dwdx, dxx, vthermal, mG, ts
+     &          mD_Ks, dwdx, dxx, vthermal, mG, ts, vthermal_coef
       PARAMETER (nu=3.0)
 #ifdef debug_drag
       REAL      px1, py1, pz1, px0, py0, pz0
@@ -61,6 +62,18 @@ c
 #endif
 
 c      print *,'Entered dust_drag ',nlst,nlst0
+c
+c--For Epstein drag, need to know vthermal = SQRT(8*k_B*T/(pi*mu*m_H))
+c     This is very similar to vsound(), but needs to be modified 
+c     by the factor below.
+c     NOTE: It won't quite be right for encal.EQ.'v' or 'x' because 
+c     the gamma value varies rather than being a constant.
+c
+      IF (encal.EQ.'i' .OR. encal.EQ.'t') THEN
+         vthermal_coef = SQRT(8.0/pi)
+      ELSE
+         vthermal_coef = SQRT(8.0/pi/gamma)
+      ENDIF
 c
 c--Store present velocities for drag interaction
 c
@@ -71,6 +84,7 @@ C$OMP& shared(wij,dustnorm,r_planetesimals,rho_planetesimals)
 C$OMP& shared(utime,udist,cnormk)
 C$OMP& shared(doublehumpnormk,npart,ntot,itime,imaxstep,isteps)
 C$OMP& shared(n_planetesimal_types,vxyzu_change)
+C$OMP& shared(vthermal_coef,vsound)
 C$OMP& private(i,j,k,n,ipart,ioffset,drx,dry,drz,dr,ddvx,ddvy,ddvz)
 C$OMP& private(m_ipart,m_j,dr2)
 C$OMP& private(h_j,h2_j,h3_j,chi,u2_j)
@@ -121,9 +135,6 @@ c
 c         r_planetesimal =  1.0E-6
 c         r_planetesimal = r_planetesimal*1.E5/udist
 c         rho_planetesimal = 3.0
-
-         vthermal = 1.0E5*utime/udist
-         mD_Ks = r_planetesimal*rho_planetesimal/vthermal
 c
 c--Loop over neighbouring particles
 c
@@ -191,6 +202,14 @@ c
                   wk_j = doublehumpnormk*(wij(index) + dwdx*dxx)*u2_j/
      &                 h3_j
                   wk_sym   = wk_j
+c
+c--Calculate drag coefficient
+c
+c         vthermal = 1.0E5*utime/udist   ! Fixed value in code units
+                  vthermal = vthermal_coef*vsound(j)
+c                  IF (MOD(j,10000).EQ.0)
+c     &                 print *,j,vthermal,1.0E5*utime/udist
+                  mD_Ks = r_planetesimal*rho_planetesimal/vthermal
 c
 c--Constant drag
 c

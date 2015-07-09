@@ -365,7 +365,7 @@ c
                ang1 = ATAN2(yi,xi)
                vxyzu(1,i) = - vg*SIN(ang1)
                vxyzu(2,i) = vg*COS(ang1)
-               vxyzu(3,i) = 0.0
+c               vxyzu(3,i) = 0.0
             ENDIF
             IF (r2.LT.rmindd*rmindd) THEN
                iinner = iinner + 1
@@ -380,19 +380,19 @@ c
                ang1 = ATAN2(yi,xi)
                vxyzu(1,i) = - vg*SIN(ang1)
                vxyzu(2,i) = vg*COS(ang1)
-               vxyzu(3,i) = 0.0
+c               vxyzu(3,i) = 0.0
             ENDIF
 
-            IF (xyzmh(3,i).LE.zmin) THEN
-               ichan = ichan + 1
-               vxyzu(3,i) = 0.
-               xyzmh(3,i) = zmind
-            ENDIF
-            IF (xyzmh(3,i).GE.zmax) THEN
-               ichan = ichan + 1
-               vxyzu(3,i) = 0.
-               xyzmh(3,i) = zmaxd
-            ENDIF
+c            IF (xyzmh(3,i).LE.zmin) THEN
+c               ichan = ichan + 1
+c               vxyzu(3,i) = 0.
+c               xyzmh(3,i) = zmind
+c            ENDIF
+c            IF (xyzmh(3,i).GE.zmax) THEN
+c               ichan = ichan + 1
+c               vxyzu(3,i) = 0.
+c               xyzmh(3,i) = zmaxd
+c            ENDIF
 c
 c--idonebound should be set if a particle has been moved as it 
 c     affects the tree structure (changing its velocity doesn't).

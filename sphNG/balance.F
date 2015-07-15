@@ -61,6 +61,8 @@ c      EQUIVALENCE (itempsort, next1)
 
       DIMENSION listtrans(idim), numlist(nummaxproc),numrecv(nummaxproc)
       DIMENSION listptmass(iptdim), listpmtrans(iptdim)
+
+      IF (iproc.EQ.0) WRITE (iprint,*) 'BALANCING'
 c
 c--Make derived types
 c

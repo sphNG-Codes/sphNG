@@ -119,8 +119,7 @@ c
 c--Load balance MPI processes
 c
 c      IF (iresort.EQ.0) THEN
-         IF (iproc.EQ.0) WRITE (iprint,*) 'BALANCING'
-         CALL balance
+      CALL balance
 c      ENDIF
 #endif
 

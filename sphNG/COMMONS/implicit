@@ -8,9 +8,6 @@
       REAL*4 varij
       COMMON /implicitr4/ varij(4,icompactmax)
 
-      LOGICAL*1 ifullstep
-      COMMON /implicitl/ ifullstep(idim2)
-
       PARAMETER (ntests=10)
       REAL xmaxerr1old(ntests),xmaxerrcomp1(ntests)
       REAL xmaxerr2old(ntests),xmaxerrcomp2(ntests)

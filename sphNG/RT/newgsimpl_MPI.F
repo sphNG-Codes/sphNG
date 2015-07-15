@@ -74,6 +74,7 @@ c      INCLUDE 'COMMONS/rad2'
       INCLUDE 'COMMONS/implicit2'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/fullstep'
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'

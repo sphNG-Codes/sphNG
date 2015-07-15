@@ -34,6 +34,7 @@
       INCLUDE 'COMMONS/dissi'
       INCLUDE 'COMMONS/implicit'
       INCLUDE 'COMMONS/numpa'
+      INCLUDE 'COMMONS/fullstep'
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
@@ -72,24 +73,6 @@ c--Set errors to zero for iteration start
 c
       dtimax = dtdo/imaxstep
       moresweep = .FALSE.
-c
-c--Set timesteps
-c
-C$OMP PARALLEL DO SCHEDULE (static) default(none)
-C$OMP& shared(list,nlst_in,nlst_end)
-C$OMP& shared(icall,iphase,ifullstep,nlst0,isteps)
-C$OMP& private(n,i)
-      DO n = nlst_in, nlst_end
-         i = list(n)
-         IF (n.LE.nlst0) THEN
-            ifullstep(i) = .TRUE.
-         ELSE
-            ifullstep(i) = .FALSE.
-         ENDIF
-
-         
-      END DO
-C$OMP END PARALLEL DO
 
       numcomp = 0
       ipos = 1

@@ -94,6 +94,7 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/raddust'
+      INCLUDE 'COMMONS/fullstep'
 #ifdef MPICOPY
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/mpicopy'
@@ -255,6 +256,7 @@ c               IF (ran1(1).LT.0.001) THEN
 c               ENDIF
 
                iscurrent(i) = .TRUE.
+               ifullstep(i) = .TRUE.
             ENDIF
          END DO
          jj = nlst
@@ -592,6 +594,7 @@ c
                   ENDIF
                   llist(jj) = ipart
                   iscurrent(ipart) = .TRUE.
+                  ifullstep(ipart) = .FALSE.
                ENDIF
             END DO
          ENDIF
@@ -1022,7 +1025,7 @@ C$OMP& shared(gravx,gravy,gradpx,gradpy,artvix,artviy,gravx1,gravy1)
 C$OMP& shared(gradpx1,gradpy1,artvix1,artviy1,torqt,torqg,torqp)
 C$OMP& shared(torqv,torqc,it0,itime,imaxdens,cnormk,iener)
 C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
-C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,vsmooth)
+C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,vsmooth,ifullstep)
 C$OMP& shared(ifsvi,alphaMM,alphamax,encal,dumBevolxyz,Bevolxyz)
 C$OMP& shared(pdvvisc,alphamin,utime,h2frac,dh2dt,gmw,udens,rho)
 C$OMP& private(i,j,k,dtfull,dtf21,dtf22,xold,yold,delvx,delvy,delvz)
@@ -1035,6 +1038,7 @@ C$OMP& reduction(+:ioutmax)
          i = llist(j)
          IF (it0(i)+isteps(i).EQ.itime .AND. iphase(i).GE.0) THEN
             iscurrent(i) = .TRUE.
+            ifullstep(i) = .TRUE.
 c
 c--Update positions
 c
@@ -1354,6 +1358,7 @@ c         ENDIF
                   ENDIF
                   llist(jj) = ipart
                   iscurrent(ipart) = .TRUE.
+                  ifullstep(ipart) = .FALSE.
                ENDIF
             END DO
          ENDIF
@@ -3173,6 +3178,7 @@ c
 
             DO j = 1, nlst0
                iscurrent(llist(j)) = .TRUE.
+               ifullstep(llist(j)) = .TRUE.
             END DO
 
             nghost = 0
@@ -3427,6 +3433,7 @@ c--Set is current of new particles
 c
             DO i = 1, nlst0
                iscurrent(llist(i)) = .TRUE.
+               ifullstep(llist(i)) = .TRUE.
             END DO
 c
 c--Redo ghosts

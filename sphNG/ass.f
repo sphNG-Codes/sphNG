@@ -30,16 +30,13 @@ c
       istepmindone = imax
 C$OMP PARALLEL DO SCHEDULE (static) default(none)
 C$OMP& shared(list,ekcle,origEU,vxyzu,trho,nlst_in,nlst_end)
-C$OMP& shared(icall,iphase,ifullstep,nlst0,EUsave,isteps)
+C$OMP& shared(icall,iphase,nlst0,EUsave,isteps)
 C$OMP& private(n,i)
 C$OMP& reduction(MIN:istepmindone)
       DO n = nlst_in, nlst_end
          i = list(n)
          IF (n.LE.nlst0) THEN
             istepmindone = MIN(istepmindone,isteps(i))
-            ifullstep(i) = .TRUE.
-         ELSE
-            ifullstep(i) = .FALSE.
          ENDIF
 
          IF (iphase(i).EQ.0) THEN

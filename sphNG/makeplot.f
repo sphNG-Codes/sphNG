@@ -76,7 +76,8 @@ c
       READ (*, 1000) ofile
 
       PRINT *, 'Do you want:'
-      PRINT *, '   (a) azimuthal averaging'
+      PRINT *, '   (a) azimuthal averaging, with dust density'
+      PRINT *, '   (r) azimuthal averaging, with dust-to-gas ratio'
       PRINT *, '   (h) double h'
       PRINT *, '   (v) compute velocity dispersion: v_z(1)'
       READ (*,1001) idesire
@@ -149,10 +150,10 @@ c
             r = DSQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2)
             vr = (vxyzu(1,i)*xyzmh(1,i) + vxyzu(2,i)*xyzmh(2,i))/r
 c            IF (xyzmh(2,i).LT.0.) iphase(i) = -1
-            IF (idesire.EQ.'a') THEN
+            IF (idesire.EQ.'a' .OR. idesire.EQ.'r') THEN
                xyzmh(1,i) = r
                xyzmh(2,i) = 0.0
-               xyzmh(4,i) = xyzmh(4,i)/(2*3.14159265*r)
+               xyzmh(4,i) = xyzmh(4,i)/(2*3.14159265*r) * xyzmh(5,i)*1.4
                vxyzu(1,i) = vr
                vxyzu(2,i) = 0.0
             ELSEIF (idesire.EQ.'h') THEN
@@ -171,6 +172,49 @@ c            IF (xyzmh(2,i).LT.0.) iphase(i) = -1
                xtype(2,i) = 1.
             ENDIF
          END DO
+c
+c--Normalise dust masses by gas masses
+c
+         IF (idesire.EQ.'r') THEN
+
+            udens = umass/(udist**3)
+C$OMP PARALLEL DO default(none)
+C$OMP& shared(npart,iphase,xyzmh,rho,udens,xtype)
+C$OMP& private(i,j,ngasclose,gasmeandensity,r2)
+            DO i = 1, npart
+               IF (MOD(i,10000).EQ.0) print *,i
+
+               IF (iphase(i).GE.11) THEN
+                  ngasclose = 0
+                  gasmeandensity = 0.
+c
+c--Loop over all gas particles to find those that are close (d(r_xy)<h)
+c
+                  DO j = 1, npart
+                     r2 = (xyzmh(1,i)-xyzmh(1,j))**2 + 
+     &                    (xyzmh(3,i)-xyzmh(3,j))**2
+                     IF (r2.LT.xyzmh(5,i)**2) THEN
+                        IF (iphase(j).EQ.0) THEN
+                           ngasclose = ngasclose + 1
+                           gasmeandensity = gasmeandensity +rho(j)*udens
+                        ENDIF
+                     ENDIF
+                  END DO
+                  IF (ngasclose.GT.0) THEN
+c
+c--NOTE: Because the dust masses are used for the dust-to-gas ratio, this
+c     will dominate the velocities if velocity vectors are plotted in
+c     SPLASH.  To avoid this, can divide by a large number (or don't plot
+c     velocity vectors with dust-to-gas ratio).
+c
+c                  xtype(2,i) = xtype(2,i)/
+c     &                 (gasmeandensity/ngasclose)*1.0E-10
+                     xyzmh(4,i) = xyzmh(4,i)/(gasmeandensity/ngasclose)
+                  ENDIF
+               ENDIF
+            END DO
+C$OMP END PARALLEL DO
+         ENDIF
 c
 c--Finish computing velocity dispersion, and exit without dumping
 c

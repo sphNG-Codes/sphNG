@@ -192,7 +192,10 @@ c     (2015), need to call the routine here because it directly changes
 c     particle velocities, and this needs to be done before other 
 c     quantities that use the velocities are needed.
 c
-      IF (idustIMPL.GT.0) THEN
+c     This does not need to be done on restart (icall=1) and does not
+c     need to be done for particle additions (icall=4)
+c
+      IF (idustIMPL.GT.0 .AND. (icall.EQ.2 .OR. icall.EQ.3)) THEN
          CALL dust_implicit (dt,npart,ntot,xyzmh,vxyzu,
      &            nlst_in,nlst_end,itime)
       ENDIF

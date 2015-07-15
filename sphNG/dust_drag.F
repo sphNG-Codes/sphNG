@@ -27,6 +27,7 @@ c
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/dustimplicit'
       INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/fullstep'
 c 
 c--MPI headers
 c
@@ -84,7 +85,7 @@ C$OMP& shared(wij,dustnorm,r_planetesimals,rho_planetesimals)
 C$OMP& shared(utime,udist,cnormk)
 C$OMP& shared(doublehumpnormk,npart,ntot,itime,imaxstep,isteps)
 C$OMP& shared(n_planetesimal_types,vxyzu_change)
-C$OMP& shared(vthermal_coef,vsound)
+C$OMP& shared(vthermal_coef,vsound,ifullstep)
 C$OMP& private(i,j,k,n,ipart,ioffset,drx,dry,drz,dr,ddvx,ddvy,ddvz)
 C$OMP& private(m_ipart,m_j,dr2)
 C$OMP& private(h_j,h2_j,h3_j,chi,u2_j)
@@ -227,10 +228,10 @@ c--Chi calculation
 c
                   IF (ts.GT.0.0) THEN
                      beta = 1.0/(dumrho(ipart)+ dumrho(j))
-                     IF (n.GT.nlst0) THEN
-                        chi = beta*(1.0-dexp(-0.5*deltat/ts))
-                     ELSE
+                     IF (ifullstep(ipart)) THEN
                         chi = beta*(1.0-dexp(-deltat/ts))
+                     ELSE
+                        chi = beta*(1.0-dexp(-0.5*deltat/ts))
                      ENDIF
                   ELSE
                      WRITE (*,*) 'ERROR - ts.LE.0.0 ',ts,ipart

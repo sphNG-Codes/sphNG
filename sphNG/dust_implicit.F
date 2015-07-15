@@ -44,6 +44,7 @@ c************************************************************
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/dustimplicit'
+      INCLUDE 'COMMONS/fullstep'
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
@@ -225,9 +226,9 @@ c
          CALL quit(1)
       ENDIF
 c
-c--Now need to transfer resulting dustnorm() & isteps() values for dust
-c     particles that are interacting with gas particles on other MPI
-c     processes!
+c--Now need to transfer resulting dustnorm(), isteps(), ifullstep() 
+c     values for dust particles that are interacting with gas particles 
+c     on other MPI processes!
 c
       inumbertotal_2 = 0
       inumberreturned_2 = 0
@@ -286,6 +287,21 @@ c     &                  indexMPI_INT1,ierr)
 #endif
                            CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
 
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),MPI_LOGICAL,
+c     &                  indexMPI_LOG,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                          llistsentback(1,j+1),MPI_LOGICAL,
+     &                          indexMPI_LOG,ierr)
+                           CALL MPI_TYPE_COMMIT(indexMPI_LOG,ierr)
+
+                           CALL MPI_SEND(ifullstep,1,indexMPI_LOG,j,75,
+     &                          MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                           print *,iproc,' sent ifullstep'
+#endif
+                           CALL MPI_TYPE_FREE(indexMPI_LOG,ierr)
+
 #ifdef MPIDEBUG
                        print *,iproc,': sent neighbour data to ',j,
      &                       radkernel,xyzmh(1,1)
@@ -335,6 +351,15 @@ c
                   CALL MPI_GET_COUNT(istatus, MPI_INTEGER4,icheck,ierr)
                   IF (icheck.NE.inumber) THEN
                      WRITE (*,*) 'ERROR - icheck.NE.inumber s1 ',
+     &                    iproc
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_RECV(ifullstep(istart),inumber,MPI_LOGICAL,
+     &                 iprocrec, 75, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_LOGICAL,icheck,ierr)
+                  IF (icheck.NE.inumber) THEN
+                     WRITE (*,*) 'ERROR - icheck.NE.inumber s2 ',
      &                    iproc
                      CALL quit(1)
                   ENDIF

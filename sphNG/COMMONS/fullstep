@@ -1,2 +1,2 @@
-      LOGICAL*1 ifullstep
+      LOGICAL ifullstep
       COMMON /fullstep/ ifullstep(idim2)

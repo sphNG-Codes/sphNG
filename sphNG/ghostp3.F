@@ -32,6 +32,7 @@ c************************************************************
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/raddust'
+      INCLUDE 'COMMONS/eosq'
 
       CHARACTER*7 where
       REAL*4 rhoreal4
@@ -73,6 +74,8 @@ c
          vzi = vxyzu(3,i)
          ui = vxyzu(4,i)
          rhoi = rho(i)
+         vsoundi = vsound(i)
+         presi = pr(i)
          delta = 0.001*hi
          hi2 = hi*hi
          r2 = xi*xi + yi*yi + zi*zi + tiny
@@ -108,6 +111,8 @@ c            print *,i,r2,hi
             vxyzu(3,nptot) = vzi - 2*vzr
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
 

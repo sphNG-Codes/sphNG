@@ -27,6 +27,7 @@ c************************************************************
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/raddust'
+      INCLUDE 'COMMONS/eosq'
 
       CHARACTER*7 where
 
@@ -69,6 +70,8 @@ c
          vzi = vxyzu(3,i)
          ui = vxyzu(4,i)
          rhoi = rho(i)
+         vsoundi = vsound(i)
+         presi = pr(i)
 
          delta = 0.0
 c
@@ -90,6 +93,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -111,6 +116,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -134,6 +141,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -155,6 +164,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -178,6 +189,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -199,6 +212,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -232,6 +247,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -253,6 +270,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -274,6 +293,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -295,6 +316,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -317,6 +340,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -338,6 +363,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -359,6 +386,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -380,6 +409,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -402,6 +433,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -423,6 +456,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -444,6 +479,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -465,6 +502,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -490,6 +529,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -512,6 +553,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -534,6 +577,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -556,6 +601,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -578,6 +625,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -600,6 +649,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -622,6 +673,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
@@ -644,6 +697,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)

@@ -26,6 +26,7 @@ c************************************************************
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/xforce'
+      INCLUDE 'COMMONS/eosq'
 
       REAL*4 rhoreal4
 
@@ -65,6 +66,8 @@ c
          vzi = vxyzu(3,i)
          ui = vxyzu(4,i)
          rhoi = rho(i)
+         vsoundi = vsound(i)
+         presi = pr(i)
 
          delta = 0.001*hi
          hi2 = hi*hi
@@ -99,6 +102,8 @@ c
             vxyzu(3,nptot) = 0.0
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          IF (rmind.GT.0) THEN
@@ -124,7 +129,8 @@ c
                   vxyzu(3,nptot) = 0.0
                   vxyzu(4,nptot) = ui
                   rho(nptot) = rhoi
-                  vxyzu(4,nptot) = ui
+                  vsound(nptot) = vsoundi
+                  pr(nptot) = presi
                   iphase(nptot) = 0
                ENDIF
             ENDIF
@@ -153,6 +159,8 @@ c
             vxyzu(3,nptot) = 0.0
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          IF (ang1.LT.phimin) THEN
@@ -173,6 +181,8 @@ c
             vxyzu(3,nptot) = 0.0
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
 c

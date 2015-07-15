@@ -25,6 +25,7 @@ c************************************************************
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/eosq'
 
       CHARACTER*7 where
 
@@ -56,6 +57,8 @@ c
          vzi = vxyzu(3,i)
          ui = vxyzu(4,i)
          rhoi = rho(i)
+         vsoundi = vsound(i)
+         presi = pr(i)
 
          delta = 0.1*hi
 c
@@ -77,6 +80,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
 
@@ -96,6 +101,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
 c
@@ -117,6 +124,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
 
@@ -136,6 +145,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
 c
@@ -157,6 +168,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
 
@@ -176,6 +189,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
 c
@@ -207,6 +222,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmin2 + dymax2
@@ -226,6 +243,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dymin2
@@ -245,6 +264,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dymax2
@@ -264,6 +285,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
 
@@ -284,6 +307,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmin2 + dzmax2
@@ -303,6 +328,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dzmin2
@@ -322,6 +349,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dzmax2
@@ -341,6 +370,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
  
@@ -361,6 +392,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dzmin2 + dymax2
@@ -380,6 +413,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dzmax2 + dymin2
@@ -399,6 +434,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dzmax2 + dymax2
@@ -418,6 +455,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
 c
@@ -441,6 +480,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmin2 + dymin2 + dzmax2
@@ -461,6 +502,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmin2 + dymax2 + dzmin2
@@ -481,6 +524,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmin2 + dymax2 + dzmax2
@@ -501,6 +546,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dymin2 + dzmin2
@@ -521,6 +568,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dymin2 + dzmax2
@@ -541,6 +590,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dymax2 + dzmin2
@@ -561,6 +612,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dymax2 + dzmax2
@@ -581,6 +634,8 @@ c
             vxyzu(3,nptot) = -vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
 

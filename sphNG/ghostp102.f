@@ -26,6 +26,7 @@ c************************************************************
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/xforce'
+      INCLUDE 'COMMONS/eosq'
 
 c      REAL*4 rhoreal4
 
@@ -62,6 +63,8 @@ c
          vzi = vxyzu(3,i)
          ui = vxyzu(4,i)
          rhoi = rho(i)
+         vsoundi = vsound(i)
+         presi = pr(i)
 
          hi2 = hi*hi
          r2 = xi**2 + yi**2 + zi**2
@@ -89,6 +92,8 @@ c
             vxyzu(3,nptot) = 0.0
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
          ENDIF
          goto 234
@@ -115,7 +120,8 @@ c
                   vxyzu(3,nptot) = 0.0
                   vxyzu(4,nptot) = ui
                   rho(nptot) = rhoi
-                  vxyzu(4,nptot) = ui
+                  vsound(nptot) = vsoundi
+                  pr(nptot) = presi
                   iphase(nptot) = 0
                ENDIF
             ENDIF

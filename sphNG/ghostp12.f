@@ -28,6 +28,7 @@ c************************************************************
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/cylinder'
+      INCLUDE 'COMMONS/eosq'
 
       CHARACTER*7 where
 
@@ -117,6 +118,8 @@ c
          vzi = vxyzu(3,i)
          ui = vxyzu(4,i)
          rhoi = rho(i)
+         vsoundi = vsound(i)
+         presi = pr(i)
 
 c
 c--Z axis
@@ -138,6 +141,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
             IF (imhd.EQ.idim) THEN
                DO k = 1, imhdevol
@@ -162,6 +167,8 @@ c
             vxyzu(3,nptot) = vzi
             vxyzu(4,nptot) = ui
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
             IF (imhd.EQ.idim) THEN
                DO k = 1, imhdevol
@@ -191,7 +198,9 @@ c
          vzi = vxyzu(3,i)
          ui = vxyzu(4,i)
          rhoi = rho(i)      
-         
+         vsoundi = vsound(i)
+         presi = pr(i)
+
          delta = 0.001*hi
          hi2 = hi*hi
          r2 = xi**2 + yi**2
@@ -217,6 +226,8 @@ c            ang1 = ATAN2(yi,xi)
 c            ang2 = ATAN2(vyi,vxi)
 c            angr = pi - ang2 + ang1
             rho(nptot) = rhoi
+            vsound(nptot) = vsoundi
+            pr(nptot) = presi
             iphase(nptot) = 0
             IF (imhd.EQ.idim) THEN
                Bxi = -ampl*dbesj1(Muff*rgr)*xyzmh(2,nptot)/rgr

@@ -28,6 +28,9 @@ c
       INCLUDE 'COMMONS/dustimplicit'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/fullstep'
+      INCLUDE 'COMMONS/current'
+      INCLUDE 'COMMONS/f1'
+      INCLUDE 'COMMONS/f2'
 c 
 c--MPI headers
 c
@@ -54,7 +57,7 @@ c
       INTEGER   ipart, i, j, k, n, ioffset, index, index1
       REAL      m_ipart, m_j, scalar, ddvx, ddvy, ddvz, dr, 
      &          dr2, drx, dry, drz, chi, h_j, h2_j, h3_j, 
-     &          wk_j, wk_sym, wk_sym2, nu,
+     &          wk_j, wk_sym, wk_sym2, nu, lambda,
      &          mD_Ks, dwdx, dxx, vthermal, mG, ts, vthermal_coef
       PARAMETER (nu=3.0)
 #ifdef debug_drag
@@ -85,14 +88,16 @@ C$OMP& shared(wij,dustnorm,r_planetesimals,rho_planetesimals)
 C$OMP& shared(utime,udist,cnormk)
 C$OMP& shared(doublehumpnormk,npart,ntot,itime,imaxstep,isteps)
 C$OMP& shared(n_planetesimal_types,vxyzu_change)
-C$OMP& shared(vthermal_coef,vsound,ifullstep)
+C$OMP& shared(vthermal_coef,vsound,ifullstep,iscurrent)
+C$OMP& shared(f1vxyzu,f2vxyzu)
 C$OMP& private(i,j,k,n,ipart,ioffset,drx,dry,drz,dr,ddvx,ddvy,ddvz)
 C$OMP& private(m_ipart,m_j,dr2)
-C$OMP& private(h_j,h2_j,h3_j,chi,u2_j)
+C$OMP& private(h_j,h2_j,h3_j,chi,u2_j,lambda)
 C$OMP& private(wk_sym,wk_sym2,wk_j,mG,ts)
 C$OMP& private(dwdx,dxx,index,index1,beta,scalar,deltat)
 C$OMP& private(r_planetesimal,rho_planetesimal)
 C$OMP& private(vthermal,mD_Ks,radius,r2,iparttot2)
+C$OMP& private(adustx,adusty,adustz,agasx,agasy,agasz,scalar_accel,term)
 c
 c--Drag calculation
 c
@@ -121,6 +126,18 @@ c
 c--Dust particle time-step
 c
          deltat = dt*isteps(ipart)/imaxstep
+c
+c--Dust particle acceleration (excluding drag)
+c
+         IF (ifullstep(ipart)) THEN
+            adustx = f2vxyzu(1,ipart)
+            adusty = f2vxyzu(2,ipart)
+            adustz = f2vxyzu(3,ipart)
+         ELSE
+            adustx = f1vxyzu(1,ipart)
+            adusty = f1vxyzu(2,ipart)
+            adustz = f1vxyzu(3,ipart)
+         ENDIF
 c
 c--Drag coefficient -- in code units (Epstein regime)
 c
@@ -181,6 +198,23 @@ c
                ddvz = vxyzu(3,ipart)-vxyzu(3,j)
                scalar = ddvx*drx + ddvy*dry + ddvz*drz
 c
+c--Acceleration differences (excluding gas-dust drag)
+c
+c
+c--Gas particle acceleration (excluding drag)
+c
+               IF (iscurrent(j) .AND. ifullstep(j)) THEN
+                  agasx = f2vxyzu(1,j)
+                  agasy = f2vxyzu(2,j)
+                  agasz = f2vxyzu(3,j)
+               ELSE
+                  agasx = f1vxyzu(1,j)
+                  agasy = f1vxyzu(2,j)
+                  agasz = f1vxyzu(3,j)
+               ENDIF
+               scalar_accel = (adustx-agasx)*drx + (adusty-agasy)*dry +
+     &              (adustz-agasz)*drz               
+c
 c--Mass coefficients
 c
                m_ipart = xyzmh(4,iparttot2)
@@ -233,6 +267,7 @@ c
                      ELSE
                         chi = beta*(1.0-dexp(-0.5*deltat/ts))
                      ENDIF
+                     lambda = (deltat+ts)*chi - deltat*beta*dumrho(j)
                   ELSE
                      WRITE (*,*) 'ERROR - ts.LE.0.0 ',ts,ipart
                      CALL quit(1)
@@ -247,25 +282,28 @@ c
                   ENDIF
 c
 c--Change dust velocity
-c
+c  If lambda=0 & scalar_accel=0 reverts to Loren-Aguilar & Bate (2014)
+c                  lambda = 0.
+c                  scalar_accel = 0.
+
+                  term = nu*m_j*(chi*scalar-lambda*scalar_accel)*
+     &                 wk_sym/dustnorm(ipart)
                   vxyzu_change(1,ipart) = vxyzu_change(1,ipart) - 
-     &                 nu*m_j*chi*scalar*drx*wk_sym/dustnorm(ipart)
+     &                 term*drx
                   vxyzu_change(2,ipart) = vxyzu_change(2,ipart) - 
-     &                 nu*m_j*chi*scalar*dry*wk_sym/dustnorm(ipart)
+     &                 term*dry
                   vxyzu_change(3,ipart) = vxyzu_change(3,ipart) - 
-     &                 nu*m_j*chi*scalar*drz*wk_sym/dustnorm(ipart)
+     &                 term*drz
 c
 c--Change gas velocity and internal energy
 c
+                  term = term*m_ipart/m_j
 C$OMP ATOMIC
-                  vxyzu_change(1,j) = vxyzu_change(1,j) + nu*m_ipart*
-     &                 chi*scalar*drx*wk_sym/dustnorm(ipart)
+                  vxyzu_change(1,j) = vxyzu_change(1,j) + term*drx
 C$OMP ATOMIC
-                  vxyzu_change(2,j) = vxyzu_change(2,j) + nu*m_ipart*
-     &                 chi*scalar*dry*wk_sym/dustnorm(ipart)
+                  vxyzu_change(2,j) = vxyzu_change(2,j) + term*dry
 C$OMP ATOMIC
-                  vxyzu_change(3,j) = vxyzu_change(3,j) + nu*m_ipart*
-     &                 chi*scalar*drz*wk_sym/dustnorm(ipart)
+                  vxyzu_change(3,j) = vxyzu_change(3,j) + term*drz
 cC$OMP ATOMIC
 c               vxyzu_change(4,j)=vxyzu_change(4,j) + nu*m_ipart*
 c     &              chi*scalar*scalar*wk_sym/dustnorm(ipart)

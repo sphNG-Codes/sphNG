@@ -45,6 +45,8 @@ c************************************************************
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/dustimplicit'
       INCLUDE 'COMMONS/fullstep'
+      INCLUDE 'COMMONS/f1'
+      INCLUDE 'COMMONS/f2'
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
@@ -302,6 +304,26 @@ c     &                  indexMPI_LOG,ierr)
 #endif
                            CALL MPI_TYPE_FREE(indexMPI_LOG,ierr)
 
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),i4REAL8,
+c     &                  indexMPI4,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                          llistsentback(1,j+1),i4REAL8,
+     &                          indexMPI4,ierr)
+                           CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
+
+                           CALL MPI_SEND(f1vxyzu,1,indexMPI4,j,76,
+     &                          MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                           print *,iproc,' sent f1vxyzu'
+#endif
+                           CALL MPI_SEND(f2vxyzu,1,indexMPI4,j,77,
+     &                          MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                           print *,iproc,' sent f2vxyzu'
+#endif
+                           CALL MPI_TYPE_FREE(indexMPI4,ierr)
+
 #ifdef MPIDEBUG
                        print *,iproc,': sent neighbour data to ',j,
      &                       radkernel,xyzmh(1,1)
@@ -360,6 +382,24 @@ c
                   CALL MPI_GET_COUNT(istatus, MPI_LOGICAL,icheck,ierr)
                   IF (icheck.NE.inumber) THEN
                      WRITE (*,*) 'ERROR - icheck.NE.inumber s2 ',
+     &                    iproc
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_RECV(f1vxyzu(1,istart),inumber,i4REAL8,
+     &                 iprocrec, 76, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, i4REAL8,icheck,ierr)
+                  IF (icheck.NE.inumber) THEN
+                     WRITE (*,*) 'ERROR - icheck.NE.inumber s3 ',
+     &                    iproc
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_RECV(f2vxyzu(1,istart),inumber,i4REAL8,
+     &                 iprocrec, 77, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, i4REAL8,icheck,ierr)
+                  IF (icheck.NE.inumber) THEN
+                     WRITE (*,*) 'ERROR - icheck.NE.inumber s4 ',
      &                    iproc
                      CALL quit(1)
                   ENDIF

@@ -833,7 +833,16 @@ c               END DO
                   WRITE(*,*) 'WARNING: imhdevol.EQ.4 but nums4(6)=',
      &                 nums4(6)
                ELSE
-                  IF (tagged) READ (idisk1, END=100) ! skip tags
+                  IF (tagged) THEN 
+                    READ (idisk1, END=100)tagi ! skip tags (except psi)
+c Dump files from before r1799 cannot be used.
+                    IF(TRIM(tagi).NE.'psi/c_h') THEN
+                      WRITE(*,*) 'WARNING: wrong psi variable - ',
+     &                           'need psi/c_h not ',tagi
+                      CALL quit(0)
+                    ENDIF
+                  ENDIF
+                  
                   READ (idisk1, END=100) (Bevolxyz(4,i), i=icount+1,
      &              icount+nmhd)
                ENDIF

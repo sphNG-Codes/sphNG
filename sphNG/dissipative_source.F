@@ -186,7 +186,9 @@ c     &                 gradB(6,ipart)
                      vs2i = vs2i * overclean_fac**2
                      vsigi = vsigi * overclean_fac
 
-                     dBxyz(4,ipart) = - vs2i*divcurlB(1,ipart)
+c Use vsigi since we are _actually_ evolving psi/c_h NOT psi.
+c Talk to Terry for why :-)
+                     dBxyz(4,ipart) = - vsigi*divcurlB(1,ipart)
      &                    - 0.8*vsigi*hi1*psi
      &                    - 0.5*divv(ipart)*rho1i*psi
                   ENDIF

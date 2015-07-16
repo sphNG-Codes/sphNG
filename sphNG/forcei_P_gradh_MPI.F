@@ -380,7 +380,7 @@ C$OMP& private(gradBxxi,gradBxyi,gradBxzi)
 C$OMP& private(gradByxi,gradByyi,gradByzi)
 C$OMP& private(gradBzxi,gradBzyi,gradBzzi)
 C$OMP& private(dsoftxi,dsoftyi,dsoftzi,vsigi,vsigj,alphaB)
-C$OMP& private(vsproji,vsprojj,termb,vs2i,vs2j,dB2,robar1,fmi)
+C$OMP& private(vsproji,vsprojj,termb,vs2i,vsi,vs2j,vsj,dB2,robar1,fmi)
 C$OMP& private(grkerni,grpmi,phii,dsoftterm,dsofttermi,projdB,projbext)
 C$OMP& private(grkernj,phij,dsofttermj,rhoij1,fmj,vsoundj)
 C$OMP& private(grkern,grkerntable,dBevolx,dBevoly,dBevolz)
@@ -598,6 +598,8 @@ c         pro2i = max((pr(ipart) - pext + 0.5*(B2i-B2ext)),0.0)*rho21i
          pro2i = (pr(ipart) - pext + 0.5*(B2i-B2ext))*rho21i
          vsoundi = vsound(ipart)
          vs2i = vsoundi**2 + B2i*rho1i
+c Note: vsi != vsigi; the latter includes a `projection' term
+         vsi = SQRT(vs2i)
 
 c         IF (ipart.GT.ntot) print *,iprocdebug,': D3 ',n
 c
@@ -1021,14 +1023,14 @@ c
                          fanisozi = fanisozi + Borve_temp*(Bzj-Bzi)
                      ENDIF
 c
-c--Evolution of psi
+c--Evolution of psi/c_h
 c
                      IF (imhdevol.EQ.4) THEN
-                        dBpsix = dBpsix - pmassj*grkerni*
+                        dBpsix = dBpsix - pmassj*grkerni*vsi*
      &                       Bevolxyz(4,ipart)*rho1i*rho1i*runix
-                        dBpsiy = dBpsiy - pmassj*grkerni*
+                        dBpsiy = dBpsiy - pmassj*grkerni*vsi*
      &                       Bevolxyz(4,ipart)*rho1i*rho1i*runiy
-                        dBpsiz = dBpsiz - pmassj*grkerni*
+                        dBpsiz = dBpsiz - pmassj*grkerni*vsi*
      &                       Bevolxyz(4,ipart)*rho1i*rho1i*runiz
                      ENDIF
 c
@@ -1036,6 +1038,8 @@ c--Signal velocity (MHD)
 c
                      vsoundj = vsound(j)
                      vs2j = vsoundj**2 + B2j*rho1j
+c Note: vsj != vsigj; the latter includes a `projection' term
+                     vsj = SQRT(vs2j)
                      IF (iPhantom_resistivity) THEN
                         vsigi = SQRT(vs2i)
                         vsigj = SQRT(vs2j)
@@ -1289,14 +1293,14 @@ c hav but done in j's part 1
                            forceBanz = forceBanz - Borve_temp*(Bzi-Bzj)
                         ENDIF
 c
-c--Evolution of psi
+c--Evolution of psi/c_h
 c
                         IF (imhdevol.EQ.4) THEN
-                           dBpsixj = pmassi*grkerni*
+                           dBpsixj = pmassi*grkerni*vsi*
      &                        Bevolxyz(4,ipart)*rho1i*rho1i*runix
-                           dBpsiyj = pmassi*grkerni*
+                           dBpsiyj = pmassi*grkerni*vsi*
      &                        Bevolxyz(4,ipart)*rho1i*rho1i*runiy
-                           dBpsizj = pmassi*grkerni*
+                           dBpsizj = pmassi*grkerni*vsi*
      &                        Bevolxyz(4,ipart)*rho1i*rho1i*runiz
                         ENDIF
 c
@@ -1647,14 +1651,14 @@ c haverage but done in Part 1 so a No-op
                            fanisozi = fanisozi + Borve_temp*(Bzj-Bzi)
                         ENDIF
 c
-c--Evolution of psi
+c--Evolution of psi/c_h
 c
                         IF (imhdevol.EQ.4) THEN
-                           dBpsix = dBpsix - pmassj*grkernj*
+                           dBpsix = dBpsix - pmassj*grkernj*vsj*
      &                          Bevolxyz(4,j)*rho1j*rho1j*runix
-                           dBpsiy = dBpsiy - pmassj*grkernj*
+                           dBpsiy = dBpsiy - pmassj*grkernj*vsj*
      &                          Bevolxyz(4,j)*rho1j*rho1j*runiy
-                           dBpsiz = dBpsiz - pmassj*grkernj*
+                           dBpsiz = dBpsiz - pmassj*grkernj*vsj*
      &                          Bevolxyz(4,j)*rho1j*rho1j*runiz
                         ENDIF
 c

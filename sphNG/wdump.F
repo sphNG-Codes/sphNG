@@ -81,7 +81,8 @@ c
       PARAMETER (int1o=690706)
 
       DATA where/'wdump'/
-      
+    
+ 
       tagarr = ''
 c
 c=-set nprint = npart by default
@@ -614,7 +615,7 @@ c
      &            (Bevolxyz(j,isort(i))*rho(isort(i)), i=1, nprint)
             END DO
             DO j = 4, imhdevol
-               WRITE (idisk1, ERR=100) tag('psi')
+               WRITE (idisk1, ERR=100) tag('psi/c_h')
                WRITE (idisk1, ERR=100) 
      &            (Bevolxyz(j,isort(i)), i=1, nprint)
             END DO
@@ -623,7 +624,7 @@ c
                IF (j.LE.3) THEN
                   WRITE (idisk1, ERR=100) tag('B'//labelx(j))
                ELSE
-                  WRITE (idisk1, ERR=100) tag('psi')
+                  WRITE (idisk1, ERR=100) tag('psi/c_h')
                ENDIF
                WRITE (idisk1, ERR=100)
      &            (Bevolxyz(j,isort(i)), i=1, nprint)

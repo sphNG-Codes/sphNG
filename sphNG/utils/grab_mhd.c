@@ -33,6 +33,10 @@ main()
 	  if (total>maxtot) maxtot = total;}
        else if (sscanf(line, " kinetic energy :%le",&ke)==1)
           printf("%e ",ke);
+       else if (sscanf(line, " rotational energy around z :%le",&ke)==1)
+          printf("%e ",ke);
+       else if (sscanf(line, " rotational energy around x :%le",&ke)==1)
+          printf("%e ",ke);
        else if (sscanf(line, " potential energy :%le",&pot)==1)
           printf("%e ",pot);
        else if (sscanf(line, " internal energy :%le",&internal)==1)

@@ -4,6 +4,7 @@
 //#include "getline.c"
 
 #include <stdio.h>
+#include <string.h>
 
 double
 time,timeff,mean_density,max_density,cen_density,total,ke,pot,
@@ -13,6 +14,8 @@ mean_beta,fluxtot,crosshel,min_b,mean_b,max_b;
 //char line[120];
 char *line = NULL;
 size_t len = 0;
+
+int objflag = 0; /* 0 => unknown */
 
 main()
  {  mintot = 1.0E+33;
@@ -71,14 +74,22 @@ main()
        else if (sscanf(line, " total cross helicity (int v.B dV) :%le",&crosshel)==1)
           printf("%e ",crosshel);  	  
        else if (sscanf(line, " density mean :%le max:%le cen:%le",
-            &mean_density, &max_density, &cen_density)==3) {
+            &mean_density, &max_density, &cen_density)==3  && objflag<2) {
           printf("%e %e ",mean_density,mean_density*udens);
           printf("%e %e ",max_density,max_density*udens);
           printf("%e %e ",cen_density,cen_density*udens);}
-       else if (sscanf(line, " mag field   min :%le mean :%le max: %le", &min_b, &mean_b, &max_b)==3) {
+       else if (sscanf(line, " mag field    min  :%le av:%le max: %le", &min_b, &mean_b, &max_b)==3 && objflag<2) {
           printf("%e %e ",min_b,min_b*umagfd);
           printf("%e %e ",mean_b,mean_b*umagfd);
-          printf("%e %e ",max_b,max_b*umagfd);};
+          printf("%e %e ",max_b,max_b*umagfd);}
+       else if (strstr(line, " Object number 1")) {
+          /* Have multiple objects, and am on first one */
+          objflag = 1;
+       }
+       else if (strstr(line, " Object number 2")) {
+          objflag = 2;
+       }
+       ;
      };
     printf("\n %e \n",mintot-maxtot);
  };

@@ -829,9 +829,9 @@ c               END DO
 
             END DO
             IF (imhdevol.EQ.4) THEN
-               IF (nums4(6).NE.4) THEN
-                  WRITE(*,*) 'WARNING: imhdevol.EQ.4 but nums4(6)=',
-     &                 nums4(6)
+               IF (nums4(6).LT.4) THEN
+                  WRITE(*,*) 'ERROR: imhdevol.EQ.4 but nums4(6) < 4'
+                  CALL quit(0)
                ELSE
                   IF (tagged) THEN 
                     READ (idisk1, END=100)tagi ! skip tags (except psi)

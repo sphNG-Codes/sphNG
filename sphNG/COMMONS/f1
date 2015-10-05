@@ -1,4 +1,4 @@
       REAL*4 f1ha
-
+      REAL f1vxyzu, f1Bxyz
       COMMON /f1   / f1vxyzu(4,idim3), f1Bxyz(imhdevol,imhd3), 
      &      f1ha(1+isizealphaMM,idim2)

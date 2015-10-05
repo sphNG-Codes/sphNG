@@ -1,9 +1,14 @@
+      INTEGER nmaxexposed
       PARAMETER (nmaxexposed=1000)
       
+
+      INTEGER nexposed, nexposedold, listexposed, listexposedold
+      INTEGER nptmasslast
       COMMON /radsinki/ nexposed(iptdim), nexposedold(iptdim),
      &           listexposed(nmaxexposed,iptdim), 
      &           listexposedold(nmaxexposed,iptdim), nptmasslast
 
+      REAL ptmassluminosity, cummulativeenergy, actualcumenergy
       COMMON /radsinkr/ ptmassluminosity(iptdim), 
      &           cummulativeenergy(iptdim), actualcumenergy(iptdim)
 

@@ -1,1 +1,4 @@
+      REAL acc
+      INTEGER nbuild
+
       COMMON /btree / acc, nbuild

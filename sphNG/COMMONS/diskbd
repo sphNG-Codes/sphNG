@@ -1,1 +1,3 @@
+      REAL rmind
+
       COMMON /diskbd/ rmind

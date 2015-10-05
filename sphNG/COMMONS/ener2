@@ -1,1 +1,3 @@
+      REAL trotz, trotx, tkin, tgrav, tterm, tmag, trad
+
       COMMON /ener2 / trotz, trotx, tkin, tgrav, tterm, tmag, trad

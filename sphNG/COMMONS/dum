@@ -1,3 +1,4 @@
+      REAL dumxyzmh, dumvxyzu, dumekcle, dumBevolxyz
       REAL*4 dumalpha
 
       COMMON /dum   / dumxyzmh(5,mmax2), dumvxyzu(4,idim2), 

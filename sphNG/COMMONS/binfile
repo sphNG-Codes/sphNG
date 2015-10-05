@@ -1,3 +1,5 @@
+      INTEGER iaccpr, ikillpr, ireasspr, inotify
+
       COMMON /binfile/ iaccpr, ikillpr, ireasspr, inotify,
      &       accfile, killfile, reassfile
 

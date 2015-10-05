@@ -9,6 +9,7 @@
 
       REAL*8 ptmassform
 
+      INTEGER iaccrec
       PARAMETER (iaccrec=10)
 
       COMMON /ptmass/ hacc,haccall,ptmcrit,radcrit,

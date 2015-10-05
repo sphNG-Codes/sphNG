@@ -1,1 +1,3 @@
+      REAL zoverh, deltar
+
       COMMON /boundheight/ zoverh(1001), deltar

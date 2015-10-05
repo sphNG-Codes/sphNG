@@ -1,1 +1,2 @@
+      INTEGER notdone
       COMMON /flag  / notdone

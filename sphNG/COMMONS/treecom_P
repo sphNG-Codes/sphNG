@@ -10,6 +10,12 @@ c
       INTEGER*2 levelnum
       LOGICAL*1 iflagtree
 
+      INTEGER natom, nlevel, nactatom, nroot
+      INTEGER numberparents, nlistupdated
+      INTEGER isibdaupar, next1, next2, next3
+      INTEGER key, ihash, list, nay, listmap, level
+      INTEGER listparents
+
       COMMON /parms / natom, nlevel, nactatom, nroot
      &               ,numberparents, nlistupdated
       COMMON /datums/ qrad(7,mmax),isibdaupar(3,mmax),

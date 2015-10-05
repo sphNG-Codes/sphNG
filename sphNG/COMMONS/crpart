@@ -1,1 +1,3 @@
+      REAL rshell
+      INTEGER nshell, inshell
       COMMON /crpart/ rshell, nshell, inshell

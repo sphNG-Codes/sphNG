@@ -1,1 +1,4 @@
+      REAL dtini
+      INTEGER istepmin, istepmax, istepmingas
+
       COMMON /init  / dtini, istepmin, istepmax, istepmingas

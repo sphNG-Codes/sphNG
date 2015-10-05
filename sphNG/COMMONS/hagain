@@ -1,1 +1,3 @@
+      INTEGER iagain, nfullts, ntype
+
       COMMON /hagain/ iagain, nfullts, ntype

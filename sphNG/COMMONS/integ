@@ -1,1 +1,4 @@
+      REAL tol, e1, tolptm, tolh, tolerance
+      INTEGER nrep, ifail
+
       COMMON /integ / tol, e1, tolptm, tolh, tolerance, nrep, ifail

@@ -1,6 +1,9 @@
       INTEGER nbinmax
       PARAMETER (nbinmax = 30)
 
+      INTEGER nlstbins, it1bin, it2bin, it2, listbins
+      INTEGER itbinupdate
+
       COMMON /timeextra/ nlstbins(nbinmax),it1bin(nbinmax),
      &      it2bin(nbinmax),it2(idim),listbins(idim,nbinmax),
      &      itbinupdate

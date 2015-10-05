@@ -1,2 +1,4 @@
+      REAL torqt, torqg, torqp, torqv, torqc
+
       COMMON /torq /  torqt(idim),torqg(idim),torqp(idim),torqv(idim),
      &      torqc(idim)

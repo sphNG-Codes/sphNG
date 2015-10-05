@@ -1,1 +1,3 @@
+      INTEGER nearl, nlist
+
       COMMON /tlist / nearl(iptneigh), nlist

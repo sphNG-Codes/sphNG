@@ -1,1 +1,3 @@
+      REAL hmin, hmaximum
+
       COMMON /useles/ hmin, hmaximum

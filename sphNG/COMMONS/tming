@@ -1,1 +1,4 @@
+      REAL tstep, tmax, tstop
+      INTEGER nstep, nfullstep, ncount
+
       COMMON /tming / tstep, tmax, tstop, nstep, nfullstep, ncount

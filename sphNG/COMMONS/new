@@ -1,3 +1,8 @@
+      REAL thick, thermal, xx1, yy1, zz1
+      REAL vvx1, vvy1, vvz1, xx2, yy2, zz2, vvx2, vvy2, vvz2
+      REAL rotang, totm
+      INTEGER np, itype, idist
+
       COMMON /new   / thick, thermal, xx1, yy1, zz1,
      &                vvx1, vvy1, vvz1, xx2, yy2, zz2, vvx2, vvy2, vvz2,
      &                rotang, totm, np, itype, idist

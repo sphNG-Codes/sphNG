@@ -1,1 +1,3 @@
+      REAL xlmax, xlmin, ylmax, ylmin, zlmax, zlmin
+
       COMMON /latti / xlmax, xlmin, ylmax, ylmin, zlmax, zlmin

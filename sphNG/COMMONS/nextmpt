@@ -1,5 +1,11 @@
+      INTEGER nlstaccmax
       PARAMETER (nlstaccmax=1000000)
+
       REAL*4 rhonext
+      REAL rhocrea, pmassleast
+      INTEGER icreate, icreatetot, irhonex, iaccr
       COMMON /nextmpt/rhocrea,pmassleast,icreate,icreatetot,
      &       irhonex,iaccr,rhonext
+
+      INTEGER listacc, nlstacc
       COMMON /acclist/listacc(nlstaccmax), nlstacc

@@ -1,1 +1,3 @@
+      REAL Bevolxyz
+
       COMMON /mhd/      Bevolxyz(imhdevol,imhd)

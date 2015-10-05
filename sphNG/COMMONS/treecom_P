@@ -1,3 +1,4 @@
+      INTEGER nmaxlevel
       PARAMETER (nmaxlevel=1000)
 
       REAL*4 qrad

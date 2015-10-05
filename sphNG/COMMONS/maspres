@@ -1,3 +1,4 @@
+      REAL disfrac
       DIMENSION disfrac(idim)
 
       EQUIVALENCE (disfrac, tempsort)

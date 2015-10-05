@@ -1,3 +1,4 @@
+      INTEGER nradiusmax, nthetamax
       PARAMETER(nradiusmax = 150)
       PARAMETER(nthetamax = 36)
       REAL*8 radii,thetas,drad,density,vr,vt,vp,zmasses

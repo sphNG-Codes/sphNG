@@ -1,2 +1,5 @@
+      REAL angx, angy, angz, angto
+      REAL xmom, ymom, zmom, totmom
+
       COMMON /angm  / angx, angy, angz, angto
       COMMON /linm  / xmom, ymom, zmom, totmom

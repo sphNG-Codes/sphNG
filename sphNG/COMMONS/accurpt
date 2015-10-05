@@ -1,3 +1,6 @@
+      REAL ptmsyn, ptmadd, xmomsyn, ymomsyn, zmomsyn
+      REAL xmomadd, ymomadd, zmomadd
+
       COMMON /accurpt/ptmsyn(iptdim), ptmadd(iptdim),
      &                xmomsyn(iptdim), ymomsyn(iptdim),  
      &                zmomsyn(iptdim), xmomadd(iptdim),  

@@ -1,3 +1,4 @@
+      INTEGER nbinmax
       PARAMETER (nbinmax = 30)
 
       COMMON /timeextra/ nlstbins(nbinmax),it1bin(nbinmax),

@@ -1,1 +1,3 @@
+      REAL omeg0
+
       COMMON /rotat / omeg0

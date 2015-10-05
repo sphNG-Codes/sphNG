@@ -1,1 +1,3 @@
+      REAL pext, Bextx, Bexty, Bextz
+
       COMMON /presb / pext,Bextx,Bexty,Bextz

@@ -1,1 +1,3 @@
+      INTEGER irec, ipos, iresort, ifulldump
+
       COMMON /recor / irec, ipos, iresort, ifulldump

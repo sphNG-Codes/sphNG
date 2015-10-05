@@ -1,4 +1,6 @@
       INTEGER*8 inumit, numparticlesdone, inumfixed, inumrecalc
+      INTEGER imaxit, ioutinf, ioutsup, ioutmax, ioutmin, inmin, inmax 
+      INTEGER inminsy, inmaxsy
 
       COMMON /outneigh/ inumit,numparticlesdone,inumfixed,inumrecalc,
      &                  imaxit,

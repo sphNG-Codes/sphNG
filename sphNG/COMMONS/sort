@@ -1,4 +1,6 @@
       INTEGER*8 iunique, iuniquemax
+      INTEGER iorig, isort
+      REAL tempsort
 
       COMMON /sort  / tempsort(idim), iorig(idim2), isort(idim)
       COMMON /unique/ iunique(idim2), iuniquemax

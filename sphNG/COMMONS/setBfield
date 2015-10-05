@@ -1,3 +1,5 @@
 c     this common block contains parameters set in setpart
 c     which are subsequently used in setBfield
+      REAL totmas
+
       COMMON /setBf/ totmas

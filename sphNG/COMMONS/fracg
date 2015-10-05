@@ -1,1 +1,3 @@
+      REAL escap
+
       COMMON /fracg / escap

@@ -1,3 +1,5 @@
+      INTEGER iptcreat, iptout, iptprint, iptoutnum
+
       COMMON /ptdump/ iptcreat, iptout, iptprint, iptoutnum,
      &       ptfile
 

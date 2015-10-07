@@ -408,8 +408,8 @@ c
 c
 c--Write global results on listing
 c
-c         where = 'inform'
-         CALL prout('inform')         
+         where = 'inform'
+         CALL prout(where)         
       ENDIF
 
       IF (idebug(1:6).EQ.'inform') THEN

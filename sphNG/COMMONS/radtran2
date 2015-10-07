@@ -1,1 +1,3 @@
+      REAL pdvvisc
+
       COMMON /radtran2/ pdvvisc(iradtrans)

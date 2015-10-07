@@ -1,2 +1,4 @@
+      REAL origEU
+
       COMMON /radstore/ origEU(2,iradtrans2)
 

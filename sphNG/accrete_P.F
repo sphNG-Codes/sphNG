@@ -18,6 +18,7 @@ c************************************************************
 c
 c--Turn tests for sink particle creation on or off
 c
+      LOGICAL isinktest
       PARAMETER (isinktest = .TRUE.)
 
       INCLUDE 'COMMONS/physcon'

@@ -2375,9 +2375,7 @@ c
 c--For MPI job, need to transfer quantities of particles that interact
 c     with other MPI processes to those processes.
 c
-#ifdef MPIALL
       IF (itiming) CALL getused(td21)
-#endif
 #ifdef MPI
 #ifdef MPIDEBUG
 c      IF (itime.EQ.000) THEN

@@ -370,11 +370,11 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
 98017       FORMAT ('  TRE mtree   time: ', F8.3, ' min. ',F6.2,' %')
 98018       FORMAT ('  TRE treef   time: ', F8.3, ' min. ',F6.2,' %')
 98019       FORMAT ('  TRE revtree time: ', F8.3, ' min. ',F6.2,' %')
-98119       FORMAT ('  TRE revtree1time: ', F8.3, ' min. ',F6.2,' %')
-98120       FORMAT ('  TRE revtree2time: ', F8.3, ' min. ',F6.2,' %')
-98121       FORMAT ('  TRE revtree3time: ', F8.3, ' min. ',F6.2,' %')
-98122       FORMAT ('  TRE revtree4time: ', F8.3, ' min. ',F6.2,' %')
-98123       FORMAT ('  TRE revtree5time: ', F8.3, ' min. ',F6.2,' %')
+98119       FORMAT ('  TRE    rt-1 time: ', F8.3, ' min. ',F6.2,' %')
+98120       FORMAT ('  TRE    rt-2 time: ', F8.3, ' min. ',F6.2,' %')
+98121       FORMAT ('  TRE    rt-3 time: ', F8.3, ' min. ',F6.2,' %')
+98122       FORMAT ('  TRE    rt-4 time: ', F8.3, ' min. ',F6.2,' %')
+98123       FORMAT ('  TRE    rt-5 time: ', F8.3, ' min. ',F6.2,' %')
 98021       FORMAT (' accrete      time: ', F8.3, ' min. ',F6.2,' %')
 98023       FORMAT (' step-1       time: ', F8.3, ' min. ',F6.2,' %')
 98024       FORMAT (' step-2       time: ', F8.3, ' min. ',F6.2,' %')
@@ -399,20 +399,26 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
 98303       FORMAT (' sort         time: ', F8.3, ' min. ')
 98304       FORMAT (' sort - mtree time: ', F8.3, ' min. ')
 98305       FORMAT (' divBsubcycle time: ', F8.3, ' min. ',F6.2,' %')
+98332       FORMAT ('  densit-1    time: ', F8.3, ' min. ',F6.2,' %')
+98333       FORMAT ('  densit-2    time: ', F8.3, ' min. ',F6.2,' %')
+98342       FORMAT ('  divv        time: ', F8.3, ' min. ',F6.2,' %')
          ELSE
             WRITE (iprint, 98020)
             WRITE (iprint, 98022) tsteponly/60., tsteponly/tstep*100.
             IF (encal.EQ.'r' .OR. encal.EQ.'m') 
      &           WRITE (iprint, 98041) tass/60.,   tass/tstep*100.
             WRITE (iprint, 98008) tdens/60.,   tdens/tstep*100.
+            WRITE (iprint, 98332) td1/60.,     td1/tdens*100.
+            WRITE (iprint, 98333) td2/60.,     td2/tdens*100.
+            WRITE (iprint, 98342) td3/60.,     td3/tdens*100.
             WRITE (iprint, 98009) tforce/60.,  tforce/tstep*100.
             WRITE (iprint, 98016) tgforpt/60., tgforpt/tstep*100.
             WRITE (iprint, 98021) taccrete/60., taccrete/tstep*100.
             WRITE (iprint, 98305) tdivBsub/60., tdivBsub/tstep*100.
-            WRITE (iprint, 98034) ts10/60.,    ts10/tstep*100.
-            WRITE (iprint, 98032) td1/60.,     td1/tdens*100.
-            WRITE (iprint, 98033) td2/60.,     td2/tdens*100.
-            WRITE (iprint, 98042) td3/60.,     td3/tdens*100.
+c            WRITE (iprint, 98034) ts10/60.,    ts10/tstep*100.
+c            WRITE (iprint, 98032) td1/60.,     td1/tdens*100.
+c            WRITE (iprint, 98033) td2/60.,     td2/tdens*100.
+c            WRITE (iprint, 98042) td3/60.,     td3/tdens*100.
             WRITE (iprint, 98023) ts1/60.,     ts1/tstep*100.
             WRITE (iprint, 98024) ts2/60.,     ts2/tstep*100.
             WRITE (iprint, 98025) ts3/60.,     ts3/tstep*100.
@@ -421,13 +427,13 @@ c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
             WRITE (iprint, 98028) ts6/60.,     ts6/tstep*100.
             WRITE (iprint, 98029) ts7/60.,     ts7/tstep*100.
             WRITE (iprint, 98030) ts8/60.,     ts8/tstep*100.
-            WRITE (iprint, 98031) ts9/60.,     ts9/tstep*100.
-            WRITE (iprint, 98035) ts11/60.,    ts11/tstep*100.
-            WRITE (iprint, 98036) ts12/60.,    ts12/tstep*100.
+c            WRITE (iprint, 98031) ts9/60.,     ts9/tstep*100.
+c            WRITE (iprint, 98035) ts11/60.,    ts11/tstep*100.
+c            WRITE (iprint, 98036) ts12/60.,    ts12/tstep*100.
             WRITE (iprint, 98037) ts13/60.,    ts13/tstep*100.
             WRITE (iprint, 98038) ts14/60.,    ts14/tstep*100.
             WRITE (iprint, 98039) ts15/60.,    ts15/tstep*100.
-            WRITE (iprint, 98040) ts16/60.,    ts16/tstep*100.
+c            WRITE (iprint, 98040) ts16/60.,    ts16/tstep*100.
             WRITE (iprint, 98003) tins/60.,    tins/tstep*100.
             IF (tins.NE.0.0) THEN
                WRITE (iprint, 98017) tmtree/60.,  tmtree/tins*100.

@@ -372,6 +372,7 @@ SRCGRADH= derivi_P_gradh_MPI.F forcei_P_gradh_MPI.F  \
 SRCRT= ass.f RT/newgsimpl_MPI.f RT/boundaryparticle.f quartic_gs1t.f \
 	RT/getblock.f RT/dust_temperature.f column_density.F 
 SRCNORT = ass_dummy.f
+RTFPPFLAGS=${FPP_SEP}-DRT
 
 # these are the extra routines required for Monte-Carlo radiative transfer
         
@@ -397,7 +398,7 @@ SRCBAR = RT/Baraffe/1.f RT/Baraffe/gasrad.f RT/Baraffe/sr_all.f \
 	RT/Baraffe/new4.f RT/Baraffe/evol.f RT/Baraffe/screenchab99.f
 TOBJBAR = $(SRCBAR:.f=.o)
 OBJBAR = $(TOBJBAR:.F=.o)
-
+RTBARFPPFLAGS=${RTFPPFLAGS} ${FPP_SEP}-DRTBAR
 
 #FFLAGS := -save ${ZZFFLAGS}
 
@@ -464,10 +465,13 @@ gradhlf: checksystem checkparams sph_tree_lf_gradh
 
 gradhrk: checksystem checkparams sph_tree_rk_gradh 
 
+gradhlfrt : FPPFLAGS+=${RTFPPFLAGS}
 gradhlfrt: checksystem checkparams sph_tree_lf_gradh_RT 
 
+gradhrkrt : FPPFLAGS+=${RTFPPFLAGS}
 gradhrkrt: checksystem checkparams sph_tree_rk_gradh_RT
 
+gradhrkrtbar : FPPFLAGS+=${RTBARFPPFLAGS}
 gradhrkrtbar: checksystem checkparams sph_tree_rk_gradh_RT_BAR
 
 all: gradhlf gradhrk

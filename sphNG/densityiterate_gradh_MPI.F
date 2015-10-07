@@ -1548,6 +1548,7 @@ c     This sets radiation and matter to have same initial temperature
 c
  500                       IF (icall.EQ.1 .AND. encal.EQ.'r') THEN
                               IF (ekcle(1,ipart).EQ.0.0) THEN
+#ifdef RT
                                  IF (idustRT.GT.0) THEN
 c
 c--Set temperature of the radiation to be 1 K initially (i.e. negligible)
@@ -1615,6 +1616,7 @@ cC$OMP END CRITICAL (write19)
 c 445                   FORMAT(21(1PE12.5,1X),I8)
 c                        ENDIF
                                  ELSE
+#endif
 c
 c--Set specific radiation energy to be in thermal equilibrium with the
 c     matter initially
@@ -1624,7 +1626,9 @@ c
                                     ekcle(1,ipart) = 
      &                                   uradconst*(vxyzu(4,ipart)/
      &                                   ekcle(3,ipart))**4/rho(ipart)
+#ifdef RT
                                  ENDIF
+#endif
 c
 c--Set opacities
 c

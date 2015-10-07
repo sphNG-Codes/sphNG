@@ -348,6 +348,8 @@ c
          CALL gforsn(m,ntot,nlistgn,listgn,xyzmh,fsx,fsy,fsz,epot)
       ENDIF
       epot = -epot
+
+#ifdef RT
 c
 c--Calculate column density to particle if needed (NOTE that the IF does
 c     not refer to encal='r' because this should be called during the
@@ -364,6 +366,7 @@ c
          CALL column_density(m,itime,ntot,nlistga,listga,
      &        nlistgn,listgn,xyzmh)
       ENDIF
+#endif
 
  900  RETURN
       END

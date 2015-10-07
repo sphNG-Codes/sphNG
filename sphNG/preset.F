@@ -654,6 +654,8 @@ c
             CALL zeustable
          ENDIF
       ENDIF
+
+#ifdef RT
 c
 c--Build tables for diffuse interstellar medium model (Bate & Keto 2015)
 c
@@ -670,6 +672,7 @@ c
          CALL build_photoelectric_table
          CALL build_planck_mean_table
       ENDIF
+#endif
 c
 c--Initialise non-ideal MHD
 c

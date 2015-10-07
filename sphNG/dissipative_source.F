@@ -90,6 +90,8 @@ c
 c--Dissipation and H_2 formation below only applies to gas particles
 c
          IF (iphase(ipart).EQ.0) THEN
+
+#ifdef RT
 c
 c--Evolution of H_2
 c
@@ -110,6 +112,8 @@ c
                dh2dt(ih2pos,ipart) = dh2dt(ih2pos,ipart)*
      &              utime*gmw*mH/(2.0*trho(ipart)*udens)
             ENDIF
+#endif
+
 c
 c--Dissipative terms
 c

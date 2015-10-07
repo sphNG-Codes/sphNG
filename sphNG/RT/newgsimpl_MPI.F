@@ -263,6 +263,7 @@ c     &            ptmassradius, ptmasstemp)
      &              ptmassradius,ptmasstemp
 
             ELSEIF (istellarfeedback.EQ.2) THEN
+#ifdef RTBAR
                nflag = 1
                accrate = 1.0E-4
                ptmassaccrate(iptn) = accrate
@@ -286,6 +287,10 @@ c     &            ptmassradius, ptmasstemp)
                print *,'EvolLyon Values ',iptn,ptmasstime,
      &              ptmassform(iptn),accrate,
      &              starradius,starluminosity,startime,starmass
+#else
+               print *,'istellarfeedback = 2 but evollyon not compiled!'
+               CALL quit(0)
+#endif
             ELSEIF (istellarfeedback.EQ.3) THEN
                print *,'New star noted ',iptn,ptmasstime,
      &              ptmassform(iptn)
@@ -369,7 +374,7 @@ c         ptmassluminosity(iptn) = 1.0E+04*3.827E+33/(uergg*umass/utime)
             ptmassluminosity(iptn) = 0.0
 
          ELSEIF (istellarfeedback.EQ.2) THEN
-
+#ifdef RTBAR
             iacclimit = 2
             IF (iacclimit.EQ.1) THEN
 c
@@ -505,7 +510,6 @@ c     &           umass/solarm/accrate)/10.*0.0)
 c     &           + 0.016
 c     &           *(1.0E-3/accrate)
      &           ) THEN
-
                evolveto = stellartime(iptn) + MAX(10.0,dtstep)
 
                nflag = 99
@@ -582,7 +586,10 @@ c            ptmassluminosity(iptn) = 0.0
              ptmassluminosity(iptn)=ptmassluminosity(iptn)+accluminosity
 c            ptmassluminosity(iptn) = 0.0
             ENDIF
-
+#else
+              print *,'istellarfeedback = 2 but evollyon not compiled!'
+              CALL quit(0)
+#endif
          ELSEIF (istellarfeedback.EQ.3) THEN
             ptmassluminosity(iptn)=1.0E+02*solarl/(uergg*umass/utime)
 c            ptmassluminosity(iptn) = 0.0

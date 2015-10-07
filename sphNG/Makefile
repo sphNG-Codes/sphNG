@@ -84,7 +84,7 @@ ifeq ($(SYSTEM), zen)
     else
        FC= ifort
     endif
-    FFLAGS= -O3 -xSSSE3 -mcmodel=medium -i-dynamic -WB  \
+    FFLAGS= -O3 -xSSSE3 -ipo -mcmodel=medium -i-dynamic -WB  \
             -warn nousage -warn uninitialized -warn unused -warn truncated_source\
             -warn interfaces -nogen-interfaces
 # -check

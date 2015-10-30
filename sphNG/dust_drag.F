@@ -288,10 +288,13 @@ c                  scalar_accel = 0.
 
                   term = nu*m_j*(chi*scalar-lambda*scalar_accel)*
      &                 wk_sym/dustnorm(ipart)
+C$OMP ATOMIC
                   vxyzu_change(1,ipart) = vxyzu_change(1,ipart) - 
      &                 term*drx
+C$OMP ATOMIC
                   vxyzu_change(2,ipart) = vxyzu_change(2,ipart) - 
      &                 term*dry
+C$OMP ATOMIC
                   vxyzu_change(3,ipart) = vxyzu_change(3,ipart) - 
      &                 term*drz
 c

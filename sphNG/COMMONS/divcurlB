@@ -8,6 +8,3 @@ c
 
       REAL*4 etareal,etaartificial
       COMMON /etavar/ etareal(imhd),etaartificial(imhd)
-
-      REAL*4 force_sym, force_an
-      COMMON /Bforces/ force_sym(3,idim), force_an(3,idim)

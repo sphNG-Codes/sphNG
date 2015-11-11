@@ -249,7 +249,7 @@ C$OMP END PARALLEL DO
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none) 
 C$OMP& shared(nlstdo,ldolist,isucceed,xyzmh,hi_old,it1,isteps,imaxstep)
 C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)
-C$OMP& shared(iphase,dBxyz,divcurlB,gradB,force_sym,force_an,it0,itime)
+C$OMP& shared(iphase,dBxyz,divcurlB,gradB,it0,itime)
 C$OMP& shared(curlv,gradhs,sightcolumns,hi_2back)
 C$OMP& shared(planetesimaltimestep,planetesimalnorm,iplanetesimals)
 #ifdef MPI
@@ -324,12 +324,6 @@ c            ENDIF
             END DO
             DO k = 1, 9
                gradB(k,ipart) = 0.
-            END DO
-            DO k = 1, 3
-               force_sym(k,ipart) = 0.
-            END DO
-            DO k = 1, 3
-               force_an(k,ipart) = 0.
             END DO
          ENDIF
 #ifdef MPI

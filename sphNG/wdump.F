@@ -61,6 +61,7 @@ c#endif
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/dustimplicit'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -346,7 +347,7 @@ c
       nums(3) = 0
       nums(4) = 0
       nums(5) = 1
-      nums(6) = 9
+      nums(6) = 9 + 1
 c
 c--For Clare's chemistry
 c
@@ -462,6 +463,10 @@ c--Default real
          WRITE (idisk1, ERR=100) tag(tagarr(j))
          WRITE (idisk1, ERR=100) (vxyzu(j,isort(i)), i=1, nprint)
       END DO     
+
+      WRITE (idisk1, ERR=100) tag('dustnorm')
+      WRITE (idisk1, ERR=100) (dustnorm(isort(i)), i=1, nprint)
+
       IF (iener.EQ.4) THEN
          WRITE (idisk1, ERR=100) tag('h2ratio')
          WRITE (idisk1, ERR=100) (h2ratio(isort(i)), i=1, nprint)
@@ -671,12 +676,6 @@ c--real*4
          WRITE(idisk1, ERR=100) tag('EtaArtificial')
          WRITE(idisk1, ERR=100) (etaartificial(isort(i)),
      &        i=1,nprint)
-c         DO j = 1, 3
-c            WRITE (idisk1, ERR=100) (force_sym(j,isort(i)), i=1, nprint)
-c         ENDDO
-c         DO j = 1, 3
-c            WRITE (idisk1, ERR=100) (force_an(j,isort(i)), i=1, nprint)
-c         ENDDO
 c--real*8
 
       ENDIF

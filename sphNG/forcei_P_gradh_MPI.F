@@ -306,7 +306,6 @@ C$OMP PARALLEL default(none)
 C$OMP& shared(nlst_in,nlst_end,npart,ntot,listp,nneigh,neimin,neimax)
 C$OMP& shared(nlst_tot,icall,dt,itime,imaxstep,isteps)
 C$OMP& shared(xyzmh,vxyzu,dha,fxyzu,trho,pr,vsound,dq,gradhs)
-C$OMP& shared(force_sym,force_an)
 C$OMP& shared(neighb,neighover,dvtable,ddvtable,psoft)
 C$OMP& shared(fmass,fpoten,part2kernel,part1kernel,radkernel)
 C$OMP& shared(part2potenkernel,part1potenkernel,wij,grwij)
@@ -387,7 +386,6 @@ C$OMP& private(grkern,grkerntable,dBevolx,dBevoly,dBevolz)
 C$OMP& private(irealj,advBx,advBy,advBz,termeta)
 C$OMP& private(fextx,fexty,fextz,projBeqi,inosink,Borve_temp)
 C$OMP& private(fanisox,fanisoy,fanisoz,forcex,forcey,forcez,xmasi)
-C$OMP& private(forceBanx,forceBany,forceBanz)
 C$OMP& private(dBpsix,dBpsiy,dBpsiz,dBpsixj,dBpsiyj,dBpsizj)
 C$OMP& private(t12jpmassi,t12jpmassj,r32grav,forcexi,forceyi,forcezi)
 C$OMP& private(Bevoldotdv,termBpmi,termBpmj,termetapmj,termetapmi)
@@ -1055,8 +1053,8 @@ c Note: vsj != vsigj; the latter includes a `projection' term
 c
 c--Artificial and Non-artificial resistivity
 c
-                     IF (j.LE.npart .OR. ibound.EQ.11.OR.ibound.EQ.12) 
-     &                    THEN
+                     IF (j.LE.npart .OR. ibound.EQ.11.OR.ibound.EQ.12
+     &                    .OR. ibound.EQ.104) THEN
                         IF (ifsvi.GE.6) THEN
                            alphaB = 0.5*(alphaMMpass(2,ipart)
      &                          + alphaMMpass(2,j))
@@ -1148,7 +1146,8 @@ c
 c--Artificial viscosity and energy dissipation
 c
                   IF (ifsvi.NE.0 .AND. projv.LT.0. .AND.
-     &               (j.LE.npart.OR.ibound.EQ.11.OR.ibound.EQ.12)) THEN
+     &                 (j.LE.npart.OR.ibound.EQ.11.OR.ibound.EQ.12
+     &                 .OR. ibound.EQ.104)) THEN
 c
 c--Calculate artificial viscosity:
 c     If ifsvi=1 then normal viscosity
@@ -1254,10 +1253,6 @@ c
                         forcez = forcez + gradpj*runiz
                      ENDIF
 
-                     forceBanx = 0.
-                     forceBany = 0.
-                     forceBanz = 0.
-
                      IF (imhd.EQ.idim) THEN
 c
 c--Anisotropic magnetic force (Morris formalism)
@@ -1287,10 +1282,6 @@ c hav but done in j's part 1
                            forcex = forcex - Borve_temp*(Bxi-Bxj)
                            forcey = forcey - Borve_temp*(Byi-Byj)
                            forcez = forcez - Borve_temp*(Bzi-Bzj)
-
-                           forceBanx = forceBanx - Borve_temp*(Bxi-Bxj)
-                           forceBany = forceBany - Borve_temp*(Byi-Byj)
-                           forceBanz = forceBanz - Borve_temp*(Bzi-Bzj)
                         ENDIF
 c
 c--Evolution of psi/c_h
@@ -1395,10 +1386,6 @@ c
                      fxyzu(1,j) = fxyzu(1,j) + forcex
                      fxyzu(2,j) = fxyzu(2,j) + forcey
                      fxyzu(3,j) = fxyzu(3,j) + forcez
-
-                     force_an(1,j) = forceBanx
-                     force_an(2,j) = forceBany
-                     force_an(3,j) = forceBanz
 
                      dq(j) = dq(j) + dqj
 
@@ -1682,7 +1669,7 @@ c
 c--Artificial resistivity
 c
                         IF (j.LE.npart .OR. ibound.EQ.11.OR.ibound.EQ.12
-     &                                                            ) THEN
+     &                       .OR. ibound.EQ.104) THEN
                            IF (ifsvi.GE.6) THEN
                               alphaB = 0.5*(alphaMMpass(2,ipart)
      &                                  + alphaMMpass(2,j))
@@ -1774,7 +1761,8 @@ c
 c--Artificial viscosity and energy dissipation
 c
                      IF (ifsvi.NE.0 .AND. projv.LT.0. .AND. 
-     &               (j.LE.npart.OR.ibound.EQ.11.OR.ibound.EQ.12)) THEN
+     &                    (j.LE.npart.OR.ibound.EQ.11.OR.ibound.EQ.12
+     &                    .OR. ibound.EQ.104)) THEN
 c
 c--Calculate artificial viscosity:
 c     If ifsvi=1 then normal viscosity
@@ -2117,12 +2105,6 @@ c         IF (ipart.GT.idim) print *,iproc,': Fx ',ipart
          fxyzu(1,ipart) = fxyzu(1,ipart) + forcexi
          fxyzu(2,ipart) = fxyzu(2,ipart) + forceyi
          fxyzu(3,ipart) = fxyzu(3,ipart) + forcezi
-
-         IF (imhd.EQ.idim) THEN
-            force_sym(1,ipart) = force_sym(1,ipart) + fanisoxi
-            force_sym(2,ipart) = force_sym(2,ipart) + fanisoyi
-            force_sym(3,ipart) = force_sym(3,ipart) + fanisozi
-         ENDIF
 
          poten(ipart) = poten(ipart) + poteni 
 

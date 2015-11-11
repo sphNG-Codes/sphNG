@@ -66,7 +66,6 @@ c
          vsoundi = vsound(i)
          presi = pr(i)
 
-         hi2 = hi*hi
          r2 = xi**2 + yi**2 + zi**2
          r = SQRT(r2)
 c

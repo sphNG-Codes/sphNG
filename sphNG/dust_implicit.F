@@ -47,6 +47,7 @@ c************************************************************
       INCLUDE 'COMMONS/fullstep'
       INCLUDE 'COMMONS/f1'
       INCLUDE 'COMMONS/f2'
+      INCLUDE 'COMMONS/eosq'
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
@@ -228,7 +229,8 @@ c
          CALL quit(1)
       ENDIF
 c
-c--Now need to transfer resulting dustnorm(), isteps(), ifullstep() 
+c--Now need to transfer resulting dustnorm(), isteps(), ifullstep(),
+c     vsound(),
 c     values for dust particles that are interacting with gas particles 
 c     on other MPI processes!
 c
@@ -324,6 +326,21 @@ c     &                  indexMPI4,ierr)
 #endif
                            CALL MPI_TYPE_FREE(indexMPI4,ierr)
 
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),MPI_REAL4,
+c     &                  indexMPIr4,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                          llistsentback(1,j+1),MPI_REAL4,
+     &                          indexMPIr4,ierr)
+                           CALL MPI_TYPE_COMMIT(indexMPIr4,ierr)
+
+                           CALL MPI_SEND(vsound,1,indexMPIr4,j,78,
+     &                          MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                           print *,iproc,' sent vsound'
+#endif
+                           CALL MPI_TYPE_FREE(indexMPIr4,ierr)
+
 #ifdef MPIDEBUG
                        print *,iproc,': sent neighbour data to ',j,
      &                       radkernel,xyzmh(1,1)
@@ -400,6 +417,15 @@ c
                   CALL MPI_GET_COUNT(istatus, i4REAL8,icheck,ierr)
                   IF (icheck.NE.inumber) THEN
                      WRITE (*,*) 'ERROR - icheck.NE.inumber s4 ',
+     &                    iproc
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_RECV(vsound(istart),inumber,MPI_REAL4,
+     &                 iprocrec, 78, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL4,icheck,ierr)
+                  IF (icheck.NE.inumber) THEN
+                     WRITE (*,*) 'ERROR - icheck.NE.inumber s5 ',
      &                    iproc
                      CALL quit(1)
                   ENDIF

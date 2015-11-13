@@ -212,6 +212,12 @@ c
       ifulldump = 0
       nfullstep = 1
       PRINT *,'writing dump file'
+
+c
+c--Transform into original frame of reference
+c
+      CALL chanref(1)
+
       CALL wdump_wrapper(7)
 c
 c--End writing of full dump file

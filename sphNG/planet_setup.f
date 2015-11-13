@@ -161,6 +161,7 @@ c---------------------------------------------------------------
       INCLUDE 'COMMONS/prdrag'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/planetesimal'
+      INCLUDE 'COMMONS/units'
 
       REAL*8 inclination
       CHARACTER*1 iok, iwhat, idens
@@ -395,7 +396,7 @@ c
       IF (igeom.EQ.9) THEN
          iexf = 7
          ifcor = 1
-         omeg0 = sqrt(gg*solarm/(5.2*au)**3)
+         omeg0 = sqrt(gg*solarm/(5.2*au)**3)*utime
          irotref = 'y'
          ibound = 100
 c         iplans = 'g'

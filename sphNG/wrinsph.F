@@ -174,11 +174,7 @@ c
 88016  FORMAT(2X,1PE12.5,'  Initial Timestep')
 
       IF (ifcor.NE.0) THEN
-         IF (job(1:9).EQ.'evolution') THEN
-            omeg0r = omeg0/utime
-         ELSE
-            omeg0r = omeg0
-         ENDIF
+         omeg0r = omeg0/utime
          WRITE (iterm, 88020) omeg0r
 88020    FORMAT(2X,1PE12.5,'  Omega')
       ENDIF
@@ -211,8 +207,15 @@ c
       IF (ibound.EQ.100) THEN
          WRITE (iterm, 88039) variation,phibound,flowrate,signorm,
      &        hoverr,partm
-88039    FORMAT(2X,7(1PE12.5,1X),
+88039    FORMAT(2X,6(1PE12.5,1X),
      &        '  Rad variation, Phi, flowrate, sigma, HoverR, partmass')
+      ENDIF
+
+      IF (ibound.EQ.104) THEN
+         WRITE (iterm, 88041) variation,phibound,signorm,
+     &        hoverr,partm
+88041    FORMAT(2X,5(1PE12.5,1X),
+     &        '  Rad variation, Phi, sigma, HoverR, partmass')
       ENDIF
 
       IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
@@ -285,7 +288,7 @@ c
      &                                           ibound/10.EQ.9) THEN 
          WRITE (iterm, 88050) rmind, rmax,
      &                        xmin, xmax, ymin, ymax, zmin, zmax
-      ELSEIF (ibound.EQ.2) THEN
+      ELSEIF (ibound.EQ.2 .OR. ibound.EQ.104) THEN
          WRITE (iterm, 88050) rmind, rcyl, 
      &                        xmin, xmax, ymin, ymax, zmin, zmax
       ELSE

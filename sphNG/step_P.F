@@ -1246,7 +1246,7 @@ c--Total number of advanced particles
 c
       idonebound = 0
       IF (ibound.GT.0 .AND. ibound.LT.7 .OR. ibound.EQ.11 
-     &     .OR. ibound.EQ.103) 
+     &     .OR. ibound.EQ.103 .OR. ibound.EQ.104) 
      &     CALL boundry(npart,
      &     llist, nlst0, xyzmh, vxyzu, idonebound)
 c
@@ -1922,6 +1922,47 @@ c
             r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
             IF (r2.LT.(1.0-variation)**2 .OR. r2.GT.(1.0+variation)**2
      &           .OR. ABS(phiparticle).GT.phibound) THEN
+               ipkill = iphase(i)
+               iphase(i) = -1
+#ifndef MPICOPY
+C$OMP CRITICAL (killparticle)
+#endif
+               ikilled = 1
+
+               nlstacc = nlstacc + 1
+               IF (nlstacc.GT.nlstaccmax) THEN
+                  WRITE (iprint,*) 'ERROR step nlstacc'
+                  CALL quit(1)
+               ENDIF
+               listacc(nlstacc) = i
+
+               nlistinactive = nlistinactive + 1
+               IF (nlistinactive.GT.idim) THEN
+                  WRITE (iprint,*) 'ERROR step nlistinactive'
+                  CALL quit(1)
+               ENDIF
+               listinactive(nlistinactive) = i
+
+               nactive = nactive - 1
+               nkill = nkill + 1
+               WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
+     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
+     &              poten(i),dgrav(i),ipkill,0.0,0.0,0.0,0.0,0.0,0.0
+               CALL FLUSH(ikillpr)
+#ifndef MPICOPY
+C$OMP END CRITICAL (killparticle)
+#endif
+               GOTO 855
+            ENDIF
+         ENDIF
+
+c
+c--Dead particle boundaries - disc section, no planet, periodic phi
+c
+         IF (ibound.EQ.104) THEN
+            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2
+            IF (r2.LT.(1.0-variation)**2 .OR. r2.GT.(1.0+variation)**2
+     &           ) THEN
                ipkill = iphase(i)
                iphase(i) = -1
 #ifndef MPICOPY

@@ -940,13 +940,13 @@ c
       ENDIF
 #endif ! NONIDEAL
 c
-c--Compute implicit radiative transfer
+c--Compute implicit radiative transfer (or radial temperature profile)
 c     
       IF (itiming) CALL getused(tass1)
 
       IF(encal.EQ.'r' .OR. (encal.EQ.'i' .AND. 
-     &     (ibound.EQ.102 .OR. ibound.EQ.103)) 
-     &     .OR. (encal.EQ.'i' .AND. ibound.EQ.100)) THEN
+     &     (ibound.EQ.100 .OR. ibound.EQ.102
+     &     .OR. ibound.EQ.103 .OR. ibound.EQ.104))) THEN
 
 ccc         thermalenergy = 0.
 ccc         radenergy = 0.
@@ -1016,7 +1016,7 @@ c         CALL quit(1)
 c            WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
             CALL ASS(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
      &           xyzmh,vxyzu,ekcle,dumrho,dedxyz,alphaMM)
-         ELSEIF ((ibound.EQ.102 .OR. ibound.EQ.103) 
+         ELSEIF ((ibound.EQ.102 .OR. ibound.EQ.103 .OR. ibound.EQ.104) 
      &           .AND. use_tprof) THEN
 c
 c--Added for Isothermal whole disc case with t-profile
@@ -1045,7 +1045,7 @@ C$OMP& private(i,j,radius,boundtempl)
             END DO
 C$OMP END PARALLEL DO
          ELSEIF (ibound.EQ.100 .OR. ibound.EQ.102 .OR. 
-     &           ibound.EQ.103) THEN
+     &           ibound.EQ.103 .OR. ibound.EQ.104) THEN
 c
 c--Added for Isothermal disc section case and whole disc with u profile
 c
@@ -1059,6 +1059,11 @@ C$OMP& private(i,j)
                IF (iphase(i).EQ.0) THEN
                   vxyzu(4,i)=hoverr**2/(SQRT(xyzmh(1,i)**2+
      &                 xyzmh(2,i)**2)*gamma*(gamma-1.0))
+c
+c--Purely isothermal:
+c
+c                  vxyzu(4,i)=hoverr**2/(gamma*(gamma-1.0))
+
                   IF (rho(i).GT.rho0) THEN
                      vxyzu(4,i) = vxyzu(4,i)*(rho(i)/rho0)**0.8
                   ENDIF

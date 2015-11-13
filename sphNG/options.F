@@ -221,7 +221,9 @@ c      ENDIF
          READ (iterm, *) hmaximum
          READ (iterm, *) pext
       ENDIF
-
+c
+c--Spherical injection boundaries (for Bate & Bonnell 1997, etc)
+c
       IF (ibound.EQ.8) THEN
          READ (iterm, *) deadbound
          READ (iterm, *) fractan, fracradial, nstop, nfastd
@@ -230,14 +232,19 @@ c      ENDIF
          READ (iterm, *) deadbound
          READ (iterm, *) fractan, fracradial, nshell, rshell
       ENDIF
-
+c
+c--Boundaries for disc section with planet, with particle injection
+c     along phi boundaries (Ayliffe & Bate 2009)
+c
       imigrate = 0
       use_tprof = .FALSE.
       IF (ibound.EQ.100) THEN
          READ (iterm, *) variation,phibound,flowrate,signorm,
      &        hoverr,partm
       ENDIF
-
+c
+c--Boundaries for global disc with planet (e.g. Ayliffe & Bate 2011)
+c
       IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
          READ (iterm, *) use_tprof
          IF (use_tprof) READ (iterm, *) tprof
@@ -250,7 +257,17 @@ c      ENDIF
             READ (iterm, *) rorbitmax
          ENDIF
       ENDIF
-
+c
+c--Boundaries for disc section, but without a planet (periodic in phi)
+c     Like a shearing box, but with without linearizing the shear.
+c
+      IF (ibound.EQ.104) THEN
+         READ (iterm, *) variation,phibound,signorm,
+     &        hoverr,partm
+      ENDIF
+c
+c--Values to do with external forces
+c
       xmass = 0.
       iandrea = 0
       IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7) THEN
@@ -271,7 +288,9 @@ c      ENDIF
             READ (iterm, *) uniformtslim
             uniformtslim2 = uniformtslim*uniformtslim
       ENDIF
-
+c
+c--Parameters for sink particles
+c
       IF (iptmass.NE.0 .OR. initialptm.NE.0) THEN
          READ (iterm, *) hacc
          READ (iterm, *) haccall
@@ -281,7 +300,9 @@ c      ENDIF
          READ (iterm, *) radcrit
          READ (iterm, *) ptmcrit
       ENDIF
-
+c
+c--Parameters for cooling equation of state
+c
       IF (encal.EQ.'c') THEN
          READ (iterm, *) coolingrate
       ENDIF
@@ -295,7 +316,7 @@ c
      &                                           ibound/10.EQ.9) THEN 
           READ (iterm, *) rmind, rmax, 
      &                   xmin, xmax, ymin, ymax, zmin, zmax
-      ELSEIF (ibound.EQ.2) THEN
+      ELSEIF (ibound.EQ.2 .OR. ibound.EQ.104) THEN
           READ (iterm, *) rmind, rcyl, 
      &                   xmin, xmax, ymin, ymax, zmin, zmax
       ELSE

@@ -246,7 +246,7 @@ c
          ELSEIF (ibound.EQ.100) THEN 
             WRITE (iprint,99533) variation,phibound,flowrate,
      &           signorm,hoverr,planetmass,rplanet
-99533       FORMAT (/,' Boundary type: planet/disc  ',/,
+99533       FORMAT (/,' Boundary type: planet/disc section ',/,
      &           '  radius variation: ',1PE12.4,/,
      &           '  phi boundary    : ',1PE12.4,/,
      &           '  flowrate        : ',1PE12.4,/,
@@ -254,6 +254,14 @@ c
      &           '  disc H/R        : ',1PE12.4,/,
      &           '  planet mass     : ',1PE12.4,/,
      &           '  planet radius   : ',1PE12.4,/)
+         ELSEIF (ibound.EQ.104) THEN 
+            WRITE (iprint,99536) variation,phibound,
+     &           signorm,hoverr
+99536       FORMAT (/,' Boundary type: disc section/periodic phi  ',/,
+     &           '  radius variation: ',1PE12.4,/,
+     &           '  phi boundary    : ',1PE12.4,/,
+     &           '  sigma normal.   : ',1PE12.4,/,
+     &           '  disc H/R        : ',1PE12.4,/)
          ELSEIF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
             IF (nptmass.GT.0) THEN
                WRITE (iprint,99535) rcyl,rmind,

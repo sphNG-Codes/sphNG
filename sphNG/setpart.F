@@ -491,6 +491,7 @@ c
          xmin = - xmax
          ymin = - ymax
          rmax = SQRT(radiusmax*radiusmax + zmax*zmax)
+         rcyl = radiusmax
 
          WRITE (*,89002)
 89002    FORMAT('Enter radius for planet')
@@ -580,20 +581,31 @@ c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
      &  '                               7 : cons. pres. boundaries',/,
      &  '   Cartesian periodic boundaries with ghosts:',/,
      &  '                              11 : periodic boundaries',/,
+     &  '   Cylindrical boundaries with ghosts:',/,
+     &  '                              12 : force-free B &',/,
+     &  ' viscous boundaries',/,
      &  '   Dead particle boundaries:',/,
      &  '                               8 : constant N particles',/,
      &  '                              90 : constant N infall,',
      &     ' constant angular momentum',/,
      &  '                              91 : constant N infall,',
      &     ' constant omega',/,
-     &  '                             100 : planet in disc section',/,
+     &  '   Disc boundaries:',/,
+     &  '                             100 : planet in disc section',
+     &  ' with injection in phi',/,
      &  '                             102 : planet in whole disc',/,
      &  '                             103 : planet in whole disc',
-     &  ' (sub-Kep in/out)')
+     &  ' (sub-Kep in/out)',/,
+     &  '                             104 : disc section, periodic',
+     &  ' in phi')
       READ (iread, *) ibound
       IF (ibound.LT.0 .OR. (ibound.GT.11 .AND. ibound.NE.90 .AND.
      &     ibound.NE.91 .AND. ibound.NE.100 .AND.
-     &     ibound.NE.102 .AND. ibound.NE.103)) GOTO 150
+     &     ibound.NE.102 .AND. ibound.NE.103 .AND.
+     &     ibound.NE.104)) GOTO 150
+      IF (ibound.EQ.100 .OR. ibound.EQ.104) THEN
+         omeg0 = sqrt(gg*solarm/(udist**3))*utime
+      ENDIF
       IF (ibound.EQ.7) THEN
          WRITE(*,88111)
 88111    FORMAT(/,'   What is the external temperature (units K) ',/,
@@ -1195,7 +1207,7 @@ c
      &        '      critical rho (s) = ', 1PE14.5, 1PE14.5, 1PE14.5)
          READ (iread, 99004) encal
          IF (encal.EQ.'i' .AND. (ibound.EQ.100 .OR. ibound.EQ.102
-     &        .OR. ibound.EQ.103)) THEN
+     &        .OR. ibound.EQ.103 .OR. ibound.EQ.104)) THEN
             gamma = 5.0/3.0
          ELSE IF (encal.EQ.'p') THEN
             WRITE (*,99032)
@@ -1618,6 +1630,11 @@ c Set velocity dispersion parameter
                velsub = 1.0
             ENDIF
             alpha = SQRT(gg2 * xmass/radius)
+
+c            alpha = SQRT(gg2 * xmass)*radius
+c            alpha = SQRT(gg2 * xmass *radius)
+c            alpha = SQRT(gg2 * xmass)
+
             vxyzu(1,i) = -alpha * ytild + xyzmh(2,i)*velsub
             vxyzu(2,i) =  alpha * xtild - xyzmh(1,i)*velsub
             vxyzu(3,i) = 0.

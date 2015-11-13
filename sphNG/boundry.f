@@ -23,6 +23,7 @@ c************************************************************
       INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/eosq'
       INCLUDE 'COMMONS/xforce'
+      INCLUDE 'COMMONS/rotat'
 c
 c--Allow for tracing flow
 c
@@ -402,6 +403,162 @@ c
                idonebound = 1
             ENDIF
  550     CONTINUE
+
+      ELSE IF ( ibound.EQ.104 ) THEN
+c
+c--Disc section boundaries.  Periodic in phi (moves particles from
+c     one edge to the other.  But has enforced sub-Keplerian motions 
+c     near inner and outer radial boundaries (like ibound=103)
+c
+         DO 600 j = 1, nlst0
+            i = list(j)
+c
+c--Only do for gas and dust
+c
+            IF (iphase(i).LT.0 .OR.
+     &           iphase(i).GT.0 .AND. iphase(i).LT.11) GOTO 600
+
+            delta = (1.3-ran1(1))*0.5*xyzmh(5,i)
+
+            rcyld = rcyl - 0.02
+            rmindd = rmind + 0.02
+
+            ichan = 0
+            r2 = xyzmh(1,i)*xyzmh(1,i) + xyzmh(2,i)*xyzmh(2,i)
+c
+c--To avoid radial boundary
+c
+c            GOTO 777
+c
+c--Gas only for radial boundaries
+c
+            IF (iphase(i).EQ.0) THEN
+               IF (r2.GT.rcyld*rcyld) THEN
+                  iouter = iouter + 1
+                  r = SQRT(r2)
+                  yi = xyzmh(2,i)
+                  xi = xyzmh(1,i)
+c
+c--Set particles in the boundary to move with sub-Keplerian velocity
+c     NOTE: This will be wrong for large dust particles.
+c
+                  vk = xmass/SQRT(r) ! Keplerian
+c                  vk = xmass*r  ! Omega = const
+c                  vk = xmass*SQRT(r)
+c                  vk = xmass
+
+c                  vg = vk  !  *SQRT((1.0-3.0*(vsound(i)/vk)**2))
+                  vg = vk*SQRT((1.0-3.0*(vsound(i)/vk)**2))
+
+c                  vg = 0.
+c                  phi = ATAN2(yi,xi)
+c                  xyzmh(1,i) = 0.995*rcyl*COS(phi)
+c                  xyzmh(2,i) = 0.995*rcyl*SIN(phi)
+c                  GOTO 222
+
+c
+c--If calculation done in rotating reference frame, need to calculate
+c     velocity in rotating frame
+c
+                  IF (ifcor.EQ.1) vg = vg - omeg0*r
+                  ang1 = ATAN2(yi,xi)
+                  vxyzu(1,i) = - vg*SIN(ang1)
+                  vxyzu(2,i) = vg*COS(ang1)
+c                  vxyzu(3,i) = 0.0
+ 222              CONTINUE
+               ENDIF
+               IF (r2.LT.rmindd*rmindd) THEN
+                  iinner = iinner + 1
+                  r = sqrt(r2)
+                  yi = xyzmh(2,i)
+                  xi = xyzmh(1,i)
+c
+c--Set particles in the boundary to move with sub-Keplerian velocity
+c     NOTE: This will be wrong for large dust particles.
+c
+                  vk = xmass/SQRT(r)
+c                  vk = xmass*r
+c                  vk = xmass*SQRT(r)
+c                  vk = xmass
+
+c                  vg = vk    ! *SQRT((1.0-3.0*(vsound(i)/vk)**2))
+                  vg = vk*SQRT((1.0-3.0*(vsound(i)/vk)**2))
+
+c                  vg = 0.
+c                  phi = ATAN2(yi,xi)
+c                  xyzmh(1,i) = 1.005*rmind*COS(phi)
+c                  xyzmh(2,i) = 1.005*rmind*SIN(phi)
+c                  GOTO 223
+
+
+c
+c--If calculation done in rotating reference frame, need to calculate
+c     velocity in rotating frame
+c
+                  IF (ifcor.EQ.1) vg = vg - omeg0*r
+                  ang1 = ATAN2(yi,xi)
+                  vxyzu(1,i) = - vg*SIN(ang1)
+                  vxyzu(2,i) = vg*COS(ang1)
+c                  vxyzu(3,i) = 0.0
+ 223              CONTINUE
+               ENDIF
+            ENDIF
+c
+c--Now do periodic boundaries in phi
+c
+c            GOTO 888
+
+ 777        phiparticle = ATAN2(xyzmh(2,i),xyzmh(1,i))
+            IF (phiparticle.LT.-phibound) THEN
+               rcylpart = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+               vxpart = vxyzu(1,i)
+               vypart = vxyzu(2,i)
+
+               ichan = ichan + 1
+               phinew = phiparticle + 2.0*phibound
+               xyzmh(1,i) = rcylpart*COS(phinew)
+               xyzmh(2,i) = rcylpart*SIN(phinew)
+               cos2phi = COS(-2.0*phibound)
+               sin2phi = SIN(-2.0*phibound)
+               vxyzu(1,i) = vxpart*cos2phi + vypart*sin2phi
+               vxyzu(2,i) = - vxpart*sin2phi + vypart*cos2phi
+            ENDIF
+            IF (phiparticle.GT.+phibound) THEN
+               rcylpart = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+               vxpart = vxyzu(1,i)
+               vypart = vxyzu(2,i)
+
+               ichan = ichan + 1
+               phinew = phiparticle - 2.0*phibound
+               xyzmh(1,i) = rcylpart*COS(phinew)
+               xyzmh(2,i) = rcylpart*SIN(phinew)
+               cos2phi = COS(2.0*phibound)
+               sin2phi = SIN(2.0*phibound)
+               vxyzu(1,i) = vxpart*cos2phi + vypart*sin2phi
+               vxyzu(2,i) = - vxpart*sin2phi + vypart*cos2phi
+            ENDIF
+c
+c--Periodic z boundaries if required (usually not)
+c
+            IF (.FALSE.) THEN
+               IF (xyzmh(3,i).LT.zmin) THEN
+                  ichan = ichan + 1
+                  xyzmh(3,i) = xyzmh(3,i) + (zmax - zmin)
+               ENDIF
+               IF (xyzmh(3,i).GE.zmax) THEN
+                  ichan = ichan + 1
+                  xyzmh(3,i) = xyzmh(3,i) - (zmax - zmin)
+               ENDIF
+            ENDIF
+c
+c--idonebound should be set if a particle has been moved as it 
+c     affects the tree structure (changing its velocity doesn't).
+c
+ 888        IF (ichan.NE.0) THEN
+               iouter = iouter + 1
+               idonebound = 1
+            ENDIF
+ 600     CONTINUE
 
       ENDIF
 

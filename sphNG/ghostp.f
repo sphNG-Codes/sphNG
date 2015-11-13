@@ -28,6 +28,8 @@ c************************************************************
      &        CALL ghostp11(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
       IF (ibound.EQ.102 .OR. ibound.EQ.103) 
      &        CALL ghostp102(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+      IF (ibound.EQ.104) 
+     &        CALL ghostp104(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
       ntot = npart + nghost
       
       RETURN

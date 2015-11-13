@@ -200,6 +200,14 @@ c
          END DO
 
          DO i = 1, npart
+            IF (iphase(i).GE.11 .AND. idustIMPL.EQ.1 .AND. 
+     &           individualtimesteps.NE.0) THEN
+               WRITE (*,*) 'ERROR - Running with dust particles ',
+     &              'that are integrated implicitly ',
+     &              'should not currently use individual timesteps'
+               CALL quit(0)
+            ENDIF
+
             IF (iphase(i).NE.-1) THEN
                it0(i) = 0
 ccc               isteps(i) = idtini

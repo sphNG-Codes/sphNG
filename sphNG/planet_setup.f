@@ -161,7 +161,6 @@ c---------------------------------------------------------------
       INCLUDE 'COMMONS/prdrag'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/planetesimal'
-      INCLUDE 'COMMONS/units'
 
       REAL*8 inclination
       CHARACTER*1 iok, iwhat, idens

@@ -27,6 +27,7 @@ c
       INCLUDE 'COMMONS/timei'
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/dustimplicit'
+      INCLUDE 'COMMONS/current'
 c 
 c--MPI headers
 c
@@ -47,24 +48,41 @@ c
 c--Local variables
 c
       INTEGER   ipart, i, j, k, n, ioffset, index, index1, iparttot2
-      REAL      m_j, 
-     &          dr2, drx, dry, drz, h_j, h2_j, h3_j,      
-     &          wk_j, wk_sym, wk_sym2, dwdx, dxx, u2_j
+      REAL      m_g,
+     &          dr2, drx, dry, drz, h_g, h2_g, h3_g,
+     &          wk_sym, wk_sym2, dwdx, dxx, u2_g
 
 c      print *,'Entered dust_norm_rhoG ',nlst_end
+
+c
+c--Want to calculate dustnorm using gas particles that are within the
+c     *gas* smoothing length of dust.  Cannot simply loop over dust
+c     particles to look at its neighbours, because this will not include
+c     *active* gas particles for which h_g > h_d.
+c     However, can't loop over only active gas particles either, because
+c     even with global timesteps, this will miss interactions between
+c     dust and ghost gas particles (because ghosts are not active).
+c     Therefore, need to loop over both, but make sure interactions
+c     are not included twice!
+c     With individual timesteps, if gas is inactive, then it will appear
+c     in the dust list and so will be done.  If dust is inactive, then
+c     it will appear in the gas list, but will need to be done 
+c     regardless of whether h_d < h_g or not.
+c
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst_in,nlst_end,ivar,iphase,ijvar,xyzmh)
 C$OMP& shared(dumrho,radkernel,ddvtable,dvtable)
 C$OMP& shared(wij,dustnorm,cnormk,rhoG)
-C$OMP& shared(doublehumpnormk,npart,ntot)
+C$OMP& shared(doublehumpnormk,npart,ntot,iscurrent)
 C$OMP& private(i,j,k,n,ipart,ioffset,drx,dry,drz,dr2)
-C$OMP& private(m_j,h_j,h2_j,h3_j,u2_j)
-C$OMP& private(wk_sym,wk_sym2,wk_j)
+C$OMP& private(m_g,h_g,h2_g,h3_g,u2_g)
+C$OMP& private(wk_sym,wk_sym2)
 C$OMP& private(dwdx,dxx,index,index1)
 C$OMP& private(iparttot2)
 c
-c--Normalization calculation
+c--Normalization calculation from looping over dust particles
+c     (and zeroes the values initially too)
 c
 C$OMP DO SCHEDULE(runtime)
       DO 20 n = nlst_in, nlst_end
@@ -90,7 +108,7 @@ c
          ENDIF
 #endif
 c
-c--Loop only through real dust particles
+c--Loop only through dust particles
 c
          IF (iphase(ipart).LT.11) GOTO 20
 c
@@ -99,7 +117,7 @@ c
          ioffset = ivar(2,n)
          DO k = 1, ivar(1,n)
 c
-c--Get gas neighbouring particle index from the list
+c--Get neighbouring particle index from the list
 c
             j = ijvar(ioffset + k)
 c
@@ -121,36 +139,33 @@ c
 c
 c--Mass coefficients
 c
-               m_j     = xyzmh(4,j)
+               m_g     = xyzmh(4,j)
 c
 c--Kernel (double hump) calculations
 c
-               h_j      = xyzmh(5,j)
-               h2_j     = h_j*h_j
-               h3_j     = h2_j*h_j
-               u2_j     = dr2/h2_j
-               IF (u2_j.LT.radkernel**2) THEN
-                  index  = u2_j*ddvtable
+               h_g      = xyzmh(5,j)
+               h2_g     = h_g*h_g
+               h3_g     = h2_g*h_g
+               u2_g     = dr2/h2_g
+               IF (u2_g.LT.radkernel**2) THEN
+                  index  = u2_g*ddvtable
                   index1 = index + 1
                   IF (index1.GT.itable) index1 = itable
-                  dxx    = u2_j - index*dvtable
+                  dxx    = u2_g - index*dvtable
                   dwdx = (wij(index1) - wij(index))*ddvtable
-                  wk_j   = doublehumpnormk*(wij(index) + dwdx*dxx)*u2_j/
-     &                 h3_j
-                  wk_sym   = wk_j
-                  wk_sym2  = cnormk*(wij(index) + dwdx*dxx)/h3_j
-               ELSE
-                  wk_sym   = 0.0
-                  wk_sym2   = 0.0
-               ENDIF
+                  wk_sym   = doublehumpnormk*(wij(index) + dwdx*dxx)*
+     &                 u2_g/h3_g
+                  wk_sym2  = cnormk*(wij(index) + dwdx*dxx)/h3_g
 c
 c--SPH normalization equation
 c
-               dustnorm(ipart) = dustnorm(ipart) +(m_j/dumrho(j))*wk_sym
+                  dustnorm(ipart) = dustnorm(ipart) +
+     &                 (m_g/dumrho(j))*wk_sym
 c
 c--Gas density at dust particle location
 c
-               rhoG(ipart) = rhoG(ipart) + m_j*wk_sym2
+                  rhoG(ipart) = rhoG(ipart) + m_g*wk_sym2
+               ENDIF
             ENDIF
          END DO   ! End neighbour loop
 
@@ -161,6 +176,97 @@ c
         ENDIF
 
 20    END DO
+C$OMP END DO
+c
+c--Now, add contributions from looping over gas particles
+c
+C$OMP DO SCHEDULE(runtime)
+      DO 30 n = nlst_in, nlst_end
+c
+c--Particle in the list
+c
+         ipart = ivar(3,n)
+         iparttot2 = ipart
+c
+c--Check for non-MPI code that the particle number makes sense.
+c     For MPI code, need to define correct index to the xyzmh() array,
+c     which is different to most arrays because the tree structure is
+c     stored in the array.
+c
+#ifdef MPI
+         IF (ipart.GT.npart) iparttot2 = ipart + ntot + 2
+#else
+         IF (ipart.GT.npart) THEN
+            WRITE (*,*) 'ERROR - ipart.GT.npart'
+            CALL quit(0)
+         ENDIF
+#endif
+c
+c--Loop only through gas particles
+c
+         IF (iphase(ipart).NE.0) GOTO 30
+         m_g = xyzmh(4,iparttot2)
+         h_g = xyzmh(5,iparttot2)
+c
+c--Loop over neighbouring particles
+c
+         ioffset = ivar(2,n)
+         DO k = 1, ivar(1,n)
+c
+c--Get neighbouring particle index from the list
+c
+            j = ijvar(ioffset + k)
+c
+c--Dust-gas pair distances
+c
+            drx = xyzmh(1,iparttot2) - xyzmh(1,j)
+            dry = xyzmh(2,iparttot2) - xyzmh(2,j)
+            drz = xyzmh(3,iparttot2) - xyzmh(3,j)
+            dr2  = drx*drx + dry*dry + drz*drz
+c
+c--If the dust particle is active, only include dust particles for 
+c     which h_gas > h_dust (otherwise their contribution has already 
+c     been accounted for).  Alternately, if the dust particle is 
+c     inactive, need to add the contribution here regardless of how
+c     h_gas and h_dust compare.
+c
+            IF (iphase(j).GE.11 .AND. 
+     &           (dr2.GT.(radkernel*xyzmh(5,j))**2 .OR. 
+     &           .NOT.iscurrent(j))) THEN
+c
+c--Kernel (double hump) calculations
+c
+               h2_g     = h_g*h_g
+               h3_g     = h2_g*h_g
+               u2_g     = dr2/h2_g
+               IF (u2_g.LT.radkernel**2) THEN
+                  index  = u2_g*ddvtable
+                  index1 = index + 1
+                  IF (index1.GT.itable) index1 = itable
+                  dxx    = u2_g - index*dvtable
+                  dwdx = (wij(index1) - wij(index))*ddvtable
+                  wk_sym   = doublehumpnormk*(wij(index) + dwdx*dxx)*
+     &                 u2_g/h3_g
+                  wk_sym2  = cnormk*(wij(index) + dwdx*dxx)/h3_g
+c
+c--SPH normalization equation
+c
+
+                  IF (dumrho(ipart).EQ.0.0) THEN
+                     WRITE (*,*) 'ERROR - dumrho(ipart).EQ.0.0 ',ipart
+                     CALL quit(0)
+                  ENDIF
+C$OMP ATOMIC
+                  dustnorm(j) = dustnorm(j) + (m_g/dumrho(ipart))*wk_sym
+c
+c--Gas density at dust particle location
+c
+C$OMP ATOMIC
+                  rhoG(j) = rhoG(j) + m_g*wk_sym2
+               ENDIF
+            ENDIF
+         END DO   ! End neighbour loop
+30    END DO
 C$OMP END DO
 C$OMP END PARALLEL
 

@@ -499,13 +499,13 @@ c--Default int
          IF (nums1(1).GE.2) THEN
             IF (tagged) READ (idisk1, END=100) ! skip tags
             READ (idisk1, END=100) nlistinactive,
-     &           (listinactive(i), i=icountinactive+1,icountinactive+
+     &           listinactive(icountinactive+1:icountinactive+
      &           nhydro-1)
 c
-c--If reading multiple blocks onto sink process, need to re-index the
+c--If reading multiple blocks onto single process, need to re-index the
 c     inactive particles
 c
-            IF (icountinactive.GT.0) THEN
+            IF (icount.GT.0) THEN
                DO i = icountinactive+1,icountinactive+nlistinactive
                   listinactive(i) = listinactive(i) + icount
                END DO
@@ -562,14 +562,12 @@ c--Default real
                READ (idisk1, END=100) tagi
 c               print*,trim(tagi)
             ENDIF
-            READ (idisk1, END=100) (xyzmh(j,i), i=icount+1, 
-     &           icount+nhydro)
+            READ (idisk1, END=100) xyzmh(j,icount+1:icount+nhydro)
          END DO
 
          DO j = 1, 4
             IF (tagged) READ (idisk1, END=100) tagi
-            READ (idisk1, END=100) (vxyzu(j,i), i=icount+1, 
-     &           icount+nhydro)
+            READ (idisk1, END=100) vxyzu(j,icount+1:icount+nhydro)
          END DO
 
 #ifdef MPIDEBUG
@@ -586,20 +584,15 @@ c               print*,trim(tagi)
             ENDIF
 
             IF (tagged) READ (idisk1, END=100)
-            READ (idisk1, END=100) (h2ratio(i), i=icount+1,
-     &               icount+nhydro)
+            READ (idisk1, END=100) h2ratio(icount+1:icount+nhydro)
             IF (tagged) READ (idisk1, END=100)
-            READ (idisk1, END=100) (abHIq(i), i=icount+1,
-     &           icount+nhydro)
+            READ (idisk1, END=100) abHIq(icount+1:icount+nhydro)
             IF (tagged) READ (idisk1, END=100)
-            READ (idisk1, END=100) (abhpq(i), i=icount+1,
-     &           icount+nhydro)
+            READ (idisk1, END=100) abhpq(icount+1:icount+nhydro)
             IF (tagged) READ (idisk1, END=100)
-            READ (idisk1, END=100) (abeq(i), i=icount+1,
-     &           icount+nhydro)
+            READ (idisk1, END=100) abeq(icount+1:icount+nhydro)
             IF (tagged) READ (idisk1, END=100)
-            READ (idisk1, END=100) (abco(i), i=icount+1,
-     &           icount+nhydro)
+            READ (idisk1, END=100) abco(icount+1:icount+nhydro)
           ENDIF
 c--skip unnecessary reals
          IF (nums1(6).GT.iwanted) THEN
@@ -610,19 +603,17 @@ c--skip unnecessary reals
          ENDIF
 c--real*4
          IF (tagged) READ (idisk1, END=100) ! skip tags
-         READ (idisk1, END=100) (rho(i), i=icount+1, icount+nhydro)
+         READ (idisk1, END=100) rho(icount+1:icount+nhydro)
          iread = 1
          IF (nlmax.EQ.1) THEN
             IF (nums1(7).GE.2) THEN
                IF (tagged) READ (idisk1, END=100) ! skip tags
-               READ (idisk1, END=100) (gradhs(1,i), i=icount+1, 
-     &              icount+nhydro)
+               READ (idisk1, END=100) gradhs(1,icount+1:icount+nhydro)
                iread = iread + 1
             ENDIF
             IF (nums1(7).GE.3) THEN
                IF (tagged) READ (idisk1, END=100) ! skip tags
-               READ (idisk1, END=100) (gradhs(2,i), i=icount+1, 
-     &              icount+nhydro)
+               READ (idisk1, END=100) gradhs(2,icount+1:icount+nhydro)
                iread = iread + 1
             ENDIF
             DO j = 1, idim
@@ -631,7 +622,7 @@ c--real*4
          ELSE
             iread = 2
             IF (tagged) READ (idisk1, END=100) ! skip tags
-            READ (idisk1, END=100) (dgrav(i), i=icount+1, icount+nhydro)
+            READ (idisk1, END=100) dgrav(icount+1:icount+nhydro)
             IF (gt.EQ.0.0) THEN
                DO j = icount+1, icount+nhydro
                   dgrav(j) = 0.
@@ -641,8 +632,7 @@ c--real*4
          IF (nums1(7).GT.iread) THEN
             iread = iread + 1
             IF (tagged) READ (idisk1, END=100) ! skip tags
-            READ (idisk1, END=100) (alphaMM(1,i), i=icount+1, 
-     &           icount+nhydro)
+            READ (idisk1, END=100) alphaMM(1,icount+1:icount+nhydro)
             IF (gt.NE.0.0 .AND. ifsvi.GE.6) THEN
                DO i = icount+1, icount+nhydro
                   IF (alphaMM(1,i).LT.alphamin(1) .OR. 
@@ -672,8 +662,7 @@ c--Read array type 2 arrays
 c
 c--Default int
          IF (tagged) READ (idisk1, END=100) ! skip tags
-         READ (idisk1, END=100) (listpm(i), i=icountsink+1,
-     &        icountsink+nptmass)
+         READ (idisk1, END=100) listpm(icountsink+1:icountsink+nptmass)
 
 c--int*1
 
@@ -685,32 +674,23 @@ c--int*8
 
 c--Default real
          IF (tagged) READ (idisk1, END=100) ! skip tags
-         READ (idisk1, END=100) (spinx(i),i=icountsink+1,
-     &        icountsink+nptmass)
+         READ (idisk1, END=100) spinx(icountsink+1:icountsink+nptmass)
          IF (tagged) READ (idisk1, END=100) ! skip tags
-         READ (idisk1, END=100) (spiny(i),i=icountsink+1,
-     &        icountsink+nptmass)
+         READ (idisk1, END=100) spiny(icountsink+1:icountsink+nptmass)
          IF (tagged) READ (idisk1, END=100) ! skip tags
-         READ (idisk1, END=100) (spinz(i),i=icountsink+1,
-     &        icountsink+nptmass)
+         READ (idisk1, END=100) spinz(icountsink+1:icountsink+nptmass)
          IF (tagged) READ (idisk1, END=100) ! skip tags
-         READ (idisk1, END=100) (angaddx(i),i=icountsink+1,
-     &        icountsink+nptmass)
+         READ (idisk1, END=100) angaddx(icountsink+1:icountsink+nptmass)
          IF (tagged) READ (idisk1, END=100) ! skip tags
-         READ (idisk1, END=100) (angaddy(i),i=icountsink+1,
-     &        icountsink+nptmass)
+         READ (idisk1, END=100) angaddy(icountsink+1:icountsink+nptmass)
          IF (tagged) READ (idisk1, END=100) ! skip tags
-         READ (idisk1, END=100) (angaddz(i),i=icountsink+1,
-     &        icountsink+nptmass)
+         READ (idisk1, END=100) angaddz(icountsink+1:icountsink+nptmass)
          IF (tagged) READ (idisk1, END=100) ! skip tags
-         READ (idisk1, END=100) (spinadx(i),i=icountsink+1,
-     &        icountsink+nptmass)
+         READ (idisk1, END=100) spinadx(icountsink+1:icountsink+nptmass)
          IF (tagged) READ (idisk1, END=100) ! skip tags
-         READ (idisk1, END=100) (spinady(i),i=icountsink+1,
-     &        icountsink+nptmass)
+         READ (idisk1, END=100) spinady(icountsink+1:icountsink+nptmass)
          IF (tagged) READ (idisk1, END=100) ! skip tags
-         READ (idisk1, END=100) (spinadz(i),i=icountsink+1,
-     &        icountsink+nptmass)
+         READ (idisk1, END=100) spinadz(icountsink+1:icountsink+nptmass)
 c--real*4
 
 c--real*8
@@ -742,15 +722,14 @@ c--int*8
 c--Default real
             DO j = 1, 5
                IF (tagged) READ (idisk1, END=100) ! skip tags
-               READ (idisk1, END=100) (ekcle(j,i), i=icount+1, 
-     &              icount+nradtrans)
+               READ (idisk1, END=100) ekcle(j,icount+1:icount+nradtrans)
             END DO
             ireadekcle = 5
             IF (idustRT.GT.0 .AND. nums3(6).GE.7) THEN
                DO j = 1, 2
                   IF (tagged) READ (idisk1, END=100) ! skip tags
-                  READ (idisk1, END=100) (dust_tk(j,i), i=icount+1,
-     &                 icount+nradtrans)
+                  READ (idisk1, END=100) 
+     &                 dust_tk(j,icount+1:icount+nradtrans)
                END DO
                ireadekcle = ireadekcle + 2
             ENDIF
@@ -763,20 +742,20 @@ c--real*4
      &           nchemistry + nheatingISR + 2) THEN
                   DO j = 1, nchemistry
                      IF (tagged) READ (idisk1, END=100) ! skip tags
-                     READ (idisk1, END=100) (chemistry(j,i), i=icount+1, 
-     &                    icount+nradtrans)
+                     READ (idisk1, END=100)
+     &                    chemistry(j,icount+1:icount+nradtrans)
                   END DO
                   DO j = 1, nheatingISR
                      IF (tagged) READ (idisk1, END=100) ! skip tags
-                     READ (idisk1, END=100) (heatingISR(j,i),i=icount+1, 
-     &                    icount+nradtrans)
+                     READ (idisk1, END=100) 
+     &                    heatingISR(j,icount+1:icount+nradtrans)
                   END DO
                   IF (tagged) READ (idisk1, END=100) ! skip tags
-                  READ (idisk1, END=100) (h2frac(i), i=icount+1, 
-     &                 icount+nradtrans)
+                  READ (idisk1, END=100) 
+     &                 h2frac(icount+1:icount+nradtrans)
                   IF (tagged) READ (idisk1, END=100) ! skip tags
-                  READ (idisk1, END=100) (dh2dt(1,i), i=icount+1, 
-     &                 icount+nradtrans)
+                  READ (idisk1, END=100) 
+     &                 dh2dt(1,icount+1:icount+nradtrans)
                   DO j = 1, nums3(7) - nchemistry - nheatingISR - 2
                      READ (idisk1, END=100)
                   END DO
@@ -814,8 +793,7 @@ c
             ENDIF
             DO j = 1, 3
                IF (tagged) READ (idisk1, END=100) ! skip tags
-               READ (idisk1, END=100) (Bxyz(j,i), i=icount+1, 
-     &              icount+nmhd)
+               READ (idisk1, END=100) Bxyz(j,icount+1:icount+nmhd)
 
 c
 c--Uncomment to modify input B field
@@ -843,8 +821,7 @@ c Dump files from before r1799 cannot be used.
                     ENDIF
                   ENDIF
                   
-                  READ (idisk1, END=100) (Bevolxyz(4,i), i=icount+1,
-     &              icount+nmhd)
+                  READ (idisk1,END=100) Bevolxyz(4,icount+1:icount+nmhd)
                ENDIF
             ENDIF
 #ifdef MPIDEBUG
@@ -857,8 +834,8 @@ c
                IF (nums4(6).GE.5) THEN
                   DO j = 1, 2
                      IF (tagged) READ (idisk1, END=100) ! skip tags
-                     READ (idisk1, END=100) (Bevolxyz(j,i), i=icount+1, 
-     &                    icount+nmhd)
+                     READ (idisk1, END=100) 
+     &                    Bevolxyz(j,icount+1:icount+nmhd)
                   END DO
 #ifdef MPIDEBUG
          print *,iproc,': Read Euler Bevolxyz'
@@ -872,8 +849,8 @@ c
                IF (nums4(6).GE.6) THEN
                   DO j = 1, 3
                      IF (tagged) READ (idisk1, END=100) ! skip tags
-                     READ (idisk1, END=100) (Bevolxyz(j,i), i=icount+1, 
-     &                    icount+nmhd)
+                     READ (idisk1, END=100) 
+     &                    Bevolxyz(j,icount+1:icount+nmhd)
                   END DO
 #ifdef MPIDEBUG
          print *,iproc,': Read vecp Bevolxyz'
@@ -911,8 +888,7 @@ c
                WRITE (*,*) 'unknown MHD variable in rdump'
                DO j = imhdevol+1, MIN(nums4(6),6)
                   IF (tagged) READ (idisk1, END=100) ! skip tags
-                  READ (idisk1, END=100) (Bevolxyz(j,i), i=icount+1,
-     &                 icount+nmhd)
+                  READ (idisk1,END=100) Bevolxyz(j,icount+1:icount+nmhd)
                END DO
                IF (iskip.EQ.0) CALL quit(0)
             ENDIF
@@ -927,8 +903,8 @@ c--skip current/div B
                END DO
 c--read artificial resistivity parameter
                IF (tagged) READ (idisk1, END=100) ! skip tags
-               READ (idisk1, END=100) (alphaMM(isizealphaMM,i), 
-     &              i=icount+1, icount+nmhd)
+               READ (idisk1, END=100) alphaMM(isizealphaMM, 
+     &              icount+1:icount+nmhd)
                WRITE(*,*) 'alpha B read: first few = ',
      &              alphaMM(isizealphaMM,icount+1:icount+min(10,nmhd))
                iread = iread + 1

@@ -62,6 +62,8 @@ c#endif
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
 
+      COMMON /plotinfo/ xtype(2,idim), iplotdump
+
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
 
@@ -348,6 +350,10 @@ c
       nums(5) = 1
       nums(6) = 9
 c
+c--Extra information for plot dump
+c
+      IF (iplotdump.EQ.1) nums(6) = nums(6) + 2
+c
 c--For Clare's chemistry
 c
       IF (iener.EQ.4) nums(6) = nums(6) + 5
@@ -475,6 +481,14 @@ c--Default real
          WRITE (idisk1, ERR=100) tag('abco')
          WRITE (idisk1, ERR=100) (abco(isort(i)), i=1, nprint)         
       ENDIF       
+
+      IF (iplotdump.EQ.1) THEN
+         tagarr(1:2) = (/'gas','dust'/)
+         DO j = 1, 2
+            WRITE (idisk1, ERR=100) tag(tagarr(j))
+            WRITE (idisk1, ERR=100) (xtype(j,isort(i)), i=1, nprint)
+         END DO     
+      ENDIF
 c--real*4
       WRITE (idisk1, ERR=100) tag('rho')
       WRITE (idisk1, ERR=100) (rho(isort(i)), i=1, nprint)

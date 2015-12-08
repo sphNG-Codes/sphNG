@@ -1032,14 +1032,14 @@ C$OMP& private(i,j,radius,boundtempl)
                   radius = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
                   IF (encal.EQ.'r') THEN
                      boundtempl =  gmw*hoverr**2*radius**
-     &                    (tprof+1)/((Rg/uergg)*gamma*radius)
+     &                    (tprof+1)/((Rg/uergg)*radius)
                      vxyzu(4,i) = getu(rho(i), boundtempl)
                      IF (rho(i).GT.rho0) THEN
                         vxyzu(4,i) = vxyzu(4,i)*(rho(i)/rho0)**0.8
                      ENDIF
                   ELSE
                      vxyzu(4,i) = hoverr**2*radius**tprof/
-     &                    (gamma*(gamma-1.0))
+     &                    (gamma-1.0)
                   ENDIF
                ENDIF
             END DO
@@ -1058,11 +1058,11 @@ C$OMP& private(i,j)
                i = llist(j)
                IF (iphase(i).EQ.0) THEN
                   vxyzu(4,i)=hoverr**2/(SQRT(xyzmh(1,i)**2+
-     &                 xyzmh(2,i)**2)*gamma*(gamma-1.0))
+     &                 xyzmh(2,i)**2)*(gamma-1.0))
 c
 c--Purely isothermal:
 c
-c                  vxyzu(4,i)=hoverr**2/(gamma*(gamma-1.0))
+c                  vxyzu(4,i)=hoverr**2/(gamma-1.0)
 
                   IF (rho(i).GT.rho0) THEN
                      vxyzu(4,i) = vxyzu(4,i)*(rho(i)/rho0)**0.8

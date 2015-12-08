@@ -225,7 +225,7 @@ c
 c
 c--Other quantities
 c
-      vxyzu(4,i) = hoverr**2/(radinject*gamma*(gamma-1.0))
+      vxyzu(4,i) = hoverr**2/(radinject*(gamma-1.0))
       IF (encal.EQ.'r') THEN
          uradconst = radconst/uergcc
 c

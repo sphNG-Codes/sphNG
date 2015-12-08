@@ -1018,10 +1018,10 @@ c
          IF (igeom.EQ.10 .AND. use_tprof) THEN
             radius = SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2)
             vxyzu(4,i)=(hoverr**2*radius**tprof)/
-     &           (gamma*(gamma-1.0))
+     &           (gamma-1.0)
          ELSEIF (igeom.EQ.9 .OR. igeom.EQ.10) THEN
             vxyzu(4,i)=hoverr**2/
-     &           (SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2)*gamma*
+     &           (SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2)*
      &           (gamma-1.0))
          ENDIF
       END DO

@@ -32,15 +32,15 @@ c FM: produce array of the boundary height for radii from rmin to rcyl
          cv = 1.5*Rg/(gmw*uergg)         
          rhocold = 1.0E-15*udist**3/umass  !convert cgs to code units
 
-         IF (ibound.EQ.101) boundtempl = (gmw/(gamma*Rg/uergg))
+         IF (ibound.EQ.101) boundtempl = (gmw/(Rg/uergg))
      &        *hoverr**2*G*Mstar_init/R_o*(R_o/radius)**0.5
 
          IF ((ibound.EQ.102 .OR. ibound.EQ.103) .AND. use_tprof) THEN
             boundtempl = gmw*hoverr**2*radius**
-     &           (tprof+1)/((Rg/uergg)*gamma*radius)
+     &           (tprof+1)/((Rg/uergg)*radius)
          ELSEIF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
             boundtempl = gmw*hoverr**2/((Rg/uergg)*
-     &           gamma*radius)
+     &           radius)
          ELSE
             print *, 'You should not be in discboundary.f'
             STOP

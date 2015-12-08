@@ -24,8 +24,12 @@ c************************************************************
       IF (igeom.EQ.9) THEN
          DO i = nptmass + 1, npart
  100        CONTINUE
-            radius=(((1.0+variation)**1.5-(1.0-variation)**1.5)*
-     &        ran1(1) + (1.0-variation)**1.5)**(2.0/3.0)
+            IF (abs(sdprof+2.0).LT.tiny) THEN
+               radius = exp((log(rcyl)-log(rmind))*ran1(1) + log(rmind))
+            ELSE
+               radius=(((rcyl)**(2.+sdprof)-(rmind)**(2.+sdprof))*
+     &              ran1(1) + (rmind)**(2.+sdprof))**(1./(2.+sdprof))
+            ENDIF
             phi = 2.0*(ran1(1)-0.5)*phibound
             xyzmh(1,i) = radius*COS(phi)
             xyzmh(2,i) = radius*SIN(phi)
@@ -36,18 +40,9 @@ c--No radial height profile
 c
 c            xyzmh(3,i) = hoverr*gasdev(1)
 c
-c--Uniform density
-c
-            IF (.FALSE.) THEN
-               xyzmh(1,i) = (1.0-variation)+2.5*variation*ran1(1)
-               xyzmh(2,i) = (1.0+variation)*
-     &              (-phibound+2.0*phibound*ran1(1))
-               phi = ATAN2(xyzmh(2,i),xyzmh(1,i))
-
-               IF (phi.GT.phibound .OR. phi.LT.-phibound) GOTO 100
-c
 c--Uniform in z
 c
+            IF (.FALSE.) THEN
                xyzmh(3,i) = -hoverr+2.0*hoverr*ran1(1)
             ENDIF
 

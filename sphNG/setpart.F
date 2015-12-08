@@ -492,6 +492,12 @@ c
          ymin = - ymax
          rmax = SQRT(radiusmax*radiusmax + zmax*zmax)
          rcyl = radiusmax
+         rmind = radiusmin
+
+77000    FORMAT (' Enter exponent, n, for surface density profile ',
+     &        ' Sigma propto r^n (e.g. -0.5)')
+         WRITE (*, 77000)
+         READ (iread,*) sdprof
 
          WRITE (*,89002)
 89002    FORMAT('Enter radius for planet')
@@ -511,8 +517,11 @@ c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
          WRITE (*, 89003) udist
          READ (iread, *) rcyl, rmind, faclod
 
+         WRITE (*, 77000)
+         READ (iread,*) sdprof
+
          use_tprof = .false.
-77001    FORMAT (' Use standard u propto r^-0.5 initial disc',/
+77001    FORMAT (' Use standard u propto r^-0.5 initial disc',/,
      &        ' (u) or set a specific temperature profile (t)?')
  174     WRITE (*, 77001)
          READ (iread,99004) uort
@@ -1059,8 +1068,13 @@ c
       ELSE IF (igeom.EQ.10) THEN
          WRITE (*,99114)
          READ (iread, *) signorm
-         totmas = 4.0/3.0*pi*75.0*signorm*(5.2*au)**2*
-     &        (rcyl**1.5-rmind**1.5)/umass
+         IF (abs(sdprof+2.0).LT.tiny) THEN
+            totmas = 2.0*pi*75.0*signorm*(5.2*au)**2*
+     &        (log(rcyl)-log(rmind))/umass
+         ELSE
+            totmas = 1.0/(2.0+sdprof)*2.0*pi*75.0*signorm*(5.2*au)**2*
+     &           (rcyl**(2.0+sdprof)-rmind**(2.0+sdprof))/umass
+         ENDIF
          partm = totmas/(nparttot - nptmass)
 
          DO i = nptmass + 1, npart
@@ -1077,9 +1091,19 @@ c
          READ (iread, *) signorm
          rmindisc = 1.0-variation
          rmaxdisc = 1.0+variation
-         totmas = 4.0/3.0*pi*75.0*signorm*(5.2*au)**2*
-     &        (rmaxdisc**1.5-rmindisc**1.5)/(pi/phibound)/umass
+         IF (abs(sdprof+2.0).LT.tiny) THEN
+            totmas = 2.0*pi*75.0*signorm*(5.2*au)**2*
+     &           (log(rmaxdisc)-log(rmindisc))/
+     &           (pi/phibound)/umass
+         ELSE
+            totmas = 1.0/(2.0+sdprof)*2.0*pi*75.0*signorm*(5.2*au)**2*
+     &           (rmaxdisc**(2.0+sdprof)-rmindisc**(2.0+sdprof))/
+     &           (pi/phibound)/umass
+         ENDIF
          partm = totmas/(nparttot - nptmass)
+c
+c--NOTE: Flow rate is only correct for surface density profile r^{-1/2}
+c
          flowrate = 75.0*SQRT(gg*solarm*5.2*au)*((2./3.*rmindisc**
      &        (3./2.))+(2./3.*rmaxdisc**(3./2.))-LOG(rmindisc)-
      &        LOG(rmaxdisc)-(4./3.))/umass*utime*signorm/partm
@@ -1137,7 +1161,7 @@ c
 c
 c--Set e.o.s. related quantities
 c
-      IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
+      IF (ibound.EQ.102 .OR. ibound.EQ.103 .OR. ibound.EQ.104) THEN
          IF (initialptm.EQ.5) THEN
 99021 FORMAT ('For migration with a planet surface, momentum',/
      &           'conservation near the sink particle is key.',/

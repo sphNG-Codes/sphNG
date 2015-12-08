@@ -32,7 +32,7 @@ c      REAL*4 rhoreal4
 
       CHARACTER*7 where
 
-      DATA where/'ghos100'/
+      DATA where/'ghos102'/
 c
 c--Allow for tracing flow
 c

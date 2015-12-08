@@ -151,7 +151,7 @@ c
 c
 c--Error in ghost particle number
 c
-      IF (where(1:6).EQ.'ghostp' .OR. 
+      IF (where(1:4).EQ.'ghos' .OR. 
      &     (where(1:5).EQ.'rdump' .AND. iwhat.EQ.3)) THEN
          WRITE (iprint, 99019) iwhat
 99019    FORMAT (' number of particles+ghosts exceeds dimensions!', /,

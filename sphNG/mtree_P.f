@@ -483,6 +483,7 @@ C$OMP SINGLE
             qrad(5,newend) = qrad(5,new)
             qrad(6,newend) = qrad(6,new)
             qrad(7,newend) = qrad(7,new)
+            IF (idustRT.GT.0) h2frac(newend) =  h2frac(new)
             isibdaupar(1,newend) = isibdaupar(1,new)
             isibdaupar(2,newend) = isibdaupar(2,new)
             isibdaupar(3,isibdaupar(2,newend)) = newend

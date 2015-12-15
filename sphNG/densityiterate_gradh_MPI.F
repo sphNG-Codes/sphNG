@@ -1280,7 +1280,7 @@ C$OMP& shared(dvxyzu,hi_old,isucceed,poten,isend,numproc,iproc)
 C$OMP& shared(ivar,ijvar,ncompact,icompact,iteration,dust_tk)
 C$OMP& shared(hminbisec,hmaxbisec,iupdated,nlistupdated,listparents)
 C$OMP& shared(heatingISR,sightcolumns,nsightlines,umass,udist,c,gmw)
-C$OMP& shared(chemistry,h2frac,dh2dt,iatomic,icolumnnext,icolumnsteps)
+C$OMP& shared(chemistry,h2frac,dh2dt,icolumnnext,icolumnsteps)
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend,ijvartemp,listparentstemp)
 #endif
@@ -1548,16 +1548,6 @@ c
 c--Set temperature of the radiation to be 1 K initially (i.e. negligible)
 c
                                     ekcle(1,ipart) =uradconst/rho(ipart)
-c
-c--Set gas initially to be entirely atomic or entirely molecular (=0.5)
-c
-                                    IF (iatomic) THEN
-                                       h2frac(ipart) = 0.0
-                                    ELSE
-                                       h2frac(ipart) = 0.5
-                                    ENDIF
-                                    dh2dt(1,ipart) = 0.0
-                                    dh2dt(2,ipart) = 0.0
 c
 c--If starting from a dump file without radiative transfer information,
 c     need to define a starting value of U/T, otherwise the call to 

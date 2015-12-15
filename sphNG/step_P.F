@@ -214,8 +214,23 @@ ccc               isteps(i) = idtini
                IF (gt.EQ.0.0) isteps(i) = idtini
                it1(i) = isteps(i)/2
                it2(i) = isteps(i)
-               IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1)
-     &              icolumnnext(i) = 0
+               IF (idustRT.GT.0) THEN
+                  IF (gt.EQ.0.0) THEN
+c
+c--Set gas initially to be entirely atomic or entirely molecular (=0.5)
+c
+                     IF (iphase(i).EQ.0) THEN
+                        IF (iatomic) THEN
+                           h2frac(i) = 0.0
+                        ELSE
+                           h2frac(i) = 0.5
+                        ENDIF
+                     ENDIF
+                     dh2dt(1,i) = 0.0
+                     dh2dt(2,i) = 0.0
+                  ENDIF
+                  IF (ioptimise_column.EQ.1) icolumnnext(i) = 0
+               ENDIF
                ibin = INT(LOG10(REAL(isteps(i)))/xlog2+0.5)
                IF (ibin.GT.nbinmax) THEN
                   WRITE (*,*) 'ERROR - ibin.GT.nbinmax'
@@ -2976,6 +2991,18 @@ C$OMP& private(ipart,j)
                   IF (icolumnnext(ipart).LT.it2(ipart)) 
      &                 icolumnnext(ipart) = it2(ipart)
                   icolumnnext(ipart) = MIN(icolumnnext(ipart), imaxstep)
+               ELSE
+c
+c--Check whether recent change of timestep may require alteration of
+c     icolumnnext(ipart)
+c
+                  IF (MOD(icolumnnext(ipart)-itime,
+     &                 isteps(ipart)).NE.0) THEN
+                     WRITE (*,*) 'NEEDED TO CHANGE icolumnnext ',
+     &                    ipart,icolumnnext(ipart),itime,isteps(ipart),
+     &                    it2(ipart)
+                     icolumnnext(ipart) = it2(ipart)
+                  ENDIF
                ENDIF
             ENDIF
          END DO

@@ -2228,7 +2228,7 @@ C$OMP END PARALLEL
 c
 c--Dump point mass details to ptprint file
 c
-      IF (idoaccrete .AND. (isave.EQ.1 .OR. icreatetot.EQ.1)) THEN
+      IF (isave.EQ.1 .OR. icreatetot.EQ.1) THEN
          tcomp = SQRT((3 * pi) / (32 * rhozero))
 
 #ifdef MPI

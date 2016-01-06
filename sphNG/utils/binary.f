@@ -8,7 +8,8 @@ c
       IMPLICIT REAL (A-C, E-H, O-Z)
 
       PARAMETER (idim = 4)
-      DIMENSION ipart(idim), x(idim), y(idim), z(idim), vx(idim), 
+      INTEGER*8 ipart(idim)
+      DIMENSION x(idim), y(idim), z(idim), vx(idim), 
      &     vy(idim), vz(idim), pmass(idim), spinx(idim), spiny(idim), 
      &     spinz(idim)
       DIMENSION oldmasses(idim,10000), oldtimes(idim,10000), 

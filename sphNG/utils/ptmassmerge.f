@@ -12,7 +12,8 @@ c
       PARAMETER (nbinimf = 100)
       PARAMETER (nbinbin = 40)
       PARAMETER (nmassratio = 10)
-      DIMENSION ipart(idim,ilines), x(idim,ilines), y(idim,ilines), 
+      INTEGER*8 ipart(idim,ilines)
+      DIMENSION x(idim,ilines), y(idim,ilines), 
      &     z(idim,ilines), vx(idim,ilines), 
      &     vy(idim,ilines), vz(idim,ilines), pmass(idim,ilines), 
      &     rho(idim,ilines), nactotal(idim,ilines),

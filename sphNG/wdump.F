@@ -483,7 +483,7 @@ c--Default real
       ENDIF       
 
       IF (iplotdump.EQ.1) THEN
-         tagarr(1:2) = (/'gas','dust'/)
+         tagarr(1:2) = (/'gas ','dust'/)
          DO j = 1, 2
             WRITE (idisk1, ERR=100) tag(tagarr(j))
             WRITE (idisk1, ERR=100) (xtype(j,isort(i)), i=1, nprint)

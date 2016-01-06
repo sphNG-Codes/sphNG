@@ -687,6 +687,18 @@ c
 88004    FORMAT(//,' Enter number of particles to use in ',
      &          ' the simulation ')
          READ (iread, *) np
+
+#ifndef MPI 
+         IF (np.EQ.0) THEN
+            n1tot = nptmass
+            n2tot = 0
+            varsta = 'intener'
+            encal = 'i'
+            CALL inopts
+            GOTO 999
+         ENDIF
+#endif
+
          IF (idist.EQ.4) THEN
             h1 = (deltax * deltay * deltaz * 2.0 / np) ** (1./3.)
             delmin = MIN(deltax,deltay)
@@ -2057,7 +2069,7 @@ c
          WRITE(*,*) 'setting dtmax = ',dtmax
       ENDIF
 
-c999   CONTINUE
+999   CONTINUE
 c
 c--adjust smoothing lengths (also calculates initial density)
 c  MUST be done (to get density) if evolving B/rho

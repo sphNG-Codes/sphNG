@@ -189,9 +189,11 @@ c
       vcmy1 = vcmy1/fmas1
       vcmz1 = vcmz1/fmas1
 
-      romean1 = romean1/n1new
-      tgmean1 = tgmean1/n1new
-      trmean1 = trmean1/n1new
+      IF (n1new.GT.0) THEN
+         romean1 = romean1/n1new
+         tgmean1 = tgmean1/n1new
+         trmean1 = trmean1/n1new
+      ENDIF
       IF (idustRT.GT.0) THEN
          tdmean1 = tdmean1/n1new
       ENDIF

@@ -2023,7 +2023,7 @@ C$OMP END CRITICAL (killparticle)
 c
 c--Dead particle boundaries - planet embedded in whole disc
 c
-         IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
+         IF (ibound.EQ.102 .OR. ibound.EQ.103 .OR. ibound.EQ.105) THEN
             killme = .false.
 c
 c--Note: Ben Ayliffe used spherical radius, whereas Pablo Loren-Aguilar
@@ -2038,8 +2038,10 @@ c
             IF (iphase(i).EQ.0) THEN
                IF (ibound.EQ.102) THEN
                   IF (r2.GT.rcyl**2) killme = .true.
-               ELSE
+               ELSEIF (ibound.EQ.103) THEN
                   IF (r2.GT.rcyl**2 .OR. r2.LT.rmind**2) killme = .true.
+               ELSE
+                  IF (r2.LT.rmind**2) killme = .true.
                ENDIF
             ELSEIF (iphase(i).GE.11) THEN
                CALL semimajoraxis(i, eccentricity, smaxis)

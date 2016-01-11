@@ -266,6 +266,13 @@ c
      &        hoverr,partm
       ENDIF
 c
+c--Disc with locally-isothermal equation of state, but NO boundaries.
+c
+      IF (ibound.EQ.105) THEN
+         READ (iterm, *) use_tprof
+         IF (use_tprof) READ (iterm, *) tprof
+      ENDIF
+c
 c--Values to do with external forces
 c
       xmass = 0.

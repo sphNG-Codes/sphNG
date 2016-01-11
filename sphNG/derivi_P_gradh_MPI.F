@@ -1016,7 +1016,8 @@ c         CALL quit(1)
 c            WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
             CALL ASS(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
      &           xyzmh,vxyzu,ekcle,dumrho,dedxyz,alphaMM)
-         ELSEIF ((ibound.EQ.102 .OR. ibound.EQ.103 .OR. ibound.EQ.104) 
+         ELSEIF ((ibound.EQ.102 .OR. ibound.EQ.103 .OR. ibound.EQ.104
+     &           .OR. ibound.EQ.105) 
      &           .AND. use_tprof) THEN
 c
 c--Added for Isothermal whole disc case with t-profile
@@ -1045,7 +1046,8 @@ C$OMP& private(i,j,radius,boundtempl)
             END DO
 C$OMP END PARALLEL DO
          ELSEIF (ibound.EQ.100 .OR. ibound.EQ.102 .OR. 
-     &           ibound.EQ.103 .OR. ibound.EQ.104) THEN
+     &           ibound.EQ.103 .OR. ibound.EQ.104 .OR. 
+     &           ibound.EQ.105) THEN
 c
 c--Added for Isothermal disc section case and whole disc with u profile
 c

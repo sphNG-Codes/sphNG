@@ -946,7 +946,8 @@ c
 
       IF(encal.EQ.'r' .OR. (encal.EQ.'i' .AND. 
      &     (ibound.EQ.100 .OR. ibound.EQ.102
-     &     .OR. ibound.EQ.103 .OR. ibound.EQ.104))) THEN
+     &     .OR. ibound.EQ.103 .OR. ibound.EQ.104
+     &     .OR. ibound.EQ.105))) THEN
 
 ccc         thermalenergy = 0.
 ccc         radenergy = 0.

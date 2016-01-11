@@ -258,19 +258,19 @@ c
          ENDIF
       ENDIF
 c
-c--Boundaries for disc section, but without a planet (periodic in phi)
-c     Like a shearing box, but with without linearizing the shear.
-c
-      IF (ibound.EQ.104) THEN
-         READ (iterm, *) variation,phibound,signorm,
-     &        hoverr,partm
-      ENDIF
-c
 c--Disc with locally-isothermal equation of state, but NO boundaries.
 c
       IF (ibound.EQ.105) THEN
          READ (iterm, *) use_tprof
          IF (use_tprof) READ (iterm, *) tprof
+      ENDIF
+c
+c--Boundaries for disc section, but without a planet (periodic in phi)
+c     Like a shearing box, but with without linearizing the shear.
+c
+      IF (ibound.EQ.104 .OR. ibound.EQ.105) THEN
+         READ (iterm, *) variation,phibound,signorm,
+     &        hoverr,partm
       ENDIF
 c
 c--Values to do with external forces

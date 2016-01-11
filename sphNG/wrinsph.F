@@ -211,18 +211,18 @@ c
      &        '  Rad variation, Phi, flowrate, sigma, HoverR, partmass')
       ENDIF
 
-      IF (ibound.EQ.104) THEN
-         WRITE (iterm, 88041) variation,phibound,signorm,
-     &        hoverr,partm
-88041    FORMAT(2X,5(1PE12.5,1X),
-     &        '  Rad variation, Phi, sigma, HoverR, partmass')
-      ENDIF
-
       IF (ibound.EQ.102 .OR. ibound.EQ.103 .OR. ibound.EQ.105) THEN
 88071    FORMAT(3X, L1, ' t-profile switch')
          WRITE (iterm, 88071) use_tprof
          IF (use_tprof) WRITE (iterm, 88072) tprof
 88072    FORMAT(2X,1PE12.5, '  Temperature profile')
+      ENDIF
+
+      IF (ibound.EQ.104 .OR. ibound.EQ.105) THEN
+         WRITE (iterm, 88041) variation,phibound,signorm,
+     &        hoverr,partm
+88041    FORMAT(2X,5(1PE12.5,1X),
+     &        '  Rad variation, Phi, sigma, HoverR, partmass')
       ENDIF
 
       IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN

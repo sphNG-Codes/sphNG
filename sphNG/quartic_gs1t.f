@@ -291,8 +291,8 @@ c         if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3c',
 c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
 
 
-     !!  NUMERICAL SOLUTION IF ONLY IMAGINARY ARE RETURNED ANALYTICALLY !!
-     !! 
+c !!  NUMERICAL SOLUTION IF ONLY IMAGINARY ARE RETURNED ANALYTICALLY !!
+c !! 
          
          PRINT *,"QUARTIC4: All imaginary roots for quartic"
                                 !    PRINT *,vhgr

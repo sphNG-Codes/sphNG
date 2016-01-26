@@ -475,10 +475,10 @@ c
 c--Write present time
 c
          WRITE (iprint, 99003, ERR=100) gt
-99003    FORMAT (1X, 'TIME  : ', 1PE16.10)
+99003    FORMAT (1X, 'TIME  : ', 1PE17.10)
          tcomp = SQRT((3 * pi) / (32 * rhozero))
          WRITE (iprint, 99203, ERR=100) gt/tcomp
-99203    FORMAT (1X, 'Free Fall Time  : ', 1PE16.10)
+99203    FORMAT (1X, 'Free Fall Time  : ', 1PE17.10)
 c
 c--Energies + total angular momentum
 c
@@ -740,7 +740,7 @@ c
          IF (ichang.EQ.0) WRITE (iprint, 99009)
 99009    FORMAT (' no change done. ')
          IF (ichang.EQ.1) WRITE (iprint, 99010) frac, energc
-99010    FORMAT (' the inner ', F5.3,
+99010    FORMAT (' the inner ', F12.3,
      &           ' of the total number of particles',
      &           ' have had their internal energy multiplied by: ',
      &           1PE12.5)

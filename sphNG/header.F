@@ -162,7 +162,7 @@ c
      &           ' energy conservation    : ', I2,
      &           '   shock heating    : ', I2, /,
      &           ' homologous exp.        : ', I2,
-     &           '   general damping  : ', F3.1, /)
+     &           '   general damping  : ', F8.1, /)
 c
 c--Gravity calculations
 c
@@ -331,9 +331,9 @@ c
             WRITE (iprint, 99012) gam, rhocrt, gam, gamdh, rhocrt2, 
      &             gamdh, gamah, rhocrt3
 99012       FORMAT (/,' Critical densities for changing gamma ', /,
-     &      '           from 1.00    to ',G8.3,': ', 1PE12.3, /,
-     &      '           from ',G8.3,'to ',G8.3,': ', 1PE12.3, /,
-     &      '           from ',G8.3,'to ',G8.3,': ', 1PE12.3, //)
+     &      '           from 1.00    to ',G10.3,': ', 1PE12.3, /,
+     &      '           from ',G10.3,'to ',G10.3,': ', 1PE12.3, /,
+     &      '           from ',G10.3,'to ',G10.3,': ', 1PE12.3, //)
          ELSEIF (encal.EQ.'x') THEN
             rp1 = rhophys1 * udens
             rc1 = rhochange1 * udens
@@ -341,9 +341,9 @@ c
             WRITE (iprint, 99040) gamphys1, rp1, gamphys1, 
      &             gamphys2, rc1, gamphys2, gamphys3, rc2
 99040       FORMAT (/,' Physical equation of state ', /,
-     &      '           from 1.00    to ',G8.3,': ', 1PE12.3, /,
-     &      '           from ',G8.3,'to ',G8.3,': ', 1PE12.3, /,
-     &      '           from ',G8.3,'to ',G8.3,': ', 1PE12.3, //)
+     &      '           from 1.00    to ',G10.3,': ', 1PE12.3, /,
+     &      '           from ',G10.3,'to ',G10.3,': ', 1PE12.3, /,
+     &      '           from ',G10.3,'to ',G10.3,': ', 1PE12.3, //)
          ENDIF
 c
 c--Print out constants used for integration

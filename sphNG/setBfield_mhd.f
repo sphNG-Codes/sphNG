@@ -450,7 +450,7 @@ c
          betazero = 0.
       ENDIF
       WRITE(*,98009) valfven,betazero
-98009 FORMAT (' Alfven speed = ',1pe10.4,/,' Plasma beta  = ',1pe10.4)
+98009 FORMAT (' Alfven speed = ',1pe11.4,/,' Plasma beta  = ',1pe11.4)
 
 c
 c--spit out flux to mass ratio (assumes spherical geometry at the moment)
@@ -465,8 +465,8 @@ c
      &      totmas/(area*Bzzero),
      &      totmas/(area*Bzzero)/rmasstoflux_crit
 
-98010 FORMAT (' Mass to flux ratio (',a1,') = ',es10.4,
-     &        ' r/rcrit = ',f9.4)
+98010 FORMAT (' Mass to flux ratio (',a1,') = ',es11.4,
+     &        ' r/rcrit = ',f11.4)
 c
 c--calculate angle of uniform field to x axis
 c        
@@ -479,8 +479,8 @@ c
 c--spit out field strength in CGS units
 c        
       WRITE(*,99011) Bzero*umagfd,Bzero
-99011 FORMAT(' Initial field strength (Bzero) = ',1pe10.4,' G',
-     &       ' (',1pe10.4,' in code units)')
+99011 FORMAT(' Initial field strength (Bzero) = ',1pe11.4,' G',
+     &       ' (',1pe11.4,' in code units)')
 
 c
 c--set external field components

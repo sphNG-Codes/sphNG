@@ -214,7 +214,7 @@ c--If idebug='density' the densities are dumped
 c
       IF (idebug.EQ.'density') THEN
          WRITE (iprint, 99002) (rho(i), i=1, npart)
-99002    FORMAT (1X, 6(1PE12.6,1X))
+99002    FORMAT (1X, 6(1PE13.6,1X))
       ENDIF
 
       RETURN

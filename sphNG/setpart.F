@@ -2056,8 +2056,56 @@ c
      &             vrms/vsoundin
       WRITE (*,*) 'Sound speed = ',vsoundin
 
-77771 FORMAT(A)
  778  CONTINUE
+     
+c This is the code to superimpose a solid-body rotation on top of
+c a turbulent velocity field
+c A bit hacky, and disabled by default since it will break setup files 
+      GOTO 666
+
+      WRITE (*,*) 'Do you want an overall solid body rotation??'
+      READ (iread,99004) iok
+
+      IF(iok.EQ.'y'.OR.iok.EQ.'Y')THEN     
+        WRITE (*,99050)
+cc99050       FORMAT (' Enter angular velocity in rad/sec at radius=1')
+        READ (iread,*) angvel
+        angvel = angvel * utime
+        DO i = nptmass + 1, n1
+              vxyzu(1,i) = vxyzu(1,i) - angvel * xyzmh(2,i)
+              vxyzu(2,i) = vxyzu(2,i) + angvel * xyzmh(1,i)
+c              vxyzu(3,i) = vxyzu(3,i) - 0
+        END DO
+      ENDIF
+
+c
+c     write output for information only AGAIN
+c
+      ekinetic = 0.
+      rootmeansquare = 0.
+      DO i = nptmass + 1, n1
+         vel2 = vxyzu(1,i)**2+vxyzu(2,i)**2+vxyzu(3,i)**2
+         rootmeansquare = rootmeansquare + vel2
+         ekinetic = ekinetic + xyzmh(4,i)*vel2
+      END DO
+#ifdef MPI
+      CALL MPI_ALLREDUCE(rootmeansquare,rootmeansquaretot,1,
+     &     MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+      CALL MPI_ALLREDUCE(ekinetic,ekinetictot,1,
+     &     MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+      rootmeansquare = rootmeansquaretot
+      ekinetic = ekinetictot
+#endif
+      ekinetic = ekinetic/2.0
+      vrms = SQRT(rootmeansquare/(n1tot-nptmass))
+      WRITE (*,*) 'Kinetic energy = ',ekinetic
+      WRITE (*,*) 'Root mean square velocity = ',vrms,' mach # = ',
+     &             vrms/vsoundin
+      WRITE (*,*) 'Sound speed = ',vsoundin
+
+77771 FORMAT(A)
+ 666  CONTINUE
+c 778  CONTINUE
 c
 c--option to set dtmax as fraction of free-fall time
 c

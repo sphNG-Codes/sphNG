@@ -40,7 +40,7 @@ C$OMP END DO
  100  CALL divBsubcycle(ndivBsubcycles,dtmax,npart,ntot,xyzmh,rho,
      &     Bevolxyz,divBmax)
 
-      ! sanity check that substepping hasn't massively screwed up the field
+c sanity check that substepping hasn't massively screwed up the field
       IF (divBmax.GT.1.0e+10) THEN
 C$OMP DO SCHEDULE(static)
             ! reset field to pre substepping state

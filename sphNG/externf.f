@@ -41,6 +41,11 @@ c      INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/pxpy'
 c
+c--Change the degree of softening used for a central point mass
+c
+      REAL exfsoft
+      PARAMETER(exfsoft=tiny)
+c
 c--Needed for MPI code
 c
       IF (ipart.GT.ntot) RETURN
@@ -113,7 +118,7 @@ c
          xi = xyzmh(1,ipart)
          yi = xyzmh(2,ipart)
          zi = xyzmh(3,ipart)
-         d2 = (xi*xi + yi*yi + zi*zi + tiny)
+         d2 = (xi*xi + yi*yi + zi*zi + exfsoft)
          d = SQRT(d2)
          runix = xi/d
          runiy = yi/d

@@ -719,7 +719,8 @@ c
                   Bxj = Bxyz(1,j)
                   Byj = Bxyz(2,j)
                   Bzj = Bxyz(3,j)
-#ifndef PERIODIC_NO_GHOSTS ! if not done above
+#ifndef PERIODIC_NO_GHOSTS 
+c if not done above
                   IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
                      dBevolx = Bevolxi - Bevolxyz(1,j)
                      dBevoly = Bevolyi - Bevolxyz(2,j)

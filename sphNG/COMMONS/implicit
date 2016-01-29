@@ -8,6 +8,9 @@
       REAL*4 varij
       COMMON /implicitr4/ varij(4,icompactmax)
 
+      INTEGER ntests
       PARAMETER (ntests=10)
-      REAL xmaxerr1old(ntests),xmaxerrcomp1(ntests)
-      REAL xmaxerr2old(ntests),xmaxerrcomp2(ntests)
+      REAL xmaxerr1old,xmaxerrcomp1
+      REAL xmaxerr2old,xmaxerrcomp2
+      COMMON /imptests/ xmaxerr1old(ntests),xmaxerrcomp1(ntests),
+     &                  xmaxerr2old(ntests),xmaxerrcomp2(ntests)

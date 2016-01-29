@@ -138,7 +138,6 @@ c      print *,': Entered densityiterate ',itime
       numparticlesdone = numparticlesdone + nlst_end
       nwarnup = 0
       nwarndown = 0
-      nwarnroundoff = 0
       stressmax = 0.
       nbisection = 0
 
@@ -1302,7 +1301,7 @@ C$OMP& private(columnnumberdensity,expext,selfval,selffac,selfshield)
 C$OMP& private(iconvergence1,iconvergence2,iconvergence3)
 C$OMP& reduction(MAX:rhonext,imaxit)
 C$OMP& reduction(+:inumit,inumfixed,inumrecalc,nwarnup,nwarndown)
-C$OMP& reduction(+:nwarnroundoff,nbisection,numsucceeded)
+C$OMP& reduction(+:nbisection,numsucceeded)
 #ifdef MPICOPY
       DO n = numberstart, numberend
 #else
@@ -2710,7 +2709,6 @@ C$OMP& private(gradbetaxi,gradbetayi,gradbetazi,term)
 C$OMP& private(dgammaxi,dgammayi,dgammazi)
 C$OMP& private(gradgammaxi,gradgammayi,gradgammazi)
 C$OMP& reduction(MAX:rhonext)
-C$OMP& reduction(+:nwarnroundoff)
       DO j = 1, nlst_end
          ipart = listp(j)
          IF (iphase(ipart).EQ.0) THEN
@@ -2941,15 +2939,6 @@ c
       IF (nwarndown.GT.0) THEN
          WRITE (iprint,*) 'WARNING: restricted h jump (down) ',
      &        nwarndown,' times'
-      ENDIF
-      IF (nwarnroundoff.GT.0) THEN
-         IF (varmhd.EQ.'vecp') THEN
-           WRITE (iprint,*) 'WARNING: denom in vecp gradients zero on ',
-     &        nwarnroundoff,' particles'
-         ELSEIF (varmhd.EQ.'eulr') THEN
-          WRITE (iprint,*) 'WARNING: denom in euler gradients zero on ',
-     &        nwarnroundoff,' particles'
-         ENDIF
       ENDIF
       IF (nbisection.GT.0) THEN
          WRITE(iprint,*) 'WARNING: used bisection on ',nbisection,

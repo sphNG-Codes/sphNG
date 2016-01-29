@@ -522,6 +522,10 @@ c
 #endif
 #endif
 
+c Initialise nwarnroundoff counter to zero
+      nwarnroundoff = 0
+
+
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_end,listp,iphase,rho,divv,curlv,gradhs,xyzmh,cnormk)
 C$OMP& shared(nptmass,iptmass,listpm,gradmhd,varmhd,Bxyz,rhomin)
@@ -650,6 +654,19 @@ c
          ENDIF
       END DO
 C$OMP END PARALLEL DO
+
+c Emit warning if nwarnroundoff > 0
+c Used to be done in densityiterate
+      IF (nwarnroundoff.GT.0) THEN
+         IF (varmhd.EQ.'vecp') THEN
+           WRITE (iprint,*) 'WARNING: denom in vecp gradients zero on ',
+     &        nwarnroundoff,' particles'
+         ELSEIF (varmhd.EQ.'eulr') THEN
+          WRITE (iprint,*) 'WARNING: denom in euler gradients zero on ',
+     &        nwarnroundoff,' particles'
+         ENDIF
+      ENDIF
+
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(npart,ntot,ireal,rho,dumrho,xyzmh,pr,vsound,divv,curlv)

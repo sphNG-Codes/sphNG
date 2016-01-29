@@ -84,8 +84,8 @@ ifeq ($(SYSTEM), zen)
     else
        FC= ifort
     endif
-    FFLAGS= -O3 -xSSSE3 -ipo -mcmodel=medium -i-dynamic -WB  \
-            -warn uninitialized -warn truncated_source\
+    FFLAGS= -O3 -xSSSE3 -ipo -mcmodel=medium -i-dynamic  \
+            -warn uninitialized -warn truncated_source \
             -warn interfaces -nogen-interfaces
 # -check
 #To use above MPI check need to:
@@ -109,7 +109,7 @@ ifeq ($(SYSTEM), complexity)
     else
        FC= ifort
     endif
-    FFLAGS= -O3 -axAVX -ipo -mcmodel=medium -WB \
+    FFLAGS= -O3 -axAVX -ipo -mcmodel=medium \
             -warn uninitialized -warn truncated_source\
             -warn interfaces -nogen-interfaces
 # -check

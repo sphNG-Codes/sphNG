@@ -222,7 +222,7 @@ ifeq ($(SYSTEM), gfortran)
     ifeq ($(mpi), yes)
        FC= mpif90
     endif
-    FFLAGS= -m64 -mcmodel=medium -O3 -Wall
+    FFLAGS= -m64 -mcmodel=medium -O3 -Wall -Wno-conversion -Wno-unused-dummy-argument -Wno-maybe-uninitialized -Wno-unused-label
     DBLFLAG= -fdefault-real-8 -fdefault-double-8
     OMPFLAG= -fopenmp
     DEBUGFLAG= -g # -fcheck=all

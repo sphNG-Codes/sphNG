@@ -46,7 +46,6 @@ c      DIMENSION dBevolxyz(imhdevol,imhd2)
 
       INTEGER nosweep
       REAL dW,dr
-      LOGICAL*1 moresweep
       REAL dx,dy,dz
 
       REAL subcycle_dtimin, subcycle_dtimax
@@ -180,7 +179,6 @@ C$OMP& private(v2,v,index,dxx,index1,dgrwdx,grwtij,dW)
 C$OMP& private(pmjdWrij1rhoj,runix,runiy,runiz,denom1)
 C$OMP& private(dBxi,dByi,dBzi,projdB,rho1i)
 C$OMP& reduction(+:ihasghostcount)
-C$OMP& reduction(+:totalmagenergy)
 C$OMP& reduction(MAX:Bxyzmax)
 C$OMP& reduction(MIN:subcycle_dtimin, subcycle_istepmin)
 C$OMP& reduction(MAX:subcycle_dtimax, subcycle_istepmax)
@@ -497,7 +495,7 @@ c--And that done, return everything to ASS
 c
 
 c      print *,'Initial magnetic energy = ',totalmagenergy
-      totalmagenergy = 0.
+c      totalmagenergy = 0.
 
 cC$OMP PARALLEL DO SCHEDULE(static) default(none)
 cC$OMP& shared(Bxyznew,Bxyz,xyzmh,rho,dBxyz)

@@ -1,4 +1,4 @@
       REAL*8 solarm, solarr, solarl, earthm, earthr, au, pc, gmw
 
       COMMON /astrcon/ solarm, solarr, solarl, earthm, earthr, 
-     &	     au, pc, gmw
+     &                 au, pc, gmw

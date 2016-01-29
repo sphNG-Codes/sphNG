@@ -14,7 +14,7 @@
       COMMON /planetesimal_i/ n_planetesimal_types, nearestgas(idim)
       COMMON /planetesimal_c/ iplanetesimal_info
       COMMON /planetesimal / r_planetesimals(nplanetesimal_maxtype), 
-     &	     		     rho_planetesimals(nplanetesimal_maxtype),
-     &			     min_rplan, max_rplan, 
-     &			     eccentricity_p, inclination_p,
+     &                       rho_planetesimals(nplanetesimal_maxtype),
+     &                       min_rplan, max_rplan, 
+     &                       eccentricity_p, inclination_p,
      &                       planetesimalmass, gasdist(idim)

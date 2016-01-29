@@ -1,6 +1,6 @@
       INTEGER nparttot, nactivetot, n1tot, n2tot, iproccreate,
      &      maxnneighsentback, inumofreturns, inumbertotal,
-     &	    inumofsends
+     &      inumofsends
 
       REAL fmas1tot, fmas2tot, xlocationmpi, ylocationmpi,
      &     zlocationmpi, densmpi
@@ -15,11 +15,11 @@
      &        inumberproc, nsplit
 
       REAL splitcoords, binarysplits, xyzmax, xyzmin, searchxyzmax,
-     &	   searchxyzmin
+     &        searchxyzmin
 
       COMMON /mpiint/ nparttot, nactivetot, n1tot, n2tot, iproccreate,
      &           maxnneighsentback,inumofreturns, inumbertotal, 
-     &		 inumofsends
+     &           inumofsends
       COMMON /mpireal/ fmas1tot, fmas2tot, xlocationmpi, ylocationmpi,
      &     zlocationmpi, densmpi
       COMMON /mpichar/ mpitype
@@ -48,15 +48,15 @@
 c
 c--Notes:
 c      maxnneighsentback is the maximum number of neighbours that were 
-c      	found on another MPI process for any local particle in nlst
+c       found on another MPI process for any local particle in nlst
 c      inumofreturns is the number of MPI processes whose particles are
-c      	currently moving that have neighbours on this MPI process
-c      	(i.e. it is the number of MPI processes that will send
-c      	data to it).
+c       currently moving that have neighbours on this MPI process
+c       (i.e. it is the number of MPI processes that will send
+c       data to it).
 c      nneighsentback() contains the number of particles that need to be
-c      	sent back to each other MPI process for forces to be calculated
+c       sent back to each other MPI process for forces to be calculated
 c      nneightogetback() contains the number of particles that will be
-c      	sent back from the other MPI process to this process
+c       sent back from the other MPI process to this process
 c
 c--Quantities that do not need to be in common block:
 c      inumberreturned

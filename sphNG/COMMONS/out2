@@ -11,4 +11,4 @@
      &                hmi2, hma2, romean2, rocen2, 
      &                tgmean2, tgmax2, tgcen2, trmean2, trmax2, trcen2,
      &                h2mass2, tdmax2, tdmin2, tdmean2, 
-     &		      romax2, valphamax2, valphamin2, n2new
+     &                romax2, valphamax2, valphamin2, n2new

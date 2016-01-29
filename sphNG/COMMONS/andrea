@@ -1,7 +1,7 @@
-	REAL*8 ptable, prmin, princ, pmmin, pminc, e_planetesimal
-        INTEGER mbins, rbins
-	PARAMETER (mbins=100)
-	PARAMETER (rbins=1000)
+       REAL*8 ptable, prmin, princ, pmmin, pminc, e_planetesimal
+       INTEGER mbins, rbins
+       PARAMETER (mbins=100)
+       PARAMETER (rbins=1000)
 
-	COMMON /andrea/ ptable(mbins,rbins), prmin, princ, pmmin,
-     &                  pminc, e_planetesimal(idim)
+       COMMON /andrea/ ptable(mbins,rbins), prmin, princ, pmmin,
+     &                 pminc, e_planetesimal(idim)

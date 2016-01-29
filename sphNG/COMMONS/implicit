@@ -3,7 +3,7 @@
 
       REAL vari, varinew
       COMMON /implicit/ vari(2,idim2),
-     &	     varinew(nelements_varinew,idim2)
+     &       varinew(nelements_varinew,idim2)
 
       REAL*4 varij
       COMMON /implicitr4/ varij(4,icompactmax)

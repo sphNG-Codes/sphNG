@@ -11,4 +11,4 @@
      &                hmi1, hma1, romean1, rocen1, 
      &                tgmean1, tgmax1, tgcen1, trmean1, trmax1, trcen1,
      &                h2mass1, tdmax1, tdmin1, tdmean1, 
-     &		      romax1, valphamax1, valphamin1, n1new
+     &                romax1, valphamax1, valphamin1, n1new

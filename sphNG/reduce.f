@@ -27,7 +27,7 @@ c     INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/timei'
       INCLUDE 'COMMONS/stepopt'
 
-      CHARACTER*20 ifile(10), ofile
+      CHARACTER*11 ifile(10), ofile
 
 99001 FORMAT (A20)
    

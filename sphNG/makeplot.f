@@ -43,7 +43,7 @@ c************************************************************
 
       COMMON /plotinfo/ xtype(2,idim), iplotdump
 
-      CHARACTER*40 ifile(1000), ofile
+      CHARACTER*11 ifile(1000), ofile
 
       CHARACTER*4 dummy4
       CHARACTER*3 nsuffix

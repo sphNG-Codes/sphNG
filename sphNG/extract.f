@@ -40,7 +40,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/initpt'
       INCLUDE 'COMMONS/rbnd'
 
-      CHARACTER*40 ifile(10), ofile
+      CHARACTER*11 ifile(10), ofile
       CHARACTER*1 iok, iok2, iokm, iaddmhd, iexs
       
 1000  FORMAT (A40)

@@ -41,7 +41,7 @@ c************************************************************
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/planetesimal'
 
-      CHARACTER*40 ifile, ofile
+      CHARACTER*11 ifile, ofile
       
 1000  FORMAT (A40)
 1001  FORMAT (A1)

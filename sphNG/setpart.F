@@ -1337,6 +1337,11 @@ c
      &           '   High-T: (10=Alexander 1975)',
      &           '           (20=Ferguson et al. 2005)')
             READ (iread,*) iopmodel
+
+            WRITE (*, 89021)
+89021       FORMAT ('Enter metallicity relative to solar (e.g. 1.0)')
+            READ (iread,*) metallicity
+
          ELSE
             GOTO 616
          ENDIF

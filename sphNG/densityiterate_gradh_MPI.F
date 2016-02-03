@@ -1484,6 +1484,7 @@ c     be done in column_density.F.  However, it needs to be done here for
 c     the MPI code (see comments in column_density.F).
 c
 #ifdef MPI
+#ifdef RT
                            IF (idustRT.GT.0) THEN
                               IF (ioptimise_column.EQ.1) THEN
 
@@ -1534,6 +1535,7 @@ c
                               heatingISR(4,ipart) = 
      &                             selfshield/nsightlines
                            ENDIF
+#endif
 #endif
 c
 c--Set e(i) for the first time around because density only set here

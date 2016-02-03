@@ -2161,6 +2161,31 @@ c
       IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim) CALL hcalc
 
       IF (igeom.EQ.10 .AND. use_tprof .AND. encal.EQ.'r') CALL uset
+c
+c--To set the initial temperatures of a star
+c
+      WRITE (*,*) 'Do you want a stellar temperature',
+     &     'distribution (y/n)?'
+      READ (*,99004) iok
+      IF (iok.EQ.'y') THEN
+         IF (encal.EQ.'r') THEN
+            DO i=1, npart
+               val_mu = gmw
+               DO j = 1, 10
+                  temp_val = val_mu/Rg*(rho(i)*udens)**(1./3.)*
+     &                 0.365*umass**(-1./3.)*udist**3/(utime**2)
+                  vxyzu(4,i) = getu(rho(i),temp_val)
+                  val_mu = 1./get1overmu(rho(i),vxyzu(4,i))
+c                  print *,'temp ',temp_val,vxyzu(4,i),
+c     &                 get1overmu(rho(i),vxyzu(4,i))
+               END DO
+            END DO
+         ELSE
+            DO i=1, npart
+               vxyzu(4,i) = 0.365 * rho(i)**(1./3.)/(gamma-1.0)
+            END DO
+         ENDIF
+      ENDIF
 
       IF (imhd.NE.idim) THEN
          Bextx = 0.

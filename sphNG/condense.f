@@ -33,7 +33,7 @@ c
       rmax2 = rmax*rmax
 
       WRITE (*,*) 'Do you want exp[-3 x^2], r^-1, or r^-2, or ',
-     &     'Bonnor-Ebert sphere (0, 1, 2 or 3)?'
+     &     'Bonnor-Ebert sphere, or polytrope (0, 1, 2, 3, 4)?'
       READ (iread,*) islope
 
       ians = 'n'
@@ -55,6 +55,10 @@ c
          WRITE (*,*) 'Enter concentration parameter, xi'
          READ (iread,*) xi
          CALL bonnorebert(xi)
+      ELSEIF (islope.EQ.4) THEN
+         WRITE (*,*) 'Enter polytropic index (3 for solar-type star)'
+         READ (iread,*) poly_index
+         CALL polytrope(poly_index)
       ELSE
          WRITE (*,*) 'ERROR - Invalid choice'
          CALL quit
@@ -89,9 +93,9 @@ c
          IF (islope.EQ.1) rnew = rmax*(r1rm**(1.50))
          IF (islope.EQ.2) rnew = rmax*(r1rm**(3.00))
 c
-c--Bonnor-Ebert density profile
+c--Bonnor-Ebert or polytrope density profile
 c
-         IF (islope.EQ.3) THEN
+         IF (islope.EQ.3 .OR. islope.EQ.4) THEN
             xmassfraccontained = r1rm**3
             ipos1 = 1
             ipos2 = ibelast

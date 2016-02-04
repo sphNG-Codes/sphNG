@@ -458,7 +458,7 @@ c
      &           ' function of density and temperature',//)
             IF (iresist.LT.0) THEN
                WRITE(iprint,99223)
-            ELSE
+            ELSEIF (iresist.GT.0) THEN
                WRITE(iprint,99224)
             ENDIF
 99223       FORMAT(' Physical resistivity evolved implicitly',//)

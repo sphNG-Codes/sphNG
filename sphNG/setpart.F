@@ -72,6 +72,7 @@ c
 c--Initialise time
 c
       gt = 0.0
+      poly_const = 0.
 
       DO i = 1, idim
          iorig(i) = i
@@ -1206,33 +1207,39 @@ c
          READ (iread, *) thermal
       ELSE
          varsta = 'intener'
-99027    WRITE (*, 99028)
-99028    FORMAT (' Do you want to enter: ',/,
+         IF (poly_const.EQ.0.) THEN
+99027       WRITE (*, 99028)
+99028       FORMAT (' Do you want to enter: ',/,
      &     '    value of initial average temperature in kelvin: (t) ',/,
      &     '    initial average sound speed (code units)      : (s) ',/,
      &     '    initial average internal energy (code units)  : (u) ?')
-         READ (iread,99128) ien
-99128    FORMAT(A1)       
-         IF (ien.EQ.'t') THEN
-            WRITE(*,99129)
-99129       FORMAT (' Value of initial average temperature in kelvin:')
-            READ (iread,*) thermal
-            thermal = 3.0/2.0*thermal*Rg/gmw/uergg
-         ELSE IF (ien.EQ.'u') THEN
-            WRITE(*,99130)
-99130       FORMAT (' Value of internal energy (code units)') 
-            READ (iread,*) thermal
-         ELSE IF (ien.EQ.'s') THEN
-            WRITE(*,99131) udist/utime
-99131       FORMAT (' Value of sound speed in units of ',1pe11.4,'cm/s')
-            READ (iread,*) thermal
-            vsoundin = ABS(thermal)
-            vsoundin2 = vsoundin*vsoundin
+            READ (iread,99128) ien
+99128       FORMAT(A1)       
+            IF (ien.EQ.'t') THEN
+               WRITE(*,99129)
+99129          FORMAT (' Value of initial average temperature',
+     &              'in kelvin:')
+               READ (iread,*) thermal
+               thermal = 3.0/2.0*thermal*Rg/gmw/uergg
+            ELSE IF (ien.EQ.'u') THEN
+               WRITE(*,99130)
+99130          FORMAT (' Value of internal energy (code units)') 
+               READ (iread,*) thermal
+            ELSE IF (ien.EQ.'s') THEN
+               WRITE(*,99131) udist/utime
+99131          FORMAT (' Value of sound speed in units of ',1pe11.4,
+     &              'cm/s')
+               READ (iread,*) thermal
+               vsoundin = ABS(thermal)
+               vsoundin2 = vsoundin*vsoundin
+            ELSE
+               GOTO 99027
+            ENDIF
          ELSE
-            GOTO 99027
+            thermal = 1.0E+06* 3.0/2.0*Rg/gmw/uergg
          ENDIF
       ENDIF
- 603  continue
+ 603  CONTINUE
       rhocrt = rhocrit * udens
       rhocrt2 = rhocrit2 * udens
       rhocrt3 = rhocrit3 * udens
@@ -1316,31 +1323,33 @@ c
             IF (ien.EQ.'s') thermal = vsoundin2/(gamma*gm1)
             RK2 = thermal/(rhozero**gm1)
 
-            IF (ibound/10.EQ.10 .AND. ibound.NE.100) THEN
-               WRITE (*,99053)
-99053          FORMAT('Enter radiative transfer tolerance: ')
-               READ (iread,*) tolerance
-            ELSE
-               WRITE (*,99035)
-99035          FORMAT('Enter radiative transfer tolerance, boundary'//
-     &        ' temperature, and scale height at which disk becomes'//
-     &              ' optically thin:')
-               READ (iread,*) tolerance, boundtemp, bounddens
-            ENDIF
+            WRITE (*,99053)
+99053       FORMAT(' Enter radiative transfer integration tolerance: ')
+            READ (iread,*) tolerance
+
+            WRITE (*,99035)
+99035       FORMAT(' Enter radiation boundary temperature (in K)',
+     &           ' and density (in code units)',/,
+     &           '   at which it is assumed',
+     &           ' that the matter becomes optically thin:')
+            READ (iread,*) boundtemp, bounddens
 
             WRITE (*, 89019)
-89019       FORMAT ('Choose an opacity denominator')
+89019       FORMAT (' Choose an opacity denominator (typically 1.0).',/,
+     &           '   (This is an arbitrary number to divide',
+     &           ' the opacities by)')
             READ (iread,*) opdenom
 
             WRITE (*, 89020)
-89020       FORMAT ('Choose an opacity model',//,
-     &           '   Low-T: (0=Pollack et al. 1985)',
-     &           '   High-T: (10=Alexander 1975)',
-     &           '           (20=Ferguson et al. 2005)')
+89020       FORMAT (' Choose an opacity model (typically 11)',/,
+     &           '   Low-T:  (0 or 1=Pollack et al. 1985)',/
+     &           '   High-T: (0=Alexander 1975)',/
+     &           '           (10=Ferguson et al. 2005)',/
+     &           '   Values are ADDED to give low-T & high-T opacities')
             READ (iread,*) iopmodel
 
             WRITE (*, 89021)
-89021       FORMAT ('Enter metallicity relative to solar (e.g. 1.0)')
+89021       FORMAT (' Enter metallicity relative to solar (e.g. 1.0)')
             READ (iread,*) metallicity
 
          ELSE
@@ -1356,7 +1365,7 @@ c
 c--Set Pressure Distribution
 c
  617  WRITE(*, 99036)
-99036 FORMAT (' Do you want pressure variations (y/n)')
+99036 FORMAT (/,' Do you want pressure variations (y/n)')
       READ (iread,99004) ipres
       IF ((ipres.NE.'y').AND.(ipres.NE.'n')) GOTO 617
 
@@ -2185,6 +2194,11 @@ c
                      vxyzu(4,i) = getu(rho(i),temp_val)
                      val_mu = 1./get1overmu(rho(i),vxyzu(4,i))
                   END DO
+                  ekcle(3,i) = getcv(rho(i),vxyzu(4,i))
+                  ekcle(2,i) = getkappa(vxyzu(4,i),ekcle(3,i),rho(i))
+                  uradconst = radconst/uergcc
+                  ekcle(1,i) = uradconst*(vxyzu(4,i)/
+     &                 ekcle(3,i))**4/rho(i)
                END DO
             ELSE
                DO i=1, npart

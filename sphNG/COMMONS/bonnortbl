@@ -2,7 +2,5 @@
         PARAMETER (nbonnor = 300000)
         REAL*4 bonnor_radmass
 	REAL poly_const
-        COMMON /bonnortbl/ bonnor_radmass(2,nbonnor), ibelast,
-     &	   poly_const
-
-	
+        COMMON /bonnortbl/ bonnor_radmass(2,nbonnor), ibelast
+	COMMON /polytropes/ poly_const

@@ -58,6 +58,7 @@ c************************************************************
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/integ'
       INCLUDE 'COMMONS/abundances'
+      INCLUDE 'COMMONS/bonnortbl'
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
@@ -2169,26 +2170,27 @@ c
 c
 c--To set the initial temperatures of a star
 c
-      WRITE (*,*) 'Do you want a stellar temperature',
-     &     'distribution (y/n)?'
-      READ (*,99004) iok
-      IF (iok.EQ.'y') THEN
-         IF (encal.EQ.'r') THEN
-            DO i=1, npart
-               val_mu = gmw
-               DO j = 1, 10
-                  temp_val = val_mu/Rg*(rho(i)*udens)**(1./3.)*
-     &                 0.365*umass**(-1./3.)*udist**3/(utime**2)
-                  vxyzu(4,i) = getu(rho(i),temp_val)
-                  val_mu = 1./get1overmu(rho(i),vxyzu(4,i))
-c                  print *,'temp ',temp_val,vxyzu(4,i),
-c     &                 get1overmu(rho(i),vxyzu(4,i))
+      IF (poly_const.GT.0.) THEN
+         WRITE (*,*) 'Do you want a stellar temperature',
+     &        'distribution (y/n)?'
+         READ (*,99004) iok
+         IF (iok.EQ.'y') THEN
+            WRITE (*,*) 'Polytropic constant is ',poly_const
+            IF (encal.EQ.'r') THEN
+               DO i=1, npart
+                  val_mu = gmw
+                  DO j = 1, 10
+                     temp_val = val_mu/Rg*(rho(i)*udens)**(1./3.)*
+     &                    poly_const*umass**(-1./3.)*udist**3/(utime**2)
+                     vxyzu(4,i) = getu(rho(i),temp_val)
+                     val_mu = 1./get1overmu(rho(i),vxyzu(4,i))
+                  END DO
                END DO
-            END DO
-         ELSE
-            DO i=1, npart
-               vxyzu(4,i) = 0.365 * rho(i)**(1./3.)/(gamma-1.0)
-            END DO
+            ELSE
+               DO i=1, npart
+                  vxyzu(4,i) = poly_const * rho(i)**(1./3.)/(gamma-1.0)
+               END DO
+            ENDIF
          ENDIF
       ENDIF
 

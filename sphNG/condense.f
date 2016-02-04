@@ -58,7 +58,9 @@ c
       ELSEIF (islope.EQ.4) THEN
          WRITE (*,*) 'Enter polytropic index (3 for solar-type star)'
          READ (iread,*) poly_index
-         CALL polytrope(poly_index)
+         WRITE (*,*) 'Enter concentration parameter, xi'
+         READ (iread,*) xi
+         CALL polytrope(poly_index,xi)
       ELSE
          WRITE (*,*) 'ERROR - Invalid choice'
          CALL quit

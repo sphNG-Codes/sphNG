@@ -1,4 +1,4 @@
-      SUBROUTINE polytrope(poly_index)
+      SUBROUTINE polytrope(poly_index,ximax)
 c
 c--This subrountine generates rho and M_enc as a function of radius for a
 c     polytropic sphere.  It is very similar to bonnorebert.f which
@@ -9,7 +9,7 @@ c
       REAL poly_index
 
       REAL ximax, bemasstotal, berad, bemaxrad, befac,
-     &     xi, phi, func, dxi, dfunc,
+     &     xi, phi, func, dxi, dfunc, central_density,
      &     containedmass, dmass, conmassnext, dphi, rho
       INTEGER loop,i,j
 
@@ -28,7 +28,6 @@ c
 c
 c-- Generate the Polytrope profile up to the required ximax
 c
-      ximax = 5.0
       loop = 100000000
       xi = 0.0
       phi = 1.0
@@ -52,6 +51,7 @@ c
          containedmass = containedmass + 4.0*PI*xi*xi*rho*dxi
 cWRITE(*,*) 'func=',xi*xi*func,'xi=',xi
 cWRITE(*,*) 'containedmass=',containedmass,'phi=',phi
+         IF(xi.GT.ximax) GOTO 200
          IF (containedmass.GE.conmassnext) THEN
             bonnor_radmass(2,j) = containedmass
             bonnor_radmass(1,j) = xi
@@ -59,7 +59,6 @@ cWRITE(*,*) 'containedmass=',containedmass,'phi=',phi
              rhoc(j) = ximax**3/(4.0*PI*xi*xi*func)*udens
               cs2(j) = ximax/(xi*xi*func)*(gg*umass/udist)
      &               * (gmw/Rg)
-            IF(xi.GT.ximax) GOTO 200
             conmassnext = conmassnext + dmass
             j = j + 1
             IF (j.GT.nbonnor) THEN
@@ -77,6 +76,13 @@ cWRITE(*,*) 'containedmass=',containedmass,'phi=',phi
       WRITE(*,*) 'Ratio rho_central/rho_out (critical value 14.1)',
      &     1.0/rho
       WRITE(*,*) 'Sphere extends to xi = ', xi, ' table ',ibelast
+      WRITE(*,*) 'Value of func at xi_max = ',func
+      central_density = -ximax/(func)/(4*pi)
+      WRITE(*,*) 'Value of central density (code units) = ',
+     &     central_density
+      poly_const =  4.0*pi/(poly_index+1)/ximax**2 *
+     &     central_density**(1.0-1.0/poly_index)
+      WRITE(*,*) 'Value of poly_const = ',poly_const
 
       bemaxrad = bonnor_radmass(1,ibelast)
       befac = berad/bemaxrad 

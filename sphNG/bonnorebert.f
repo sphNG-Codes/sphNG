@@ -7,13 +7,18 @@ c     p. 233).
 c
       IMPLICIT NONE
 
+      INCLUDE 'idim'
+
       REAL ximax, bemasstotal, berad, bemaxrad, befac,
-     &     xi, phi, func, dxi, dfunc,
+     &     xi, phi, func, dxi, dfunc, central_density,
      &     containedmass, dmass, conmassnext, dphi, rho
       INTEGER loop,i,j
 
+      INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/bonnortbl'
+      INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/rbnd'
 
       REAL*4 berho(nbonnor)
 
@@ -65,6 +70,14 @@ c
       WRITE(*,*) 'Ratio rho_central/rho_out (critical value 14.1)',
      &     1.0/rho
       WRITE(*,*) 'Sphere extends to xi = ', xi, ' table ',ibelast
+      WRITE(*,*) 'Value of func at xi_max = ',func
+      central_density = -ximax/(func)/(4*pi)
+      WRITE(*,98001) central_density/rmax**3
+98001 FORMAT(' Value of central density (code units) = ',
+     &     1PE12.5,'*(mass in code units)')
+      WRITE(*,98002) -1./(func*ximax)*gmw/Rg*(gg*umass/udist)/rmax
+98002 FORMAT(' Equilibrium temperature = '1PE10.3,
+     &     '*(mass in code units)')
 
       bemaxrad = bonnor_radmass(1,ibelast)
       befac = berad/bemaxrad 

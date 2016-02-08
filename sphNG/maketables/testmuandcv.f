@@ -1,7 +1,6 @@
 	PROGRAM TESTMU
 
-	INCLUDE '../COMMONS/tgtbl'
-	INCLUDE '../COMMONS/mutbl'
+	INCLUDE '../COMMONS/eostbl'
 	INCLUDE '../COMMONS/units'
 	REAL K
 
@@ -17,14 +16,14 @@
 	PRINT *,"Rho?"
 	READ *,rho
 
-	OPEN(UNIT=10,FILE='molmasstbl',FORM='unformatted')
+	OPEN(UNIT=10,FILE='molmasstbl_lowdens',FORM='unformatted')
 
 	DO I=1,mumxu
 	   READ(10) (mutable(i,j), j=1,mumxrh)
 	END DO
 
 
-	OPEN(UNIT=8,FILE='gasttbl',FORM='unformatted')
+	OPEN(UNIT=8,FILE='gasttbl_lowdens',FORM='unformatted')
       	DO i=1, tgmxu
 	   READ(8) (tgtable(i,j), j=1, tgmxrh)
            PRINT *,tgtable(i,2000),i

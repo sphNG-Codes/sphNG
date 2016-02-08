@@ -22,7 +22,7 @@ c      RETURN
 c
 c--If goes to very high density, use last values in table
 c
-      IF (lrho.GT.3.0) lrho = 3.0
+      IF (lrho.GT.-1.0) lrho = -2.0
 
       lu=log10(u)
 

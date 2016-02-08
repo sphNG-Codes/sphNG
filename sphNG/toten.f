@@ -26,6 +26,8 @@ c************************************************************
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/physcon'
 c
 c--Allow for tracing flow
 c
@@ -131,9 +133,13 @@ c--Variable of state is specific internal energy
 c
          DO i = 1, npart
             IF (iphase(i).EQ.0) THEN
-               tterm = tterm + xyzmh(4,i)*vxyzu(4,i)
                IF (encal.EQ.'r' .AND. iradtrans.EQ.idim) THEN
                   trad = trad + xyzmh(4,i)*ekcle(1,i)
+                  tterm = tterm + xyzmh(4,i)*1.5*Rg*
+     &                 vxyzu(4,i)/ekcle(3,i)*
+     &                 get1overmu(rho(i),vxyzu(4,i))/uergg
+               ELSE
+                  tterm = tterm + xyzmh(4,i)*vxyzu(4,i)
                ENDIF
             ENDIF
          END DO

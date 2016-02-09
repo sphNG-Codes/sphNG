@@ -86,7 +86,7 @@ cWRITE(*,*) 'containedmass=',containedmass,'phi=',phi
 
       bemaxrad = bonnor_radmass(1,ibelast)
       befac = berad/bemaxrad 
-	WRITE(*,*) "rmax=",bemaxrad,"temp=",cs2(ibelast)
+        WRITE(*,*) "rmax=",bemaxrad,"temp=",cs2(ibelast)
 c
 c-- Scale the masses and radii appropriately.  Also write output file
 c     that gives the density profile and cumulative mass profile.
@@ -100,7 +100,7 @@ c
          WRITE (13,99001) bonnor_radmass(1,j),bonnor_radmass(2,j),
      &        berho(j)
 99001    FORMAT(3(1PE12.5,1X))
-	WRITE(20,*) bonnor_radmass(1,j),rhoc(j),cs2(j)
+        WRITE(20,*) bonnor_radmass(1,j),rhoc(j),cs2(j)
       END DO
       CLOSE(13)
       CLOSE(20)

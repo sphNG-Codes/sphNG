@@ -1014,6 +1014,7 @@ ccc99555    FORMAT(I2,': ENER-B ',I1,1PE14.7,1PE14.7,1PE14.7)
 
 c         CALL quit(1)
 
+#ifdef RT
          IF (encal.EQ.'r') THEN
 c            WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
             CALL ASS(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
@@ -1021,6 +1022,11 @@ c            WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
          ELSEIF ((ibound.EQ.102 .OR. ibound.EQ.103 .OR. ibound.EQ.104
      &           .OR. ibound.EQ.105) 
      &           .AND. use_tprof) THEN
+#else
+         IF ((ibound.EQ.102 .OR. ibound.EQ.103 .OR. ibound.EQ.104
+     &           .OR. ibound.EQ.105)
+     &           .AND. use_tprof) THEN
+#endif
 c
 c--Added for Isothermal whole disc case with t-profile
 c

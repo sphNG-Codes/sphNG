@@ -372,7 +372,7 @@ SRCGRADH= derivi_P_gradh_MPI.F forcei_P_gradh_MPI.F  \
         
 SRCRT= ass.f RT/newgsimpl_MPI.f RT/boundaryparticle.f quartic_gs1t.f \
 	RT/getblock.f RT/dust_temperature.f column_density.F 
-SRCNORT = ass_dummy.f
+SRCNORT =
 RTFPPFLAGS=${FPP_SEP}-DRT
 
 # these are the extra routines required for Monte-Carlo radiative transfer

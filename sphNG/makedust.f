@@ -42,6 +42,7 @@ c************************************************************
       INCLUDE 'COMMONS/planetesimal'
 
       CHARACTER*11 ifile, ofile
+      CHARACTER*1 igeom
       
 1000  FORMAT (A40)
 1001  FORMAT (A1)
@@ -102,11 +103,18 @@ c
      &     ' (e.g. ',min_rplan,max_rplan,' )'
       READ (*,*) min_rplan, max_rplan
 
+      PRINT *,'Do you want cylindrical or spherical radius?'
+      READ (*,1001) igeom
+
       gas_mass_inside = 0.
       ngas_inside = 0.
       DO i = 1, npart
          IF (iphase(i).EQ.0) THEN
-            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2
+            IF (igeom.EQ.'s') THEN
+               r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
+            ELSE
+               r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2
+            ENDIF
             IF (SQRT(r2).GT.min_rplan.AND.SQRT(r2).LT.max_rplan) THEN
                gas_mass_inside = gas_mass_inside + xyzmh(4,i)
                ngas_inside = ngas_inside + 1
@@ -142,7 +150,11 @@ c
  1237       i = MIN(INT(ran1(1)*npart)+1,npart)
             IF (iphase(i).NE.0) GOTO 1237
 
-            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2
+            IF (igeom.EQ.'s') THEN
+               r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
+            ELSE
+               r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2
+            ENDIF
             IF (SQRT(r2).LT.min_rplan.OR.SQRT(r2).GT.max_rplan)
      &           GOTO 1237
 
@@ -156,7 +168,7 @@ c
             xyzmh(2,j) = yi
             xyzmh(3,j) = zi
             xyzmh(4,j) = dust_particle_mass
-            xyzmh(5,j) = xyzmh(5,i)
+            xyzmh(5,j) = xyzmh(5,i)*(ngas_inside/ndustpart)**(1./3.)
 
             vxyzu(1,j) = vxyzu(1,i)
             vxyzu(2,j) = vxyzu(2,i)

@@ -10,7 +10,7 @@ c
       INCLUDE 'idim'
 
       REAL ximax, bemasstotal, berad, bemaxrad, befac,
-     &     xi, phi, func, dxi, dfunc, central_density,
+     &     xi, phi, func, dxi, dfunc, 
      &     containedmass, dmass, conmassnext, dphi, rho
       INTEGER loop,i,j
 
@@ -71,7 +71,12 @@ c
      &     1.0/rho
       WRITE(*,*) 'Sphere extends to xi = ', xi, ' table ',ibelast
       WRITE(*,*) 'Value of func at xi_max = ',func
+c
+c--NOTE: The central density and edge_density need to be multiplied
+c     by Mass/(Rmax**3) to get densities in code units
+c
       central_density = -ximax/(func)/(4*pi)
+      edge_density = central_density*rho
       WRITE(*,98001) central_density/rmax**3
 98001 FORMAT(' Value of central density (code units) = ',
      &     1PE12.5,'*(mass in code units)')

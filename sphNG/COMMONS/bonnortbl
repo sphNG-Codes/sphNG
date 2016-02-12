@@ -1,6 +1,7 @@
         INTEGER nbonnor, ibelast
         PARAMETER (nbonnor = 3000000)
         REAL*4 bonnor_radmass
-        REAL poly_const
+        REAL poly_const, central_density, edge_density
         COMMON /bonnortbl/ bonnor_radmass(2,nbonnor), ibelast
         COMMON /polytropes/ poly_const
+	COMMON /bespheres/ central_density, edge_density

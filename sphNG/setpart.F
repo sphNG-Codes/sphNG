@@ -917,6 +917,10 @@ c
 c--set box containing surrounding medium for igeom=8
 c
       IF (igeomorig.EQ.8) THEN
+         thermalcontrast = rhocontrast
+         IF (icentral.EQ.'y') THEN
+            rhocontrast = rhocontrast*(3.0/(4.0*pi))/edge_density
+         ENDIF
          n1 = npart
          xmin = xminb
          xmax = xmaxb
@@ -1400,7 +1404,7 @@ c           for sphere in box, ensure pressure balance
                vxyzu(4,i) = thermal
             END DO
             IF (ipreseq.EQ.'Y' .OR. ipreseq.EQ.'y') THEN
-               uzero_n2 = thermal*rhocontrast
+               uzero_n2 = thermal*thermalcontrast
             ELSE
                uzero_n2 = thermal
             ENDIF

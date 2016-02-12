@@ -9,7 +9,7 @@ c
       REAL poly_index
 
       REAL ximax, bemasstotal, berad, bemaxrad, befac,
-     &     xi, phi, func, dxi, dfunc, central_density,
+     &     xi, phi, func, dxi, dfunc, 
      &     containedmass, dmass, conmassnext, dphi, rho
       INTEGER loop,i,j
 

@@ -1045,125 +1045,128 @@ c
             DO k = 1, ivar(1,n)
                icompact = ivar(2,n) + k
                j = ijvar(icompact)
+
+               IF (iphase(j).EQ.0) THEN
 c
 c--Need to make sure that E and U values are loaded for non-active neighbours
 c
-               EU0(1,j) = ekcle(1,j)
-               EU0(2,j) = vxyzu(4,j)
+                  EU0(1,j) = ekcle(1,j)
+                  EU0(2,j) = vxyzu(4,j)
 c
 c--Note that CV and Kappa have already been done in ASS
 c
-               cv_effective = ekcle(3,j)/GET1OVERMU(rho(j),vxyzu(4,j))
+                  cv_effective =ekcle(3,j)/GET1OVERMU(rho(j),vxyzu(4,j))
 c
 c--Calculate other quantities
 c
-               dx = xyzmh(1,iparttree) - xyzmh(1,j)
-               dy = xyzmh(2,iparttree) - xyzmh(2,j)
-               dz = xyzmh(3,iparttree) - xyzmh(3,j)
-               rij2 = dx*dx + dy*dy + dz*dz + tiny
-               rij = SQRT(rij2)
-               rij1 = 1./rij
-               dr = rij
+                  dx = xyzmh(1,iparttree) - xyzmh(1,j)
+                  dy = xyzmh(2,iparttree) - xyzmh(2,j)
+                  dz = xyzmh(3,iparttree) - xyzmh(3,j)
+                  rij2 = dx*dx + dy*dy + dz*dz + tiny
+                  rij = SQRT(rij2)
+                  rij1 = 1./rij
+                  dr = rij
 
-               pmj = xyzmh(4,j)
-               rhoj = rho(j)
+                  pmj = xyzmh(4,j)
+                  rhoj = rho(j)
 
-               hj = xyzmh(5,j)
-               hj21 = 1./(hj*hj)
-               hj41 = hj21*hj21
+                  hj = xyzmh(5,j)
+                  hj21 = 1./(hj*hj)
+                  hj41 = hj21*hj21
 
-               v2i = rij2*hi21
-               vi = rij/hi
+                  v2i = rij2*hi21
+                  vi = rij/hi
 
-               v2j = rij2*hj21
-               vj = rij/hj
+                  v2j = rij2*hj21
+                  vj = rij/hj
 
-               IF (vi.LT.radkernel) THEN
-                  index = v2i*ddvtable
-                  dxx = v2i - index*dvtable
-                  index1 = index + 1
-                  IF (index1.GT.itable) index1 = itable
-                  dgrwdx = (grwij(index1) - grwij(index))*ddvtable
-                  grwtij = (grwij(index) + dgrwdx*dxx)*hi41
-                  dWi = grwtij * cnormk
-               ELSE
-                  dWi = 0.
-               ENDIF
+                  IF (vi.LT.radkernel) THEN
+                     index = v2i*ddvtable
+                     dxx = v2i - index*dvtable
+                     index1 = index + 1
+                     IF (index1.GT.itable) index1 = itable
+                     dgrwdx = (grwij(index1) - grwij(index))*ddvtable
+                     grwtij = (grwij(index) + dgrwdx*dxx)*hi41
+                     dWi = grwtij * cnormk
+                  ELSE
+                     dWi = 0.
+                  ENDIF
 
-               IF (vj.LT.radkernel) THEN
-                  index = v2j*ddvtable
-                  dxx = v2j - index*dvtable
-                  index1 = index + 1
-                  IF (index1.GT.itable) index1 = itable
-                  dgrwdx = (grwij(index1) - grwij(index))*ddvtable
-                  grwtij = (grwij(index) + dgrwdx*dxx)*hj41
-                  dWj = grwtij * cnormk
-               ELSE
-                  dWj = 0.
-               ENDIF
+                  IF (vj.LT.radkernel) THEN
+                     index = v2j*ddvtable
+                     dxx = v2j - index*dvtable
+                     index1 = index + 1
+                     IF (index1.GT.itable) index1 = itable
+                     dgrwdx = (grwij(index1) - grwij(index))*ddvtable
+                     grwtij = (grwij(index) + dgrwdx*dxx)*hj41
+                     dWj = grwtij * cnormk
+                  ELSE
+                     dWj = 0.
+                  ENDIF
 
-               dvx = vxyzu(1,i) - vxyzu(1,j)
-               dvy = vxyzu(2,i) - vxyzu(2,j)
-               dvz = vxyzu(3,i) - vxyzu(3,j)
-               IF (XSPH) THEN
-                  dvxs = vsmooth(1,i) - vsmooth(1,j)
-                  dvys = vsmooth(2,i) - vsmooth(2,j)
-                  dvzs = vsmooth(3,i) - vsmooth(3,j)
-               ELSE
-                  dvxs = dvx
-                  dvys = dvy
-                  dvzs = dvz
-               ENDIF
+                  dvx = vxyzu(1,i) - vxyzu(1,j)
+                  dvy = vxyzu(2,i) - vxyzu(2,j)
+                  dvz = vxyzu(3,i) - vxyzu(3,j)
+                  IF (XSPH) THEN
+                     dvxs = vsmooth(1,i) - vsmooth(1,j)
+                     dvys = vsmooth(2,i) - vsmooth(2,j)
+                     dvzs = vsmooth(3,i) - vsmooth(3,j)
+                  ELSE
+                     dvxs = dvx
+                     dvys = dvy
+                     dvzs = dvz
+                  ENDIF
 
-               rhomean = 0.5*(rhoi+rhoj)
+                  rhomean = 0.5*(rhoi+rhoj)
 
-               dvdotdr = dvx*dx + dvy*dy + dvz*dz
-               dv = dvdotdr/dr
+                  dvdotdr = dvx*dx + dvy*dy + dvz*dz
+                  dv = dvdotdr/dr
 
-               dvdotdrs = dvxs*dx + dvys*dy + dvzs*dz
-               dvs = dvdotdr/dr
+                  dvdotdrs = dvxs*dx + dvys*dy + dvzs*dz
+                  dvs = dvdotdr/dr
 
-               IF(dvdotdr.GT.0.0) THEN
-cc            IF(dvdotdrs.GT.0.0) THEN
-                  vmu = 0.0
-               ELSE
-                  vmu = dv
-cc               vmu = dvs
-               END IF
+                  IF(dvdotdr.GT.0.0) THEN
+cc                  IF(dvdotdrs.GT.0.0) THEN
+                     vmu = 0.0
+                  ELSE
+                     vmu = dv
+cc                     vmu = dvs
+                  END IF
 
-               dvdWimj = pmj*dvs*dWi*gradhs(1,i)
-               dvdWimi = pmi*dvs*dWi*gradhs(1,i)
-               dvdWjmj = pmj*dvs*dWj*gradhs(1,j)
+                  dvdWimj = pmj*dvs*dWi*gradhs(1,i)
+                  dvdWimi = pmi*dvs*dWi*gradhs(1,i)
+                  dvdWjmj = pmj*dvs*dWj*gradhs(1,j)
 
-               dWidrlightrhorhom = lightspeed*dWi/dr*pmj/(rhoi*rhoj)
-               dWiidrlightrhorhom = lightspeed*dWi/dr*pmi/(rhoi*rhoj)
-               dWjdrlightrhorhom = lightspeed*dWj/dr*pmj/(rhoi*rhoj)
+                  dWidrlightrhorhom = lightspeed*dWi/dr*pmj/(rhoi*rhoj)
+                  dWiidrlightrhorhom = lightspeed*dWi/dr*pmi/(rhoi*rhoj)
+                  dWjdrlightrhorhom = lightspeed*dWj/dr*pmj/(rhoi*rhoj)
 
-               pmjdWrijrhoi = pmj*dWi*rij1/rhoi
-               pmjdWrunix = pmjdWrijrhoi*dx
-               pmjdWruniy = pmjdWrijrhoi*dy
-               pmjdWruniz = pmjdWrijrhoi*dz
+                  pmjdWrijrhoi = pmj*dWi*rij1/rhoi
+                  pmjdWrunix = pmjdWrijrhoi*dx
+                  pmjdWruniy = pmjdWrijrhoi*dy
+                  pmjdWruniz = pmjdWrijrhoi*dz
 c
 c--Calculates density(i) times the gradient of velocity
 c
-               dvxdxi = dvxdxi - dvxs*pmjdWrunix
-               dvxdyi = dvxdyi - dvxs*pmjdWruniy
-               dvxdzi = dvxdzi - dvxs*pmjdWruniz
-               dvydxi = dvydxi - dvys*pmjdWrunix
-               dvydyi = dvydyi - dvys*pmjdWruniy
-               dvydzi = dvydzi - dvys*pmjdWruniz
-               dvzdxi = dvzdxi - dvzs*pmjdWrunix
-               dvzdyi = dvzdyi - dvzs*pmjdWruniy
-               dvzdzi = dvzdzi - dvzs*pmjdWruniz
+                  dvxdxi = dvxdxi - dvxs*pmjdWrunix
+                  dvxdyi = dvxdyi - dvxs*pmjdWruniy
+                  dvxdzi = dvxdzi - dvxs*pmjdWruniz
+                  dvydxi = dvydxi - dvys*pmjdWrunix
+                  dvydyi = dvydyi - dvys*pmjdWruniy
+                  dvydzi = dvydzi - dvys*pmjdWruniz
+                  dvzdxi = dvzdxi - dvzs*pmjdWrunix
+                  dvzdyi = dvzdyi - dvzs*pmjdWruniy
+                  dvzdzi = dvzdzi - dvzs*pmjdWruniz
 
-               varij(1,icompact) = rhoj
-               varij(2,icompact) = dWiidrlightrhorhom
-               varij(3,icompact) = dWidrlightrhorhom
-               varij(4,icompact) = dWjdrlightrhorhom
+                  varij(1,icompact) = rhoj
+                  varij(2,icompact) = dWiidrlightrhorhom
+                  varij(3,icompact) = dWidrlightrhorhom
+                  varij(4,icompact) = dWjdrlightrhorhom
 
-               varij2(1,icompact) = pmjdWrunix
-               varij2(2,icompact) = pmjdWruniy
-               varij2(3,icompact) = pmjdWruniz
+                  varij2(1,icompact) = pmjdWrunix
+                  varij2(2,icompact) = pmjdWruniy
+                  varij2(3,icompact) = pmjdWruniz
+               ENDIF   ! iphase(j).EQ.0
             END DO
 
             dvdx(1,i) = dvxdxi
@@ -1178,7 +1181,7 @@ c
 
             vari(1,n) = dti
             vari(2,n) = rhoi
-         ENDIF
+         ENDIF   ! iphase(i).EQ.0
       END DO
 C$OMP END DO
 C$OMP END PARALLEL
@@ -1489,18 +1492,20 @@ c            varinew(3,i) = 0.
                   icompact = ivar(2,n) + k
                   j = ijvar(icompact)
 
-                  rhoj = varij(1,icompact)
-                  pmjdWrunix = varij2(1,icompact)
-                  pmjdWruniy = varij2(2,icompact)
-                  pmjdWruniz = varij2(3,icompact)
+                  IF (iphase(j).EQ.0) THEN
+                     rhoj = varij(1,icompact)
+                     pmjdWrunix = varij2(1,icompact)
+                     pmjdWruniy = varij2(2,icompact)
+                     pmjdWruniz = varij2(3,icompact)
 c
 c--Calculates the gradient of E (where E=rho*e)
 c
-                  Eij1 = rhoi*EU0(1,i) - rhoj*EU0(1,j)
+                     Eij1 = rhoi*EU0(1,i) - rhoj*EU0(1,j)
 
-                  dedxi = dedxi - Eij1*pmjdWrunix
-                  dedyi = dedyi - Eij1*pmjdWruniy
-                  dedzi = dedzi - Eij1*pmjdWruniz
+                     dedxi = dedxi - Eij1*pmjdWrunix
+                     dedyi = dedyi - Eij1*pmjdWruniy
+                     dedzi = dedzi - Eij1*pmjdWruniz
+                  ENDIF
                END DO
 
                dedxyz(1,i) = dedxi
@@ -1938,7 +1943,7 @@ C$OMP ATOMIC
             varinew(2,i) = varinew(2,i) + diffusion_denominator
 
             ENDIF
-         END DO
+         END DO   !--iphase(i).EQ.0
 C$OMP END DO
 
 #ifdef MPICOPY

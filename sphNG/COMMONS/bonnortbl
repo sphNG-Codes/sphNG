@@ -4,4 +4,4 @@
         REAL poly_const, central_density, edge_density
         COMMON /bonnortbl/ bonnor_radmass(2,nbonnor), ibelast
         COMMON /polytropes/ poly_const
-	COMMON /bespheres/ central_density, edge_density
+        COMMON /bespheres/ central_density, edge_density

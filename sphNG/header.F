@@ -123,9 +123,10 @@ c
 c
 c--Mass fractions
 c
-      WRITE (iprint, 99003) nparttot, nactivetot, (fmas1tot + fmas2tot),
-     &        n1, fmas1tot, n2, fmas2tot
-99003 FORMAT (/, ' Total number of particles used : ', I10, /,
+      WRITE (iprint, 99003) idim, nparttot, nactivetot, 
+     &        (fmas1tot + fmas2tot), n1, fmas1tot, n2, fmas2tot
+99003 FORMAT (/, ' idim                           : ', I10, /, 
+     &        ' Total number of particles used : ', I10, /,
      &        ' Number of active particles     : ', I10, /,
      &        ' Total mass                     :', 1PE12.4, /,
      &        ' Distribution : object 1 :  number of particles : ', I10,
@@ -444,7 +445,7 @@ c
                WRITE (iprint,99219) ndivBsubcycles, overclean_fac
 99218          FORMAT(' Magnetic field has hyperbolic cleaning ON')
 99219          FORMAT(' Cleaning done using ',I2,
-     &              ' subcycles and overcleaning factor ',1F6.3)
+     &              ' subcycles and overcleaning factor ',1F6.3,//)
             ENDIF
 
             IF (ABS(iresist).EQ.1) THEN

@@ -15,6 +15,11 @@ c************************************************************
 #ifdef MPI
       INCLUDE 'COMMONS/mpi'
 #endif
+
+      INCLUDE 'COMMONS/accstat'
+c Note: set iaccnoisy in COMMONS/accstat to TRUE for excessive
+c       debug outputs.
+
 c
 c--Turn tests for sink particle creation on or off
 c
@@ -402,10 +407,14 @@ c
             tterm = pmassi*ui*rhoi**gama1/gama1
          ENDIF
 
-         write (iprint,*) 'getneigh initialisation ',inumbertotal
+         IF (iaccnoisy) THEN
+           write (iprint,*) 'getneigh initialisation ',inumbertotal
+         ENDIF
          nlist = inumbertotal
          CALL getneigh(irhonex,npart,hi,xyzmh,idim,nlist,iptneigh,nearl)
-         write (iprint,*) 'getneigh ',iorig(irhonex),npart,hi,nlist
+         IF (iaccnoisy) THEN
+           write (iprint,*) 'getneigh ',iorig(irhonex),npart,hi,nlist
+         ENDIF
 
          nptlist(nptmass+1) = nlist
 
@@ -418,7 +427,7 @@ c
             dz = xyzmh(3,j) - zi
             pmassj = xyzmh(4,j)
             rij2 = dx*dx + dy*dy + dz*dz + tiny
-            WRITE (iprint,*) k,j,iremove(j),rij2
+            IF (iaccnoisy) WRITE (iprint,*) k,j,iremove(j),rij2
             IF (iremove(j).EQ.0 .AND. rij2.LT.hacc2) THEN
                nvalid = nvalid + 1
                hmean = 0.5*(hi + xyzmh(5,j))
@@ -504,13 +513,18 @@ c
 c
 c--Normalise acceleration divergence, divai
 c
-         WRITE(iprint,*) 'Ptmass nvalid, nlist ',nvalid, nlist,
+         IF (iaccnoisy) THEN
+           WRITE(iprint,*) 'Ptmass nvalid, nlist ',nvalid, nlist,
      &        iorig(irhonex),hi,rho(irhonex),iphase(irhonex),
      &        nneigh(irhonex)
+         ENDIF
          divai = cnormk*divai
          IF (divai.GE.0) THEN
-            WRITE(iprint,*)'Divai +ve => no pt mass creation yet ',
-     &           divai
+            IF (iaccnoisy) THEN
+              WRITE(iprint,*)'Divai +ve => no pt mass creation yet ',
+     &             divai
+            ENDIF
+            iaccf1 = iaccf1 + 1
             icreate = 0
             GOTO 100
          ENDIF
@@ -588,41 +602,53 @@ c
          alphatot = alphapt + betatotal
          total = tterm + tgrav + tkin
          IF(alphapt.GT.0.5 .AND. encal.NE.'r' .AND. isinktest) THEN
-            WRITE(iprint,99001)
-            WRITE(iprint,*)'Ptmass failed on alpha = ',alphapt
-            WRITE(iprint,99003)total,tterm,tgrav,tkin,xmjeans,
-     &           alphapt,betatotal,rho(irhonex),hi,
-     &           iorig(irhonex)
+            IF (iaccnoisy) THEN
+              WRITE(iprint,99001)
+              WRITE(iprint,*)'Ptmass failed on alpha = ',alphapt
+              WRITE(iprint,99003)total,tterm,tgrav,tkin,xmjeans,
+     &             alphapt,betatotal,rho(irhonex),hi,
+     &             iorig(irhonex)
+              CALL FLUSH (iprint)
+            ENDIF
+            iaccf2 = iaccf2 + 1
             icreate = 0
-            CALL FLUSH (iprint)
             GOTO 100
          ELSE IF (alphatot.GT.1.0 .AND. encal.NE.'r' .AND. 
      &           isinktest) THEN
-            WRITE(iprint,99001)
-            WRITE(iprint,*)'Ptmass failed on alpha + beta = ',
-     &                     alphapt,betatotal
-            WRITE(iprint,99003)total,tterm,tgrav,tkin,xmjeans,
-     &           alphapt,betatotal,rho(irhonex),hi,
-     &           iorig(irhonex)
+            IF (iaccnoisy) THEN
+              WRITE(iprint,99001)
+              WRITE(iprint,*)'Ptmass failed on alpha + beta = ',
+     &                       alphapt,betatotal
+              WRITE(iprint,99003)total,tterm,tgrav,tkin,xmjeans,
+     &             alphapt,betatotal,rho(irhonex),hi,
+     &             iorig(irhonex)
+              CALL FLUSH (iprint)
+            ENDIF
+            iaccf3 = iaccf3 + 1
             icreate = 0
-            CALL FLUSH (iprint)
             GOTO 100
          ELSE IF(total.GE.0 .AND. encal.NE.'r'  .AND. isinktest) THEN
-            WRITE(iprint,99001)
-            WRITE(iprint,*)'Ptmass failed on total energy (pos) = ', 
-     &           total
-            WRITE(iprint,99003)total,tterm,tgrav,tkin,xmjeans,
-     &           alphapt,betatotal,rho(irhonex),hi,
-     &           iorig(irhonex)
+            IF (iaccnoisy) THEN
+              WRITE(iprint,99001)
+              WRITE(iprint,*)'Ptmass failed on total energy (pos) = ', 
+     &             total
+              WRITE(iprint,99003)total,tterm,tgrav,tkin,xmjeans,
+     &             alphapt,betatotal,rho(irhonex),hi,
+     &             iorig(irhonex)
+              CALL FLUSH (iprint)
+            ENDIF
+            iaccf4 = iaccf4 + 1
             icreate = 0
-            CALL FLUSH (iprint)
             GOTO 100
          ELSE
-            WRITE(iprint,99002)
-            WRITE(iprint,99003)total,tterm,tgrav,tkin,xmjeans,
-     &           alphapt,betatotal,rho(irhonex),hi
-     &           ,iorig(irhonex)
-            CALL FLUSH (iprint)
+            IF (iaccnoisy) THEN
+              WRITE(iprint,99002)
+              WRITE(iprint,99003)total,tterm,tgrav,tkin,xmjeans,
+     &             alphapt,betatotal,rho(irhonex),hi
+     &             ,iorig(irhonex)
+              CALL FLUSH (iprint)
+            ENDIF
+            iaccsuc = iaccsuc + 1
 99001       FORMAT(' PROTOSTAR FORMATION UNSUCCESSFUL !!!')          
 99002       FORMAT(' PROTOSTAR FORMATION SUCCESSFUL !!!')          
 99003       FORMAT(' total energy                   :',1PE14.5,/,
@@ -714,7 +740,7 @@ c
                f1vxi = (pmassi*f1vxi + pmassj*f1vxyzu(1,j))/totalmass
                f1vyi = (pmassi*f1vyi + pmassj*f1vxyzu(2,j))/totalmass
                f1vzi = (pmassi*f1vzi + pmassj*f1vxyzu(3,j))/totalmass
-               WRITE(iprint,*)'add = ', jj, r2, pmassi
+               IF (iaccnoisy) WRITE(iprint,*)'add = ', jj, r2, pmassi
 c               print *,'Accel ',j,f1vxyzu(1,j),f1vxi
                pmassi = totalmass
             ENDIF
@@ -723,11 +749,13 @@ c               print *,'Accel ',j,f1vxyzu(1,j),f1vxi
 c         print *,'Create ',xyzmh(4,irhonex),vxyzu(1,irhonex),
 c     &        f1vxyzu(1,irhonex),pmassi,vxi,f1vxi
 
-         WRITE(iprint,77001) pmassi, realtime
-77001        FORMAT('PROTOSTAR CREATION, mass = ',1PE12.5,
-     &        ' time = ',1PE14.7)
-         WRITE(iprint,77002) hacc
-77002        FORMAT('   accretion radius = ',1PE12.5)
+         IF (iaccnoisy) THEN
+           WRITE(iprint,77001) pmassi, realtime
+77001      FORMAT('PROTOSTAR CREATION, mass = ',1PE12.5,
+     &            ' time = ',1PE14.7)
+           WRITE(iprint,77002) hacc
+77002      FORMAT('   accretion radius = ',1PE12.5)
+         ENDIF
 c
 c--Set spin arrays for ptmass and change the number of point masses
 c
@@ -1930,7 +1958,7 @@ c                        IF (r2.LT.(0.03)**2.0) THEN
 cC$OMP CRITICAL(mergesinks)
                            IF (imerge.EQ.0) THEN
                               imerge = 1
-
+                IF (iaccnoisy) THEN
                   WRITE(iprint,*) 'POINT MASSES MERGED, TIME=',realtime
                               WRITE(iprint,*) '   Radius**2 ',r2
                               WRITE(iprint,*) '   Point masses ',iii,
@@ -1948,7 +1976,8 @@ cC$OMP CRITICAL(mergesinks)
      &                             iunique(iorig(iptm2))
                               WRITE(*,*) '   Masses ',
      &                             xyzmh(4,iptm2),xyzmh(4,iptm1)
-
+                ENDIF
+                              iaccmg = iaccmg + 1
                               i1list = iii
                               i2list = jjj
                               IF (xyzmh(4,iptm2).GT.xyzmh(4,iptm1)) THEN
@@ -1969,11 +1998,12 @@ cC$OMP CRITICAL(mergesinks)
                               iscurrent(iptm2) = .FALSE.
                               imerged1 = iunique(iorig(listpm(i1list)))
                               imerged2 = iunique(iorig(listpm(i2list)))
-                  
-             WRITE (*,*) 'MERGE CHECK ',i1list,i2list,listpm(i1list),
+             IF (iaccnoisy) THEN
+               WRITE (*,*) 'MERGE CHECK ',i1list,i2list,listpm(i1list),
      &                             listpm(i2list),iorig(listpm(i1list)),
      &                             iorig(listpm(i2list)),
      &                             imerged1,imerged2
+             ENDIF
 
                               IF (i2list.LE.nptmass) THEN
                                  nlstacc = nlstacc + 1
@@ -1989,9 +2019,12 @@ cC$OMP CRITICAL(mergesinks)
                               numberacc(i1list) = numberacc(i1list) + 1
                               pmass1 = xyzmh(4,iptm1)
                               pmass2 = xyzmh(4,iptm2)
-                              WRITE(iprint,*) '   Point masses ',iii,
-     &                             jjj,iorig(iptm1),iorig(iptm2)
-                              WRITE(iprint,*) '   Mases ',pmass1,pmass2
+                              IF (iaccnoisy) THEN 
+                                WRITE(iprint,*) '   Point masses ',iii,
+     &                                  jjj,iorig(iptm1),iorig(iptm2)
+                                WRITE(iprint,*) '   Mases ',pmass1,
+     &                                  pmass2
+                              ENDIF
                               dvx = vxyzu(1,iptm1) - vxyzu(1,iptm2)
                               dvy = vxyzu(2,iptm1) - vxyzu(2,iptm2)
                               dvz = vxyzu(3,iptm1) - vxyzu(3,iptm2)

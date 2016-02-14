@@ -1,0 +1,10 @@
+      LOGICAL iaccnoisy
+      PARAMETER (iaccnoisy=.FALSE.)
+
+      INTEGER iaccf1, iaccf2, iaccf3, iaccf4
+      INTEGER iaccf5, iaccf6, iaccph1, iaccph2
+      INTEGER iaccsuc, iaccmg
+
+      COMMON /accstat/ iaccf1, iaccf2, iaccf3, iaccf4,
+     &                 iaccf5, iaccf6, iaccph1, iaccph2,
+     &                 iaccsuc, iaccmg 

@@ -51,6 +51,7 @@ c************************************************************
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/initpt'
       INCLUDE 'COMMONS/pxpy'
+      INCLUDE 'COMMONS/accstat'
 
 #ifdef MPI
       REAL*4 romax1tot, romax2tot, valphamin1tot, valphamax1tot,
@@ -726,6 +727,30 @@ c
                ENDIF
             ENDIF
          ENDIF
+c
+c--ptmass stats
+c
+         ido = iaccf1+iaccf2+iaccf3+iaccf4+iaccf5+iaccf6
+     &       +iaccph1+iaccph2+iaccsuc+iaccmg 
+         IF (ido .GT. 0) THEN
+           WRITE(iprint,98001)iaccsuc,iaccmg,iaccph1,iaccph2,
+     &           iaccf6,iaccf5,iaccf1,iaccf2,iaccf3,iaccf4
+         ENDIF
+         iaccsuc = 0
+         iaccmg  = 0
+         iaccph1 = 0
+         iaccph2 = 0
+         iaccf1  = 0
+         iaccf2  = 0
+         iaccf3  = 0
+         iaccf4  = 0
+         iaccf5  = 0
+         iaccf6  = 0
+98001 FORMAT(//, ' ptmass - created    : ', I8, ' merged  : ', I8, /,
+     &           ' passed - h          : ', I8, ' and dt  : ', I8, /,
+     &           ' failed - h          : ', I8, ' dt      : ', I8, /,
+     &           '          divai      : ', I8, ' alpha   : ', I8, /,
+     &           '          alpha+beta : ', I8, ' total e : ', I8, /)
 #ifdef MPI
       ENDIF
 #endif

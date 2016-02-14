@@ -33,6 +33,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/gtime'
       INCLUDE 'COMMONS/h2'
       INCLUDE 'COMMONS/abundances'
+      INCLUDE 'COMMONS/accstat'
 
       CHARACTER*7 where
 
@@ -141,6 +142,18 @@ c
 ccc      tkeep = 0.0
 
       itest = 0
+
+c Zero the accstat counters
+      iaccf1 = 0
+      iaccf2 = 0 
+      iaccf3 = 0
+      iaccf4 = 0
+      iaccf5 = 0 
+      iaccf6 = 0 
+      iaccph1 = 0 
+      iaccph2 = 0
+      iaccsuc = 0 
+      iaccmg = 0
 
       DO i = 1, 1000000
 c

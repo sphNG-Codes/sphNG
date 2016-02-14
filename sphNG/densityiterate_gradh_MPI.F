@@ -28,6 +28,8 @@ c************************************************************
       INCLUDE 'COMMONS/mpi'
 #endif
 
+      INCLUDE 'COMMONS/accstat'
+
       DIMENSION xyzmh(5,mmax2), vxyzu(4,idim2), dvxyzu(4,idim3)
       DIMENSION listp(idim2)
       DIMENSION ekcle(5,iradtrans2)
@@ -2767,9 +2769,11 @@ c      These things only need to be checked if there is a particle for
 c      which icreate=1 on any MPI process.
 c
          IF ((2.0*xyzmh(5,irhonex)).LT.hacc) THEN
-            WRITE(iprint,*)'Ptmass creation passed h ',xyzmh(5,irhonex)
-
-          nlist = 0
+            IF (iaccnoisy) THEN
+             WRITE(iprint,*)'Ptmass creation passed h ',xyzmh(5,irhonex)
+            ENDIF
+            iaccph1 = iaccph1 + 1 
+            nlist = 0
             CALL getneigh(irhonex,npart,xyzmh(5,irhonex),xyzmh,idim,
      &           nlist,iptneigh,nearl)
 
@@ -2783,13 +2787,22 @@ c--Set creation flag to true. Other tests done in accrete.f
 c
             IF (iokay.EQ.1) THEN
                icreate = 1 
-               WRITE(iprint,*) ' and all local particles on step'
+               IF (iaccnoisy) THEN 
+                 WRITE(iprint,*) ' and all local particles on step'
+               ENDIF
+               iaccph2 = iaccph2 + 1
             ELSE
-               WRITE(iprint,*) ' but not all local particles on step'
+               IF (iaccnoisy) THEN
+                 WRITE(iprint,*) ' but not all local particles on step'
+               ENDIF
+               iaccf5 = iaccf5 + 1
             ENDIF
          ELSE
-            WRITE(iprint,*) 'Ptmass creation failed on h ',
-     &           xyzmh(5,irhonex)
+            IF (iaccnoisy) THEN
+              WRITE(iprint,*) 'Ptmass creation failed on h ',
+     &             xyzmh(5,irhonex)
+            ENDIF
+            iaccf6 = iaccf6 + 1
          ENDIF
       ENDIF
 

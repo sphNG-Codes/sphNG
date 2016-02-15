@@ -373,38 +373,39 @@ c     &     MPI_COMM_WORLD,ierr)
             betamhdmax = betamhdmaxtot
             CALL MPI_REDUCE(betamhdav*npart,betamhdavtot,1,
      &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-            betamhdav = betamhdavtot/nparttot
+            IF (nparttot.NE.0) betamhdav = betamhdavtot/nparttot
             
             CALL MPI_REDUCE(divBmax,divBmaxtot,1,MPI_REAL8,
      &           MPI_MAX,0,MPI_COMM_WORLD,ierr)
             divBmax = divBmaxtot
             CALL MPI_REDUCE(divBav*npart,divBavtot,1,
      &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-            divBav = divBavtot/nparttot
+            IF (nparttot.NE.0) divBav = divBavtot/nparttot
             
             CALL MPI_REDUCE(curlBmax,curlBmaxtot,1,MPI_REAL8,
      &           MPI_MAX,0,MPI_COMM_WORLD,ierr)
             curlBmax = curlBmaxtot
             CALL MPI_REDUCE(curlBav*npart,curlBavtot,1,
      &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-            curlBav = curlBavtot/nparttot
+            IF (nparttot.NE.0) curlBav = curlBavtot/nparttot
             
             CALL MPI_REDUCE(div2curlBmax,div2curlBmaxtot,1,MPI_REAL8,
      &           MPI_MAX,0,MPI_COMM_WORLD,ierr)
             div2curlBmax = div2curlBmaxtot
             CALL MPI_REDUCE(div2curlBav*npart,div2curlBavtot,1,
      &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-            div2curlBav = div2curlBavtot/nparttot
+            IF (nparttot.NE.0) div2curlBav = div2curlBavtot/nparttot
 
             CALL MPI_REDUCE(omegamhdmax,omegamhdmaxtot,1,MPI_REAL8,
      &           MPI_MAX,0,MPI_COMM_WORLD,ierr)
             omegamhdmax = omegamhdmaxtot
             CALL MPI_REDUCE(omegamhdav*npart,omegamhdavtot,1,
      &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-            omegamhdav = omegamhdavtot/nparttot
+            IF (nparttot.NE.0) omegamhdav = omegamhdavtot/nparttot
+
             CALL MPI_REDUCE(fracdivBok*npart,fracdivBoktot,1,
      &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-            fracdivBok = fracdivBoktot/nparttot
+            IF (nparttot.NE.0) fracdivBok = fracdivBoktot/nparttot
             
             CALL MPI_REDUCE(valphaBmin,valphaBmintot,1,MPI_REAL4,
      &           MPI_MIN,0,MPI_COMM_WORLD,ierr)
@@ -421,7 +422,7 @@ c     &     MPI_COMM_WORLD,ierr)
             Bmax = Bmaxtot
             CALL MPI_REDUCE(Bmean*npart,Bmeantot,1,
      &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-            Bmean = Bmeantot/nparttot
+            IF (nparttot.NE.0) Bmean = Bmeantot/nparttot
             
             CALL MPI_REDUCE(etamin,etamintot,1,MPI_REAL8,
      &           MPI_MIN,0,MPI_COMM_WORLD,ierr)
@@ -431,7 +432,7 @@ c     &     MPI_COMM_WORLD,ierr)
             etamax = etamaxtot
             CALL MPI_REDUCE(etaav*npart,etaavtot,1,
      &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-            etaav = etaavtot/nparttot
+            IF (nparttot.NE.0) etaav = etaavtot/nparttot
             
             CALL MPI_REDUCE(etarealoverartmax,etarealoverartmaxtot,
      &           1,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
@@ -441,7 +442,7 @@ c     &     MPI_COMM_WORLD,ierr)
             etarealoverartmin = etarealoverartmintot
             CALL MPI_REDUCE(etarealoverartav*npart,etarealavtot,1,
      &           MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-            etarealoverartav = etarealavtot/nparttot
+            IF (nparttot.NE.0) etarealoverartav = etarealavtot/nparttot
 
             CALL MPI_REDUCE(fluxtot,fluxtot_tot,1,MPI_REAL8,MPI_SUM,
      &           0,MPI_COMM_WORLD,ierr)

@@ -1,10 +1,8 @@
       SUBROUTINE gptfromgas(ipart, npart, ntot, xyzmh, fxyzu)
 c************************************************************
 c                                                           *
-c  Subroutine by IAB, MRB 1994.  Evaluates forces on point  *
-c     mass due to all other particles.                      *
-c     Returns list of nearest neighbours to point mass !    *
-c     THIS ROUTINE VECTORIZABLE. (?)                        *
+c  Subroutine by IAB, MRB 1994.  Evaluates only forces on   *
+c     sink particles from gas particles.                    *
 c                                                           *
 c************************************************************
 

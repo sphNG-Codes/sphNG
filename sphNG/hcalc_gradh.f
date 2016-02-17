@@ -162,13 +162,14 @@ c
      &            ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz)
 
 c
-c--Copy dumekcle values back into ekcle
+c--Copy dumekcle values back into ekcle and dumvxyzu(4) into vxyzu
 c
       IF (iradtrans.EQ.idim) THEN
          DO i = 1, ntot
             DO j = 1, 5
                ekcle(j,i) = dumekcle(j,i)
             END DO
+            vxyzu(4,i) = dumvxyzu(4,i)
          END DO
       ENDIF
 c

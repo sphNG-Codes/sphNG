@@ -1191,44 +1191,50 @@ c     other MPI process knows when it doesn't need to expect anything)
 c
                      IF (nneighsentany(j+1)) THEN
 
-                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
-     &                llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
-                CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
+                        CALL MPI_TYPE_INDEXED(nneighsentback(j+1),
+     &                       lblocklengths,llistsentback(1,j+1),
+     &                       i4REAL8,indexMPI4,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
 
                         CALL MPI_SEND(vxyzu,1,indexMPI4,j,210,
      &                       MPI_COMM_WORLD, ierr)
 
                         CALL MPI_TYPE_FREE(indexMPI4,ierr)
 
+                        IF (encal.EQ.'r') THEN
 
-                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
-     &                llistsentback(1,j+1),i5REAL8,indexekcle,ierr)
-                        CALL MPI_TYPE_COMMIT(indexekcle,ierr)
+                           CALL MPI_TYPE_INDEXED(nneighsentback(j+1),
+     &                          lblocklengths,llistsentback(1,j+1),
+     &                          i5REAL8,indexekcle,ierr)
+                           CALL MPI_TYPE_COMMIT(indexekcle,ierr)
 
-                        CALL MPI_SEND(ekcle,1,indexekcle,j,211,
-     &                       MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(ekcle,1,indexekcle,j,211,
+     &                          MPI_COMM_WORLD, ierr)
 
-                        CALL MPI_TYPE_FREE(indexekcle,ierr)
+                           CALL MPI_TYPE_FREE(indexekcle,ierr)
 #ifdef MPIDEBUGRT
-                        print *,iproc,' sent ekcle'
+                           print *,iproc,' sent ekcle'
 #endif
-                        IF (idustRT.GT.0) THEN
-                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
-     &                llistsentback(1,j+1),i2REAL8,indexDust,ierr)
-                        CALL MPI_TYPE_COMMIT(indexDust,ierr)
+                           IF (idustRT.GT.0) THEN
+                              CALL MPI_TYPE_INDEXED(nneighsentback(j+1),
+     &                             lblocklengths,llistsentback(1,j+1),
+     &                             i2REAL8,indexDust,ierr)
+                              CALL MPI_TYPE_COMMIT(indexDust,ierr)
 
-                        CALL MPI_SEND(dust_tk,1,indexDust,j,214,
-     &                       MPI_COMM_WORLD, ierr)
+                              CALL MPI_SEND(dust_tk,1,indexDust,j,214,
+     &                             MPI_COMM_WORLD, ierr)
 
-                        CALL MPI_TYPE_FREE(indexDust,ierr)
+                              CALL MPI_TYPE_FREE(indexDust,ierr)
 #ifdef MPIDEBUGRT
-                        print *,iproc,' sent dust_tk'
+                              print *,iproc,' sent dust_tk'
 #endif
+                           ENDIF
                         ENDIF
 
-                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
-     &                llistsentback(1,j+1),MPI_REAL4,indexMPI_R4,ierr)
-                CALL MPI_TYPE_COMMIT(indexMPI_R4,ierr)
+                        CALL MPI_TYPE_INDEXED(nneighsentback(j+1),
+     &                       lblocklengths,llistsentback(1,j+1),
+     &                       MPI_REAL4,indexMPI_R4,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI_R4,ierr)
 
                         CALL MPI_SEND(pr,1,indexMPI_R4,j,212,
      &                       MPI_COMM_WORLD, ierr)
@@ -1270,31 +1276,33 @@ c
 #ifdef MPIDEBUGRT
                print *,iproc,': got vxyzu from ',iprocrec,inumber
 #endif
-               CALL MPI_RECV(ekcle(1,istart), idim, MPI_REAL8,
-     &              i, 211, MPI_COMM_WORLD, istatus, ierr)
-               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
-               iprocrec = istatus(MPI_SOURCE)
-               IF (icheck.NE.inumber/5) THEN
-                  WRITE (*,*) iproc,': ERROR - icheck.NE.inumber/5'
-                  CALL quit(1)
-               ENDIF
-
-#ifdef MPIDEBUGRT
-               print *,iproc,': got ekcle from ',iprocrec,inumber
-#endif
-               IF (idustRT.GT.0) THEN
-                  CALL MPI_RECV(dust_tk(1,istart), idim, MPI_REAL8,
-     &                 i, 214, MPI_COMM_WORLD, istatus, ierr)
+               IF (encal.EQ.'r') THEN
+                  CALL MPI_RECV(ekcle(1,istart), idim, MPI_REAL8,
+     &                 i, 211, MPI_COMM_WORLD, istatus, ierr)
                   CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
                   iprocrec = istatus(MPI_SOURCE)
-                  IF (icheck.NE.inumber/2) THEN
-                     WRITE (*,*) iproc,': ERROR - icheck.NE.inumber/2'
-                     CALL quit
+                  IF (icheck.NE.inumber/5) THEN
+                     WRITE (*,*) iproc,': ERROR - icheck.NE.inumber/5'
+                     CALL quit(1)
                   ENDIF
 
 #ifdef MPIDEBUGRT
-                  print *,iproc,': got dust_tk from ',iprocrec,inumber
+                  print *,iproc,': got ekcle from ',iprocrec,inumber
 #endif
+                  IF (idustRT.GT.0) THEN
+                     CALL MPI_RECV(dust_tk(1,istart), idim, MPI_REAL8,
+     &                    i, 214, MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus, MPI_REAL8,inumber,ierr)
+                     iprocrec = istatus(MPI_SOURCE)
+                     IF (icheck.NE.inumber/2) THEN
+                       WRITE (*,*) iproc,': ERROR - icheck.NE.inumber/2'
+                       CALL quit
+                     ENDIF
+
+#ifdef MPIDEBUGRT
+                     print *,iproc,': got dust_tk from ',iprocrec,inumber
+#endif
+                  ENDIF
                ENDIF
 
                CALL MPI_RECV(pr(istart), idim, MPI_REAL4,

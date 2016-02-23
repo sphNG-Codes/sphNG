@@ -806,7 +806,8 @@ c                  Bxyz(3,i) = 10.0 + xyzmh(3,i)
 c               END DO
 
             END DO
-            IF (imhdevol.EQ.4) THEN
+            IF (imhdevol.EQ.4
+     &          .AND.varmhd.NE.'eulr'.AND.varmhd.NE.'vecp') THEN
                IF (nums4(6).LT.4) THEN
                   WRITE(*,*) 'ERROR: imhdevol.EQ.4 but nums4(6) < 4'
                   CALL quit(0)

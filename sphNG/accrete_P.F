@@ -749,13 +749,11 @@ c               print *,'Accel ',j,f1vxyzu(1,j),f1vxi
 c         print *,'Create ',xyzmh(4,irhonex),vxyzu(1,irhonex),
 c     &        f1vxyzu(1,irhonex),pmassi,vxi,f1vxi
 
-         IF (iaccnoisy) THEN
-           WRITE(iprint,77001) pmassi, realtime
-77001      FORMAT('PROTOSTAR CREATION, mass = ',1PE12.5,
-     &            ' time = ',1PE14.7)
-           WRITE(iprint,77002) hacc
-77002      FORMAT('   accretion radius = ',1PE12.5)
-         ENDIF
+         WRITE(iprint,77001) pmassi, realtime
+77001    FORMAT('PROTOSTAR CREATION, mass = ',1PE12.5,
+     &        ' time = ',1PE14.7)
+         WRITE(iprint,77002) hacc
+77002    FORMAT('   accretion radius = ',1PE12.5)
 c
 c--Set spin arrays for ptmass and change the number of point masses
 c
@@ -1958,7 +1956,6 @@ c                        IF (r2.LT.(0.03)**2.0) THEN
 cC$OMP CRITICAL(mergesinks)
                            IF (imerge.EQ.0) THEN
                               imerge = 1
-                IF (iaccnoisy) THEN
                   WRITE(iprint,*) 'POINT MASSES MERGED, TIME=',realtime
                               WRITE(iprint,*) '   Radius**2 ',r2
                               WRITE(iprint,*) '   Point masses ',iii,
@@ -1976,7 +1973,6 @@ cC$OMP CRITICAL(mergesinks)
      &                             iunique(iorig(iptm2))
                               WRITE(*,*) '   Masses ',
      &                             xyzmh(4,iptm2),xyzmh(4,iptm1)
-                ENDIF
                               iaccmg = iaccmg + 1
                               i1list = iii
                               i2list = jjj
@@ -1998,12 +1994,11 @@ cC$OMP CRITICAL(mergesinks)
                               iscurrent(iptm2) = .FALSE.
                               imerged1 = iunique(iorig(listpm(i1list)))
                               imerged2 = iunique(iorig(listpm(i2list)))
-             IF (iaccnoisy) THEN
+
                WRITE (*,*) 'MERGE CHECK ',i1list,i2list,listpm(i1list),
      &                             listpm(i2list),iorig(listpm(i1list)),
      &                             iorig(listpm(i2list)),
      &                             imerged1,imerged2
-             ENDIF
 
                               IF (i2list.LE.nptmass) THEN
                                  nlstacc = nlstacc + 1
@@ -2019,12 +2014,12 @@ cC$OMP CRITICAL(mergesinks)
                               numberacc(i1list) = numberacc(i1list) + 1
                               pmass1 = xyzmh(4,iptm1)
                               pmass2 = xyzmh(4,iptm2)
-                              IF (iaccnoisy) THEN 
-                                WRITE(iprint,*) '   Point masses ',iii,
-     &                                  jjj,iorig(iptm1),iorig(iptm2)
-                                WRITE(iprint,*) '   Mases ',pmass1,
-     &                                  pmass2
-                              ENDIF
+
+                              WRITE(iprint,*) '   Point masses ',iii,
+     &                             jjj,iorig(iptm1),iorig(iptm2)
+                              WRITE(iprint,*) '   Mases ',pmass1,
+     &                             pmass2
+
                               dvx = vxyzu(1,iptm1) - vxyzu(1,iptm2)
                               dvy = vxyzu(2,iptm1) - vxyzu(2,iptm2)
                               dvz = vxyzu(3,iptm1) - vxyzu(3,iptm2)

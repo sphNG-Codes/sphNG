@@ -36,15 +36,10 @@ c************************************************************
       DIMENSION Bevol(imhdevol,imhd3),Bxyz(3,imhd2),
      &     dBxyz(imhdevol,imhd2)
 
-c--Neides=INT(4./3.*pi*8.*hfact**3))
-      PARAMETER (hfact = 1.2)
-
       PARAMETER (htol = 1.e-3)
       PARAMETER (hstretch = 1.01)
       PARAMETER (maxiterations = 500)
       PARAMETER (maxitsnr = 30)
-c--this weight is equivalent to m/(rho*h^3) in the grad h version
-      PARAMETER (weight = 1./hfact**3)
 
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/physcon'
@@ -250,7 +245,7 @@ C$OMP END PARALLEL DO
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none) 
 C$OMP& shared(nlstdo,ldolist,isucceed,xyzmh,hi_old,it1,isteps,imaxstep)
 C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)
-C$OMP& shared(iphase,dBxyz,divcurlB,gradB,it0,itime)
+C$OMP& shared(iphase,dBxyz,divcurlB,gradB,it0,itime,hfact)
 C$OMP& shared(curlv,gradhs,sightcolumns,hi_2back)
 C$OMP& shared(planetesimaltimestep,planetesimalnorm,iplanetesimals)
 #ifdef MPI
@@ -1270,7 +1265,7 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstdo_tot,npart,ntot,listp,divv,curlv,gradhs)
 C$OMP& shared(xyzmh,vxyzu,pr,vsound,rho,ekcle,rhomin)
-C$OMP& shared(nneigh,selfnormkernel,distancemax)
+C$OMP& shared(nneigh,selfnormkernel,hfact,distancemax)
 C$OMP& shared(cnormk,radkernel,dvtable,ddvtable,wij,grwij)
 C$OMP& shared(listpm,iphase,dphidh,uradconst,icall,encal)
 C$OMP& shared(iprint,nptmass,iptmass,iorig,third)

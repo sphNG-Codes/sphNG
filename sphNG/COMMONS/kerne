@@ -1,5 +1,5 @@
       REAL cnormk, radkernel, part1kernel, part2kernel, selfnormkernel,
-     &     part1potenkernel, part2potenkernel, doublehumpnormk
+     &     part1potenkernel, part2potenkernel, doublehumpnormk, hfact
       COMMON /kerne / cnormk, radkernel, part1kernel, part2kernel,
      &  selfnormkernel, part1potenkernel, part2potenkernel,
-     &  doublehumpnormk
+     &  doublehumpnormk, hfact

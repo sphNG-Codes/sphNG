@@ -27,9 +27,14 @@ c--Allow for tracing flow
 c
       IF (itrace.EQ.'all') WRITE(iprint, 99001)
 99001 FORMAT (' entry subroutine ktable')
+c
+c--Factor for setting size of smoothing length: h = hfact*(m/rho)^(1/3)
+c     hfact = 1.49 gives approximately 100 neighbours
+c
+      hfact = 1.49
 
       WRITE (iprint, 99002)
-99002 FORMAT (/,' SPH Kernel : Wendland W2 ',/)
+99002 FORMAT (/,' SPH Kernel : Wendland W2 with hfact =',F5.2,/)
 c
 c--Maximum interaction length and step size
 c

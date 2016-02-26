@@ -31,9 +31,6 @@ c************************************************************
       DIMENSION dedxyz(3,iradtrans2)
       DIMENSION Bxyz(3,imhd2),dBxyz(imhdevol,imhd2)
       DIMENSION Bevolxyz(imhdevol,imhd3) ! needed for prediction only
-c--this weight is equivalent to m/(rho*h^3) in the grad h version
-      PARAMETER (hfact = 1.2)
-      PARAMETER (weight = 1./hfact**3)
 c
 c--Parameters for switching between different implementations of SPMHD.
 c     FALSE is normal for both iMorris and iPhantom_resistivity
@@ -935,7 +932,6 @@ c
 c--compute divB
 c
                   divBi = divBi - grpmi*projdB
-c                  divBi = divBi - weight*grkerntable*hi1*projdB
 c
 c--compute current
 c
@@ -954,13 +950,6 @@ c
                   gradBzxi = gradBzxi - grpmi*dBz*runix
                   gradBzyi = gradBzyi - grpmi*dBz*runiy
                   gradBzzi = gradBzzi - grpmi*dBz*runiz
-                  
-c                  curlBxi = curlBxi + weight*grkerntable*hi1*
-c     &                               (dBy*runiz - dBz*runiy)
-c                  curlByi = curlByi + weight*grkerntable*hi1*
-c     &                               (dBz*runix - dBx*runiz)
-c                  curlBzi = curlBzi + weight*grkerntable*hi1*
-c     &                               (dBx*runiy - dBy*runix)
                ENDIF
 
 c

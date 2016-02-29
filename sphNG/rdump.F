@@ -906,9 +906,14 @@ c
                WRITE(*,*) 'ERROR: no MHD variables in dump file'
                CALL quit(0)
             ENDIF
+            tagexp(1:3) = (/'Bx', 'By', 'Bz'/)
             DO j = 1, 3
-               IF (tagged) READ (idisk1, END=100) ! skip tags
+               IF (tagged) THEN 
+                 READ (idisk1, END=100) tagi
+                 CALL checktag(tagexp(j), tagi, ierr)
+               ENDIF
                READ (idisk1, END=100) Bxyz(j,icount+1:icount+nmhd)
+            END DO
 
 c
 c--Uncomment to modify input B field
@@ -920,7 +925,6 @@ c                  Bxyz(2,i) = 0.
 c                  Bxyz(3,i) = 10.0 + xyzmh(3,i)
 c               END DO
 
-            END DO
             IF (imhdevol.EQ.4
      &          .AND.varmhd.NE.'eulr'.AND.varmhd.NE.'vecp') THEN
                IF (nums4(6).LT.4) THEN
@@ -928,15 +932,17 @@ c               END DO
                   CALL quit(0)
                ELSE
                   IF (tagged) THEN 
-                    READ (idisk1, END=100)tagi ! skip tags (except psi)
+                    READ (idisk1, END=100) tagi
+                    CALL checktag('psi/c_h', tagi, ierr)
 c Dump files from before r1799 cannot be used.
-                    IF(TRIM(tagi).NE.'psi/c_h') THEN
-                      WRITE(*,*) 'WARNING: wrong psi variable - ',
-     &                           'need psi/c_h not ',tagi
+                    IF(ierr.NE.0) THEN
+                      WRITE(*,99981)
                       CALL quit(0)
                     ENDIF
                   ENDIF
-                  
+99981             FORMAT(' Dump files from before r1799, when psi was',
+     &                   ' changed to psi/c_h are incompatible.') 
+
                   READ (idisk1,END=100) Bevolxyz(4,icount+1:icount+nmhd)
                ENDIF
             ENDIF
@@ -948,8 +954,12 @@ c--read Euler potentials from dump if necessary
 c
             IF (varmhd.EQ.'eulr') THEN
                IF (nums4(6).GE.5) THEN
+                  tagexp(1:2)=(/'EulerAlpha','EulerBeta '/)
                   DO j = 1, 2
-                     IF (tagged) READ (idisk1, END=100) ! skip tags
+                     IF (tagged) THEN 
+                       READ (idisk1, END=100) tagi
+                       CALL checktag(tagexp(j), tagi, ierr)
+                     ENDIF
                      READ (idisk1, END=100) 
      &                    Bevolxyz(j,icount+1:icount+nmhd)
                   END DO
@@ -961,10 +971,15 @@ c
                   WRITE(*,*) '       from non-Euler potentials dump'
                   CALL quit(0)
                ENDIF
+
             ELSEIF (varmhd.EQ.'vecp') THEN
                IF (nums4(6).GE.6) THEN
+                  tagexp(1:3) = (/'Ax', 'Ay', 'Az'/)
                   DO j = 1, 3
-                     IF (tagged) READ (idisk1, END=100) ! skip tags
+                     IF (tagged) THEN 
+                       READ (idisk1, END=100) tagi
+                       CALL checktag(tagexp(j), tagi, ierr)
+                     ENDIF
                      READ (idisk1, END=100) 
      &                    Bevolxyz(j,icount+1:icount+nmhd)
                   END DO
@@ -976,6 +991,7 @@ c
                   WRITE(*,*) '       from non-vec potentials dump'
                   CALL quit(0)
                ENDIF
+
             ELSEIF (varmhd.EQ.'Brho') THEN
 c
 c--convert from B to B/rho for evolution
@@ -1000,6 +1016,7 @@ c
                      Bevolxyz(j,i) = Bxyz(j,i)
                   ENDDO
                ENDDO
+
             ELSE
                WRITE (*,*) 'unknown MHD variable in rdump'
                DO j = imhdevol+1, MIN(nums4(6),6)
@@ -1011,14 +1028,19 @@ c
 c--real*4
             iread = 0
             IF (nums4(7).GT.4.AND.ifsvi.GE.6) THEN
+
 c--skip current/div B
                DO j = 1, 4
                   iread = iread + 1
                   IF (tagged) READ (idisk1, END=100) ! skip tags
                   READ (idisk1, END=100)
                END DO
+
 c--read artificial resistivity parameter
-               IF (tagged) READ (idisk1, END=100) ! skip tags
+               IF (tagged) THEN 
+                 READ (idisk1, END=100) tagi
+                 CALL checktag('alphaB', tagi, ierr)
+               ENDIF
                READ (idisk1, END=100) alphaMM(isizealphaMM, 
      &              icount+1:icount+nmhd)
                WRITE(*,*) 'alpha B read: first few = ',
@@ -1033,6 +1055,7 @@ c--read artificial resistivity parameter
                   alphaMM(2,i) = alphamin(2)
                ENDDO
             ENDIF
+
             DO i = iread + 1, nums4(7)
                IF (tagged) READ (idisk1, END=100) ! skip tags
                READ (idisk1, END=100)

@@ -1043,8 +1043,6 @@ c--read artificial resistivity parameter
                ENDIF
                READ (idisk1, END=100) alphaMM(isizealphaMM, 
      &              icount+1:icount+nmhd)
-               WRITE(*,*) 'alpha B read: first few = ',
-     &              alphaMM(isizealphaMM,icount+1:icount+min(10,nmhd))
                iread = iread + 1
             ELSE
                IF (ifsvi.GE.6) THEN

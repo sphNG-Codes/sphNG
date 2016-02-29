@@ -564,7 +564,8 @@ c         END DO
             END DO
          ENDIF
 c--Default real
-         tagexp(1:5) = (/'x','y','z','m','h'/)
+         tagexp(1:5) = (/tag('x'), tag('y'), tag('z'), 
+     &                   tag('m'), tag('h')/)
          DO j = 1, 5
             IF (tagged) THEN
                READ (idisk1, END=100) tagi
@@ -573,7 +574,7 @@ c--Default real
             READ (idisk1, END=100) xyzmh(j,icount+1:icount+nhydro)
          END DO
 
-         tagexp(1:4) = (/'vx','vy','vz','u '/)
+         tagexp(1:4) = (/tag('vx'), tag('vy'), tag('vz'), tag('u')/)
          DO j = 1, 4
             IF (tagged) THEN
               READ (idisk1, END=100) tagi
@@ -804,8 +805,8 @@ c--int*4
 c--int*8
 
 c--Default real
-            tagexp(1:5) = (/'Erad','opacity','Cv',
-     &                   'lambda','EddingtonFactor'/)
+            tagexp(1:5) = (/tag('Erad'),tag('opacity'),tag('Cv'),
+     &                   tag('lambda'),tag('EddingtonFactor')/)
             DO j = 1, 5
                IF (tagged) THEN 
                  READ (idisk1, END=100) tagi
@@ -816,7 +817,7 @@ c--Default real
             ireadekcle = 5
 
             IF (idustRT.GT.0 .AND. nums3(6).GE.7) THEN
-               tagexp(1:2) = (/'DustTemperature','DustOpacity'/)
+               tagexp(1:2)=(/tag('DustTemperature'),tag('DustOpacity')/)
                DO j = 1, 2
                   IF (tagged) THEN
                     READ (idisk1, END=100) tagi
@@ -835,7 +836,7 @@ c--Default real
 c--real*4
             IF (idustRT.GT.0 .AND. nums3(7).GE.
      &           nchemistry + nheatingISR + 2) THEN
-                  tagexp(1:3) = (/'Cplus','AtomicC','CO'/)
+                  tagexp(1:3) =(/tag('Cplus'),tag('AtomicC'),tag('CO')/)
                   DO j = 1, nchemistry
                      IF (tagged) THEN
                        READ (idisk1, END=100) tagi
@@ -845,8 +846,8 @@ c--real*4
      &                    chemistry(j,icount+1:icount+nradtrans)
                   END DO
 
-                  tagexp(1:4) = (/'HeatingISR','Gphotoelectric',
-     &                            'Extinction','H2SelfShielding'/)
+                  tagexp(1:4)=(/tag('HeatingISR'),tag('Gphotoelectric'),
+     &                        tag('Extinction'),tag('H2SelfShielding')/)
                   DO j = 1, nheatingISR
                      IF (tagged) THEN 
                        READ (idisk1, END=100) tagi
@@ -906,7 +907,7 @@ c
                WRITE(*,*) 'ERROR: no MHD variables in dump file'
                CALL quit(0)
             ENDIF
-            tagexp(1:3) = (/'Bx', 'By', 'Bz'/)
+            tagexp(1:3) = (/tag('Bx'), tag('By'), tag('Bz')/)
             DO j = 1, 3
                IF (tagged) THEN 
                  READ (idisk1, END=100) tagi
@@ -954,7 +955,7 @@ c--read Euler potentials from dump if necessary
 c
             IF (varmhd.EQ.'eulr') THEN
                IF (nums4(6).GE.5) THEN
-                  tagexp(1:2)=(/'EulerAlpha','EulerBeta '/)
+                  tagexp(1:2)=(/tag('EulerAlpha'),tag('EulerBeta')/)
                   DO j = 1, 2
                      IF (tagged) THEN 
                        READ (idisk1, END=100) tagi
@@ -974,7 +975,7 @@ c
 
             ELSEIF (varmhd.EQ.'vecp') THEN
                IF (nums4(6).GE.6) THEN
-                  tagexp(1:3) = (/'Ax', 'Ay', 'Az'/)
+                  tagexp(1:3) = (/tag('Ax'), tag('Ay'), tag('Az')/)
                   DO j = 1, 3
                      IF (tagged) THEN 
                        READ (idisk1, END=100) tagi
@@ -1233,6 +1234,19 @@ c     --------------------------------------------
 99980 FORMAT(' WARNING: read tag ',A16,' but expected ',A16)
 
       END SUBROUTINE checktag
+
+      ELEMENTAL FUNCTION tag(label)
+c*********************************************************************
+c  contruct tag, padded or truncated to 16-characters based on input
+c  string (pilfered from wdump)
+c*********************************************************************
+      IMPLICIT NONE
+      CHARACTER*16 tag
+      CHARACTER(LEN=*), INTENT(IN) :: label
+
+      tag = adjustl(label)
+
+      END FUNCTION tag
 
       END SUBROUTINE rdump
 

@@ -61,7 +61,7 @@ c      INCLUDE 'COMMONS/torq'
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
       INTEGER*8 number8
-      CHARACTER*16 tagsreal(128),tagi
+      CHARACTER*16 tagsreal(128),tagexp(10),tagi
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
       PARAMETER (idimhead = 30)
       DIMENSION rheader(idimhead)
@@ -491,13 +491,19 @@ c
          print *,iproc,': Reading data block'
 #endif
 c--Default int
-         IF (tagged) READ (idisk1, END=100) ! skip tags
+         IF (tagged) THEN
+           READ (idisk1, END=100) tagi
+           CALL checktag('isteps', tagi, ierr)
+         ENDIF
          READ (idisk1, END=100) (isteps(i), i=icount+1, icount+nhydro)
 #ifdef MPIDEBUG
          print *,iproc,': read isteps ',isteps(1)
 #endif
          IF (nums1(1).GE.2) THEN
-            IF (tagged) READ (idisk1, END=100) ! skip tags
+            IF (tagged) THEN 
+              READ (idisk1, END=100) tagi
+              CALL checktag('listinactive', tagi, ierr)
+            ENDIF
             READ (idisk1, END=100) nlistinactive,
      &           listinactive(icountinactive+1:icountinactive+
      &           nhydro-1)
@@ -516,9 +522,7 @@ c
 c--int*1
          IF (tagged) THEN
             READ (idisk1, END=100) tagi
-            IF (trim(tagi).NE.'iphase') THEN
-               print*,' WARNING: iphase does not match tag '//trim(tagi)
-            ENDIF
+            CALL checktag('iphase', tagi, ierr)
          ENDIF
          READ (idisk1, END=100) (iphase(i), i=icount+1, icount+nhydro)
          print *,'iphases ',iphase(1),iphase(nhydro),nums1(5),icount
@@ -538,7 +542,10 @@ c--int*4
 
 c--int*8
          IF (nums1(5).GE.1) THEN
-            IF (tagged) READ (idisk1, END=100) ! skip tags
+            IF (tagged) THEN
+              READ (idisk1, END=100) tagi
+              CALL checktag('iunique', tagi, ierr)
+            ENDIF
             READ (idisk1, END=100) (iunique(i), i=icount+1,
      &           icount+nhydro)
          ENDIF
@@ -557,16 +564,21 @@ c         END DO
             END DO
          ENDIF
 c--Default real
+         tagexp(1:5) = (/'x','y','z','m','h'/)
          DO j = 1, 5
             IF (tagged) THEN
                READ (idisk1, END=100) tagi
-c               print*,trim(tagi)
+               CALL checktag(tagexp(j), tagi, ierr)          
             ENDIF
             READ (idisk1, END=100) xyzmh(j,icount+1:icount+nhydro)
          END DO
 
+         tagexp(1:4) = (/'vx','vy','vz','u '/)
          DO j = 1, 4
-            IF (tagged) READ (idisk1, END=100) tagi
+            IF (tagged) THEN
+              READ (idisk1, END=100) tagi
+              CALL checktag(tagexp(j), tagi, ierr)
+            ENDIF
             READ (idisk1, END=100) vxyzu(j,icount+1:icount+nhydro)
          END DO
 
@@ -583,15 +595,34 @@ c               print*,trim(tagi)
                CALL quit(0)
             ENDIF
 
-            IF (tagged) READ (idisk1, END=100)
+            IF (tagged) THEN
+              READ (idisk1, END=100) tagi
+              CALL checktag('h2ratio', tagi, ierr)
+            ENDIF
             READ (idisk1, END=100) h2ratio(icount+1:icount+nhydro)
-            IF (tagged) READ (idisk1, END=100)
+
+            IF (tagged) THEN
+              READ (idisk1, END=100) tagi
+              CALL checktag('abHIq', tagi, ierr)
+            ENDIF
             READ (idisk1, END=100) abHIq(icount+1:icount+nhydro)
-            IF (tagged) READ (idisk1, END=100)
+
+            IF (tagged) THEN
+              READ (idisk1, END=100) tagi
+              CALL checktag('abhpq', tagi, ierr)
+            ENDIF
             READ (idisk1, END=100) abhpq(icount+1:icount+nhydro)
-            IF (tagged) READ (idisk1, END=100)
+
+            IF (tagged) THEN 
+              READ (idisk1, END=100) tagi
+              CALL checktag('abeq', tagi, ierr)
+            ENDIF
             READ (idisk1, END=100) abeq(icount+1:icount+nhydro)
-            IF (tagged) READ (idisk1, END=100)
+
+            IF (tagged) THEN 
+              READ (idisk1, END=100) tagi
+              CALL checktag('abco', tagi, ierr)
+            ENDIF
             READ (idisk1, END=100) abco(icount+1:icount+nhydro)
           ENDIF
 c--skip unnecessary reals
@@ -602,17 +633,26 @@ c--skip unnecessary reals
             END DO
          ENDIF
 c--real*4
-         IF (tagged) READ (idisk1, END=100) ! skip tags
+         IF (tagged) THEN 
+           READ (idisk1, END=100) tagi
+           CALL checktag('rho', tagi, ierr)
+         ENDIF
          READ (idisk1, END=100) rho(icount+1:icount+nhydro)
          iread = 1
          IF (nlmax.EQ.1) THEN
             IF (nums1(7).GE.2) THEN
-               IF (tagged) READ (idisk1, END=100) ! skip tags
+               IF (tagged) THEN
+                 READ (idisk1, END=100) tagi
+                 CALL checktag('gradh', tagi, ierr)
+               ENDIF
                READ (idisk1, END=100) gradhs(1,icount+1:icount+nhydro)
                iread = iread + 1
             ENDIF
             IF (nums1(7).GE.3) THEN
-               IF (tagged) READ (idisk1, END=100) ! skip tags
+               IF (tagged) THEN 
+                 READ (idisk1, END=100) tagi
+                 CALL checktag('gradsoft', tagi, ierr)
+               ENDIF
                READ (idisk1, END=100) gradhs(2,icount+1:icount+nhydro)
                iread = iread + 1
             ENDIF
@@ -621,7 +661,10 @@ c--real*4
             END DO
          ELSE
             iread = 2
-            IF (tagged) READ (idisk1, END=100) ! skip tags
+            IF (tagged) THEN 
+              READ (idisk1, END=100) tagi
+              CALL checktag('dgrav', tagi, ierr)
+            ENDIF
             READ (idisk1, END=100) dgrav(icount+1:icount+nhydro)
             IF (gt.EQ.0.0) THEN
                DO j = icount+1, icount+nhydro
@@ -631,7 +674,10 @@ c--real*4
          ENDIF
          IF (nums1(7).GT.iread) THEN
             iread = iread + 1
-            IF (tagged) READ (idisk1, END=100) ! skip tags
+            IF (tagged) THEN 
+              READ (idisk1, END=100) tagi
+              CALL checktag('alpha', tagi, ierr)
+            ENDIF
             READ (idisk1, END=100) alphaMM(1,icount+1:icount+nhydro)
             IF (gt.NE.0.0 .AND. ifsvi.GE.6) THEN
                DO i = icount+1, icount+nhydro
@@ -661,7 +707,10 @@ c
 c--Read array type 2 arrays
 c
 c--Default int
-         IF (tagged) READ (idisk1, END=100) ! skip tags
+         IF (tagged) THEN 
+           READ (idisk1, END=100) tagi
+           CALL checktag('listpm', tagi, ierr)
+         ENDIF
          READ (idisk1, END=100) listpm(icountsink+1:icountsink+nptmass)
 
 c--int*1
@@ -673,23 +722,58 @@ c--int*4
 c--int*8
 
 c--Default real
-         IF (tagged) READ (idisk1, END=100) ! skip tags
+         IF (tagged) THEN 
+           READ (idisk1, END=100) tagi
+           CALL checktag('spinx', tagi, ierr)
+         ENDIF
          READ (idisk1, END=100) spinx(icountsink+1:icountsink+nptmass)
-         IF (tagged) READ (idisk1, END=100) ! skip tags
+
+         IF (tagged) THEN 
+           READ (idisk1, END=100) tagi
+           CALL checktag('spiny', tagi, ierr)
+         ENDIF
          READ (idisk1, END=100) spiny(icountsink+1:icountsink+nptmass)
-         IF (tagged) READ (idisk1, END=100) ! skip tags
+
+         IF (tagged) THEN 
+           READ (idisk1, END=100) tagi
+           CALL checktag('spinz', tagi, ierr)
+         ENDIF
          READ (idisk1, END=100) spinz(icountsink+1:icountsink+nptmass)
-         IF (tagged) READ (idisk1, END=100) ! skip tags
+
+         IF (tagged) THEN
+           READ (idisk1, END=100) tagi
+           CALL checktag('angaddx', tagi, ierr)
+         ENDIF
          READ (idisk1, END=100) angaddx(icountsink+1:icountsink+nptmass)
-         IF (tagged) READ (idisk1, END=100) ! skip tags
+
+         IF (tagged) THEN 
+           READ (idisk1, END=100) tagi
+           CALL checktag('angaddy', tagi, ierr)
+         ENDIF
          READ (idisk1, END=100) angaddy(icountsink+1:icountsink+nptmass)
-         IF (tagged) READ (idisk1, END=100) ! skip tags
+
+         IF (tagged) THEN 
+           READ (idisk1, END=100) tagi
+           CALL checktag('angaddz', tagi, ierr)
+         ENDIF
          READ (idisk1, END=100) angaddz(icountsink+1:icountsink+nptmass)
-         IF (tagged) READ (idisk1, END=100) ! skip tags
+
+         IF (tagged) THEN 
+           READ (idisk1, END=100) tagi
+           CALL checktag('spinadx', tagi, ierr)
+         ENDIF
          READ (idisk1, END=100) spinadx(icountsink+1:icountsink+nptmass)
-         IF (tagged) READ (idisk1, END=100) ! skip tags
+
+         IF (tagged) THEN
+           READ (idisk1, END=100) tagi
+           CALL checktag('spinady', tagi, ierr)
+         ENDIF
          READ (idisk1, END=100) spinady(icountsink+1:icountsink+nptmass)
-         IF (tagged) READ (idisk1, END=100) ! skip tags
+
+         IF (tagged) THEN 
+           READ (idisk1, END=100) tagi
+           CALL checktag('spinadz', tagi, ierr)
+         ENDIF
          READ (idisk1, END=100) spinadz(icountsink+1:icountsink+nptmass)
 c--real*4
 
@@ -1039,6 +1123,9 @@ c
 99002 FORMAT (' exit subroutine rdump')
       RETURN
 
+c
+c--File truncated
+c
  100  CONTINUE
       WRITE(*,*) 'END OF FILE REACHED IN RDUMP'
       ichkl = 1
@@ -1077,6 +1164,23 @@ c
      &                            trim(adjustl(tag))//' in header'
 
       END SUBROUTINE extract
+
+c     --------------------------------------------
+c       Verify that tag matches expectation
+c     --------------------------------------------
+      SUBROUTINE checktag(tag,tagi,ierr)
+      CHARACTER(LEN=*),      INTENT(IN)  :: tag
+      CHARACTER(LEN=*),      INTENT(IN)  :: tagi
+      INTEGER,               INTENT(OUT) :: ierr
+
+      ierr = 0
+      IF (TRIM(tag).NE.TRIM(tagi)) THEN
+        ierr = 1
+        WRITE(*,99980)tagi,tag
+      ENDIF
+99980 FORMAT(' WARNING: read tag ',A16,' but expected ',A16)
+
+      END SUBROUTINE checktag
 
       END SUBROUTINE rdump
 

@@ -1043,16 +1043,6 @@ c
       WRITE(*,*) 'END OF FILE REACHED IN RDUMP'
       ichkl = 1
 
-#ifdef MPI
-      DO i = 1, 10
-         print *,iproc,' alphaMM ',alphaMM(1,i)
-      END DO
-#else
-      DO i = 1, 10
-         print *,' alphaMM ',alphaMM(1,i)
-      END DO
-#endif
-
       RETURN
       
       CONTAINS

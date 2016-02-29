@@ -959,6 +959,12 @@ c
                      IF (tagged) THEN 
                        READ (idisk1, END=100) tagi
                        CALL checktag(tagexp(j), tagi, ierr)
+                       IF (ierr.NE.0) THEN
+c Fatal error on tag mismatch here 
+                         WRITE(*,99982)
+                         WRITE(*,99983)
+                         CALL quit(0)
+                       ENDIF
                      ENDIF
                      READ (idisk1, END=100) 
      &                    Bevolxyz(j,icount+1:icount+nmhd)
@@ -967,10 +973,12 @@ c
          print *,iproc,': Read Euler Bevolxyz'
 #endif
                ELSE
-                  WRITE(*,*) 'ERROR: Cannot start Euler potentials run'
-                  WRITE(*,*) '       from non-Euler potentials dump'
+                  WRITE(*,99982)
+                  WRITE(*,99983)
                   CALL quit(0)
                ENDIF
+99982          FORMAT(' ERROR: Cannot start Euler potentials run')
+99983          FORMAT('        from non-Euler potentials dump')
 
             ELSEIF (varmhd.EQ.'vecp') THEN
                IF (nums4(6).GE.6) THEN
@@ -978,7 +986,13 @@ c
                   DO j = 1, 3
                      IF (tagged) THEN 
                        READ (idisk1, END=100) tagi
-                       CALL checktag(tagexp(j), tagi, ierr)
+                       CALL checktag(tagexp(j), tagi, ierr) 
+                       IF (ierr.NE.0) THEN
+c Fatal error on tag mismatch here
+                         WRITE(*,99984)
+                         WRITE(*,99985)
+                         CALL quit(0)
+                       ENDIF
                      ENDIF
                      READ (idisk1, END=100) 
      &                    Bevolxyz(j,icount+1:icount+nmhd)
@@ -987,10 +1001,12 @@ c
          print *,iproc,': Read vecp Bevolxyz'
 #endif
                ELSE
-                  WRITE(*,*) 'ERROR: Cannot start vec potentials run'
-                  WRITE(*,*) '       from non-vec potentials dump'
+                  WRITE(*,99984)
+                  WRITE(*,99985)
                   CALL quit(0)
                ENDIF
+99984          FORMAT(' ERROR: Cannot start vec potentials run')
+99985          FORMAT('        from non-vec potentials dump')
 
             ELSEIF (varmhd.EQ.'Brho') THEN
 c

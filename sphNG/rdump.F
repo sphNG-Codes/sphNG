@@ -804,19 +804,30 @@ c--int*4
 c--int*8
 
 c--Default real
+            tagexp(1:5) = (/'Erad','opacity','Cv',
+     &                   'lambda','EddingtonFactor'/)
             DO j = 1, 5
-               IF (tagged) READ (idisk1, END=100) ! skip tags
+               IF (tagged) THEN 
+                 READ (idisk1, END=100) tagi
+                 CALL checktag(tagexp(j), tagi, ierr)
+               ENDIF
                READ (idisk1, END=100) ekcle(j,icount+1:icount+nradtrans)
             END DO
             ireadekcle = 5
+
             IF (idustRT.GT.0 .AND. nums3(6).GE.7) THEN
+               tagexp(1:2) = (/'DustTemperature','DustOpacity'/)
                DO j = 1, 2
-                  IF (tagged) READ (idisk1, END=100) ! skip tags
+                  IF (tagged) THEN
+                    READ (idisk1, END=100) tagi
+                    CALL checktag(tagexp(j), tagi, ierr)
+                  ENDIF
                   READ (idisk1, END=100) 
      &                 dust_tk(j,icount+1:icount+nradtrans)
                END DO
                ireadekcle = ireadekcle + 2
             ENDIF
+
             DO j = 1, nums3(6) - ireadekcle
                IF (tagged) READ (idisk1, END=100) ! skip tags
                READ (idisk1, END=100)
@@ -824,22 +835,41 @@ c--Default real
 c--real*4
             IF (idustRT.GT.0 .AND. nums3(7).GE.
      &           nchemistry + nheatingISR + 2) THEN
+                  tagexp(1:3) = (/'Cplus','AtomicC','CO'/)
                   DO j = 1, nchemistry
-                     IF (tagged) READ (idisk1, END=100) ! skip tags
+                     IF (tagged) THEN
+                       READ (idisk1, END=100) tagi
+                       CALL checktag(tagexp(j), tagi, ierr)
+                     ENDIF
                      READ (idisk1, END=100)
      &                    chemistry(j,icount+1:icount+nradtrans)
                   END DO
+
+                  tagexp(1:4) = (/'HeatingISR','Gphotoelectric',
+     &                            'Extinction','H2SelfShielding'/)
                   DO j = 1, nheatingISR
-                     IF (tagged) READ (idisk1, END=100) ! skip tags
+                     IF (tagged) THEN 
+                       READ (idisk1, END=100) tagi
+                       CALL checktag(tagexp(j), tagi, ierr)
+                     ENDIF
                      READ (idisk1, END=100) 
      &                    heatingISR(j,icount+1:icount+nradtrans)
                   END DO
-                  IF (tagged) READ (idisk1, END=100) ! skip tags
+
+                  IF (tagged) THEN 
+                    READ (idisk1, END=100) tagi
+                    CALL checktag('H2Frac', tagi, ierr)
+                  ENDIF
                   READ (idisk1, END=100) 
      &                 h2frac(icount+1:icount+nradtrans)
-                  IF (tagged) READ (idisk1, END=100) ! skip tags
+
+                  IF (tagged) THEN 
+                    READ (idisk1, END=100) tagi
+                    CALL checktag('dH2dt', tagi, ierr)
+                  ENDIF
                   READ (idisk1, END=100) 
      &                 dh2dt(1,icount+1:icount+nradtrans)
+
                   DO j = 1, nums3(7) - nchemistry - nheatingISR - 2
                      READ (idisk1, END=100)
                   END DO
@@ -852,6 +882,7 @@ c--real*4
 c--real*8
 
          ENDIF
+
          IF (numberarray.GE.4 .AND. nmhd.EQ.nhydro .AND. 
      &        imhd.EQ.idim) THEN
 c

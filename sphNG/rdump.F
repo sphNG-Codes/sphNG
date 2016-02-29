@@ -787,7 +787,6 @@ c--real*8
          IF (numberarray.GE.3 .AND. nradtrans.EQ.nhydro 
      &        .AND. iradtrans.GE.nradtrans) THEN
 
-            print *,'reading RT ',(nums3(i),i=1,8)
 c
 c--Array length 3 arrays
 c      

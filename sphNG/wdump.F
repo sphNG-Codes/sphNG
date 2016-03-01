@@ -228,7 +228,7 @@ c--Default real
 c
 c--Full dump
 c
-      number = 30
+      number = 37
 
       pmassinitial = 0.
       IF (ifulldump.NE.0) THEN
@@ -282,7 +282,9 @@ c      print *,'stuff ',gt, dtmax, gamma, rhozero, RK2
      &  tag('pmassinitial'),tag('sdprof'),
      &  tag('rorbit_orig'),tag((/'min_rplan','max_rplan'/)),
      &  tag('planetesimalmass'),
-     &  tag('coremass_orig'),tag('coremass')
+     &  tag('coremass_orig'),tag('coremass'),
+     &  tag('hfact'),tag('xmin'),tag('xmax'),tag('ymin'),
+     &  tag('ymax'),tag('zmin'),tag('zmax')
 
       WRITE (idisk1, ERR=100) gt, dtmax, gamma, rhozero, RK2,
      &     escaptot, tkintot, tgravtot, ttermtot, 
@@ -290,7 +292,8 @@ c      print *,'stuff ',gt, dtmax, gamma, rhozero, RK2
      &     specangtot, ptmassintot, tmagtot, Bextx, Bexty, Bextz,
      &     hzero, uzero_n2, hmass, gapfac, pmassinitial, sdprof,
      &     rorbit_orig, min_rplan, max_rplan, planetesimalmass,
-     &     coremass_orig, coremass
+     &     coremass_orig, coremass, hfact, xmin, xmax, ymin, ymax,
+     &     zmin, zmax
 
 c--real*4
       number = 0

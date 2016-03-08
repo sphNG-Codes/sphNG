@@ -1206,6 +1206,7 @@ c
       ! extraction of single real*8 variables
       !------------------------------------------
       SUBROUTINE extract(tag,rval,rarr,tags,ntags,ierr)
+      IMPLICIT NONE
       CHARACTER(LEN=*),      INTENT(IN)  :: TAG
       REAL,                  INTENT(OUT) :: RVAL
       REAL,                  INTENT(IN)  :: RARR(:)
@@ -1237,6 +1238,7 @@ c     --------------------------------------------
 c       Verify that tag matches expectation
 c     --------------------------------------------
       SUBROUTINE checktag(tag,tagi,ierr)
+      IMPLICIT NONE
       CHARACTER(LEN=*),      INTENT(IN)  :: tag
       CHARACTER(LEN=*),      INTENT(IN)  :: tagi
       INTEGER,               INTENT(OUT) :: ierr

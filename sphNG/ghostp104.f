@@ -36,7 +36,7 @@ c************************************************************
       INCLUDE 'COMMONS/typef'
       INCLUDE 'COMMONS/rotat'
 
-      REAL*4 rhoreal4
+c      REAL*4 rhoreal4
 
       CHARACTER*7 where
 

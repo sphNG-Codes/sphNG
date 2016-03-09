@@ -668,6 +668,11 @@ c
                hav1 = 1./hav
                hav21 = hav1*hav1
                hav41 = hav21*hav21
+            ELSE
+               hav   = 0.
+               hav1  = 0.
+               hav21 = 0. 
+               hav41 = 0.
             ENDIF
 c
 c--Added for gas-dust drag
@@ -702,6 +707,7 @@ c
                vav = rij*hav1
             ELSE
                vav = 1.0E+10
+               v2av = vav*vav
             ENDIF
             rhoj = trho(j)
             rho1j = 1./rhoj

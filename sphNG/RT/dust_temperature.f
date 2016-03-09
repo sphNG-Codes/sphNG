@@ -223,7 +223,7 @@ c
       REAL dust_temp, rhoi, photoelectric,cosmic_ray
       REAL t_found,xNH2,value1,t_last,cooling,sqrt_t,gas_dust
       REAL func,dcooling_dT,derivative,cooling_line_rate
-      REAL dphotoelectric_dT,func_use,h2formi
+      REAL dphotoelectric_dT,func_use
       INTEGER i,ipart
 
       INCLUDE 'COMMONS/astrcon'
@@ -1024,7 +1024,7 @@ c
       INCLUDE 'COMMONS/physcon'
 
       INTEGER ipart
-      REAL gas_temp,dust_temp,xnH2
+      REAL xnH2
       REAL h2_destruction
 c
 c--The passed logical "icosmic_ray" allows the code to turn off the

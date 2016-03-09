@@ -70,7 +70,7 @@ c*************************************
 
       istack = 0
       mpar = m
-      rcut2 = rcut*rcut
+c      rcut2 = rcut*rcut
  100  node = isibdaupar(1,mpar)
       IF (node.NE.0) THEN
          istack = istack + 1

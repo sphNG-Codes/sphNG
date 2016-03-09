@@ -1,6 +1,7 @@
       SUBROUTINE QUARTIC_GS1T(u1term,u0term,uold,soln,moresweep,
      &     ipartin)
-      
+      IMPLICIT NONE     
+ 
       REAL tiny
       PARAMETER (tiny=1.0E-30)
 
@@ -8,23 +9,21 @@
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/physcon'
 
-      REAL  E,U,cv,dt,planck,rho,s5,s6,s7,y1,ua,ub1,uc1,ub2,uc2,kappa
-      INTEGER  sooty,im,pid,inpt,I,rtst
-      REAL  a,b,d,f,ue0,lp,p,q,r,s,t,a0,a1,a2,a3,a4,ub,uc,t1,t2,yy
-      REAL  z1,z2,z3,z4
-      COMPLEX  ca,cb,cc,cd,ce,cf
-      COMPLEX  p1,p2,p3,y2,y3,y,t0
-!      COMPLEX,DIMENSION(4)  roots
-!      COMPLEX,DIMENSION(5)  coeffs
-!      REAL,DIMENSION(4)  real_roots
-      CHARACTER*1  yn
-      COMPLEX  r3,t3,q3
-      REAL  tmp,ueo,uen,tb,banana,gamma,c1,c2,soln,tst1,tst2,tst
-      REAL  tr,tm,tsoln1,tsoln2,tmin,tmax,y1a,fac,divv,c4
-      REAL  tsoln3,tsoln4,c3,c5,tsoln
+c Dummy variables
+      REAL u1term,u0term,uold,soln
+      INTEGER ipartin
+      LOGICAL moresweep
+
+      INTEGER  sooty,rtst
+      REAL  E,U,cv,dt,planck,rho,y1,ub1,uc1,ub2,uc2,kappa
+      REAL  ue0,a0,a1,a2,a3,a4,ub,uc
+      REAL  z1,z2,z3,z4,c1,c2,c3,c4,c5
+      REAL  tsoln1,tsoln2,tsoln3,tsoln4,tmin,tmax,test1,test2,test3
       REAL  d1,d2,d3,d4,e0,e1,e2,e3,e4,d5,quantity1,biggest_term
-      REAL  f1,f2,f3,f4,f5,g0,g1,g2,g3,g4,laeg,la1,lg1,le1,vhgr,vlwr
-      LOGICAL  swapg,swape,NR,moresweep
+      REAL  f1,f2,f3,f4,f5,g0,g1,g2,g3,g4,laeg,la1,lg1,le1
+c Units are always REAL*8
+      REAL*8 uradconst,lightspeed
+      LOGICAL  swapg,swape,NR
       DIMENSION z1(2),z2(2),z3(2),z4(2)
 
                                 !QUARTIC4 - solver for trapezoidal T^4

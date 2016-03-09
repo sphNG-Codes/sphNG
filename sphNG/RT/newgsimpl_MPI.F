@@ -2812,12 +2812,6 @@ c
          CALL MPI_ALLREDUCE(maxerrU2,maxerrU2tot,1,MPI_REAL8,MPI_MAX,
      &        MPI_COMM_WORLD,ierr)
          maxerrU2 = maxerrU2tot
-
-         IF (moresweep.NE.moresweeptot .OR. maxerrE2.NE.maxerrE2tot
-     &        .OR. maxerrU2.NE.maxerrU2tot) THEN
-            WRITE (80+iproc,*) itime,maxerrE2,maxerrE2tot,
-     &           maxerrU2,maxerrU2tot,moresweep,moresweeptot
-         ENDIF
 #endif
 
 

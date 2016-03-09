@@ -591,7 +591,7 @@ c--Default real
             iwanted = iwanted + 5
  
             IF (nums1(6).LT.iwanted) THEN
-               WRITE (iprint,*) 'ERROR - nums1(6).LT.iwanted ',
+               WRITE (*,*) 'ERROR - nums1(6).LT.iwanted ',
      &              nums1(6),iwanted
                CALL quit(0)
             ENDIF

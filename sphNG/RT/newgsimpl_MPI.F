@@ -115,7 +115,12 @@ c      DIMENSION neighblock(iradtrans), addenergyparticle(iradtrans)
 c      DIMENSION fractionexposed(nmaxexposed)
 
       REAL*8 ptmasstime,dtstep,ptmassmodel,ptmassradius,ptmasstemp,
-     &     accrate,starradius,starluminosity,startime,starmass
+     &     accrate
+
+#ifdef RTBAR
+c Needed for LYON stellar evolution code only
+      REAL*8 starradius,starluminosity,startime,starmass
+#endif
 
       REAL maxerrE2,maxerrE2last,maxerrU2,maxerrU2last,maxerrU2old
 #ifdef MPIALL

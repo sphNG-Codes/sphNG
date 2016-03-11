@@ -223,7 +223,7 @@ ifeq ($(SYSTEM), gfortran)
        FC= mpif90
     endif
 # -I. is needed so files in RT/ can find the include files... (ifort seems to do this implicitly)
-    FFLAGS= -m64 -mcmodel=medium -O3 -I. -Wall -Wno-conversion -Wno-unused-dummy-argument -Wno-maybe-uninitialized -Wno-unused-label
+    FFLAGS= -m64 -mcmodel=medium -O3 -I. -Wall -Wno-conversion -Wno-unused-dummy-argument -Wno-maybe-uninitialized -Wno-unused-label -Warray-temporaries
     DBLFLAG= -fdefault-real-8 -fdefault-double-8
     OMPFLAG= -fopenmp
     DEBUGFLAG= -g # -fcheck=all

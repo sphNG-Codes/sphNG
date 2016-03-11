@@ -567,15 +567,14 @@ c--int*4
 c--int*8
 
 c--Default real
-         tagarr(1:5) = (/tag('Erad'),tag('opacity'),tag('Cv'),
-     &                   tag('lambda'),tag('EddingtonFactor')/)
+         tagarr(1:4) = tag((/'Erad   ','opacity','Cv     ','lambda '/))
+         tagarr(5)   = tag('EddingtonFactor')
          DO j = 1, 5
             WRITE (idisk1, ERR=100) tag(tagarr(j))
             WRITE (idisk1, ERR=100) (ekcle(j,isort(i)), i=1, nprint)
          END DO
          IF (idustRT.GT.0) THEN
-            tagarr(1:2) = (/tag('DustTemperature'),
-     &           tag('DustOpacity')/)
+            tagarr(1:2) = tag((/'DustTemperature','DustOpacity    '/))
             DO j = 1, 2
                WRITE (idisk1, ERR=100) tag(tagarr(j))
                WRITE (idisk1, ERR=100) (dust_tk(j,isort(i)),i=1,nprint)
@@ -583,15 +582,15 @@ c--Default real
          ENDIF
 c--real*4
          IF (idustRT.GT.0) THEN
-            tagarr(1:3) = (/tag('Cplus'),tag('AtomicC'),tag('CO')/)
+            tagarr(1:3) = tag((/'Cplus  ','AtomicC','CO     '/))
             DO j = 1, nchemistry
                WRITE (idisk1, ERR=100) tag(tagarr(j))
                WRITE (idisk1, ERR=100) (chemistry(j,isort(i)), i=1, 
      &              nprint)
             END DO
 
-            tagarr(1:4) = (/tag('HeatingISR'),tag('Gphotoelectric'),
-     &           tag('Extinction'),tag('H2SelfShielding')/)
+            tagarr(1:4) = tag((/'HeatingISR     ','Gphotoelectric ',
+     &           'Extinction     ','H2SelfShielding'/))
             DO j = 1, nheatingISR
                WRITE (idisk1, ERR=100) tag(tagarr(j))
                WRITE (idisk1, ERR=100) (heatingISR(j,isort(i)), i=1, 

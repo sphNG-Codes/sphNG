@@ -1,6 +1,5 @@
       SUBROUTINE divv_gradhsoft (dt,npart,ntot,xyzmh,vxyzu,
      &            nlst_in,nlst_end,listp,itime,ekcle,Bevol,Bxyz)
-      IMPLICIT NONE
 c************************************************************
 c                                                           *
 c  Subroutine to compute the velocity divergence, the curl, *
@@ -33,10 +32,7 @@ c************************************************************
 #ifdef MPI
       INCLUDE 'COMMONS/mpi'
 #endif
-      
-      INTEGER npart, ntot, nlst_in, nlst_end, listp, itime
-      REAL dt, xyzmh, vxyzu, ekcle, Bevol, Bxyz
-      
+
       DIMENSION xyzmh(5,mmax2), vxyzu(4,idim2)
       DIMENSION listp(idim2)
       DIMENSION ekcle(5,iradtrans2)
@@ -95,21 +91,8 @@ c     that are neighbours of active particles for updating their densities etc
       INCLUDE 'COMMONS/mpicopy'
 #endif
 
-      REAL rhomin
       COMMON /rhominval/ rhomin
 
-      INTEGER ipart,i,j,k,l,n,iptcur,nwarnroundoff
-      INTEGER numproc,iproc,nneighlocal
-c      LOGICAL iremap
-      REAL rhoi,dhdrhoi,radcrit2
-      REAL rxxi,rxyi,rxzi,ryyi,ryzi,rzzi
-      REAL dalphaxi,dalphayi,dalphazi,dbetaxi,dbetayi,dbetazi
-      REAL dgammaxi,dgammayi,dgammazi
-      REAL gradbetaxi,gradbetayi,gradbetazi,term
-      REAL gradgammaxi,gradgammayi,gradgammazi
-      REAL denom,ddenom,gradalphaxi,gradalphayi,gradalphazi
-      REAL gradmhd
-      
       DIMENSION gradmhd(15,imhd2)
 
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
@@ -806,12 +789,8 @@ c
 c
       SUBROUTINE divvcurlvgrad(ipart,npart,ntot,xyzmh,vxyzu,Bevol,
      &     numneighi,neighbourslist,gradmhd)
-      IMPLICIT NONE
 
       INCLUDE 'idim'
-
-      INTEGER ipart, npart, ntot, numneighi, neighbourslist
-      REAL xyzmh, vxyzu, Bevol, gradmhd
 
       DIMENSION xyzmh(5,mmax2), vxyzu(4,idim2), Bevol(imhdevol,imhd3),
      &     gradmhd(15,imhd2)
@@ -823,15 +802,6 @@ c
       INCLUDE 'COMMONS/gradhterms'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/phase'
-
-      INTEGER iparttree, index, index1, j, k
-      REAL xi, yi, zi, pmassi, dx, dy, dz, vxi, vyi, vzi
-      REAL dvx, dvy, dvz, procurlvx, procurlvy, procurlvz, projv
-      REAL dphi, dpotdh, wkern, wtij, grwtij, dwdx, dxx
-      REAL rij1, rij2, v2, grpmi, hi, hi1, hi21, hi31, hi41
-      REAL curlvxi, curlvyi, curlvzi, divvi, pmassj, dgrwdx, gradsofti
-      REAL alphai, betai, gammai, dalpha, dbeta, dgamma
-
 c
 c--Needed for MPI code
 c

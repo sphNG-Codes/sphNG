@@ -49,7 +49,7 @@ c************************************************************
       INCLUDE 'COMMONS/logun'
 
       CHARACTER*11 ifile, ofile
-      CHARACTER*1 igeom
+      CHARACTER*1 igeom, iok
       
 1000  FORMAT (A7)
 1001  FORMAT (A1)
@@ -82,6 +82,9 @@ c      OPEN (UNIT = 7, FILE = ofile, FORM = 'unformatted')
 
       PRINT *, 'Name of corresponding ASCII ifile ?'
       READ (iread, 1002) inname
+
+      PRINT *, 'Do you want to reset time to (almost) zero ?'
+      READ (iread, 1001) iok
 
       print *,iread,inname
 
@@ -197,7 +200,8 @@ c
             xyzmh(2,j) = yi
             xyzmh(3,j) = zi
             xyzmh(4,j) = dust_particle_mass
-            xyzmh(5,j) = xyzmh(5,i)*(ngas_inside/ndustpart)**(1./3.)
+            xyzmh(5,j) = xyzmh(5,i)*
+     &           (REAL(ngas_inside)/ndustpart)**(1./3.)
 
             vxyzu(1,j) = vxyzu(1,i)
             vxyzu(2,j) = vxyzu(2,i)
@@ -246,7 +250,7 @@ c
 c--Zero time (but not quite, so that the timesteps are still used when
 c     starting the code).
 c
-      IF (gt.NE.0.) gt = 1.0E-20
+      IF (gt.NE.0. .AND. iok.EQ.'y') gt = 1.0E-20
 
       CALL wrinsph
 

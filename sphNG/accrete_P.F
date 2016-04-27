@@ -22,6 +22,8 @@ c       debug outputs.
 
 c
 c--Turn tests for sink particle creation on or off
+c  N.B. These tests are disabled anyway in radiative transfer
+c       calculations, i.e. when encal = 'r'.
 c
       LOGICAL isinktest
       PARAMETER (isinktest = .TRUE.)

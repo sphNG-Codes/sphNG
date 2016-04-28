@@ -248,10 +248,12 @@ endif
 
 ifeq ($(SYSTEM), ifort)
     FC= ifort
-    FFLAGS= -O3 -mcmodel=medium -shared-intel -WB -Vaxlib -w90 -w95 -cm -warn uninitialized -warn unused -warn truncated_source 
+    FFLAGS= -O3 -xHost -ipo -mcmodel=medium -i-dynamic  \
+            -warn uninitialized -warn truncated_source \
+            -warn interfaces -nogen-interfaces 
     OMPFLAG= -openmp
     DBLFLAG= -r8
-    DEBUGFLAG= -check all -traceback -g -fpe0 -fpstkchk
+    DEBUGFLAG= -check all -traceback -g -fpe0 -fp-stack-check -heap-arrays
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -convert big_endian
     ENDIANFLAGLITTLE= -convert little_endian

@@ -16,6 +16,11 @@ c************************************************************
       INCLUDE 'COMMONS/mpiall'
 #endif
 
+#ifdef _OPENMP
+      INTEGER numthread
+      INTEGER OMP_GET_NUM_THREADS
+#endif
+
 c--Get time and date
 c
       CALL getdat(iday, imon, iyear)
@@ -24,8 +29,8 @@ c
 c--Write title page
 c
       WRITE (iprint, 99001)
-99001 FORMAT (
-     &        ' **********************************************', /, 1X,
+99001 FORMAT (1X,
+     &        '**********************************************', /, 1X,
      &        '*                                            *', /, 1X,
      &        '*            sphNG - 3 D - RT - MHD          *', /, 1X,
      &        '*              WITH POINT MASSES             *', /, 1X,
@@ -33,6 +38,9 @@ c
      &        '**********************************************')
       WRITE (iprint, 99002) svnversion
 99002 FORMAT (/, 1X, 'Current version : ', A20)
+
+      WRITE (iprint, 99010) __DATE__, __TIME__
+99010 FORMAT (1X, 'Built           : ', 2A12)
 
       IF (igrape.EQ.0) THEN
          WRITE (iprint,*) '                  RUNNING WITH BINARY TREE'
@@ -49,6 +57,19 @@ c
 #ifdef MPIALL
       WRITE (iprint, 99100) numproc
 99100 FORMAT (' Running with ',I5,' MPI processes')
+#endif
+#ifdef _OPENMP
+C$OMP PARALLEL
+C$OMP&DEFAULT (none)
+C$OMP&SHARED(iprint, numthread)
+C$OMP MASTER
+      numthread = OMP_GET_NUM_THREADS()
+      WRITE (iprint, 99200)
+      WRITE (iprint, 99201) numthread
+C$OMP END MASTER
+99200 FORMAT (' Compiled using openMP')
+99201 FORMAT (' Running with ',I5,' openMP threads')
+C$OMP END PARALLEL
 #endif
 
       WRITE (iprint, 99003)namerun, job, iday, imon, iyear, ih, im, is

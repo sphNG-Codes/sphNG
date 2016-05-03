@@ -939,7 +939,6 @@ c
          CALL calc_curlB(nlst_in,nlst_tot,ntot,npart,xyzmh,Bxyz,dumrho)
       ENDIF
 #endif
-c endif NONIDEAL
 c
 c--Compute implicit radiative transfer (or radial temperature profile)
 c     

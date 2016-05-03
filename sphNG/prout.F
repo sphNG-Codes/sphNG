@@ -5,8 +5,11 @@ c  This routine prints out all interesting quantities at    *
 c     the present time                                      *
 c                                                           *
 c************************************************************
-      INCLUDE 'idim'
 
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
+      INCLUDE 'idim'
 #ifdef MPI
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
@@ -52,6 +55,14 @@ c************************************************************
       INCLUDE 'COMMONS/initpt'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/accstat'
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/radtrans'
+      INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/densi'
+      INCLUDE 'COMMONS/nonideal'
+      INCLUDE 'COMMONS/numpa'
+      INCLUDE 'COMMONS/eosq'
+#endif
 
 #ifdef MPI
       REAL*4 romax1tot, romax2tot, valphamin1tot, valphamax1tot,
@@ -837,6 +848,15 @@ c
      &              1PE12.5)
          ENDIF
       ENDIF
+c
+c--Write non-ideal MHD details to file
+c
+#ifdef NONIDEAL
+      CALL inform_nimhd(gt,npart,xyzmh,vxyzu,ekcle,Bxyz,dble(rho)
+     &                 ,dble(vsound),iphase,Zg_on_ag,n_electronT
+     &                 ,dble(alphaMM),alphamin,gamma,ifsvi
+     &                 ,nimhdfile,encal)
+#endif
       GOTO 200
 c
 c--Handle errors during writing

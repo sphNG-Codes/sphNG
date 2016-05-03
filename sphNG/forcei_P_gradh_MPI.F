@@ -128,8 +128,6 @@ c
 #endif
 
 #ifdef NONIDEAL
-      REAL*4 dBohmi(3),dBohmj(3),dBhalli(3),dBhallj(3)
-      REAL*4 dBambii(3),dBambij(3)
       REAL*8 dBnonideal(3),jcb(3),jcbcb(3)
 #endif
       REAL*4 dBnonideali(3),dBnonidealj(3)
@@ -328,9 +326,8 @@ C$OMP& shared(itot)
 C$OMP& shared(dragenergy,dragqchange,px,py,pz)
 #endif
 #ifdef NONIDEAL
-C$OMP& shared(jcurrent)
-C$OMP& private(Bi,Bi1,Bj,Bj1,dBnonideal)
-C$OMP& private(dBohmi,dBohmj,dBhalli,dBhallj,dBambii,dBambij,jcb,jcbcb)
+C$OMP& shared(jcurrent,Zg_on_ag,n_electronT,gamma)
+C$OMP& private(Bi,Bi1,Bj,Bj1,dBnonideal,jcb,jcbcb,temperature,ierr)
 C$OMP& private(eta_ohmi,eta_halli,eta_ambii)
 C$OMP& private(eta_ohmj,eta_hallj,eta_ambij)
 #endif
@@ -344,7 +341,7 @@ C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(fxi,fyi,fzi,numneigh,hmin)
 C$OMP& private(poteni,dphiti,gradxi,gradyi,gradzi,artxi,artyi,artzi)
 C$OMP& private(gasdragxi,gasdragyi,gasdragzi,ig,f_drag_co,dvij)
-C$OMP& private(gamma,rsub,fgd)
+C$OMP& private(rsub,fgd)
 C$OMP& private(rho_g,f_drag_i,ptsi,ptsj,ptsnormi,ptsnormj)
 C$OMP& private(pdvi,dqi,rhoi,pro2i,pro2j,vsoundi,k,j,hj,dx,dy,dz)
 #ifdef DGRID
@@ -1112,14 +1109,22 @@ c     &                             (5.*runiz*projdB-3.*dBz)
 c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
                            Bi = SQRT(B2i)
                            Bi1 = 1.0/Bi
+                           temperature = nimhd_gastemp(encal
+     &                                  ,vxyzu(4,ipart),ekcle(3,ipart)
+     &                                  ,rhoi,gamma)
                            CALL nicil_get_eta(eta_ohmi,eta_halli
-     &                          ,eta_ambii,Bi,rhoi,dble(vsoundi))
+     &                         ,eta_ambii,Bi,rhoi,temperature
+     &                         ,Zg_on_ag(ipart),n_electronT(ipart),ierr)
+                           IF (ierr/=0) THEN
+                              CALL nicil_translate_error(ierr)
+                              CALL quit(1)
+                           ENDIF
                            CALL nimhd_get_jcbcb(jcbcb,jcb
      &                         ,dble(jcurrent(:,ipart)),Bxi,Byi,Bzi,Bi1)
-                           CALL nimhd_get_sphdBdt(dBnonideal
-     &                          ,eta_ohmi,eta_halli,eta_ambii
-     &                          ,dble(jcurrent(:,ipart)),jcb,jcbcb
-     &                          ,runix,runiy,runiz)
+                           CALL nimhd_get_dBdt(dBnonideal
+     &                         ,eta_ohmi,eta_halli,eta_ambii
+     &                         ,dble(jcurrent(:,ipart)),jcb,jcbcb
+     &                         ,runix,runiy,runiz)
                            dBnonideali = dBnonideali
      &                                 - dBnonideal
      &                                 * (pmassj*rho1i*rho1i)*grkerni
@@ -1726,14 +1731,22 @@ c     &                             (5.*runiz*projdB-3.*dBz)
 c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
                               Bj  = SQRT(B2j)
                               Bj1 = 1.0/Bj
+                              temperature = nimhd_gastemp(encal
+     &                                     ,vxyzu(4,j),ekcle(3,j),rhoj
+     &                                     ,gamma)
                               CALL nicil_get_eta(eta_ohmj,eta_hallj
-     &                             ,eta_ambij,Bj,rhoj,dble(vsound(j)))
+     &                            ,eta_ambij,Bj,rhoj,temperature
+     &                            ,Zg_on_ag(j),n_electronT(j),ierr)
+                              IF (ierr/=0) THEN
+                                 CALL nicil_translate_error(ierr)
+                                 CALL quit(1)
+                              ENDIF
                               CALL nimhd_get_jcbcb(jcbcb,jcb
-     &                             ,dble(jcurrent(:,j)),Bxj,Byj,Bzj,Bj1)
-                              CALL nimhd_get_sphdBdt(dBnonideal
-     &                             ,eta_ohmj,eta_hallj,eta_ambij
-     &                             ,dble(jcurrent(:,j)),jcb,jcbcb
-     &                             ,runix,runiy,runiz)
+     &                           ,dble(jcurrent(1:3,j)),Bxj,Byj,Bzj,Bj1)
+                              CALL nimhd_get_dBdt(dBnonideal
+     &                            ,eta_ohmj,eta_hallj,eta_ambij
+     &                            ,dble(jcurrent(:,j)),jcb,jcbcb
+     &                            ,runix,runiy,runiz)
                               dBnonideali = dBnonideali
      &                                    - dBnonideal
      &                                    * (pmassj*rho1j*rho1j)*grkernj

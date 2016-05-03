@@ -16,6 +16,9 @@ c     divv_gradhsoft.F                                      *
 c                                                           *
 c************************************************************
 
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
@@ -92,6 +95,9 @@ c     that are neighbours of active particles for updating their densities etc
 
       COMMON /rhominval/ rhomin
 
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nonideal'
+#endif
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
 #endif
@@ -1280,6 +1286,10 @@ C$OMP& shared(chemistry,icolumnnext,icolumnsteps)
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend,ijvartemp,listparentstemp)
 #endif
+#ifdef NONIDEAL
+C$OMP& shared(Zg_on_ag,n_electronT,gamma)
+C$OMP& private(temperature,ierr)
+#endif
 C$OMP& private(n,ipart,j,k,xi,yi,zi,vxi,vyi,vzi,pmassi,hi,hj,rhoi)
 C$OMP& private(divvi,curlvxi,curlvyi,curlvzi,gradhi,gradsofti)
 C$OMP& private(pmassj,hi_oldi,hi1,hi21,hi31,hi41,hneigh)
@@ -1624,6 +1634,21 @@ c
 c--Pressure and sound velocity from ideal gas law...
 c
                         CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
+#ifdef NONIDEAL
+c
+c--Calculate Zgrain & n_electron for non-ideal MHD
+c
+                        temperature = nimhd_gastemp(encal,vxyzu(4,ipart)
+     &                               ,ekcle(3,ipart),dble(rho(ipart))
+     &                               ,gamma)
+                        CALL nicil_get_ion_nZ(dble(rho(ipart))
+     &                       ,temperature
+     &                       ,Zg_on_ag(ipart),n_electronT(ipart),ierr)
+                        IF (ierr/=0) THEN
+                           CALL nicil_translate_error(ierr)
+                           CALL quit(1)
+                        ENDIF
+#endif
                      ENDIF
 c
 c--Set up compact list of neighbours within h_i and non-active neighbours

@@ -385,6 +385,7 @@ SRCTORUS= montecarloRT.F
 ifeq ($(nonideal), yes)
 SRCNONIDEAL= calc_curlB.F
 SRCNI = nicil.F90
+SRCNS = nicil_sup.F90
 endif
 
 # timestepping routine
@@ -413,7 +414,7 @@ RTBARFPPFLAGS=${RTFPPFLAGS} ${FPP_SEP}-DRTBAR
 
 # construct object files
 
-TOBJECTS =  $(SRCNI:.F90=.o) $(SOURCES:.f=.o) $(ZZFILE:.f=.o) $(SRCNONIDEAL:.F=.o)
+TOBJECTS =  $(SRCNI:.F90=.o) $(SRCNS:.F90=.o) $(SOURCES:.f=.o) $(ZZFILE:.f=.o) $(SRCNONIDEAL:.F=.o)
 TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
 TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
 TOBJGRADHLFRT = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCRT:.f=.o) $(ZEN_PIN)
@@ -433,7 +434,8 @@ OBJTORUS = $(TOBJTORUS:.F=.o)
 ifeq ($(nonideal), yes)
 .SUFFIXES: .F90 
 %.o : %.F90
-	$(FC) $(FFLAGS) -c -o $(SRCNI:.F90=.o) $<
+	$(FC) $(FFLAGS) -c -o $(SRCNI:.F90=.o) $(SRCNI)
+	$(FC) $(FFLAGS) -c -o $(SRCNS:.F90=.o) $(SRCNS)
 endif
 
 # default action for "make"

@@ -1,2 +1,6 @@
-      REAL*4 jcurrent
-      COMMON / nonidealA / jcurrent(3,imhd2)
+      REAL*4       jcurrent
+      REAL*8       Zg_on_ag,n_electronT
+      CHARACTER*25 nimhdfile
+      COMMON / NIrealF / jcurrent(3,imhd2)
+      COMMON / NIrealE / Zg_on_ag(imhd2),n_electronT(imhd2)
+      COMMON / NIchar  / nimhdfile

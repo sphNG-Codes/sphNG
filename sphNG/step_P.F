@@ -1843,8 +1843,9 @@ C$OMP& shared(dh2dt,icolumnsteps,icolumnnext)
 C$OMP& shared(iproc)
 #endif
 #ifdef NONIDEAL
-C$OMP& shared(iohmic,ihall,iambipolar)
+C$OMP& shared(Zg_on_ag,n_electronT,gamma)
 C$OMP& private(dtohmi,dthalli,dtambii,eta_ohmi,eta_halli,eta_ambii)
+C$OMP& private(temperature,ierr)
 #endif
 #ifdef DGRID
 C$OMP& shared(dragenergy)
@@ -2471,10 +2472,15 @@ c
                   Bzi = Bzi + BEXTERNAL(xi,yi,zi,3)
                ENDIF
                B2i = (Bxi*Bxi +  Byi*Byi + Bzi*Bzi)
-               call nicil_get_eta(eta_ohmi,eta_halli,eta_ambii,SQRT(B2i)
-     &              ,dble(rho(i)),dble(vsound(i)))
+               call nicil_get_eta(eta_ohmi,eta_halli,eta_ambii
+     &             ,SQRT(B2i),dble(rho(i)),temperature
+     &             ,Zg_on_ag(i),n_electronT(i),ierr)
+               if (ierr/=0) then
+                  call nicil_translate_error(ierr)
+                  call quit(1)
+               end if
                call nimhd_get_dt(dtohmi,dthalli,dtambii,xyzmh(5,i)
-     &              ,eta_ohmi,eta_halli,eta_ambii)
+     &             ,eta_ohmi,eta_halli,eta_ambii)
                dtohmi  = dtohmi / (dt*isteps(i)/imaxstep)
                dthalli = dthalli/ (dt*isteps(i)/imaxstep)
                dtambii = dtambii/ (dt*isteps(i)/imaxstep)

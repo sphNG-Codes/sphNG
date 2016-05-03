@@ -59,6 +59,11 @@ c************************************************************
       INCLUDE 'COMMONS/radtran3'
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/pxpy'
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nonideal'
+      INCLUDE 'COMMONS/vargam'
+      INCLUDE 'COMMONS/physcon'
+#endif
 
       CHARACTER*7 where
       CHARACTER*6 dummy
@@ -677,7 +682,14 @@ c
 c--Initialise non-ideal MHD
 c
 #ifdef NONIDEAL
-      CALL nicil_initial(utime,udist,umass,umagfd,iprint_in=iprint)
+      CALL nicil_initialise(utime,udist,umass,umagfd,ierr)
+      IF (ierr/=0) CALL quit(0)
+      CALL nimhd_init_gastemp(Rg,gamma,gam,gamdh,gamah,uergg
+     &                       ,rhocrit,rhocrit2,rhocrit3)
+      Zg_on_ag    = 0.0
+      n_electronT = 0.0
+      WRITE (nimhdfile,99994) namerun
+99994 FORMAT ('N', A20)
 #endif
 
       IF (itrace.EQ.'all') WRITE(iprint,250)

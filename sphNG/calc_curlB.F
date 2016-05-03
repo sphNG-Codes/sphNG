@@ -1,7 +1,7 @@
       SUBROUTINE calc_curlB(nlst_in,nlst_tot,ntot,npart,xyzmh,Bxyz,trho)
 c*****************************************************************
 c                                                                *
-c     Calculate J = curl B for use in ambipolar diffusion        *
+c     Calculate J = curl B for use in non-ideal MHD              *
 c                                                                *
 c*****************************************************************
 

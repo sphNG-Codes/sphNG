@@ -111,6 +111,9 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nonideal'
+#endif
 
       DIMENSION dedxyz(3,iradtrans2)
 #ifdef MPI
@@ -1166,7 +1169,9 @@ C$OMP END PARALLEL DO
 #ifdef MPI
 c
 c--Transfer new values of vxyzu, ekcle, pr, vsound
-c     to other MPI processes
+c     to other MPI processes.
+c     Also, for NONIDEAL MHD, needs to transfer updated values of
+c     jcurrent, Zg_on_ag, n_electronT
 c
       inumbertotallocal = 0
       inumberreturned = 0
@@ -1243,6 +1248,29 @@ c
 
                         CALL MPI_TYPE_FREE(indexMPI_R4,ierr)
 
+#ifdef NONIDEAL
+                        CALL MPI_TYPE_INDEXED(nneighsentback(j+1),
+     &                       lblocklengths,llistsentback(1,j+1),
+     &                       i3REAL8,indexMPI3,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI3,ierr)
+
+                        CALL MPI_SEND(jcurrent,1,indexMPI3,j,215,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_TYPE_FREE(indexMPI3,ierr)
+
+                        CALL MPI_TYPE_INDEXED(nneighsentback(j+1),
+     &                       lblocklengths,llistsentback(1,j+1),
+     &                       MPI_REAL8,indexMPIR,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPIR,ierr)
+
+                        CALL MPI_SEND(Zg_on_ag,1,indexMPIR,j,216,
+     &                       MPI_COMM_WORLD, ierr)
+                        CALL MPI_SEND(n_electronT,1,indexMPIR,j,217,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_TYPE_FREE(indexMPIR,ierr)
+#endif
                      ENDIF
                   ENDIF
                END DO
@@ -1321,6 +1349,35 @@ c
                   WRITE (*,*) iproc,': ERROR - icheck.NE.inumber B'
                   CALL quit(1)
                ENDIF
+
+#ifdef NONIDEAL
+               CALL MPI_RECV(jcurrent(1,istart), idim, MPI_REAL8,
+     &              i, 215, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               iprocrec = istatus(MPI_SOURCE)
+               IF (icheck.NE.inumber/3) THEN
+                  WRITE (*,*) iproc,': ERROR - icheck.NE.inumber/3'
+                  CALL quit(1)
+               ENDIF
+
+               CALL MPI_RECV(Zg_on_ag(istart), idim, MPI_REAL8,
+     &              i, 216, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               iprocrec = istatus(MPI_SOURCE)
+               IF (icheck.NE.inumber) THEN
+                  WRITE (*,*) iproc,': ERROR - icheck.NE.inumber Zg'
+                  CALL quit(1)
+               ENDIF
+
+               CALL MPI_RECV(n_electronT(istart), idim, MPI_REAL8,
+     &              i, 217, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               iprocrec = istatus(MPI_SOURCE)
+               IF (icheck.NE.inumber) THEN
+                  WRITE (*,*) iproc,': ERROR - icheck.NE.inumber Ne'
+                  CALL quit(1)
+               ENDIF
+#endif
 
                inumbertotallocal = inumbertotallocal + inumber
                IF (inumberindiv(inumberreturned).NE.inumber) THEN

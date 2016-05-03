@@ -433,12 +433,17 @@ c
             ELSE
                WRITE(iprint,99217)
             ENDIF
-99213       FORMAT(' Magnetic fields are ON, evolving B/rho',//)
-99214       FORMAT(' Magnetic fields are ON, evolving B',//)
-99215       FORMAT(' Magnetic fields are ON, using Euler potentials',//)
-99216       FORMAT(' Magnetic fields are ON, using vector potential',//)
+99213       FORMAT(' Magnetic fields are ON, evolving B/rho',/)
+99214       FORMAT(' Magnetic fields are ON, evolving B',/)
+99215       FORMAT(' Magnetic fields are ON, using Euler potentials',/)
+99216       FORMAT(' Magnetic fields are ON, using vector potential',/)
 99217       FORMAT(' WARNING: Magnetic fields are ON',
-     &             ', but unknown variable',//)
+     &             ', but unknown variable',/)
+
+#ifdef NONIDEAL
+            WRITE (iprint,99220)
+99220       FORMAT(' Non-ideal MHD is being used',/)
+#endif
 
             IF (imhdevol.EQ.4) THEN
                WRITE (iprint,99218)

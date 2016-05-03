@@ -1120,10 +1120,10 @@ c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
                               CALL quit(1)
                            ENDIF
                            CALL nimhd_get_jcbcb(jcbcb,jcb
-     &                         ,dble(jcurrent(:,ipart)),Bxi,Byi,Bzi,Bi1)
+     &                         ,jcurrent(:,ipart),Bxi,Byi,Bzi,Bi1)
                            CALL nimhd_get_dBdt(dBnonideal
      &                         ,eta_ohmi,eta_halli,eta_ambii
-     &                         ,dble(jcurrent(:,ipart)),jcb,jcbcb
+     &                         ,jcurrent(:,ipart),jcb,jcbcb
      &                         ,runix,runiy,runiz)
                            dBnonideali = dBnonideali
      &                                 - dBnonideal
@@ -1742,10 +1742,10 @@ c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
                                  CALL quit(1)
                               ENDIF
                               CALL nimhd_get_jcbcb(jcbcb,jcb
-     &                           ,dble(jcurrent(1:3,j)),Bxj,Byj,Bzj,Bj1)
+     &                           ,jcurrent(:,j),Bxj,Byj,Bzj,Bj1)
                               CALL nimhd_get_dBdt(dBnonideal
      &                            ,eta_ohmj,eta_hallj,eta_ambij
-     &                            ,dble(jcurrent(:,j)),jcb,jcbcb
+     &                            ,jcurrent(:,j),jcb,jcbcb
      &                            ,runix,runiy,runiz)
                               dBnonideali = dBnonideali
      &                                    - dBnonideal

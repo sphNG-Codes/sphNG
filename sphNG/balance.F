@@ -487,7 +487,11 @@ c     &                          MPI_COMM_WORLD, ierr)
                            CALL MPI_SEND(divcurlB,1,indexMPI54,j,160,
      &                          MPI_COMM_WORLD, ierr)
 #ifdef NONIDEAL
-                           CALL MPI_SEND(jcurrent,1,indexMPI34,j,172,
+                           CALL MPI_SEND(jcurrent,1,indexMPI3,j,172,
+     &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(Zg_on_ag,1,indexMPIR,j,173,
+     &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(n_electronT,1,indexMPIR,j,174,
      &                          MPI_COMM_WORLD, ierr)
 #endif
                         ENDIF
@@ -1001,11 +1005,27 @@ c                  ENDIF
                      CALL quit(1)
                   ENDIF
 #ifdef NONIDEAL
-                  CALL MPI_RECV(jcurrent(1,npartnew+1), idim, i3REAL4,
+                  CALL MPI_RECV(jcurrent(1,npartnew+1), idim, i3REAL8,
      &                 iprocrec, 172, MPI_COMM_WORLD, istatus, ierr)
-                  CALL MPI_GET_COUNT(istatus, i3REAL4, inumber, ierr)
+                  CALL MPI_GET_COUNT(istatus, i3REAL8, inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
-                     WRITE (*,*) 'ERROR - balance igotnumber'
+                     WRITE (*,*) 'ERROR - balance igotnumber: jcurrent'
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_RECV(Zg_on_ag(npartnew+1), idim, MPI_REAL8,
+     &                 iprocrec, 173, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber: Zg_on_ag'
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_RECV(n_electronT(npartnew+1), idim,MPI_REAL8,
+     &                 iprocrec, 174, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber: n_elecT'
                      CALL quit(1)
                   ENDIF
 #endif
@@ -2266,6 +2286,8 @@ c         h2mol(ito) = h2mol(ifrom)
          DO i = 1, 3
             jcurrent(i,ito) = jcurrent(i,ifrom)
          END DO
+         Zg_on_ag(ito) = Zg_on_ag(ifrom)
+         n_electronT(ito) = n_electronT(ifrom)
 #endif
       ENDIF
       IF (iradtrans.EQ.idim) THEN

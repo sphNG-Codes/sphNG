@@ -337,7 +337,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F \
 	coriol.f cyldis.f cylmas.f cylpres.f cylvel.f discboundary.f \
 	divBclean_subcycle.F divBsubcycle.F \
 	dust_implicit.F dust_drag.F dust_norm_rhoG.F \
-	dragtable.F endrun.f energ.f energ_cooling.f eospg.f error.f \
+	dragtable.F endrun.f energ.f energ_cooling.f eospg.F error.f \
 	evol.f externf.f externBfield.f \
 	extract.f file.f gapfactor.f getneigh.f \
 	getcd.f getcv.f get1overmu.f getkappa.f \

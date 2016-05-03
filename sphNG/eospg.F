@@ -6,6 +6,9 @@ c     according to a perfect gas equation of state          *
 c                                                           *
 c************************************************************
 
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
       INCLUDE 'idim'
 
       REAL*4 rho,pr,vsound
@@ -23,6 +26,9 @@ c************************************************************
       INCLUDE 'COMMONS/physeos'
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/bodys'
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nonideal'
+#endif
 
       CHARACTER*7 where
 
@@ -154,6 +160,24 @@ c
 99500    FORMAT ('encal = ',A1)
          CALL error(where,1)
       ENDIF
+#ifdef NONIDEAL
+c
+c--Calculate Zgrain & n_electron for non-ideal MHD 
+c  (must be updated every time temperature or density is modified)
+c
+      temperature = nimhd_gastemp(encal,vxyzu(4,ipart),ekcle(3,ipart)
+     &                           ,dble(rho(ipart)),gamma)
+      CALL nicil_get_ion_nZ(dble(rho(ipart)),temperature
+     &                     ,Zg_on_ag(ipart),n_electronT(ipart),ierr)
+      IF (ierr/=0) THEN
+         CALL nicil_translate_error(ierr)
+         IF (temperature > 0.0) THEN
+            CALL quit(1)
+         ELSE
+            write(iprint,'(a)') 'Cause for failure: Temperature = 0'
+         ENDIF
+      ENDIF
+#endif
 
       RETURN
       END

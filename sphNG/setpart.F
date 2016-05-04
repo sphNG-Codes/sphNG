@@ -1853,13 +1853,16 @@ c For 5 km/s dispersion, use Gaussian with sigma=disp=5
       WRITE (*,*) 'Do you want fall off near edge?'
       READ (iread,99004) iok
 
-      OPEN (45,FILE=filevelx,FORM='unformatted')
+      OPEN (45,FILE=filevelx,FORM='unformatted',
+     &         STATUS='old',ACTION='read')
       READ (45) (((velx(i,j,k), i=1,nspace),j=1,nspace), k=1,nspace)
       CLOSE (45)
-      OPEN (45,FILE=filevely,FORM='unformatted')
+      OPEN (45,FILE=filevely,FORM='unformatted',
+     &         STATUS='old',ACTION='read')
       READ (45) (((vely(i,j,k), i=1,nspace),j=1,nspace), k=1,nspace)
       CLOSE (45)
-      OPEN (45,FILE=filevelz,FORM='unformatted')
+      OPEN (45,FILE=filevelz,FORM='unformatted',
+     &         STATUS='old',ACTION='read')
       READ (45) (((velz(i,j,k), i=1,nspace),j=1,nspace), k=1,nspace)
       CLOSE (45)
 

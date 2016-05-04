@@ -998,13 +998,13 @@ c
          IF (ibound/10.EQ.10 .AND. ibound.NE.100) THEN
             WRITE (*,99053)
 99053       FORMAT('Enter radiative transfer tolerance: ')
-            READ (*,*) tolerance
+            READ (*,*) tolerance_rt
          ELSE
             WRITE (*,99035)
 99035       FORMAT('Enter radiative transfer tolerance, boundary'//
      &          ' temperature, and scale height at which disk becomes'//
      &          ' optically thin:')
-            READ (*,*) tolerance, boundtemp, bounddens
+            READ (*,*) tolerance_rt, boundtemp, bounddens
          ENDIF
          
          WRITE (*, 89019)

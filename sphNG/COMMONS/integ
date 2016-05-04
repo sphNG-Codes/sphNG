@@ -1,4 +1,4 @@
-      REAL tol, e1, tolptm, tolh, tolerance
+      REAL tol, e1, tolptm, tolh, tolerance_rt
       INTEGER nrep, ifail
 
-      COMMON /integ / tol, e1, tolptm, tolh, tolerance, nrep, ifail
+      COMMON /integ / tol, e1, tolptm, tolh, tolerance_rt, nrep, ifail

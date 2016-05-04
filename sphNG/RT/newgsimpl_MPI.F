@@ -2831,7 +2831,7 @@ c         ENDIF
 c
 c--The actual test
 c
-         IF(maxerrE2.LE.tolerance.AND.maxerrU2.LE.tolerance) THEN
+         IF(maxerrE2.LE.tolerance_rt.AND.maxerrU2.LE.tolerance_rt) THEN
 c            PRINT *,"Complete with ",nosweep," iterations"
             GOTO 150
          ENDIF

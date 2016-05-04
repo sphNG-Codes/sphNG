@@ -1329,7 +1329,7 @@ c
 
             WRITE (*,99053)
 99053       FORMAT(' Enter radiative transfer integration tolerance: ')
-            READ (iread,*) tolerance
+            READ (iread,*) tolerance_rt
 
             WRITE (*,99035)
 99035       FORMAT(' Enter radiation boundary temperature (in K)',

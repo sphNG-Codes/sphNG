@@ -90,7 +90,7 @@ c            IF (moresweep) GOTO 100
 
             IF (ifrac.EQ.Nstep) GOTO 150
 c            IF (nit.EQ.1 .AND. MOD(ifrac,2*increment).EQ.0
-c     &         .AND.error.LT.0.5*tolerance/increment**2
+c     &         .AND.error.LT.0.5*tolerance_rt/increment**2
 c     &         .AND.increment.EQ.1) THEN
 c               increment = increment * 2
 c            ENDIF

@@ -129,7 +129,7 @@ c
             WRITE (iprint,*) 'ERROR - iradtrans.NE.idim'
             CALL quit(0)
          ENDIF
-         READ (iterm, *) tolerance, boundtemp, bounddens, opdenom, 
+         READ (iterm, *) tolerance_rt, boundtemp, bounddens, opdenom, 
      &        iopmodel, metallicity
          IF (idustRT.GT.0 .AND. boundtemp.NE.1.0) THEN
             WRITE (iprint,*) 'ERROR - boundtemp should be 1 K for ',

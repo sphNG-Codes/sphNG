@@ -358,7 +358,7 @@ c
      &           '               - point masses    : ', 1PE12.3, /,
      &           '               - smoothing length: ', 1PE12.3, /)
          IF (encal.EQ.'r') THEN
-            WRITE (iprint, 99113) tolerance
+            WRITE (iprint, 99113) tolerance_rt
 99113       FORMAT (' Radiative transfer tolerance    : ',1PE12.3, /)
             WRITE (iprint, 99613) opdenom
 99613       FORMAT (' Opacity Denominator             : ',1PE12.3)

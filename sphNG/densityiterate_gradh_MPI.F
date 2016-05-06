@@ -1276,7 +1276,7 @@ C$OMP& shared(dvxyzu,hi_old,isucceed,poten,isend,numproc,iproc)
 C$OMP& shared(ivar,ijvar,ncompact,icompact,iteration,dust_tk)
 C$OMP& shared(hminbisec,hmaxbisec,iupdated,nlistupdated,listparents)
 C$OMP& shared(heatingISR,sightcolumns,nsightlines,umass,udist,c,gmw)
-C$OMP& shared(chemistry,icolumnnext,icolumnsteps)
+C$OMP& shared(chemistry,icolumnnext,icolumnsteps,bounddens)
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend,ijvartemp,listparentstemp)
 #endif
@@ -1504,8 +1504,10 @@ c
                                  columnnumberdensity = 
      &                                sightcolumns(k,1,ipart)*
      &                                umass/udist**2 /(gmw*1.67E-24)
+     &                                + bounddens
                                  h2column = sightcolumns(k,2,ipart)*
      &                                umass/udist**2 /(gmw*1.67E-24)
+     &                                + bounddens
 
                                  ext = columnnumberdensity * 
      &                                Qv(c/0.0000550)

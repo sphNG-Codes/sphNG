@@ -280,9 +280,9 @@ c
 c--Based on Zucconi et al. (2001)
 c
          columnnumberdensity = columndensity(k,1)*
-     &        umass/udist**2 /(gmw*1.67E-24)
+     &        umass/udist**2 /(gmw*1.67E-24) + bounddens
          h2column = columndensity(k,2)*
-     &        umass/udist**2 /(gmw*1.67E-24)
+     &        umass/udist**2 /(gmw*1.67E-24) + bounddens
 
          ext = columnnumberdensity * Qv(c/0.0000550)
 c         ext = 0.

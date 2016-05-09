@@ -59,6 +59,7 @@ c************************************************************
       INCLUDE 'COMMONS/integ'
       INCLUDE 'COMMONS/abundances'
       INCLUDE 'COMMONS/bonnortbl'
+      INCLUDE 'COMMONS/interstellar'
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
@@ -1355,6 +1356,15 @@ c
             WRITE (*, 89021)
 89021       FORMAT (' Enter metallicity relative to solar (e.g. 1.0)')
             READ (iread,*) metallicity
+
+            IF (idustRT.EQ.1) THEN
+               WRITE (*,*) 'Setting initial conditions to be purely ',
+     &              'molecular'
+               iatomic = .FALSE.
+               DO i = 1, npart
+                  h2frac(i) = 0.5
+               END DO
+            ENDIF
 
          ELSE
             GOTO 616

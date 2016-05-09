@@ -232,7 +232,7 @@ c
                contribution = pmassn/(pi*sizenode**2)*fraction
                columndensity(k,1) = columndensity(k,1) + contribution
                columndensity(k,2) = columndensity(k,2) + 
-     &              contribution*h2frac(n)
+     &              contribution*2.0*h2frac(n)
 
  99            CONTINUE
             END DO

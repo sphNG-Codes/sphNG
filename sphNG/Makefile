@@ -84,7 +84,7 @@ ifeq ($(SYSTEM), zen)
     else
        FC= ifort
     endif
-    FFLAGS= -O3 -xSSSE3 -ipo -mcmodel=medium -i-dynamic  \
+    FFLAGS= -O3 -xSSSE3 -mcmodel=medium -i-dynamic  \
             -warn uninitialized -warn truncated_source \
             -warn interfaces -nogen-interfaces
 # -check
@@ -97,6 +97,7 @@ ifeq ($(SYSTEM), zen)
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -convert big_endian
     ENDIANFLAGLITTLE= -convert little_endian
+    IPOFLAG= -ipo
 #    ZEN_PIN = pin_to_cpu.o
 # or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
     ZZFILE= zzibm.f
@@ -109,7 +110,7 @@ ifeq ($(SYSTEM), complexity)
     else
        FC= ifort
     endif
-    FFLAGS= -O3 -axAVX -ipo -mcmodel=medium \
+    FFLAGS= -O3 -axAVX -mcmodel=medium \
             -warn uninitialized -warn truncated_source\
             -warn interfaces -nogen-interfaces
 # -check
@@ -122,6 +123,7 @@ ifeq ($(SYSTEM), complexity)
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -convert big_endian
     ENDIANFLAGLITTLE= -convert little_endian
+    IPOFLAG= -ipo
 #    ZEN_PIN = pin_to_cpu.o
 # or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
     ZZFILE= zzibm.f
@@ -248,7 +250,7 @@ endif
 
 ifeq ($(SYSTEM), ifort)
     FC= ifort
-    FFLAGS= -O3 -xHost -ipo -mcmodel=medium -i-dynamic  \
+    FFLAGS= -O3 -xHost -mcmodel=medium -i-dynamic  \
             -warn uninitialized -warn truncated_source \
             -warn interfaces -nogen-interfaces 
     OMPFLAG= -openmp
@@ -257,6 +259,7 @@ ifeq ($(SYSTEM), ifort)
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -convert big_endian
     ENDIANFLAGLITTLE= -convert little_endian
+    IPOFLAG= -ipo
 # or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
     ZZFILE= zzibm.f
 endif
@@ -277,6 +280,13 @@ endif
 
 ifeq ($(openmp), yes)
     FFLAGS += ${OMPFLAG}
+endif
+
+ifneq ($(ipo), no)
+# No ipo if debugging is on
+    ifneq ($(DEBUG), yes)
+        FFLAGS += ${IPOFLAG}
+    endif
 endif
 
 ifeq ($(mpi), yes)

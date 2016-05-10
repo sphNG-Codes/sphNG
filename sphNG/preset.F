@@ -321,6 +321,10 @@ c--Read in tables of quantities
 c
       print *, 'Reading tables in preset'
       CALL GET_ENVIRONMENT_VARIABLE('SPH_HOME',homedir)
+      IF (TRIM(homedir).EQ.'') THEN
+        WRITE(*,99901)
+      ENDIF
+99901 FORMAT(' WARNING: SPH_HOME not set.')
 c
 c--Load in tables of opacity
 c
@@ -343,7 +347,7 @@ c
 c            OPEN(UNIT=8,FILE='/home/mrbate/tables/opacitytbl')
             filetable = TRIM(homedir)//
      &           'tables/opacitytbl_Pollacketal1985'
-            OPEN(UNIT=8,FILE=filetable)
+            OPEN(UNIT=8,FILE=filetable,STATUS='old',ACTION='read')
             DO i=1, opmxtg
                READ(8,*) (optable(i,j), j=1, opmxrh)
             ENDDO
@@ -367,7 +371,7 @@ c
             ialexander_only = 34
             filetable = TRIM(homedir)//
      &           'tables/opacitytbl_Alexander1975_Model_KingIVa'
-            OPEN(UNIT=8,FILE=filetable)
+            OPEN(UNIT=8,FILE=filetable,STATUS='old',ACTION='read')
 c
 c--Skip 1st line
 c
@@ -443,7 +447,8 @@ c
             metaltable1 = MIN(metaltable1,opmxMet_ferguson-1)
 
             DO k = 1, opmxMet_ferguson
-            OPEN(UNIT=8,FILE=metalfilenames(k))
+            OPEN(UNIT=8,FILE=metalfilenames(k),
+     &           STATUS='old',ACTION='read')
 c
 c--Skip initial lines, the read in temperature scale
 c
@@ -485,7 +490,7 @@ c     using the "opdenom" parameter, and when using the Alexander and
 c     Pollack tables (i.e. opacity model iopmodel=0).
 c
          filetable = TRIM(homedir)//'tables/dusttbl2'
-         OPEN(UNIT=8,FILE=filetable)
+         OPEN(UNIT=8,FILE=filetable,STATUS='old',ACTION='read')
          DO i=1, duslen
             READ(8,*) (dusttable(i,j), j=1, duswid)
          ENDDO
@@ -503,7 +508,8 @@ c
 
 c         filetable = TRIM(homedir)//'tables/gasttbl'
          filetable = TRIM(homedir)//'tables/gasttbl_lowdens'
-         OPEN(UNIT=8,FILE=filetable,FORM='unformatted')
+         OPEN(UNIT=8,FILE=filetable,FORM='unformatted',
+     &        STATUS='old',ACTION='read')
          DO i=1, tgmxu
             READ(8) (tgtable(i,j), j=1, tgmxrh)
          ENDDO
@@ -511,7 +517,8 @@ c         filetable = TRIM(homedir)//'tables/gasttbl'
 
 c         filetable = TRIM(homedir)//'tables/utbl'
          filetable = TRIM(homedir)//'tables/utbl_lowdens'
-         OPEN(UNIT=8,FILE=filetable,FORM='unformatted')
+         OPEN(UNIT=8,FILE=filetable,FORM='unformatted',
+     &        STATUS='old',ACTION='read')
          DO i=1, umxrh
             READ(8) (utable(j,i), j=1, umxt)
          ENDDO
@@ -519,7 +526,8 @@ c         filetable = TRIM(homedir)//'tables/utbl'
  
 c         filetable = TRIM(homedir)//'tables/molmasstbl'
          filetable = TRIM(homedir)//'tables/molmasstbl_lowdens'
-         OPEN(UNIT=8,FILE=filetable,FORM='unformatted')
+         OPEN(UNIT=8,FILE=filetable,FORM='unformatted',
+     &        STATUS='old',ACTION='read')
          DO i=1, mumxu
             READ(8) (mutable(i,j), j=1, mumxrh)
          ENDDO
@@ -528,7 +536,7 @@ c         filetable = TRIM(homedir)//'tables/molmasstbl'
 
       IF (ibound.EQ.100) THEN
          filetable = TRIM(homedir)//'tables/gaptbl'
-         OPEN(UNIT=8,FILE=filetable)
+         OPEN(UNIT=8,FILE=filetable,STATUS='old',ACTION='read')
          DO i=1, gaplen
             READ(8,*) (gaptable(i,j), j=1, gapwid)
          ENDDO
@@ -618,7 +626,7 @@ c
 
       IF (iandrea.EQ.1) THEN
          filetable = TRIM(homedir)//'tables/planetesimals'
-         OPEN(UNIT=8,FILE=filetable)
+         OPEN(UNIT=8,FILE=filetable,STATUS='old',ACTION='read')
          READ (8,*) prmin, princ
          READ (8,*) pmmin, pminc
          pmmin = pmmin*5.9742E27/umass

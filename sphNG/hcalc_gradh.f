@@ -60,7 +60,7 @@ c      neimax = 120
 
       ikount = 0
 
-      WRITE(*,*) neimax, neimean, neimin, neisup, neiinf, neirange
+c      WRITE(*,*) neimax, neimean, neimin, neisup, neiinf, neirange
 
       nlst = npart
       DO i = 1, npart

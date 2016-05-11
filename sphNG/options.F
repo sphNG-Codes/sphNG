@@ -61,7 +61,7 @@ c
 c
 c--Open input file
 c
-      OPEN (iterm, FILE=inname)
+      OPEN (iterm, FILE=inname, STATUS='old', ACTION='read')
 c
 c--Determine options for evolution run
 c

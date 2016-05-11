@@ -64,7 +64,7 @@ c
 #ifdef MPICOPY
       IF (iproc.EQ.0) THEN
 #endif
-      OPEN (iterm, FILE=inname)
+      OPEN (iterm, FILE=inname, STATUS='replace', ACTION='write')
 c
 c--Determine options for evolution run
 c

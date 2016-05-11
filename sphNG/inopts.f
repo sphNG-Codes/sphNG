@@ -36,7 +36,7 @@ c
 c
 c--Open input file
 c
-      OPEN (iterm, FILE='inspho')
+      OPEN (iterm, FILE='inspho', STATUS='old', ACTION='read')
 c
 c--Determine options for insph
 c

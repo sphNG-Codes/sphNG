@@ -19,6 +19,8 @@ c
       INCLUDE 'COMMONS/diskbd'
 
       REAL mu
+
+      boundaryparticle = .FALSE.
 c
 c--If there is a second object, this object acts as the boundary
 c

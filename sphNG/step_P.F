@@ -2959,7 +2959,8 @@ c     gas the gas if all sinks have same timestep as gas minimum
 c
          DO i = 1, nptmass
             iptcur = listpm(i)
-            IF (istepmingas/2.LT.isteps(iptcur)) THEN
+            IF (istepmingas/2.LT.isteps(iptcur) .AND.
+     &           it0(iptcur).EQ.itime) THEN
                isteps(iptcur) = MAX(istepmin,istepmingas/2)
                it1(iptcur) = it0(iptcur) + isteps(iptcur)/2
                it2(iptcur) = it0(iptcur) + isteps(iptcur)

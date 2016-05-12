@@ -354,7 +354,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F \
 	gforsa_P.f gforsn_P.f gforspt_P.f \
 	ghostp.f ghostp1.f ghostp2.f ghostp3.F ghostp11.f ghostp100.f \
 	ghostp102.f ghostp104.f \
-	gptall.f gptfromgas.f gpti.f header.F hchem.F hillmass.f \
+	gptfromgas.f gpti.f header.F hchem.F hillmass.f \
 	homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
 	inopts.f insulate_TREE_P.F integs.F $(KERNEL) \
 	labrun.F lunit_double.f \

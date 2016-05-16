@@ -490,7 +490,7 @@ c
          IF (iptmass.NE.0.OR.nptmass.NE.0) THEN
             IF (iptintree.EQ.0) THEN
                WRITE (iprint,99146) 
-99146          FORMAT (' Point masses done in GPTALL')
+99146          FORMAT (' Point masses done in GPTI')
             ELSEIF (iptintree.EQ.1) THEN
                WRITE (iprint,99147) 
 99147          FORMAT (' Point masses done in GFORSPT/TREE')

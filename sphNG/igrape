@@ -35,7 +35,7 @@ c      PARAMETER (itiming=.FALSE.)
       PARAMETER (itiming=.TRUE.)
 c
 c--Specify how gravity and neighbours are done for sink particles
-c	0: Gravity and neighbours of sinks done in gptall.f
+c	0: Gravity and neighbours of sinks done in gpti.f
 c	1: Gravity between sinks done in gforspt.f as N^2
 c	      gravity between gas and sinks done in treef.f
 c	      neighbours of sinks computed in treef.f

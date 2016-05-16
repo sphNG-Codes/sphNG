@@ -637,7 +637,7 @@ updatedepends:
 #       command below greps for INCLUDE in all .f files, uses sed to exclude comment lines, cut to extract text between quotes
 #       then writes a dependency line for each .o file in Makefile format to the .depends file
 #	@echo updating .depends
-	@for x in *.[f,F]; do echo $${x/.[f,F]/.o}: `grep INCLUDE $$x | sed '/^[c,C,\!]/d' | cut -d\' -f 2` | sed /mpif.h/d >> .depends; done
+	@for x in *.[f,F]; do echo $${x/.[f,F]/.o}: `grep INCLUDE $$x | sed '/^[c,C,\!]/d' | cut -d\' -f 2` | sed 's/\<mpif.h\>//g' >> .depends; done
 	@diff --brief .dependsold .depends || ${MAKE} ${MAKECMDGOALS}
 	@rm -f .dependsold
 

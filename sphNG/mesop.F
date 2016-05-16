@@ -45,7 +45,8 @@ c
       xlog2 = 0.301029996
 
       iwait = 0
-      OPEN (idisk2, FILE='message', FORM='formatted')
+      OPEN (idisk2, FILE='message', FORM='formatted', 
+     &              STATUS='old', ACTION='read', ERR=250)
 c
 c--Read message file (one mes. per line , max=10)
 c
@@ -255,11 +256,13 @@ c
 #ifdef MPIALL
       ENDIF
 #endif
+
 c
 c--Automatic change of syncronisation time using local free-fall time
 c
-      OPEN (idisk2, FILE='synctcontrol', FORM='formatted')
-      READ (idisk2, 99000, END=500) string(i)
+ 250  OPEN (idisk2, FILE='synctcontrol', FORM='formatted', 
+     &              STATUS='old', ACTION='read', ERR=500)
+      READ (idisk2, 99000, END=550) string(i)
 
       IF (string(i)(1:4).EQ.'auto') THEN
          READ (string(i)(6:20),*) fffac
@@ -617,5 +620,5 @@ c
       ENDIF
 
  500  CLOSE(idisk2)
-      RETURN
+ 550  RETURN
       END

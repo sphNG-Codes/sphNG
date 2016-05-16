@@ -34,7 +34,6 @@ c************************************************************
 
       CHARACTER*20 string(10)
       CHARACTER*7 where
-      CHARACTER*5 dummy5
       CHARACTER*3 dummy3
 
       REAL*4 rhomaxsynclocal, rhomax, rhomaxlocal, rhomaxsyncold

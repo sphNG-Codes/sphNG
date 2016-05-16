@@ -135,7 +135,6 @@ c
       iptout = imaxstep/iptoutnum
       xlog2 = 0.30103
       ncrit = INT(nactive/10.0)
-      ilocal = 0
       naddedplanet = 0
       istepeta = 0
 c
@@ -4039,12 +4038,6 @@ c         print *,': END OF STEP ',nptmasstot
      &           istepeta,' times by ratio ',etafac/real(istepeta)
          ENDIF         
          RETURN
-      ENDIF
-
-      ilocal = ilocal + 1
-      IF (MOD(ilocal,50).EQ.0) THEN
-         ilocal = 0
-         CALL secmes
       ENDIF
 
 #ifdef MPIALL

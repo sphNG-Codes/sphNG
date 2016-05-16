@@ -112,7 +112,6 @@ c
       iptout = imaxstep/iptoutnum
       xlog2 = 0.30103
       ncrit = INT(nactive/10.0)
-      ilocal = 0
       naddedplanet = 0
       itreeupdate = .FALSE.
 #ifdef MPI
@@ -2315,12 +2314,6 @@ c         CALL MPI_BARRIER(MPI_COMM_WORLD,ierr)
 #endif
 
          RETURN
-      ENDIF
-
-      ilocal = ilocal + 1
-      IF (MOD(ilocal,50).EQ.0) THEN
-         ilocal = 0
-c         CALL secmes
       ENDIF
 
       GOTO  100

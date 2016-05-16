@@ -365,7 +365,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F \
 	preset.F prout.F polytrope.F \
 	ran1.f rdump.F rdump_wrapper.F read_dragtable.f reduce.f \
 	maketables/specificheat.f resistivity.f resistivity_implicit.F save.f \
-	scaling.f secmes.f \
+	scaling.f \
 	semimajoraxis.f setBfield_mhd.f setpart.F setup_torus.f \
 	smoothd_P.f sphericalposition.f \
 	sphdis.f sphmas.f sphpres.f sphvel.f spline.F thermeq.f \

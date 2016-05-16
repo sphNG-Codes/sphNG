@@ -22,7 +22,6 @@ c************************************************************
       INCLUDE 'COMMONS/accurpt'
 c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/debugit'
-      INCLUDE 'COMMONS/secret'
       INCLUDE 'COMMONS/accrem'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/current'
@@ -137,9 +136,6 @@ c
       iptout = 0
       iptdump = 0
       iresort = 0
-      isheld = .FALSE.
-      tkeep = 4.0
-ccc      tkeep = 0.0
 
       itest = 0
 

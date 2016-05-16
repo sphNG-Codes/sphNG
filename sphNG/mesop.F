@@ -26,7 +26,6 @@ c************************************************************
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/gtime'
-      INCLUDE 'COMMONS/secret'
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/densi'
       INCLUDE 'COMMONS/sync'
@@ -228,15 +227,6 @@ c              find nearest power of two to the change ratio required
                ENDIF
             END DO
             
-            GOTO 300
-         ENDIF
-c
-c  4) change minimum time for keeping GRAPE
-c
-         IF (string(i)(1:5).EQ.'tkeep') THEN
-            READ (string(i), *) dummy5, tkeep
-            WRITE (*, 99010) i, tkeep
-99010    FORMAT (' message ', I2, ' read. tkeep changed to : ',1PE12.5)
             GOTO 300
          ENDIF
 c

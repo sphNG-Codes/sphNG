@@ -36,7 +36,6 @@ c************************************************************
       INCLUDE 'COMMONS/active'
       INCLUDE 'COMMONS/nlim'
       INCLUDE 'COMMONS/perform'
-      INCLUDE 'COMMONS/secret'
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/cgas'
@@ -163,14 +162,14 @@ c
          WRITE (iprint, 99010) neighovergrape
          WRITE (iprint, 99011) neighretry
          WRITE (iprint, 99014) REAL(nneightot)/REAL(nactive-nptmass)
-         WRITE (iprint, 99015) tkeep
+c         WRITE (iprint, 99015) tkeep
 
 99008    FORMAT('Maximum value of the search factor       = ',F8.4)
 99009    FORMAT('Minimum value of the search factor       = ',F8.4)
 99010    FORMAT('Number of GRAPE-neighbour-list overflows = ', I6)
 99011    FORMAT('Number of GRAPE-neighbour-list retries   = ', I6)
 99014    FORMAT('Mean number of nneigh(i) = ',F8.4)
-99015    FORMAT('Keep GRAPE for ',F6.1,' seconds')
+c99015    FORMAT('Keep GRAPE for ',F6.1,' seconds')
       ELSE
          WRITE (iprint, 99018) REAL(nneightot)/REAL(nactive-nptmass)
 

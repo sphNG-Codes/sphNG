@@ -2334,7 +2334,7 @@ c
          errvz = ABS(f1vxyzu(3,i) - f2vxyzu(3,i))
          IF (iphase(i).EQ.0) THEN
             IF (encal.EQ.'r') THEN
-               erru = 0.
+               erru = ABS(f1vxyzu(4,i) - f2vxyzu(4,i))
             ELSE
                erru = ABS(f1vxyzu(4,i) - f2vxyzu(4,i))
             ENDIF

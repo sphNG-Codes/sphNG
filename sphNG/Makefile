@@ -344,7 +344,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f chekopt.f \
 	classify_MPI.F condense.f constan.f \
 	coolcurve.f coolinmo.F cool_func.F \
-	coriol.f cyldis.f cylmas.f cylpres.f cylvel.f discboundary.f \
+	coriol.f cyldis.f cylmas.f discboundary.f \
 	divBclean_subcycle.F divBsubcycle.F \
 	dust_implicit.F dust_drag.F dust_norm_rhoG.F \
 	dragtable.F endrun.f energ.f energ_cooling.f eospg.F error.f \
@@ -368,7 +368,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F \
 	scaling.f \
 	semimajoraxis.f setBfield_mhd.f setpart.F setup_torus.f \
 	smoothd_P.f sphericalposition.f \
-	sphdis.f sphmas.f sphpres.f sphvel.f spline.F thermeq.f \
+	sphdis.f sphmas.f spline.F thermeq.f \
 	toten.f treef_P.F unifdis.F unit.f uset.f \
 	wdump.F wdump_wrapper.F wrinsph.F write_dragtable.f zeusread.f
 

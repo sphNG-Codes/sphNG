@@ -1389,17 +1389,13 @@ c--Set Non-Uniform Pressure Distribution
 c
  618     WRITE(*, 99038)
 99038    FORMAT (' Coords for pressure variations: Cartesian (1)', /,
-     &        '                                  Cylindrical (2)', /,
-     &        '                                    Spherical (3)')
+     &           'NOTE: cylindrical and spherical not implemented.')
          READ (iread,*) icoord
-         IF ((icoord.LT.1) .OR. (icoord.GT.3)) GOTO 618
 
          IF (icoord.EQ.1) THEN
             CALL cartpres
-         ELSE IF (icoord.EQ.2) THEN
-            CALL cylpres
          ELSE
-            CALL sphpres
+            GOTO 618
          ENDIF
          DO i = 1, npart
             vxyzu(4,i) = thermal*disfrac(i)
@@ -1593,17 +1589,13 @@ c--Velocity Distribution
 c
  765  WRITE(*, 99049)
 99049 FORMAT (' Coords for velocity variations: Cartesian    (1)', /,
-     &        '                                 Cylindrical  (2)', /,
-     &        '                                 Spherical    (3)')
+     &        'NOTE: cylindrical and spherical not implemented.') 
       READ (iread,*) icoord
-      IF ((icoord.LT.1) .OR. (icoord.GT.3)) GOTO 765
 
       IF (icoord.EQ.1) THEN
          CALL cartvel
-      ELSE IF (icoord.EQ.2) THEN
-         CALL cylvel
       ELSE
-         CALL sphvel
+         GOTO 765
       ENDIF
 
       GOTO 778

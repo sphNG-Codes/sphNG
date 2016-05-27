@@ -75,6 +75,7 @@ c      INCLUDE 'COMMONS/rad2'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/fullstep'
+      INCLUDE 'COMMONS/rtstat'
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
@@ -2853,34 +2854,44 @@ c            GOTO 332
                   DO iii = 1, numcomp
                      IF (maxerrE2.GT.0.99999*xmaxerrcomp1(iii).AND.
      &                    maxerrE2.LT.1.00001*xmaxerrcomp1(iii)) THEN
-                        PRINT *,"GSIMPL: Non-convergence1 ",maxerrE2,
-     &                  xmaxerrcomp1(iii),(xmaxerr1old(ii),ii=1,ntests)
-
+                        IF (irtnoisy) THEN
+                         PRINT *,"GSIMPL: Non-convergence1 ",maxerrE2,
+     &                   xmaxerrcomp1(iii),(xmaxerr1old(ii),ii=1,ntests)
+                        ENDIF
+                        nrtnc1 = nrtnc1 + 1
                         moresweep = .TRUE.
                         GOTO 998
                      ENDIF
                   END DO
                   numcomp = MAX(1,MOD(numcomp + 1,ntests + 1))
                   xmaxerrcomp1(numcomp) = maxerrE2
-                  PRINT *,"GSIMPL: Almost Non-convergence ",
-     &                 maxerrE2,(xmaxerr1old(ii),ii=1,ntests)
+                  IF (irtnoisy) THEN
+                    PRINT *,"GSIMPL: Almost Non-convergence ",
+     &                   maxerrE2,(xmaxerr1old(ii),ii=1,ntests)
+                  ENDIF
+                  nrtnca = nrtnca + 1
                ENDIF
                IF (maxerrU2.GT.0.99999*xmaxerr2old(itest).AND.
      &              maxerrU2.LT.1.00001*xmaxerr2old(itest)) THEN
                   DO iii = 1, numcomp
                      IF (maxerrU2.GT.0.99999*xmaxerrcomp2(iii).AND.
      &                    maxerrU2.LT.1.00001*xmaxerrcomp2(iii)) THEN
-                        PRINT *,"GSIMPL: Non-convergence1-2 ",maxerrU2,
+                        IF (irtnoisy) THEN
+                         PRINT *,"GSIMPL: Non-convergence1-2 ",maxerrU2,
      &                  xmaxerrcomp2(iii),(xmaxerr2old(ii),ii=1,ntests)
-
+                        ENDIF
+                        nrtnc2 = nrtnc2 + 1 
                         moresweep = .TRUE.
                         GOTO 998
                      ENDIF
                   END DO
                   numcomp = MAX(1,MOD(numcomp + 1,ntests + 1))
                   xmaxerrcomp2(numcomp) = maxerrU2
-                  PRINT *,"GSIMPL: Almost Non-convergence ",
-     &                 maxerrU2,(xmaxerr2old(ii),ii=1,ntests)
+                  IF (irtnoisy) THEN
+                    PRINT *,"GSIMPL: Almost Non-convergence ",
+     &                   maxerrU2,(xmaxerr2old(ii),ii=1,ntests)
+                  ENDIF
+                  nrtnca = nrtnca + 1
                ENDIF
             ENDIF
  332        CONTINUE
@@ -3042,7 +3053,10 @@ c
 c
 c--Maximum number of iterations reached
 c
-      PRINT *,"GSIMPL: Warning. Maximum iterations reached"
+      IF (irtnoisy) THEN
+        PRINT *,"GSIMPL: Warning. Maximum iterations reached"
+      ENDIF
+      nrtmaxit = nrtmaxit + 1
       IF (iphase1.GE.10) THEN
          moresweep = .TRUE.
          GOTO 998
@@ -3059,7 +3073,11 @@ c
 #ifdef MPI
       IF (iproc.EQ.0) THEN
 #endif
-      WRITE (*,38001) nosweep,maxerrE2,maxerrU2
+      IF (irtnoisy) THEN
+        WRITE (*,38001) nosweep,maxerrE2,maxerrU2
+      ENDIF
+      nintegsuc = nintegsuc + 1
+      nintegtot = nintegtot + nosweep
 38001 FORMAT('Succeeded with ',I4,' iterations E U ',2(1PE12.5,1X))
 #ifdef MPI
       ENDIF

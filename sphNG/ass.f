@@ -18,6 +18,7 @@
       INCLUDE 'COMMONS/timei'
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/implicit'
+      INCLUDE 'COMMONS/rtstat'
 
       DIMENSION EUsave(2,iradtrans2)
 
@@ -80,8 +81,11 @@ c            ENDIF
 c            IF (moresweep) GOTO 100
 
             IF (moresweep) THEN
-               print 38000, nlst_end, errorU, errorE
-               WRITE(iprint,38000) nlst_end, errorU, errorE
+               IF (irtnoisy) THEN
+                 print 38000, nlst_end, errorU, errorE
+                 WRITE(iprint,38000) nlst_end, errorU, errorE
+               ENDIF
+               nintegfail = nintegfail + 1
 38000          FORMAT('Integration failed - using U & E values anyway ',
      &              I8,1X,1PE11.4,1X,1PE11.4)
                GOTO 150

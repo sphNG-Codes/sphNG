@@ -55,6 +55,7 @@ c************************************************************
       INCLUDE 'COMMONS/initpt'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/accstat'
+      INCLUDE 'COMMONS/rtstat'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/Bxyz'
@@ -739,13 +740,34 @@ c
                ENDIF
             ENDIF
          ENDIF
+#ifdef RT
+c
+c--RT stats
+c
+         IF (iradtrans.EQ.idim.AND.encal.EQ.'r') THEN
+           WRITE(iprint, 98001)nintegsuc,nintegfail,
+     &        REAL(nintegtot)/(REAL(nintegsuc)+tiny),nrtnca,
+     &        nrtnc1,nrtnc2,nrtmaxit
+           nintegfail = 0
+           nintegsuc  = 0 
+           nrtnc1     = 0
+           nrtnc2     = 0
+           nrtnca     = 0
+           nrtmaxit   = 0
+           nintegtot  = 0
+         ENDIF
+98001 FORMAT(/, ' Implicit R-T (GSIMPL) :', /,
+     &    ' Succeeded - ', I8, ' Failed - ', I8, ' Av. iter. - ',F8.4,/,
+     &    ' Failures:',8X,'Almost N-C - ', I8, ' N-C 1     - ', I8, /, 
+     &    18X,'N-C 1-2    - ', I8, ' Max iter. - ', I8)
+#endif
 c
 c--ptmass stats
 c
          ido = iaccf1+iaccf2+iaccf3+iaccf4+iaccf5+iaccf6
      &       +iaccph1+iaccph2+iaccsuc+iaccmg 
          IF (ido .GT. 0) THEN
-           WRITE(iprint,98001)iaccsuc,iaccmg,iaccph1,iaccph2,
+           WRITE(iprint,98002)iaccsuc,iaccmg,iaccph1,iaccph2,
      &           iaccf6,iaccf5,iaccf1,iaccf2,iaccf3,iaccf4
          ENDIF
          iaccsuc = 0
@@ -758,11 +780,17 @@ c
          iaccf4  = 0
          iaccf5  = 0
          iaccf6  = 0
-98001 FORMAT(//, ' ptmass - created    : ', I8, ' merged  : ', I8, /,
+98002 FORMAT(/, ' ptmass - created    : ', I8, ' merged  : ', I8, /,
      &           ' passed - h          : ', I8, ' and dt  : ', I8, /,
      &           ' failed - h          : ', I8, ' dt      : ', I8, /,
      &           '          divai      : ', I8, ' alpha   : ', I8, /,
-     &           '          alpha+beta : ', I8, ' total e : ', I8, /)
+     &           '          alpha+beta : ', I8, ' total e : ', I8)
+
+c
+c-- Begin next dtmax
+c
+        WRITE(iprint,98003)
+98003 FORMAT(/, ' ------------------------------------------------',//)
 #ifdef MPI
       ENDIF
 #endif

@@ -1,0 +1,8 @@
+      LOGICAL irtnoisy
+      PARAMETER (irtnoisy = .TRUE.)
+
+      INTEGER nintegfail,nintegsuc,nrtnc1,nrtnc2,nrtnca
+      INTEGER nrtmaxit,nintegtot
+      COMMON /rtstat/  nintegfail,nintegsuc,nrtnc1,nrtnc2,
+     &                 nrtnca,nrtmaxit,nintegtot
+

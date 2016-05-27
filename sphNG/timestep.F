@@ -304,7 +304,7 @@ c                  WRITE (iprint,*)
                WRITE (iprint,*)'rmin ',xmindist
 C$OMP END CRITICAL (writeiprint)
             ELSE
-                        write (13,*) isteps(i), 'print4'
+c                        write (13,*) isteps(i), 'print4'
 C$OMP CRITICAL (writeiprint)
                WRITE (iprint, 99300)
 99300          FORMAT ('STEP : Step too small ! Nothing can help!')

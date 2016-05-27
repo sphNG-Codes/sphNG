@@ -1,13 +1,38 @@
-      REAL*8 gg, c, Rg, pi, radconst, cgsmu0
-      REAL*8 qe, ccmu0, ratiomptome, sigmaterm
-      REAL*8 ratecoeffconst
+c
+c--Mathematical constants
+c
+      REAL*8, PARAMETER :: pi = 3.141592653589
+c
+c--Physical constants (in cgs units)
+c
+      REAL*8, PARAMETER :: c = 2.997924D10
+      REAL*8, PARAMETER :: gg = 6.672041D-8
+      REAL*8, PARAMETER :: Rg = 8.314D7
+      REAL*8, PARAMETER :: radconst = 7.5646D-15
+      REAL*8, PARAMETER :: cgsmu0 = 4.D0*pi
       REAL*8, PARAMETER :: mH = 1.6733D-24
       REAL*8, PARAMETER :: elecm = 9.1093897D-28
       REAL*8, PARAMETER :: boltzmannk = 1.380658D-16
       REAL*8, PARAMETER :: stefanboltz = 5.6705D-05
       REAL*8, PARAMETER :: planckconst = 6.626076D-27
       REAL*8, PARAMETER :: eleccharge = 1.602177D-12
-
-      COMMON /physcon/gg, c, Rg, pi, radconst, cgsmu0
-      COMMON /physcon2/qe, ccmu0, ratiomptome, sigmaterm,
-     &                 ratecoeffconst
+c
+c--charge on electron (in esu)
+c
+      REAL*8, PARAMETER :: qe = 4.8032068D-10
+c
+c--ratio of proton to electron mass
+c
+      REAL*8, PARAMETER :: ratiomptome = 1836.152755656D0
+c
+c--collection of constants in front
+c  of conductivity term
+c
+      REAL*8, PARAMETER :: sigmaterm = 4.D0*pi/(c*c)*qe*qe
+c
+c--term required in rate coefficient
+c  for physical resistivity
+c     sqrt(8*k_b/(pi*me))
+c
+      REAL*8, PARAMETER :: ratecoeffconst 
+     &              = dsqrt(8.D0*boltzmannk/(pi*elecm))

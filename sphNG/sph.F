@@ -575,10 +575,6 @@ c
       ENDIF
 #endif
 c
-c--Initialize physical, mathematical and astronomical constants
-c
-      CALL constan
-c
 c--Define code's units
 c
       CALL unit

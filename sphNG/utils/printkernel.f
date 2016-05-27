@@ -6,7 +6,6 @@
       INTEGER i
       REAL vi, phi
       
-      CALL constan
       CALL ktable
       
       WRITE(*,*) '# sphNG kernel table, radkern = ',radkernel, 

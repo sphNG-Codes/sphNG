@@ -897,7 +897,7 @@ c
      &     hmass_e = hillmass(planetmass, 0, xmass, 0) - planetmass
 
 C$OMP PARALLEL default(none)
-C$OMP& shared(EU0,uergg,ekcle,Rg)
+C$OMP& shared(EU0,uergg,ekcle)
 C$OMP& shared(vxyzu,lightspeed,uradconst,iprint,ddvtable)
 C$OMP& shared(icall,dtimax,dtdo,isteps,npart,hasghost,ireal,nghost)
 C$OMP& shared(rho,vari,ivar,ijvar,varij,ijvar2,varij2,bounddens)
@@ -1394,8 +1394,8 @@ C$OMP& shared(lwst,hgst,stepa,vari,ivar,varij2,ijvar,varij,uergg)
 C$OMP& shared(dedxyz,ekcle,EU0,uradconst,lightspeed,rho,itime)
 C$OMP& shared(nosweep,boundtemp,bounddens)
 C$OMP& shared(npart,nghost,ihasghost,ireal,dvdx,ncompact)
-C$OMP& shared(origEU,moresweep,xyzmh,gamma,alpha,beta,Rg,gmw)
-C$OMP& shared(radconst,iflag,icall,ifsvi,alphaMMpass)
+C$OMP& shared(origEU,moresweep,xyzmh,gamma,alpha,beta)
+C$OMP& shared(iflag,icall,ifsvi,alphaMMpass)
 C$OMP& shared(iphase,maxerrU2last)
 C$OMP& shared(stellarenergy,addenergyparticle,maxerrE2last,varinew)
 C$OMP& shared(ncompactlocal,iscurrent)
@@ -3075,7 +3075,7 @@ c--And that done, return everything to ASS
 c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(ncompactlocal,ivar,vxyzu,EU0,iflag,vari)
-C$OMP& shared(Rg,gmw,uergg,boundtemp,uradconst,rho,ekcle)
+C$OMP& shared(uergg,boundtemp,uradconst,rho,ekcle)
 C$OMP& shared(iphase,bounddens)
 C$OMP& shared(hoverr,ibound,xyzmh)
 C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)

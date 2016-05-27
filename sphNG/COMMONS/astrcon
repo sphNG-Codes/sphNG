@@ -1,4 +1,24 @@
-      REAL*8 solarm, solarr, solarl, earthm, earthr, au, pc, gmw
-
-      COMMON /astrcon/ solarm, solarr, solarl, earthm, earthr, 
-     &                 au, pc, gmw
+c
+c--Astronomical constants (in cgs units)
+c
+c--Solar mass and radius
+c
+      REAL*8, PARAMETER :: solarm = 1.991d33
+      REAL*8, PARAMETER :: solarr = 6.959500d10
+      REAL*8, PARAMETER :: solarl = 3.9d33
+c
+c--Earth mass and radius
+c
+      REAL*8, PARAMETER :: earthm = 5.979d27
+      REAL*8, PARAMETER :: earthr = 6.371315d8
+c
+c--Distance scale
+c
+      REAL*8, PARAMETER :: au = 1.496d13
+      REAL*8, PARAMETER :: pc = 3.086d18
+c
+c--Gas molecular weight, mu
+c
+c      REAL*8, PARAMETER :: gmw = 2.D0
+c      REAL*8, PARAMETER :: gmw = 2.46D0
+      REAL*8, PARAMETER :: gmw = 4.D0/(2.*0.7+0.28)

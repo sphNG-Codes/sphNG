@@ -1275,7 +1275,7 @@ C$OMP& shared(varmhd,Bevol,Bxyz,nlstdo,ldolist)
 C$OMP& shared(dvxyzu,hi_old,isucceed,poten,isend,numproc,iproc)
 C$OMP& shared(ivar,ijvar,ncompact,icompact,iteration,dust_tk)
 C$OMP& shared(hminbisec,hmaxbisec,iupdated,nlistupdated,listparents)
-C$OMP& shared(heatingISR,sightcolumns,nsightlines,umass,udist,c,gmw)
+C$OMP& shared(heatingISR,sightcolumns,nsightlines,umass,udist)
 C$OMP& shared(chemistry,icolumnnext,icolumnsteps,bounddens)
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend,ijvartemp,listparentstemp)

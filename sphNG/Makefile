@@ -342,7 +342,7 @@ OBJKERNEL= $(KERNEL:.f=.o)
 SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F \
 	bonnorebert.F boundry.f buildsightlines.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f chekopt.f \
-	classify_MPI.F condense.f constan.f \
+	classify_MPI.F condense.f \
 	coolcurve.f coolinmo.F cool_func.F \
 	coriol.f cyldis.f cylmas.f discboundary.f \
 	divBclean_subcycle.F divBsubcycle.F \
@@ -570,13 +570,13 @@ massvsangmom: checksystem checkparams utils/massvsangmom.o utils/readdump_sphNG.
 masswithtime: checksystem checkparams utils/masswithtime.o utils/readdump_sphNG.o idim
 	$(FC) $(FFLAGS) -o $@ utils/masswithtime.o utils/readdump_sphNG.o
 
-printkernel: checksystem checkparams constan.o $(OBJKERNEL) utils/printkernel.o
-	$(FC) $(FFLAGS) -o $@ constan.o $(OBJKERNEL) utils/printkernel.o
+printkernel: checksystem checkparams $(OBJKERNEL) utils/printkernel.o
+	$(FC) $(FFLAGS) -o $@ $(OBJKERNEL) utils/printkernel.o
 
 # set up particle distribution without using entire SPH executable
 
-setup_alone: checksystem checkparams utils/setup_alone.o wdump.o error.o file.o chekopt.o lunit_double.o setpart.o $(OBJKERNEL) unifdis.o condense.o cartmas.o cylmas.o sphmas.o cartdis.o cyldis.o sphdis.o cartpres.o cylpres.o sphpres.o eospg.o setBfield_mhd.o inopts.o cartvel.o cylvel.o sphvel.o gapfactor.o uset.o wrinsph.o constan.o ran1.o unit.o $(ZZFILE:.f=.o)
-	$(FC) $(FFLAGS) -o $@ utils/setup_alone.o wdump.o error.o file.o chekopt.o lunit_double.o setpart.o $(OBJKERNEL) unifdis.o condense.o cartmas.o cylmas.o sphmas.o cartdis.o cyldis.o sphdis.o cartpres.o cylpres.o sphpres.o eospg.o setBfield_mhd.o inopts.o cartvel.o cylvel.o sphvel.o gapfactor.o uset.o wrinsph.o constan.o ran1.o unit.o $(ZZFILE:.f=.o)
+setup_alone: checksystem checkparams utils/setup_alone.o wdump.o error.o file.o chekopt.o lunit_double.o setpart.o $(OBJKERNEL) unifdis.o condense.o cartmas.o cylmas.o sphmas.o cartdis.o cyldis.o sphdis.o cartpres.o cylpres.o sphpres.o eospg.o setBfield_mhd.o inopts.o cartvel.o cylvel.o sphvel.o gapfactor.o uset.o wrinsph.o ran1.o unit.o $(ZZFILE:.f=.o)
+	$(FC) $(FFLAGS) -o $@ utils/setup_alone.o wdump.o error.o file.o chekopt.o lunit_double.o setpart.o $(OBJKERNEL) unifdis.o condense.o cartmas.o cylmas.o sphmas.o cartdis.o cyldis.o sphdis.o cartpres.o cylpres.o sphpres.o eospg.o setBfield_mhd.o inopts.o cartvel.o cylvel.o sphvel.o gapfactor.o uset.o wrinsph.o ran1.o unit.o $(ZZFILE:.f=.o)
 
 getdeltat: checksystem checkparams utils/getdeltat.o utils/readdump_sphNG.o idim
 	$(FC) $(FFLAGS) -o $@ utils/getdeltat.o utils/readdump_sphNG.o

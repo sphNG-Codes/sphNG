@@ -1034,8 +1034,8 @@ c--Added for Isothermal whole disc case with t-profile
 c
             rho0 = 0.2
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(nlst_in,nlst_end,llist,xyzmh,gamma,gmw,iphase)
-C$OMP& shared(hoverr,tprof,Rg,uergg,vxyzu,rho0,rho,encal)
+C$OMP& shared(nlst_in,nlst_end,llist,xyzmh,gamma,iphase)
+C$OMP& shared(hoverr,tprof,uergg,vxyzu,rho0,rho,encal)
 C$OMP& private(i,j,radius,boundtempl)
             DO j = nlst_in, nlst_end
                i = llist(j)

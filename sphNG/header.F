@@ -56,6 +56,8 @@ c************************************************************
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/accstat'
+      INCLUDE 'COMMONS/rtstat'
 
       REAL*8 angmom
 
@@ -566,6 +568,31 @@ c
 
       CALL FLUSH (iprint)
 
+c
+c--Zero the RT statistics counters
+c
+#ifdef RT
+      nintegfail = 0
+      nintegsuc  = 0 
+      nrtnc1     = 0 
+      nrtnc2     = 0
+      nrtnca     = 0
+      nrtmaxit   = 0
+      nintegtot  = 0
+#endif
+c
+c--Zero the pointmass counters
+c
+      iaccf1  = 0
+      iaccf2  = 0
+      iaccf3  = 0
+      iaccf4  = 0
+      iaccf5  = 0
+      iaccf6  = 0
+      iaccph1 = 0
+      iaccph2 = 0
+      iaccsuc = 0
+      iaccmg  = 0 
 #ifdef MPIALL
       ENDIF
 #endif

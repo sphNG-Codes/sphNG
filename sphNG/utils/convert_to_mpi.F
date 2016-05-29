@@ -50,7 +50,8 @@ c
 #endif
 
       inname = 'ipb07'
-      CALL lunit
+      iprint = istdout 
+      iread  = istdin
 
       CALL options
 

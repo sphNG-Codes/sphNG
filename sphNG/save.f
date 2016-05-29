@@ -6,6 +6,7 @@ c     to write a dump on disk and print out a detailed      *
 c     state of the run                                      *
 c                                                           *
 c************************************************************
+      INCLUDE 'idim'
 
       INCLUDE 'COMMONS/tming'
       INCLUDE 'COMMONS/gtime'

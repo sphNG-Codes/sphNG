@@ -1,5 +1,17 @@
       INTEGER iread, iprint, iterm, idisk1, idisk2, idisk3, imaxrec,
-     &        idragfile
+     &        idragfile, istderr, istdin, istdout
 
-      COMMON /logun / iread, iprint, iterm, idisk1, idisk2, idisk3, 
-     &        imaxrec, idragfile
+      PARAMETER (iterm     = 19)
+      PARAMETER (idisk1    = 11)
+      PARAMETER (idisk2    = 12)
+      PARAMETER (idisk3    = 13)
+      PARAMETER (idragfile = 31)
+
+c Set assuming ifort or gfortran on x86.
+      PARAMETER (istderr   =  0)
+      PARAMETER (istdin    =  5)
+      PARAMETER (istdout   =  6)
+
+      PARAMETER (imaxrec = 25*idim)
+
+      COMMON /logun / iread, iprint

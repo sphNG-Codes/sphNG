@@ -59,7 +59,7 @@ c************************************************************
 c
 c--IF MPI setup, then read set up input from file
 c
-      iread = 10
+c      iread = 10
       OPEN (iread, FILE='makedust.txt', STATUS='unknown')
 #endif
 c

@@ -1,6 +1,10 @@
       INTEGER iaccpr, ikillpr, ireasspr, inotify
 
-      COMMON /binfile/ iaccpr, ikillpr, ireasspr, inotify,
-     &       accfile, killfile, reassfile
+      PARAMETER (iaccpr   = 15)
+      PARAMETER (ikillpr  = 16)
+      PARAMETER (ireasspr = 17)
+      PARAMETER (inotify  = 18)
+
+      COMMON /binfile/ accfile, killfile, reassfile
 
       CHARACTER*25 accfile, killfile, reassfile

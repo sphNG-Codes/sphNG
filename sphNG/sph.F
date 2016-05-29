@@ -567,12 +567,27 @@ c
 #endif
       nlistinactive = 0
 
-      CALL mainop
+c
+c--Get main option of job from command line argument
+c
+      CALL getcom(job, inname)
+
+c
+c--Set output and input unit numbers
+c
+      IF (job(1:9).NE.'evolution') THEN
+        iprint = istdout 
+      ELSE
+        iprint = 9
+      ENDIF
 
 #ifdef MPIALL
       IF (iproc.NE.0) THEN
          iprint = 40+iproc
       ENDIF
+      iread = 10
+#else
+      iread = istdin
 #endif
 c
 c--Define code's units

@@ -347,11 +347,11 @@ c
 c            OPEN(UNIT=8,FILE='/home/mrbate/tables/opacitytbl')
             filetable = TRIM(homedir)//
      &           'tables/opacitytbl_Pollacketal1985'
-            OPEN(UNIT=8,FILE=filetable,STATUS='old',ACTION='read')
+            OPEN(itablerd,FILE=filetable,STATUS='old',ACTION='read')
             DO i=1, opmxtg
-               READ(8,*) (optable(i,j), j=1, opmxrh)
+               READ(itablerd,*) (optable(i,j), j=1, opmxrh)
             ENDDO
-            CLOSE(8)
+            CLOSE(itablerd)
          ELSEIF (MOD(iopmodel,10).EQ.1) THEN
             WRITE (*,*) 'WARNING - optable using gas opacities only'
          ELSE
@@ -371,16 +371,16 @@ c
             ialexander_only = 34
             filetable = TRIM(homedir)//
      &           'tables/opacitytbl_Alexander1975_Model_KingIVa'
-            OPEN(UNIT=8,FILE=filetable,STATUS='old',ACTION='read')
+            OPEN(itablerd,FILE=filetable,STATUS='old',ACTION='read')
 c
 c--Skip 1st line
 c
-            READ(8,*)
+            READ(itablerd,*)
 c
 c--Read Alexander data
 c
             DO i=opmxtg-ialexander_only+1, opmxtg
-               READ(8,*) (optable_line(j), j=1, opmxrh)
+               READ(itablerd,*) (optable_line(j), j=1, opmxrh)
 c
 c--Take the maximum of the values already in the table (from 
 c     Pollack et al. 1985) and those taken from the Alexander (1975) table
@@ -389,7 +389,7 @@ c
                   optable(i,j) = MAX(optable(i,j),optable_line(j))
                END DO
             END DO
-            CLOSE(8)
+            CLOSE(itablerd)
 c
 c--End of reading in Alexander data
 c
@@ -447,15 +447,15 @@ c
             metaltable1 = MIN(metaltable1,opmxMet_ferguson-1)
 
             DO k = 1, opmxMet_ferguson
-            OPEN(UNIT=8,FILE=metalfilenames(k),
+            OPEN(itablerd,FILE=metalfilenames(k),
      &           STATUS='old',ACTION='read')
 c
 c--Skip initial lines, the read in temperature scale
 c
             DO i=1,3
-               READ(8,*)
+               READ(itablerd,*)
             END DO
-            READ(8,55001) dummy, (optable_ferguson(1,i,k),i=2,
+            READ(itablerd,55001) dummy, (optable_ferguson(1,i,k),i=2,
      &           opmxR_ferguson)
 55001       FORMAT(A6,19(1F7.3))
 55002       FORMAT(20(1PE12.3))
@@ -468,9 +468,10 @@ c--Read in data - ***NOTE*** that it stores the table BACKWARDS since the
 c     table as provided is in order of decreasing temperature
 c
             DO i=opmxtg_ferguson, 2, -1
-               READ(8,*) (optable_ferguson(i,j,k), j=1, opmxR_ferguson)
+               READ(itablerd,*) 
+     &            (optable_ferguson(i,j,k), j=1, opmxR_ferguson)
             ENDDO
-            CLOSE(8)
+            CLOSE(itablerd)
             Tmax_ferguson = optable_ferguson(opmxtg_ferguson,1,k)
             Tmin_ferguson = optable_ferguson(2,1,k)
             Tdelta_ferguson = optable_ferguson(3,1,k)-
@@ -490,11 +491,11 @@ c     using the "opdenom" parameter, and when using the Alexander and
 c     Pollack tables (i.e. opacity model iopmodel=0).
 c
          filetable = TRIM(homedir)//'tables/dusttbl2'
-         OPEN(UNIT=8,FILE=filetable,STATUS='old',ACTION='read')
+         OPEN(itablerd,FILE=filetable,STATUS='old',ACTION='read')
          DO i=1, duslen
-            READ(8,*) (dusttable(i,j), j=1, duswid)
+            READ(itablerd,*) (dusttable(i,j), j=1, duswid)
          ENDDO
-         CLOSE(8)
+         CLOSE(itablerd)
 
       ENDIF
 c
@@ -508,39 +509,39 @@ c
 
 c         filetable = TRIM(homedir)//'tables/gasttbl'
          filetable = TRIM(homedir)//'tables/gasttbl_lowdens'
-         OPEN(UNIT=8,FILE=filetable,FORM='unformatted',
+         OPEN(itablerd,FILE=filetable,FORM='unformatted',
      &        STATUS='old',ACTION='read')
          DO i=1, tgmxu
-            READ(8) (tgtable(i,j), j=1, tgmxrh)
+            READ(itablerd) (tgtable(i,j), j=1, tgmxrh)
          ENDDO
-         CLOSE(8)
+         CLOSE(itablerd)
 
 c         filetable = TRIM(homedir)//'tables/utbl'
          filetable = TRIM(homedir)//'tables/utbl_lowdens'
-         OPEN(UNIT=8,FILE=filetable,FORM='unformatted',
+         OPEN(itablerd,FILE=filetable,FORM='unformatted',
      &        STATUS='old',ACTION='read')
          DO i=1, umxrh
-            READ(8) (utable(j,i), j=1, umxt)
+            READ(itablerd) (utable(j,i), j=1, umxt)
          ENDDO
-         CLOSE(8)
+         CLOSE(itablerd)
  
 c         filetable = TRIM(homedir)//'tables/molmasstbl'
          filetable = TRIM(homedir)//'tables/molmasstbl_lowdens'
-         OPEN(UNIT=8,FILE=filetable,FORM='unformatted',
+         OPEN(itablerd,FILE=filetable,FORM='unformatted',
      &        STATUS='old',ACTION='read')
          DO i=1, mumxu
-            READ(8) (mutable(i,j), j=1, mumxrh)
+            READ(itablerd) (mutable(i,j), j=1, mumxrh)
          ENDDO
-         CLOSE(8)
+         CLOSE(itablerd)
       ENDIF
 
       IF (ibound.EQ.100) THEN
          filetable = TRIM(homedir)//'tables/gaptbl'
-         OPEN(UNIT=8,FILE=filetable,STATUS='old',ACTION='read')
+         OPEN(itablerd,FILE=filetable,STATUS='old',ACTION='read')
          DO i=1, gaplen
-            READ(8,*) (gaptable(i,j), j=1, gapwid)
+            READ(itablerd,*) (gaptable(i,j), j=1, gapwid)
          ENDDO
-         CLOSE(8)
+         CLOSE(itablerd)
       ENDIF
 c
 c--Make sure planet position is set from the beginning
@@ -626,15 +627,15 @@ c
 
       IF (iandrea.EQ.1) THEN
          filetable = TRIM(homedir)//'tables/planetesimals'
-         OPEN(UNIT=8,FILE=filetable,STATUS='old',ACTION='read')
-         READ (8,*) prmin, princ
-         READ (8,*) pmmin, pminc
+         OPEN(itablerd,FILE=filetable,STATUS='old',ACTION='read')
+         READ (itablerd,*) prmin, princ
+         READ (itablerd,*) pmmin, pminc
          pmmin = pmmin*5.9742E27/umass
          pminc = pminc*5.9742E27/umass
          DO i = 1, mbins
-            READ (8,*) (ptable(i,j), j = 1, rbins)
+            READ (itablerd,*) (ptable(i,j), j = 1, rbins)
          ENDDO
-         CLOSE(8)
+         CLOSE(itablerd)
          DO i = 1, mbins
             DO j = 1, rbins
 c--This is column 2 from Andrea's work. Despite here original notes

@@ -1,11 +1,12 @@
       INTEGER iread, iprint, iterm, idisk1, idisk2, idisk3, imaxrec,
-     &        idragfile, istderr, istdin, istdout
+     &        idragfile, itablerd, istderr, istdin, istdout
 
       PARAMETER (iterm     = 19)
       PARAMETER (idisk1    = 11)
       PARAMETER (idisk2    = 12)
       PARAMETER (idisk3    = 13)
       PARAMETER (idragfile = 31)
+      PARAMETER (itablerd  =  8)
 
 c Set assuming ifort or gfortran on x86.
       PARAMETER (istderr   =  0)

@@ -530,12 +530,6 @@ c     with boundaries as used by Bate,Bonnell,Price 1995
 c     but compiled under FORTRAN 90.
 c
 c
-c--Set debug and trace indicator
-c
-      idebug = 'off'
-      itrace = 'off'
-c      itrace = 'all'
-c
 c--Floating point number error checking (DCR C routine)
 c
 c      CALL floating

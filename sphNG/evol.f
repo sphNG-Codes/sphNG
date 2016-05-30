@@ -21,7 +21,6 @@ c************************************************************
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/accurpt'
 c      INCLUDE 'COMMONS/torq'
-      INCLUDE 'COMMONS/debugit'
       INCLUDE 'COMMONS/accrem'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/current'
@@ -136,8 +135,6 @@ c
       iptout = 0
       iptdump = 0
       iresort = 0
-
-      itest = 0
 
 c Zero the accstat counters
       iaccf1 = 0

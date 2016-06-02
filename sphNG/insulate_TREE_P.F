@@ -227,6 +227,7 @@ c                                                           *
 c************************************************************
       INCLUDE 'idim'
       INCLUDE 'COMMONS/logun'
+      INCLUDE 'COMMONS/actio'
 
       INTEGER iflag
 
@@ -239,7 +240,7 @@ c************************************************************
       DATA ionce/.TRUE./
 
 #ifndef MPIALL
-      IF (iflag.EQ.1.AND.ionce) THEN
+      IF (iflag.EQ.1.AND.ionce.AND.job(1:9).EQ.'evolution') THEN
 c Prevent infinite loops
          ionce = .FALSE.
          WRITE(*,99999)

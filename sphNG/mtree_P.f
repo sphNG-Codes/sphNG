@@ -369,7 +369,7 @@ C$OMP SINGLE
          DO k = 1, nactive
             l = list(k)
             WRITE (iprint,99101) l, xyzmh(1,l), xyzmh(2,l), xyzmh(3,l)
-99101       FORMAT (I8, 1F12.7, 1F12.7, 1F12.7)
+99101       FORMAT (I8, 1X, 1F14.7, 1X, 1F14.7, 1X, 1F14.7)
          END DO   
          CALL quit(1)
       ENDIF

@@ -6,8 +6,8 @@ c     does the same thing for a Bonnor-Ebert sphere.
 c
       IMPLICIT NONE
 
-#ifdef MPI
       INCLUDE 'idim'
+#ifdef MPI
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
 #endif
@@ -23,6 +23,7 @@ c
       INCLUDE 'COMMONS/bonnortbl'
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/astrcon'
+      INCLUDE 'COMMONS/logun'
 
       REAL*4 berho(nbonnor)
       REAL*4 rhoc(nbonnor),cs2(nbonnor)
@@ -107,13 +108,14 @@ c
 #ifdef MPI
       IF (iproc.EQ.0) THEN
 #endif
-      OPEN(13,FILE='Polytrope.txt')
+      OPEN(idisk3,FILE='Polytrope.txt',
+     &   STATUS='replace',ACTION='write')
       DO j = 1, ibelast
-         WRITE (13,99001) bonnor_radmass(1,j),bonnor_radmass(2,j),
+         WRITE (idisk3,99001) bonnor_radmass(1,j),bonnor_radmass(2,j),
      &        berho(j),rhoc(j),cs2(j)
 99001    FORMAT(5(1PE12.5,1X))
       END DO
-      CLOSE(13)
+      CLOSE(idisk3)
 #ifdef MPI
       ENDIF
 #endif

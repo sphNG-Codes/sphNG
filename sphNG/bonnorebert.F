@@ -24,6 +24,7 @@ c
       INCLUDE 'COMMONS/bonnortbl'
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/rbnd'
+      INCLUDE 'COMMONS/logun'
 
       REAL*4 berho(nbonnor)
 
@@ -106,13 +107,14 @@ c
 #ifdef MPI
       IF (iproc.EQ.0) THEN
 #endif
-      OPEN(13,FILE='BonnorEbert.txt')
+      OPEN(idisk3,FILE='BonnorEbert.txt',
+     &   STATUS='replace',ACTION='write')
       DO j = 1, ibelast
-         WRITE (13,99001) bonnor_radmass(1,j),bonnor_radmass(2,j),
+         WRITE (idisk3,99001) bonnor_radmass(1,j),bonnor_radmass(2,j),
      &        berho(j)
 99001    FORMAT(3(1PE12.5,1X))
       END DO
-      CLOSE(13)
+      CLOSE(idisk3)
 #ifdef MPI
       ENDIF
 #endif

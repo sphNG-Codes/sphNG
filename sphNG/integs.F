@@ -255,9 +255,9 @@ c
 
 #ifdef MPI
       ELSE
-         WRITE (40+iproc,99100) npart, nactive
+         WRITE (iprint,99100) npart, nactive
          DO j = 0, 29
-            WRITE (40+iproc,99101) j, dtmax/2**j, nsteplist(1,j+1)
+            WRITE (iprint,99101) j, dtmax/2**j, nsteplist(1,j+1)
          END DO
       ENDIF
 #endif

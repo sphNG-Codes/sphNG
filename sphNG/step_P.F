@@ -3042,7 +3042,7 @@ c
       IF (itime.GE.iteighth) THEN
 #ifdef MPI
       IF (iproc.NE.0) THEN
-         WRITE(40+iproc,253) dt*itime/imaxstep + gt,
+         WRITE(iprint,253) dt*itime/imaxstep + gt,
      &        dt*itime/imaxstep, nlst0
       ENDIF
 #endif

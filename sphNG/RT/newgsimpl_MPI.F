@@ -2748,13 +2748,14 @@ C$OMP SINGLE
 #ifdef MPIDEBUG
       print *,iproc,': EU0(1-2) move ',numbertodoherekeep
 #endif
-
+C$OMP END SINGLE
       IF (idustRT.GT.0) THEN
 c
 c--Transfer dust_tk(1-2,i)
 c
 c--All processes transfer their dust_tk(1-2) data
 c
+C$OMP SINGLE
          CALL MPI_ALLGATHERV(dust_tk,1,indexMPI_INT1,
      &        realtransfer5to15,irecvcounti,idisplacementsi,i2REAL8,
      &        MPI_COMM_WORLD,ierr)
@@ -2779,8 +2780,9 @@ C$OMP SINGLE
 #ifdef MPIDEBUG
          print *,iproc,': dust_tk(1-2) move ',numbertodoherekeep
 #endif
+C$OMP END SINGLE
       ENDIF
-
+C$OMP SINGLE
       CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
 C$OMP END SINGLE
 #endif

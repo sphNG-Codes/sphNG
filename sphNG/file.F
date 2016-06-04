@@ -44,6 +44,10 @@ c
 c--If not create new file and close old
 c
 c      CLOSE (idisk1)
+
+c  Do not increment the name on initialization. Needed for MPI set ups to match
+c     non-MPI.
+      IF (job(1:7).NE.'initial') THEN
       IF ((file1(4:4).GE.'0') .AND. (file1(4:4).LE.'9') .AND. 
      &     (file1(5:5).GE.'0') .AND. (file1(5:5).LE.'9')) THEN
          READ (file1, 99303) name, inum
@@ -87,6 +91,7 @@ c      CLOSE (idisk1)
          ELSE
             WRITE (file1, 99502) name, inum
          ENDIF
+      ENDIF
       ENDIF
 
 #ifdef MPI

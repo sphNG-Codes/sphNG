@@ -120,7 +120,7 @@ c
 c
 c--Write output file
 c
-#ifdef MPICOPY
+#ifdef MPIALL
       IF (iproc.EQ.0) THEN
 #endif
       WRITE (idisk1, ERR=100) int1,r1,int2,iversion,int1o
@@ -129,7 +129,7 @@ c
       ELSE
          WRITE (idisk1, ERR=100) fileident('ST')
       ENDIF
-#ifdef MPICOPY
+#ifdef MPIALL
       ENDIF
 #endif
 c
@@ -196,7 +196,7 @@ c      n2tot = n2
       tmagtot = tmag
 #endif
 
-#ifdef MPICOPY
+#ifdef MPIALL
       IF (iproc.EQ.0) THEN
 #endif
 c
@@ -321,7 +321,10 @@ c
       WRITE (idisk1, ERR=100) nblockarrays
 
 #ifdef MPI
-c      ENDIF
+c Note: this is MPI *not* MPIALL because for MPICOPY builds only iproc=0
+c       writes to the output file. A correspending #ifdef MPICOPY ENDIF
+c       is located later in this subroutine.
+      ENDIF
       nowgo = 0
 #ifdef MPIDEBUG
       print *,iproc,': About to write ',nprint,ifulldump

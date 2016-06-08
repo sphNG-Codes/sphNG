@@ -740,6 +740,14 @@ c
                ENDIF
             ENDIF
          ENDIF
+#ifdef MPI
+c Note: the following two blocks of info (ptmasses and RT) are produced
+c       for all MPI processes because no MPI reduction has been
+c       implemented. Output goes to their respective ascii files not to
+c       the main iprint (which contains iproc=1's data)
+      ENDIF
+#endif
+
 #ifdef RT
 c
 c--RT stats
@@ -791,9 +799,6 @@ c-- Begin next dtmax
 c
         WRITE(iprint,98003)
 98003 FORMAT(/, ' ------------------------------------------------',//)
-#ifdef MPI
-      ENDIF
-#endif
 c
 c--Write transfer output
 c

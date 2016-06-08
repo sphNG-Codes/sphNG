@@ -3072,18 +3072,18 @@ c
 c--Output success
 c
  150  CONTINUE
+      IF (irtnoisy) THEN
 #ifdef MPI
       IF (iproc.EQ.0) THEN
 #endif
-      IF (irtnoisy) THEN
         WRITE (*,38001) nosweep,maxerrE2,maxerrU2
+#ifdef MPI
+      ENDIF
+#endif
       ENDIF
       nintegsuc = nintegsuc + 1
       nintegtot = nintegtot + nosweep
 38001 FORMAT('Succeeded with ',I4,' iterations E U ',2(1PE12.5,1X))
-#ifdef MPI
-      ENDIF
-#endif
 
  998  CONTINUE
 

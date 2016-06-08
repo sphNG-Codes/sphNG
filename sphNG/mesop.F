@@ -261,11 +261,11 @@ c
 c--Automatic change of syncronisation time using local free-fall time
 c
  250  OPEN (idisk2, FILE='synctcontrol', FORM='formatted', 
-     &              STATUS='old', ACTION='read', ERR=500)
-      READ (idisk2, 99000, END=550) string(i)
+     &              STATUS='old', ACTION='read', ERR=550)
+      READ (idisk2, 99000, END=500) string(1)
 
-      IF (string(i)(1:4).EQ.'auto') THEN
-         READ (string(i)(6:20),*) fffac
+      IF (string(1)(1:4).EQ.'auto') THEN
+         READ (string(1)(6:20),*) fffac
          WRITE (*, 99016) fffac
 #ifdef MPIALL
          IF (iproc.EQ.0) THEN
@@ -401,8 +401,8 @@ c
 c
 c--Automatic change of syncronisation time using density change
 c
-      ELSEIF (string(i)(1:4).EQ.'dens') THEN
-         READ (string(i)(6:20),*) contrast, dtmaxsync
+      ELSEIF (string(1)(1:4).EQ.'dens') THEN
+         READ (string(1)(6:20),*) contrast, dtmaxsync
 
 #ifdef MPI
          CALL MPI_ALLREDUCE(rhomaxsync, rhomaxsyncold, 1, MPI_REAL4,

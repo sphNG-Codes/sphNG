@@ -24,6 +24,7 @@ c************************************************************
       INCLUDE 'COMMONS/eosq'
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/rotat'
+      INCLUDE 'COMMONS/cgas'
 c
 c--Allow for tracing flow
 c
@@ -362,7 +363,17 @@ c
 c--Set particles in the boundary to move with sub-Keplerian velocity
 c
                vk = xmass/SQRT(r)
-               vg = vk*SQRT((1.0-3.0*(vsound(i)/vk)**2))
+               IF (encal.EQ.'a') THEN
+                  vg = vk
+               ELSE
+                  subkep = 1.0-3.0*(vsound(i)/vk)**2
+                  IF (subkep.LT.0.) THEN
+                     WRITE (*,*) 'ERROR - sub-Keplerian velocity ',
+     &                    ' NaN in boundry.f'
+                     CALL quit(1)
+                  ENDIF
+                  vg = vk*SQRT(subkep)
+               ENDIF
                ang1 = ATAN2(yi,xi)
                vxyzu(1,i) = - vg*SIN(ang1)
                vxyzu(2,i) = vg*COS(ang1)
@@ -377,7 +388,17 @@ c
 c--Set particles in the boundary to move with sub-Keplerian velocity
 c
                vk = xmass/SQRT(r)
-               vg = vk*SQRT((1.0-3.0*(vsound(i)/vk)**2))
+               IF (encal.EQ.'a') THEN
+                  vg = vk
+               ELSE
+                  subkep = 1.0-3.0*(vsound(i)/vk)**2
+                  IF (subkep.LT.0.) THEN
+                     WRITE (*,*) 'ERROR - sub-Keplerian velocity ',
+     &                    ' NaN in boundry.f'
+                     CALL quit(1)
+                  ENDIF
+                  vg = vk*SQRT(subkep)
+               ENDIF
                ang1 = ATAN2(yi,xi)
                vxyzu(1,i) = - vg*SIN(ang1)
                vxyzu(2,i) = vg*COS(ang1)
@@ -447,8 +468,17 @@ c                  vk = xmass*r  ! Omega = const
 c                  vk = xmass*SQRT(r)
 c                  vk = xmass
 
-c                  vg = vk  !  *SQRT((1.0-3.0*(vsound(i)/vk)**2))
-                  vg = vk*SQRT((1.0-3.0*(vsound(i)/vk)**2))
+                  IF (encal.EQ.'a') THEN
+                     vg = vk
+                  ELSE
+                     subkep = 1.0-3.0*(vsound(i)/vk)**2
+                     IF (subkep.LT.0.) THEN
+                        WRITE (*,*) 'ERROR - sub-Keplerian velocity ',
+     &                       ' NaN in boundry.f'
+                        CALL quit(1)
+                     ENDIF
+                     vg = vk*SQRT(subkep)
+                  ENDIF
 
 c                  vg = 0.
 c                  phi = ATAN2(yi,xi)
@@ -481,8 +511,17 @@ c                  vk = xmass*r
 c                  vk = xmass*SQRT(r)
 c                  vk = xmass
 
-c                  vg = vk    ! *SQRT((1.0-3.0*(vsound(i)/vk)**2))
-                  vg = vk*SQRT((1.0-3.0*(vsound(i)/vk)**2))
+                  IF (encal.EQ.'a') THEN
+                     vg = vk
+                  ELSE
+                     subkep = 1.0-3.0*(vsound(i)/vk)**2
+                     IF (subkep.LT.0.) THEN
+                        WRITE (*,*) 'ERROR - sub-Keplerian velocity ',
+     &                       ' NaN in boundry.f'
+                        CALL quit(1)
+                     ENDIF
+                     vg = vk*SQRT(subkep)
+                  ENDIF
 
 c                  vg = 0.
 c                  phi = ATAN2(yi,xi)

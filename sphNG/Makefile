@@ -84,7 +84,7 @@ ifeq ($(SYSTEM), zen)
     else
        FC= ifort
     endif
-    FFLAGS= -O3 -xSSSE3 -mcmodel=medium -i-dynamic  \
+    FFLAGS= -O3 -xSSSE3 -mcmodel=medium -shared-intel  \
             -warn uninitialized -warn truncated_source \
             -warn interfaces -nogen-interfaces
 # -check
@@ -93,7 +93,7 @@ ifeq ($(SYSTEM), zen)
 #
     OMPFLAG= -openmp #-DZEN
     DBLFLAG= -r8
-    DEBUGFLAG= -check all -traceback -g -fpe0 -fp-stack-check -heap-arrays
+    DEBUGFLAG= -check all -traceback -g -fpe0 -fp-stack-check -heap-arrays -O0
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -convert big_endian
     ENDIANFLAGLITTLE= -convert little_endian
@@ -119,7 +119,7 @@ ifeq ($(SYSTEM), complexity)
 #
     OMPFLAG= -openmp #-DZEN
     DBLFLAG= -r8
-    DEBUGFLAG= -check all -traceback -g -fpe0 -fp-stack-check -heap-arrays
+    DEBUGFLAG= -check all -traceback -g -fpe0 -fp-stack-check -heap-arrays -O0
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -convert big_endian
     ENDIANFLAGLITTLE= -convert little_endian
@@ -250,12 +250,12 @@ endif
 
 ifeq ($(SYSTEM), ifort)
     FC= ifort
-    FFLAGS= -O3 -xHost -mcmodel=medium -i-dynamic  \
+    FFLAGS= -O3 -xHost -mcmodel=medium -shared-intel  \
             -warn uninitialized -warn truncated_source \
             -warn interfaces -nogen-interfaces 
     OMPFLAG= -openmp
     DBLFLAG= -r8
-    DEBUGFLAG= -check all -traceback -g -fpe0 -fp-stack-check -heap-arrays
+    DEBUGFLAG= -check all -traceback -g -fpe0 -fp-stack-check -heap-arrays -O0
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -convert big_endian
     ENDIANFLAGLITTLE= -convert little_endian

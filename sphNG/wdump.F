@@ -121,6 +121,7 @@ c
 c--Write output file
 c
 #ifdef MPIALL
+c  On MPI only iproc=0 writes the file ident. 
       IF (iproc.EQ.0) THEN
 #endif
       WRITE (idisk1, ERR=100) int1,r1,int2,iversion,int1o
@@ -197,6 +198,10 @@ c      n2tot = n2
 #endif
 
 #ifdef MPIALL
+c  On MPI only iproc=0 writes the headers. 
+c  Other MPI processes skip forward to the lock and then write their data arrays
+c  On MPICOPY only iproc=0 writes anything and the corresponding ENDIF is at the
+c  end of the subroutine.
       IF (iproc.EQ.0) THEN
 #endif
 c
@@ -305,6 +310,12 @@ c--real*8
       WRITE (idisk1, ERR=100)
      &      tag((/'udist ','umass ','utime ','umagfd'/))
       WRITE (idisk1, ERR=100) udist, umass, utime, umagfd
+#ifdef MPI
+c Note: this is MPI *not* MPIALL because for MPICOPY builds only iproc=0
+c       writes to the output file. A correspending #ifdef MPICOPY ENDIF
+c       is located at the end of this subroutine.
+      ENDIF
+#endif
 c
 c--Arrays
 c
@@ -314,27 +325,36 @@ c     This has up to 4 blocks (hydro variables, sink particles, radiative
 c     transfer, and MHD) repeated nblocks times for each of nblocks MPI
 c     processes
 c
+c     This code runs on all MPI processes
       number = 2
       IF (iradtrans.EQ.idim) number = 3
       IF (imhd.EQ.idim) number = 4
       nblockarrays = number*nblocks
-      WRITE (idisk1, ERR=100) nblockarrays
 
 #ifdef MPI
-c Note: this is MPI *not* MPIALL because for MPICOPY builds only iproc=0
-c       writes to the output file. A correspending #ifdef MPICOPY ENDIF
-c       is located later in this subroutine.
+c     Only write the total number of arrays on first process.
+      IF (iproc.EQ.0) THEN
+#endif
+         WRITE (idisk1, ERR=100) nblockarrays
+#ifdef MPI
       ENDIF
+#endif
+
+#ifdef MPI
       nowgo = 0
 #ifdef MPIDEBUG
       print *,iproc,': About to write ',nprint,ifulldump
 #endif
+c     iproc=0 doesn't wait for the lock. All other processes wait until
+c     the previous processes have written their arrays
       IF (iproc.GT.0) THEN
          CALL MPI_RECV(nowgo,1,MPI_INTEGER,iproc-1,99,MPI_COMM_WORLD,
      &        istatus,ierr)
 #ifdef MPIDEBUG
          print *,iproc,': Opening file ',nprint
 #endif
+c     MPI processes call CLOSE after writing the arrays. 
+c     file will then open the binary file with STATUS='append'
          CALL file
 #ifdef MPIDEBUG
          print *,iproc,': Opened file'

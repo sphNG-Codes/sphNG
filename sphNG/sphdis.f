@@ -120,10 +120,11 @@ c
             WRITE (*,*) 'Enter size of velocity files (e.g.N=32^3)'
             READ (iread,*) nspace
 
-            OPEN (45,FILE=filename,FORM='unformatted')
-            READ (45) (((velx(i,j,k), i=1,nspace),j=1,nspace), 
+            OPEN (itablerd,FILE=filename,FORM='unformatted'
+     &            STATUS='old', ACTION='read')
+            READ (itablerd) (((velx(i,j,k), i=1,nspace),j=1,nspace), 
      &           k=1,nspace)
-            CLOSE (45)
+            CLOSE (itablerd)
 
             velmax = 0.
             DO k = 1, nspace

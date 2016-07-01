@@ -40,11 +40,12 @@ c
 88001 FORMAT (A1)
 
       IF (islope.EQ.0) THEN
-         OPEN (19, FILE='/home/mbate/Important/Gaussian_Data')
+         OPEN (itablerd, FILE='/home/mbate/Important/Gaussian_Data',
+               STATUS='old', ACTION='read')
          DO i = 1, 1001
-            READ (19,*,END=50) dummy, dummy, gauss(i)
+            READ (itablerd,*,END=50) dummy, dummy, gauss(i)
          ENDDO
-         CLOSE (19)
+         CLOSE (itablerd)
          GOTO 100
  50      WRITE (*,*) 'ERROR - Gaussian_Data'
          CALL quit(0)

@@ -30,7 +30,8 @@ c
 c--IF MPI setup, then read set up input from file
 c
 c      iread = 10
-      OPEN (iread, FILE='setup.txt', STATUS='unknown')
+      OPEN (iread, FILE='setup.txt', STATUS='old',
+     &      ACTION='read')
 #endif
 c
 c--General set up

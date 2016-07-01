@@ -247,10 +247,13 @@ c Prevent infinite loops
          WRITE(iprint,99999)
 99999    FORMAT(' Quitting. Trying to dump state-of-play to FAILDUMP')
 
-         OPEN(UNIT=666, ERR=166, FILE="FAILDUMP",
-     &        FORM='unformatted', RECL=imaxrec   )
-         CALL wdump(666)
-         CLOSE(UNIT=666)
+c Make sure the unit number is free
+         CLOSE (idisk2)
+         OPEN(UNIT=idisk2, ERR=166, FILE="FAILDUMP",
+     &        FORM='unformatted', RECL=imaxrec,
+     &        STATUS='replace', ACTION='write')
+         CALL wdump(idisk2)
+         CLOSE(UNIT=idisk2)
 
          GOTO 167
 

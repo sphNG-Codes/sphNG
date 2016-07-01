@@ -41,7 +41,7 @@ c
 
       IF (islope.EQ.0) THEN
          OPEN (itablerd, FILE='/home/mbate/Important/Gaussian_Data',
-               STATUS='old', ACTION='read')
+     &         STATUS='old', ACTION='read')
          DO i = 1, 1001
             READ (itablerd,*,END=50) dummy, dummy, gauss(i)
          ENDDO

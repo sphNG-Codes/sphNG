@@ -1,0 +1,43 @@
+t (code units)
+t (free fall times)
+t (s)
+total energy
+kinetic energy
+rotational energy about z
+rotational energy about x
+potential energy
+internal energy
+magnetic energy
+total angular momentum
+total linear momentum
+alpha
+beta parallel
+Jeans number
+plasma beta (min)
+plasma beta (max)
+plasma beta (mean)
+div B (max)
+div B (mean)
+J (max)
+J (mean)
+(div B)*h/B (max)
+int B dV
+cross helicity
+mean density (code units)
+mean density (g/cm\u3\d)
+max density (code units)
+max density (g/cm\u3\d)
+\gr\dcen\u (code units)
+\gr\dcen\u (g/cm\u3\d)
+B (min) (code units)
+B (min) [G]
+B (mean) (code units)
+B (mean) [G]
+B (max) (code units)
+B (max) [G]
+T_g (mean) [K]
+T_g (max) [K]
+T_g (cen) [K]
+T_r (mean) [K]
+T_r (max) [K]
+T_r (cen) [K]

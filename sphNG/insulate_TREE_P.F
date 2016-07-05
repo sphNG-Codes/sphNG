@@ -225,6 +225,10 @@ c                                                           *
 c  This subroutine should be used instead of 'STOP'         *
 c                                                           *
 c************************************************************
+#ifdef __INTEL_COMPILER
+c Needed so that ABORT works correctly
+      USE IFLPORT, ONLY: ABORT
+#endif
       INCLUDE 'idim'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/actio'
@@ -239,8 +243,15 @@ c************************************************************
       LOGICAL ionce
       DATA ionce/.TRUE./
 
+c First, if iflag < 0 this is a graceful exit
+      IF (iflag.LT.0) THEN
+#ifdef MPIALL
+c Shut down the MPI system
+        CALL MPI_FINALIZE(ierr)
+#endif
+        GOTO  168
 #ifndef MPIALL
-      IF (iflag.EQ.1.AND.ionce.AND.job(1:9).EQ.'evolution') THEN
+      ELSEIF (iflag.GT.0.AND.ionce.AND.job(1:9).EQ.'evolution') THEN
 c Prevent infinite loops
          ionce = .FALSE.
          WRITE(*,99999)
@@ -248,7 +259,7 @@ c Prevent infinite loops
 99999    FORMAT(' Quitting. Trying to dump state-of-play to FAILDUMP')
 
 c Make sure the unit number is free
-         CLOSE (idisk2)
+         CLOSE(UNIT=idisk2)
          OPEN(UNIT=idisk2, ERR=166, FILE="FAILDUMP",
      &        FORM='unformatted', RECL=imaxrec,
      &        STATUS='replace', ACTION='write')
@@ -260,12 +271,16 @@ c Make sure the unit number is free
  166     WRITE(*,99998)
          WRITE(iprint,99998)
 99998    FORMAT(' Failed to write dump. Sorry.')
-      ENDIF
 #endif
-
-c Actually quit
 #ifdef MPIALL
-      CALL MPI_FINALIZE(ierr)
+      ELSE
+c iret should probably be set to something 'meaningful'
+         iret = 65
+         CALL MPI_ABORT(MPI_COMM_WORLD, iret, ierr)
 #endif
- 167  STOP
+      ENDIF
+c ABORT allows for tracebacks and core files (sometimes)
+ 167  CALL ABORT
+c If by some error we make it this far, really really STOP
+ 168  STOP 
       END

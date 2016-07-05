@@ -43,7 +43,7 @@ c************************************************************
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
 
-      CHARACTER*7 where
+      CHARACTER*7 where, where2
 c
 c--Allow for tracing flow
 c
@@ -398,8 +398,8 @@ c
 c
 c--Write global results on listing
 c
-         where = 'inform'
-         CALL prout(where)
+         where2 = 'inform'
+         CALL prout(where2)
          iptcreat = 0
 c
 c--Update input file
@@ -410,8 +410,8 @@ c
 c
 c--Write global results on listing
 c
-         where = 'inform'
-         CALL prout(where)         
+         where2 = 'inform'
+         CALL prout(where2)         
       ENDIF
 
       IF (idebug(1:6).EQ.'inform') THEN

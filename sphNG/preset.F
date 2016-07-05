@@ -315,7 +315,8 @@ c
 #ifdef MPIALL
       print *,iproc,': Preset E'
 #endif
-      CALL ktable
+c Setpart has already called ktable for initial jobs
+      IF (ihopin.NE.1) CALL ktable
 c
 c--Read in tables of quantities
 c

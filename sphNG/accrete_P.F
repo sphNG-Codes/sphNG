@@ -2198,7 +2198,7 @@ c
 
             PRINT *,'NOTE MERGER WRITTEN ', nptmasstot, nptmass
 
-            OPEN (iptprint, FILE=ptfile,
+            OPEN (iptprint, FILE=ptfile, ACTION='write', STATUS='old',
      &           FORM='unformatted',POSITION='APPEND')
 
             WRITE (iptprint) realtime/tcomp, realtime, -nptmasstot
@@ -2281,7 +2281,7 @@ c
             print *,iproc,': Trying to open ',ptfile,' file'
 #endif
 #endif
-            OPEN (iptprint, FILE=ptfile,
+            OPEN (iptprint, FILE=ptfile, ACTION='write', STATUS='old',
      &           FORM='unformatted',POSITION='APPEND')
             WRITE (iptprint) realtime/tcomp, realtime, nptmasstot
             CALL FLUSH(iptprint)
@@ -2292,7 +2292,7 @@ c
      &           MPI_COMM_WORLD, istatus, ierr)
 
 c            print *,iproc,': Trying to open ',ptfile,' file'
-            OPEN (iptprint, FILE=ptfile,
+            OPEN (iptprint, FILE=ptfile, ACTION='write', STATUS='old',
      &           FORM='unformatted',POSITION='APPEND')
          ENDIF
 #ifdef MPIDEBUGS

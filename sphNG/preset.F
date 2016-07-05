@@ -121,14 +121,14 @@ c         CALL appendiproc(21,accfile,iproc)
             print *,iproc,': Preset ',ptfile
             IF (iproc.EQ.0) THEN
 #endif
-               OPEN (iptprint, FILE=ptfile,STATUS='unknown',
-     &              FORM='unformatted')
+               OPEN (iptprint, FILE=ptfile,STATUS='replace',
+     &              ACTION='write', FORM='unformatted')
                CLOSE (iptprint)
 #ifdef MPIALL
             ENDIF
 #endif
-            OPEN (iaccpr,FILE=accfile,STATUS='unknown',
-     &           FORM='unformatted')
+            OPEN (iaccpr,FILE=accfile,STATUS='replace',
+     &           ACTION='write', FORM='unformatted')
          ENDIF
 c
 c--Open files for killing and reassignment of particles
@@ -142,14 +142,14 @@ c         CALL appendiproc(21,killfile,iproc)
 c         CALL appendiproc(21,reassfile,iproc)
 #endif
          IF (ibound.EQ.8 .OR. ibound/10.EQ.9 .OR. ibound.EQ.100) THEN
-            OPEN (ikillpr, FILE=killfile, STATUS='unknown',
-     &           FORM='unformatted')
-            OPEN (ireasspr, FILE=reassfile, STATUS='unknown',
-     &           FORM='unformatted')
+            OPEN (ikillpr, FILE=killfile, STATUS='replace',
+     &           ACTION='write', FORM='unformatted')
+            OPEN (ireasspr, FILE=reassfile, STATUS='replace',
+     &           ACTION='write', FORM='unformatted')
          ENDIF
          IF (irotpot.EQ.1)
-     &        OPEN (ikillpr, FILE=killfile, STATUS='unknown',
-     &        FORM='unformatted')
+     &        OPEN (ikillpr, FILE=killfile, STATUS='replace',
+     &        ACTION='write', FORM='unformatted')
 c
 c--Open notify file
 c

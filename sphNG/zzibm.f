@@ -1,28 +1,30 @@
-      SUBROUTINE zzibm
 c************************************************************
 c                                                           *
-c  This routine contains all machine dependant routines     *
+c  These subroutine contains all machine dependant code     *
 c                                                           *
 c************************************************************
 
-c      use f90_unix
-      
-      INCLUDE 'COMMONS/ibmcom'
-
-      DIMENSION ivalues(8) !, istatb(19)
-
-      CHARACTER*11 job, inname
-      CHARACTER*10 time
-      CHARACTER*8 date
-      CHARACTER*5 zone
-      CHARACTER*7 file
-      LOGICAL ifirst
-
-      DATA ifirst/.TRUE./
 c
 c--Get date
 c
-      ENTRY getdat(id, im, iy)
+      SUBROUTINE getdat(id, im, iy)
+      IMPLICIT NONE
+
+      INCLUDE 'COMMONS/ibmcom'
+
+      INTEGER id,im,iy,ihour,imins,isec,imilli
+      INTEGER ivalues
+
+      CHARACTER*10 time
+      CHARACTER*8 date
+      CHARACTER*5 zone
+
+      LOGICAL ifirst
+
+      DIMENSION ivalues(8)
+
+      DATA ifirst/.TRUE./
+
       CALL DATE_AND_TIME(date,time,zone,ivalues)
       id = ivalues(3)
       im = ivalues(2)
@@ -43,20 +45,46 @@ c
      &        imilli*0.001
       ENDIF
       RETURN
+      END SUBROUTINE getdat
 c
 c--Get time
 c
-      ENTRY getime(ih, imin, is, fhour)
+      SUBROUTINE getime(ih, imin, is, fhour)
+      IMPLICIT NONE 
+
+      INTEGER ih,imin,is,ivalues
+      REAL fhour
+
+      CHARACTER*10 time
+      CHARACTER*8 date
+      CHARACTER*5 zone
+
+      DIMENSION ivalues(8)
+
       CALL DATE_AND_TIME(date,time,zone,ivalues)
       ih = ivalues(5)
       imin = ivalues(6)
       is = ivalues(7)
       fhour = ih + imin/60. + is/3600.
       RETURN
+      ENDSUBROUTINE getime
 c
 c--Get time used since begining
 c
-      ENTRY getused(tused)
+      SUBROUTINE getused(tused)
+      IMPLICIT NONE
+
+      INCLUDE 'COMMONS/ibmcom'
+
+      INTEGER i,idu,ihu,iminu,isu,imilliu,ivalues,imu
+      REAL tused
+
+      CHARACTER*10 time
+      CHARACTER*8 date
+      CHARACTER*5 zone
+
+      DIMENSION ivalues(8)
+
       CALL DATE_AND_TIME(date,time,zone,ivalues)
       idu = ivalues(3)
       ihu = ivalues(5)
@@ -80,27 +108,27 @@ c
       tused = idu*86400. + ihu*3600. + iminu*60. + isu + imilliu*0.001
      &     - starttime
       RETURN
+      ENDSUBROUTINE getused
 c
 c--Check for file status
 c
-      ENTRY statfile(file, ifsize)
+      SUBROUTINE statfile(file, ifsize)
+      IMPLICIT NONE
+      CHARACTER*7 file
+      INTEGER ifsize
 c      ifile = lstat(file, istatb)
 c      ifsize = istatb(8)
       ifsize = 0
       RETURN
+      ENDSUBROUTINE statfile
 c
 c--Get argument on command line
 c
-      ENTRY getcom(job, inname)
+      SUBROUTINE getcom(job, inname)
+      IMPLICIT NONE
+      CHARACTER*11 job, inname
       CALL getarg(1, job)
       CALL getarg(2, inname)
       WRITE (*,*) 'Job: ', job, inname
       RETURN
-c
-c--Get argument on command line
-c
-c      ENTRY flush(iunit)
-c      CALL FLUSH_(iunit)
-c      RETURN
-
-      END
+      ENDSUBROUTINE getcom

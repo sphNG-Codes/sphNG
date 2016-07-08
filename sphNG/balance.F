@@ -489,7 +489,7 @@ c     &                          MPI_COMM_WORLD, ierr)
 #ifdef NONIDEAL
                            CALL MPI_SEND(jcurrent,1,indexMPI3,j,172,
      &                          MPI_COMM_WORLD, ierr)
-                           CALL MPI_SEND(Zg_on_ag,1,indexMPIR,j,173,
+                           CALL MPI_SEND(n_R,1,indexMPI4,j,173,
      &                          MPI_COMM_WORLD, ierr)
                            CALL MPI_SEND(n_electronT,1,indexMPIR,j,174,
      &                          MPI_COMM_WORLD, ierr)
@@ -1013,11 +1013,11 @@ c                  ENDIF
                      CALL quit(1)
                   ENDIF
 
-                  CALL MPI_RECV(Zg_on_ag(npartnew+1), idim, MPI_REAL8,
+                  CALL MPI_RECV(n_R(1,npartnew+1), idim, i4REAL8,
      &                 iprocrec, 173, MPI_COMM_WORLD, istatus, ierr)
-                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  CALL MPI_GET_COUNT(istatus, i4REAL8, inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
-                     WRITE (*,*) 'ERROR - balance igotnumber: Zg_on_ag'
+                     WRITE (*,*) 'ERROR - balance igotnumber: n_R'
                      CALL quit(1)
                   ENDIF
 
@@ -2286,7 +2286,9 @@ c         h2mol(ito) = h2mol(ifrom)
          DO i = 1, 3
             jcurrent(i,ito) = jcurrent(i,ifrom)
          END DO
-         Zg_on_ag(ito) = Zg_on_ag(ifrom)
+         DO i = 1,4
+            n_R(i,ito) = n_R(i,ifrom)
+         END DO
          n_electronT(ito) = n_electronT(ifrom)
 #endif
       ENDIF

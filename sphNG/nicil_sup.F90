@@ -5,15 +5,17 @@
 !  Contains supplementary routines to NICIL for use in sphNG; adapted 
 !  from Phantom's evwrite & energies.
 !  This is not part of the NICIL package.
+!  Note: Attempts to incorporate MPI into this routine failed; it would
+!        crash in wdump.F on 'nreassigntot; note that wdump.F did not
+!        crash for nonideal=no.
 !
 !  AUTHOR: James Wurster
 !
 !----------------------------------------------------------------------!
 module nicil_sup
- use nicil, only: nicil_get_eta
+ use nicil, only: nicil_get_eta,nimhd_get_dudt
  use nicil, only: use_ohm,use_hall,use_ambi,ion_rays,ion_thermal, &
                   nelements,nelements_max,nlevels,meanmolmass
-
  implicit none
  !
  !--Indicies to determine which action to take
@@ -21,8 +23,9 @@ module nicil_sup
  integer(kind=1),   parameter :: ievN = 1
  integer(kind=1),   parameter :: ievA = 2  
  integer(kind=1),   parameter :: ievX = 3
- integer,           parameter :: ievfile = 1701
- logical,           private   :: firstcall = .true.
+ integer,           parameter :: ievfile   = 742051
+ integer,    public,parameter :: inumev    = 99
+ integer,    public           :: ielements = 0
  !
  integer,           private   :: itimeni,itX,itA,itN,ietaFX,ietaFA &
                                 ,iohmX,iohmA,iohmN,iohmfX,iohmfA,iohmfN &
@@ -31,20 +34,18 @@ module nicil_sup
                                 ,iahallfX,iahallfA,iahallfN &
                                 ,iambiX,iambiA,iambiN,iambifX,iambifA,iambifN &
                                 ,inenX,inenA,ineX,ineA,innX,innA &
-                                ,izgrainX,izgrainA,izgrainN &
-                                ,inihrX,inihrA,inimrX,inimrA,ingX,ingA &
+                                ,inihrX,inihrA,inimrX,inimrA,ingnX,ingnA,ingX,ingA,ingpX,ingpA &
                                 ,inistX,inistA,inidtX,inidtA &
                                 ,inhX,inhA,inheX,inheA,innaX,innaA,inmgX,inmgA &
                                 ,inkX,inkA,inhedX,inhedA,innadX,innadA &
                                 ,inmgdX,inmgdA,inkdX,inkdA
-  integer,          private   :: ielements
-  integer,          parameter :: inumev=100
   real,             private   :: rhocrit_nimhd,rhocrit2_nimhd,rhocrit3_nimhd
   real,             private   :: coef_gammaeq1,coef_gamma,coef_gam,coef_gamdh,coef_gamah
   character(len=19),private   :: ev_label(inumev)
-  integer(kind=1),  public    :: ev_action(inumev)
+  integer(kind=1),  private   :: ev_action(inumev)
   !--Subroutines
-  public                      :: nimhd_init_gastemp,nimhd_gastemp,inform_nimhd
+  public                      :: nimhd_init_gastemp,nimhd_gastemp,energ_nimhd
+  public                      :: nimhd_write_evheader,nimhd_write_ev,nimhd_get_stats
   private                     :: get_coef_gamma,fill_one_label,fill_xan_label
 
  private
@@ -95,7 +96,11 @@ real function nimhd_gastemp(encal,vxyzu4i,ekcle3i,rhoi,gamma)
  character(len=*), intent(in) :: encal
  !
  if (encal=='r') then
-    nimhd_gastemp = vxyzu4i/ekcle3i
+    if (ekcle3i > 0.0) then
+       nimhd_gastemp = vxyzu4i/ekcle3i
+    else
+       nimhd_gastemp = 0.0  ! Should not happen if parent code is written correctly
+    endif
 ! elseif (encal=='m') then
 !!   NOTE: encal=="m" does not seem to be a current option
 !    nimhd_gastemp = vxyzu4i/getcv(rhoi,vxyzu4i)
@@ -116,37 +121,48 @@ real function nimhd_gastemp(encal,vxyzu4i,ekcle3i,rhoi,gamma)
  endif
  !
 end function nimhd_gastemp
-!----------------------------------------------------------------
+!-----------------------------------------------------------------------
 !+
-!  Prints useful data to file
+!  wrapper routine to calculate and include du/dt
 !+
-!----------------------------------------------------------------
-subroutine inform_nimhd(time,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
-                        iphase,Zg_on_ag,n_electronT,alphaMM,alphamin,gamma,ifsvi,&
-                        nimhdfile,encal)
- real,             intent(in) :: time,gamma
- real,             intent(in) :: xyzmh(:,:),vxyzu(:,:),ekcle(:,:),Bxyz(:,:),rho(:),vsound(:), &
-                                 Zg_on_ag(:),n_electronT(:),alphaMM(:,:),alphamin(:)
- integer,          intent(in) :: npart,ifsvi
- integer(kind=1),  intent(in) :: iphase(:)
- character(len=*), intent(in) :: nimhdfile,encal
- integer                      :: i,j,ierr
- integer(kind=8)              :: np
- real                         :: dnptot,B2i,Bi,temperature,vsigi, &
-                                 etaart,etaart1,etaohm,etahall,etaambi
- real                         :: data_out(13+nelements_max*nlevels-1)
- real                         :: ev_data(0:inumev),ev_data_thread(0:inumev)
- character(len=27)            :: ev_fmt
- character(len=35)            :: ev_format
-
+!-----------------------------------------------------------------------
+subroutine energ_nimhd(fxyzu4i,jcurrenti,Bxyzi,vxyzu4i,ekcle3i,rhoi,n_Ri,n_electronTi,gamma,encal)
+ real,             intent(inout) :: fxyzu4i
+ real,             intent(in)    :: jcurrenti(3),Bxyzi(3),n_Ri(:)
+ real,             intent(in)    :: vxyzu4i,ekcle3i,rhoi,n_electronTi,gamma
+ character(len=*), intent(in)    :: encal
+ integer                         :: ierr
+ real                            :: Bi,temperaturei,etaohmi,etahalli,etaambii
+ real                            :: dudtnonideal
  !
- !--Determine what values should be in the header
+ Bi           = sqrt( dot_product(Bxyzi,Bxyzi) )
+ temperaturei = nimhd_gastemp(encal,vxyzu4i,ekcle3i,rhoi,gamma)
+ call nicil_get_eta(etaohmi,etahalli,etaambii,Bi,rhoi,temperaturei,n_Ri,n_electronTi,ierr)
+ call nimhd_get_dudt(dudtnonideal,etaohmi,etaambii,rhoi,jcurrenti,Bxyzi)
+ fxyzu4i      = fxyzu4i + dudtnonideal
  !
- if ( firstcall ) then
-    firstcall = .false.
+end subroutine energ_nimhd
+!-----------------------------------------------------------------------
+!+
+!  Calculates Header and initialises indicies; initialises .ev file if
+!  if does not exist.
+!+
+!-----------------------------------------------------------------------
+subroutine nimhd_write_evheader(nimhdfile,iproc)
+ integer,          intent(in)  :: iproc
+ character(len=*), intent(in)  :: nimhdfile
+ integer                       :: i
+ logical                       :: iexists
+ character(len=  27)           :: ev_fmt
+ !
+ inquire(file=nimhdfile,exist=iexists)
+ if ( iexists .and. ielements > 0 ) then
+    return
+ else
+    ! Determine what values should be in the header
     i = 1
     write(ev_fmt,'(a)') "(1x,'[',i2.2,1x,a11,']',2x)"
-    call fill_one_label(ev_fmt,'time',        i,itimeni, iev0)
+    call fill_one_label(ev_fmt,'time',        i,itimeni, iev0             )
     call fill_xan_label(ev_fmt,'temp',        i,itX,     itA,     itN     )
     call fill_xan_label(ev_fmt,'eta_ar',      i,ietaFX,  ietaFA           )
     if (use_ohm) then
@@ -167,10 +183,12 @@ subroutine inform_nimhd(time,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
     call fill_xan_label(ev_fmt,'n_e',         i,ineX,    ineA             )
     call fill_xan_label(ev_fmt,'n_n',         i,innX,    innA             )
     if (ion_rays) then
-       call fill_xan_label(ev_fmt,'Z_Grain',  i,izgrainX,izgrainA,izgrainN)
        call fill_xan_label(ev_fmt,'n_ihR',    i,inihrX,  inihrA           )
        call fill_xan_label(ev_fmt,'n_imR',    i,inimrX,  inimrA           )
        call fill_xan_label(ev_fmt,'n_gR',     i,ingX,    ingA             )
+       call fill_xan_label(ev_fmt,'n_g(Z=-1)',i,ingnX,   ingnA            )
+       call fill_xan_label(ev_fmt,'n_g(Z= 0)',i,ingX,    ingA             )
+       call fill_xan_label(ev_fmt,'n_g(Z=+1)',i,ingpX,   ingpA            )
     endif
     if (ion_thermal) then
        call fill_xan_label(ev_fmt,   'n_isT', i,inistX,  inistA           )
@@ -199,54 +217,82 @@ subroutine inform_nimhd(time,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
     endif
     ielements = i - 1 ! The number of columns to be calculates
     !
-    !--write a header line
-    open(ievfile, file=nimhdfile,status='replace')
-    write(ev_fmt,'(a,I3,a)') '(',ielements+1,'a)'
-    write(ievfile,ev_fmt)'#',ev_label(1:ielements)
- else
-    !--open the file
-    open(ievfile, file=nimhdfile,position='append')
+    ! Write a header line if file does not exists (else this was done to initialise the indicies)
+    if ( .not. iexists .and. iproc==0 ) then
+       open(ievfile, file=nimhdfile,status='replace')
+       write(ev_fmt,'(a,I3,a)') '(',ielements+1,'a)'
+       write(ievfile,ev_fmt)'#',ev_label(1:ielements)
+       close(ievfile)
+    endif
  end if
  !
- !--Compile non-ideal MHD data
+end subroutine nimhd_write_evheader
+!-----------------------------------------------------------------------
+!+
+!  Calculates the non-ideal MHD characteristics of interest
+!+
+!-----------------------------------------------------------------------
+subroutine nimhd_get_stats(npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
+                        alphaMM,alphamin,n_R,n_electronT,iphase,&
+                        gamma,ifsvi,encal,np,et,ev_data)
+ real,             intent(in)  :: gamma
+ real,             intent(in)  :: xyzmh(:,:),vxyzu(:,:),ekcle(:,:),Bxyz(:,:),&
+                                  n_R(:,:),n_electronT(:),alphamin(:)
+ real(kind=4),     intent(in)  :: rho(:),vsound(:),alphaMM(:,:)
+ integer,          intent(in)  :: npart,ifsvi
+ integer(kind=1),  intent(in)  :: iphase(:)
+ character(len=*), intent(in)  :: encal
+ integer,          intent(out) :: np
+ real,             intent(out) :: et,ev_data(0:inumev)
+ integer                       :: i,j,ierr,c0,c1,crate,cmax
+ real                          :: rhoi,B2i,Bi,temperature,vsigi, &
+                                  etaart,etaart1,etaohm,etahall,etaambi
+ real                          :: data_out(17+nelements_max*nlevels-3)
+ real                          :: ev_data_thread(0:inumev)
+ !
+ ! To determine the runtime in this routine; not using sphNG's routine since
+ ! this file is compiled first
+ call system_clock(c0,crate,cmax)
  !
  call initialise_ev_data(ielements,ev_action,ev_data)
  np = 0
 !$omp parallel default(none) &
 !$omp shared(xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,iphase,npart,encal) &
-!$omp shared(Zg_on_ag,n_electronT,alphaMM,alphamin,gamma,ifsvi) &
+!$omp shared(n_R,n_electronT,alphaMM,alphamin,gamma,ifsvi) &
 !$omp shared(use_ohm,use_hall,use_ambi,ion_rays,ion_thermal,nelements) &
 !$omp shared(ielements,ev_data,ev_action) &
 !$omp shared(itX,itA,itN,ietaFX,ietaFA,iohmX,iohmA,iohmN,iohmfX,iohmfA,iohmfN) &
 !$omp shared(ihallX,ihallA,ihallN,iahallX,iahallA,iahallN) &
 !$omp shared(ihallfX,ihallfA,ihallfN,iahallfX,iahallfA,iahallfN) &
 !$omp shared(iambiX,iambiA,iambiN,iambifX,iambifA,iambifN) &
-!$omp shared(inenX,inenA,ineX,ineA,innX,innA,izgrainX,izgrainA,izgrainN) &
-!$omp shared(inihrX,inihrA,inimrX,inimrA,ingX,ingA,inistX,inistA,inidtX,inidtA) &
+!$omp shared(inenX,inenA,ineX,ineA,innX,innA,inihrX,inihrA,inimrX,inimrA) &
+!$omp shared(ingnX,ingnA,ingX,ingA,ingpX,ingpA,inistX,inistA,inidtX,inidtA) &
 !$omp shared(inhX,inhA,inheX,inheA,innaX,innaA,inmgX,inmgA,inkX,inkA) &
 !$omp shared(inhedX,inhedA,innadX,innadA,inmgdX,inmgdA,inkdX,inkdA) &
-!$omp private(i,j,ierr,B2i,Bi,temperature,vsigi,etaart,etaart1,etaohm,etahall,etaambi,data_out) &
+!$omp private(i,j,ierr,rhoi,B2i,Bi,temperature,vsigi,etaart,etaart1,etaohm,etahall,etaambi,data_out) &
 !$omp private(ev_data_thread)&
 !$omp reduction(+:np) 
  call initialise_ev_data(ielements,ev_action,ev_data_thread)
 !$omp do
  do i=1,npart
-    if (iphase(i)==0) then
-       np  = np + 1
-       B2i = dot_product(Bxyz(1:3,i),Bxyz(1:3,i))
-       Bi  = sqrt(B2i)
-       temperature = nimhd_gastemp(encal,vxyzu(4,i),ekcle(3,i),rho(i),gamma)
-       call nicil_get_eta(etaohm,etahall,etaambi,Bi,rho(i),temperature, &
-                          Zg_on_ag(i),n_electronT(i),ierr,data_out)
-       vsigi = sqrt(vsound(i)**2 + B2i/rho(i))
+     if ( iphase(i)==0 ) then
+       np   = np + 1
+       B2i  = dot_product(Bxyz(1:3,i),Bxyz(1:3,i))
+       Bi   = sqrt(B2i)
+       rhoi = dble(rho(i))
+       temperature = nimhd_gastemp(encal,vxyzu(4,i),ekcle(3,i),rhoi,gamma)
+       call nicil_get_eta(etaohm,etahall,etaambi,Bi,rhoi,temperature, &
+                          n_R(:,i),n_electronT(i),ierr,data_out)
+       vsigi = sqrt( dble(vsound(i))*dble(vsound(i)) + B2i/rhoi)
        if (ifsvi >= 6) then
-          etaart = alphaMM(2,i)*vsigi*xyzmh(5,i)
+          etaart = dble(alphaMM(2,i))*vsigi*xyzmh(5,i)
        else
           etaart = alphamin(2)*vsigi*xyzmh(5,i)
        endif
-       if (etaart > 0.) then
+       if (etaart > 0.0.and. etaart < huge(etaart)) then
           etaart1 = 1.0/etaart
        else
+          etaart  = 0.0
           etaart1 = 0.0
        endif
        call ev_update(ev_data_thread,temperature,      itX,   itA   ,itN   )
@@ -265,19 +311,24 @@ subroutine inform_nimhd(time,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
           call ev_update(ev_data_thread,etaambi,        iambiX, iambiA, iambiN )
           call ev_update(ev_data_thread,etaambi*etaart1,iambifX,iambifA,iambifN)
        endif
-       call ev_update(ev_data_thread,data_out(7)/data_out(8),inenX,inenA)
-       call ev_update(ev_data_thread,      data_out( 7), ineX,   ineA             )
-       call ev_update(ev_data_thread,      data_out( 8), innX,   innA             )
+       if (data_out(7) > 0.0) then
+         call ev_update(ev_data_thread,data_out(6)/data_out(7),inenX,inenA)
+       else
+         call ev_update(ev_data_thread,0.0,                    inenX,inenA)
+       end if
+       call ev_update(ev_data_thread,      data_out( 6), ineX,   ineA             )
+       call ev_update(ev_data_thread,      data_out( 7), innX,   innA             )
        if (ion_rays) then
-          call ev_update(ev_data_thread,   data_out( 4),izgrainX,izgrainA,izgrainN)
-          call ev_update(ev_data_thread,   data_out( 9),inihrX,   inihrA          )
-          call ev_update(ev_data_thread,   data_out(10),inimrX,   inimrA          )
+          call ev_update(ev_data_thread,   data_out( 8),inihrX,   inihrA          )
+          call ev_update(ev_data_thread,   data_out( 9),inimrX,   inimrA          )
+          call ev_update(ev_data_thread,   data_out(12),ingnX,    ingpA           )
           call ev_update(ev_data_thread,   data_out(13),ingX,     ingA            )
+          call ev_update(ev_data_thread,   data_out(14),ingpX,    ingpA           )
        endif
        if (ion_thermal) then
-          call ev_update(ev_data_thread,   data_out(11),inistX,   inistA          )
-          call ev_update(ev_data_thread,   data_out(12),inidtX,   inidtA          )
-          j = 14
+          call ev_update(ev_data_thread,   data_out(10),inistX,   inistA          )
+          call ev_update(ev_data_thread,   data_out(11),inidtX,   inidtA          )
+          j = 17
           if (nelements>=2) then
              call ev_update(ev_data_thread,data_out( j),inhX,    inhA             ); j=j+1
              call ev_update(ev_data_thread,data_out( j),inheX,   inheA            ); j=j+1
@@ -306,21 +357,72 @@ subroutine inform_nimhd(time,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
 !$omp end critical(collatedata)
 !$omp end parallel
  !
- !--Finalise the arrays
+ ! to prevent printing useless data
+ do i = 1,ielements
+    if ( ev_data(i) >  0.01*huge(ev_data(i)) .or. &
+         ev_data(i) < -0.01*huge(ev_data(i))) then
+        ev_data(i) = 0.0
+    end if
+ enddo
+ !
+ !--To complete the timing
+ call system_clock(c1,crate,cmax)
+ et = (c1-c0)/real(crate)
+ !
+end subroutine nimhd_get_stats
+!-----------------------------------------------------------------------
+!+
+!  Writes non-ideal MHD data to file
+!+
+!-----------------------------------------------------------------------
+subroutine nimhd_write_ev(time,np,iprint,et,nimhdfile,ev_data_min,ev_data_max,ev_data_sum)
+ integer,          intent(in) :: np,iprint
+ real,             intent(in) :: time,et
+ real,             intent(in) :: ev_data_min(0:inumev),ev_data_max(0:inumev),ev_data_sum(0:inumev)
+ character(len=*), intent(in) :: nimhdfile
+ integer                      :: i
+ real                         :: dnptot
+ real                         :: ev_data(0:inumev)
+ character(len=  35)          :: ev_format
+ !
+ ! Average the relevant elements in the ev_data array
  if (np > 0.) then
     dnptot = 1./real(np)
  else
     dnptot = 0.
  endif
- call finalise_ev_data(ielements,ev_data,ev_action,dnptot)
+ ! Return data to common array and average when necessary
+ do i = 1,ielements
+    select case(ev_action(i))
+    case(ievA)
+      ev_data(i) = ev_data_sum(i)*dnptot
+    case(ievX)
+      ev_data(i) = ev_data_max(i)
+    case(ievN)
+      ev_data(i) = ev_data_min(i)
+    end select
+ enddo
+ ! Set the time
  ev_data(itimeni) = time
- !--Print data to file
-   write(ev_format,'(a,I2,a)')"(",ielements,"(1pe18.10,1x))"
-   write(ievfile,ev_format) ev_data(1:ielements)
+ !
+ !--Open file and write data
+ ! (it exist since this was previously checked in nimhd_write_evheader)
+ open(ievfile, file=nimhdfile,position='append')
+ write(ev_format,'(a,I2,a)')"(",ielements,"(1pe18.10,1x))"
+ write(ievfile,ev_format) ev_data(1:ielements)
+ call flush(ievfile)
  close(ievfile)
  !
+ !--To state the time taken
+ write(iprint,'(a,Es12.3,a)') & 
+    ' nicil: inform_nimhd: The max elapsed time on a processor is ',et,' seconds.'
+ if (et.gt.120.0) then
+    write(iprint,'(a,Es12.3,a)') &
+    ' nicil: inform_nimhd: The max elapsed time on a processor is ',et/60.0,' minutes.'
+ end if
+ !
  return
-end subroutine inform_nimhd
+end subroutine nimhd_write_ev
 !----------------------------------------------------------------
 !+
 !  creates a single label for the output file
@@ -426,25 +528,5 @@ subroutine ev_update(evdata,val,iX,iA,iN)
  if (present(iN)) evdata(iN) = min(evdata(iN),val)
  !
 end subroutine ev_update
-!
-!----------------------------------------------------------------
-!+
-!  Performs final generic housekeeping on the ev_data array
-!+
-!----------------------------------------------------------------
-subroutine finalise_ev_data(ielements,evdata,evaction,dnptot)
- integer,         intent(in)    :: ielements
- integer(kind=1), intent(in)    :: evaction(:)
- real,            intent(inout) :: evdata(0:inumev)
- real,            intent(in)    :: dnptot
- integer                        :: i
- !
- do i = 1,ielements
-    if (evaction(i)==ievA) evdata(i) = evdata(i)*dnptot
-    if ( evdata(i) >  0.01*huge(evdata(i)) .or. &
-         evdata(i) < -0.01*huge(evdata(i))) evdata(i) = 0.0
- enddo
- !
-end subroutine finalise_ev_data
 !----------------------------------------------------------------------!
 end module nicil_sup

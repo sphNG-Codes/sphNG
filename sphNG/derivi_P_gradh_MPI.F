@@ -1171,7 +1171,7 @@ c
 c--Transfer new values of vxyzu, ekcle, pr, vsound
 c     to other MPI processes.
 c     Also, for NONIDEAL MHD, needs to transfer updated values of
-c     jcurrent, Zg_on_ag, n_electronT
+c     jcurrent, n_R, n_electronT
 c
       inumbertotallocal = 0
       inumberreturned = 0
@@ -1261,11 +1261,19 @@ c
 
                         CALL MPI_TYPE_INDEXED(nneighsentback(j+1),
      &                       lblocklengths,llistsentback(1,j+1),
+     &                       i4REAL8,indexMPI4,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
+
+                        CALL MPI_SEND(n_R,1,indexMPI4,j,216,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_TYPE_FREE(indexMPI4,ierr)
+
+                        CALL MPI_TYPE_INDEXED(nneighsentback(j+1),
+     &                       lblocklengths,llistsentback(1,j+1),
      &                       MPI_REAL8,indexMPIR,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPIR,ierr)
 
-                        CALL MPI_SEND(Zg_on_ag,1,indexMPIR,j,216,
-     &                       MPI_COMM_WORLD, ierr)
                         CALL MPI_SEND(n_electronT,1,indexMPIR,j,217,
      &                       MPI_COMM_WORLD, ierr)
 
@@ -1360,12 +1368,12 @@ c
                   CALL quit(1)
                ENDIF
 
-               CALL MPI_RECV(Zg_on_ag(istart), idim, MPI_REAL8,
+               CALL MPI_RECV(n_R(1,istart), idim, MPI_REAL8,
      &              i, 216, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
                iprocrec = istatus(MPI_SOURCE)
-               IF (icheck.NE.inumber) THEN
-                  WRITE (*,*) iproc,': ERROR - icheck.NE.inumber Zg'
+               IF (icheck.NE.inumber/4) THEN
+                  WRITE (*,*) iproc,': ERROR - icheck.NE.inumber n_R'
                   CALL quit(1)
                ENDIF
 

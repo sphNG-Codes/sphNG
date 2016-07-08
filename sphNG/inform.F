@@ -5,6 +5,9 @@ c  This routine computes relevant quantities for print out  *
 c                                                           *
 c************************************************************
 
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
       INCLUDE 'idim'
 
 #ifdef MPIALL
@@ -42,6 +45,11 @@ c************************************************************
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/nonideal'
+      INCLUDE 'COMMONS/eosq'
+#endif
 
       CHARACTER*7 where, where2
 c
@@ -364,7 +372,14 @@ c
 c--Compute various parameters to do with the magnetic field
 c
       IF (imhd.EQ.idim) CALL mhdparams
-
+c
+c--Compute various properties to do with non-ideal MHD
+#ifdef NONIDEAL
+      CALL nimhd_get_stats(npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,
+     &               alphaMM,alphamin,n_R,n_electronT,iphase,gamma,
+     &               ifsvi,encal,np_nimhd,et_nimhd,evdata)
+#endif
+c
       IF (where(1:6).NE.'newrun') THEN
 c
 c--Write dump on disk

@@ -696,10 +696,16 @@ c
       IF (ierr/=0) CALL quit(0)
       CALL nimhd_init_gastemp(Rg,gamma,gam,gamdh,gamah,uergg
      &                       ,rhocrit,rhocrit2,rhocrit3)
-      Zg_on_ag    = 0.0
+      n_R         = 0.0
       n_electronT = 0.0
       WRITE (nimhdfile,99994) namerun
 99994 FORMAT ('N', A20)
+#ifdef MPI
+      iproc_in = iproc
+#else
+      iproc_in = 0
+#endif
+      CALL nimhd_write_evheader(nimhdfile,iproc_in)
 #endif
 
       IF (itrace.EQ.'all') WRITE(iprint,250)

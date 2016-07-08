@@ -162,19 +162,20 @@ c
       ENDIF
 #ifdef NONIDEAL
 c
-c--Calculate Zgrain & n_electron for non-ideal MHD 
+c--Calculate number densities for non-ideal MHD 
 c  (must be updated every time temperature or density is modified)
 c
       temperature = nimhd_gastemp(encal,vxyzu(4,ipart),ekcle(3,ipart)
      &                           ,dble(rho(ipart)),gamma)
-      CALL nicil_get_ion_nZ(dble(rho(ipart)),temperature
-     &                     ,Zg_on_ag(ipart),n_electronT(ipart),ierr)
+      CALL nicil_get_ion_n(dble(rho(ipart)),temperature
+     &                     ,n_R(:,ipart),n_electronT(ipart),ierr)
       IF (ierr/=0) THEN
          CALL nicil_translate_error(ierr)
-         IF (temperature > 0.0) THEN
+         IF (ierr > 0) THEN
+            write(iprint,'(a)') 'aborting on the order of non-ideal MHD'
             CALL quit(1)
          ELSE
-            write(iprint,'(a)') 'Cause for failure: Temperature = 0'
+            print*, 'nicil: eospg: T = 0 for i = ', ipart
          ENDIF
       ENDIF
 #endif

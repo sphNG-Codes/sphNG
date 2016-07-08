@@ -1,5 +1,8 @@
       use nicil, only: nicil_initialise,nicil_translate_error
-      use nicil, only: nicil_get_ion_nZ,nicil_get_eta
+      use nicil, only: nicil_get_ion_n,nicil_get_eta
       use nicil, only: nimhd_get_jcbcb,nimhd_get_dBdt
       use nicil, only: nimhd_get_dudt, nimhd_get_dt
-      use nicil_sup, only: inform_nimhd,nimhd_init_gastemp,nimhd_gastemp
+      use nicil_sup, only: nimhd_init_gastemp,nimhd_gastemp
+      use nicil_sup, only: energ_nimhd
+      use nicil_sup, only: nimhd_write_evheader,nimhd_write_ev
+      use nicil_sup, only: inumev,ielements,nimhd_get_stats

@@ -1842,7 +1842,7 @@ C$OMP& shared(dh2dt,icolumnsteps,icolumnnext)
 C$OMP& shared(iproc)
 #endif
 #ifdef NONIDEAL
-C$OMP& shared(Zg_on_ag,n_electronT,gamma)
+C$OMP& shared(n_R,n_electronT,gamma)
 C$OMP& private(dtohmi,dthalli,dtambii,eta_ohmi,eta_halli,eta_ambii)
 C$OMP& private(temperature,ierr)
 #endif
@@ -2458,7 +2458,7 @@ c
 c
 c--Gas timestep from non-ideal MHD
 c
-            IF (imhd.EQ.idim) THEN
+            IF (imhd.EQ.idim .AND. iphase(i).EQ.0) THEN
                Bxi = Bxyz(1,i)
                Byi = Bxyz(2,i)
                Bzi = Bxyz(3,i)
@@ -2471,13 +2471,19 @@ c
                   Bzi = Bzi + BEXTERNAL(xi,yi,zi,3)
                ENDIF
                B2i = (Bxi*Bxi +  Byi*Byi + Bzi*Bzi)
+               temperature = nimhd_gastemp(encal,vxyzu(4,i),ekcle(3,i)
+     &                                    ,dble(rho(i)),gamma)
                call nicil_get_eta(eta_ohmi,eta_halli,eta_ambii
      &             ,SQRT(B2i),dble(rho(i)),temperature
-     &             ,Zg_on_ag(i),n_electronT(i),ierr)
-               if (ierr/=0) then
-                  call nicil_translate_error(ierr)
-                  call quit(1)
-               end if
+     &             ,n_R(:,i),n_electronT(i),ierr)
+               IF (ierr/=0) THEN
+                  CALL nicil_translate_error(ierr)
+                  IF (ierr > 0) THEN
+                     CALL quit(1)
+                  ELSE
+                     print*, 'nicil: step: T = 0 for i = ', i
+                  ENDIF
+               ENDIF
                call nimhd_get_dt(dtohmi,dthalli,dtambii,xyzmh(5,i)
      &             ,eta_ohmi,eta_halli,eta_ambii)
                dtohmi  = dtohmi / (dt*isteps(i)/imaxstep)
@@ -2568,7 +2574,8 @@ c
                ELSE
                   ibin = 30
                ENDIF
-c               CALL quit(1)
+c              REMOVED THE COMMENT (2016.05.25: JW)
+               CALL quit(1)
             ENDIF
 c            IF (ibin.GT.28) THEN
 c               print *,'D ',ibin

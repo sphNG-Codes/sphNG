@@ -57,12 +57,13 @@ c************************************************************
       INCLUDE 'COMMONS/accstat'
       INCLUDE 'COMMONS/rtstat'
 #ifdef NONIDEAL
-      INCLUDE 'COMMONS/radtrans'
-      INCLUDE 'COMMONS/Bxyz'
-      INCLUDE 'COMMONS/densi'
       INCLUDE 'COMMONS/nonideal'
-      INCLUDE 'COMMONS/numpa'
-      INCLUDE 'COMMONS/eosq'
+
+      INTEGER nptot
+      REAL evdatamintot(0:inumev)
+      REAL evdatamaxtot(0:inumev)
+      REAL evdatasumtot(0:inumev)
+      REAL et
 #endif
 
 #ifdef MPI
@@ -463,12 +464,30 @@ c     &     MPI_COMM_WORLD,ierr)
      &           0,MPI_COMM_WORLD,ierr)
             crosshel = crossheltot
          ENDIF
+#ifdef NONIDEAL
+         CALL MPI_REDUCE(np_nimhd,nptot,1,MPI_INTEGER,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(et_nimhd,et,1,MPI_REAL8,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(evdata(1:ielements),evdatamintot(1:ielements),
+     &        ielements,MPI_REAL8,MPI_MIN,0,MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(evdata(1:ielements),evdatamaxtot(1:ielements),
+     &        ielements,MPI_REAL8,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(evdata(1:ielements),evdatasumtot(1:ielements),
+     &        ielements,MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+#endif
 
          IF (iproc.EQ.0) THEN
 #else
          escaptot = escap
+#ifdef NONIDEAL
+         et           = et_nimhd
+         nptot        = np_nimhd
+         evdatamintot(1:ielements) = evdata(1:ielements)
+         evdatamaxtot(1:ielements) = evdata(1:ielements)
+         evdatasumtot(1:ielements) = evdata(1:ielements)
 #endif
-
+#endif
 c
 c--Write integration output :
 c
@@ -740,6 +759,15 @@ c
                ENDIF
             ENDIF
          ENDIF
+
+#ifdef NONIDEAL
+c
+c--non-ideal MHD
+c
+          CALL nimhd_write_ev(gt,nptot,iprint,et,nimhdfile
+     &                       ,evdatamintot,evdatamaxtot,evdatasumtot)
+#endif
+
 #ifdef MPI
 c Note: the following two blocks of info (ptmasses and RT) are produced
 c       for all MPI processes because no MPI reduction has been
@@ -882,14 +910,6 @@ c
          ENDIF
       ENDIF
 c
-c--Write non-ideal MHD details to file
-c
-#ifdef NONIDEAL
-      CALL inform_nimhd(gt,npart,xyzmh,vxyzu,ekcle,Bxyz,dble(rho)
-     &                 ,dble(vsound),iphase,Zg_on_ag,n_electronT
-     &                 ,dble(alphaMM),alphamin,gamma,ifsvi
-     &                 ,nimhdfile,encal)
-#endif
       GOTO 200
 c
 c--Handle errors during writing

@@ -325,7 +325,7 @@ C$OMP& shared(itot)
 C$OMP& shared(dragenergy,dragqchange,px,py,pz)
 #endif
 #ifdef NONIDEAL
-C$OMP& shared(jcurrent,Zg_on_ag,n_electronT,gamma)
+C$OMP& shared(jcurrent,n_R,n_electronT,gamma)
 C$OMP& private(Bi,Bi1,Bj,Bj1,dBnonideal,jcb,jcbcb,temperature,ierr)
 C$OMP& private(eta_ohmi,eta_halli,eta_ambii)
 C$OMP& private(eta_ohmj,eta_hallj,eta_ambij)
@@ -1113,10 +1113,14 @@ c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
      &                                  ,rhoi,gamma)
                            CALL nicil_get_eta(eta_ohmi,eta_halli
      &                         ,eta_ambii,Bi,rhoi,temperature
-     &                         ,Zg_on_ag(ipart),n_electronT(ipart),ierr)
+     &                         ,n_R(:,ipart),n_electronT(ipart),ierr)
                            IF (ierr/=0) THEN
                               CALL nicil_translate_error(ierr)
-                              CALL quit(1)
+                              IF (ierr > 0) THEN
+                                 CALL quit(1)
+                              ELSE
+                           print*, 'nicil: force: T = 0 for i = ', ipart
+                              ENDIF
                            ENDIF
                            CALL nimhd_get_jcbcb(jcbcb,jcb
      &                         ,jcurrent(:,ipart),Bxi,Byi,Bzi,Bi1)
@@ -1735,10 +1739,14 @@ c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
      &                                     ,gamma)
                               CALL nicil_get_eta(eta_ohmj,eta_hallj
      &                            ,eta_ambij,Bj,rhoj,temperature
-     &                            ,Zg_on_ag(j),n_electronT(j),ierr)
+     &                            ,n_R(:,j),n_electronT(j),ierr)
                               IF (ierr/=0) THEN
                                  CALL nicil_translate_error(ierr)
-                                 CALL quit(1)
+                                 IF (ierr > 0) THEN
+                                    CALL quit(1)
+                                 ELSE
+                               print*, 'nicil: force: T = 0 for j = ', j
+                                 ENDIF
                               ENDIF
                               CALL nimhd_get_jcbcb(jcbcb,jcb
      &                           ,jcurrent(:,j),Bxj,Byj,Bzj,Bj1)
@@ -2400,6 +2408,12 @@ c
          IF (idim_h2.EQ.1) THEN
 
            CALL energ(ipart,npart,ntot,realtime,vxyzu,fxyzu,xyzmh,trho)
+#ifdef NONIDEAL
+           CALL energ_nimhd(fxyzu(4,ipart),jcurrent(1:3,ipart), 
+     &           Bxyz(1:3,ipart),vxyzu(4,ipart),ekcle(3,ipart),
+     &           real(trho(ipart)),n_R(:,ipart),n_electronT(ipart), 
+     &           gamma,encal)
+#endif
 
          ELSE
 

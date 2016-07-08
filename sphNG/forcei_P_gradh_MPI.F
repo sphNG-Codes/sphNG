@@ -1644,6 +1644,9 @@ c haverage but done in Part 1 so a No-op
 c
 c--Evolution of psi/c_h
 c
+                        vsoundj = vsound(j)
+                        vs2j    = vsoundj**2 + B2j*rho1j
+                        vsj     = SQRT(vs2j)
                         IF (imhdevol.EQ.4) THEN
                            dBpsix = dBpsix - pmassj*grkernj*vsj*
      &                          Bevolxyz(4,j)*rho1j*rho1j*runix
@@ -1655,8 +1658,6 @@ c
 c
 c--Signal velocity (MHD)
 c
-                        vsoundj = vsound(j)
-                        vs2j = vsoundj**2 + B2j*rho1j
                         IF (iPhantom_resistivity) THEN
                            vsigi = SQRT(vs2i)
                            vsigj = SQRT(vs2j)

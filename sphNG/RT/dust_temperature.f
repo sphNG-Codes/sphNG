@@ -310,7 +310,7 @@ c         ENDIF
      &     MAX(photoelectric,cosmic_ray,
      &        value1*(dust_temp-t_found)),photoelectric,cosmic_ray,
      &      value1*(dust_temp-t_found),dcooling_dT,derivative
-      CALL quit
+      CALL quit(1)
 
 
  223  gas_temperature_equilibrium = t_found

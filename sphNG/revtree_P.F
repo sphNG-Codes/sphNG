@@ -5,6 +5,9 @@ c  Subroutine by W. Press.  Revises the tree structure.     *
 c     Assumes that only the positions have been altered     *
 c                                                           *
 c************************************************************
+#ifdef _OPENMP
+      USE OMP_LIB, ONLY: OMP_LOCK_KIND, OMP_SET_LOCK, OMP_UNSET_LOCK
+#endif 
 
       INCLUDE 'idim'
       INCLUDE 'igrape'
@@ -23,12 +26,11 @@ c************************************************************
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/interstellar'
 
-      DIMENSION listpar(idim),listparnew(idim)
-
 #ifdef _OPENMP
-      INTEGER*8 forcei_lock,revtree_lock
-      COMMON /locks / forcei_lock(idim2/10+1),revtree_lock
+      INCLUDE 'COMMONS/openmp_locks'
 #endif
+
+      DIMENSION listpar(idim),listparnew(idim)
 
       natom = nnatom
 

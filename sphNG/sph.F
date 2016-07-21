@@ -409,7 +409,9 @@ c  Both vary enormously with the various options chosen.    *
 c  Running time scales like NlogN.                          *
 c                                                           *
 c************************************************************
-
+#ifdef _OPENMP
+      USE OMP_LIB, ONLY: OMP_LOCK_KIND, OMP_INIT_LOCK
+#endif
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
@@ -429,13 +431,13 @@ c************************************************************
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/logun'
 
+#ifdef _OPENMP
+      INCLUDE 'COMMONS/openmp_locks'
+#endif
+
 #ifdef ZEN
       INTEGER (4)        :: clist(8)
       INTEGER :: mpi_ppn, omp_get_thread_num,omp_get_num_threads
-#endif
-#ifdef _OPENMP
-      INTEGER*8 forcei_lock,revtree_lock
-      COMMON /locks / forcei_lock(idim2/10+1),revtree_lock
 #endif
 #ifdef ZEN
       clist(1:8) = (/ 0, 1, 4, 5, 2, 3, 6, 7 /)

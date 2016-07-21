@@ -6,7 +6,9 @@ c                                                           *
 c  This subroutine computes the forces on particle ipart    *
 c                                                           *
 c************************************************************
-
+#ifdef _OPENMP
+      USE OMP_LIB, ONLY: OMP_LOCK_KIND, OMP_SET_LOCK, OMP_UNSET_LOCK
+#endif
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nicil_subs'
 #endif
@@ -119,13 +121,12 @@ c
       INCLUDE 'COMMONS/mpicopy'
 #endif
 
+#ifdef _OPENMP
+      INCLUDE 'COMMONS/openmp_locks'
+#endif
+
       CHARACTER*7 where
       LOGICAL inosink
-
-#ifdef _OPENMP
-      INTEGER*8 forcei_lock,revtree_lock
-      COMMON /locks / forcei_lock(idim2/10+1),revtree_lock
-#endif
 
 #ifdef NONIDEAL
       REAL*8 dBnonideal(3),jcb(3),jcbcb(3)

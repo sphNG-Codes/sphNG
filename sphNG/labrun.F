@@ -4,6 +4,9 @@ c                                                           *
 c  This routine writes the title page                       *
 c                                                           *
 c************************************************************
+#ifdef _OPENMP
+      USE OMP_LIB, ONLY: OMP_GET_NUM_THREADS
+#endif
 
       INCLUDE 'idim'
       INCLUDE 'igrape'
@@ -18,7 +21,6 @@ c************************************************************
 
 #ifdef _OPENMP
       INTEGER numthread
-      INTEGER OMP_GET_NUM_THREADS
 #endif
 
 c--Get time and date

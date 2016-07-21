@@ -1,0 +1,6 @@
+c This line - or something equivalent - must appear at the top of the 
+c including file (above the IMPLICIT directive if one exists)
+c      USE OMP_LIB, ONLY: OMP_LOCK_KIND
+      INTEGER(KIND=OMP_LOCK_KIND) forcei_lock,revtree_lock
+      COMMON /locks / forcei_lock(idim2/10+1),revtree_lock
+

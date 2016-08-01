@@ -140,10 +140,6 @@ c
 #ifdef MPIALL
       ENDIF
 #endif
-c
-c--Reset dump counter
-c
-      irec = 0
 
 c 100  CONTINUE
       RETURN

@@ -62,7 +62,7 @@ c  (and should contain this line)
       READ (iterm, *) nfullstep
       READ (iterm, *) iptoutnum
       READ (iterm, *) tol, tolptm, tolh
-      READ (iterm, *) ipos
+      READ (iterm, *) irec
       READ (iterm, *) tmax
       READ (iterm, *) tstop
       READ (iterm, *) dtmax
@@ -84,7 +84,7 @@ c
          WRITE (iprint, 99004) igrp, igphi, ifsvi, ifcor, ichoc, iener,
      &        ibound, damp, varsta
 99004    FORMAT (1X, 7(I2,1X), 2(E12.5,1X), 1X, A7)
-         WRITE (iprint, 99005) file1, ipos, nstep
+         WRITE (iprint, 99005) file1, irec, nstep
 99005    FORMAT (1X, A7, 1X, I4, 1X, I4)
       ENDIF
 

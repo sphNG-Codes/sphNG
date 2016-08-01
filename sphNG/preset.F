@@ -96,10 +96,6 @@ c      CALL appendiproc(7,file1,iproc)
          OPEN (idisk1, FILE=file1, STATUS='unknown', 
      &        FORM='unformatted', RECL=imaxrec)
 c
-c--Find correct dump to start
-c
-         CALL place(idisk1, ipos, irec, 1)
-c
 c--Read dump
 c
          CALL rdump_wrapper(idisk1, ichkl, 0)

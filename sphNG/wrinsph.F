@@ -162,8 +162,8 @@ c
 89020 FORMAT(2X,I4,'  N Ptmass Dumps Per Max Timestep') 
       WRITE (iterm, 88011) tol, tolptm, tolh
 88011  FORMAT(2X,3(1PE12.5,1X),'Tolerance (Gas, Ptmass, Smooth Len)')
-      WRITE (iterm, 88012) ipos
-88012  FORMAT(2X,I3,'  File Position')
+      WRITE (iterm, 88012) irec 
+88012  FORMAT(2X,I3,'  Binary Dump Counter')
       WRITE (iterm, 88013) tmax
 88013  FORMAT(2X,1PE12.5,'  Max Time (min) (Status Written)')
       WRITE (iterm, 88014) tstop  
@@ -334,7 +334,7 @@ c
          WRITE (iprint, 99004) igrp, igphi, ifsvi, ifcor, ichoc, iener,
      &                         ibound, damp, varsta
 99004    FORMAT (1X, 7(I2,1X), 2(E12.5,1X), 1X, A7)
-         WRITE (iprint, 99005) file1, ipos, nstep
+         WRITE (iprint, 99005) file1, irec, nstep
 99005    FORMAT (1X, A7, 1X, I4, 1X, I4)
       ENDIF
 

@@ -145,10 +145,6 @@ c--Write label
 c
       CALL labrun
 c
-c--Go to begining of first reccord
-c
-      CALL place(idisk1, ibegin, irec, 1)
-c
 c--Start transfering
 c
       DO i = ibegin, iend

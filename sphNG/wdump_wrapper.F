@@ -738,7 +738,5 @@ c         torqv(i) = 0.
 c         torqc(i) = 0.
 c      END DO
 
-      ipos = irec
-
       RETURN
       END

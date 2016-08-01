@@ -11,7 +11,7 @@
 1       Full Binary Dump every N Binary Dumps
 256      N Ptmass Dumps every maximum time steps (binned into power of 2)
 1e-5 1e-9 1e-5  Precision of the Runge-Kutta integration (absolute error)
-1       Model number for starting next job (9999 = last model)
+1       Initial value of binary dump counter
 1000000.  Maximum CPU time for program (minutes)
 7.0   Maximum dynamical time for program
 0.317907   Maximum dynamical timestep

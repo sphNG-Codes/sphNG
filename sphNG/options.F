@@ -197,7 +197,7 @@ c      ENDIF
       iptoutnum = 2**ibin
 
       READ (iterm, *) tol, tolptm, tolh
-      READ (iterm, *) ipos
+      READ (iterm, *) irec
       READ (iterm, *) tmax
       READ (iterm, *) tstop
       READ (iterm, *) dtmax
@@ -380,7 +380,7 @@ c
          WRITE (iprint, 99004) igrp, igphi, ifsvi, ifcor, ichoc, iener,
      &                         ibound, damp, varsta
 99004    FORMAT (1X, 7(I2,1X), E12.5, 1X, A7)
-         WRITE (iprint, 99005) file1, ipos, nstep
+         WRITE (iprint, 99005) file1, irec, nstep
 
          IF (ibound.EQ.1 .OR. ibound.EQ.3) 
      &   WRITE (iprint, *) rmax, xmin, xmax, ymin, ymax, zmin, zmax

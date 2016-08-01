@@ -206,9 +206,6 @@ c  tdump    = time between dumps (alternative to number     *
 c             of steps between dumps)                       *
 c  tnext    = time of next dump                             *
 c  tol      = tolerance used by the Runge-Kutta integrator  *
-c  ipos     = 9999    : use last dump as starting dump      *
-c           = number  : use number as starting dump (all    *
-c                       dumps behond number are destroyed!) *
 c  tmax     = max time in minute allowed for the job        *
 c  tstop    = time (computer unit) at which the program     *
 c             will stop.                                    *
@@ -298,7 +295,6 @@ c  ifcor        (typef) : flag to allow coriolis forces     *
 c  ifsvi        (typef) : flag to allow arti. viscosity     *
 c  igrp         (typef) : flag to allow pressure gradients  *
 c  igphi        (typef) : flag to allow body forces         *
-c  ipos         (recor) : record number wanted on disk      *
 c  iprint       (logun) : logical unit number for print out *
 c  irec         (recor) : record number on disk             *
 c  iterm        (logun) : logical unit number for read      *

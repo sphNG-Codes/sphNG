@@ -479,6 +479,12 @@ c************************************************************
          CALL quit(0)
       ENDIF
 #endif
+#ifdef MPIDEBUG
+#ifndef MPIALL
+      PRINT *,'ERROR - MPIDEBUG=yes but not an MPI build'
+      CALL quit(0)
+#endif
+#endif
 c
 c--Version - date is date last updated with other code version changes
 c

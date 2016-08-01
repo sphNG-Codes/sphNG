@@ -144,8 +144,8 @@ c
       tcomp = SQRT((3 * pi) / (32 * rhozero))
       tff = tcomp * utime
       WRITE (iprint, 99004) tff, tcomp
-99004 FORMAT(/,' The free fall time is : ',1PE14.7,/,
-     &            ' in computational units: ',1PE14.7)
+99004 FORMAT(/,' The free fall time is  : ',1PE14.7,/,
+     &            ' in computational units : ',1PE14.7)
 
       IF (where(1:6).NE.'newrun') THEN
 c
@@ -155,16 +155,16 @@ c
      &           ibound, iexf, iener, ichoc, iexpan, damp
   
 99005    FORMAT (/, ' The following options were set :', /,
-     &           ' energy calculation     : ', A1, /,
-     &           ' pressure gradients     : ', I2,
-     &           '   self-gravity     : ', I2, /,
-     &           ' artificial viscosity   : ', I2,
-     &           '   coriolis         : ', I2, /,
-     &           ' boundary type          : ', I3,
-     &           '   external force   : ', I2, /,
-     &           ' energy conservation    : ', I2,
-     &           '   shock heating    : ', I2, /,
-     &           ' homologous exp.        : ', I2,
+     &           ' energy calculation     : ', A8, /,
+     &           ' pressure gradients     : ', I8,
+     &           '   self-gravity     : ', I8, /,
+     &           ' artificial viscosity   : ', I8,
+     &           '   coriolis         : ', I8, /,
+     &           ' boundary type          : ', I8,
+     &           '   external force   : ', I8, /,
+     &           ' energy conservation    : ', I8,
+     &           '   shock heating    : ', I8, /,
+     &           ' homologous exp.        : ', I8,
      &           '   general damping  : ', F8.1, /)
 c
 c--Gravity calculations
@@ -331,10 +331,10 @@ c
             rhocrt = rhocrit * udens
             rhocrt2 = rhocrit2 * udens
             rhocrt3 = rhocrit3 * udens
-            WRITE (iprint, 99012) gam, rhocrt, gam, gamdh, rhocrt2, 
+            WRITE (iprint, 99012) 1.0, gam, rhocrt, gam, gamdh, rhocrt2,
      &             gamdh, gamah, rhocrt3
 99012       FORMAT (/,' Critical densities for changing gamma ', /,
-     &      '           from 1.00    to ',G10.3,': ', 1PE12.3, /,
+     &      '           from ',G10.3,'to ',G10.3,': ', 1PE12.3, /,
      &      '           from ',G10.3,'to ',G10.3,': ', 1PE12.3, /,
      &      '           from ',G10.3,'to ',G10.3,': ', 1PE12.3, //)
          ELSEIF (encal.EQ.'x') THEN
@@ -353,12 +353,12 @@ c--Print out constants used for integration
 c
          WRITE (iprint, 99013) alpha, beta, acc, tol, tolptm, tolh
 99013    FORMAT (/,' Numerical constants used in this run :', /,
-     &           ' artificial viscosity  alpha     : ', 1PE12.3, /,
-     &           '                       beta      : ', 1PE12.3, /,
-     &           ' binary tree accuracy param.     : ', 1PE12.3, /,
-     &           ' RK2 tolerance - gas             : ', 1PE12.3, /,
-     &           '               - point masses    : ', 1PE12.3, /,
-     &           '               - smoothing length: ', 1PE12.3, /)
+     &           ' artificial viscosity  alpha      : ', 1PE12.3, /,
+     &           '                       beta       : ', 1PE12.3, /,
+     &           ' binary tree accuracy param.      : ', 1PE12.3, /,
+     &           ' RK2 tolerance - gas              : ', 1PE12.3, /,
+     &           '               - point masses     : ', 1PE12.3, /,
+     &           '               - smoothing length : ', 1PE12.3, /)
          IF (encal.EQ.'r') THEN
             WRITE (iprint, 99113) tolerance_rt
 99113       FORMAT (' Radiative transfer tolerance    : ',1PE12.3, /)
@@ -483,10 +483,10 @@ c
             WRITE(iprint,99015)
          ENDIF
 99014    FORMAT (' Point mass creation ALLOWED, type ', I2, /,
-     &           '  minimum creation radius      : ', 1PE12.3, /,
-     &           '  creation density (in rhozero): ', 1PE12.3, /,
-     &           '                (in code units): ', 1PE12.3, /,
-     &           '            (in physical units): ', 1PE12.3, /)
+     &           '  minimum creation radius       : ', 1PE12.3, /,
+     &           '  creation density (in rhozero) : ', 1PE12.3, /,
+     &           '                (in code units) : ', 1PE12.3, /,
+     &           '            (in physical units) : ', 1PE12.3, /)
 99015    FORMAT (' Point mass creation NOT ALLOWED')
 
          IF (iptmass.NE.0.OR.nptmass.NE.0) THEN
@@ -506,7 +506,7 @@ c
             ENDIF
 
             WRITE(iprint,99016) nptmasstot
-99016       FORMAT (' Number of point masses        : ', I4)
+99016       FORMAT (' Number of point masses         : ', 8X, I4)
 
             IF (iaccevol.EQ.'v') THEN
                WRITE (iprint,99150) accfac
@@ -524,19 +524,19 @@ c
             ELSE
                CALL error(where2,1)
             END IF
-99017       FORMAT ('  Outer accretion radius       : ', 1PE12.3)
+99017       FORMAT ('  Outer accretion radius        : ', 1PE12.3)
 
             IF (haccall.GT.0.) THEN
                WRITE (iprint,99018) haccall
             ELSE
                CALL error(where2,2)
             END IF
-99018       FORMAT ('  Inner accretion radius       : ', 1PE12.3)
+99018       FORMAT ('  Inner accretion radius        : ', 1PE12.3)
 
             WRITE (iprint,99019) iptsoft
             IF (iptsoft.NE.0) WRITE (iprint,99020) ptsoft
-99019       FORMAT ('  Gravity ptmass softening     : ', I2)
-99020       FORMAT ('  Softening ptmass parameter   : ', 1PE12.3)
+99019       FORMAT ('  Gravity ptmass softening      : ', 10X, I2)
+99020       FORMAT ('  Softening ptmass parameter    : ', 1PE12.3)
 
 c            IF (nptmass.NE.0) THEN
 c               DO i = 1, nptmass

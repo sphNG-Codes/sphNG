@@ -6,21 +6,11 @@ c
 
 c The historical igrape parameter has been eliminated.
  
-      INTEGER nmaxboards, nmaxchips, nmaxneighbours
- 
-      PARAMETER  (nmaxboards = 1)
-      PARAMETER  (nmaxchips = 8)
-      PARAMETER  (nmaxneighbours = 1024)
-c      PARAMETER  (nmaxboards = 2)
-c      PARAMETER  (nmaxchips = 16)
-c      PARAMETER  (nmaxneighbours = 4096)
 c
 c--The parameter `isoft' tells the program whether to soften the 
 c     gravitational forces using kernel smoothing of the potential
 c     (isoft=0), or using the 1/(r+e) smoothing used by the GRAPE (isoft=1).
 c
-c     NOTE:  This only has an effect when the BINARY TREE is used.
-c            When igrape=1, the softening is ALWAYS done as 1/(r+e).
 
       PARAMETER (isoft=0)
 c      PARAMETER (isoft=1)

@@ -170,15 +170,8 @@ c
 c--Gravity calculations
 c
          IF (igphi.EQ.1) THEN
-            IF (igrape.EQ.1) THEN
-               WRITE (iprint, 98001)
-98001          FORMAT (' Gravity calculated using: GRAPE board')
-            ELSEIF (igrape.EQ.0) THEN
-               WRITE (iprint, 98002) 
-98002          FORMAT (' Gravity calculated using: Binary Tree')
-            ELSE
-               CALL error(where2, 1)
-            ENDIF
+            WRITE (iprint, 98002) 
+98002       FORMAT (' Gravity calculated using: Binary Tree')
  
             IF (isoft.EQ.1) THEN
                WRITE (iprint, 98003) psoft
@@ -191,10 +184,8 @@ c
                CALL error(where2, 2)
             ENDIF
 
-            IF (igrape.EQ.0) THEN
-               WRITE (iprint, 98303) ipartialrevtree
-98303          FORMAT (' Partial tree revision: ',I1,/)
-            ENDIF
+            WRITE (iprint, 98303) ipartialrevtree
+98303       FORMAT (' Partial tree revision: ',I1,/)
          ENDIF
 c
 c--Rotation of expansion velocity

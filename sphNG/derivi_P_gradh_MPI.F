@@ -130,10 +130,6 @@ c      IF (gt.GT.50.)
 
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
 99001 FORMAT(' entry subroutine derivi_gradh')
-      IF (igrape.NE.0) THEN
-         WRITE (iprint,*) 'ERROR: derivi_P_gradh must have igrape.EQ.0'
-         CALL quit(1)
-      ENDIF
       IF (nlmax.NE.1) THEN
          WRITE (iprint,*) 'ERROR: derivi_P_gradh must have nlmax.EQ.1'
          CALL quit(1)

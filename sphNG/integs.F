@@ -71,12 +71,6 @@ c
       numparticlesdone = 0
       inumfixed = 0
       inumrecalc = 0
-      IF (igrape.EQ.1) THEN
-         searchfacmax = 0.
-         searchfacmin = 1.0E+10
-         neighovergrape = 0
-         neighretry = 0
-      ENDIF
 c
 c--Get time
 c
@@ -153,28 +147,8 @@ c      ENDIF
 99201    FORMAT(' mean    no. neighbour finds    ',F8.4)
 99202    FORMAT(' mean    no. neighbour fixed pt ',1PE11.4)
       ENDIF
-c
-c--If GRAPE, report number of neighbour lists overflows and retries
-c
-      IF (igrape.EQ.1) THEN
-         WRITE (iprint, 99008) searchfacmax
-         WRITE (iprint, 99009) searchfacmin
-         WRITE (iprint, 99010) neighovergrape
-         WRITE (iprint, 99011) neighretry
-         WRITE (iprint, 99014) REAL(nneightot)/REAL(nactive-nptmass)
-c         WRITE (iprint, 99015) tkeep
-
-99008    FORMAT('Maximum value of the search factor       = ',F8.4)
-99009    FORMAT('Minimum value of the search factor       = ',F8.4)
-99010    FORMAT('Number of GRAPE-neighbour-list overflows = ', I6)
-99011    FORMAT('Number of GRAPE-neighbour-list retries   = ', I6)
-99014    FORMAT('Mean number of nneigh(i) = ',F8.4)
-c99015    FORMAT('Keep GRAPE for ',F6.1,' seconds')
-      ELSE
-         WRITE (iprint, 99018) REAL(nneightot)/REAL(nactive-nptmass)
-
-99018    FORMAT('Mean number of nneigh(i) = ',F8.4)
-      ENDIF
+      WRITE (iprint, 99018) REAL(nneightot)/REAL(nactive-nptmass)
+99018 FORMAT('Mean number of nneigh(i) = ',F8.4)
 #ifdef MPIALL
       ENDIF
 #endif
@@ -249,7 +223,6 @@ c
      &           nstepphase(1,j+1),nstepphase(2,j+1),nsteplisttot(2,j+1)
          ENDIF
       END DO
-99101 FORMAT (I2,1PE12.4,I10)
 99102 FORMAT (I2,1PE12.4,1X,I8,1X,I8,1X,I8)
 99103 FORMAT (I2,1PE12.4,1X,I8,1X,I8,1X,I8,1X,I8)
 
@@ -283,226 +256,128 @@ c
 98001 FORMAT (' time used  : ', F8.3, ' min. , ghosts : ', I10)
 
       IF (itiming) THEN
-         IF (igrape.EQ.1) THEN
-            WRITE (iprint, 98002)
-            WRITE (iprint, 98022) tsteponly/60., tsteponly/tstep*100.
-            WRITE (iprint, 98008) tdens/60.,   tdens/tstep*100.
-            WRITE (iprint, 98009) tforce/60.,  tforce/tstep*100.
-            WRITE (iprint, 98016) tgforpt/60., tgforpt/tstep*100.
-            WRITE (iprint, 98021) taccrete/60., taccrete/tstep*100.
-            WRITE (iprint, 98032) td1/60.,     td1/tstep*100.
-            WRITE (iprint, 98033) td2/60.,     td2/tstep*100.
-            WRITE (iprint, 98023) ts1/60.,     ts1/tstep*100.
-            WRITE (iprint, 98024) ts2/60.,     ts2/tstep*100.
-            WRITE (iprint, 98025) ts3/60.,     ts3/tstep*100.
-            WRITE (iprint, 98026) ts4/60.,     ts4/tstep*100.
-            WRITE (iprint, 98027) ts5/60.,     ts5/tstep*100.
-            WRITE (iprint, 98028) ts6/60.,     ts6/tstep*100.
-            WRITE (iprint, 98029) ts7/60.,     ts7/tstep*100.
-            WRITE (iprint, 98030) ts8/60.,     ts8/tstep*100.
-            WRITE (iprint, 98031) ts9/60.,     ts9/tstep*100.
-            WRITE (iprint, 98003) tins/60.,    tins/tstep*100.
-            WRITE (iprint, 98004) tginit/60.,  tginit/tins*100.
-            WRITE (iprint, 98005) tgsort/60.,  tgsort/tins*100.
-            WRITE (iprint, 98006) tgload/60.,  tgload/tins*100.
-            WRITE (iprint, 98007) tgcall1/60., tgcall1/tins*100.
-            WRITE (iprint, 98010) tggrav/60.,  tggrav/tins*100.
-            WRITE (iprint, 98012) tgcall2/60., tgcall2/tins*100.
-            WRITE (iprint, 98011) tgnei/60.,   tgnei/tins*100.
-            WRITE (iprint, 98015) tgnmisc/60., tgnmisc/tins*100.
-            WRITE (iprint, 98014) tgnstor/60., tgnstor/tins*100.
-            WRITE (iprint, 98013) tgcall3/60., tgcall3/tins*100.
-            WRITE (iprint,*) 'ninit = ',ninit1,ninit2,ninit3,
-     &                       ninit4,ninit5
-c            WRITE (iprint,*) 'ttest = ',ttest/60., ttest/tins*100.
-            tdens = 0.
-            tforce = 0.
-            tgforpt = 0.
-            taccrete = 0.
-            td1 = 0.
-            td2 = 0.
-            ts1 = 0.
-            ts2 = 0.
-            ts3 = 0.
-            ts4 = 0.
-            ts5 = 0.
-            ts6 = 0.
-            ts7 = 0.
-            ts8 = 0.
-            ts9 = 0.
-            tins = 0.
-            tginit = 0.
-            tgsort = 0.
-            tgload = 0.
-            tgcall1 = 0.
-            tggrav = 0.
-            tgcall2 = 0.
-            tgnei = 0.
-            tgnmisc = 0.
-            tgnstor = 0.
-            tgcall3 = 0.
-            tdivBsub = 0.
-
-            ninit1 = 0
-            ninit2 = 0
-            ninit3 = 0
-            ninit4 = 0
-            ninit5 = 0
-            ttest = 0.
-
-98002       FORMAT (' GRAPE Timing:')
-98022       FORMAT (' step only    time: ', F8.3, ' min. ',F6.2,' %')
-98008       FORMAT (' densityi     time: ', F8.3, ' min. ',F6.2,' %')
-98009       FORMAT (' forcei       time: ', F8.3, ' min. ',F6.2,' %')
-98016       FORMAT (' gforspt      time: ', F8.3, ' min. ',F6.2,' %')
-98003       FORMAT (' insulate     time: ', F8.3, ' min. ',F6.2,' %')
-98004       FORMAT ('  GRP init    time: ', F8.3, ' min. ',F6.2,' %')
-98005       FORMAT ('  GRP sort    time: ', F8.3, ' min. ',F6.2,' %')
-98006       FORMAT ('  GRP load    time: ', F8.3, ' min. ',F6.2,' %')
-98007       FORMAT ('  GRP call1   time: ', F8.3, ' min. ',F6.2,' %')
-98010       FORMAT ('  GRP gravity time: ', F8.3, ' min. ',F6.2,' %')
-98011       FORMAT ('  GRP nei get time: ', F8.3, ' min. ',F6.2,' %')
-98012       FORMAT ('  GRP call2   time: ', F8.3, ' min. ',F6.2,' %')
-98013       FORMAT ('  GRP call3   time: ', F8.3, ' min. ',F6.2,' %')
-98014       FORMAT ('  GRP nstore  time: ', F8.3, ' min. ',F6.2,' %')
-98015       FORMAT ('  GRP nmisc   time: ', F8.3, ' min. ',F6.2,' %')
-98017       FORMAT ('  TRE mtree   time: ', F8.3, ' min. ',F6.2,' %')
-98018       FORMAT ('  TRE treef   time: ', F8.3, ' min. ',F6.2,' %')
-98019       FORMAT ('  TRE revtree time: ', F8.3, ' min. ',F6.2,' %')
-98119       FORMAT ('  TRE    rt-1 time: ', F8.3, ' min. ',F6.2,' %')
-98120       FORMAT ('  TRE    rt-2 time: ', F8.3, ' min. ',F6.2,' %')
-98121       FORMAT ('  TRE    rt-3 time: ', F8.3, ' min. ',F6.2,' %')
-98122       FORMAT ('  TRE    rt-4 time: ', F8.3, ' min. ',F6.2,' %')
-98123       FORMAT ('  TRE    rt-5 time: ', F8.3, ' min. ',F6.2,' %')
-98021       FORMAT (' accrete      time: ', F8.3, ' min. ',F6.2,' %')
-98023       FORMAT (' step-1       time: ', F8.3, ' min. ',F6.2,' %')
-98024       FORMAT (' step-2       time: ', F8.3, ' min. ',F6.2,' %')
-98025       FORMAT (' step-3       time: ', F8.3, ' min. ',F6.2,' %')
-98026       FORMAT (' step-4       time: ', F8.3, ' min. ',F6.2,' %')
-98027       FORMAT (' step-5       time: ', F8.3, ' min. ',F6.2,' %')
-98028       FORMAT (' step-6       time: ', F8.3, ' min. ',F6.2,' %')
-98029       FORMAT (' step-7       time: ', F8.3, ' min. ',F6.2,' %')
-98030       FORMAT (' step-8       time: ', F8.3, ' min. ',F6.2,' %')
-98031       FORMAT (' step-9       time: ', F8.3, ' min. ',F6.2,' %')
-98032       FORMAT (' derivi-1     time: ', F8.3, ' min. ',F6.2,' %')
-98033       FORMAT (' derivi-2     time: ', F8.3, ' min. ',F6.2,' %')
-98042       FORMAT (' derivi-3     time: ', F8.3, ' min. ',F6.2,' %')
-98034       FORMAT (' derivi-tot   time: ', F8.3, ' min. ',F6.2,' %')
-98035       FORMAT (' step-kick1/2 time: ', F8.3, ' min. ',F6.2,' %')
-98036       FORMAT (' timestep     time: ', F8.3, ' min. ',F6.2,' %')
-98037       FORMAT (' step-13      time: ', F8.3, ' min. ',F6.2,' %')
-98038       FORMAT (' step-14      time: ', F8.3, ' min. ',F6.2,' %')
-98039       FORMAT (' step-15      time: ', F8.3, ' min. ',F6.2,' %')
-98040       FORMAT (' step-16      time: ', F8.3, ' min. ',F6.2,' %')
-98041       FORMAT (' ass rad tran time: ', F8.3, ' min. ',F6.2,' %')
-98303       FORMAT (' sort         time: ', F8.3, ' min. ')
-98304       FORMAT (' sort - mtree time: ', F8.3, ' min. ')
-98305       FORMAT (' divBsubcycle time: ', F8.3, ' min. ',F6.2,' %')
-98332       FORMAT ('  densit-1    time: ', F8.3, ' min. ',F6.2,' %')
-98333       FORMAT ('  densit-2    time: ', F8.3, ' min. ',F6.2,' %')
-98342       FORMAT ('  divv        time: ', F8.3, ' min. ',F6.2,' %')
+98022    FORMAT (' step only    time: ', F8.3, ' min. ',F6.2,' %')
+98008    FORMAT (' densityi     time: ', F8.3, ' min. ',F6.2,' %')
+98009    FORMAT (' forcei       time: ', F8.3, ' min. ',F6.2,' %')
+98016    FORMAT (' gforspt      time: ', F8.3, ' min. ',F6.2,' %')
+98003    FORMAT (' insulate     time: ', F8.3, ' min. ',F6.2,' %')
+98017    FORMAT ('  TRE mtree   time: ', F8.3, ' min. ',F6.2,' %')
+98018    FORMAT ('  TRE treef   time: ', F8.3, ' min. ',F6.2,' %')
+98019    FORMAT ('  TRE revtree time: ', F8.3, ' min. ',F6.2,' %')
+98119    FORMAT ('  TRE    rt-1 time: ', F8.3, ' min. ',F6.2,' %')
+98120    FORMAT ('  TRE    rt-2 time: ', F8.3, ' min. ',F6.2,' %')
+98121    FORMAT ('  TRE    rt-3 time: ', F8.3, ' min. ',F6.2,' %')
+98122    FORMAT ('  TRE    rt-4 time: ', F8.3, ' min. ',F6.2,' %')
+98123    FORMAT ('  TRE    rt-5 time: ', F8.3, ' min. ',F6.2,' %')
+98021    FORMAT (' accrete      time: ', F8.3, ' min. ',F6.2,' %')
+98023    FORMAT (' step-1       time: ', F8.3, ' min. ',F6.2,' %')
+98024    FORMAT (' step-2       time: ', F8.3, ' min. ',F6.2,' %')
+98025    FORMAT (' step-3       time: ', F8.3, ' min. ',F6.2,' %')
+98026    FORMAT (' step-4       time: ', F8.3, ' min. ',F6.2,' %')
+98027    FORMAT (' step-5       time: ', F8.3, ' min. ',F6.2,' %')
+98028    FORMAT (' step-6       time: ', F8.3, ' min. ',F6.2,' %')
+98029    FORMAT (' step-7       time: ', F8.3, ' min. ',F6.2,' %')
+98030    FORMAT (' step-8       time: ', F8.3, ' min. ',F6.2,' %')
+98037    FORMAT (' step-13      time: ', F8.3, ' min. ',F6.2,' %')
+98038    FORMAT (' step-14      time: ', F8.3, ' min. ',F6.2,' %')
+98039    FORMAT (' step-15      time: ', F8.3, ' min. ',F6.2,' %')
+98041    FORMAT (' ass rad tran time: ', F8.3, ' min. ',F6.2,' %')
+98303    FORMAT (' sort         time: ', F8.3, ' min. ')
+98304    FORMAT (' sort - mtree time: ', F8.3, ' min. ')
+98305    FORMAT (' divBsubcycle time: ', F8.3, ' min. ',F6.2,' %')
+98332    FORMAT ('  densit-1    time: ', F8.3, ' min. ',F6.2,' %')
+98333    FORMAT ('  densit-2    time: ', F8.3, ' min. ',F6.2,' %')
+98342    FORMAT ('  divv        time: ', F8.3, ' min. ',F6.2,' %')
+         WRITE (iprint, 98020)
+         WRITE (iprint, 98022) tsteponly/60., tsteponly/tstep*100.
+         IF (encal.EQ.'r' .OR. encal.EQ.'m') 
+     &        WRITE (iprint, 98041) tass/60.,   tass/tstep*100.
+         WRITE (iprint, 98008) tdens/60.,   tdens/tstep*100.
+         WRITE (iprint, 98332) td1/60.,     td1/tdens*100.
+         WRITE (iprint, 98333) td2/60.,     td2/tdens*100.
+         WRITE (iprint, 98342) td3/60.,     td3/tdens*100.
+         WRITE (iprint, 98009) tforce/60.,  tforce/tstep*100.
+         WRITE (iprint, 98016) tgforpt/60., tgforpt/tstep*100.
+         WRITE (iprint, 98021) taccrete/60., taccrete/tstep*100.
+         WRITE (iprint, 98305) tdivBsub/60., tdivBsub/tstep*100.
+         WRITE (iprint, 98023) ts1/60.,     ts1/tstep*100.
+         WRITE (iprint, 98024) ts2/60.,     ts2/tstep*100.
+         WRITE (iprint, 98025) ts3/60.,     ts3/tstep*100.
+         WRITE (iprint, 98026) ts4/60.,     ts4/tstep*100.
+         WRITE (iprint, 98027) ts5/60.,     ts5/tstep*100.
+         WRITE (iprint, 98028) ts6/60.,     ts6/tstep*100.
+         WRITE (iprint, 98029) ts7/60.,     ts7/tstep*100.
+         WRITE (iprint, 98030) ts8/60.,     ts8/tstep*100.
+         WRITE (iprint, 98037) ts13/60.,    ts13/tstep*100.
+         WRITE (iprint, 98038) ts14/60.,    ts14/tstep*100.
+         WRITE (iprint, 98039) ts15/60.,    ts15/tstep*100.
+         WRITE (iprint, 98003) tins/60.,    tins/tstep*100.
+         IF (tins.NE.0.0) THEN
+            WRITE (iprint, 98017) tmtree/60.,  tmtree/tins*100.
+            WRITE (iprint, 98018) ttreef/60.,  ttreef/tins*100.
+            WRITE (iprint, 98019) trevt/60.,   trevt/tins*100.
          ELSE
-            WRITE (iprint, 98020)
-            WRITE (iprint, 98022) tsteponly/60., tsteponly/tstep*100.
-            IF (encal.EQ.'r' .OR. encal.EQ.'m') 
-     &           WRITE (iprint, 98041) tass/60.,   tass/tstep*100.
-            WRITE (iprint, 98008) tdens/60.,   tdens/tstep*100.
-            WRITE (iprint, 98332) td1/60.,     td1/tdens*100.
-            WRITE (iprint, 98333) td2/60.,     td2/tdens*100.
-            WRITE (iprint, 98342) td3/60.,     td3/tdens*100.
-            WRITE (iprint, 98009) tforce/60.,  tforce/tstep*100.
-            WRITE (iprint, 98016) tgforpt/60., tgforpt/tstep*100.
-            WRITE (iprint, 98021) taccrete/60., taccrete/tstep*100.
-            WRITE (iprint, 98305) tdivBsub/60., tdivBsub/tstep*100.
-c            WRITE (iprint, 98034) ts10/60.,    ts10/tstep*100.
-c            WRITE (iprint, 98032) td1/60.,     td1/tdens*100.
-c            WRITE (iprint, 98033) td2/60.,     td2/tdens*100.
-c            WRITE (iprint, 98042) td3/60.,     td3/tdens*100.
-            WRITE (iprint, 98023) ts1/60.,     ts1/tstep*100.
-            WRITE (iprint, 98024) ts2/60.,     ts2/tstep*100.
-            WRITE (iprint, 98025) ts3/60.,     ts3/tstep*100.
-            WRITE (iprint, 98026) ts4/60.,     ts4/tstep*100.
-            WRITE (iprint, 98027) ts5/60.,     ts5/tstep*100.
-            WRITE (iprint, 98028) ts6/60.,     ts6/tstep*100.
-            WRITE (iprint, 98029) ts7/60.,     ts7/tstep*100.
-            WRITE (iprint, 98030) ts8/60.,     ts8/tstep*100.
-c            WRITE (iprint, 98031) ts9/60.,     ts9/tstep*100.
-c            WRITE (iprint, 98035) ts11/60.,    ts11/tstep*100.
-c            WRITE (iprint, 98036) ts12/60.,    ts12/tstep*100.
-            WRITE (iprint, 98037) ts13/60.,    ts13/tstep*100.
-            WRITE (iprint, 98038) ts14/60.,    ts14/tstep*100.
-            WRITE (iprint, 98039) ts15/60.,    ts15/tstep*100.
-c            WRITE (iprint, 98040) ts16/60.,    ts16/tstep*100.
-            WRITE (iprint, 98003) tins/60.,    tins/tstep*100.
-            IF (tins.NE.0.0) THEN
-               WRITE (iprint, 98017) tmtree/60.,  tmtree/tins*100.
-               WRITE (iprint, 98018) ttreef/60.,  ttreef/tins*100.
-               WRITE (iprint, 98019) trevt/60.,   trevt/tins*100.
-            ELSE
-               WRITE (iprint, 98017) tmtree/60.,  tmtree
-               WRITE (iprint, 98018) ttreef/60.,  ttreef
-               WRITE (iprint, 98019) trevt/60.,   trevt
-            ENDIF
-            IF (trevt.NE.0.0) THEN
-              WRITE (iprint, 98119) revtreep1/60., revtreep1/trevt*100.
-              WRITE (iprint, 98120) revtreep2/60., revtreep2/trevt*100.
-              IF (revtreep2.GT.0.0) THEN
-                 WRITE (iprint, 98121) revtreep3/60., revtreep3/
-     &                 revtreep2*100.
-                 WRITE (iprint, 98122) revtreep4/60., revtreep4/
-     &                 revtreep2*100.
-                 WRITE (iprint, 98123) revtreep5/60., revtreep5/
-     &                 revtreep2*100.
-              ENDIF
-            ENDIF
-            WRITE (iprint, 98303) tsort/60.
-            IF (tsort.NE.0.0) THEN
-               WRITE (iprint, 98304) tsortmtree/60.
-            ENDIF
-
-            tdens = 0.
-            tforce = 0.
-            tgforpt = 0.
-            taccrete = 0.
-            td1 = 0.
-            td2 = 0.
-            td3 = 0.
-            ts1 = 0.
-            ts2 = 0.
-            ts3 = 0.
-            ts4 = 0.
-            ts5 = 0.
-            ts6 = 0.
-            ts7 = 0.
-            ts8 = 0.
-            ts9 = 0.
-            ts10 = 0.
-            ts11 = 0.
-            ts12 = 0.
-            ts13 = 0.
-            ts14 = 0.
-            ts15 = 0.
-            ts16 = 0.
-            ts17 = 0.
-            ts18 = 0.
-            ts19 = 0.
-            tass = 0.
-            tsort = 0.
-            tsortmtree = 0.
-            tins = 0.
-            tins = 0.
-            tmtree = 0.
-            ttreef = 0.
-            trevt = 0.
-            revtreep1 = 0.
-            revtreep2 = 0.
-            revtreep3 = 0.
-            revtreep4 = 0.
-            revtreep5 = 0.
-            tdivBsub = 0.
-
-98020       FORMAT (' TREE Timing:')
+            WRITE (iprint, 98017) tmtree/60.,  tmtree
+            WRITE (iprint, 98018) ttreef/60.,  ttreef
+            WRITE (iprint, 98019) trevt/60.,   trevt
          ENDIF
+         IF (trevt.NE.0.0) THEN
+           WRITE (iprint, 98119) revtreep1/60., revtreep1/trevt*100.
+           WRITE (iprint, 98120) revtreep2/60., revtreep2/trevt*100.
+           IF (revtreep2.GT.0.0) THEN
+              WRITE (iprint, 98121) revtreep3/60., revtreep3/
+     &              revtreep2*100.
+              WRITE (iprint, 98122) revtreep4/60., revtreep4/
+     &              revtreep2*100.
+              WRITE (iprint, 98123) revtreep5/60., revtreep5/
+     &              revtreep2*100.
+           ENDIF
+         ENDIF
+         WRITE (iprint, 98303) tsort/60.
+         IF (tsort.NE.0.0) THEN
+            WRITE (iprint, 98304) tsortmtree/60.
+         ENDIF
+         tdens = 0.
+         tforce = 0.
+         tgforpt = 0.
+         taccrete = 0.
+         td1 = 0.
+         td2 = 0.
+         td3 = 0.
+         ts1 = 0.
+         ts2 = 0.
+         ts3 = 0.
+         ts4 = 0.
+         ts5 = 0.
+         ts6 = 0.
+         ts7 = 0.
+         ts8 = 0.
+         ts9 = 0.
+         ts10 = 0.
+         ts11 = 0.
+         ts12 = 0.
+         ts13 = 0.
+         ts14 = 0.
+         ts15 = 0.
+         ts16 = 0.
+         ts17 = 0.
+         ts18 = 0.
+         ts19 = 0.
+         tass = 0.
+         tsort = 0.
+         tsortmtree = 0.
+         tins = 0.
+         tins = 0.
+         tmtree = 0.
+         ttreef = 0.
+         trevt = 0.
+         revtreep1 = 0.
+         revtreep2 = 0.
+         revtreep3 = 0.
+         revtreep4 = 0.
+         revtreep5 = 0.
+         tdivBsub = 0.
+98020    FORMAT (' TREE Timing:')
       ENDIF
 
       RETURN

@@ -44,11 +44,7 @@ c
       WRITE (iprint, 99010) __DATE__, __TIME__
 99010 FORMAT (1X, 'Built           : ', 2A12)
 
-      IF (igrape.EQ.0) THEN
-         WRITE (iprint,*) '                  RUNNING WITH BINARY TREE'
-      ELSEIF (igrape.EQ.1) THEN
-         WRITE (iprint,*) '                  RUNNING WITH GRAPE'
-      ENDIF
+      WRITE (iprint,*) '                  RUNNING WITH BINARY TREE'
 
 #ifdef MPICOPY
       WRITE (iprint, *) 'Compiled using MPICOPY'

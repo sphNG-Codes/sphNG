@@ -314,8 +314,7 @@ c
 c--Make the tree
 c
 c      WRITE (*,*) 'passed 1'
-         IF (igrape.EQ.0 .AND. (nactive.NE.nptmass .OR. 
-     &                                      iptintree.GT.0)) THEN
+         IF (nactive.NE.nptmass .OR. iptintree.GT.0) THEN
             CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
          ENDIF
 c
@@ -895,8 +894,7 @@ c
 c--Make the tree or update the tree
 c
 ccc       IF (nactive.NE.nptmass) THEN  
-      IF (igrape.EQ.0 .AND. (nlst.GT.nptmass .OR. icreate.EQ.1 .OR.
-     &                                       iptintree.GT.0)) THEN    
+      IF (nlst.GT.nptmass .OR. icreate.EQ.1 .OR. iptintree.GT.0) THEN
 ccc         IF (nlst.GE.ncrit .OR. iaccr.EQ.1 .OR. ikilled.EQ.1) THEN
          IF (nlst.GE.ncrit .OR. icreate.EQ.1) THEN
             icreate = 0
@@ -1668,8 +1666,7 @@ c
 c--Make or update the tree
 c
 ccc      IF (nactive.NE.nptmass) THEN    
-      IF (igrape.EQ.0 .AND. (nlst.GT.nptmass .OR. icreate.EQ.1 .OR.
-     &                                       iptintree.GT.0)) THEN
+      IF (nlst.GT.nptmass .OR. icreate.EQ.1 .OR. iptintree.GT.0) THEN
          IF (nlst.GT.ncrit .OR.(nlst0.GT.ncrit.AND.imakeghost.EQ.1).OR.
 ccc     &        idonebound.EQ.1 .OR. iaccr.EQ.1 .OR. ikilled.EQ.1) THEN
      &        idonebound.EQ.1 .OR. icreate.EQ.1) THEN
@@ -3329,9 +3326,7 @@ c
                ENDIF
             END DO
 
-            IF (igrape.EQ.0) THEN
-               CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
-            ENDIF
+            CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
 
             neighmean = (neimax + neimin)/2
 
@@ -3343,15 +3338,8 @@ c
                ichkloop = 0
  2000          ichkloop = ichkloop + 1
 
-               IF (igrape.EQ.0) THEN
-                  CALL insulate(3,itime,ntot,npart,dumxyzmh,f1vxyzu)
-                  numneigh = nneigh(i)
-               ELSE
-                  nlist = 0
-                  CALL getneigh(i,ntot,xyzmh(5,i),dumxyzmh,mmax,nlist,
-     &                 iptneigh,nearl)
-                  numneigh = nlist
-               ENDIF
+               CALL insulate(3,itime,ntot,npart,dumxyzmh,f1vxyzu)
+               numneigh = nneigh(i)
 
                IF (numneigh.GT.1) THEN
                   xyzmh(5,i) = (xyzmh(5,i)/
@@ -3598,9 +3586,7 @@ c
 c
 c--Rebuild the tree
 c
-            IF (igrape.EQ.0) THEN
-               CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
-            ENDIF
+            CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
 c
 c--Smoothing lengths now set in densityiterate, skip this or crash.
 c
@@ -3618,15 +3604,8 @@ c
                ichkloop = 0
  2001          ichkloop = ichkloop + 1
 
-               IF (igrape.EQ.0) THEN
-                  CALL insulate(3,itime,ntot,npart,dumxyzmh,f1vxyzu)
-                  numneigh = nneigh(i)
-               ELSE
-                  nlist = 0
-                  CALL getneigh(i,ntot,xyzmh(5,i),dumxyzmh,mmax,nlist,
-     &                 iptneigh,nearl)
-                  numneigh = nlist
-               ENDIF
+               CALL insulate(3,itime,ntot,npart,dumxyzmh,f1vxyzu)
+               numneigh = nneigh(i)
 
                IF (numneigh.GT.1) THEN
                   xyzmh(5,i) = (xyzmh(5,i)/
@@ -4026,13 +4005,11 @@ c         WRITE (iprint,*) 'itime.GE.itnext'
             ENDIF
          END DO
 
-         IF (igrape.EQ.0) THEN
-            nneightot = 0
-            DO i = 1, nlstnneigh
-               ipart = llist(i)
-               nneightot = nneightot + nneigh(ipart)
-            END DO
-         ENDIF
+         nneightot = 0
+         DO i = 1, nlstnneigh
+            ipart = llist(i)
+            nneightot = nneightot + nneigh(ipart)
+         END DO
 
 #ifdef MPIALL
          print *,iproc,': END OF STEP ',nptmasstot

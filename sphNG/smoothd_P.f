@@ -53,15 +53,13 @@ c
 c
 c--Build tree
 c
-      IF (igrape.EQ.0) THEN
-         DO i = 1, ntot
-            DO j = 1, 5
-               dumxyzmh(j,i) = xyzmh(j,i)
-            END DO
+      DO i = 1, ntot
+         DO j = 1, 5
+            dumxyzmh(j,i) = xyzmh(j,i)
          END DO
-         WRITE(*,*) ' Making tree'
-         CALL insulate(1, 0, ntot, npart, dumxyzmh, f1vxyzu)
-      ENDIF
+      END DO
+      WRITE(*,*) ' Making tree'
+      CALL insulate(1, 0, ntot, npart, dumxyzmh, f1vxyzu)
       acc = 50.
 c
 c--Smooth all needed quantities
@@ -124,11 +122,7 @@ c
                dumxyzmh(j,i) = xyzmh(j,i)
             END DO
          ENDDO
-         IF (igrape.EQ.0) THEN
-            CALL insulate(3, 0, ntot, npart, dumxyzmh, f1vxyzu)
-         ELSEIF (igrape.EQ.1) THEN
-            CALL insulate(4, 0, ntot, npart, dumxyzmh, f1vxyzu)
-         ENDIF
+         CALL insulate(3, 0, ntot, npart, dumxyzmh, f1vxyzu)
 c
 c--Compute smoothed variable for each particle
 c

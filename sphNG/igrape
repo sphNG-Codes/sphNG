@@ -1,12 +1,10 @@
 c
-c--The parameter `igrape' tells the program whether it is finding the
-c     forces and neighbours of particles using the BINARY TREE (igrape=0)
-c     or the GRAPE board (igrape=1).
+c--This file contains several switches which change how the binary tree
+c     and timestepping code works.
 c
-      INTEGER igrape, isoft
+      INTEGER isoft
 
-c      PARAMETER (igrape=1)
-      PARAMETER (igrape=0)
+c The historical igrape parameter has been eliminated.
  
       INTEGER nmaxboards, nmaxchips, nmaxneighbours
  

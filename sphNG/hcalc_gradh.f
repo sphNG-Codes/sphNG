@@ -76,39 +76,37 @@ c      WRITE(*,*) neimax, neimean, neimin, neisup, neiinf, neirange
 
       CALL ghostp(ntot, npart, xyzmh, vxyzu, ekcle, Bevolxyz)
 
-      IF (igrape.EQ.0) THEN
+      DO i = 1, ntot
+         DO j = 1, 5
+            dumxyzmh(j,i) = xyzmh(j,i)
+         END DO
+      END DO
+      DO i = 1, ntot
+         DO j = 1, 4
+            dumvxyzu(j,i) = vxyzu(j,i)
+         END DO
+      END DO
+      DO i = 1, ntot
+         DO j = 1, isizealphaMM
+            dumalpha(j,i) = alphaMM(j,i)
+         END DO
+      END DO
+      IF (imhd.EQ.idim) THEN
+         DO i = 1, ntot
+            DO j = 1, 3
+               dumBevolxyz(j,i) = Bevolxyz(j,i)
+            END DO
+         END DO
+      ENDIF
+      IF (iradtrans.EQ.idim) THEN
          DO i = 1, ntot
             DO j = 1, 5
-               dumxyzmh(j,i) = xyzmh(j,i)
+               dumekcle(j,i) = ekcle(j,i)
             END DO
          END DO
-         DO i = 1, ntot
-            DO j = 1, 4
-               dumvxyzu(j,i) = vxyzu(j,i)
-            END DO
-         END DO
-         DO i = 1, ntot
-            DO j = 1, isizealphaMM
-               dumalpha(j,i) = alphaMM(j,i)
-            END DO
-         END DO
-         IF (imhd.EQ.idim) THEN
-            DO i = 1, ntot
-               DO j = 1, 3
-                  dumBevolxyz(j,i) = Bevolxyz(j,i)
-               END DO
-            END DO
-         ENDIF
-         IF (iradtrans.EQ.idim) THEN
-            DO i = 1, ntot
-               DO j = 1, 5
-                  dumekcle(j,i) = ekcle(j,i)
-               END DO
-            END DO
-         ENDIF
-         WRITE(*,*) ' Making tree'
-         CALL insulate(1, 0, ntot, npart, dumxyzmh, f1vxyzu)
       ENDIF
+      WRITE(*,*) ' Making tree'
+      CALL insulate(1, 0, ntot, npart, dumxyzmh, f1vxyzu)
 
       icount = 0
 

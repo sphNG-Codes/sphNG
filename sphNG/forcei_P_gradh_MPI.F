@@ -1442,7 +1442,7 @@ c
 c
 c--Gravitational force softening
 c            
-            IF (igrape.EQ.0 .AND. igphi.NE.0) THEN
+            IF (igphi.NE.0) THEN
 c--Plummer
                IF (isoft.EQ.1) THEN
                   rij2grav = dx*dx + dy*dy + dz*dz + psoft**2
@@ -1862,7 +1862,7 @@ c
 c
 c--Gravitational force softening
 c
-               IF (igrape.EQ.0 .AND. igphi.NE.0) THEN
+               IF (igphi.NE.0) THEN
 c--Plummer
                   IF (isoft.EQ.1) THEN
                      rij2grav = dx*dx + dy*dy + dz*dz + psoft**2
@@ -1903,7 +1903,7 @@ c--Store quantities
 c
 c         IF (ipart.GT.ntot) print *,iprocdebug,': D5 ',n
 
-         IF (igrape.EQ.0 .AND. igphi.NE.0) THEN
+         IF (igphi.NE.0) THEN
             forcexi = forcexi + gravxi + dsoftxi
             forceyi = forceyi + gravyi + dsoftyi
             forcezi = forcezi + gravzi + dsoftzi

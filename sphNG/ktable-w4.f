@@ -33,7 +33,7 @@ c     hfact = 1.64 gives approximately 200 neighbours
 c
       hfact = 1.64
 
-      WRITE (iprint, 99002)
+      WRITE (iprint, 99002) hfact
 99002 FORMAT (/,' SPH Kernel : Wendland W4 with hfact =',F5.2,/)
 c
 c--Maximum interaction length and step size

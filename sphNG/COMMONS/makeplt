@@ -1,0 +1,3 @@
+      INTEGER iplotdump
+      REAL    xtype
+      COMMON /plotinfo/ xtype(2,idim), iplotdump

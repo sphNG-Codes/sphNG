@@ -58,6 +58,7 @@ c************************************************************
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/accstat'
       INCLUDE 'COMMONS/rtstat'
+      INCLUDE 'COMMONS/makeplt'
 
       REAL*8 angmom
 
@@ -584,6 +585,11 @@ c
       iaccph2 = 0
       iaccsuc = 0
       iaccmg  = 0 
+c
+c--Initialise additional variables
+c
+      iplotdump = 0
+
 #ifdef MPIALL
       ENDIF
 #endif

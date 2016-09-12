@@ -40,8 +40,7 @@ c************************************************************
       INCLUDE 'COMMONS/initpt'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/planetesimal'
-
-      COMMON /plotinfo/ xtype(2,idim), iplotdump
+      INCLUDE 'COMMONS/makeplt'
 
       CHARACTER*11 ifile(1000), ofile
 

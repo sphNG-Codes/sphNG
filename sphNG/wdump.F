@@ -61,8 +61,7 @@ c#endif
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
-
-      COMMON /plotinfo/ xtype(2,idim), iplotdump
+      INCLUDE 'COMMONS/makeplt'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)

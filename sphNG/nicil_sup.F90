@@ -1,3 +1,4 @@
+!----------------------------------------------------------------------!
 !+
 !  MODULE: nicil_sup
 !          
@@ -5,12 +6,9 @@
 !  Contains supplementary routines to NICIL for use in sphNG; adapted 
 !  from Phantom's evwrite & energies.
 !  This is not part of the NICIL package.
-!  Note: Attempts to incorporate MPI into this routine failed; it would
-!        crash in wdump.F on 'nreassigntot; note that wdump.F did not
-!        crash for nonideal=no.
 !
 !  AUTHOR: James Wurster
-!
+!+
 !----------------------------------------------------------------------!
 module nicil_sup
  use nicil, only: nicil_get_eta,nimhd_get_dudt
@@ -91,15 +89,23 @@ end function get_coef_gamma
 !  calculate the gas temperature
 !+
 !-----------------------------------------------------------------------
-real function nimhd_gastemp(encal,vxyzu4i,ekcle3i,rhoi,gamma)
+real function nimhd_gastemp(encal,vxyzu4i,ekcle3i,rhoi,gamma,n1,n2,ipart0)
+ integer,          intent(in) :: n1,n2
+ integer(kind=8),  intent(in) :: ipart0
  real,             intent(in) :: vxyzu4i,ekcle3i,rhoi,gamma
  character(len=*), intent(in) :: encal
  !
  if (encal=='r') then
-    if (ekcle3i > 0.0) then
-       nimhd_gastemp = vxyzu4i/ekcle3i
+    if (ipart0 > n1 .AND. ipart0 <= n1+n2) then
+       ! for sphere-in-box, this is the medium
+       nimhd_gastemp = coef_gamma*vxyzu4i
     else
-       nimhd_gastemp = 0.0  ! Should not happen if parent code is written correctly
+       ! for sphere-in-box, this is the sphere
+       if (ekcle3i > 0.0) then
+          nimhd_gastemp = vxyzu4i/ekcle3i
+       else
+          nimhd_gastemp = 0.0  ! Should not happen if parent code is written correctly
+       endif
     endif
 ! elseif (encal=='m') then
 !!   NOTE: encal=="m" does not seem to be a current option
@@ -126,7 +132,9 @@ end function nimhd_gastemp
 !  wrapper routine to calculate and include du/dt
 !+
 !-----------------------------------------------------------------------
-subroutine energ_nimhd(fxyzu4i,jcurrenti,Bxyzi,vxyzu4i,ekcle3i,rhoi,n_Ri,n_electronTi,gamma,encal)
+subroutine energ_nimhd(fxyzu4i,jcurrenti,Bxyzi,vxyzu4i,ekcle3i,rhoi,n_Ri,n_electronTi,gamma,encal,n1,n2,ipart0)
+ integer,          intent(in)    :: n1,n2
+ integer(kind=8),  intent(in)    :: ipart0
  real,             intent(inout) :: fxyzu4i
  real,             intent(in)    :: jcurrenti(3),Bxyzi(3),n_Ri(:)
  real,             intent(in)    :: vxyzu4i,ekcle3i,rhoi,n_electronTi,gamma
@@ -136,7 +144,7 @@ subroutine energ_nimhd(fxyzu4i,jcurrenti,Bxyzi,vxyzu4i,ekcle3i,rhoi,n_Ri,n_elect
  real                            :: dudtnonideal
  !
  Bi           = sqrt( dot_product(Bxyzi,Bxyzi) )
- temperaturei = nimhd_gastemp(encal,vxyzu4i,ekcle3i,rhoi,gamma)
+ temperaturei = nimhd_gastemp(encal,vxyzu4i,ekcle3i,rhoi,gamma,n1,n2,ipart0)
  call nicil_get_eta(etaohmi,etahalli,etaambii,Bi,rhoi,temperaturei,n_Ri,n_electronTi,ierr)
  call nimhd_get_dudt(dudtnonideal,etaohmi,etaambii,rhoi,jcurrenti,Bxyzi)
  fxyzu4i      = fxyzu4i + dudtnonideal
@@ -234,17 +242,19 @@ end subroutine nimhd_write_evheader
 !-----------------------------------------------------------------------
 subroutine nimhd_get_stats(npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
                         alphaMM,alphamin,n_R,n_electronT,iphase,&
-                        gamma,ifsvi,encal,np,et,ev_data)
+                        gamma,ifsvi,encal,np,et,ev_data,n1,n2,iunique,iorig)
  real,             intent(in)  :: gamma
  real,             intent(in)  :: xyzmh(:,:),vxyzu(:,:),ekcle(:,:),Bxyz(:,:),&
                                   n_R(:,:),n_electronT(:),alphamin(:)
  real(kind=4),     intent(in)  :: rho(:),vsound(:),alphaMM(:,:)
- integer,          intent(in)  :: npart,ifsvi
+ integer,          intent(in)  :: npart,ifsvi,n1,n2
+ integer,          intent(in)  :: iorig(:)
+ integer(kind=8),  intent(in)  :: iunique(:)
  integer(kind=1),  intent(in)  :: iphase(:)
  character(len=*), intent(in)  :: encal
  integer,          intent(out) :: np
  real,             intent(out) :: et,ev_data(0:inumev)
- integer                       :: i,j,ierr,c0,c1,crate,cmax
+ integer                       :: i,j,ierr,c0,c1,crate,cmax,iekcle
  real                          :: rhoi,B2i,Bi,temperature,vsigi, &
                                   etaart,etaart1,etaohm,etahall,etaambi
  real                          :: data_out(17+nelements_max*nlevels-3)
@@ -255,9 +265,10 @@ subroutine nimhd_get_stats(npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
  call system_clock(c0,crate,cmax)
  !
  call initialise_ev_data(ielements,ev_action,ev_data)
- np = 0
+ np     = 0
+ iekcle = 1
 !$omp parallel default(none) &
-!$omp shared(xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,iphase,npart,encal) &
+!$omp shared(xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,iphase,npart,encal,n1,n2,iunique,iorig) &
 !$omp shared(n_R,n_electronT,alphaMM,alphamin,gamma,ifsvi) &
 !$omp shared(use_ohm,use_hall,use_ambi,ion_rays,ion_thermal,nelements) &
 !$omp shared(ielements,ev_data,ev_action) &
@@ -270,7 +281,8 @@ subroutine nimhd_get_stats(npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
 !$omp shared(inhX,inhA,inheX,inheA,innaX,innaA,inmgX,inmgA,inkX,inkA) &
 !$omp shared(inhedX,inhedA,innadX,innadA,inmgdX,inmgdA,inkdX,inkdA) &
 !$omp private(i,j,ierr,rhoi,B2i,Bi,temperature,vsigi,etaart,etaart1,etaohm,etahall,etaambi,data_out) &
-!$omp private(ev_data_thread)&
+!$omp firstprivate(iekcle) &
+!$omp private(ev_data_thread) &
 !$omp reduction(+:np) 
  call initialise_ev_data(ielements,ev_action,ev_data_thread)
 !$omp do
@@ -280,7 +292,8 @@ subroutine nimhd_get_stats(npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
        B2i  = dot_product(Bxyz(1:3,i),Bxyz(1:3,i))
        Bi   = sqrt(B2i)
        rhoi = dble(rho(i))
-       temperature = nimhd_gastemp(encal,vxyzu(4,i),ekcle(3,i),rhoi,gamma)
+       if (encal=='r') iekcle = i
+       temperature = nimhd_gastemp(encal,vxyzu(4,i),ekcle(3,iekcle),rhoi,gamma,n1,n2,iunique(iorig(i)))
        call nicil_get_eta(etaohm,etahall,etaambi,Bi,rhoi,temperature, &
                           n_R(:,i),n_electronT(i),ierr,data_out)
        vsigi = sqrt( dble(vsound(i))*dble(vsound(i)) + B2i/rhoi)

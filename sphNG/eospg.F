@@ -164,9 +164,17 @@ c
 c
 c--Calculate number densities for non-ideal MHD 
 c  (must be updated every time temperature or density is modified)
+c  (use getvc rather than ekcle since that is the method used above)
 c
-      temperature = nimhd_gastemp(encal,vxyzu(4,ipart),ekcle(3,ipart)
-     &                           ,dble(rho(ipart)),gamma)
+      IF (encal.EQ.'r') THEN
+c        ekclei = ekcle(3,ipart)
+         ekclei = getcv(rho(ipart),vxyzu(4,ipart))
+      ELSE
+         ekclei = 0.0
+      ENDIF
+      temperature = nimhd_gastemp(encal,vxyzu(4,ipart),ekclei
+     &                           ,dble(rho(ipart)),gamma
+     &                           ,n1,n2,iunique(iorig(ipart)))
       CALL nicil_get_ion_n(dble(rho(ipart)),temperature
      &                     ,n_R(:,ipart),n_electronT(ipart),ierr)
       IF (ierr/=0) THEN

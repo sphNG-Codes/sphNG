@@ -392,6 +392,12 @@ c     &                  1,llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
      &                       indexMPIimhdevol,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPIimhdevol,ierr)
 
+#ifdef NONIDEAL
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
+                              CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
+#endif
+
                         ENDIF
 
 c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
@@ -449,6 +455,19 @@ c     &    iorig(llistsentback(1,j+1)+1),MPI_INTEGER8,indexMPI_I8,ierr)
                            print *,iproc,' sent Bevolxyz to ',j
 #endif
 
+#ifdef NONIDEAL
+                           CALL MPI_SEND(n_R,1,indexMPI4,j,233,
+     &                          MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                           print *,iproc,' sent n_R to ',j
+#endif
+                           CALL MPI_SEND(n_electronT,1,indexMPI1,j,234,
+     &                          MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                           print *,iproc,' sent n_electronT to ',j
+#endif
+                           CALL MPI_TYPE_FREE(indexMPI4,ierr)
+#endif
                            CALL MPI_TYPE_FREE(indexMPI3,ierr)
                            CALL MPI_TYPE_FREE(indexMPIimhdevol,ierr)
                         ENDIF
@@ -605,6 +624,32 @@ c     &                 istart+inumber)
                      ENDIF
 #ifdef MPIDEBUG
                      print *,iproc,': got Bxyz from ',iprocrec,icheck
+#endif
+#ifdef NONIDEAL
+                     CALL MPI_RECV(n_R(1,istart),inumber,i4REAL8,
+     &                    iprocrec,233, MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus, i4REAL8, icheck, ierr)
+                     IF (icheck.NE.inumber) THEN
+                        WRITE (*,*) 'ERROR - icheck.NE.inumber 12 ',
+     &                       iproc
+                        CALL quit(1)
+                     ENDIF
+#ifdef MPIDEBUG
+                     print *,iproc,': got n_R from ',iprocrec,icheck
+#endif
+                     CALL MPI_RECV(n_electronT(istart),inumber,
+     &                    MPI_REAL4,iprocrec,234, MPI_COMM_WORLD, 
+     &                    istatus,ierr)
+                     CALL MPI_GET_COUNT(istatus, MPI_REAL4, icheck,ierr)
+                     IF (icheck.NE.inumber) THEN
+                        WRITE (*,*) 'ERROR - icheck.NE.inumber 13 ',
+     &                       iproc
+                        CALL quit(1)
+                     ENDIF
+#ifdef MPIDEBUG
+                     print *,iproc,': got n_electronT from ',iprocrec
+     &                      ,icheck
+#endif
 #endif
                   ENDIF
 

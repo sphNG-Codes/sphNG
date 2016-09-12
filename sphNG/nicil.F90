@@ -16,6 +16,7 @@
 !  Contains routines to calculation the ionisation rate, and related
 !  useful quantities.
 !  Copyright (c) 2015-2016 James Wurster
+!  Reference: Wurster (2016) PASA, 33:e041.
 !  See LICENCE file for usage and distribution conditions
 !
 !
@@ -41,7 +42,7 @@
 !    g_cnst         -- Set constant grain size (true) or approximate an MRN grain distribution (false)
 !    ion_rays       -- Include ionisation from cosmic (or x-) rays
 !    ion_thermal    -- Include thermal ionisation
-!    use_massfrac   -- Set metallicity of H and He (true) or set abundances of 5 elements (false)
+!    use_massfrac   -- Set mass fraction of H and He (true) or set abundances of 5 elements (false)
 !    eta_constant   -- Use a constant resistivity
 !    warn_verbose   -- To print warnings to file
 !    fdg            -- Grain Parameter: gas to dust mass ratio
@@ -106,11 +107,14 @@ module nicil
  real,          public  :: pnH               = 0.667            ! Ionisation parameter: polarizability for H  [angstroms^3]
  real,          public  :: pnH2              = 0.804            ! Ionisation parameter: polarizability for H2 [angstroms^3] 
  real,          public  :: pnHe              = 0.207            ! Ionisation parameter: polarizability for He [angstroms^3]
- real,          public  :: alpha_Mg          = 2.80d-12         ! Recombination coefficient for Mg
- real,          public  :: alpha_H           = 3.50d-12         ! Recombination coefficient for atomic Hydrogen
- real,          public  :: alpha_He          = 5.36d-12         ! Recombination coefficient for Helium
+ real,          public  :: alpha_Mg          = 2.8d-12          ! Recombination coefficient for Mg
+ real,          public  :: alpha_H           = 3.5d-12          ! Recombination coefficient for atomic Hydrogen
+ real,          public  :: alpha_He          = 4.5d-12          ! Recombination coefficient for Helium
+ real,          public  :: alpha_expT_Mg     = -0.86            ! Recombination exponent of temperature for Mg
+ real,          public  :: alpha_expT_H      = -0.7             ! Recombination exponent of temperature for atomic Hydrogen
+ real,          public  :: alpha_expT_He     = -0.67            ! Recombination exponent of temperature for Helium
  !
- !--Metallicities (used if use_massfrac=.true.)
+ !--Mass Fractions (used if use_massfrac=.true.)
  real,        public    :: massfrac_X        =     0.70         ! Mass fraction of Hydrogen
  real,        public    :: massfrac_Y        =     0.28         ! Mass fraction of Helium
  !--Thermal ionisation
@@ -147,6 +151,8 @@ module nicil
  !--Misc. parameters not to be modified
  integer,     parameter :: zmax              =  1               ! Maximum grain charge; charge range is (-zmax,zmax)
  real,        parameter :: warn_ratio        =  0.1             ! fraction within with two values will be assumed equal for warnings
+ real,        parameter :: vrms_min_kms      =  20              ! Minimum rms velocity below which rate coefficients become unreliable [km/s] (Pinto & Galli, 2008)
+ real,        parameter :: vrms_max_kms      = 500              ! Maximum rms velocity above which rate coefficients become unreliable [km/s] (Pinto & Galli, 2008)
  !
  !--Physical Constants (CGS)
  real,        parameter :: pi                =  3.1415926536d0  !  pi
@@ -180,14 +186,16 @@ module nicil
  integer,     parameter :: ierr_nRle0        =     100          ! fatal error code if n_R < 0
  integer,     parameter :: ierr_Zge0         =     200          ! fatal error code if Z_g > 0 for average Z_grain calculation
  integer,     parameter :: ierr_T            =    1000          ! warning code if T==0 (from input)
- integer,     parameter :: ierr_Zave         =    2000          ! warning code if using average Z_grain method to calculate n_R
+ integer,     parameter :: ierr_B            =    2000          ! warning code if B==0 (from input)
+ integer,     parameter :: ierr_Zave         =    5000          ! warning code if using average Z_grain method to calculate n_R
  integer,     parameter :: ierr_LagH2        =   10000          ! warning code if Langevin rate used for molecular Hydrogen
  integer,     parameter :: ierr_LagH         =   20000          ! warning code if Langevin rate used for atomic Hydrogen
  integer,     parameter :: ierr_LagHe        =   50000          ! warning code if Langevin rate used for Helium
  integer,     parameter :: ierr_scN          =  100000          ! warning code if strong coupling approximation broke (rho_n ~ rho is false)
  integer,     parameter :: ierr_scI          =  200000          ! warning code if strong coupling approximation broke (rho_i <<rho is false)
  integer,     parameter :: ierr_drift        = 1000000          ! warning code if drift velocity is large relative to absolute velocity
- integer,     parameter :: ierr_nedec        = 2000000          ! warning code if n_electronR ~ n_electronT
+ integer,     parameter :: ierr_vrms         = 2000000          ! warning code if velocity is outside of the range valid for the rate coefficients
+ integer,     parameter :: ierr_nedec        = 5000000          ! warning code if n_electronR ~ n_electronT
  !
  !--Local Variables to the NICIL module that may be required elsewhere in the user's code
  integer,     public    :: nelements
@@ -202,10 +210,11 @@ module nicil
  real,        private   :: eta_ohm_cnst,eta_hall_cnst,eta_ambi_cnst,alpha_AD_p1
  real,        private   :: zeta,umass0,unit_density0
  real,        private   :: Saha_coef_HH2,chij_HH2,chiHH2
+ real,        private   :: vrms2_min,vrms2_max
  real,        private   :: a_grain(na_max),a_grain_cgs(na_max),n_grain_coef(na_max)
  real,        private   :: sigmaviRn(3,nimass)
  real,        private   :: kave,k_fac_coef(-zmax:zmax,na_max)
- real,        private   :: k_ig_coef(nimass,na_max),k_eg_coef(na_max),k_ei_coef(nimass)
+ real,        private   :: k_ig_coef(nimass,na_max),k_eg_coef(na_max),k_ei_coef(nimass+1)
  real,        private   :: n_grain_coef_cgs(na_max),n_grain_dist(na_max),n_R0(nspecies_max)
  real,        private   :: log_abunj(nelements_max),mj_mp(nelements_max),abundancej(nelements_max)
  real,        private   :: mass_frac(nelements_max),sqrtmj1(nelements_max)
@@ -396,8 +405,10 @@ subroutine nicil_initialise(utime,udist,umass,unit_Bfield,ierr,iprint_in,iprintw
  warn_ratio_p1  = 1.0+warn_ratio
  warn_ratio_m12 = warn_ratio_m1*warn_ratio_m1
  warn_ratio_p12 = warn_ratio_p1*warn_ratio_p1
+ vrms2_min      = (vrms_min_kms*1.0d5*utime/udist)**2
+ vrms2_max      = (vrms_max_kms*1.0d5*utime/udist)**2
  !
- !--Calculate metallicities or abundances, as required
+ !--Calculate mass fractions or abundances, as required
  if (use_massfrac) then
    ! Note: Abundance is approximate since we do not explicitly account for Z
    !       We explicitly assume that the hydrogen is molecular; given how the
@@ -458,8 +469,8 @@ subroutine nicil_initialise(utime,udist,umass,unit_Bfield,ierr,iprint_in,iprintw
  mass_neutral_cgs       = meanmolmass  *mass_proton_cgs                      ! Neutral mass
  mump                   = meanmolmass  *mass_proton_cgs                      ! mean particle mass assuming composition is H2 & He
  if (.not. use_massfrac) then
-   massfrac_X         = mass_frac(iH2)                                       ! Metallicity of Hydrogen
-   massfrac_Y         = mass_frac(iHe)                                       ! Metallicity of Helium
+   massfrac_X         = mass_frac(iH2)                                       ! mass fraction of Hydrogen
+   massfrac_Y         = mass_frac(iHe)                                       ! mass fraction of Helium
  end if
  !
  !--Determine grain distribution and initialise
@@ -529,10 +540,12 @@ subroutine nicil_initialise(utime,udist,umass,unit_Bfield,ierr,iprint_in,iprintw
      iave            = iave + 1
    end do
  end do
- k_ei_coef(1) = massfrac_X*alpha_H + massfrac_Y*alpha_He                           * utime/udist**3   ! iniHR
- k_ei_coef(2) = alpha_Mg                                                           * utime/udist**3   ! iniMR
- kave         = kave + k_ei_coef(1)+k_ei_coef(2)
- iave         = iave + 2
+ k_ei_coef(1) = massfrac_X*alpha_H /300.0**alpha_expT_H                            * utime/udist**3   ! iniHR (Hydrogen component)
+ k_ei_coef(2) = massfrac_Y*alpha_He/300.0**alpha_expT_he                           * utime/udist**3   ! iniHR (Helium component)
+ k_ei_coef(3) = alpha_Mg/300.0**alpha_expT_Mg                                      * utime/udist**3   ! iniMR
+ kave         = kave + k_ei_coef(1)+k_ei_coef(2)+k_ei_coef(3)
+ iave         = iave + 3
+ kave         = kave/iave
  k_eg_coef    = k_eg_coef/kave
  k_ig_coef    = k_ig_coef/kave
  k_ei_coef    = k_ei_coef/kave
@@ -644,7 +657,6 @@ subroutine nicil_initialise(utime,udist,umass,unit_Bfield,ierr,iprint_in,iprintw
  !--Print Statements to summarise conditions used
  call nicil_print_summary(a01_grain,massj_mp(iniHR),mass_grain_mp,meanmolmass)
  !
- return
 end subroutine nicil_initialise
 !----------------------------------------------------------------------!
 !+
@@ -661,6 +673,7 @@ subroutine nicil_print_summary(a01_grain,mass_HionR_mp,mass_grain_mp,meanmolmass
  write(iprint,'(2a)') "NICIL: ",trim(version)
  write(iprint,'(a)' ) "NICIL: Copyright (c) 2015-2016 James Wurster"
  write(iprint,'(a)' ) "NICIL: See LICENCE file for usage and distribution conditions"
+ write(iprint,'(a)' ) "NICIL: Reference: Wurster (2016) PASA, 33:e041."
  !
  ni_terms = ""
  comma    = ""
@@ -730,14 +743,14 @@ subroutine nicil_print_summary(a01_grain,mass_HionR_mp,mass_grain_mp,meanmolmass
 end subroutine nicil_print_summary
 !----------------------------------------------------------------------!
 !+
-! Theres will print an error message and increment a counter for each
-! error found in NICIL. 
-! This will NOT end the main programme, but pass the error code such
-! that the code can be properly and cleanly terminated.
-! The first programme is specifically for initialising NICIL, and the
-! second is during runtime.
+! These will print an error message for each error found in NICIL. 
+! This will NOT end the main programme, but pass the error code to the
+! host code such that the code can be properly and cleanly terminated.
+! The first subroutine is specifically for initialising NICIL, and
+! the second and third subroutines are is for runtime.
 !+
 !----------------------------------------------------------------------!
+!--Initialisation error messages
 subroutine nicil_ic_error(num_errors,wherefrom,reason,var,val)
  integer,                    intent(inout) :: num_errors
  character(len=*),           intent(in)    :: wherefrom,reason
@@ -754,20 +767,41 @@ subroutine nicil_ic_error(num_errors,wherefrom,reason,var,val)
  !
 end subroutine nicil_ic_error
 !
+!--Runtime error messages
 subroutine nicil_translate_error(ierr)
  integer, intent(inout)    :: ierr
  integer                   :: i,ilen
  character(len= 1)         :: id
  character(len=16)         :: cerr,werr
  character(len=20)         :: ferr
+ character(len=96)         :: errmsg(16)
  logical                   :: is_fatal,is_warning
  !
  write(cerr,*) ierr
- ferr = "NICIL: FATAL ERROR: "
- werr = "NICIL: WARNING: "
- ilen = len(trim(cerr))
+ !--The error messages
+ ferr       = 'NICIL: FATAL ERROR: '
+ werr       = 'NICIL: WARNING: '
+ errmsg( 1) = 'nicil_ionR_get_n: n_{i,e,g} did not converge'
+ errmsg( 2) = 'nicil_ionT_get_ne: n_electronT did not converge'
+ errmsg( 3) = 'nicil_ionT_get_ne: n_electronT < 0'
+ errmsg( 4) = 'nicil_ionR_get_n: unrealistic n_R value (i.e. n_R < 0)'
+ errmsg( 5) = 'nicil_ionR_get_n: invalid Z_g > 0 in average Z_grain method'
+ errmsg( 6) = 'input error: T == 0.  Verify your code can legitimately input this.'
+ errmsg( 7) = 'input error: B == 0.  Verify your code can legitimately input this.'
+ errmsg( 8) = 'Using average-grain-charge method to approximate densities for cosmic rays.'
+ errmsg( 9) = 'nicil_ion_get_sigma: Using Langevin cross section for molecular Hydrogen.'
+ errmsg(10) = 'nicil_ion_get_sigma: Using Langevin cross section for atomic Hydrogen.'
+ errmsg(11) = 'nicil_ion_get_sigma: Using Langevin cross section for Helium.'
+ errmsg(12) = 'strong coupling approximation (rho_n~ rho) invalid since rho_n < 0.1rho'
+ errmsg(13) = 'strong coupling approximation (rho_i<<rho) invalid since rho_i > 0.01rho'
+ errmsg(14) = 'drift velocity ~ 0 approximation invalid since v_d > 0.1v'
+ errmsg(15) = 'vrms_min < v < vrms_max is not true'
+ errmsg(16) = 'thermal/cosmic ray decoupling approximation invalid since (n_eI ~ n_eR)'
+ !--Initialise parameters
+ ilen       = len(trim(cerr))
  is_warning = .false.
  is_fatal   = .false.
+ !--Determine which errors to print
  do i = ilen,1,-1
    id = cerr(i:i)
    if (id/="" .and. id/="0") then
@@ -777,39 +811,30 @@ subroutine nicil_translate_error(ierr)
        is_warning = .true.
      end if
      if (i == ilen) then
-       ! error are +1 (ierr = ierr_nRconv)
-       if (id=="1")write(iprint,'(2a)')ferr,'nicil_ionR_get_n: n_{i,e,g} did not converge'
+       if ( is_err(id,ierr_nRconv, 0) ) write(iprint, '(2a)') ferr,errmsg( 1)
      else if (i == ilen-1) then
-       ! error are +10 & +20 (ierr = ierr_neTconv,ierr_neTle0)
-       if (id=="1".or.id=="3")write(iprint,'(2a)')ferr,'nicil_ionT_get_ne: n_electronT did not converge'
-       if (id=="2".or.id=="3")write(iprint,'(2a)')ferr,'nicil_ionT_get_ne: n_electronT < 0'
+       if ( is_err(id,ierr_neTconv,1) ) write(iprint, '(2a)') ferr,errmsg( 2)
+       if ( is_err(id,ierr_neTle0, 1) ) write(iprint, '(2a)') ferr,errmsg( 3)
      else if (i == ilen-2) then
-       ! error are +100 & +200 (ierr = ierr_nRle0,ierr_Zge0)
-       if (id=="1".or.id=="3")write(iprint,'(2a)')ferr,'nicil_ionR_get_n: unrealistic n_R value (i.e. n_R < 0)'
-       if (id=="2".or.id=="3")write(iprint,'(2a)')ferr,'nicil_ionR_get_n: invalid Z_g > 0 in average Z_grain method'
-       !
+       if ( is_err(id,ierr_nRle0,  2) ) write(iprint, '(2a)') ferr,errmsg( 4)
+       if ( is_err(id,ierr_Zge0,   2) ) write(iprint, '(2a)') ferr,errmsg( 5)
      end if
      if (warn_verbose) then
        if (i == ilen-3) then
-         ! error are +1000 & + 2000 (ierr = ierr_T,ierr_Zave)
-         if (id=="1".or.id=="3")write(iprintw,'(2a)')werr,'input error: T == 0.  Verify your code can legitimately input this.'
-         if (id=="2".or.id=="3")write(iprintw,'(2a)')werr,'Using alternate method to approximate densities for cosmic rays.'
+         if ( is_err(id,ierr_T,    3) ) write(iprintw,'(2a)') werr,errmsg( 6)
+         if ( is_err(id,ierr_B,    3) ) write(iprintw,'(2a)') werr,errmsg( 7)
+         if ( is_err(id,ierr_Zave, 3) ) write(iprintw,'(2a)') werr,errmsg( 8)
        else if (i == ilen-4) then
-         ! error are +10000 & +20000 & +50000(ierr = ierr_LagH2,ierr_LagH,ierr_LagHe)
-         if (id=="1".or.id=="3".or.id=="6".or.id=="8") &
-           write(iprintw,'(2a)')werr,'nicil_ion_get_sigma: Using Langevin cross section for molecular Hydrogen.'
-         if (id=="2".or.id=="3".or.id=="7".or.id=="8") &
-           write(iprintw,'(2a)')werr,'nicil_ion_get_sigma: Using Langevin cross section for atomic Hydrogen.'
-         if (id=="5".or.id=="6".or.id=="7".or.id=="8") &
-           write(iprintw,'(2a)')werr,'nicil_ion_get_sigma: Using Langevin cross section for Helium.'
+         if ( is_err(id,ierr_LagH2,4) ) write(iprintw,'(2a)') werr,errmsg( 9)
+         if ( is_err(id,ierr_LagH, 4) ) write(iprintw,'(2a)') werr,errmsg(10)
+         if ( is_err(id,ierr_LagHe,4) ) write(iprintw,'(2a)') werr,errmsg(11)
        else if (i == ilen-5) then
-         ! error are +100000 & +200000 (ierr = ierr_scN,ierr_scI)
-         if (id=="1".or.id=="3")write(iprintw,'(2a)')werr,'strong coupling approximation (rho_n~ rho) broken since rho_n < 0.1rho'
-         if (id=="2".or.id=="3")write(iprintw,'(2a)')werr,'strong coupling approximation (rho_i<<rho) broken since rho_i > 0.01rho'
+         if ( is_err(id,ierr_scN,  5) ) write(iprintw,'(2a)') werr,errmsg(12)
+         if ( is_err(id,ierr_scI,  5) ) write(iprintw,'(2a)') werr,errmsg(13)
        else if (i == ilen-6) then
-         ! error are +1000000 & +2000000 (ierr = ierr_drift,ierr_nedec)
-         if (id=="1".or.id=="3")write(iprintw,'(2a)')werr,'drift velocity ~ 0 approximation since v_d > 0.1v'
-         if (id=="2".or.id=="3")write(iprintw,'(2a)')werr,'thermal/cosmic ray decoupling approximation broken since (n_eI ~ n_eR)'
+         if ( is_err(id,ierr_drift,6) ) write(iprintw,'(2a)') werr,errmsg(14)
+         if ( is_err(id,ierr_vrms, 6) ) write(iprintw,'(2a)') werr,errmsg(15)
+         if ( is_err(id,ierr_nedec,6) ) write(iprintw,'(2a)') werr,errmsg(16)
        end if
      end if
      !
@@ -820,6 +845,38 @@ subroutine nicil_translate_error(ierr)
  if (is_warning .and. .not.is_fatal) ierr = -ierr
  !
 end subroutine nicil_translate_error
+!
+! Function to state whether or not an error message should be printed
+! Note: nzeros is the number of zeros in the error code; passed in so
+! they can be removed and only the first digit dealt with
+pure logical function is_err(cid,ierr_in,nzeros)
+ integer,         intent(in)   :: ierr_in,nzeros
+ character(len=1),intent(in)   :: cid
+ integer                       :: id,ierrA,ierrB,ierrC
+ !
+ read(cid,*) id
+ ierrA  = ierr_in/10**nzeros
+ is_err = .false.
+ if (ierrA==1) then
+   ierrB = 2
+   ierrC = 5
+ elseif (ierrA==2) then
+   ierrB = 5
+   ierrC = 1
+ elseif (ierrA==5) then
+   ierrB = 1
+   ierrC = 2
+ else
+   ierrB  = -1
+   ierrC  = -1
+   is_err = .true.
+ end if
+ if (id==ierrA               .or.  &
+     id==ierrA+ierrB         .or.  &
+     id==ierrA+ierrC         .or.  &
+     id==ierrA+ierrB+ierrC) is_err = .true.
+ !
+end function is_err
 !----------------------------------------------------------------------!
 !+
 ! Internal Version Control
@@ -847,6 +904,11 @@ pure subroutine nicil_version(version)
            !               Solving for \bar{Z} remains as a contingency if convergence is not obtained with the above method
  version = "Version 1.2: 27 June 2016"
            !  6 July 2016: bug fix in nimhd_get_dudt
+           !  1 Aug  2016: will exit cleanly if B=0 is passed in
+           !  1 Aug  2016: bug fix when calculating k_ei(1); temperature dependence now included
+ version = "Version 1.2.1: 2 Aug 2016"
+           !  6 Sept 2016: bug fix in v_ion
+           ! 12 Sept 2016: Updated references
  !
 end subroutine nicil_version
 !----------------------------------------------------------------------!
@@ -870,9 +932,10 @@ pure subroutine nicil_get_eta(eta_ohm,eta_hall,eta_ambi,Bfield,rho,T,n_R,n_elect
  logical                       :: get_data_out,use_new_guess
  !
  ierr = 0                                 ! initialise error code
- !--Exit with error message if T = 0
- if (T <= small) then
-   ierr     = ierr + ierr_T
+ !--Exit with error message if T = 0 or B = 0
+ if (T <= small .or. Bfield <= small) then
+   if ( T      <=small ) ierr = ierr + ierr_T
+   if ( Bfield <=small ) ierr = ierr + ierr_B
    eta_ohm  = 0.0
    eta_hall = 0.0
    eta_ambi = 0.0
@@ -961,7 +1024,6 @@ pure subroutine nicil_get_eta(eta_ohm,eta_hall,eta_ambi,Bfield,rho,T,n_R,n_elect
    data_out(17+nelements:17+nelements*nlevels-3) = njk(2,iHe:nelements)                         ! doubly ionised elements
  end if
  !
- return
 end subroutine nicil_get_eta
 !----------------------------------------------------------------------!
 !+
@@ -1008,6 +1070,11 @@ pure subroutine nicil_ion_get_sigma(Bmag,rho,n_electron,n_ionR,n_grainR,n_ionT,m
    p = 1+inidT+2*(j-1)
    ns(p:p+1)      = n_grainR(1+2*(j-1):2+2*(j-1))
  end do
+ if (n_electron > 0.0) then
+   ! to prevent (possible) numerical overflow
+   ns             = ns/n_electron
+   sigma_coef_onB = sigma_coef_onB*n_electron
+ end if
  !
  !--Densities 
  rho_j(ine)         = n_electron*massj(ine)
@@ -1088,9 +1155,7 @@ pure subroutine nicil_ion_get_sigma(Bmag,rho,n_electron,n_ionR,n_grainR,n_ionT,m
    betaj(inisT) = betaIj(beta_coef(inisT),rho_j(inisT),rho_j(ine),nu_jn(inisT),nu_ei,Bmag,ion_thermal,mass_ionT(1))
    betaj(inidT) = betaIj(beta_coef(inidT),rho_j(inidT),rho_j(ine),nu_jn(inidT),nu_ei,Bmag,ion_thermal,mass_ionT(2))
    betaj(ing:ing+2*na-1) = beta_coef(ing:ing+2*na-1) *Bmag/ nu_jn(ing:ing+2*na-1)
-   do j = 1,nspecies
-     if (betaj(j) > 0.0) beta2p11(j) = 1.0/(1.0+betaj(j)**2 )
-   end do
+   beta2p11     = 1.0/( 1.0+betaj**2 )
    !
    !--Conductivities
    sigmaOHPpa = 0.0
@@ -1115,9 +1180,8 @@ pure subroutine nicil_ion_get_sigma(Bmag,rho,n_electron,n_ionR,n_grainR,n_ionT,m
    end if
    sigmaOHPpa(1:3) = sigmaOHPpa(1:3)*sigma_coef_onB
    sigmaOHPpa(5)   = sigmaOHPpa(  5)*sigma_coef_onB**2
-   if ( abs(sigmaOHPpa(2)) > 0.0 .or. sigmaOHPpa(3) > 0.0) then
-     sigmaOHPpa(4)   = 1.0/(sigmaOHPpa(2)**2 + sigmaOHPpa(3)**2)
-   end if
+   sigmaOHPpa(4)   = sigmaOHPpa(2)*sigmaOHPpa(2) + sigmaOHPpa(3)*sigmaOHPpa(3)
+   if ( sigmaOHPpa(4) > 0.0 ) sigmaOHPpa(4) = 1.0/sigmaOHPpa(4)
  end if
  !
  !--Number densities (for bookkeeping)
@@ -1135,7 +1199,7 @@ pure subroutine nicil_ion_get_sigma(Bmag,rho,n_electron,n_ionR,n_grainR,n_ionT,m
  !
 end subroutine nicil_ion_get_sigma
 !
- pure real function betaIj(betaj_coef,rhoj,rhoe,nu_jn,nu_ei,Bmag,calc_beta,mass)
+pure real function betaIj(betaj_coef,rhoj,rhoe,nu_jn,nu_ei,Bmag,calc_beta,mass)
  ! Function to calculate the Hall parameter for ions
  ! Recall: nu_ie = nu_ei*rho_e/rho_i
  real,    intent(in)           :: betaj_coef,rhoj,rhoe,nu_jn,nu_ei,Bmag
@@ -1200,7 +1264,6 @@ pure subroutine nicil_get_ion_n(rho,T,n_R,n_electronT,ierr)
    if (use_new_guess) call nicil_ionT_get_ne(n_electronT,rho,T,afrac,ierr,use_new_guess) ! Try with new guess
  end if
  !
- return
 end subroutine nicil_get_ion_n
 !----------------------------------------------------------------------!
 !+
@@ -1293,6 +1356,7 @@ pure subroutine nicil_ionR_get_n(n_R,T,rho,ierr,use_new_guess)
  real                    :: n_g_tot(na),n_g_scaled(na),n_i(nimass),n_g(-zmax:zmax,na)
  real                    :: n_old(neqn),n_new(neqn),dn(neqn)
  real                    :: k_ig(-zmax:zmax,nimass,na),k_eg(-zmax:zmax,na),k_ei(nimass)
+ real                    :: k_ig_ave(-zmax:zmax,nimass,na),k_eg_ave(-zmax:zmax,na)
  real                    :: feqn(neqn),Jacob(neqn,neqn)
  real                    :: n_rat,zeta_local
  logical                 :: iterate,lerr
@@ -1365,7 +1429,9 @@ pure subroutine nicil_ionR_get_n(n_R,T,rho,ierr,use_new_guess)
  if (iter > NRctrmax .or. lerr) then
    if (use_new_guess) then
      ! New guess failed; Switch Methods
-     call nicil_ionR_get_n_via_Zave(n_R,n0,n_g_tot,T,k_ig*kave,k_eg*kave,ierr)
+     k_ig_ave = k_ig*kave
+     k_eg_ave = k_eg*kave
+     call nicil_ionR_get_n_via_Zave(n_R,n0,n_g_tot,T,k_ig_ave,k_eg_ave,ierr)
    else
      ! Try again with default guess rather than value from previous iteration
      call nicil_ionR_set_guess(n_R,n0,.false.)
@@ -1398,8 +1464,8 @@ pure subroutine nicil_ionT_calc_k(T,k_ig,k_eg,k_ei)
    k_eg( 0,j) = k_eg_coef(j)*sqrtT
    k_eg( 1,j) = k_eg_coef(j)*sqrtT*(1.0+k_fac( 1,j))
  end do
- k_ei(1) = k_ei_coef(1)
- k_ei(2) = k_ei_coef(2)*(T/300.0)**(-0.86)
+ k_ei(1) = k_ei_coef(1)*T**alpha_expT_H + k_ei_coef(2)*T**alpha_expT_He
+ k_ei(2) = k_ei_coef(3)*T**alpha_expT_Mg
  !
 end subroutine nicil_ionT_calc_k
 !----------------------------------------------------------------------!
@@ -1908,7 +1974,7 @@ pure subroutine nicil_get_HH2_ratio(abund,n0,T,afrac,mfrac)
    mfrac(2) = mj_mp(2)*     frac *mtotal1 * mass_frac(iH)
  end if
  !
-end subroutine
+end subroutine nicil_get_HH2_ratio
 !======================================================================!
 ! NON-IDEAL MHD-RELATED SUBROUTINES                                    !
 !======================================================================!
@@ -1937,7 +2003,6 @@ pure subroutine nicil_nimhd_get_eta(eta_ohm,eta_hall,eta_ambi,sigmaOHPpa)
    if (.not. use_ohm ) eta_ohm = 0.0
  end if
  !
- return
 end subroutine nicil_nimhd_get_eta
 !-----------------------------------------------------------------------
 pure subroutine nicil_nimhd_get_eta_cnst(eta_ohm,eta_hall,eta_ambi,Bfield,rho)
@@ -1951,7 +2016,6 @@ pure subroutine nicil_nimhd_get_eta_cnst(eta_ohm,eta_hall,eta_ambi,Bfield,rho)
  if ( use_hall ) eta_hall = eta_hall_cnst*Bfield
  if ( use_ambi ) eta_ambi = eta_ambi_cnst*Bfield**2/rho**alpha_AD_p1
  !
- return
 end subroutine nicil_nimhd_get_eta_cnst
 !-----------------------------------------------------------------------
 !+
@@ -1971,7 +2035,6 @@ pure subroutine nimhd_get_jcbcb(jcbcb,jcb,jcurrent,Bx,By,Bz,B1)
  jcbcb(2) = ( jcb(3)*Bx      - jcb(1)*Bz      )*B1
  jcbcb(3) = ( jcb(1)*By      - jcb(2)*Bx      )*B1
  !
- return
 end subroutine nimhd_get_jcbcb
 !-----------------------------------------------------------------------
 !+
@@ -1994,7 +2057,6 @@ pure subroutine nimhd_get_dBdt(dBnonideal,etaohm,etahall,etaambi &
  if (use_ambi) call nimhd_get_DcrossR(dBambi,jcbcb   ,dxr1,dyr1,dzr1,etaambi)
  dBnonideal = dBambi - dBhall - dBohm 
  !
- return
 end subroutine nimhd_get_dBdt
 !-----------------------------------------------------------------------
 !+
@@ -2010,28 +2072,30 @@ pure subroutine nimhd_get_DcrossR(DcrossR,D_in,dx,dy,dz,eta)
  DcrossR(2) = (D_in(3)*dx - D_in(1)*dz)*eta
  DcrossR(3) = (D_in(1)*dy - D_in(2)*dx)*eta
  !
- return
 end subroutine nimhd_get_DcrossR
 !-----------------------------------------------------------------------
 !+
 !  Calculates the non-ideal MHD contributions to energy
 !  Note: dudthall==0
+!  Note: the sign of (36) in Wurster (2016) is incorrect
 !+
 !-----------------------------------------------------------------------
 pure subroutine nimhd_get_dudt(dudtnonideal,etaohm,etaambi,rho,J,B)
  real, intent(out) :: dudtnonideal
  real, intent(in)  :: J(3),B(3)
  real, intent(in)  :: etaohm,etaambi,rho
- real              :: B2i
+ real              :: B2i,J2i,BJi,BJBJihat
  !
  B2i          = dot_product(B,B)
- dudtnonideal = 0.0
- dudtnonideal = dudtnonideal + etaohm /rho*dot_product(J,J)
- dudtnonideal = dudtnonideal + etaambi/(rho*B2i) &
-                             * (dot_product(J,J)*dot_product(B,B) &
-                               -dot_product(B,J)*dot_product(B,J))
+ J2i          = dot_product(J,J)
+ if (B2i > 0.0) then
+   BJi        = dot_product(B,J)
+   BJBJihat   = BJi*BJi/B2i
+ else
+   BJBJihat   = 0.0
+ end if
+ dudtnonideal = ( etaohm*J2i + etaambi*(J2i - BJBJihat) )/rho
  !
- return
 end subroutine nimhd_get_dudt
 !-----------------------------------------------------------------------
 !+
@@ -2052,7 +2116,6 @@ pure subroutine nimhd_get_dt(dtohm,dthall,dtambi,h,etaohm,etahall,etaambi)
  if (use_hall .and. abs(etahall) > tiny(etahall) ) dthall = abs( C_nimhd*h2/etahall )
  if (use_ambi .and.     etaambi  > tiny(etaambi) ) dtambi =      C_nimhd*h2/etaambi       
  !
- return
 end subroutine nimhd_get_dt
 !-----------------------------------------------------------------------
 !+
@@ -2063,21 +2126,23 @@ pure subroutine nicil_get_vion(eta_ambi,vx,vy,vz,Bx,By,Bz,jcurrent,vion,ierr)
  integer, intent(inout) :: ierr
  real,    intent(in)    :: eta_ambi,vx,vy,vz,Bx,By,Bz,jcurrent(3)
  real,    intent(out)   :: vion(3)
- real                   :: vion2, v2
+ real                   :: vion2,v2,B21
  !
+ B21          = 1.0/(Bx*Bx + By*By + Bz*Bz)
  ! The ion velocity
- vion(1)   = vx + eta_ambi*( jcurrent(2)*Bz - jcurrent(3)*By )
- vion(2)   = vy + eta_ambi*( jcurrent(3)*Bx - jcurrent(1)*Bz )
- vion(3)   = vz + eta_ambi*( jcurrent(1)*By - jcurrent(2)*Bx )
+ vion(1)   = vx + eta_ambi*( jcurrent(2)*Bz - jcurrent(3)*By )*B21
+ vion(2)   = vy + eta_ambi*( jcurrent(3)*Bx - jcurrent(1)*Bz )*B21
+ vion(3)   = vz + eta_ambi*( jcurrent(1)*By - jcurrent(2)*Bx )*B21
  !
  if (warn_verbose) then
    ! ensure that the drift velocity is small
    vion2 = vion(1)*vion(1) + vion(2)*vion(2) + vion(3)*vion(3)
    v2    = vx*vx + vy*vy + vz*vz
    if (warn_ratio_m12*vion2 > v2 .or. v2 > warn_ratio_p12*vion2) ierr = ierr + ierr_drift
+   if (vrms2_min         > vion2 .or. vion2 > vrms2_max        ) ierr = ierr + ierr_vrms
  end if
  !
 end subroutine nicil_get_vion
-
 !----------------------------------------------------------------------!
 end module nicil
+

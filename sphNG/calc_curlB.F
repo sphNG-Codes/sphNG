@@ -142,9 +142,9 @@ c
      &              ' with maxnneighsentback ',maxnneighsentback
 #endif
                CALL MPI_RECV(jcurrent(1,istartrec),3*maxnneighsentback,
-     &              MPI_REAL4,MPI_ANY_SOURCE,215,MPI_COMM_WORLD,istatus,
+     &              MPI_REAL8,MPI_ANY_SOURCE,215,MPI_COMM_WORLD,istatus,
      &              ierr)
-               CALL MPI_GET_COUNT(istatus, MPI_REAL4, ireturned, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL8, ireturned, ierr)
                IF (istartrec+ireturned.GT.idim2) THEN
                   WRITE (*,*) 'ERROR - istartrec+ireturned.GT.idim2 ',
      &                 istartrec,ireturned
@@ -196,7 +196,7 @@ c
                   print *,iproc,': sending values ',
      &                 (jcurrent(1,j2),j2=istart,istart+1)
 #endif
-                  CALL MPI_SEND(jcurrent(1,istart),3*inumber,MPI_REAL4,
+                  CALL MPI_SEND(jcurrent(1,istart),3*inumber,MPI_REAL8,
      &                 iprocsend,215,MPI_COMM_WORLD, ierr)
 
 #ifdef MPIDEBUG

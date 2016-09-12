@@ -326,10 +326,10 @@ C$OMP& shared(itot)
 C$OMP& shared(dragenergy,dragqchange,px,py,pz)
 #endif
 #ifdef NONIDEAL
-C$OMP& shared(jcurrent,n_R,n_electronT,gamma)
-C$OMP& private(Bi,Bi1,Bj,Bj1,dBnonideal,jcb,jcbcb,temperature,ierr)
-C$OMP& private(eta_ohmi,eta_halli,eta_ambii)
-C$OMP& private(eta_ohmj,eta_hallj,eta_ambij)
+C$OMP& shared(jcurrent,n_R,n_electronT,gamma,n1,n2,iunique)
+C$OMP& private(dBnonideal,jcb,jcbcb,temperature,ierr)
+C$OMP& private(Bi,Bi1,eta_ohmi,eta_halli,eta_ambii,ekclei)
+C$OMP& private(Bj,Bj1,eta_ohmj,eta_hallj,eta_ambij,ekclej)
 #endif
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend,numbertodoherekeep)
@@ -1108,20 +1108,26 @@ c     &                             (5.*runiz*projdB-3.*dBz)
 #ifdef NONIDEAL
 c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
                            Bi = SQRT(B2i)
-                           Bi1 = 1.0/Bi
+                           IF (Bi.GT.0.0) THEN
+                              Bi1 = 1.0/Bi
+                           ELSE
+                              Bi1 = 0.0
+                           ENDIF
+                           IF (encal.EQ.'r') THEN
+                              ekclei = ekcle(3,ipart)
+                           ELSE
+                              ekclei = 0.0
+                           ENDIF
                            temperature = nimhd_gastemp(encal
-     &                                  ,vxyzu(4,ipart),ekcle(3,ipart)
-     &                                  ,rhoi,gamma)
+     &                                  ,vxyzu(4,ipart),ekclei
+     &                                  ,rhoi,gamma,n1,n2
+     &                                  ,iunique(iorig(ipart)))
                            CALL nicil_get_eta(eta_ohmi,eta_halli
      &                         ,eta_ambii,Bi,rhoi,temperature
      &                         ,n_R(:,ipart),n_electronT(ipart),ierr)
                            IF (ierr/=0) THEN
                               CALL nicil_translate_error(ierr)
-                              IF (ierr > 0) THEN
-                                 CALL quit(1)
-                              ELSE
-                           print*, 'nicil: force: T = 0 for i = ', ipart
-                              ENDIF
+                              IF (ierr > 0) CALL quit(1)
                            ENDIF
                            CALL nimhd_get_jcbcb(jcbcb,jcb
      &                         ,jcurrent(:,ipart),Bxi,Byi,Bzi,Bi1)
@@ -1130,7 +1136,7 @@ c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
      &                         ,jcurrent(:,ipart),jcb,jcbcb
      &                         ,runix,runiy,runiz)
                            dBnonideali = dBnonideali
-     &                                 - dBnonideal
+     &                                 - real(dBnonideal,kind=4)
      &                                 * (pmassj*rho1i*rho1i)*grkerni
 #endif
                         ENDIF
@@ -1735,20 +1741,26 @@ c     &                             (5.*runiz*projdB-3.*dBz)
 #ifdef NONIDEAL
 c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
                               Bj  = SQRT(B2j)
-                              Bj1 = 1.0/Bj
+                              IF (Bj.GT.0.0) THEN
+                                 Bj1 = 1.0/Bj
+                              ELSE
+                                 Bj1 = 0.0
+                              ENDIF
+                              IF (encal.EQ.'r') THEN
+                                 ekclej = ekcle(3,j)
+                              ELSE
+                                 ekclej = 0.0
+                              ENDIF
                               temperature = nimhd_gastemp(encal
-     &                                     ,vxyzu(4,j),ekcle(3,j),rhoj
-     &                                     ,gamma)
+     &                                     ,vxyzu(4,j),ekclej,rhoj
+     &                                     ,gamma,n1,n2
+     &                                     ,iunique(iorig(j)))
                               CALL nicil_get_eta(eta_ohmj,eta_hallj
      &                            ,eta_ambij,Bj,rhoj,temperature
      &                            ,n_R(:,j),n_electronT(j),ierr)
                               IF (ierr/=0) THEN
                                  CALL nicil_translate_error(ierr)
-                                 IF (ierr > 0) THEN
-                                    CALL quit(1)
-                                 ELSE
-                               print*, 'nicil: force: T = 0 for j = ', j
-                                 ENDIF
+                                 IF (ierr > 0) CALL quit(1)
                               ENDIF
                               CALL nimhd_get_jcbcb(jcbcb,jcb
      &                           ,jcurrent(:,j),Bxj,Byj,Bzj,Bj1)
@@ -1757,7 +1769,7 @@ c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
      &                            ,jcurrent(:,j),jcb,jcbcb
      &                            ,runix,runiy,runiz)
                               dBnonideali = dBnonideali
-     &                                    - dBnonideal
+     &                                    - real(dBnonideal,kind=4)
      &                                    * (pmassj*rho1j*rho1j)*grkernj
 
 #endif
@@ -2410,12 +2422,6 @@ c
          IF (idim_h2.EQ.1) THEN
 
            CALL energ(ipart,npart,ntot,realtime,vxyzu,fxyzu,xyzmh,trho)
-#ifdef NONIDEAL
-           CALL energ_nimhd(fxyzu(4,ipart),jcurrent(1:3,ipart), 
-     &           Bxyz(1:3,ipart),vxyzu(4,ipart),ekcle(3,ipart),
-     &           real(trho(ipart)),n_R(:,ipart),n_electronT(ipart), 
-     &           gamma,encal)
-#endif
 
          ELSE
 
@@ -2429,6 +2435,17 @@ c
      &           xyzmh,h2ratio,dtime,abhpq,abeq,abHIq,abco,trho)
 
          END IF 
+#ifdef NONIDEAL
+         IF (encal.EQ.'r') THEN
+            ekclei = ekcle(3,ipart)
+         ELSE
+            ekclei = 0.0
+         ENDIF
+         CALL energ_nimhd(fxyzu(4,ipart),jcurrent(1:3,ipart), 
+     &             Bxyz(1:3,ipart),vxyzu(4,ipart),ekclei,
+     &             real(trho(ipart)),n_R(:,ipart),n_electronT(ipart), 
+     &             gamma,encal,n1,n2,iunique(iorig(ipart)))
+#endif
 c
 c--Translate to dB/dt and add divv term if B is evolved
 c

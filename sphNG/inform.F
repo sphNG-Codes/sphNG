@@ -377,7 +377,8 @@ c--Compute various properties to do with non-ideal MHD
 #ifdef NONIDEAL
       CALL nimhd_get_stats(npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,
      &               alphaMM,alphamin,n_R,n_electronT,iphase,gamma,
-     &               ifsvi,encal,np_nimhd,et_nimhd,evdata)
+     &               ifsvi,encal,np_nimhd,et_nimhd,evdata,
+     &               n1,n2,iunique,iorig)
 #endif
 c
       IF (where(1:6).NE.'newrun') THEN

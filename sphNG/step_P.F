@@ -1815,7 +1815,7 @@ c
       END DO
 
 C$OMP PARALLEL default(none)
-C$OMP& shared(nlst0,nlst1,llist,iscurrent,dumvxyzu)
+C$OMP& shared(nlst0,nlst1,llist,iscurrent,dumvxyzu,n1,n2,iunique)
 C$OMP& shared(dum2vxyz,it1,it2,imax,igphi,encal)
 C$OMP& shared(vxyzu,dgrav,dumxyzmh)
 C$OMP& shared(f1vxyzu,f1ha,f2vxyzu,f2ha,Bxyz,iexf)
@@ -1839,9 +1839,9 @@ C$OMP& shared(dh2dt,icolumnsteps,icolumnnext)
 C$OMP& shared(iproc)
 #endif
 #ifdef NONIDEAL
-C$OMP& shared(n_R,n_electronT,gamma)
+C$OMP& shared(n_R,n_electronT,gamma,jcurrent)
 C$OMP& private(dtohmi,dthalli,dtambii,eta_ohmi,eta_halli,eta_ambii)
-C$OMP& private(temperature,ierr)
+C$OMP& private(temperature,ekclei,ierr,dudtnonideal,Bi)
 #endif
 #ifdef DGRID
 C$OMP& shared(dragenergy)
@@ -2468,8 +2468,14 @@ c
                   Bzi = Bzi + BEXTERNAL(xi,yi,zi,3)
                ENDIF
                B2i = (Bxi*Bxi +  Byi*Byi + Bzi*Bzi)
-               temperature = nimhd_gastemp(encal,vxyzu(4,i),ekcle(3,i)
-     &                                    ,dble(rho(i)),gamma)
+               IF (encal.EQ.'r') THEN
+                  ekclei = ekcle(3,i)
+               ELSE
+                  ekclei = 0.0
+               ENDIF
+               temperature = nimhd_gastemp(encal,vxyzu(4,i),ekclei
+     &                                    ,dble(rho(i)),gamma,n1,n2
+     &                                    ,iunique(iorig(i)))
                call nicil_get_eta(eta_ohmi,eta_halli,eta_ambii
      &             ,SQRT(B2i),dble(rho(i)),temperature
      &             ,n_R(:,i),n_electronT(i),ierr)

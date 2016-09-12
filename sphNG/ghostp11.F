@@ -28,6 +28,10 @@ c************************************************************
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/eosq'
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nonideal'
+      REAL*8  jcurrenti(3),n_electronTi,n_Ri(4)
+#endif
 
       CHARACTER*7 where
 
@@ -74,6 +78,12 @@ c
          presi = pr(i)
 
          delta = 0.0
+
+#ifdef NONIDEAL
+         jcurrenti(1:3) = jcurrent(1:3,i)
+         n_electronTi   = n_electronT(i)
+         n_Ri(1:4)      = n_R(1:4,i)
+#endif
 c
 c--X axis
 c
@@ -98,6 +108,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
 
          dxmax = (xmax - xi)/hmax
@@ -121,6 +136,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
 c
 c--Y axis
@@ -146,6 +166,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
 
          dymax = (ymax - yi)/hmax
@@ -169,6 +194,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
 c
 c--Z axis
@@ -194,6 +224,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
 
          dzmax = (zmax - zi)/hmax
@@ -217,6 +252,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
 c
 c--Edges
@@ -252,6 +292,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dxmin2 + dymax2
          IF (radius2.GT.delta2 .AND. dxmin.GT.delta .AND. 
@@ -275,6 +320,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dxmax2 + dymin2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -298,6 +348,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dxmax2 + dymax2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -321,6 +376,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
 
          radius2 = dxmin2 + dzmin2
@@ -345,6 +405,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dxmin2 + dzmax2
          IF (radius2.GT.delta2 .AND. dxmin.GT.delta .AND. 
@@ -368,6 +433,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dxmax2 + dzmin2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -391,6 +461,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dxmax2 + dzmax2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -414,6 +489,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
  
          radius2 = dzmin2 + dymin2
@@ -438,6 +518,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dzmin2 + dymax2
          IF (radius2.GT.delta2 .AND. dzmin.GT.delta .AND. 
@@ -461,6 +546,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dzmax2 + dymin2
          IF (radius2.GT.delta2 .AND. dzmax.GT.delta .AND. 
@@ -484,6 +574,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dzmax2 + dymax2
          IF (radius2.GT.delta2 .AND. dzmax.GT.delta .AND. 
@@ -507,6 +602,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
 c
 c--Corners
@@ -534,6 +634,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dxmin2 + dymin2 + dzmax2
          IF (radius2.GT.delta2 .AND. dxmin.GT.delta .AND. 
@@ -558,6 +663,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dxmin2 + dymax2 + dzmin2
          IF (radius2.GT.delta2 .AND. dxmin.GT.delta .AND. 
@@ -582,6 +692,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dxmin2 + dymax2 + dzmax2
          IF (radius2.GT.delta2 .AND. dxmin.GT.delta .AND. 
@@ -606,6 +721,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dxmax2 + dymin2 + dzmin2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -630,6 +750,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dxmax2 + dymin2 + dzmax2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -654,6 +779,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dxmax2 + dymax2 + dzmin2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -678,6 +808,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
          radius2 = dxmax2 + dymax2 + dzmax2
          IF (radius2.GT.delta2 .AND. dxmax.GT.delta .AND. 
@@ -702,6 +837,11 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
+#ifdef NONIDEAL
+            jcurrent(1:3,nptot) = jcurrenti(1:3)
+            n_electronT(nptot) = n_electronTi
+            n_R(1:4,nptot) = n_Ri(1:4)
+#endif
          ENDIF
 
          IF (nghostold.NE.nghost) THEN
@@ -763,3 +903,4 @@ c--   WARNING! DOES NOT DO MIXED CARTESIAN FIELDS YET
       
       RETURN
       END
+

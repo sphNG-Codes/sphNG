@@ -223,6 +223,7 @@ c
      &           nstepphase(1,j+1),nstepphase(2,j+1),nsteplisttot(2,j+1)
          ENDIF
       END DO
+99101 FORMAT (I2,1PE12.4,I10)
 99102 FORMAT (I2,1PE12.4,1X,I8,1X,I8,1X,I8)
 99103 FORMAT (I2,1PE12.4,1X,I8,1X,I8,1X,I8,1X,I8)
 

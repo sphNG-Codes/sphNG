@@ -39,7 +39,7 @@ c
       phi = 0.0
       func = 0.0
       containedmass = 0.0
-      dmass = 1.0E-3
+      dmass = 1.0E-6
       conmassnext = dmass
       dxi = 1.0D+03/DBLE(loop)
       dfunc = (-EXP(phi))*dxi

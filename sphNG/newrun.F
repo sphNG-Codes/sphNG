@@ -37,19 +37,20 @@ c
 c--General set up
 c
       WRITE (*, 99001)
-99001 FORMAT (' GENERAL SET UP', //)
+99001 FORMAT (/, ' GENERAL SET UP', /)
       WRITE (*, 99002)
 99002 FORMAT (' give name of the run (20 char.)')
       READ (iread, 99003) namerun
       WRITE (namenextrun,99003) namerun
 99003 FORMAT (A20)
+      WRITE (*,*)
 c
 c--Write label of run
 c
       CALL labrun
 
       WRITE (*, 99004)
-99004 FORMAT (' type of initialization?', /,
+99004 FORMAT (/, ' type of initialization?', /,
      &        ' start from scratch         : scratch (s)', /,
      &        ' using existing files       : exist (e)' )
       READ (iread, 99005) what

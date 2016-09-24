@@ -69,8 +69,9 @@ C$OMP END MASTER
 99201 FORMAT (' Running with ',I5,' openMP threads')
 C$OMP END PARALLEL
 #endif
-
-      WRITE (iprint, 99003)namerun, job, iday, imon, iyear, ih, im, is
+      IF (iprint.NE.istdout) THEN
+        WRITE (iprint, 99003)namerun, job, iday, imon, iyear, ih, im, is
+      ENDIF
       WRITE (*, 99003)namerun, job, iday, imon, iyear, ih, im, is
 99003 FORMAT (//, ' SPH run ', A20, ' is running option : ', A11, /,
      &        ' Started on : ', I2, '/', I2, '/', I4, ' at ', I2,

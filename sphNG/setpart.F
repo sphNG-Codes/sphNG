@@ -1565,6 +1565,15 @@ c--Get input file options
 c
       CALL inopts
 c
+c--If a radiative transfer EoS, always activate
+c     ichoc and iener, alternative configuration is 
+c     non-sensical.
+      IF (encal.EQ.'r') THEN
+         ichoc = 1
+         iener = 1
+      ENDIF
+c
+c
 c--Check for consistency
 c
       CALL chekopt

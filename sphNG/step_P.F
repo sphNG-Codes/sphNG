@@ -171,7 +171,7 @@ c
             IF (ibin.LT.0 .OR. ibin.GE.30) THEN
                WRITE(iprint,*) 'Error with initial timesteps'
                WRITE(iprint,*) dt,dtini,ibin
-               CALL quit(1)
+               CALL quit(0)
             ENDIF
             idtini = imaxstep/2**ibin
             istepmin = idtini

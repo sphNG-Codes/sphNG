@@ -60,6 +60,7 @@ c************************************************************
       INCLUDE 'COMMONS/abundances'
       INCLUDE 'COMMONS/bonnortbl'
       INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/init'
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
@@ -2159,6 +2160,12 @@ c
          READ (iread,*) dtfrac
          dtmax = dtfrac*tcomp
          WRITE(*,*) 'setting dtmax = ',dtmax
+c If this would create a dtmax lower than dtini, lower dtini to match
+         IF (dtmax.LT.dtini) THEN
+            WRITE(*,70850)dtmax,dtini
+            dtini = dtmax
+         ENDIF
+70850 FORMAT(1X,'WARNING: dtmax<dtini, lowering dtini to match.',2G14.7)
       ENDIF
 
 999   CONTINUE

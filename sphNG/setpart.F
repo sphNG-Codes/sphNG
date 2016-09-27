@@ -113,6 +113,7 @@ c      extu = 1.5
 c      pext = 2./3.*extu*1.d0
 c      PRINT*,'INTERNAL ENERGY = ',vxyzu(4,1)
 c      CALL inopts
+c      CALL chekopt
 c      GOTO 999
       
 c
@@ -701,6 +702,7 @@ c
             varsta = 'intener'
             encal = 'i'
             CALL inopts
+            CALL chekopt
             GOTO 999
          ENDIF
 #endif
@@ -1562,6 +1564,10 @@ c
 c--Get input file options
 c
       CALL inopts
+c
+c--Check for consistency
+c
+      CALL chekopt
 c
 c--Check planet hasn't been made incorrectly
 c      

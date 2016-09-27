@@ -193,6 +193,10 @@ c
 c--Get input file options
 c
       CALL inopts
+c
+c--Check for consistency
+c
+      CALL chekopt
 
 c
 c--Allow for tracing flow

@@ -75,10 +75,6 @@ c  (and should contain this line)
       IF (iexpan.NE.0) THEN
          READ (iterm, *) vexpan
       ENDIF
-c
-c--Check for consistency
-c
-      CALL chekopt
 
       IF (idebug(1:7).EQ.'inopts') THEN
          WRITE (iprint, 99004) igrp, igphi, ifsvi, ifcor, ichoc, iener,

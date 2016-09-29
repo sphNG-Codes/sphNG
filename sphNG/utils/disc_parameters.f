@@ -464,7 +464,8 @@ c     &                       xyzmh(2,i),xyzmh(3,i)
             print *,contour1
 
             OPEN (16,file=contour1,ACCESS='append')
-            WRITE (16,"(10(1PE12.5,1x))") gt,sinkmass,discmass(i),
+            WRITE (16,"(10(1PE12.5,1x))") gt,xyzmh(4,ilocalsink(i)),
+     &           discmass(i),
      &           (discradius(j,i)*udisti/1.496E+13,j=1,4),
      &           (angmom(j,i),j=1,3)
             CLOSE (16)

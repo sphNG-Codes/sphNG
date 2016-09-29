@@ -1,19 +1,11 @@
       PROGRAM images
 c***********************************************************
 c                                                          *
-c  This program generates 2D binary image files of column  *
-c     density and density-weighted temperature, but does   *
-c     so from two slightly different viewing positions so  *
-c     as to allow 3D movies to be generated.               *
-c     It uses rdump.F from the main SPH code to read the   *
-c     sphNG dump files.  So the appropriate parameters     *
-c     need to be set in the sphNG files for the dump files *
-c     that are being read.  The value of 'idim' in 'idim'  *
-c     needs to be large enough.  If the file contains      *
-c     radiative transfer or MHD information, then          *
-c     iradtrans or imhd need to be set too.                *
+c     This program reads sphNG dump files and extracts     *
+c     the parameters of gaseous discs surrounding each     *
+c     sink particle.                                       *
 c                                                          *
-c     Compile like: make mpi=no openmp=yes movie3DRG       *
+c     Compile like: make mpi=no openmp=yes disc            *
 c                                                          *
 c***********************************************************
 
@@ -43,7 +35,9 @@ c***********************************************************
       DIMENSION ilocalsink(1000),indx(idim)
       DIMENSION discmass(1000),angmom(3,1000),discradius(4,1000)
       DIMENSION distance2(idim)
-      DIMENSION listdisc(1000000)
+
+      PARAMETER (ndiscmax = 1000000)
+      DIMENSION listdisc(ndiscmax)
 
       CHARACTER*7 filein
       CHARACTER*21 contour1, contour2
@@ -63,13 +57,12 @@ c
          iorig(i) = i
          isort(i) = i
       END DO
-      numberstart = 1
 
       WRITE (*,*) 'Enter number of input files:'
       READ (*, *) numberfiles
       
       WRITE (*,*) 'Enter names of input files:'
-      DO k=1, numberfiles
+      DO k = 1, numberfiles
          READ(*,90) filein(k)
  90      FORMAT(A7)
       END DO
@@ -181,10 +174,6 @@ c
  240     FORMAT('Enter number of output files?')
          READ (*,*) numberfiles
          
-         WRITE (*,245)
- 245     FORMAT('Enter number of output file to start from?')
-         READ (*,*) numberstart
-         
          WRITE (*,250)
  250     FORMAT('Enter ratio for subsequent frame?',/,
      &        '    >1.0 for zoom out',/,
@@ -218,18 +207,13 @@ c--Process data files
 c
 c      CALL buildcol
 
-c      ifile = 1
- 444  ifile = numberstart
+ 444  ifile = 1
       izero = 0
 
-      DO k=numberstart,numberfiles
+      DO k = 1,numberfiles
 
-         IF (irepeat.EQ.'y') THEN
-            nfile = 1
-         ELSE
-            nfile=k
-            ifile=1
-         ENDIF
+         nfile=k
+         ifile=1
 
          IF (xeye.NE.0.) THEN
             contour1 = 'CCL' // filein(nfile)
@@ -272,7 +256,7 @@ c
 
          CLOSE (11)
 
-         print *,'Units are ',umassi,udisti
+         print *,'Units are ',umassi, udisti, nptmass
 
          IF (k.EQ.1) THEN
             IF (nptmass.GT.1) THEN
@@ -290,7 +274,7 @@ c
 c--Check not already known
 c
                   DO jjj = 1, nunique_sink
-                     IF (iunique_sink(jjj).EQ.iunique(listpm(isink)))
+                     IF (iunique_sink(jjj).EQ.iunique(listpm(iii)))
      &                    GOTO 678
                   END DO
 c
@@ -335,7 +319,7 @@ c
             zsink = xyzmh(3,iptcur)
             sinkmass = xyzmh(4,iptcur)
 
-            print *,'Sink location ',xsink,ysink,zsink,sinkmass
+            print *,'Sink location, mass ',xsink,ysink,zsink,sinkmass
 
             discmass(isink) = 0.
             DO l = 1, 3
@@ -374,7 +358,6 @@ c
                      dvx = vxyzu(1,i)-vxyzu(1,iptcur)
                      dvy = vxyzu(2,i)-vxyzu(2,iptcur)
                      dvz = vxyzu(3,i)-vxyzu(3,iptcur)
-
 c
 c--Calculate relative energy and angular momentum and orbit
 c                  
@@ -412,7 +395,7 @@ c
 c                     print *,i,dist,eccentricity,vkep2,divvr2,
 c     &                    semimajoraxis
 
-                     IF (eccentricity.LT.0.5 .AND. 
+                     IF (eccentricity.LT.0.3 .AND. 
      &                    radapastron*udisti.LT.1.496E+13*1000.0) THEN
                         discmass(isink) = discmass(isink) + xyzmh(4,i)
                         angmom(1,isink) = angmom(1,isink) +
@@ -422,10 +405,14 @@ c     &                    semimajoraxis
                         angmom(3,isink) = angmom(3,isink) +
      &                       xyzmh(4,i)*(dvx*dy - dvy*dx)
                         ndisc = ndisc + 1
+                        IF (ndisc.GT.ndiscmax) THEN
+                           WRITE (*,*) 'ndisc.GT.ndiscmax'
+                           STOP
+                        ENDIF
                         listdisc(ndisc) = i
 
-                        WRITE (44,'(3(1PE12.5,1X))') xyzmh(1,i),
-     &                       xyzmh(2,i),xyzmh(3,i)
+c                        WRITE (44+isink,'(3(1PE12.5,1X))') xyzmh(1,i),
+c     &                       xyzmh(2,i),xyzmh(3,i)
                      ENDIF
                   ENDIF
                ENDIF
@@ -477,8 +464,9 @@ c     &                    semimajoraxis
             print *,contour1
 
             OPEN (16,file=contour1,ACCESS='append')
-            WRITE (16,"(9(1PE12.5,1x))") gt,discmass(i),
-     &           (discradius(j,i),j=1,4),(angmom(j,i),j=1,3)
+            WRITE (16,"(10(1PE12.5,1x))") gt,sinkmass,discmass(i),
+     &           (discradius(j,i)*udisti/1.496E+13,j=1,4),
+     &           (angmom(j,i),j=1,3)
             CLOSE (16)
 
          END DO

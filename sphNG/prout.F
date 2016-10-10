@@ -614,7 +614,7 @@ c
 
          IF (imigrate.EQ.1) THEN
             IF (irotpot.EQ.1) THEN
-               WRITE (iprint, 11001), sqrt(px**2 + py**2),
+               WRITE (iprint, 11001) sqrt(px**2 + py**2),
      &              rorbit_orig
 11001          FORMAT (' migrated to ', 1PE14.5, ' from ', 1PE14.5)
             ENDIF

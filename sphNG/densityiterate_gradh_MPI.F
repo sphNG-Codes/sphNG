@@ -1540,7 +1540,12 @@ c
 c--Set e(i) for the first time around because density only set here
 c     This sets radiation and matter to have same initial temperature
 c
- 500                       IF (icall.EQ.1 .AND. encal.EQ.'r') THEN
+#ifdef MPI
+#ifdef RT
+ 500                       CONTINUE
+#endif
+#endif
+                           IF (icall.EQ.1 .AND. encal.EQ.'r') THEN
                               IF (ekcle(1,ipart).EQ.0.0) THEN
 #ifdef RT
                                  IF (idustRT.GT.0) THEN

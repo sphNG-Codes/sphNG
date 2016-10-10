@@ -52,7 +52,6 @@ c************************************************************
 
 1000  FORMAT (A40)
 1001  FORMAT (A1)
-1002  FORMAT (A11)
 c
 c--assume that MHD variable is B
 c

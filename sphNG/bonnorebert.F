@@ -28,7 +28,7 @@ c
 
       REAL*4 berho(nbonnor)
 
- 40   bemasstotal = 1.0
+      bemasstotal = 1.0
       berad = 1.0
       WRITE (*,*) 'Generating Bonnor-Ebert density profile...'
 c

@@ -120,7 +120,8 @@ C$OMP END PARALLEL DO
 c
 c--Integration failed, increase number of sub-steps and restore initial state
 c                  
- 100     Nstep = Nstep * 2
+c 100    CONTINUE
+         Nstep = Nstep * 2
          IF (Nstep.GT.1000000) THEN
             WRITE (iprint,*) 'ERROR in ASS: Nsteps > 10^6'
             CALL quit(1)

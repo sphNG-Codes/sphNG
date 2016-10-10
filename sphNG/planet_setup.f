@@ -1102,7 +1102,7 @@ c
          READ (*, 99004) iok
       ENDIF
 
- 777  IF (iok.EQ.'s' .OR. iok.EQ.'d' .OR. iok.EQ.'p') THEN
+      IF (iok.EQ.'s' .OR. iok.EQ.'d' .OR. iok.EQ.'p') THEN
          WRITE (*,99050)
 99050    FORMAT (' Enter angular velocity in rad/sec at radius=1')
          READ (*,*) angvel
@@ -1117,7 +1117,7 @@ c
          ENDIF
       ELSEIF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7. .OR.
      &        iok.EQ.'k') THEN
- 775     WRITE (*,55504)
+         WRITE (*,55504)
 55504    FORMAT (' Enter mass for external forces')
          READ (*,*) xmass
 
@@ -1340,7 +1340,6 @@ c
          WRITE(*,*) 'setting dtmax = ',dtmax
       ENDIF
 
-999   CONTINUE
 c
 c--adjust smoothing lengths (also calculates initial density)
 c  MUST be done (to get density) if evolving B/rho

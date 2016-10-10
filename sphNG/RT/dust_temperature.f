@@ -318,7 +318,7 @@ c         ENDIF
 
 c      WRITE (88,991) xnH2,cooling,photoelectric,dcooling_dT,
 c     &     t_found,func
- 991  FORMAT(6(1PE12.5,1X))
+c 991  FORMAT(6(1PE12.5,1X))
       RETURN
       END
 
@@ -911,8 +911,8 @@ c
                cooling_line_rate = EXP(cooling_line_rate_dep)
             ENDIF
          ENDIF
-
- 777     cooling_line_rate = cooling_line_rate * metallicity
+c 777     CONTINUE
+         cooling_line_rate = cooling_line_rate * metallicity
 c     &        * 3.
 
 c         cooling_line_rate = 0.

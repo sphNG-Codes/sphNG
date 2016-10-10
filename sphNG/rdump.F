@@ -1151,7 +1151,9 @@ c
 c--End loop over blocks
 c
       END DO
+#ifdef MPI
 11000 CONTINUE
+#endif
 #ifdef MPI
 c
 c--This is the second section that is required to force sequential MPI

@@ -37,7 +37,7 @@ C$OMP END DO
 
       divBmax = 0.
 
- 100  CALL divBsubcycle(ndivBsubcycles,dtmax,npart,ntot,xyzmh,rho,
+      CALL divBsubcycle(ndivBsubcycles,dtmax,npart,ntot,xyzmh,rho,
      &     Bevolxyz,divBmax)
 
 c sanity check that substepping hasn't massively screwed up the field
@@ -53,10 +53,7 @@ C$OMP DO SCHEDULE(static)
                Bevolxyz(4,i) = Bxyzporig(4,i)
             END DO
 C$OMP END DO
-c            GOTO 100
-c         ELSE
             WRITE (*,*) 'divB clean FAILED '
-c         ENDIF
       ENDIF
 
 c      WRITE (*,*) 'divB clean end ',divBmax,ndivBsubcycles

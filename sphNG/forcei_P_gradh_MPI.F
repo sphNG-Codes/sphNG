@@ -2690,7 +2690,6 @@ C$OMP END PARALLEL DO
 
 #endif
 
- 4567  CONTINUE
 c
 c--Allow for tracing flow
 c

@@ -685,7 +685,6 @@ C$OMP DO SCHEDULE(runtime)
      &              +(1.0-fac)*(Bdenominator*Bxyz(2,i) - BnumeratorOldy)
                dBcombz = fac*(Bdenominator*Bnewzi - Bnumeratorz)
      &              +(1.0-fac)*(Bdenominator*Bxyz(3,i) - BnumeratorOldz)
- 667           CONTINUE
 
 c               Bnewxi = (Bxyz(1,i) - Bnumeratorx)/
 c     &              (1.0 - Bdenominator)
@@ -839,7 +838,7 @@ c               GOTO 330
                   PRINT *,"GSIMPL: Almost Non-convergence ",
      &                 maxerrB,(xmaxerr1old(ii),ii=1,ntests)
                ENDIF
- 330           CONTINUE
+c 330           CONTINUE
                IF (maxerrB2.GT.0.99999*xmaxerr2old(itest).AND.
      &              maxerrB2.LT.1.00001*xmaxerr2old(itest)) THEN
                   DO iii = 1, numcomp
@@ -860,7 +859,7 @@ c               GOTO 330
      &                 maxerrB2,(xmaxerr2old(ii),ii=1,ntests)
                ENDIF
             ENDIF
- 332        CONTINUE
+c 332        CONTINUE
             IF (itest.NE.1) THEN
                xmaxerr1old(itest) = xmaxerr1old(itest-1)
                xmaxerr2old(itest) = xmaxerr2old(itest-1)
@@ -1022,8 +1021,6 @@ C$OMP& private(n,i,j)
          ENDIF
       END DO
 C$OMP END PARALLEL DO
-
- 999  CONTINUE
 
 #ifdef MPIALL
       CALL MPI_TYPE_FREE(i3REAL8,ierr)

@@ -216,37 +216,6 @@ c
          rhoi = rho(i)
          rho1i = 1.0/rhoi
 
-c         B2i = Bxyzpnew(1,i)**2 + Bxyzpnew(2,i)**2 + Bxyzpnew(3,i)**2
-c         vs2i = vsound(i)**2 + B2i*rhoi
-         ! just use regular fast MHD wave speed
-c         vs2i = 10.* vs2i * nsubsteps !**2
-
-c         vsigi = sqrt(vs2i)
-c
-c         IF (icall.EQ.1) THEN
-c            IF (isteps(i).EQ.0) THEN
-c               dti = dtmax*1.0d-12
-c            ELSE
-c               dti = dtimax*isteps(i)*1.0d-12
-c               dti = dtimax*isteps(i)
-cc               print *, 'icall=1, ', isteps(i), dti
-c            ENDIF
-c         ELSEIF (n.LE.nlst0) THEN
-c            dti = dtimax*isteps(i)
-cc            print *, 'n <= nlst0, ', isteps(i), dti
-c         ELSE
-c            dti = dtimax/2.0*isteps(i)
-cc            print *, 'last case ', isteps(i), dti
-c         ENDIF
-c
-c         subcycle_dtimax = MAX(subcycle_dtimax, dti)
-c         subcycle_istepmax = MAX(subcycle_istepmax, isteps(i))
-c         subcycle_dtimin = MIN(subcycle_dtimin, dti)
-c         subcycle_istepmin = MIN(subcycle_istepmin, isteps(i))
-          
-cc         dti = dti/nsubsteps
-
-
          DO k = 1, ivar(1,n)
             icompact = ivar(2,n) + k
             j = ijvar(icompact)
@@ -335,7 +304,7 @@ cC$OMP END DO
 c
 c--Begin iterating
 c
- 50   divBinitial = 0.
+      divBinitial = 0.
 
       DO nosweep = 1, nsubsteps
 c
@@ -457,8 +426,6 @@ c
 
 c         print *,'it ',nosweep,divBmax,divBmean/ncompact,ncompact
 
- 333     CONTINUE
-
 c      print *,'Mean/Max divergence is ',nosweep,divBmax,divBmean,
 c     &        divBinitial
       END DO ! End loop over nsubsteps
@@ -467,54 +434,6 @@ c
 c--Then calculate derivatives of B and psi at the end
 c
       CALL divB_dBpsi(Bxyzpnew,ntot)
-
-c      divBmax = 0.
-c      DO n = 1, ncompact
-c         i=ivar(3,n)
-
-c         DO j = 1, 3
-c            dBevolxyz(j,i) = dBevolxyz(j,i) + 
-c     &           dBxyzp(j,i)/(vari2(3,n)*nsubsteps)
-c         END DO
-c         dBevolxyz(4,i) = dBxyzp(4,i)/(vari2(3,n)*nsubsteps)
-c      END DO
-
-c      print *,'Maximum divergence is ',divBmax,nsubsteps,divBinitial
-c      print *,'Mean/Max divergence is ',divBmax,divBmean
-
-c      GOTO 50
-
-cC$OMP DO SCHEDULE(static)
-c         DO i = npart + 1, npart + nghost*ihasghost
-c            j = ireal(i)
-c         END DO
-cC$OMP END DO
-cC$OMP END PARALLEL
-c
-c--And that done, return everything to ASS
-c
-
-c      print *,'Initial magnetic energy = ',totalmagenergy
-c      totalmagenergy = 0.
-
-cC$OMP PARALLEL DO SCHEDULE(static) default(none)
-cC$OMP& shared(Bxyznew,Bxyz,xyzmh,rho,dBxyz)
-cC$OMP& private(n,i,j,k,icompact)
-cC$OMP& reduction(+:totalmagenergy)
-c
-c--Copy arrays for all particles
-c
-c      DO n = 1, ncompact
-c         i = ivar(3,n)
-         
-c         totalmagenergy = totalmagenergy + xyzmh(4,i)*(Bxyz(1,i)**2 +
-c     &        Bxyz(2,i)**2 + Bxyz(3,i)**2)/rho(i)
-c      END DO
-cC$OMP END PARALLEL DO
-
-c      print *,'Final magnetic energy   = ',totalmagenergy
-
-c      stop
 
       RETURN
 
@@ -649,8 +568,6 @@ C$OMP ATOMIC
 C$OMP END DO
 C$OMP END PARALLEL
 
- 50   CONTINUE
-
 #ifdef MPI
 c
 c--Need to add contributions to varinew(1-4) from other MPI processes
@@ -729,8 +646,6 @@ c     because none will be expected)
 c
       END DO
 #endif
-
-c 100  print *,'end of dBpsi ',iproc,varinew(4,ikeep)
 
       RETURN
       END

@@ -26,6 +26,13 @@ c************************************************************
       INCLUDE 'COMMONS/rotat'
       INCLUDE 'COMMONS/cgas'
 c
+c--Switches to disable boundaries
+c
+      LOGICAL iavoidradial, iavoidperiodic
+      PARAMETER (iavoidradial   = .FALSE.)
+      PARAMETER (iavoidperiodic = .FALSE.)
+
+c
 c--Allow for tracing flow
 c
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
@@ -449,7 +456,7 @@ c
 c
 c--To avoid radial boundary
 c
-c            GOTO 777
+            IF (iavoidradial) GOTO 777
 c
 c--Gas only for radial boundaries
 c
@@ -495,7 +502,7 @@ c
                   vxyzu(1,i) = - vg*SIN(ang1)
                   vxyzu(2,i) = vg*COS(ang1)
 c                  vxyzu(3,i) = 0.0
- 222              CONTINUE
+c 222              CONTINUE
                ENDIF
                IF (r2.LT.rmindd*rmindd) THEN
                   iinner = iinner + 1
@@ -539,15 +546,15 @@ c
                   vxyzu(1,i) = - vg*SIN(ang1)
                   vxyzu(2,i) = vg*COS(ang1)
 c                  vxyzu(3,i) = 0.0
- 223              CONTINUE
+c 223              CONTINUE
                ENDIF
             ENDIF
 c
 c--Now do periodic boundaries in phi
 c
-c            GOTO 888
+ 777        IF (iavoidperiodic) GOTO 888
 
- 777        phiparticle = ATAN2(xyzmh(2,i),xyzmh(1,i))
+            phiparticle = ATAN2(xyzmh(2,i),xyzmh(1,i))
             IF (phiparticle.LT.-phibound) THEN
                rcylpart = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2)
                vxpart = vxyzu(1,i)

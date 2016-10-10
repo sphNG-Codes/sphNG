@@ -351,7 +351,7 @@ c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
 
 !     END IF
       
- 150  GOTO 555
+      GOTO 555
 c            if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 4'
       IF(swapg) THEN
       z1(1)=kappa**2/uradconst**2*z1(1)

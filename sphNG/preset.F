@@ -455,7 +455,7 @@ c
             READ(itablerd,55001) dummy, (optable_ferguson(1,i,k),i=2,
      &           opmxR_ferguson)
 55001       FORMAT(A6,19(1F7.3))
-55002       FORMAT(20(1PE12.3))
+c55002       FORMAT(20(1PE12.3))
             Rmax_ferguson = optable_ferguson(1,opmxR_ferguson,k)
             Rmin_ferguson = optable_ferguson(1,2,k)
             Rdelta_ferguson = optable_ferguson(1,3,k)-
@@ -573,7 +573,7 @@ c      IF (.TRUE.) THEN
                op_val = getkappa(u_val,cv_val,rho_real4)
 c              WRITE (80+i,55004) rho_val*udens,cv_val*uergg,
 c     &           u_val/cv_val,op_val/umass*udist**2
-55004          FORMAT(4(1PE12.5))
+c55004          FORMAT(4(1PE12.5))
             END DO
          END DO
 

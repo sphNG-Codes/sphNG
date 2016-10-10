@@ -366,7 +366,7 @@ c     &        ptmassradius,ptmasstemp,ptmassluminosity(iptn),
 c     &        accluminosity,xyzmh(4,listpm(iptn)),
 c     &        gt + (dtmax*itime)/imaxstep
 c            CALL FLUSH(60)
-99333        FORMAT(I4,8(1X,1PE16.9),1X,1PE16.9)
+c99333        FORMAT(I4,8(1X,1PE16.9),1X,1PE16.9)
 
 c            print *,' '
 c            print *,' '
@@ -1374,7 +1374,6 @@ c
 c--Begin iterating
 c
 c      print *,iproc, 'begin iterations '
- 45   CONTINUE
       maxerrE2last = 1.0E+30
       maxerrU2last = 1.0E+30
 
@@ -2821,8 +2820,8 @@ c
 #endif
 c         IF (MOD(nosweep,1).EQ.0) THEN
 c           PRINT 97001,nosweep,nswmax2,maxerrE2,maxerrU2
-97001      FORMAT('GSIMPL: Finished iteration ',I4,' of ',I4,' (',
-     &        1PE12.5,1PE12.5,')')
+c97001      FORMAT('GSIMPL: Finished iteration ',I4,' of ',I4,' (',
+c     &        1PE12.5,1PE12.5,')')
 c         ENDIF
 #ifdef MPIALL
          ENDIF
@@ -2894,7 +2893,7 @@ c            GOTO 332
                   nrtnca = nrtnca + 1
                ENDIF
             ENDIF
- 332        CONTINUE
+c 332        CONTINUE
             IF (itest.NE.1) THEN
                xmaxerr1old(itest) = xmaxerr1old(itest-1)
                xmaxerr2old(itest) = xmaxerr2old(itest-1)
@@ -2903,7 +2902,7 @@ c            GOTO 332
                xmaxerr2old(itest) = maxerrU2
             ENDIF
          END DO
- 333     CONTINUE
+c 333     CONTINUE
 
 #ifdef MPI
 c

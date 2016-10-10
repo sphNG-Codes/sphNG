@@ -51,7 +51,7 @@ ifeq ($(mpicopy), yes)
 endif
 
 ifeq ($(SYSTEM), ompi)
-    FC= mpif90
+    FC= $(MPIDIR)mpif90
     FFLAGS= -DMPI -O3 -march=pentium4 -mtune=pentium4 -malign-double -Wno=155
     OMPFLAG= -openmp
     DBLFLAG= -r8
@@ -79,7 +79,7 @@ endif
 
 ifeq ($(SYSTEM), zen)
     ifeq ($(mpiall), yes)
-       FC= mpiifort
+       FC= $(MPIDIR)mpiifort
 #       FC= ifort -lmpi
     else
        FC= ifort
@@ -105,7 +105,7 @@ endif
 
 ifeq ($(SYSTEM), complexity)
     ifeq ($(mpiall), yes)
-       FC= mpiifort
+       FC= $(MPIDIR)mpiifort
 #       FC= ifort -lmpi
     else
        FC= ifort
@@ -131,7 +131,7 @@ endif
 
 ifeq ($(SYSTEM), ukaff1a)
     ifeq ($(mpiall), yes)
-        FC= mpif77 -qnosave
+        FC= $(MPIDIR)mpif77 -qnosave
     else
         FC= xlf_r -qnosave
     endif
@@ -222,7 +222,7 @@ endif
 ifeq ($(SYSTEM), gfortran)
     FC= gfortran
     ifeq ($(mpi), yes)
-       FC= mpif90
+       FC= $(MPIDIR)mpif90
     endif
 # -I. is needed so files in RT/ can find the include files... (ifort seems to do this implicitly)
     FFLAGS= -m64 -mcmodel=medium -O3 -I. -Wall -Wno-conversion -Wno-unused-dummy-argument -Wno-maybe-uninitialized -Wno-unused-label -Warray-temporaries

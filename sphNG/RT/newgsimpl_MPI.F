@@ -93,7 +93,7 @@ c      INCLUDE 'COMMONS/rad2'
       REAL*4 rhoreal4
       COMMON /rtvarr5/ dvdx(9,iradtrans2)
 
-      INTEGER nosweep,lwst,hgst,stepa
+      INTEGER nosweep
       LOGICAL moresweep
       LOGICAL moresweep2
       REAL dx,dy,dz,dvz,dvx,dvy,lightspeed
@@ -128,8 +128,6 @@ c Needed for LYON stellar evolution code only
       REAL maxerrE2tot, maxerrU2tot
       LOGICAL moresweeptot
 #endif
-
-      REAL mu
 
       LOGICAL ifirst
       DATA ifirst/.TRUE./
@@ -1391,7 +1389,7 @@ c
 c--Calculate fluxlimiter values without using separate subroutine
 c
 C$OMP PARALLEL default(none)
-C$OMP& shared(lwst,hgst,stepa,vari,ivar,varij2,ijvar,varij,uergg)
+C$OMP& shared(vari,ivar,varij2,ijvar,varij,uergg)
 C$OMP& shared(dedxyz,ekcle,EU0,uradconst,lightspeed,rho,itime)
 C$OMP& shared(nosweep,boundtemp,bounddens)
 C$OMP& shared(npart,nghost,ihasghost,ireal,dvdx,ncompact)
@@ -1422,7 +1420,7 @@ C$OMP& shared(numproc,iproc,lblocklengths,indexMPI_INT1,i5REAL8)
 C$OMP& shared(irecvcounti,idisplacementsi,realtransfer5to15,i2REAL8)
 #endif
 C$OMP& private(boundtest,radu)
-C$OMP& private(bounddenslocal,izoverh,mu)
+C$OMP& private(bounddenslocal,izoverh)
 C$OMP& private(i,j,k,n,dedxi,dedyi,dedzi,rhoi,pmj1,rhoj)
 C$OMP& private(icompact,dti,pres_denominator,diffusion_numerator)
 C$OMP& private(diffusion_denominator,pres_numerator,tfour)
@@ -3105,7 +3103,7 @@ C$OMP& shared(ifullstep,pcolen)
 C$OMP& shared(dust_tk)
 C$OMP& private(temp, rho0)
 C$OMP& private(boundtest,radu)
-C$OMP& private(bounddenslocal,izoverh,mu)
+C$OMP& private(bounddenslocal,izoverh)
 C$OMP& private(n,i)
 C$OMP& private(cvcold,ucold,ecold,cv_effective)
 C$OMP& private(rhoi,dust_kappai,dust_cooling,heatingISRi,dust_gas)

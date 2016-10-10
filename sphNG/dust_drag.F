@@ -54,11 +54,11 @@ c
 c
 c--Local variables
 c
-      INTEGER   ipart, i, j, k, n, ioffset, index, index1, idust, igas
+      INTEGER   ipart, j, k, n, ioffset, index, index1, idust, igas
       REAL      m_ipart, m_j, scalar, ddvx, ddvy, ddvz, dr, 
      &          dr2, drx, dry, drz, chi, h_g, h2_g, h3_g, u2_g,
-     &          wk_sym, wk_sym2, nu, lambda,
-     &          mD_Ks, dwdx, dxx, vthermal, mG, ts, vthermal_coef
+     &          wk_sym, nu, lambda,
+     &          mD_Ks, dwdx, dxx, vthermal, ts, vthermal_coef
       PARAMETER (nu=3.0)
 #ifdef debug_drag
       REAL      px1, py1, pz1, px0, py0, pz0
@@ -105,10 +105,10 @@ C$OMP& shared(doublehumpnormk,npart,ntot,itime,imaxstep,isteps)
 C$OMP& shared(n_planetesimal_types,vxyzu_change)
 C$OMP& shared(vthermal_coef,vsound,ifullstep,iscurrent)
 C$OMP& shared(f1vxyzu,f2vxyzu)
-C$OMP& private(i,j,k,n,ipart,ioffset,drx,dry,drz,dr,ddvx,ddvy,ddvz)
+C$OMP& private(j,k,n,ipart,ioffset,drx,dry,drz,dr,ddvx,ddvy,ddvz)
 C$OMP& private(m_ipart,m_j,dr2,igas,idust)
 C$OMP& private(h_g,h2_g,h3_g,chi,u2_g,lambda)
-C$OMP& private(wk_sym,wk_sym2,mG,ts)
+C$OMP& private(wk_sym,ts)
 C$OMP& private(dwdx,dxx,index,index1,beta,scalar,deltat)
 C$OMP& private(r_planetesimal,rho_planetesimal)
 C$OMP& private(vthermal,mD_Ks,radius,r2,iparttot2)

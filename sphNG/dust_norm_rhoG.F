@@ -47,7 +47,7 @@ c
 c
 c--Local variables
 c
-      INTEGER   ipart, i, j, k, n, ioffset, index, index1, iparttot2
+      INTEGER   ipart, j, k, n, ioffset, index, index1, iparttot2
       REAL      m_g,
      &          dr2, drx, dry, drz, h_g, h2_g, h3_g,
      &          wk_sym, wk_sym2, dwdx, dxx, u2_g
@@ -75,7 +75,7 @@ C$OMP& shared(nlst_in,nlst_end,ivar,iphase,ijvar,xyzmh)
 C$OMP& shared(dumrho,radkernel,ddvtable,dvtable)
 C$OMP& shared(wij,dustnorm,cnormk,rhoG)
 C$OMP& shared(doublehumpnormk,npart,ntot,iscurrent)
-C$OMP& private(i,j,k,n,ipart,ioffset,drx,dry,drz,dr2)
+C$OMP& private(j,k,n,ipart,ioffset,drx,dry,drz,dr2)
 C$OMP& private(m_g,h_g,h2_g,h3_g,u2_g)
 C$OMP& private(wk_sym,wk_sym2)
 C$OMP& private(dwdx,dxx,index,index1)

@@ -45,7 +45,7 @@ c      DIMENSION dBevolxyz(imhdevol,imhd2)
       REAL dBxyzp(imhdevol,imhd2)
 
       INTEGER nosweep
-      REAL dW,dr
+      REAL dr
       REAL dx,dy,dz
 
       REAL subcycle_dtimin, subcycle_dtimax
@@ -175,7 +175,7 @@ C$OMP& private(n,i,j,k,icompact,pmi,hj,hj21,hj41,grkerni,grkernj)
 C$OMP& private(rxyi,ryzi,rxzi,rxxi,ryyi,rzzi)
 C$OMP& private(dti,dx,dy,dz,iparttree)
 C$OMP& private(rij2,rij,rij1,dr,pmj,rhoi,rhoj,hi,hi21,hi41)
-C$OMP& private(v2,v,index,dxx,index1,dgrwdx,grwtij,dW)
+C$OMP& private(v2,v,index,dxx,index1,dgrwdx,grwtij)
 C$OMP& private(pmjdWrij1rhoj,runix,runiy,runiz,denom1)
 C$OMP& private(dBxi,dByi,dBzi,projdB,rho1i)
 C$OMP& reduction(+:ihasghostcount)

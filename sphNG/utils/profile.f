@@ -25,6 +25,7 @@ c***********************************************************
       INCLUDE 'COMMONS/mhd'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/gtime'
 
       COMMON /unitsin/ umassi, udisti, utimei, umagfdi
 
@@ -108,6 +109,7 @@ c
 
       WRITE (*,*) 'Enter radmax (e.g. 7.0)'
       READ (*,*) radmax
+      radmaxstart = radmax
 
       WRITE (*,*) 'Enter radin (e.g. 0.999)'
       READ (*,*) radin
@@ -169,21 +171,21 @@ c
             DO i = 1, npart
                r = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2)
                th = ATAN2(xyzmh(2,i),xyzmh(1,i))
-               th = th + time*romega
+               th = th + gt*romega
                xyzmh(1,i) = r*COS(th)
                xyzmh(2,i) = r*SIN(th)
 
                r = SQRT(vxyzu(1,i)**2 + vxyzu(2,i)**2)
                th = ATAN2(vxyzu(2,i),vxyzu(1,i))
-               th = th + time*romega
+               th = th + gt*romega
                vxyzu(1,i) = r*COS(th)
                vxyzu(2,i) = r*SIN(th)
             END DO
          ENDIF
 
-         tcomp = sqrt((3*pi)/(32*rhozero))
+         tcomp = sqrt((3.0*pi)/(32.0*rhozero))
          tff = tcomp * utime
-         timeff = time/tcomp
+         timeff = gt/tcomp
          valjeans = 0.
          IF (tterm.NE.0) valjeans = abs(tgrav/tterm)
 c         WRITE(21,*) timeff, valjeans, nptmass
@@ -325,7 +327,7 @@ c            WRITE (42,*) radius(i)*udist,entropy_per_baryon(i)
             STOP
          ENDIF
 
-c         radmax = radmaxstart
+         radmax = radmaxstart
          radmin = radmax/radfac
          radcentre = SQRT(radmax*radmin)
          radmean = 0.
@@ -696,10 +698,9 @@ c
 
 c      WRITE (*,*) 'tmass2=',tmass2,' tmass3=',tmass3
 
-         WRITE(15,99080) time, timeff, fileout
+         WRITE(15,99080) gt, timeff, fileout
 99080    FORMAT(1PE12.5,1X,1PE12.5,1X,A11)
-         WRITE(19,88777) time, timeff, time*utime, denscen,
-     &        denscen*umass/udist**3, dmass, tmass1
+         WRITE(19,88444) gt, timeff, gt*utime, tmass1
 
 c      WRITE (*,*) 'total mass=', totmass
 c

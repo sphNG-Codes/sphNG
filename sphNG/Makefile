@@ -561,6 +561,11 @@ movie3DRG: checksystem checkparams utils/movie3DRG/imcol3DNG_zoom_DT.o rdump.o e
 disc: checksystem checkparams utils/disc_parameters.o rdump.o error.o indexx2.o
 	$(FC) $(FFLAGS) -o $@ utils/disc_parameters.o rdump.o error.o indexx2.o
 
+# Take radial cross sections through dump files
+
+profile: checksystem checkparams utils/profile.o rdump.o error.o indexx.o utils/movie3DRG/origin.o
+	$(FC) $(FFLAGS) -o $@ utils/profile.o rdump.o error.o indexx.o utils/movie3DRG/origin.o
+
 ptmass: utils/ptmassmerge.o
 	$(FC) $(FFLAGS) -o $@ utils/ptmassmerge.o
 

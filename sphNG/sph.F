@@ -27,6 +27,7 @@ c                                                           *
 c  D. J. Price    University of Cambridge, UK    XX/XX/03   *
 c                 University of Exeter, UK       XX/XX/05   *
 c                 Monash University, Australia   XX/XX/11   *
+c  B. T. Lewis    University of Exeter, UK       XX/XX/13   *
 c                                                           *
 c************************************************************
 c                                                           *
@@ -55,6 +56,15 @@ c  Modifications by: D. J. Price       UofExeter 2003-2006  *
 c                                                           *
 c  (1) grad h terms, grad soft terms                        *
 c  (2) MHD                                                  *
+c                                                           *
+c  Modifications by: B. T. Lewis       UofExeter 2013-      *
+c                                                           *
+c  (1) `average-h' MHD method (see Lewis et al 2015a,b)     *
+c         Now deprecated: see erratum to LBP2015b           *
+c  (2) implemented modified div B cleaning method from      *
+c         Tricco, et al. (2016)                             *
+c  (3) many, many, code cleanups, modernisations, and       *
+c         miscellaneous improvements                        *
 c                                                           *
 c************************************************************
 c  General Description                                      *

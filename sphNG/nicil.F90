@@ -55,7 +55,7 @@
 !    mass_MionR_mp  -- Mass of a metallic ion (for cosmic ray ionisation)
 !    massfrac_X     -- If use_massfrac=true: Mass fraction of Hydrogen
 !    massfrac_Y     -- If use_massfrac=true: Mass fraction of Helium
-!    eta_const_calc -- If eta_constant=true: calculate eta using fixed environmental parameters
+!    eta_const_type -- If eta_constant=true: determines which form of constant or semi-constant coefficients to use
 !    C_OR           -- If eta_constant=true & eta_constant_calc=false: eta_OR = C_OR
 !    C_HE           -- If eta_constant=true & eta_constant_calc=false: eta_HE = C_HE*B
 !    C_AD           -- If eta_constant=true & eta_constant_calc=false: eta_AD = C_AD*v_A^2
@@ -125,16 +125,19 @@ module nicil
  real,        parameter :: m_min             =    1.0           ! minimum ion mass (units of m_proton) in the table
  real,        parameter :: m_max             =  101.0           ! maximum ion mass (units of m_proton) in the table
  !--Resistivity coefficients (if fixed as constants)
- logical,     public    :: eta_const_calc    = .false.          ! Calculate constant coefficients using physical parameters (F = user set)
- real,        public    :: C_OR              =  0.1             ! eta_OR = C_OR       if eta_const_calc = .false.
- real,        public    :: C_HE              = -0.5             ! eta_HE = C_HE*B     if eta_const_calc = .false.
- real,        public    :: C_AD              =  0.01            ! eta_AD = C_AD*v_A^2 if eta_const_calc = .false.
- real,        public    :: n_e_cnst          = 1.0d19           ! Constant electron number density  [cm^-3]      if eta_const_calc = .true.
- real,        public    :: rho_i_cnst        = 3.8d-11          ! Density of ionised gas            [g/cm^3]     if eta_const_calc = .true.
- real,        public    :: rho_n_cnst        = 3.8d-08          ! Density of neutral gas            [g/cm^3]     if eta_const_calc = .true.
- real,        public    :: alpha_AD          = 0.0              ! Exponent of Power-law ion density              if eta_const_calc = .true.
- real,        public    :: gamma_AD          = 2.6e13           ! Collisional coupling coefficient  [cm^3/(s g)] if eta_const_calc = .true.
- logical,     public    :: hall_lt_zero      = .true.           ! The sign of the Hall coefficient               if eta_const_calc = .true.
+ integer,public,parameter :: icnstphys       = 1                ! Index for calculating eta using physical parameters
+ integer,public,parameter :: icnstsemi       = 2                ! Index for calculating eta using a semi-constant coefficient
+ integer,public,parameter :: icnst           = 3                ! Index for calculating eta using a constant coefficient
+ integer,     public    :: eta_const_type    = icnstsemi        ! Determines the form of the (semi-) constant coefficients
+ real,        public    :: C_OR              =  0.1             ! eta_OR = C_OR                                  if eta_const_type = icnst, icnstsemi
+ real,        public    :: C_HE              = -0.5             ! eta_HE = C_HE (*B)                             if eta_const_type = icnst (icnstsemi)
+ real,        public    :: C_AD              =  0.01            ! eta_AD = C_AD (*v_A^2)                         if eta_const_type = icnst (icnstsemi)
+ real,        public    :: n_e_cnst          = 1.0d19           ! Constant electron number density  [cm^-3]      if eta_const_type = icnstphys
+ real,        public    :: rho_i_cnst        = 3.8d-11          ! Density of ionised gas            [g/cm^3]     if eta_const_type = icnstphys
+ real,        public    :: rho_n_cnst        = 3.8d-08          ! Density of neutral gas            [g/cm^3]     if eta_const_type = icnstphys
+ real,        public    :: alpha_AD          = 0.0              ! Exponent of Power-law ion density              if eta_const_type = icnstphys
+ real,        public    :: gamma_AD          = 2.6e13           ! Collisional coupling coefficient  [cm^3/(s g)] if eta_const_type = icnstphys
+ logical,     public    :: hall_lt_zero      = .true.           ! The sign of the Hall coefficient               if eta_const_type = icnstphys
  !
  !--Threshholds
  real,          public  :: Texp_thresh0      = 0.005            ! Will set exp(-chi/kT) = 0 if T is too low
@@ -386,6 +389,9 @@ subroutine nicil_initialise(utime,udist,umass,unit_Bfield,ierr,iprint_in,iprintw
  if (inisT > inidT)  call nicil_ic_error(ierr,'nicil_initialise','indicies for singly & doubly ionised densities out of order')
  if (trim(symj(iH))/="H" )  call nicil_ic_error(ierr,'nicil_initialise_species','Hygrogen does not have the correct array number')
  if (trim(symj(iHe))/="He") call nicil_ic_error(ierr,'nicil_initialise_species','Helium does not have the correct array number')
+ if (eta_constant .and. eta_const_type/=icnstphys .and. eta_const_type/=icnstsemi .and. eta_const_type/=icnst) then
+   call nicil_ic_error(ierr,'nicil_initialise','Invalid choice of (semi-) constant eta calculations; correct eta_const_type.')
+ end if
  !--Abort setup if errors fatal exist
  if (ierr/=0) return   
  !--If no ionisation or no non-ideal mhd coefficients, then set all to false
@@ -626,21 +632,31 @@ subroutine nicil_initialise(utime,udist,umass,unit_Bfield,ierr,iprint_in,iprintw
  Texp_thresh   = chij*Texp_thresh0
  !
  !--Set constant coefficients
- if ( eta_const_calc ) then
-   eta_ohm_cnst  = mass_electron_cgs*c**2/(fourpi*qe**2*n_e_cnst)
-   eta_hall_cnst = c/(fourpi*qe*n_e_cnst)
-   eta_ambi_cnst = 1.0/(fourpi*gamma_AD*rho_i_cnst/rho_n_cnst**alpha_AD)
-   if (hall_lt_zero) eta_hall_cnst = -eta_hall_cnst
-   alpha_AD_p1 = alpha_AD + 1.0
+ alpha_AD_p1 = 1.0
+ if ( eta_const_type==icnst ) then
+   eta_ohm_cnst  = C_OR / unit_eta
+   eta_hall_cnst = C_HE / unit_eta
+   eta_ambi_cnst = C_AD / unit_eta
  else
-   eta_ohm_cnst  = C_OR
-   eta_hall_cnst = C_HE / sqrt(fourpi)
-   eta_ambi_cnst = C_AD /      fourpi
- end if
- !  Convert units as required
- eta_ohm_cnst  = eta_ohm_cnst                                  / unit_eta
- eta_hall_cnst = eta_hall_cnst *  unit_Bfield                  / unit_eta
- eta_ambi_cnst = eta_ambi_cnst * (unit_Bfield**2/unit_density) / unit_eta
+   if ( eta_const_type==icnstphys ) then
+     eta_ohm_cnst  = mass_electron_cgs*c**2/(fourpi*qe**2*n_e_cnst)
+     eta_hall_cnst = c/(fourpi*qe*n_e_cnst)
+     eta_ambi_cnst = 1.0/(fourpi*gamma_AD*rho_i_cnst/rho_n_cnst**alpha_AD)
+     alpha_AD_p1   = alpha_AD + 1.0
+     if (hall_lt_zero) eta_hall_cnst = -eta_hall_cnst
+   else if ( eta_const_type==icnstsemi ) then
+     eta_ohm_cnst  = C_OR
+     eta_hall_cnst = C_HE / sqrt(fourpi)
+     eta_ambi_cnst = C_AD /      fourpi
+   end if
+   !  Convert units as required
+   eta_ohm_cnst  = eta_ohm_cnst                                  / unit_eta
+   eta_hall_cnst = eta_hall_cnst *  unit_Bfield                  / unit_eta
+   eta_ambi_cnst = eta_ambi_cnst * (unit_Bfield**2/unit_density) / unit_eta
+ endif
+ if (.not. use_ohm ) eta_ohm_cnst  = 0.0
+ if (.not. use_hall) eta_hall_cnst = 0.0
+ if (.not. use_ambi) eta_ambi_cnst = 0.0
  !
  !--Set the location of the printouts
  if (present(iprint_in)) then
@@ -690,9 +706,15 @@ subroutine nicil_print_summary(a01_grain,mass_HionR_mp,mass_grain_mp,meanmolmass
  if (eta_constant) then
    write(iprint,'(2a)')                       "NICIL: Non-ideal terms used: ",trim(ni_terms)
    write(iprint,'(a)' )                       "NICIL: All resistivity coefficients are constant."
-   if (use_ohm ) write(iprint,'(a,Es10.3  )') "NICIL: Eta_ohm  = ", eta_ohm_cnst
-   if (use_hall) write(iprint,'(a,Es10.3,a)') "NICIL: Eta_Hall = ", eta_hall_cnst,"*|B|"
-   if (use_ambi) write(iprint,'(a,Es10.3,a)') "NICIL: Eta_ambi = ", eta_ambi_cnst,"*|B|^2/rho"
+   if (eta_const_type==icnstphys) then
+     if (use_ohm ) write(iprint,'(a,Es10.3,a)') "NICIL: Eta_ohm  = ", eta_ohm_cnst*unit_eta,  " cm^2 s^{-1}"
+     if (use_hall) write(iprint,'(a,Es10.3,a)') "NICIL: Eta_Hall = ", eta_hall_cnst*unit_eta, " cm^2 s^{-1}"
+     if (use_ambi) write(iprint,'(a,Es10.3,a)') "NICIL: Eta_ambi = ", eta_ambi_cnst*unit_eta, " cm^2 s^{-1}"
+   else
+     if (use_ohm ) write(iprint,'(a,Es10.3,a)') "NICIL: Eta_ohm  = ", eta_ohm_cnst*unit_eta, " cm^2 s^{-1}"
+     if (use_hall) write(iprint,'(a,Es10.3,a)') "NICIL: Eta_Hall = ", eta_hall_cnst*unit_eta,"*|B|       cm^2 s^{-1}"
+     if (use_ambi) write(iprint,'(a,Es10.3,a)') "NICIL: Eta_ambi = ", eta_ambi_cnst*unit_eta,"*|B|^2/rho cm^2 s^{-1}"
+   end if
  else
    if (ion_rays) then
      if (g_cnst) then
@@ -909,6 +931,8 @@ pure subroutine nicil_version(version)
  version = "Version 1.2.1: 2 Aug 2016"
            !  6 Sept 2016: bug fix in v_ion
            ! 12 Sept 2016: Updated references
+           ! 22 Sept 2016: bug fix in eta_ambi if eta_constant=true & eta_calc_const=false
+           !  8 Nov  2016: added a third option when choosing how to calculate (semi-)constant resistivities
  !
 end subroutine nicil_version
 !----------------------------------------------------------------------!
@@ -2009,12 +2033,14 @@ pure subroutine nicil_nimhd_get_eta_cnst(eta_ohm,eta_hall,eta_ambi,Bfield,rho)
  real, intent(out) :: eta_ohm,eta_hall,eta_ambi
  real, intent(in)  :: Bfield,rho
  !
- eta_ohm  = 0.0
- eta_hall = 0.0
- eta_ambi = 0.0
- if ( use_ohm  ) eta_ohm  = eta_ohm_cnst
- if ( use_hall ) eta_hall = eta_hall_cnst*Bfield
- if ( use_ambi ) eta_ambi = eta_ambi_cnst*Bfield**2/rho**alpha_AD_p1
+ ! set the coefficient to the constant coefficient (==0 if the term is off)
+ eta_ohm  = eta_ohm_cnst
+ eta_hall = eta_hall_cnst
+ eta_ambi = eta_ambi_cnst
+ if (eta_const_type==icnst) return
+ ! multiply by the variable, if requested
+ eta_hall = eta_hall*Bfield
+ eta_ambi = eta_ambi*Bfield**2/rho**alpha_AD_p1
  !
 end subroutine nicil_nimhd_get_eta_cnst
 !-----------------------------------------------------------------------
@@ -2041,20 +2067,20 @@ end subroutine nimhd_get_jcbcb
 !  Calculates the non-ideal MHD contributions to the magnetic field in SPH
 !+
 !-----------------------------------------------------------------------
-pure subroutine nimhd_get_dBdt(dBnonideal,etaohm,etahall,etaambi &
+pure subroutine nimhd_get_dBdt(dBnonideal,eta_ohm,eta_hall,eta_ambi &
                               ,jcurrent,jcb,jcbcb,dxr1,dyr1,dzr1)
  real, intent(out) :: dBnonideal(3)
  real, intent(in)  :: jcurrent(3),jcb(3),jcbcb(3)
- real, intent(in)  :: etaohm,etahall,etaambi,dxr1,dyr1,dzr1
+ real, intent(in)  :: eta_ohm,eta_hall,eta_ambi,dxr1,dyr1,dzr1
  real              :: dBohm(3),dBhall(3),dBambi(3)
  !
  dBohm  = 0.0
  dBhall = 0.0
  dBambi = 0.0
  !
- if (use_ohm ) call nimhd_get_DcrossR(dBohm ,jcurrent,dxr1,dyr1,dzr1,etaohm )
- if (use_hall) call nimhd_get_DcrossR(dBhall,jcb     ,dxr1,dyr1,dzr1,etahall)
- if (use_ambi) call nimhd_get_DcrossR(dBambi,jcbcb   ,dxr1,dyr1,dzr1,etaambi)
+ if (use_ohm ) call nimhd_get_DcrossR(dBohm ,jcurrent,dxr1,dyr1,dzr1,eta_ohm )
+ if (use_hall) call nimhd_get_DcrossR(dBhall,jcb     ,dxr1,dyr1,dzr1,eta_hall)
+ if (use_ambi) call nimhd_get_DcrossR(dBambi,jcbcb   ,dxr1,dyr1,dzr1,eta_ambi)
  dBnonideal = dBambi - dBhall - dBohm 
  !
 end subroutine nimhd_get_dBdt
@@ -2080,10 +2106,10 @@ end subroutine nimhd_get_DcrossR
 !  Note: the sign of (36) in Wurster (2016) is incorrect
 !+
 !-----------------------------------------------------------------------
-pure subroutine nimhd_get_dudt(dudtnonideal,etaohm,etaambi,rho,J,B)
+pure subroutine nimhd_get_dudt(dudtnonideal,eta_ohm,eta_ambi,rho,J,B)
  real, intent(out) :: dudtnonideal
  real, intent(in)  :: J(3),B(3)
- real, intent(in)  :: etaohm,etaambi,rho
+ real, intent(in)  :: eta_ohm,eta_ambi,rho
  real              :: B2i,J2i,BJi,BJBJihat
  !
  B2i          = dot_product(B,B)
@@ -2094,7 +2120,7 @@ pure subroutine nimhd_get_dudt(dudtnonideal,etaohm,etaambi,rho,J,B)
  else
    BJBJihat   = 0.0
  end if
- dudtnonideal = ( etaohm*J2i + etaambi*(J2i - BJBJihat) )/rho
+ dudtnonideal = ( eta_ohm*J2i + eta_ambi*(J2i - BJBJihat) )/rho
  !
 end subroutine nimhd_get_dudt
 !-----------------------------------------------------------------------
@@ -2102,8 +2128,8 @@ end subroutine nimhd_get_dudt
 !  Calculates the timesteps for non-ideal MHD
 !+
 !-----------------------------------------------------------------------
-pure subroutine nimhd_get_dt(dtohm,dthall,dtambi,h,etaohm,etahall,etaambi)
- real, intent(in)  :: h,etaohm,etahall,etaambi
+pure subroutine nimhd_get_dt(dtohm,dthall,dtambi,h,eta_ohm,eta_hall,eta_ambi)
+ real, intent(in)  :: h,eta_ohm,eta_hall,eta_ambi
  real, intent(out) :: dtohm,dthall,dtambi
  real              :: h2
  !
@@ -2112,9 +2138,9 @@ pure subroutine nimhd_get_dt(dtohm,dthall,dtambi,h,etaohm,etahall,etaambi)
  dtambi = huge(dtambi)
  h2     = h*h
  !
- if (use_ohm  .and.     etaohm   > tiny(etaohm ) ) dtohm  =      C_nimhd*h2/etaohm
- if (use_hall .and. abs(etahall) > tiny(etahall) ) dthall = abs( C_nimhd*h2/etahall )
- if (use_ambi .and.     etaambi  > tiny(etaambi) ) dtambi =      C_nimhd*h2/etaambi       
+ if (use_ohm  .and.     eta_ohm   > tiny(eta_ohm ) ) dtohm  =      C_nimhd*h2/eta_ohm
+ if (use_hall .and. abs(eta_hall) > tiny(eta_hall) ) dthall = abs( C_nimhd*h2/eta_hall )
+ if (use_ambi .and.     eta_ambi  > tiny(eta_ambi) ) dtambi =      C_nimhd*h2/eta_ambi
  !
 end subroutine nimhd_get_dt
 !-----------------------------------------------------------------------
@@ -2145,4 +2171,3 @@ pure subroutine nicil_get_vion(eta_ambi,vx,vy,vz,Bx,By,Bz,jcurrent,vion,ierr)
 end subroutine nicil_get_vion
 !----------------------------------------------------------------------!
 end module nicil
-

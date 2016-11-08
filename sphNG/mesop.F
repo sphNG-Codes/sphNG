@@ -32,7 +32,7 @@ c************************************************************
       INCLUDE 'COMMONS/polyk2'
       INCLUDE 'COMMONS/interstellar'
 
-      CHARACTER*20 string(10)
+      CHARACTER*40 string(10)
       CHARACTER*7 where
       CHARACTER*3 dummy3
 
@@ -53,7 +53,7 @@ c
       nmes = 0
       DO i = 1, 10
          READ (idisk2, 99000, END=200) string(i)
-99000    FORMAT (A20)
+99000    FORMAT (A40)
          nmes = i
       END DO
 c
@@ -400,10 +400,12 @@ c
          ENDIF
 c
 c--Automatic change of syncronisation time using density change
+c  (Can now set the minimum dtmax as well; JW 2016.10.12)
 c
       ELSEIF (string(1)(1:4).EQ.'dens') THEN
-         READ (string(1)(6:20),*) contrast, dtmaxsync
-
+         READ (string(1)(6:40),*,iostat=io)
+     &        contrast, dtmaxsync,dtminsync
+         IF (io.NE.0) dtminsync = 0.0
 #ifdef MPI
          CALL MPI_ALLREDUCE(rhomaxsync, rhomaxsyncold, 1, MPI_REAL4,
      &        MPI_MAX, MPI_COMM_WORLD, ierr)
@@ -438,18 +440,32 @@ c--Limit the largest change in timestep to 2**5 = 32
 c
          IF (ipower.GT.5) ipower = 5
 
-         WRITE (*, 99017) dtmaxsync, 10**contrast, 
-     &        rhomaxsync/rhomaxsyncold, ipower
+         IF (dtminsync.GT.0.0) THEN
+            WRITE (*, 99018) dtmaxsync, dtminsync, 10**contrast, 
+     &           rhomaxsync/rhomaxsyncold, ipower
+         ELSE
+            WRITE (*, 99017) dtmaxsync, 10**contrast, 
+     &           rhomaxsync/rhomaxsyncold, ipower
+         ENDIF
+
 #ifdef MPIALL
          IF (iproc.EQ.0) THEN
 #endif
-         WRITE (iprint, 99017) dtmaxsync, 10**contrast, 
-     &        rhomaxsync/rhomaxsyncold, ipower
+         IF (dtminsync.GT.0.0) THEN
+            WRITE (iprint, 99018) dtmaxsync, dtminsync, 10**contrast, 
+     &           rhomaxsync/rhomaxsyncold, ipower
+         ELSE
+            WRITE (iprint, 99017) dtmaxsync, 10**contrast, 
+     &           rhomaxsync/rhomaxsyncold, ipower
+         ENDIF
+
 #ifdef MPIALL
          ENDIF
 #endif
 99017    FORMAT (' Dtmaxsync : ', 1PE12.5,' contrast ',1PE12.5,
      &        ' ratio ',1PE12.5,' ipower ',I2)
+99018    FORMAT (' max & min Dtmaxsync : ', 1PE12.5,1x,1PE12.5,
+     &        ' contrast ',1PE12.5, ' ratio ',1PE12.5,' ipower ',I4)
 
          IF (ipower.GE.0 .AND. tstep/60.0.GT.720.0) THEN
 #ifdef MPIALL
@@ -485,7 +501,7 @@ c
             imaxnew = imaxstep/ifactor
             iminnew = 2*ifactor
 
-            IF (ipower.LT.0) THEN
+            IF (ipower.LT.0 .and. dtmax/FLOAT(ifactor).GE.dtminsync)THEN
                WRITE (*, 99021) ipower
 #ifdef MPIALL
                IF (iproc.EQ.0) THEN
@@ -569,7 +585,7 @@ c
 #endif
                   WRITE (*,99040)             
 99040       FORMAT('  Synct autochange attempt, but dtmaxsync reached')
-               ELSEIF (tstep/60.*FLOAT(ifactor).GT.720.) THEN
+               ELSEIF (dtmax/FLOAT(ifactor).LT.dtminsync) THEN
 #ifdef MPIALL
                   IF (iproc.EQ.0) THEN
 #endif
@@ -578,7 +594,17 @@ c
                   ENDIF
 #endif
                   WRITE (*,99041)             
-99041       FORMAT('  Synct autochange attempt, but tstepmax reached')
+99041       FORMAT('  Synct autochange attempt, but dtminsync reached')
+               ELSEIF (tstep/60.*FLOAT(ifactor).GT.720.) THEN
+#ifdef MPIALL
+                  IF (iproc.EQ.0) THEN
+#endif
+                  WRITE (iprint,99042)
+#ifdef MPIALL
+                  ENDIF
+#endif
+                  WRITE (*,99042)             
+99042       FORMAT('  Synct autochange attempt, but tstepmax reached')
                ENDIF
             ENDIF
 

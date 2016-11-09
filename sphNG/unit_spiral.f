@@ -163,7 +163,8 @@ c
       umagfd = DBLE(umass)/(DBLE(utime)*DBLE(ucharge))
 
 c
-c Spiral potential parameters:
+c Spiral potential parameters (see Cox & Gomez 2002 and Binney & Tremaine
+c for logarithmic potential):
 c
 
       r0=2.47518e22/real(udist)
@@ -175,7 +176,7 @@ c
       Hz=real(5.56916d20/udist)
 
       Co=real(2.31d14*(utime)**2./udist**2.)
-      Rc=real(3.09398d20/udist)
+      Rc=real(3.09398d21/udist)
       Ro=real(3.09398d21/udist)
       z0=real(3.09398d21/udist)
       Cz(1)=8/(3*pi)

@@ -61,6 +61,7 @@ c************************************************************
       INCLUDE 'COMMONS/bonnortbl'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/init'
+      INCLUDE 'COMMONS/potent'
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
@@ -1684,19 +1685,6 @@ c            hmass = 0.0001
          READ (iread,*) fracrotoffset
       ENDIF
 
-      IF (iok.EQ.'v') THEN
-c Set parameters for rotation curve
-c         WRITE (*,55506)
-c55508    FORMAT (' Enter velocity for rotation curve',
-c     &        ' unit distance (cm/s)')
-c         READ (iread,*) angvel
-c      Set velocity to ~200km/s
-      angvel=-2.16e+07
-      angvel = angvel * utime/udist
-c Set velocity dispersion parameter
-        disp=5.
-      ENDIF
-
       DO i = nptmass + 1, n1
          IF (iok.EQ.'k') THEN
             gg2 = 1.  
@@ -1778,50 +1766,40 @@ ccc            rad2 = rad2 / rmax2
             vxyzu(2,i) =  angvz * xyzmh(3,i)
             vxyzu(1,i) = 0.
          ELSEIF (iok.EQ.'v') THEN 
+c Set parameters for rotation curve
+c      Set velocity to ~200km/s (constants set in unit_spiral)
+            angvel=-SQRT(2.*Co)
+c Set velocity dispersion parameter
+            disp=5.
+c circular velocities, for Galaxy model
 
-c circular velocities
 
             radius2 = xyzmh(1,i)*xyzmh(1,i) + xyzmh(2,i)*xyzmh(2,i)   
-            vcirc=SQRT(radius2/(1.0+radius2))
-            phi=ATAN(xyzmh(2,i)/xyzmh(1,i))
-
-            IF (xyzmh(1,i).GT.0 .and. xyzmh(2,i).GT.0) THEN
-             vxyzu(1,i) = -angvel*vcirc*SIN(phi)  
-             vxyzu(2,i) = angvel*vcirc*COS(phi)
-             vxyzu(3,i) = 0.
-            ELSEIF (xyzmh(1,i).LE.0 .and. xyzmh(2,i).GT.0) THEN
-             vxyzu(1,i) = angvel*vcirc*SIN(phi)  
-             vxyzu(2,i) = -angvel*vcirc*COS(phi)
-             vxyzu(3,i) = 0.
-            ELSEIF (xyzmh(1,i).LE.0 .and. xyzmh(2,i).LE.0) THEN
-             vxyzu(1,i) = angvel*vcirc*SIN(phi)  
-             vxyzu(2,i) = -angvel*vcirc*COS(phi)
-             vxyzu(3,i) = 0.
-            ELSEIF (xyzmh(1,i).GT.0 .and. xyzmh(2,i).LE.0) THEN
-             vxyzu(1,i) = -angvel*vcirc*SIN(phi)  
-             vxyzu(2,i) = angvel*vcirc*COS(phi)
-             vxyzu(3,i) = 0.
-            ENDIF            
+            vcirc=SQRT(radius2/(Rc**2+radius2))
+            phi=ATAN2(xyzmh(2,i),xyzmh(1,i))
+            vxyzu(1,i) = -angvel*vcirc*SIN(phi)  
+            vxyzu(2,i) = angvel*vcirc*COS(phi)
+            vxyzu(3,i) = 0. 
 
 c add Gaussian random velocity dispersion
 
 c For 5 km/s dispersion, use Gaussian with sigma=disp=5
   
 250        vx1=40.*(ran1(1)-0.5)
-           prob=EXP(-(vx1/disp)**2./2.)
+           prob=EXP(-(vx1/disp)**2/2.)
 
            IF (prob.LT.ran1(1)) GOTO 250
 
            vxyzu(1,i)=vxyzu(1,i)+vx1*100000.*utime/udist
 
  260       vy1=40.*(ran1(1)-0.5)
-           prob=EXP(-(vy1/disp)**2./2.)
+           prob=EXP(-(vy1/disp)**2/2.)
 
            IF (prob.LT.ran1(1)) GOTO 260
            vxyzu(2,i)=vxyzu(2,i)+vy1*100000.*utime/udist
 
  270       vz1=40.*(ran1(1)-0.5)
-           prob=EXP(-(vz1/disp)**2./2.)
+           prob=EXP(-(vz1/disp)**2/2.)
 
            IF (prob.LT.ran1(1)) GOTO 270
            vxyzu(3,i)=vxyzu(3,i)+vz1*100000.*utime/udist

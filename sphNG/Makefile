@@ -103,6 +103,27 @@ ifeq ($(SYSTEM), zen)
     ZZFILE= zzibm.f
 endif
 
+ifeq ($(SYSTEM), isca)
+    ifeq ($(mpiall), yes)
+       FC= $(MPIDIR)mpiifort
+    else
+       FC= ifort
+    endif
+    FFLAGS= -O3 -axAVX -mcmodel=medium \
+            -warn uninitialized -warn truncated_source\
+            -warn interfaces -nogen-interfaces
+# -check_mpi
+    OMPFLAG= -qopenmp
+    DBLFLAG= -r8
+    DEBUGFLAG= -check all -traceback -g -fpe0 -fp-stack-check -heap-arrays -O0
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -convert big_endian
+    ENDIANFLAGLITTLE= -convert little_endian
+    IPOFLAG=
+# or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
+    ZZFILE= zzibm.f
+endif
+
 ifeq ($(SYSTEM), complexity)
     ifeq ($(mpiall), yes)
        FC= $(MPIDIR)mpiifort

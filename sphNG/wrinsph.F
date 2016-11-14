@@ -163,7 +163,7 @@ c
       WRITE (iterm, 88011) tol, tolptm, tolh
 88011  FORMAT(2X,3(1PE12.5,1X),'Tolerance (Gas, Ptmass, Smooth Len)')
       WRITE (iterm, 88012) irec 
-88012  FORMAT(2X,I3,'  Binary Dump Counter')
+88012  FORMAT(2X,I4,'  Binary Dump Counter')
       WRITE (iterm, 88013) tmax
 88013  FORMAT(2X,1PE12.5,'  Max Time (min) (Status Written)')
       WRITE (iterm, 88014) tstop  

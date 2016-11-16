@@ -193,7 +193,12 @@ c--Default int
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill
          nblocks = 1
       ENDIF
-      IF (npart.GT.idim .AND. nblocks.EQ.1) THEN
+      IF (npart.GT.idim .AND. 
+     &     (nblocks.EQ.1 
+#ifndef MPI
+     &     .OR. nblocks.GT.1)
+#endif
+     &     ) THEN
          WRITE (*,*) 'ERROR in rdump: npart>idim'
          CALL quit(0)
       ENDIF

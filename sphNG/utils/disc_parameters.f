@@ -35,9 +35,14 @@ c***********************************************************
       DIMENSION ilocalsink(1000),indx(idim)
       DIMENSION discmass(1000),angmom(3,1000),discradius(4,1000)
       DIMENSION distance2(idim)
+      DIMENSION discmass_mult(1000),discradius_mult(4,1000),
+     &     nsink_mult(1000)
+
+      DIMENSION cmtot(3), cmtot_mult(3), vtot(3), vtot_mult(3)
+      DIMENSION cmval(3), vval(3)
 
       PARAMETER (ndiscmax = 1000000)
-      DIMENSION listdisc(ndiscmax)
+      DIMENSION listdisc(ndiscmax), listdisc_mult(ndiscmax)
 
       CHARACTER*7 filein
       CHARACTER*21 contour1, contour2
@@ -260,12 +265,20 @@ c
 
          IF (k.EQ.1) THEN
             IF (nptmass.GT.1) THEN
-               PRINT *,'ERROR - need to start with <=1 sinks'
+               OPEN (19,FILE='Names')
+               READ (19,*,END=677) nptmass,nunique_sink
+               READ (19,*,END=677) (iunique_sink(iii),
+     &              iii=1,nunique_sink)
+               CLOSE(19)
+               GOTO 679
+
+ 677           PRINT *,'ERROR - need to start with <=1 sinks'
                STOP
-            ENDIF
-            nunique_sink = nptmass
-            IF (nunique_sink.EQ.1) THEN
-               iunique_sink(1) = iunique(listpm(1))
+            ELSE
+               nunique_sink = nptmass
+               IF (nunique_sink.EQ.1) THEN
+                  iunique_sink(1) = iunique(listpm(1))
+               ENDIF
             ENDIF
          ELSE
             IF (nptmass.GT.nunique_sink) THEN
@@ -286,11 +299,17 @@ c
                END DO
             ENDIF
          ENDIF
-         IF (nptmass.NE.nunique_sink) THEN
+ 679     IF (nptmass.NE.nunique_sink) THEN
             PRINT *,'ERROR - nptmass.NE.nunique_sink ',nptmass,
      &           nunique_sink
             STOP
          ENDIF
+
+         OPEN (19,FILE='Names',STATUS='replace')
+         WRITE(19,*) nptmass,nunique_sink
+         WRITE(19,*) (iunique_sink(iii),
+     &        iii=1,nunique_sink)
+         CLOSE(19)
 
          PRINT *,'Number of sinks ',nptmass,nunique_sink
          PRINT *,'Names of sinks ',(iunique_sink(iii),
@@ -302,12 +321,12 @@ c
             DO jjj = 1, nptmass
                IF (iunique(listpm(jjj)).EQ.iunique_sink(iii)) THEN
                   ilocalsink(iii) = listpm(jjj)
-                  GOTO 679
+                  GOTO 680
                ENDIF
             END DO
             PRINT *,'ERROR - not found ',iii,iunique_sink(iii)
             STOP
- 679        CONTINUE
+ 680        CONTINUE
          END DO
 c
 c--Process sinks
@@ -319,13 +338,20 @@ c
             zsink = xyzmh(3,iptcur)
             sinkmass = xyzmh(4,iptcur)
 
+            cmtot(1:3) = sinkmass*xyzmh(1:3,iptcur)
+            cmtot_mult(1:3) = cmtot(1:3)
+            vtot(1:3) = sinkmass*vxyzu(1:3,iptcur)
+            vtot_mult(1:3) = vtot(1:3)
+
             print *,'Sink location, mass ',xsink,ysink,zsink,sinkmass
 
             discmass(isink) = 0.
+            discmass_mult(isink) = 0.
             DO l = 1, 3
                angmom(l,isink) = 0.
             END DO
             ndisc = 0
+            ndisc_mult = 0
 
             DO i = 1, npart
                dx = xyzmh(1,i)-xsink
@@ -335,29 +361,170 @@ c
             END DO
 
             print *,'sorting'
-
             CALL indexx2(npart,distance2,indx)
 
             print *,'sorted ',indx(1),indx(2),distance2(indx(1)),
-     &           distance2(indx(2))
+     &           distance2(indx(2)),iptcur
 
+            nsinks = 1
             DO j = 1, npart
                i = indx(j)
-
+c
+c--Skip self
+c
+c               print *,'  ',isink,i,nsinks
+               IF (i.EQ.iptcur) CYCLE
+c
+c--Keep track of other sinks.  Increase centre of mass and centre of mass
+c     velocity to include other sinks
+c
+               nsink_mult(isink) = nsinks
+               IF (iphase(i).GT.0 .AND. iphase(i).LE.9) THEN
+                  nsinks = nsinks + 1
+                  IF (nsinks.GT.4) EXIT
+                  cmtot_mult(1:3) = cmtot_mult(1:3) + 
+     &                 xyzmh(4,i)*xyzmh(1:3,i)
+                  vtot_mult(1:3) = vtot_mult(1:3) + 
+     &                 xyzmh(4,i)*vxyzu(1:3,i)
+                  CYCLE
+               ENDIF
+c
+c--Set total mass to consider whether new particle is bound or not
+c
                totalmass = sinkmass + discmass(isink)
 
-               IF (iphase(i).EQ.0 .AND. i.NE.iptcur) THEN
-                  dx = xyzmh(1,i)-xsink
-                  dy = xyzmh(2,i)-ysink
-                  dz = xyzmh(3,i)-zsink
+c               print *,'  ',j,xsink,cmtot(1)/totalmass,
+c     &              vxyzu(1,iptcur),vtot(1)/totalmass,
+c     &              nsinks,iphase(i)
+c
+c--Find parameters of circumstellar disc
+c
+               IF (nsinks.EQ.1 .AND. iphase(i).EQ.0) THEN
+c                  dx = xyzmh(1,i)-xsink
+c                  dy = xyzmh(2,i)-ysink
+c                  dz = xyzmh(3,i)-zsink
+                  dx = xyzmh(1,i) - cmtot(1)/totalmass
+                  dy = xyzmh(2,i) - cmtot(2)/totalmass
+                  dz = xyzmh(3,i) - cmtot(3)/totalmass
                   dist = SQRT(dx**2 + dy**2 + dz**2)
 c
-c--Make distance cut - 1000 AU or 1/2 distance to nearest sink
+c--Make distance cut - 1000 AU
 c
-                  IF (dist*udisti.LT.1.496E+13*1000.) THEN
-                     dvx = vxyzu(1,i)-vxyzu(1,iptcur)
-                     dvy = vxyzu(2,i)-vxyzu(2,iptcur)
-                     dvz = vxyzu(3,i)-vxyzu(3,iptcur)
+c                  print *,'dist = ',dist*udisti/1.496E+13
+                  IF (dist*udisti.GT.1.496E+13*1000.) THEN
+                     print *,' exiting A'
+                     EXIT
+                  ELSE
+c                     print *,' testing ',ndisc
+c                     dvx = vxyzu(1,i)-vxyzu(1,iptcur)
+c                     dvy = vxyzu(2,i)-vxyzu(2,iptcur)
+c                     dvz = vxyzu(3,i)-vxyzu(3,iptcur)
+                     dvx = vxyzu(1,i) - vtot(1)/totalmass
+                     dvy = vxyzu(2,i) - vtot(2)/totalmass
+                     dvz = vxyzu(3,i) - vtot(3)/totalmass
+c
+c--Calculate relative energy and angular momentum and orbit
+c                  
+                     divvr2 = dvx*dvx + dvy*dvy + dvz*dvz
+                     vrad = (dvx*dx + dvy*dy + dvz*dz)/dist
+                     vrad2 = vrad*vrad
+                     vkep2 = totalmass/dist
+                     vpotdif = -vkep2 + divvr2/2.
+                     vtan2 = divvr2 - vrad2
+                     vtan = SQRT(vtan2)
+                     specangmom2 = vtan2*dist**2
+
+                     semimajoraxis = - totalmass/(2.0*vpotdif)
+
+                     IF (vpotdif.LT.0) THEN
+                        tempnum=1.0 + 2.0*vpotdif*specangmom2/
+     &                       (totalmass**2)
+                        IF (tempnum.LT.0.0) THEN
+                           WRITE(iprint,*) 'ERROR - tempnum'
+                           WRITE(iprint,*) vpotdif,specangmom2,pmassi
+                           WRITE(iprint,*) vkep2,divvr2,r2,vtan2
+                           STOP
+                        ELSE
+                           eccentricity = SQRT(tempnum)
+                           radapastron = - totalmass*
+     &                          (1.0+eccentricity)/(2.0*vpotdif)
+                        ENDIF
+                     ELSE
+                        eccentricity = 1.0E+10
+                        radapastron = 1.0E+10
+                     ENDIF
+c
+c--Add to disc if passes tests
+c
+c                     print *,i,dist,eccentricity,
+c     &                    radapastron*udisti/1.496E+13
+c     &                    ,vkep2,divvr2,
+c     &                    semimajoraxis
+
+                     IF (eccentricity.LT.0.3 .AND. 
+     &                    radapastron*udisti.LT.1.496E+13*1000.0) THEN
+                        discmass(isink) = discmass(isink) + xyzmh(4,i)
+c                        discmass_mult(isink) = discmass_mult(isink) + 
+c     &                       xyzmh(4,i)
+                        cmtot(1:3) = cmtot(1:3) + 
+     &                       xyzmh(1:3,i)*xyzmh(4,i)
+c                        cmtot_mult(1:3) = cmtot_mult(1:3) + 
+c     &                       xyzmh(1:3,i)*xyzmh(4,i)
+                        vtot(1:3) = vtot(1:3) + 
+     &                       vxyzu(1:3,i)*xyzmh(4,i)
+c                        vtot_mult(1:3) = vtot_mult(1:3) + 
+c     &                       vxyzu(1:3,i)*xyzmh(4,i)
+                        angmom(1,isink) = angmom(1,isink) +
+     &                       xyzmh(4,i)*(dvy*dz - dvz*dy)
+                        angmom(2,isink) = angmom(2,isink) +
+     &                       xyzmh(4,i)*(dvz*dx - dvx*dz)
+                        angmom(3,isink) = angmom(3,isink) +
+     &                       xyzmh(4,i)*(dvx*dy - dvy*dx)
+                        ndisc = ndisc + 1
+                        IF (ndisc.GT.ndiscmax) THEN
+                           WRITE (*,*) 'ndisc.GT.ndiscmax'
+                           STOP
+                        ENDIF
+c                        ndisc_mult = ndisc_mult + 1
+
+                        listdisc(ndisc) = i
+c                        listdisc_mult(ndisc_mult) = i
+
+c                        WRITE (44+isink,'(3(1PE12.5,1X))') xyzmh(1,i),
+c     &                       xyzmh(2,i),xyzmh(3,i)
+                     ENDIF
+                  ENDIF
+               ENDIF
+c=====================================
+c
+c--Now look for discs around multiples
+c
+               totalmass = sinkmass + discmass_mult(isink)
+
+               print *,'Doing mult ',i
+c
+c--Find parameters of circumstellar disc
+c
+               IF (nsinks.LE.4 .AND. iphase(i).EQ.0) THEN
+c                  dx = xyzmh(1,i)-xsink
+c                  dy = xyzmh(2,i)-ysink
+c                  dz = xyzmh(3,i)-zsink
+                  dx = xyzmh(1,i) - cmtot_mult(1)/totalmass
+                  dy = xyzmh(2,i) - cmtot_mult(2)/totalmass
+                  dz = xyzmh(3,i) - cmtot_mult(3)/totalmass
+                  dist = SQRT(dx**2 + dy**2 + dz**2)
+c
+c--Make distance cut - 1000 AU
+c
+                  IF (dist*udisti.GT.1.496E+13*1000.) THEN
+                     EXIT
+                  ELSE
+c                     dvx = vxyzu(1,i)-vxyzu(1,iptcur)
+c                     dvy = vxyzu(2,i)-vxyzu(2,iptcur)
+c                     dvz = vxyzu(3,i)-vxyzu(3,iptcur)
+                     dvx = vxyzu(1,i) - vtot_mult(1)/totalmass
+                     dvy = vxyzu(2,i) - vtot_mult(2)/totalmass
+                     dvz = vxyzu(3,i) - vtot_mult(3)/totalmass
 c
 c--Calculate relative energy and angular momentum and orbit
 c                  
@@ -397,19 +564,24 @@ c     &                    semimajoraxis
 
                      IF (eccentricity.LT.0.3 .AND. 
      &                    radapastron*udisti.LT.1.496E+13*1000.0) THEN
-                        discmass(isink) = discmass(isink) + xyzmh(4,i)
-                        angmom(1,isink) = angmom(1,isink) +
-     &                       xyzmh(4,i)*(dvy*dz - dvz*dy)
-                        angmom(2,isink) = angmom(2,isink) +
-     &                       xyzmh(4,i)*(dvz*dx - dvx*dz)
-                        angmom(3,isink) = angmom(3,isink) +
-     &                       xyzmh(4,i)*(dvx*dy - dvy*dx)
-                        ndisc = ndisc + 1
-                        IF (ndisc.GT.ndiscmax) THEN
-                           WRITE (*,*) 'ndisc.GT.ndiscmax'
+                        discmass_mult(isink) = discmass_mult(isink) + 
+     &                       xyzmh(4,i)
+                        cmtot_mult(1:3) = cmtot_mult(1:3) + 
+     &                       xyzmh(1:3,i)*xyzmh(4,i)
+                        vtot_mult(1:3) = vtot_mult(1:3) + 
+     &                       vxyzu(1:3,i)*xyzmh(4,i)
+c                        angmom(1,isink) = angmom(1,isink) +
+c     &                       xyzmh(4,i)*(dvy*dz - dvz*dy)
+c                        angmom(2,isink) = angmom(2,isink) +
+c     &                       xyzmh(4,i)*(dvz*dx - dvx*dz)
+c                        angmom(3,isink) = angmom(3,isink) +
+c     &                       xyzmh(4,i)*(dvx*dy - dvy*dx)
+                        ndisc_mult = ndisc_mult + 1
+                        IF (ndisc_mult.GT.ndiscmax) THEN
+                           WRITE (*,*) 'ndisc_mult.GT.ndiscmax'
                            STOP
                         ENDIF
-                        listdisc(ndisc) = i
+                        listdisc_mult(ndisc_mult) = i
 
 c                        WRITE (44+isink,'(3(1PE12.5,1X))') xyzmh(1,i),
 c     &                       xyzmh(2,i),xyzmh(3,i)
@@ -431,6 +603,20 @@ c     &                       xyzmh(2,i),xyzmh(3,i)
      &           discradius(4,isink)
             PRINT *,'Angular momomentum ',angmom(1,isink),
      &           angmom(2,isink),angmom(3,isink)
+
+            discradius_mult(1,isink) = 
+     &           SQRT(distance2(listdisc_mult(INT(0.5*ndisc_mult))))
+            discradius_mult(2,isink) = 
+     &           SQRT(distance2(listdisc_mult(INT(0.9*ndisc_mult))))
+            discradius_mult(3,isink) = 
+     &           SQRT(distance2(listdisc_mult(INT(0.95*ndisc_mult))))
+            discradius_mult(4,isink) = 
+     &           SQRT(distance2(listdisc_mult(INT(0.99*ndisc_mult))))
+            PRINT *,'Discmass_mult ',isink,discmass_mult(isink),
+     &           ndisc_mult
+            PRINT *,'Disc radius ',discradius_mult(1,isink)
+            PRINT *,'Nsinks ',nsinks
+            PRINT *,' '
          END DO
 
          DO i = 1, nunique_sink
@@ -464,9 +650,12 @@ c     &                       xyzmh(2,i),xyzmh(3,i)
             print *,contour1
 
             OPEN (16,file=contour1,ACCESS='append')
-            WRITE (16,"(10(1PE12.5,1x))") gt,xyzmh(4,ilocalsink(i)),
+            WRITE (16,"(7(1PE12.5,1x),I4,1x,8(1PE12.5,1x))") 
+     &           gt,xyzmh(4,ilocalsink(i)),
      &           discmass(i),
-     &           (discradius(j,i)*udisti/1.496E+13,j=1,4),
+     &           (discradius(j,i)*udisti/1.496E+13,j=1,4),nsink_mult(i),
+     &           discmass_mult(i),
+     &           (discradius_mult(j,i)*udisti/1.496E+13,j=1,4),
      &           (angmom(j,i),j=1,3)
             CLOSE (16)
 

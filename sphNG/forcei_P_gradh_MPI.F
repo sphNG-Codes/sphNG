@@ -129,9 +129,9 @@ c
       LOGICAL inosink
 
 #ifdef NONIDEAL
-      REAL*8 dBnonideal(3),jcb(3),jcbcb(3)
+      REAL dBnonideal(3),jcb(3),jcbcb(3)
 #endif
-      REAL*4 dBnonideali(3),dBnonidealj(3)
+      REAL dBnonideali(3),dBnonidealj(3)
 
       LOGICAL ifirst
       DATA ifirst/.TRUE./
@@ -1135,8 +1135,7 @@ c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
      &                         ,eta_ohmi,eta_halli,eta_ambii
      &                         ,jcurrent(:,ipart),jcb,jcbcb
      &                         ,runix,runiy,runiz)
-                           dBnonideali = dBnonideali
-     &                                 - real(dBnonideal,kind=4)
+                           dBnonideali = dBnonideali - dBnonideal
      &                                 * (pmassj*rho1i*rho1i)*grkerni
 #endif
                         ENDIF
@@ -1768,8 +1767,7 @@ c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
      &                            ,eta_ohmj,eta_hallj,eta_ambij
      &                            ,jcurrent(:,j),jcb,jcbcb
      &                            ,runix,runiy,runiz)
-                              dBnonideali = dBnonideali
-     &                                    - real(dBnonideal,kind=4)
+                              dBnonideali = dBnonideali - dBnonideal
      &                                    * (pmassj*rho1j*rho1j)*grkernj
 
 #endif

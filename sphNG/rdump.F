@@ -196,9 +196,9 @@ c--Default int
       IF (npart.GT.idim .AND. 
      &     (nblocks.EQ.1 
 #ifndef MPI
-     &     .OR. nblocks.GT.1)
+     &     .OR. nblocks.GT.1)) THEN
 #endif
-     &     ) THEN
+     &     )) THEN
          WRITE (*,*) 'ERROR in rdump: npart>idim'
          CALL quit(0)
       ENDIF

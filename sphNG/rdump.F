@@ -67,6 +67,12 @@ c      INCLUDE 'COMMONS/torq'
       DIMENSION rheader(idimhead)
       INTEGER iversion, maxversion
       LOGICAL tagged, isequential
+c
+c--Is an invalid cleaning wave array a fatal error?
+c    Do not change this value unless you know
+c    *exactly what you are doing*.
+      LOGICAL psierror
+      PARAMETER (psierror=.TRUE.)
 c     
 c--Read
 c
@@ -942,7 +948,7 @@ c               END DO
                     READ (idisk1, END=100) tagi
                     CALL checktag('psi/c_h', tagi, ierr)
 c Dump files from before r1799 cannot be used.
-                    IF(ierr.NE.0) THEN
+                    IF(ierr.NE.0.AND.psierror) THEN
                       WRITE(*,99981)
                       CALL quit(0)
                     ENDIF

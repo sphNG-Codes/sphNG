@@ -584,8 +584,8 @@ disc: checksystem checkparams utils/disc_parameters.o rdump.o error.o indexx2.o
 
 # Take radial cross sections through dump files
 
-profile: checksystem checkparams utils/profile.o rdump.o error.o indexx.o utils/movie3DRG/origin.o
-	$(FC) $(FFLAGS) -o $@ utils/profile.o rdump.o error.o indexx.o utils/movie3DRG/origin.o
+profile: checksystem checkparams utils/profile.o rdump.o error.o indexx.o utils/movie3DRG/origin.o getcv.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o)
+	$(FC) $(FFLAGS) -o $@ utils/profile.o rdump.o error.o indexx.o utils/movie3DRG/origin.o getcv.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o)
 
 ptmass: utils/ptmassmerge.o
 	$(FC) $(FFLAGS) -o $@ utils/ptmassmerge.o

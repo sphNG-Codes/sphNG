@@ -6,6 +6,9 @@ c     radial profiles of various quantities.               *
 c                                                          *
 c***********************************************************
 
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
       INCLUDE 'idim'
 
       REAL*8 udist, umass, utime, umagfd, udens, uvel, uergg
@@ -26,6 +29,12 @@ c***********************************************************
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/Bxyz'
       INCLUDE 'COMMONS/gtime'
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nonideal'
+      INCLUDE 'COMMONS/sort'
+      INCLUDE 'COMMONS/vargam'
+      INCLUDE 'COMMONS/physcon'
+#endif
 
       COMMON /unitsin/ umassi, udisti, utimei, umagfdi
 
@@ -42,6 +51,12 @@ c***********************************************************
 
       REAL*4 alphaMM(idim)
 
+#ifdef NONIDEAL
+      REAL nebynmean,nzminusmean,nzzeromean,nzplusmean,etaohmmean,
+     &     etahallmean,etaambimean
+      REAL  data_out(17+nelements_max*nlevels-3)
+#endif
+
       DIMENSION radius(idim), rvel(idim), rvelt(idim),
      &     vsound(idim), rxy(idim)
 
@@ -50,7 +65,7 @@ c***********************************************************
 
       CHARACTER*7 filein
       CHARACTER*11 inname, imageout
-      CHARACTER*11 fileout, fileout2, fileout3
+      CHARACTER*11 fileout, fileout2, fileout3, fileout4
       CHARACTER*9  name
       CHARACTER*1  ien, icont, icor, icent, isink, itorq, itype
       CHARACTER*1  ivarbnd, inewdump, itstep
@@ -62,10 +77,10 @@ c
 c--read options
 c
       WRITE (*,*) 'Enter number of input files:'
-      READ (*, *) number
+      READ (*, *) number_files
       
       WRITE (*,*) 'Enter names of input files:'
-      DO k=1, number
+      DO k=1, number_files
          READ(*,90) filein(k)
  90      FORMAT(A7)
       END DO
@@ -115,14 +130,16 @@ c
       READ (*,*) radin
 
       OPEN(19,file='interest')
+
 c
 c--Process data files
 c
-      DO k=1,number
+      DO k=1,number_files
 
          fileout = 'QG' // filein(k)
          fileout2 = 'QD' // filein(k)
          fileout3 = 'QA' // filein(k)
+         fileout4 = 'QN' // filein(k)
          imageout = 'IP' // filein(k)
          maxrec = 100*idim
          OPEN(15,file=imageout)
@@ -141,6 +158,11 @@ c
          udens = umass/udist**3
          uvel = udist/utime
          uergg = udist**2/utime**2
+#ifdef NONIDEAL
+         CALL nicil_initialise(utime,udist,umass,umagfd,ierr)
+         CALL nimhd_init_gastemp(Rg,gamma,gam,gamdh,gamah,uergg
+     &                          ,rhocrit,rhocrit2,rhocrit3)
+#endif
 c
 c--process file dumps
 c
@@ -150,6 +172,7 @@ c
          WRITE(fileout, 99002) fileout, iadd, ifile
          WRITE(fileout2, 99002) fileout2, iadd, ifile
          WRITE(fileout3, 99002) fileout3, iadd, ifile
+         WRITE(fileout4, 99002) fileout4, iadd, ifile
 99002    FORMAT(A9, I1, I1)
 
    10    OPEN(21,file=fileout)
@@ -160,7 +183,9 @@ c
          IF (nptmass.GE.1 .AND. (isink.EQ.'y' .OR. isink.EQ.'Y')) THEN
             OPEN(23,file=fileout3)
          ENDIF
-
+#ifdef NONIDEAL
+         OPEN(24,file=fileout4)
+#endif
          WRITE(*,*) npart, rhozero, nptmass,xyzmh(4,1),rho(3),iphase(1)
          WRITE(*,*) 'RK2=',RK2,' gamma=',gamma,' rhozero=',rhozero
          WRITE(*,*) 'Units=',udist, umass, utime
@@ -305,6 +330,18 @@ c            dvz = vxyzu(3,i)-vxyzu(3,ipt)
      &              LOG( rho(i) / 1.67E-24 / 2.0 * 
      &              5.32363E-21 / temp(i)**1.5)
 
+#ifdef NONIDEAL
+              IF (encal.EQ.'r') THEN
+                  ekclei = getcv(rho(i),vxyzu(4,i))
+               ELSE
+                  ekclei = 0.0
+               ENDIF
+               temperature = nimhd_gastemp(encal,vxyzu(4,i),ekclei
+     &                      ,dble(rho(i)),gamma,n1,n2,iunique(iorig(i)))
+               CALL nicil_get_ion_n(dble(rho(i)),temperature
+     &                      ,n_R(:,i),n_electronT(i),ierr)
+#endif
+
 c            WRITE (42,*) radius(i)*udist,entropy_per_baryon(i)
 
                IF (radius(i).LT.0.15 .AND. rvel(i).LT.0.1) THEN
@@ -374,6 +411,15 @@ c            WRITE (42,*) radius(i)*udist,entropy_per_baryon(i)
          xmass_dust = 0.
          shellmass = 0.
          shellmass_dust = 0.
+#ifdef NONIDEAL
+         nebynmean = 0.
+         nzminusmean = 0.
+         nzzeromean = 0.
+         nzplusmean = 0.
+         etaohmmean = 0.
+         etahallmean = 0.
+         etaambimean = 0.
+#endif
 c
 c--Find quantities with spherical radius or near x-y plane
 c
@@ -431,6 +477,35 @@ c               WRITE (42,*) radiuswant,JcrossB(ipos),lorentzmean
                      Emean = Emean + ekcle(1,ipos)*rho(ipos)
                      fluxmean = fluxmean + 
      &                    ekcle(4,ipos)*3.0E+10/ekcle(2,ipos)/rho(ipos)
+#ifdef NONIDEAL
+                      IF (encal.EQ.'r') THEN
+                         ekclei = getcv(rho(ipos),vxyzu(4,ipos))
+                      ELSE
+                         ekclei = 0.0
+                      ENDIF
+                      IF (Bmag(ipos).GT.0.0) THEN
+                         Bi1 = 1.0/Bmag(ipos)
+                      ELSE
+                         Bi1 = 0.0
+                      ENDIF
+                      temperature = nimhd_gastemp(encal,vxyzu(4,ipos)
+     &                             ,ekclei,dble(rho(ipos)),gamma,n1,n2
+     &                             ,iunique(iorig(ipos)))
+                      CALL nicil_get_eta(eta_ohmi,eta_halli
+     &                        ,eta_ambii,Bmag(ipos),dble(rho(ipos))
+     &                        ,temperature,n_R(:,ipos),n_electronT(ipos)
+     &                        ,ierr,data_out)
+                      write(666,*) eta_halli,Bmag(ipos),temperature
+                      IF (data_out(7) > 0.0) THEN
+                         nebynmean = nebynmean + data_out(6)/data_out(7)
+                      ENDIF
+                      nzminusmean = nzminusmean + data_out(12)
+                      nzzeromean  = nzzeromean  + data_out(13)
+                      nzplusmean  = nzplusmean  + data_out(14)
+                      etaohmmean  = etaohmmean  + eta_ohmi
+                      etahallmean = etahallmean + eta_halli
+                      etaambimean = etaambimean + eta_ambii
+#endif
                   ELSEIF (iphase(ipos).GE.11) THEN
                      number_dust = number_dust + 1
                      shellmass_dust = shellmass_dust + xyzmh(4,ipos)
@@ -487,6 +562,15 @@ c     &              JcrossB_dot_rhat(ipos))
                   lorentzmean = lorentzmean/number
                   entropymean = entropymean/number
                   pressuremean = pressuremean/number
+#ifdef NONIDEAL
+                  nebynmean   = nebynmean/number
+                  nzminusmean = nzminusmean/number
+                  nzzeromean  = nzzeromean/number
+                  nzplusmean  = nzplusmean/number
+                  etaohmmean  = etaohmmean/number
+                  etahallmean = etahallmean/number
+                  etaambimean = etaambimean/number
+#endif
                   pressuregradient =ABS((pressureold-pressuremean)/
      &                 (dradius*udist))
                   pressureold = pressuremean
@@ -620,6 +704,14 @@ c
      &                 vertvelmeanout_dust*uvel,
      &                 densityvertout_dust*udens
 
+#ifdef NONIDEAL
+                  WRITE (24,88888) radmean*udist,
+     &                 nebynmean,nzminusmean,nzzeromean,nzplusmean,
+     &                 etaohmmean*udist*udist/utime,
+     &                 etahallmean*udist*udist/utime,
+     &                 etaambimean*udist*udist/utime
+#endif
+
                   WRITE (*,*) radmean,omega
                   number = 0.
                   shellmass = 0.
@@ -636,6 +728,15 @@ c
                   Emean = 0.
                   Egradient = 0.
                   fluxmean = 0.
+#ifdef NONIDEAL
+                  nebynmean = 0.
+                  nzminusmean = 0.
+                  nzzeromean = 0.
+                  nzplusmean = 0.
+                  etaohmmean = 0.
+                  etahallmean = 0.
+                  etaambimean = 0.
+#endif
 
                   number_dust = 0.
                   shellmass_dust = 0.
@@ -716,6 +817,9 @@ c
          IF (isink.EQ.'y' .OR. isink.EQ.'Y') THEN
             CLOSE(23)
          ENDIF
+#ifdef NONIDEAL
+         CLOSE(24)
+#endif
          READ(fileout, 99006) name, ifile
 99006    FORMAT(A9,I2)
          ifile = ifile + 1
@@ -738,7 +842,15 @@ c
          ELSE
             WRITE(fileout3, 99006) name, ifile
          ENDIF
-
+#ifdef NONIDEAL
+         READ(fileout4, 99006) name, ifile
+         ifile = ifile + 1
+         IF (ifile.LE.9) THEN
+            WRITE(fileout4, 99002) name, izero, ifile
+         ELSE
+            WRITE(fileout4, 99006) name, ifile
+         ENDIF
+#endif
    20    CONTINUE
 
          CLOSE(15)
@@ -760,3 +872,4 @@ c
       SUBROUTINE endrun
       CALL quit(0)
       END
+

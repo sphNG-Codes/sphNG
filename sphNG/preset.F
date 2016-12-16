@@ -689,11 +689,6 @@ c
 c--Initialise non-ideal MHD
 c
 #ifdef NONIDEAL
-      IF (varmhd.NE.'Bvol') THEN
-         print*, 'Non-ideal MHD is only supported by evolving B'
-         print*, 'Aborting.  Please try using this option.'
-         CALL quit(0)
-      ENDIF
       CALL nicil_initialise(utime,udist,umass,umagfd,ierr)
       IF (ierr/=0) CALL quit(0)
       CALL nimhd_init_gastemp(Rg,gamma,gam,gamdh,gamah,uergg

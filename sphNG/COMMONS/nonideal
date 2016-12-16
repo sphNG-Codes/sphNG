@@ -1,10 +1,12 @@
       INTEGER      np_nimhd
       REAL*8       jcurrent,n_R,n_electronT
       REAL*8       et_nimhd,evdata
+      REAL*4       ionfrac_eta
       CHARACTER*25 nimhdfile
       COMMON / NIrealF / jcurrent(3,imhd2)
       COMMON / NIrealE / n_R(4,imhd2),n_electronT(imhd2)
       COMMON / NIchar  / nimhdfile
       COMMON / NIinfoI / np_nimhd
+      COMMON / NIinfoIf/ ionfrac_eta(4,imhd2)
       COMMON / NIinfoR / et_nimhd,evdata(0:99)
 c NOTE: evdata(0:inumev), thus ensure that the second number matches inumev

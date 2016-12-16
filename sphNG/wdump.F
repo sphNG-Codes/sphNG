@@ -62,7 +62,9 @@ c#endif
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/makeplt'
-
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nonideal'
+#endif
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
 
@@ -450,7 +452,10 @@ c
             ENDIF
          ENDIF
          nums(7) = 7
-c         nums(7) = 13
+c        nums(7) = 13
+#ifdef NONIDEAL
+         nums(7) = nums(7) + 4
+#endif
          nums(8) = 0
          WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
       ENDIF
@@ -694,12 +699,17 @@ c
          ENDIF
 c--real*4
          DO j = 1, 4
-            IF (j.EQ.1) THEN
-               WRITE (idisk1, ERR=100) tag('divB')
-            ELSE
-               WRITE (idisk1, ERR=100) tag('curlB'//labelx(j-1))
-            ENDIF
-            WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, nprint)
+          IF (j.EQ.1) THEN
+           WRITE (idisk1, ERR=100) tag('divB')
+           WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, nprint)
+          ELSE
+           WRITE (idisk1, ERR=100) tag('curlB'//labelx(j-1))
+#ifdef NONIDEAL
+           WRITE (idisk1, ERR=100) (jcurrent(j-1,isort(i)), i=1, nprint)
+#else
+           WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, nprint)
+#endif
+          ENDIF
          ENDDO
          WRITE(idisk1, ERR=100) tag('alphaB')
          WRITE(idisk1, ERR=100) (alphaMM(isizealphaMM,isort(i)),
@@ -710,6 +720,13 @@ c--real*4
          WRITE(idisk1, ERR=100) tag('EtaArtificial')
          WRITE(idisk1, ERR=100) (etaartificial(isort(i)),
      &        i=1,nprint)
+#ifdef NONIDEAL
+         tagarr(1:4)=(/'ne_by_n','eta_OR ','eta_HE ','eta_AD '/)
+         DO j = 1,4
+           WRITE(idisk1, ERR=100) tag(tagarr(j))
+           WRITE(idisk1, ERR=100) (ionfrac_eta(j,isort(i)), i=1, nprint)
+         END DO
+#endif
 c--real*8
 
       ENDIF

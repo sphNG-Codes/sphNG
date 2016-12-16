@@ -21,7 +21,7 @@ module nicil_sup
  integer(kind=1),   parameter :: ievN = 1
  integer(kind=1),   parameter :: ievA = 2  
  integer(kind=1),   parameter :: ievX = 3
- integer,           parameter :: ievfile   = 742051
+ integer,           parameter :: ievfile   = 74205
  integer,    public,parameter :: inumev    = 99
  integer,    public           :: ielements = 0
  !
@@ -240,20 +240,21 @@ end subroutine nimhd_write_evheader
 !  Calculates the non-ideal MHD characteristics of interest
 !+
 !-----------------------------------------------------------------------
-subroutine nimhd_get_stats(npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
+subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
                         alphaMM,alphamin,n_R,n_electronT,iphase,&
-                        gamma,ifsvi,encal,np,et,ev_data,n1,n2,iunique,iorig)
+                        gamma,ifsvi,encal,np,et,ev_data,ionfrac_eta,n1,n2,iunique,iorig)
  real,             intent(in)  :: gamma
  real,             intent(in)  :: xyzmh(:,:),vxyzu(:,:),ekcle(:,:),Bxyz(:,:),&
                                   n_R(:,:),n_electronT(:),alphamin(:)
  real(kind=4),     intent(in)  :: rho(:),vsound(:),alphaMM(:,:)
- integer,          intent(in)  :: npart,ifsvi,n1,n2
+ integer,          intent(in)  :: imhd2,npart,ifsvi,n1,n2
  integer,          intent(in)  :: iorig(:)
  integer(kind=8),  intent(in)  :: iunique(:)
  integer(kind=1),  intent(in)  :: iphase(:)
  character(len=*), intent(in)  :: encal
  integer,          intent(out) :: np
  real,             intent(out) :: et,ev_data(0:inumev)
+ real(kind=4),     intent(out) :: ionfrac_eta(4,imhd2)
  integer                       :: i,j,ierr,c0,c1,crate,cmax,iekcle
  real                          :: rhoi,B2i,Bi,temperature,vsigi, &
                                   etaart,etaart1,etaohm,etahall,etaambi
@@ -271,7 +272,7 @@ subroutine nimhd_get_stats(npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
 !$omp shared(xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,iphase,npart,encal,n1,n2,iunique,iorig) &
 !$omp shared(n_R,n_electronT,alphaMM,alphamin,gamma,ifsvi) &
 !$omp shared(use_ohm,use_hall,use_ambi,ion_rays,ion_thermal,nelements) &
-!$omp shared(ielements,ev_data,ev_action) &
+!$omp shared(ielements,ev_data,ev_action,ionfrac_eta) &
 !$omp shared(itX,itA,itN,ietaFX,ietaFA,iohmX,iohmA,iohmN,iohmfX,iohmfA,iohmfN) &
 !$omp shared(ihallX,ihallA,ihallN,iahallX,iahallA,iahallN) &
 !$omp shared(ihallfX,ihallfA,ihallfN,iahallfX,iahallfA,iahallfN) &
@@ -326,9 +327,14 @@ subroutine nimhd_get_stats(npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
        endif
        if (data_out(7) > 0.0) then
          call ev_update(ev_data_thread,data_out(6)/data_out(7),inenX,inenA)
+         ionfrac_eta(1,i) = real(data_out(6)/data_out(7),kind=4)
        else
          call ev_update(ev_data_thread,0.0,                    inenX,inenA)
-       end if
+         ionfrac_eta(1,i) = 0.0
+       endif
+       ionfrac_eta(2,i) = real(etaohm, kind=4)  ! Save eta_OR for the dump file
+       ionfrac_eta(3,i) = real(etahall,kind=4)  ! Save eta_HE for the dump file
+       ionfrac_eta(4,i) = real(etaambi,kind=4)  ! Save eta_AD for the dump file
        call ev_update(ev_data_thread,      data_out( 6), ineX,   ineA             )
        call ev_update(ev_data_thread,      data_out( 7), innX,   innA             )
        if (ion_rays) then

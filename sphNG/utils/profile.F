@@ -29,11 +29,11 @@ c***********************************************************
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/Bxyz'
       INCLUDE 'COMMONS/gtime'
+      INCLUDE 'COMMONS/physcon'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/vargam'
-      INCLUDE 'COMMONS/physcon'
 #endif
 
       COMMON /unitsin/ umassi, udisti, utimei, umagfdi
@@ -69,8 +69,6 @@ c***********************************************************
       CHARACTER*9  name
       CHARACTER*1  ien, icont, icor, icent, isink, itorq, itype
       CHARACTER*1  ivarbnd, inewdump, itstep
-
-      DATA pi/3.141592654/
 
       varmhd = 'Brho'
 c

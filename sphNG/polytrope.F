@@ -28,7 +28,7 @@ c
       REAL*4 berho(nbonnor)
       REAL*4 rhoc(nbonnor),cs2(nbonnor)
 
- 40   bemasstotal = 1.0
+      bemasstotal = 1.0
       berad = 1.0
       WRITE (*,*) 'Generating Polytrope density profile...'
 c

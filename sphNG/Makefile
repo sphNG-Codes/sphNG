@@ -360,7 +360,7 @@ OBJKERNEL= $(KERNEL:.f=.o)
 
 # these are the sources common to all compilations
 
-SOURCES= sph.F accrete_P.F addump.f angmom.f balance.F \
+SOURCES= sph.F accrete_P.F addump.f angmom.f \
 	bonnorebert.F boundry.f buildsightlines.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f chekopt.f \
 	classify_MPI.F condense.f \
@@ -400,6 +400,11 @@ SRCGRADH= derivi_P_gradh_MPI.F forcei_P_gradh_MPI.F  \
 	hcalc_gradh.f dissipative_source.F
 	#divBclean_mhd.f divBdiffuse.f divBiterate.f \
 	#directsum_poisson_vec_mhd_clean.f 
+
+# these are the extra routines required for the MPI code to compile
+ifeq ($(mpiall), yes)
+SRCMPI=balance.F
+endif
 
 # these are the extra routines required for the radiative transfer code to compile
         
@@ -445,7 +450,7 @@ RTBARFPPFLAGS=${RTFPPFLAGS} ${FPP_SEP}-DRTBAR
 
 # construct object files
 
-TOBJECTS =  $(SRCNI:.F90=.o) $(SRCNS:.F90=.o) $(SOURCES:.f=.o) $(ZZFILE:.f=.o) $(SRCNONIDEAL:.F=.o)
+TOBJECTS = $(SRCMPI:.F=.o)  $(SRCNI:.F90=.o) $(SRCNS:.F90=.o) $(SOURCES:.f=.o) $(ZZFILE:.f=.o) $(SRCNONIDEAL:.F=.o)
 TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
 TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
 TOBJGRADHLFRT = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCRT:.f=.o) $(ZEN_PIN)

@@ -363,7 +363,7 @@ OBJKERNEL= $(KERNEL:.f=.o)
 SOURCES= sph.F accrete_P.F addump.f angmom.f \
 	bonnorebert.F boundry.f buildsightlines.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f chekopt.f \
-	classify_MPI.F condense.f \
+	condense.f \
 	coolcurve.f coolinmo.F cool_func.F \
 	coriol.f cyldis.f cylmas.f discboundary.f \
 	divBclean_subcycle.F divBsubcycle.F \
@@ -403,7 +403,7 @@ SRCGRADH= derivi_P_gradh_MPI.F forcei_P_gradh_MPI.F  \
 
 # these are the extra routines required for the MPI code to compile
 ifeq ($(mpiall), yes)
-SRCMPI=balance.F
+SRCMPI=balance.F classify_MPI.F
 endif
 
 # these are the extra routines required for the radiative transfer code to compile

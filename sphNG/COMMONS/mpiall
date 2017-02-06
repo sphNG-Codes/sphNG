@@ -6,6 +6,6 @@
 
       INTEGER lblocklengths
 
-      COMMON /mpi / ierr, numproc, iproc
+      COMMON /mpiall/ ierr, numproc, iproc
 
       COMMON /mpiblk/ lblocklengths(idim)

@@ -6,12 +6,15 @@ c     the present time                                      *
 c                                                           *
 c************************************************************
 
+
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nicil_subs'
 #endif
       INCLUDE 'idim'
 #ifdef MPI
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
 #endif

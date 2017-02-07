@@ -5,9 +5,12 @@ c     Calculate J = curl B for use in non-ideal MHD              *
 c                                                                *
 c*****************************************************************
 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
+
       INCLUDE 'idim'
 #ifdef MPIALL
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpidebug'
 #endif

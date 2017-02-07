@@ -17,11 +17,14 @@ c     THIS ROUTINE VECTORIZABLE.                            *
 c                                                           *
 c************************************************************
 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
+
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
 #ifdef MPIALL
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
 #endif
 

@@ -7,6 +7,11 @@ c     using the method of Loren-Aguilar & Bate (2014), which           *
 c     imposes momentum conservation + energy dissipation               *
 c                                                                      *
 c***********************************************************************
+
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
+
 c
 c--Common variables
 c
@@ -35,7 +40,6 @@ c
 c--MPI headers
 c
 #ifdef MPIALL
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpidebug'
 #endif

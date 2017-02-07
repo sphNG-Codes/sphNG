@@ -17,11 +17,14 @@ c     MPI version written by MRB (26/06/2007).
 c                                                           *
 c************************************************************
 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
+
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
 #ifdef MPIALL
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpidebug'
 #endif

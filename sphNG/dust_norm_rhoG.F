@@ -14,7 +14,14 @@ c     energy dissipation.                                              *
 c                                                                      *
 c***********************************************************************
 c
+
+#ifdef MPIALL
+#define IMPLICITNONE
+#include "mpi_sup.h"
+#else
       IMPLICIT NONE
+#endif
+
 c
 c--Common variables
 c
@@ -32,7 +39,6 @@ c
 c--MPI headers
 c
 #ifdef MPIALL
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpidebug'
 #endif

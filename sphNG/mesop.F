@@ -6,10 +6,12 @@ c     operator.                                             *
 c                                                           *
 c************************************************************
 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
       INCLUDE 'idim'
 
 #ifdef MPIALL
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
 #endif
 #ifdef MPI

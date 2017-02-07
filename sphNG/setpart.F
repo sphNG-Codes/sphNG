@@ -9,10 +9,12 @@ c                            cubic lattice                  *
 c                                                           *
 c************************************************************
 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
       INCLUDE 'idim'
 
 #ifdef MPI
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
 #endif
 

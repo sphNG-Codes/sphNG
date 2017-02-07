@@ -1,9 +1,12 @@
       SUBROUTINE divBsubcycle(nsubsteps,dtmax,npart,ntot,xyzmh,rho,
      &           Bxyzpnew,divBmax)
-  
+ 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
+ 
       INCLUDE 'idim'
 #ifdef MPIALL
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpidebug'
 #endif

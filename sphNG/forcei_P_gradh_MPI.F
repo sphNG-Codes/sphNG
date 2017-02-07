@@ -6,17 +6,20 @@ c                                                           *
 c  This subroutine computes the forces on particle ipart    *
 c                                                           *
 c************************************************************
+
 #ifdef _OPENMP
       USE OMP_LIB, ONLY: OMP_LOCK_KIND, OMP_SET_LOCK, OMP_UNSET_LOCK
 #endif
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nicil_subs'
 #endif
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
 #ifdef MPIALL
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpidebug'
 #endif

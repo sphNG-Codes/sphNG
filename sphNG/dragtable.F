@@ -13,7 +13,12 @@ c  Ben Ayliffe, 17th November 2011.                         *
 c                                                           *
 c************************************************************
 
+#ifdef MPIALL
+#define IMPLICITNONE
+#include "mpi_sup.h"
+#else
       IMPLICIT NONE
+#endif
 
       INCLUDE 'idim'
 

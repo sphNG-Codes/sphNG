@@ -1,12 +1,15 @@
       SUBROUTINE GSIMPLS(dtdo,dtmax,itime,npart,ntot,ekcle,xyzmh,vxyzu,
      &     dedxyz,rho,alphaMMpass,moresweep,nit,errorE,errorU,
      &     istepmindone)
-  
+ 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
+ 
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
 #ifdef MPIALL
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
 #endif
 #ifdef MPI

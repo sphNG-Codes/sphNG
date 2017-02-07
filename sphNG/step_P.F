@@ -7,6 +7,10 @@ c     a second-order Runge-Kutta-Fehlberg method.           *
 c                                                           *
 c************************************************************
 
+
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nicil_subs'
 #endif
@@ -14,7 +18,6 @@ c************************************************************
       INCLUDE 'igrape'
 
 #ifdef MPIALL
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
 #endif
 #ifdef MPI

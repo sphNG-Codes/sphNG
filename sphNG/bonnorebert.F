@@ -5,12 +5,17 @@ c     Bonnor-Ebert sphere.  Note:  A King model -> a Bonnor-Ebert sphere
 c     in the limit that Phi(0)/sigma^2 -> Infinity (Binney and Tremaine, 
 c     p. 233).
 c
+
+#ifdef MPIALL
+#define IMPLICITNONE
+#include "mpi_sup.h"
+#else
       IMPLICIT NONE
+#endif
 
       INCLUDE 'idim'
 
 #ifdef MPI
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
 #endif
 

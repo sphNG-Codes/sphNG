@@ -2,11 +2,14 @@
       
       USE torus_mod, only : torus
 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
+
 !      IMPLICIT NONE
 
       INCLUDE 'idim'
 #ifdef MPI
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
 #endif      

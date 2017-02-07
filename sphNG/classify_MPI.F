@@ -49,11 +49,14 @@ c     zlocationmpi.
 c                                                           *
 c************************************************************
 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
+
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
 #ifdef MPI
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidebug'
@@ -112,11 +115,14 @@ c     The split is done on z (assumed rotation axis) first. *
 c                                                           *
 c************************************************************
 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
+
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
 #ifdef MPI
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidebug'
@@ -147,11 +153,14 @@ c     The split is done on x then y then z, then back to x. *
 c                                                           *
 c************************************************************
 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
+
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
 #ifdef MPI
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidebug'
@@ -201,11 +210,14 @@ c     The splits are done on x then y, z, then back to x.   *
 c                                                           *
 c************************************************************
 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
+
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
 #ifdef MPI
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidebug'

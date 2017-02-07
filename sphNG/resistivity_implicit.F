@@ -1,12 +1,14 @@
       SUBROUTINE resistivity_implicit(nlst_in,nlst_end,list,dtdo,
      &     itime,npart,ntot,Bxyz,xyzmh,vxyzu,rho,vsound,alphaMMpass,
      &     nit,error)
-  
+ 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif 
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
 #ifdef MPIALL
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
 #endif
 #ifdef MPI

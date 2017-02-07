@@ -225,23 +225,29 @@ c                                                           *
 c  This subroutine should be used instead of 'STOP'         *
 c                                                           *
 c************************************************************
+
 #ifdef __INTEL_COMPILER
 c Needed so that ABORT works correctly
       USE IFLPORT, ONLY: ABORT
+#endif
+#ifdef MPIALL
+#define IMPLICITNONE
+#include "mpi_sup.h"
 #endif
       INCLUDE 'idim'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/actio'
 
-      INTEGER iflag
+      INTEGER iflag,iret
 
 #ifdef MPIALL
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
 #endif
 
+#ifndef MPIALL
       LOGICAL ionce
       DATA ionce/.TRUE./
+#endif
 
 c First, if iflag < 0 this is a graceful exit
       IF (iflag.LT.0) THEN

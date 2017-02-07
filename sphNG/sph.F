@@ -418,11 +418,13 @@ c************************************************************
 #ifdef _OPENMP
       USE OMP_LIB, ONLY: OMP_LOCK_KIND, OMP_INIT_LOCK
 #endif
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
 #ifdef MPIALL
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpidebug'
 #endif

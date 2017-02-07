@@ -4,11 +4,15 @@ c--This subrountine generates rho and M_enc as a function of radius for a
 c     polytropic sphere.  It is very similar to bonnorebert.f which
 c     does the same thing for a Bonnor-Ebert sphere.
 c
-      IMPLICIT NONE
 
+#ifdef MPIALL
+#define IMPLICITNONE
+#include "mpi_sup.h"
+#else
+      IMPLICIT NONE
+#endif
       INCLUDE 'idim'
 #ifdef MPI
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
 #endif
 

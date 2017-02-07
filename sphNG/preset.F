@@ -6,6 +6,9 @@ c     option is defined before integration begins.          *
 c                                                           *
 c************************************************************
 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nicil_subs'
 #endif
@@ -13,7 +16,6 @@ c************************************************************
       INCLUDE 'igrape'
 
 #ifdef MPIALL
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
 #endif
 

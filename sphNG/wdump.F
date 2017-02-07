@@ -4,13 +4,16 @@ c                                                           *
 c  This routine ONLY writes a dump on disk                  *
 c                                                           *
 c************************************************************
+
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
       !IMPLICIT NONE
 
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
 #ifdef MPIALL
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
 #endif
 #ifdef MPI

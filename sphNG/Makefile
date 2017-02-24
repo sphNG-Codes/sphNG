@@ -351,7 +351,8 @@ ifeq ($(DOUBLEPRECISION), yes)
 endif
 
 # add preprocessor flags (and prefix required for some compilers)
-FFLAGS += ${FPP_PREFIX}${FPPFLAGS}
+# the make implicit rule uses CPPFLAGS for both .c and .F files...
+CPPFLAGS=${FPP_PREFIX}$(FPPFLAGS)
 
 FFLAGSKEEP := ${FFLAGS}
 
@@ -470,8 +471,8 @@ OBJTORUS = $(TOBJTORUS:.F=.o)
 ifeq ($(nonideal), yes)
 .SUFFIXES: .F90 
 %.o : %.F90
-	$(FC) $(FFLAGS) -c -o $(SRCNI:.F90=.o) $(SRCNI)
-	$(FC) $(FFLAGS) -c -o $(SRCNS:.F90=.o) $(SRCNS)
+	$(FC) $(FFLAGS) $(CPPFLAGS) -c -o $(SRCNI:.F90=.o) $(SRCNI)
+	$(FC) $(FFLAGS) $(CPPFLAGS) -c -o $(SRCNS:.F90=.o) $(SRCNS)
 endif
 
 # default action for "make"

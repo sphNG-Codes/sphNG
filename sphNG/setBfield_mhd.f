@@ -144,13 +144,14 @@ c
      &           ' (assuming uniform density and temperature, 0=hydro)')
          READ (iread,*) betazero
          IF (betazero.LT.0.) THEN
-            STOP 'beta must be > 0'
+            WRITE (*,99117)
+            CALL quit(0)
          ELSEIF (betazero.EQ.0) THEN
             Bzero = 0.
          ELSE
             Bzero = SQRT(2.*przero/betazero)
          ENDIF
-
+99117    FORMAT (' Plasma beta must be >= 0')
       ELSEIF (isetB.eq.'f') THEN
 c
 c--mass-to-flux ratio for a spherical cloud
@@ -165,13 +166,14 @@ c
      &           '          0=inf=hydro )')
          READ (iread,*) rmasstoflux
          IF (rmasstoflux.LT.0.) THEN
-            STOP 'ratio must be >= 0'
+            WRITE (*,99127)
+            CALL quit(0)
          ELSEIF (rmasstoflux.LT.tiny) THEN
             Bzero = 0.
          ELSE
             Bzero = totmas/(area*rmasstoflux*rmasstoflux_crit)
          ENDIF
-
+99127    FORMAT(' Mass-to-flux ratio must be >= 0')
       ELSE
          GOTO 200
       ENDIF
@@ -186,9 +188,24 @@ c
 99008    FORMAT (' Enter Bx:By:Bz ratio')
          READ (iread,*) fracx,fracy,fracz
          fractot = SQRT(fracx**2. + fracy**2. + fracz**2.)
-         Bxzero = fracx*Bzero/fractot
-         Byzero = fracy*Bzero/fractot
-         Bzzero = fracz*Bzero/fractot
+         IF (fractot.LT.tiny .AND. Bzero.GT.tiny) THEN
+            WRITE (*,99108)
+            CALL quit(0)
+         ENDIF
+99108    FORMAT (' Error: the sum of the x, y, and z ratios'
+     &           ' can not be zero')
+         IF (Bzero.GT.tiny) THEN
+            Bxzero = fracx*Bzero/fractot
+            Byzero = fracy*Bzero/fractot
+            Bzzero = fracz*Bzero/fractot
+         ELSE
+c If the field is disabled, do not set ratios either.
+c This catches the (not unlikely) situation where the setup file has
+c Bzero *and* fracx=fracy=fracz=0
+            Bxzero = 0.
+            Byzero = 0.
+            Bzzero = 0.
+         ENDIF
 c
 c--spit out actual settings
 c
@@ -217,8 +234,11 @@ c
                   Bevolxyz(3,i) = 0.
                ENDDO
             ELSE
-             STOP 'mixed cartesian field NOT IMPLEMENTED for EULER POTS'
+               WRITE (*,99109)
+               CALL quit(0)
             ENDIF
+99109       FORMAT (' Mixed cartesian field NOT IMPLEMENTED for'
+     &              ' EULER POTS')
          ELSEIF (varmhd.EQ.'vecp') THEN
 c
 c--for vector potential with cartesian fields
@@ -270,9 +290,11 @@ c                  Bevolxyz(2,i) = 0.
 c                  Bevolxyz(3,i) = Bzero*xyzmh(2,i)
                ENDDO
             ELSE
-             STOP 'mixed cartesian field NOT IMPLEMENTED for VECTOR POT'
+               WRITE (*,99119)
+               CALL quit(0)
             ENDIF
-            
+99119       FORMAT(' Mixed cartesian field NOT IMPLEMENTED for'
+     &             ' VECTOR POT')
             ENDIF       
          ELSE
             DO i=1,npart
@@ -296,8 +318,11 @@ c
                Bevolxyz(3,i)= 0.
             ENDDO
          ELSE
-            STOP 'not implemented for non-Euler potentials'
+            WRITE (*,99129)
+            CALL quit(0)
          ENDIF
+99129    FORMAT(' Uniform toroidal field not implemented for'
+     &          ' non-Euler potentials')
          
       ELSEIF (iBfield.EQ.3) THEN ! this is NOT divergence free
 c
@@ -306,8 +331,10 @@ c  Bx = r(x^2 + y^2)/sqrt(4pi) (ie div B .ne. 0)
 c  Basically to see how an initially non-zero div B propagates
 c
          IF (varmhd(1:1).NE.'B') THEN
-           STOP 'not implemented for eulr or vecp'
+            WRITE (*,99116)
+            CALL quit(0)
          ENDIF
+99116    FORMAT(' Non-solenoidal field not implemented for v or e')
          WRITE(*,99104) umagfd
          WRITE(*,99106) 'Enter Binit'
 99106    FORMAT(A)
@@ -368,9 +395,11 @@ c
                   IF (nutorus.EQ.2) THEN
                      Bevolxyz(1,i) = currj0*atorus**2*rintorus*
      &               ((ra2**3)/6. - 0.75*ra2**2 + 1.5*ra2)*phi/6.
-                  ELSE 
-                     STOP 'not implemented for nutorus.ne.2'
+                  ELSE
+                     WRITE (*,99126)
+                     CALL quit(0) 
                   ENDIF
+99126    FORMAT(' nutorus.NE.2 not implemented for Euler potentials')
                   Bevolxyz(2,i) = 0.5*rintorus**2
                   Bevolxyz(3,i) = 0.
                ELSEIF (varmhd(1:1).EQ.'B') THEN
@@ -381,8 +410,10 @@ c
                   Bevolxyz(2,i) = -Btheta*sintheta*SIN(phi)
                   Bevolxyz(3,i) = Btheta*COS(theta)
                ELSE
-                  STOP 'not implemented for vecp'
+                  WRITE (*,99136)
+                  CALL quit(0)
                ENDIF
+99136          FORMAT(' Tokamak not implemented for vector potentials')
                Bzero = MAX(Bzero,Btheta)
             ELSE
                Bevolxyz(1,i) = 0.
@@ -399,9 +430,10 @@ c
          WRITE(*,*) 'SETUP FOR THE FORCE FREE Z-PERIODIC CYLINDER'
          WRITE(*,*) ' Radius ',radius,' Length = ',length
          WRITE (*,*)' Muff = ',Muff, 'Amplitude =', ampl
+99146    FORMAT(' Force-free cylinder not implemented for e and v')
          IF (varmhd(1:1).NE.'B') THEN
-            WRITE (*,*) 'Not implemented for Euler potentials'
-            STOP
+            WRITE (*,99146)
+            CALL quit(0)
          ElSE   
             DO i=1,npart
 c
@@ -415,10 +447,12 @@ c
                ELSE 
                   drr = 0.
                ENDIF
-            STOP 'bessel functions commented out in repository version'
-               !Bevolxyz(1,i) = -ampl*yi*drr*besj1(Muff*rr)
-               !Bevolxyz(2,i) = ampl*xi*drr*besj1(Muff*rr)
-               !Bevolxyz(3,i) = ampl*besj0(Muff*rr)
+               WRITE(*, 99156)
+               CALL quit(0)
+99156 FORMAT(' Bessel functions not enabled.')
+c               Bevolxyz(1,i) = -ampl*yi*drr*besj1(Muff*rr)
+c               Bevolxyz(2,i) = ampl*xi*drr*besj1(Muff*rr)
+c               Bevolxyz(3,i) = ampl*besj0(Muff*rr)
             ENDDO   
          ENDIF  
          Bzero = ampl

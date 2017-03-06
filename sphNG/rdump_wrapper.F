@@ -313,7 +313,7 @@ c
             WRITE (*,*) 'ERROR - sorting listinactive ',i,
      &           iphase(listinactive(i)),
      &           listinactive(i)
-            STOP
+            CALL quit(0) 
          ENDIF
       END DO
 

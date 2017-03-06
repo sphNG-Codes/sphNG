@@ -57,7 +57,7 @@ c
      &     'communication is insufficiently large for the dragtable',
      &     ' resolution. Enlarge idim to accomodate it, or rewrite',
      &     ' the code to use an alternative array.'
-         STOP
+         CALL quit(0) 
       ENDIF
 #endif
 
@@ -80,7 +80,7 @@ c
          print *, 'Check angle setup: +-1 or something'
          print *, phi, dragtpmax
          print *, theta, dragttmax
-         STOP
+         CALL quit(0) 
       ENDIF
 
       logradius = log10(radius)
@@ -104,7 +104,7 @@ c--Bodies may slightly penetrate surface, thus ir < 1
          print *, 'Index beyond allowed range'
          print *, 'ir, ip, it : ', ir, ip, it
          print *, 'res r, p, t: ', idragresr, idragresp, idragrest
-         STOP
+         CALL quit(0) 
       ENDIF
 
       end subroutine dragcoordinates

@@ -493,7 +493,7 @@ c
                   numinject = numinject + 1
                   IF (numinject.GT.numinjectmax) THEN
                      WRITE (*,*) 'numinjectmax too small'
-                     STOP
+                     CALL quit(0)
                   ENDIF
 
                   cum = cum + densityint*radiic(i)*drad(i)*

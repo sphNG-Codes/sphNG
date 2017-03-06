@@ -974,7 +974,9 @@ c              move the outer boundaries to ensure periodicity of the lattice
             nz = INT(deltaz/(facz*h1)) + 2
             np = nx*ny*nz
          ELSE
-            STOP 'incompatible idist with igeom=8'
+77999       FORMAT(' Incompatible idist with igeom=8')
+            WRITE(*, 77999)
+            CALL quit(0)
          ENDIF
          CALL unifdis(igeomorig, idist, np, h1, facx, facy, facz,
      &                   delx, dely, nx, ny, nz, ibound)
@@ -982,7 +984,11 @@ c              move the outer boundaries to ensure periodicity of the lattice
          WRITE(*,78001) n1,n2
 78001    FORMAT(' Set ',i8,' particles in sphere; ',
      &                 i8,' particles in box ')
-         IF (npart.GT.idim) STOP 'npart > idim'
+         IF (npart.GT.idim) THEN
+78002       FORMAT(' npart > idim')
+            WRITE(*,78002)
+            CALL quit(0)   
+         ENDIF
       ELSE
          n1 = npart
          n2 = 0
@@ -1175,7 +1181,11 @@ c
 c--Check if distribution is ok
 c
       WRITE (*, 99020) npart - nptmass
-      IF (npart-nptmass.LE.0) STOP ': ZERO PARTICLES SET'
+      IF (npart-nptmass.LE.0) THEN
+99120   FORMAT(' : ZERO PARTICLES SET')
+        WRITE(*,99120)
+        CALL quit(0)
+      ENDIF
 99020 FORMAT (1X, I8, ' particles have been set, is this ok? (y/n)')
       READ (iread, 99004) iok
       IF (iok.EQ.'n') THEN
@@ -1589,7 +1599,7 @@ c
 77234    FORMAT ('ERROR: You cannot represent a planet with iexf = 5',/
      &        ' without a sink particle. Either change to a',/
      &        ' a potential (iexf = 7) or add a sink.')
-         STOP
+         CALL quit(0) 
       ENDIF
 c
 c--Set Velocities
@@ -1841,8 +1851,10 @@ c For 5 km/s dispersion, use Gaussian with sigma=disp=5
       WRITE (*,*) 'Enter size of velocity files (e.g.N=32^3)'
       READ (iread,*) nspace
       IF (nspace.GT.nvelmax) THEN
-         WRITE (*,*) 'Dimensions of velocity arrays too small'
-         STOP
+66546    FORMAT(' Dimensions of velocity arrays too small, had',I6,
+     &          ' needed ',I6)
+         WRITE(*,66546)nvelmax,nspace
+         CALL quit(0) 
       ENDIF
 
       WRITE (*,*) 'Enter amplitude'
@@ -2048,8 +2060,9 @@ c
             vxyzu(3,i) = vxyzu(3,i)*factor
          END DO
       ELSE
-         WRITE (*,*) 'Invalid input ',iok
-         STOP
+99778    FORMAT(' Invalid input ',A1)
+         WRITE(*,99778)iok
+         CALL quit(0) 
       ENDIF
 c
 c     write output for information only

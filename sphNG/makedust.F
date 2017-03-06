@@ -223,7 +223,7 @@ c
 
       PRINT *,'FAILED -- only managed to create ',ndust,' particles ',
      &     'before running out of space'
-      STOP
+      CALL quit(0) 
 
  100  nlstacc = 0
       nlistinactive = 0

@@ -2170,7 +2170,7 @@ c
                         print *, 'pradfac = ', pradfac(1), sqrt(r2)
                         print *, 'rplanet = ', rplanet, rplanet*
      &                       pradfac(1)
-                        STOP
+                        CALL quit(1) 
                      ENDIF
 
 c---DragEnergyTest output. Checking coordinate transform and indexing.

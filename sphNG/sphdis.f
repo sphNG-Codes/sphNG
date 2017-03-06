@@ -79,7 +79,11 @@ c
             WRITE (*,99034)
 99034       FORMAT(' Enter m, and density contrast ')
             READ (iread,*) m, densc
-            IF (m .LE. 0) STOP 'ERROR: m must be > 0'
+            IF (m .LE. 0) THEN 
+99134          FORMAT(' ERROR: m must be > 0')
+               WRITE(*,99134)
+               CALL quit(0)
+            ENDIF
             WRITE (*,*) 'Setting perturbation m = ',m,' ampl = ',densc
             DO i = nptmass+1, npart
                xi = xyzmh(1,i)

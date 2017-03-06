@@ -170,7 +170,11 @@ c
 c--check ibound = 11 for periodic no ghosts
 c
 #ifdef PERIODIC_NO_GHOSTS
-      IF (ibound.NE.11) STOP 'PERIODIC_NO_GHOSTS REQUIRES ibound=11'
+      IF (ibound.NE.11) THEN 
+99901    FORMAT(' PERIODIC_NO_GHOSTS REQUIRES ibound=11')
+         WRITE(*,99901)
+         CALL quit(0)
+      ENDIF
       dxbound = xmax - xmin
       dybound = ymax - ymin
       dzbound = zmax - zmin
@@ -613,7 +617,7 @@ c
             WRITE (iprint,*) 'ERROR READING DRAGFILE'
             WRITE (iprint,*) 'No corresponding drag file for dump,'
             WRITE (iprint,*) 'but dump not No. 0000, i.e. first'
-            STOP
+            CALL quit(0) 
          ENDIF
 
          IF (existingdragfile) THEN

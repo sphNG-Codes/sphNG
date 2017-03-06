@@ -577,7 +577,7 @@ c
          IF (igeom.EQ.10) CALL planetesimals(np, nptmass)
          IF (igeom.EQ.9) THEN
             print *, 'Not implemented, not likely to be.'
-            STOP
+            CALL quit(0) 
          ENDIF
       ELSE
          idens = 'd'
@@ -623,7 +623,7 @@ c 1184       READ (*,*) nplanetesimals
                print *, 'idim too small for gas and planetesimals.'
                print *, 'idim, npart, nplanetesimals'
                print *, idim, npart, nplantesimals
-               STOP
+               CALL quit(0) 
             ENDIF
             
             ntot = npart
@@ -818,7 +818,7 @@ c     &                 (2.-sdprof)
                   IF (inum2.EQ.2 .AND.eccent.NE.0.0) THEN
                      print *, 'Migrating a sink with a non-circular'
                      print *, ' orbit is not currently implemented'
-                     STOP
+                     CALL quit(0) 
                   ENDIF
                   
                   imigrate = 1
@@ -878,7 +878,7 @@ c--rorbitmax is stored as a time, at which point migration should stop.
          ENDIF
       ELSE
          WRITE (*,*) 'Error in mass setting, unknown igeom'
-         STOP
+         CALL quit(0) 
       ENDIF
 
       rhozero = totmas/totvol
@@ -898,8 +898,12 @@ c
 c--Check if distribution is ok
 c
       WRITE (*, 99020) npart - nptmass
-      IF (npart-nptmass.LE.0) STOP ': ZERO PARTICLES SET'
+      IF (npart-nptmass.LE.0) THEN 
+         WRITE(*,99121)
+         CALL quit(0)
+      ENDIF
 99020 FORMAT (1X, I8, ' particles have been set')
+99121 FORMAT(' : ZERO PARTICLES SET')
 
 c
 c--Set e.o.s. related quantities

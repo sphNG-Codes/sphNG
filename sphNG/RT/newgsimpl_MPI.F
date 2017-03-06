@@ -1000,7 +1000,7 @@ c
                IF (index_m.GE.mbins) index_m = mbins-1
                IF (radius.LT.prmin) THEN
                   print *, 'Radius too small for Fortier tables'
-                  STOP
+                  CALL quit(1) 
                ENDIF
                
                y1=ptable(index_m,index_r)
@@ -3062,7 +3062,7 @@ c
       IF (iphase1.GE.10) THEN
          moresweep = .TRUE.
          GOTO 998
-         STOP
+         CALL quit(1) 
       ELSE
          iphase1 = iphase1 + 1
          moresweep = .TRUE.

@@ -31,7 +31,7 @@ c
          WRITE (iprint,112) 'ir', idragresr, ires_r
          WRITE (iprint,112) 'ip', idragresp, ires_p
          WRITE (iprint,112) 'it', idragrest, ires_t
-         STOP
+         CALL quit(0) 
       ENDIF
          
 c
@@ -49,7 +49,7 @@ c
          WRITE (iprint,113)
          WRITE (iprint,114) trmin, trmax, tdr
          WRITE (iprint,115) dragtrmin, dragtrmax, dragtdr
-         STOP
+         CALL quit(0)
       ENDIF
 c
 c--Read in planet mass, and check it matches current state
@@ -72,7 +72,7 @@ c
             WRITE (iprint,117) dragpmass
             WRITE (iprint,118) planetmass
             WRITE (iprint, 119)
-            STOP
+            CALL quit(0) 
          ENDIF
       ENDIF
 
@@ -92,7 +92,7 @@ c
       RETURN
       
  100  print *, 'An error has occurred reading drag file'
-      STOP
+      CALL quit(0) 
 
       end subroutine read_dragtable
 

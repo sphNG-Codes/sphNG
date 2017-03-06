@@ -467,7 +467,7 @@ c
                         neighb(numneigh) = n
                      ELSE
                         WRITE (iprint,*) 'ERROR: nneighmax exceeded'
-                        STOP
+                        CALL quit(0) 
                      ENDIF
                   ENDIF
                ENDIF

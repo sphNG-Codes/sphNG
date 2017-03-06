@@ -43,7 +43,7 @@ c FM: produce array of the boundary height for radii from rmin to rcyl
      &           radius)
          ELSE
             print *, 'You should not be in discboundary.f'
-            STOP
+            CALL quit(0) 
          ENDIF
 
          ucold = getu(rhocold, boundtempl)
@@ -98,7 +98,7 @@ c**************************************c
       sign = 1
       IF (x.ge.1.0 .OR. x.le.-1.0) THEN
          print *, 'ERROR: Invalid x value for InvErf'
-         STOP
+         CALL quit(0) 
       ENDIF
       IF (x .lt. 0.0) then
          sign = -1

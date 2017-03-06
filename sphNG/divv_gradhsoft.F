@@ -763,7 +763,9 @@ C$OMP DO SCHEDULE (runtime)
             ENDDO      
 C$OMP END DO
          ELSEIF (varmhd.NE.'eulr' .AND. varmhd.NE.'vecp') THEN
-            STOP 'unknown MHD variable in Bevol->Bxyz conversion'
+99300       FORMAT(' Unknown MHD variable in Bevol->Bxyz conversion')
+            WRITE(*,99300)
+            CALL quit(0)
          ENDIF
       ENDIF
 

@@ -47,7 +47,7 @@ c
          IF (iphase(m).GE.1 .AND. iphase(m).LT.10 .AND. 
      &        rr.LT.ptsoft**2) THEN
             WRITE (*,*) 'ptsoft gforsn ',m,rr,ptsoft
-            STOP
+            CALL quit(0) 
          ENDIF
 
 c

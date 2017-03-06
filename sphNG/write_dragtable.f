@@ -31,7 +31,7 @@
       RETURN
       
  100  print *, 'An error has occurred writing drag file'
-      STOP
+      call quit(0) 
 
       end subroutine write_dragtable
 

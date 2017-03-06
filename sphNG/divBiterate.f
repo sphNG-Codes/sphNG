@@ -95,13 +95,13 @@ c
            icompact = icompact + 1
            IF (icompact.GT.icompactmax) THEN
               WRITE (*,*) 'ERROR - compact not large enough'
-              STOP
+              CALL quit(0) 
            ENDIF
            ijvar(icompact) = neighlist(k)
            IF(i.EQ.ijvar(icompact)) THEN
               PRINT *,"TRAPIMPL: Particle interacting with itself"
               PRINT *,"TRAPIMPL: Error. Bye."
-              STOP
+              CALL quit(1) 
            END IF
         END DO
       END DO
@@ -468,7 +468,7 @@ c
       PRINT *,"divBiterate: Warning. Maximum iterations reached"
       moresweep = .TRUE.
       RETURN
-c      STOP
+c      CALL quit(0)
 c
 c--Output success
 c

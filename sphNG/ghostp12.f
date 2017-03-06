@@ -242,7 +242,9 @@ c            angr = pi - ang2 + ang1
                   Bevolxyz(2,nptot) = Byi/rhoi
                   Bevolxyz(3,nptot) = Bzi/rhoi
                ELSE
-                  STOP 'ERROR: ghostp12+euler not implemented'
+99001             FORMAT(' ERROR: ghostp12+euler not implemented')
+                  WRITE(*,99001)
+                  CALL quit(0)
                ENDIF
 c This gives a velocity field which follows magnetic field lines               
                vxyzu(1,nptot) = vampl*Bxi

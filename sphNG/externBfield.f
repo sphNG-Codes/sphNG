@@ -119,7 +119,9 @@ c
          valfven2 = (Bexttheta*Bexttheta + Bextphi*Bextphi)*drhoi
          v2 = valfven2 + v2
       ELSE
-         STOP 'unknown/unimplemented iBext in COMMONS/tokamak'
+99001    FORMAT(' Unknown/unimplemented iBext in COMMONS/tokamak')
+         WRITE(*,99001)
+         CALL quit(0)
       ENDIF
 c============================================================
 
@@ -196,7 +198,9 @@ c
      &            drintorus,drcyl,costheta,sintheta,cosphi,sinphi)
 
       ELSE
-         STOP 'ERROR: unknown string in call to externBfield'
+99002    FORMAT(' ERROR: unknown string in call to externBfield')
+         WRITE(*,99002)
+         CALL quit(0)
       ENDIF
       
       RETURN
@@ -393,7 +397,9 @@ c************************************************************
          Bexternal= Bextz
       ELSE
          Bexternal = 0.
-         STOP 'error in Bexternal call'
+99003    FORMAT(' Error in Bexternal call')
+         WRITE(*,99003)
+         CALL quit(0)
       ENDIF
       
       RETURN

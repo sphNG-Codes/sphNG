@@ -179,7 +179,11 @@ c
             WRITE(*,99145)
 99145       FORMAT(' Calculating B/rho from B for MHD evolution...')
             DO i=1,npart
-               IF (rho(i).LE.0.) STOP 'ERROR: rho = 0 setting up B/rho'
+               IF (rho(i).LE.0.) THEN
+99146             FORMAT(' ERROR: rho = 0 setting up B/rho')
+                  WRITE(*,99146)
+                  CALL quit(0)
+               ENDIF
                rho1i = 1./rho(i)
                DO j=1,3
                   Bevolxyz(j,i) = Bevolxyz(j,i)*rho1i

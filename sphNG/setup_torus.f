@@ -58,7 +58,11 @@ c Particle and eos properties/constants
             !--make ring of particles at r=rcyl
                DO i=1,nphi                   
                   ipart = ipart + 1
-                  IF (ipart.GT.idim) STOP 'setup_torus: dims too small'
+                  IF (ipart.GT.idim) THEN 
+99001                FORMAT(' setup_torus: dims too small')
+                     WRITE(*,99001)
+                     CALL quit(0)
+                  ENDIF
                   phi = (i-1)*deltaphi
                   xyzmh(1,ipart) = rcyl*COS(phi+randphi)
                   xyzmh(2,ipart) = rcyl*SIN(phi+randphi)

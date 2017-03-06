@@ -97,6 +97,6 @@ c      IF(nkrho1.LT.1.0.OR.nkrho1.GE.mumxrh.OR.nku1.LT.1)
       END IF
        
 
-      STOP
+      CALL quit(1) 
       END
       

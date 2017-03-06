@@ -46,7 +46,7 @@ c
 
       ELSE
          WRITE (iprint,*) 'Invalid idragscheme selected'
-         STOP
+         CALL quit(0) 
       ENDIF
 
       RETURN
@@ -290,7 +290,7 @@ c--muconst = 5*mh2/(64*sigmah2)
          ELSE
             WRITE (iprint,*) 'getcd'
             WRITE (iprint,*) 'invalid idrag_structure for Stokes'
-            STOP
+            CALL quit(0) 
          ENDIF
       ELSEIF (iregime.EQ.1) THEN !--Epstein
 c
@@ -304,7 +304,7 @@ c
 
       ELSE
          WRITE (iprint,*) 'Invalid value for iregime in getcd'
-         STOP
+         CALL quit(0) 
       ENDIF
 
       getcd_lp = dragcoeff

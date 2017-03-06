@@ -179,7 +179,7 @@ c     !     y^3 -4 a0 y - a1^2 = 0
          moresweep=.TRUE.
          GOTO 541
                                 !    RETURN
-         STOP
+         CALL quit(1) 
       END IF
       
 !     PRINT *,"Getting y1",quantity1
@@ -221,7 +221,7 @@ c     !     y^3 -4 a0 y - a1^2 = 0
       
       IF(uc.LT.0.0) THEN
          PRINT *,"QUARTIC4: Error, imaginary co-eff c to quadratic"
-         STOP
+         CALL quit(1) 
       END IF
 
       ub1=a3/2.0+SQRT(ub)
@@ -248,7 +248,7 @@ c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
          IF (ABS(a3).GE.tiny) THEN
             IF(ABS((a3/2.0)-SQRT(ub))/ABS(a3/2.0).LT.1d-6) THEN
          PRINT *,"QUARTIC4: Error, big - big / big too big for co-eff b"
-               STOP
+               CALL quit(1) 
             END IF
          ENDIF
 
@@ -268,7 +268,7 @@ c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
             PRINT *,"QUARTIC4: Second Taylor expansion no longer valid"
                PRINT *,"QUARTIC4: Value is ",ABS((a0/y1)/((a3/2.0)+
      $              SQRT((a3**2/4.0)+y1-a2)))
-               STOP
+               CALL quit(1) 
             END IF
 
 
@@ -300,7 +300,7 @@ c     !     PRINT *,vlwr
                                 !   PRINT *,a0,a1,a2,a3,a4
 c      CALL RTSAFE(soln,vlwr,vhgr,1d-8,a0,a1,a2,a3,a4)
 c      PRINT *,"soln:",soln
-         STOP
+         CALL quit(1)
       ELSE
 c         if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 3c',
 c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
@@ -308,7 +308,7 @@ c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
          IF (ABS(a3).GE.tiny) THEN
             IF(ABS((a3/2.0)-SQRT(ub))/ABS(a3/2.0).LT.1d-6) THEN
          PRINT *,"QUARTIC4: Error, big - big / big too big for co-eff b"
-               STOP
+               CALL quit(1)
             END IF
          ENDIF
 
@@ -320,7 +320,7 @@ c     &        ub2**2-4.0*uc2,ub1**2-4.0*uc1,ub2,uc2,ub1,uc1
             PRINT *,"QUARTIC4: Second Taylor expansion no longer valid"
                PRINT *,"QUARTIC4: Value is ",ABS((a0/y1)/((a3/2.0)+
      $           SQRT((a3**2/4.0)+y1-a2)))
-               STOP
+               CALL quit(1)
             END IF
 
             z4(1)=-1.0*((a0/y1)/((a3/2.0)+SQRT((a3**2/4.0)+y1-a2)))
@@ -397,7 +397,7 @@ c     &     z1(2),z2(2),z3(2),z4(2)
             PRINT *,u1term,u0term
             PRINT *,"     ",quantity1,biggest_term
             PRINT *,"     ",y1,ub,uc,ub1,ub2,uc1,uc2
-            STOP
+            CALL quit(1)
          ELSEIF (ABS(z1(1)-uold).GT.ABS(z2(1)-uold)) THEN
             soln = z2(1)
             IF (ABS((soln-uold)/uold).GT.1.0) THEN
@@ -406,7 +406,7 @@ c     &     z1(2),z2(2),z3(2),z4(2)
                PRINT *,u1term,u0term
                PRINT *,"     ",quantity1,biggest_term
                PRINT *,"     ",y1,ub,uc,ub1,ub2,uc1,uc2
-               STOP
+               CALL quit(1)
             ENDIF
          ELSE
             soln = z1(1)
@@ -416,7 +416,7 @@ c     &     z1(2),z2(2),z3(2),z4(2)
                PRINT *,u1term,u0term
                PRINT *,"     ",quantity1,biggest_term
                PRINT *,"     ",y1,ub,uc,ub1,ub2,uc1,uc2
-               STOP
+               CALL quit(1) 
             ENDIF
          ENDIF
 
@@ -433,7 +433,7 @@ c     &     z1(2),z2(2),z3(2),z4(2)
             PRINT *,u1term,u0term
             PRINT *,"     ",quantity1,biggest_term
             PRINT *,"     ",y1,ub,uc,ub1,ub2,uc1,uc2
-            STOP
+            CALL quit(1) 
          ELSEIF (ABS(z3(1)-uold).GT.ABS(z4(1)-uold)) THEN
             soln = z4(1)
             IF (ABS((soln-uold)/uold).GT.1.0) THEN
@@ -442,7 +442,7 @@ c     &     z1(2),z2(2),z3(2),z4(2)
                PRINT *,u1term,u0term
                PRINT *,"     ",quantity1,biggest_term
                PRINT *,"     ",y1,ub,uc,ub1,ub2,uc1,uc2
-               STOP
+               CALL quit(1)
             ENDIF
          ELSE
             soln = z3(1)
@@ -452,7 +452,7 @@ c     &     z1(2),z2(2),z3(2),z4(2)
                PRINT *,u1term,u0term
                PRINT *,"     ",quantity1,biggest_term
                PRINT *,"     ",y1,ub,uc,ub1,ub2,uc1,uc2
-               STOP
+               CALL quit(1)
             ENDIF
          ENDIF
 
@@ -465,14 +465,14 @@ c     &     z1(2),z2(2),z3(2),z4(2)
             PRINT *,"     ",u1term,u0term
             PRINT *,"     ",quantity1,biggest_term
             PRINT *,"     ",y1,ub,uc,ub1,ub2,uc1,uc2
-            STOP
+            CALL quit(1)
 
       ELSE                      !four solutions
 
       rtst=0
       write (*,*) 'Four solutions ',tsoln1,tsoln2,z1(1),z2(1),z3(1),
      &     z4(1),u1term,u0term,uold,ipartin
-      STOP
+      CALL quit(1)
       IF(tsoln1.GT.0.0.AND.tsoln1.GE.tmin.AND.tsoln1.LE.tmax) THEN
          rtst=rtst+1
          soln=z1(1)
@@ -503,7 +503,7 @@ c     &     z1(2),z2(2),z3(2),z4(2)
          PRINT *,"Min..Max T :",tmin,tmax
          PRINT *,"I'm going back to trapimpl with moresweep2=.TRUE."
          moresweep=.TRUE.
-!         STOP
+c         CALL quit(1)
       END IF
       END IF
 c            if (HREAL.EQ.34 .AND. nlstall.EQ.71) write (*,*) 'q 6'

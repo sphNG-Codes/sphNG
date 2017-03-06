@@ -66,7 +66,11 @@ c            write (*,*) 'nc =', nc
 c            if (ir.eq.nr+1) write (*,*) rr, radius-rr, 0.5*deltar
             if (nc.eq.0) then
               ipart = ipart +1
-              IF (ipart.GT.idim) STOP 'setup_cyl: dims too small'
+              IF (ipart.GT.idim) THEN 
+99001            FORMAT(' setup_cyl: dims too small')
+                 WRITE(*,99001)
+                 CALL quit(0)
+              ENDIF
               xyzmh(1,ipart) = 0.d0
               xyzmh(2,ipart) = 0.d0
               xyzmh(3,ipart) = zz
@@ -80,7 +84,10 @@ c            if (ir.eq.nr+1) write (*,*) rr, radius-rr, 0.5*deltar
               do ic = 1, nc     
                  angle = 2*pi/nc
                  ipart = ipart+1
-                 IF (ipart.GT.idim) STOP 'setup_cyl: dims too small'
+                 IF (ipart.GT.idim) THEN
+                    WRITE(*,99001)
+                    CALL quit(0)
+                 ENDIF
                  xyzmh(1,ipart) = rr*COS(angle*(ic-0.5)+offset*angle)
                  xyzmh(2,ipart) = rr*SIN(angle*(ic-0.5)+offset*angle)
                  xyzmh(3,ipart) = -length/2.+deltaz/2.+deltaz*(iz-1)    

@@ -38,6 +38,11 @@ c LOCAL
       REAL currjintbextx,currjintbexty,currjintbextz
       REAL currjextbintx,currjextbinty,currjextbintz
 c
+c--Initialise some variables to keep the compiler happy
+c
+      Bextr = 0.
+      Bexttheta = 0.
+c
 c--get coordinate factors in torus coordinate system
 c
       CALL get_torus_factors(xi,yi,zi,costheta,sintheta,cosphi,sinphi,

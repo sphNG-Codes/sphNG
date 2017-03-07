@@ -238,9 +238,10 @@ c Needed so that ABORT works correctly
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/actio'
 
-      INTEGER iflag,iret
+      INTEGER iflag
 
 #ifdef MPIALL
+      INTEGER iret
       INCLUDE 'COMMONS/mpiall'
 #endif
 

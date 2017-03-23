@@ -13,7 +13,8 @@
 module nicil_sup
  use nicil, only: nicil_get_eta,nimhd_get_dudt
  use nicil, only: use_ohm,use_hall,use_ambi,ion_rays,ion_thermal, &
-                  nelements,nelements_max,nlevels,meanmolmass
+                  nelements,nelements_max,nlevels,meanmolmass, &
+                 zeta_of_rho,n_data_out
  implicit none
  !
  !--Indicies to determine which action to take
@@ -31,12 +32,9 @@ module nicil_sup
                                 ,ihallfX,ihallfA,ihallfN &
                                 ,iahallfX,iahallfA,iahallfN &
                                 ,iambiX,iambiA,iambiN,iambifX,iambifA,iambifN &
-                                ,inenX,inenA,ineX,ineA,innX,innA &
+                                ,inenX,inenA,inenN,ineX,ineA,innX,innA &
                                 ,inihrX,inihrA,inimrX,inimrA,ingnX,ingnA,ingX,ingA,ingpX,ingpA &
-                                ,inistX,inistA,inidtX,inidtA &
-                                ,inhX,inhA,inheX,inheA,innaX,innaA,inmgX,inmgA &
-                                ,inkX,inkA,inhedX,inhedA,innadX,innadA &
-                                ,inmgdX,inmgdA,inkdX,inkdA
+                                ,inistX,inistA,inidtX,inidtA,izetaA,izetaN
   real,             private   :: rhocrit_nimhd,rhocrit2_nimhd,rhocrit3_nimhd
   real,             private   :: coef_gammaeq1,coef_gamma,coef_gam,coef_gamdh,coef_gamah
   character(len=19),private   :: ev_label(inumev)
@@ -187,7 +185,7 @@ subroutine nimhd_write_evheader(nimhdfile,iproc)
       call fill_xan_label(ev_fmt,'eta_a',    i,iambiX,  iambiA,  iambiN  )
       call fill_xan_label(ev_fmt,'eta_a/art',i,iambifX, iambifA, iambifN )
     endif
-    call fill_xan_label(ev_fmt,'n_e/n',       i,inenX,   inenA            )
+    call fill_xan_label(ev_fmt,'n_e/n',       i,inenX,   inenA,  inenN    )
     call fill_xan_label(ev_fmt,'n_e',         i,ineX,    ineA             )
     call fill_xan_label(ev_fmt,'n_n',         i,innX,    innA             )
     if (ion_rays) then
@@ -197,31 +195,13 @@ subroutine nimhd_write_evheader(nimhdfile,iproc)
        call fill_xan_label(ev_fmt,'n_g(Z=-1)',i,ingnX,   ingnA            )
        call fill_xan_label(ev_fmt,'n_g(Z= 0)',i,ingX,    ingA             )
        call fill_xan_label(ev_fmt,'n_g(Z=+1)',i,ingpX,   ingpA            )
+       if (zeta_of_rho) then
+          call fill_xan_label(ev_fmt,'zeta',  i,iA=izetaA, iN=izetaN      )
+       endif
     endif
     if (ion_thermal) then
-       call fill_xan_label(ev_fmt,   'n_isT', i,inistX,  inistA           )
-       if (nlevels>=2) then
-          call fill_xan_label(ev_fmt,'n_idT', i,inidtX,  inidtA           )
-       endif
-       if (nelements>=2) then
-          call fill_xan_label(ev_fmt,'n_H+',  i,inhX,    inhA             )
-          call fill_xan_label(ev_fmt,'n_He+', i,inheX,   inheA            )
-       endif
-       if (nelements>=5) then
-          call fill_xan_label(ev_fmt,'n_Na+', i,innaX,   innaA            )
-          call fill_xan_label(ev_fmt,'n_Mg+', i,inmgX,   inmgA            )
-          call fill_xan_label(ev_fmt,'n_K+',  i,inkX,    inkA             )
-       endif
-       if (nlevels>=2) then
-          if (nelements>=2) then
-             call fill_xan_label(ev_fmt,'n_He++',i,inhedX,   inhedA       )
-          endif
-          if (nelements>=5) then
-             call fill_xan_label(ev_fmt,'n_Na++',i,innadX,   innadA       )
-             call fill_xan_label(ev_fmt,'n_Mg++',i,inmgdX,   inmgdA       )
-             call fill_xan_label(ev_fmt,'n_K++', i,inkdX,    inkdA        )
-          endif
-       endif
+       call fill_xan_label(ev_fmt,'n_isT',    i,inistX,  inistA           )
+       call fill_xan_label(ev_fmt,'n_idT',    i,inidtX,  inidtA           )
     endif
     ielements = i - 1 ! The number of columns to be calculates
     !
@@ -255,10 +235,10 @@ subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
  integer,          intent(out) :: np
  real,             intent(out) :: et,ev_data(0:inumev)
  real(kind=4),     intent(out) :: ionfrac_eta(4,imhd2)
- integer                       :: i,j,ierr,c0,c1,crate,cmax,iekcle
+ integer                       :: i,ierr,c0,c1,crate,cmax,iekcle
  real                          :: rhoi,B2i,Bi,temperature,vsigi, &
-                                  etaart,etaart1,etaohm,etahall,etaambi
- real                          :: data_out(17+nelements_max*nlevels-3)
+                                  etaart,etaart1,etaohm,etahall,etaambi,n_total
+ real                          :: data_out(n_data_out)
  real                          :: ev_data_thread(0:inumev)
  !
  ! To determine the runtime in this routine; not using sphNG's routine since
@@ -278,10 +258,9 @@ subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
 !$omp shared(ihallfX,ihallfA,ihallfN,iahallfX,iahallfA,iahallfN) &
 !$omp shared(iambiX,iambiA,iambiN,iambifX,iambifA,iambifN) &
 !$omp shared(inenX,inenA,ineX,ineA,innX,innA,inihrX,inihrA,inimrX,inimrA) &
-!$omp shared(ingnX,ingnA,ingX,ingA,ingpX,ingpA,inistX,inistA,inidtX,inidtA) &
-!$omp shared(inhX,inhA,inheX,inheA,innaX,innaA,inmgX,inmgA,inkX,inkA) &
-!$omp shared(inhedX,inhedA,innadX,innadA,inmgdX,inmgdA,inkdX,inkdA) &
-!$omp private(i,j,ierr,rhoi,B2i,Bi,temperature,vsigi,etaart,etaart1,etaohm,etahall,etaambi,data_out) &
+!$omp shared(ingnX,ingnA,ingX,ingA,ingpX,ingpA,inistX,inistA,inidtX,inidtA,izetaA,izetaN) &
+!$omp private(i,ierr,rhoi,B2i,Bi,temperature,vsigi,etaart,etaart1,etaohm,etahall,etaambi) &
+!$omp private(data_out,n_total) &
 !$omp firstprivate(iekcle) &
 !$omp private(ev_data_thread) &
 !$omp reduction(+:np) 
@@ -325,13 +304,9 @@ subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
           call ev_update(ev_data_thread,etaambi,        iambiX, iambiA, iambiN )
           call ev_update(ev_data_thread,etaambi*etaart1,iambifX,iambifA,iambifN)
        endif
-       if (data_out(7) > 0.0) then
-         call ev_update(ev_data_thread,data_out(6)/data_out(7),inenX,inenA)
-         ionfrac_eta(1,i) = real(data_out(6)/data_out(7),kind=4)
-       else
-         call ev_update(ev_data_thread,0.0,                    inenX,inenA)
-         ionfrac_eta(1,i) = 0.0
-       endif
+       n_total = data_out(7) + data_out(8) + data_out(9) + data_out(10) + data_out(11)
+       call ev_update(ev_data_thread,data_out(6)/n_total,inenX,inenA,inenN)
+       ionfrac_eta(1,i) = real(data_out(6)/n_total,kind=4)
        ionfrac_eta(2,i) = real(etaohm, kind=4)  ! Save eta_OR for the dump file
        ionfrac_eta(3,i) = real(etahall,kind=4)  ! Save eta_HE for the dump file
        ionfrac_eta(4,i) = real(etaambi,kind=4)  ! Save eta_AD for the dump file
@@ -347,26 +322,6 @@ subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
        if (ion_thermal) then
           call ev_update(ev_data_thread,   data_out(10),inistX,   inistA          )
           call ev_update(ev_data_thread,   data_out(11),inidtX,   inidtA          )
-          j = 17
-          if (nelements>=2) then
-             call ev_update(ev_data_thread,data_out( j),inhX,    inhA             ); j=j+1
-             call ev_update(ev_data_thread,data_out( j),inheX,   inheA            ); j=j+1
-          endif
-          if (nelements>=5) then
-             call ev_update(ev_data_thread,data_out( j),innaX,   innaA            ); j=j+1
-             call ev_update(ev_data_thread,data_out( j),inmgX,   inmgA            ); j=j+1
-             call ev_update(ev_data_thread,data_out( j),inkX,    inkA             ); j=j+1
-          endif
-          if (nlevels>=2) then
-             if (nelements>=2) then
-                call ev_update(ev_data_thread,data_out( j),inhedX,   inhedA       ); j=j+1
-             endif
-             if (nelements>=5) then
-                call ev_update(ev_data_thread,data_out( j),innadX,   innadA       ); j=j+1
-                call ev_update(ev_data_thread,data_out( j),inmgdX,   inmgdA       ); j=j+1
-                call ev_update(ev_data_thread,data_out( j),inkdX,    inkdA        ); j=j+1
-             endif
-          endif
        endif
     endif
  enddo

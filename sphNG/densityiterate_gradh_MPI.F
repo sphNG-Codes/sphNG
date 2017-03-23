@@ -1298,6 +1298,7 @@ C$OMP& private(cooling,gas_dust,cosmic_ray,func_gas,derivative)
 C$OMP& private(heatingISRi,Gphotoelectrici,ext,exp_Av,itemp)
 C$OMP& private(u_found,cv_val,gas_temp,ijk,frac_change,h2column)
 C$OMP& private(columnnumberdensity,expext,selfval,selffac,selfshield)
+C$OMP& private(exp_selfval)
 C$OMP& private(iconvergence1,iconvergence2,iconvergence3)
 C$OMP& reduction(MAX:rhonext,imaxit)
 C$OMP& reduction(+:inumit,inumfixed,inumrecalc,nwarnup,nwarndown)
@@ -1523,9 +1524,12 @@ c
                                  exp_Av = exp_Av + expext
 
                                  selfval = SQRT(1.0+h2column/(5.0E+14))
+                                 exp_selfval = EXP(MAX(-8.5E-4*selfval,
+     &                                -60.0))
                                  selffac = 
      &                                0.965/(1.0+h2column/(5.0E+14))**2+
-     &                                0.035/selfval*EXP(-8.5E-4*selfval)
+     &                                0.035*exp_selfval/selfval
+                                 IF (expext.LT.1.0E-8) expext = 1.0E-8
                                  selfshield = selfshield + 
      &                                expext**3.74 * selffac
                               END DO

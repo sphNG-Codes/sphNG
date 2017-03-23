@@ -17,6 +17,7 @@ c
 
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/timei'
+      INCLUDE 'COMMONS/sort'
 
       REAL fracchange
 
@@ -33,9 +34,11 @@ c
       IF (itime.EQ.0) THEN
          icolumnsteps(m) = isteps(m)
       ELSE
-         IF (heatingISRold(1,m).LE.0. .OR. heatingISRold(2,m).LE.0.)
+         IF (heatingISRold(1,m).LE.0. .OR. heatingISRold(2,m).LT.0.)
      &        THEN
-            WRITE (*,*) 'ERROR - heatingISRold(1 or 2,m)=0 ',itime,m
+            WRITE (*,*) 'ERROR - heatingISRold(1 or 2,m)<=0 ',itime,m,
+     &           heatingISRold(1,m),heatingISRold(2,m),iorig(m),
+     &           iunique(iorig(m))
             CALL quit(1)
          ENDIF
          fracchange = MAX(

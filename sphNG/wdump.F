@@ -724,7 +724,7 @@ c--real*4
          WRITE(idisk1, ERR=100) (etaartificial(isort(i)),
      &        i=1,nprint)
 #ifdef NONIDEAL
-         tagarr(1:4)=(/'ne_by_n','eta_OR ','eta_HE ','eta_AD '/)
+         tagarr(1:4)=(/'ne/n    ','eta_{OR}','eta_{HE}','eta_{AD}'/)
          DO j = 1,4
            WRITE(idisk1, ERR=100) tag(tagarr(j))
            WRITE(idisk1, ERR=100) (ionfrac_eta(j,isort(i)), i=1, nprint)

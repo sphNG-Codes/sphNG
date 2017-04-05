@@ -40,6 +40,8 @@ c************************************************************
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/timei'
+      INCLUDE 'COMMONS/timeextra'
 c
 c--Do not need columndens(), unless want to access from elsewhere
 c     (e.g. writing out from step_P.F before calculation is run).
@@ -87,6 +89,10 @@ c
      &           icolumnnext(m), m, ntot
 #endif
          ENDIF
+c
+c--If doing half-timestep now, update icolumnnext to time of fullstep
+c
+         IF (icolumnnext(m).EQ.it1(m)) icolumnnext(m) = it2(m)
       ENDIF
 c
 c--Need for MPI code

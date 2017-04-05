@@ -2140,7 +2140,9 @@ c
 c--For idustRT>0, replace the gas-dust coupling term in the u equation
 c     by the dust-radiation term, but keep the T_d rather than T_g
 c
-            IF (idustRT.GT.0) THEN
+            ieqtype = 0
+
+ 456        IF (idustRT.GT.0) THEN
                rhoreal4 = rhoi
                ekcle(2,i) = GETKAPPA(EU0(2,i),ekcle(3,i),rhoreal4)
                dust_tempi = dust_temperature(i,uradconst,
@@ -2163,11 +2165,13 @@ c     already.  So if we have high densities AND the difference between
 c     the temperatures of the dust and local radiation field is small
 c     (<1 K), then we abandon the gas-dust coupling term.
 c
-            IF (idustRT.GT.0 .AND. (
+            IF (idustRT.GT.0 .AND. ((
      &           ABS(dust_tempi-(rhoi*EU0(1,i)/uradconst)**0.25).GT.1.0
-     &           .AND. 
-     &           xnH2.LT.1.0E+11/metallicity) ) THEN
-               ieqtype = 3
+     &           .AND.
+     &           xnH2.LT.1.0E+11/metallicity)
+     &           .OR. ieqtype.EQ.2)
+     &           ) THEN
+               ieqtype= 3
 
                betaval = 0.
                gammaval = 0.
@@ -2519,17 +2523,29 @@ c
             IF (u1term.GT.0.0 .AND. u0term.GT.0.0 .OR. u1term.LT.0.0 
      &           .AND. u0term.LT.0.0) THEN
 C$OMP CRITICAL(quart)
-            print *,"ngs ",u4term,u1term,u0term,betaval,chival,gammaval
-            print *,"    ",ekcle(2,i),rhoi,dti
+            print *,"ngs-2 ",u4term,u1term,u0term,betaval,chival
+            print *,"    ",ekcle(2,i),rhoi,dti,gammaval
             print *,"    ",diffusion_denominator,diffusion_numerator
             print *,"    ",pres_denominator,pres_numerator,uradconst
             print *,"    ",radpresdenom,EU0(1,I),EU0(2,I),ekcle(3,i)
             print *,"    ",lightspeed,origEU(1,i),origEU(2,i)
+            print *,"    ",dti*gas_dust_val*dust_tempi
+            print *,"    ",dti*dust_heating,dti*gas_dust_val*dust_tempi
+            print *,"    ",dti*cosmic_ray,dti*cooling_line
+            print *,"    ",dti*photoelectric,dti*dust_term
+            print *,"    ",ieqtype,dti*h2form,h2form,cooling_line
+            print *,"    ",dust_tempi,origEU(2,i)/ekcle(3,i)
+            print *,"    ",dti*diffusion_numerator*betaval,
+     &           stellarradiation*betaval,gas_dust_val
 C$OMP END CRITICAL(quart)
+               IF (ieqtype.NE.2) THEN
 C$OMP CRITICAL (moresweepset)
-               moresweep=.TRUE.
+                  moresweep=.TRUE.
 C$OMP END CRITICAL (moresweepset)
-               GOTO 200
+                  GOTO 200
+               ELSE
+                  GOTO 456
+               ENDIF
             ENDIF
 
             u1term = u1term/u4term
@@ -2541,22 +2557,26 @@ C$OMP END CRITICAL (moresweepset)
      &           moresweep2,i)
 
             IF (moresweep2) THEN
+               IF (ieqtype.NE.2) THEN
 C$OMP CRITICAL (moresweepset)
-               moresweep=.TRUE.
-               PRINT *,"Info: ",EU0(2,I)/ekcle(3,i),xyzmh(1,i),
-     &              xyzmh(2,i),xyzmh(3,i)
-               PRINT *,"Info2: ",u0term,u1term,u4term,gammaval,
-     &              ekcle(2,i),ekcle(3,i)
-               PRINT *,"Info3: ",chival,betaval,dti
-               PRINT *,"Info4: ",pres_denominator,
-     &              origEU(1,i),pres_numerator
-               PRINT *,"Info5: ",diffusion_numerator,
-     &              stellarradiation,diffusion_denominator
-               PRINT *,"Info6: ",radpresdenom,EU0(1,I)
-               PRINT *,"Info7: ",cosmic_ray,heatingISRi/uergg*utime
-               PRINT *,"Info8: ",cooling_line,photoelectric,h2form
-C$OMP END CRITICAL (moresweepset)               
-               GOTO 200
+                  moresweep=.TRUE.
+                  PRINT *,"Info: ",EU0(2,I)/ekcle(3,i),xyzmh(1,i),
+     &                 xyzmh(2,i),xyzmh(3,i)
+                  PRINT *,"Info2: ",u0term,u1term,u4term,gammaval,
+     &                 ekcle(2,i),ekcle(3,i)
+                  PRINT *,"Info3: ",chival,betaval,dti
+                  PRINT *,"Info4: ",pres_denominator,
+     &                 origEU(1,i),pres_numerator
+                  PRINT *,"Info5: ",diffusion_numerator,
+     &                 stellarradiation,diffusion_denominator
+                  PRINT *,"Info6: ",radpresdenom,EU0(1,I)
+                  PRINT *,"Info7: ",cosmic_ray,heatingISRi/uergg*utime
+                  PRINT *,"Info8: ",cooling_line,photoelectric,h2form
+C$OMP END CRITICAL (moresweepset)
+                  GOTO 200
+               ELSE
+                  GOTO 456
+               ENDIF
             ENDIF
 
  233        CONTINUE
@@ -2588,11 +2608,15 @@ C$OMP END CRITICAL (moresweepset)
             ENDIF
 
             IF(E1i.LE.0.0) THEN
+               IF (ieqtype.NE.2) THEN
 C$OMP CRITICAL (moresweepset)
-               moresweep=.TRUE.
-               PRINT *,"GSIMPL: E has gone negative ",i,xyzmh(1,i),
-     &              xyzmh(2,i),xyzmh(3,i)
+                  moresweep=.TRUE.
+                  PRINT *,"GSIMPL: E has gone negative ",i,xyzmh(1,i),
+     &                 xyzmh(2,i),xyzmh(3,i),dust_tempi,gas_temp,rhoi
 C$OMP END CRITICAL (moresweepset)
+               ELSE
+                  GOTO 456
+               ENDIF
             END IF
 c
 c--And the error is...
@@ -2647,7 +2671,7 @@ C$OMP END CRITICAL (storeUerror)
 c
 c--Copy values
 c
-            EU0(1,I) = E1i
+            IF (E1i.GT.0.) EU0(1,I) = E1i
             EU0(2,I) = U1i
 
             ekcle(3,i) = GETCV(rho(i),EU0(2,i))

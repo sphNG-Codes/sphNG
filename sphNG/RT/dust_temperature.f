@@ -38,7 +38,7 @@ c     Zucconi et al. 2001).
 c     For the dust emission term, the dust_kappa value which is used 
 c     is the Planck mean opacity in units of cm^2/g.  So we need to 
 c     divide the heatingISR value by mu*mH change Q_v into cm^2/g.  
-c     The 4*pi comes from the fact that a*c = 4*sigma_B and the Plank 
+c     The 4*pi comes from the fact that a*c = 4*sigma_B and the Planck 
 c     mean opacity is normalised by the integral over the Planck 
 c     function which is sigma_B*T^4/pi.  So a*c times one over the 
 c     normalisation is 4*pi.
@@ -74,7 +74,7 @@ c--If the gas is dense and hot, then the gas and dust will be well
 c     coupled thermally, so just take the dust temperature to be equal
 c     to the gas temperature
 c
-      IF (xnH2.GT.1.0E+12 .AND. gas_temp.GE.100.) THEN
+      IF (xnH2.GT.1.0E+12/metallicity .AND. gas_temp.GE.100.) THEN
          t_found = gas_temp
          index = INT(t_found*10.0)
          IF (index.GT.nPlanckPoints) THEN
@@ -98,11 +98,36 @@ c
       rad_temp4 = rhoi*Erad/uradconst
 c      rad_temp4 = 0.
 c
+c--If both radiation and gas temperatures are >1000, then set dust
+c     temperature directly
+c
+      IF (rad_temp4.LT.0.) THEN
+         WRITE (*,*) 'ERROR - radiation temp. in dust_temperature',
+     &        ' is < 0 ',rad_temp4,ipart,gas_temp
+c         CALL quit(1)
+      ELSE
+         rad_temp = rad_temp4**(0.25)
+         IF (rad_temp.GT.1000. .AND. gas_temp.GT.1000.) THEN
+            t_found = rad_temp
+            index = INT(t_found*10.0)
+            IF (index.GT.nPlanckPoints) THEN
+               index = nPlanckPoints-1
+            ELSEIF (index.LT.1) THEN
+               index = 1
+            ENDIF
+            dust_kappai = Planck_table(index)
+            dust_gas = 0.
+            dust_cooling = constant1*dust_kappai*t_found**4
+            GOTO 222
+         ENDIF
+      ENDIF
+c
 c--Find initial dust temperature by assuming that the dust is in thermal
 c     balance with the radiation field (i.e. ignore gas-dust collisional
 c     cooling).  This will be good if the density is low.
 c
-      t_found = MIN(gas_temp,1000.0)
+      iattempt = 1
+ 200  t_found = MIN(gas_temp,1000.0)
       DO i = 1, 100
          t_last = t_found
 c
@@ -129,12 +154,14 @@ c
 c         IF (ABS(t_found-t_last).LT.0.01) GOTO 222
       END DO
  221  CONTINUE
+      IF (iattempt.EQ.2) GOTO 222
+
       t_found = MIN(t_found,1000.0)
 c
 c--Now find actual solution (including gas-dust collisional cooling)
 c     using Newton-Raphson method
 c
-      DO i = 1, 10000
+      DO i = 1, 1000
          t_last = t_found
 
          index = INT(t_found*10.0)
@@ -184,7 +211,9 @@ c
      &     constant2*(t_found - gas_temp),constant1,dust_kappai,
      &     rad_temp4,constant2,gas_temp,Ugas/ekcle(3,ipart),ipart
 c      CALL quit
-      t_found = 20.
+c      t_found = 20.
+      iattempt = 2
+      GOTO 200
 
  222  dust_temperature = t_found
       IF (t_found.GT.1500.0) THEN
@@ -234,7 +263,7 @@ c
 c
 c--Initial guess temperature
 c
-      t_found = 10.
+      t_found = dust_temp
       xnH2 = rhoi*udens/(gmw*mH)
 
       cosmic_ray = cosmic_ray_heating(xnH2)
@@ -650,7 +679,7 @@ c
       REAL xnH, xne, brackets, G0, recombination, phiPAH
       REAL oxygen
       REAL electron_fraction, x_Cplus
-      REAL carbon_chemistry, depletion, cooling_line_rate_dep
+      REAL carbon_chemistry, depletion, cooling_line_rate_dep, x_CO
       INTEGER ipos,ipos_depletion,ipart
 
       REAL Goldsmith2001_table2(3,7), Goldsmith2001_depletion(2,5,4)
@@ -719,7 +748,11 @@ c
             xdiff12 = xpos1 - xpos2
             xdiff13 = xpos1 - xpos3
             xdiff23 = xpos2 - xpos3
-
+c
+c--Altered because of trouble with overcooling of gas at low metallicities
+c     around nH2 = 10^7 - 10^8
+c
+c         ELSEIF (logxnH2.LT.7.3) THEN
          ELSEIF (logxnH2.LT.8.0) THEN
             IF (logxnH2.GT.7.0) THEN
                ipos = 5
@@ -769,10 +802,14 @@ c
          cooling_line_rate = EXP(cooling_line_rate)
 
          IF (logxnH2.LT.1.) cooling_line_rate = 0.
+
+c         IF (logxnH2.GT.7.0 .AND. logxnH2.LE.7.3) cooling_line_rate =
+c     &        cooling_line_rate * (7.3-logxnH2)/(0.3)
 c
 c--If gas is depleted, use Goldsmith (2001) depletion
 c
-         x_Cplus = carbon_chemistry(ipart, xnH2, gas_temp, depletion)
+         x_Cplus = carbon_chemistry(ipart, xnH2, gas_temp, depletion, 
+     &        x_CO)
 c
 c--This table: index 1: log alpha or beta value
 c              index 2: depletion factor: 1, 3, 10, 30, 100
@@ -929,13 +966,22 @@ c
      &        3E-27*EXP(-92./gas_temp) * xnH**2 * metallicity
 c
 c--Add oxygen OI cooling from equation C3 of Wolfire et al. (2003)
+c     Assume that OI abundance scales with x_CO abundance (not
+c     including depletion).
 c
          oxygen = 2.5E-27 * xnH**2 * (gas_temp/100.0)**0.4 * metallicity
+         oxygen = oxygen*(1.0-x_CO)
+c         oxygen = oxygen*(1.0-2.0*h2frac)
          IF (gas_temp.GT.4.0) THEN
             oxygen = oxygen * EXP(-228.0/gas_temp)
          ELSE
             oxygen = 0.
          ENDIF
+c
+c--Tapper oxygen cooling to zero from n_H2 = 1000 to 10000 
+c
+c         IF (logxnH2.GT.3.0 .AND. logxnH2.LE.4.0) oxygen =
+c     &        oxygen * (4.0-logxnH2)
 c         oxygen = 0.
 
          cooling_line_rate = cooling_line_rate + oxygen
@@ -1093,7 +1139,7 @@ c
       END
 
 c-----------------------------------------------------------
-      FUNCTION carbon_chemistry(ipart, xnH2, gas_temp, depletion)
+      FUNCTION carbon_chemistry(ipart, xnH2, gas_temp, depletion, x_CO)
 c
 c--Based on Keto & Caselli (2008)
 c     

@@ -118,6 +118,7 @@ c
       INCLUDE 'COMMONS/treecom_P'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
+      INCLUDE 'COMMONS/bodys'
 #endif
 
 #ifdef MPICOPY
@@ -1134,6 +1135,11 @@ c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
                            ENDIF
                            CALL nimhd_get_jcbcb(jcbcb,jcb
      &                         ,jcurrent(:,ipart),Bxi,Byi,Bzi,Bi1)
+c
+c--If iresist<0, then Ohmic resistivity is done implicitly
+c
+                           IF (iresist.LT.0) eta_ohmi = 0.
+
                            CALL nimhd_get_dBdt(dBnonideal
      &                         ,eta_ohmi,eta_halli,eta_ambii
      &                         ,jcurrent(:,ipart),jcb,jcbcb
@@ -1766,6 +1772,11 @@ c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
                               ENDIF
                               CALL nimhd_get_jcbcb(jcbcb,jcb
      &                           ,jcurrent(:,j),Bxj,Byj,Bzj,Bj1)
+c
+c--If iresist<0, then Ohmic resistivity is done implicitly
+c
+                              IF (iresist.LT.0) eta_ohmj = 0.
+
                               CALL nimhd_get_dBdt(dBnonideal
      &                            ,eta_ohmj,eta_hallj,eta_ambij
      &                            ,jcurrent(:,j),jcb,jcbcb

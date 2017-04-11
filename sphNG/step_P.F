@@ -2490,6 +2490,11 @@ c
                      print*, 'nicil: step: T = 0 for i = ', i
                   ENDIF
                ENDIF
+c
+c--If iresist<0, then Ohmic resistivity is done implicitly
+c
+               IF (iresist.LT.0) eta_ohmi = 0.
+
                call nimhd_get_dt(dtohmi,dthalli,dtambii,xyzmh(5,i)
      &             ,eta_ohmi,eta_halli,eta_ambii)
                dtohmi  = dtohmi / (dt*isteps(i)/imaxstep)

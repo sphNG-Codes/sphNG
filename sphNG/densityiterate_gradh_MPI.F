@@ -92,7 +92,9 @@ c     that are neighbours of active particles for updating their densities etc
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/sightlines'
-
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nonideal'
+#endif
       COMMON /rhominval/ rhomin
 
 #ifdef MPICOPY
@@ -2698,6 +2700,9 @@ c--Copy changed values onto ghost particles
 c
 C$OMP PARALLEL DO SCHEDULE (runtime) default(none)
 C$OMP& shared(npart,ntot,ireal,rho,dumrho,xyzmh,gradhs)
+#ifdef NONIDEAL
+C$OMP& shared(n_R,n_electronT)
+#endif
 C$OMP& private(i,j)
       DO i = npart + 1, ntot
          j = ireal(i)
@@ -2705,6 +2710,10 @@ C$OMP& private(i,j)
          dumrho(i) = dumrho(j)
          xyzmh(5,i) = xyzmh(5,j)
          gradhs(1,i) = gradhs(1,j)
+#ifdef NONIDEAL
+         n_R(:,i) = n_R(:,j)
+         n_electronT(i) = n_electronT(j)
+#endif
       END DO
 C$OMP END PARALLEL DO
 c

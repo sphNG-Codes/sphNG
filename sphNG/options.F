@@ -167,7 +167,7 @@ c
          READ (iterm, *) ndivBsubcycles,overclean_fac,iresist,etamhd
 #ifdef NONIDEAL
          IF (iresist.NE.0 .AND. ABS(iresist).NE.4) THEN
-            WRITE (*,*)'ERROR - iresist must be either 0, -4, or 4,'
+            WRITE (*,*)'ERROR - iresist must be either 0, -4, or 4,',
      &           ' when using NONIDEAL MHD'
             CALL quit(0)
          ENDIF

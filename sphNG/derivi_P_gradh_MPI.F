@@ -788,8 +788,8 @@ c
      &     isubcycle_divB.GT.0 .AND. ndivBsubcycles.GT.0)) THEN
        IF (iresist.LT.0) THEN
          CALL resistivity_implicit(nlst_in,nlst_end,llist,dt,itime,
-     &        npart,ntot,Bxyz,xyzmh,vxyzu,dumrho,vsound,alphaMM,nit,
-     &        xerror)
+     &        npart,ntot,Bxyz,xyzmh,vxyzu,dumrho,vsound,alphaMM,ekcle,
+     &        nit,xerror)
 
          IF (varmhd.EQ.'Bvol') THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)

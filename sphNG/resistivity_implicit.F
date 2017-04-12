@@ -1,7 +1,10 @@
       SUBROUTINE resistivity_implicit(nlst_in,nlst_end,list,dtdo,
      &     itime,npart,ntot,Bxyz,xyzmh,vxyzu,rho,vsound,alphaMMpass,
-     &     nit,error)
+     &     ekcle,nit,error)
  
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
 #ifdef MPIALL
 #include "mpi_sup.h"
 #endif 
@@ -20,6 +23,7 @@
       DIMENSION xyzmh(5,mmax2)
       DIMENSION vxyzu(4,idim2)
       REAL*4 rho(idim2),vsound(idim2),alphaMMpass(isizealphaMM,idim2)
+      DIMENSION ekcle(5,iradtrans2)
 
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/ghost'
@@ -38,6 +42,13 @@
       INCLUDE 'COMMONS/numpa'
       INCLUDE 'COMMONS/fullstep'
 
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nonideal'
+      INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/bodys'
+      INCLUDE 'COMMONS/sort'
+#endif
+
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
 #endif
@@ -48,7 +59,7 @@ c
 c--This factor is 1.0 for Backwards Euler implicit method and 0.5 for 
 c     Crank-Nicolson implicit method
 c
-      PARAMETER (fac = 1.0)
+      PARAMETER (fac = 0.5)
 
       INTEGER nosweep
       LOGICAL moresweep
@@ -119,6 +130,10 @@ C$OMP& shared(xyzmh,dvtable,grwij,cnormk)
 C$OMP& shared(ihasghost,iphase,ifullstep,iresist,etamhd)
 C$OMP& shared(ntot,ncompactlocal,radkernel,gradhs,ncompact)
 C$OMP& shared(ido,ido_j,vsound,alphaMMpass,alphamin,ifsvi)
+#ifdef NONIDEAL
+C$OMP& shared(encal,ekcle,gamma,n1,n2,iunique,iorig,n_R,n_electron)
+C$OMP& shared(n_electronT)
+#endif
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend)
 #endif
@@ -130,6 +145,10 @@ C$OMP& private(dWi,dWj,dWidrmj,dWidrmi,dWjdrmj)
 C$OMP& private(etai,etaj,etaij,dWidrmjrhojrhoieta,dWidrmirhojrhoieta)
 C$OMP& private(dWjdrmjrhojrhoieta)
 C$OMP& private(B2i,B2j,vsigi,vsigj,etaart)
+#ifdef NONIDEAL
+C$OMP& private(ekclei,ekclej,temperature)
+C$OMP& private(eta_ohm,eta_hall,eta_ambi,ierr)
+#endif
 C$OMP& reduction(+:ihasghostcount)
 c
 c--Set up values that don't change during sweeps
@@ -190,23 +209,55 @@ c
             hi41 = hi21*hi21
             rhoi = rho(i)
 
-            IF (ABS(iresist).GE.2) THEN
+            B2i = Bxyz(1,i)**2 + Bxyz(2,i)**2 + Bxyz(3,i)**2
+#ifdef NONIDEAL
+            IF (ABS(iresist).EQ.4) THEN
+               IF (encal.EQ.'r') THEN
+                  ekclei = ekcle(3,i)
+               ELSE
+                  ekclei = 0.0
+               ENDIF
+               temperature = nimhd_gastemp(encal
+     &              ,vxyzu(4,i),ekclei
+     &              ,rhoi,gamma,n1,n2
+     &              ,iunique(iorig(i)))
+c
+c--Note that despite get_eta taking B, the Ohmic eta is independent
+c     of B (see, e.g., eqns 22-23 and 30 of Wurster, Price & Bate 2016,
+c     or more clearly eqn 28 of Pandey & Wardle 2008).
+c
+               CALL nicil_get_eta(eta_ohm,eta_hall
+     &              ,eta_ambi,SQRT(B2i),rhoi,temperature
+     &              ,n_R(:,i),n_electronT(i),ierr)
+               IF (ierr/=0) THEN
+                  CALL nicil_translate_error(ierr)
+                  IF (ierr > 0) CALL quit(1)
+               ENDIF
+               etai = eta_ohm
+            ELSE
+#endif
+            IF (ABS(iresist).EQ.2 .OR. ABS(iresist).EQ.3) THEN
                etai = etafunc(rhoi,vxyzu(4,i),etamhd,iresist)
-c               print *,i,rhoi,vxyzu(4,i),etai
             ELSEIF (ABS(iresist).EQ.1) THEN
                etai = etamhd
             ELSE
                etai = 0.
             ENDIF
+#ifdef NONIDEAL
+            ENDIF
+#endif
 
-            B2i = Bxyz(1,i)**2 + Bxyz(2,i)**2 + Bxyz(3,i)**2
             vsigi = SQRT(vsound(i)**2 + B2i/rhoi)
             IF (ifsvi.GE.6) THEN
                etaart = alphaMMpass(2,i)*vsigi*hi
             ELSE
                etaart = alphamin(2)*vsigi*hi
             ENDIF
-            IF (etai/etaart.GT.0.01) ido(i) = .TRUE.
+c
+c--Only both with physical resistivity if it is greater than 1% of 
+c     artificial resistivity
+c
+            IF (etai.GT.0.01*etaart) ido(i) = .TRUE.
 
             DO k = 1, ivar(1,n)
                icompact = ivar(2,n) + k
@@ -272,6 +323,33 @@ c
 c
 c--Set resistivity terms
 c
+               B2j = Bxyz(1,j)**2 + Bxyz(2,j)**2 + Bxyz(3,j)**2
+#ifdef NONIDEAL
+               IF (ABS(iresist).GE.3) THEN
+                  IF (encal.EQ.'r') THEN
+                     ekclej = ekcle(3,j)
+                  ELSE
+                     ekclej = 0.0
+                  ENDIF
+                  temperature = nimhd_gastemp(encal
+     &                 ,vxyzu(4,j),ekclej
+     &                 ,rhoj,gamma,n1,n2
+     &                 ,iunique(iorig(j)))
+c
+c--Note that despite get_eta taking B, the Ohmic eta is independent
+c     of B (see, e.g., eqns 22-23 and 30 of Wurster, Price & Bate 2016,
+c     or more clearly eqn 28 of Pandey & Wardle 2008).
+c
+               CALL nicil_get_eta(eta_ohm,eta_hall
+     &              ,eta_ambi,SQRT(B2j),rhoj,temperature
+     &              ,n_R(:,j),n_electronT(j),ierr)
+               IF (ierr/=0) THEN
+                  CALL nicil_translate_error(ierr)
+                  IF (ierr > 0) CALL quit(1)
+               ENDIF
+               etaj = eta_ohm
+               ELSE
+#endif
                IF (ABS(iresist).GE.2) THEN
                   etaj = etafunc(rhoj,vxyzu(4,j),etamhd,iresist)
                ELSEIF (ABS(iresist).EQ.1) THEN
@@ -279,15 +357,16 @@ c
                ELSE
                   etaj = 0.
                ENDIF
-
-               B2j = Bxyz(1,j)**2 + Bxyz(2,j)**2 + Bxyz(3,j)**2
+#ifdef NONIDEAL
+               ENDIF
+#endif
                vsigj = SQRT(vsound(j)**2 + B2j/rhoj)
                IF (ifsvi.GE.6) THEN
                   etaart = alphaMMpass(2,j)*vsigj*hj
                ELSE
                   etaart = alphamin(2)*vsigj*hj
                ENDIF
-               IF (etaj/etaart.GT.0.01) THEN
+               IF (etaj.GT.0.01*etaart) THEN
                   ido_j(i) = .TRUE.
                ENDIF
 
@@ -355,7 +434,7 @@ C$OMP& private(icompact,dti,Bnumeratorx,Bnumeratory,Bnumeratorz)
 C$OMP& private(BnumeratorOldx,BnumeratorOldy,BnumeratorOldz)
 C$OMP& private(Bdenominator,tempval)
 C$OMP& private(dWidrmjrhojrhoieta,dWidrmirhojrhoieta,dWjdrmjrhojrhoieta)
-C$OMP& private(Bnewxi,Bnewyi,Bnewzi,dBcombx,dBcomby,dBcombz)
+C$OMP& private(Bnewxi,Bnewyi,Bnewzi,dBcombx,dBcomby,dBcombz,Bi)
 #ifdef MPI
 C$OMP& private(l)
 #endif
@@ -709,9 +788,15 @@ c
 c
 c--Function error
 c
-               maxerrB = MAX(maxerrB,Bxyz(1,i) + dBcombx - BxyzNew(1,i))
-               maxerrB = MAX(maxerrB,Bxyz(2,i) + dBcomby - BxyzNew(2,i))
-               maxerrB = MAX(maxerrB,Bxyz(3,i) + dBcombz - BxyzNew(3,i))
+               Bi = MAX(1.0E-10,
+     &              SQRT(Bxyz(1,i)**2+Bxyz(2,i)**2+Bxyz(3,i)**2))
+
+               maxerrB = MAX(maxerrB,
+     &              ABS(Bxyz(1,i) + dBcombx - BxyzNew(1,i))/Bi)
+               maxerrB = MAX(maxerrB,
+     &              ABS(Bxyz(2,i) + dBcomby - BxyzNew(2,i))/Bi)
+               maxerrB = MAX(maxerrB,
+     &              ABS(Bxyz(3,i) + dBcombz - BxyzNew(3,i))/Bi)
 c
 c--Copy values
 c

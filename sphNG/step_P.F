@@ -2539,7 +2539,7 @@ c--Check resistive diffusion time
 c
          IF (imhd.EQ.idim) THEN
             IF (iphase(i).EQ.0) THEN
-               IF (iresist.GE.2) THEN
+               IF (iresist.EQ.2 .OR. iresist.EQ.3) THEN
 c--Resistivity which is a function of density
                   etai = etafunc(real(rho(i)),vxyzu(4,i),etamhd,iresist)
                   IF (etai.GT.tiny) THEN

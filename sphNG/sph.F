@@ -565,7 +565,7 @@ c
       ENDIF
       IF (ioptimise_column.LT.0 .OR. ioptimise_column.GT.1 .OR.
      &     (ioptimise_column.EQ.1 .AND. idustRT.NE.1)) THEN
-         WRITE (*,*) 'ERROR - ioptimise_column'
+         WRITE (*,*) 'ERROR - ioptimise_column ',ioptimise_column
          CALL quit(0)
       ENDIF
 

@@ -1407,7 +1407,7 @@ C$OMP& shared(hoverr,ibound)
 C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)
 C$OMP& shared(e_planetesimal,pcolen)
 C$OMP& shared(iunique,iorig,n1,n2)
-C$OMP& shared(udens,uergcc,utime,dust_tk,heatingISR,metallicity)
+C$OMP& shared(udens,uergcc,utime,dust_tk,metallicity)
 #ifdef MPI
 C$OMP& shared(istart,ntot,istartrec,inumbertotal,inumberreturned)
 C$OMP& shared(numproc,iproc,inumofsends,maxnneighsentback,istatus)

@@ -565,7 +565,24 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
             dBpsix = 0.
             dBpsiy = 0.
             dBpsiz = 0.
-            IF (iresist.GE.2) THEN
+            IF (iresist.EQ.4) THEN
+#ifdef NONIDEAL
+               Bi = SQRT(B2i)
+               IF (encal.EQ.'r') THEN
+                  ekclei = ekcle(3,ipart)
+               ELSE
+                  ekclei = 0.0
+               ENDIF
+               temperature = nimhd_gastemp(encal
+     &              ,vxyzu(4,ipart),ekclei
+     &              ,rhoi,gamma,n1,n2
+     &              ,iunique(iorig(ipart)))
+               CALL nicil_get_eta(eta_ohmi,eta_halli
+     &              ,eta_ambii,Bi,rhoi,temperature
+     &              ,n_R(:,ipart),n_electronT(ipart),ierr)
+               etai = eta_ohmi
+#endif
+            ELSEIF (iresist.EQ.2 .OR. iresist.EQ.3) THEN
                etai = etafunc(rhoi,ui,etamhd,iresist)
             ELSEIF (iresist.EQ.1) THEN
                etai = etamhd
@@ -743,7 +760,24 @@ c if not done above
                   projBext = Bextxi*runix + Bextyi*runiy + Bextzi*runiz
 c               projBrho2i = (projBi - projBext)*rho21i
 c               projBrho2j = (projBj - projBext)*rho1j*rho1j
-                  IF (iresist.GE.2) THEN
+                  IF (iresist.EQ.4) THEN
+#ifdef NONIDEAL
+                     Bj = SQRT(B2j)
+                     IF (encal.EQ.'r') THEN
+                        ekclej = ekcle(3,j)
+                     ELSE
+                        ekclej = 0.0
+                     ENDIF
+                     temperature = nimhd_gastemp(encal
+     &                    ,vxyzu(4,j),ekclej
+     &                    ,rhoj,gamma,n1,n2
+     &                    ,iunique(iorig(j)))
+                     CALL nicil_get_eta(eta_ohmj,eta_hallj
+     &                    ,eta_ambij,Bj,rhoj,temperature
+     &                    ,n_R(:,j),n_electronT(j),ierr)
+                     etaj = eta_ohmj
+#endif
+                  ELSEIF (iresist.EQ.2 .OR. iresist.EQ.3) THEN
                      etaj = etafunc(rhoj,uj,etamhd,iresist)
                   ELSEIF (iresist.EQ.1) THEN
                      etaj = etamhd
@@ -1136,9 +1170,10 @@ c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
                            CALL nimhd_get_jcbcb(jcbcb,jcb
      &                         ,jcurrent(:,ipart),Bxi,Byi,Bzi,Bi1)
 c
-c--If iresist<0, then Ohmic resistivity is done implicitly
+c--If ABS(iresist)=4, then Ohmic resistivity is done using Bate & Price
+c     direct second derivative method
 c
-                           IF (iresist.LT.0) eta_ohmi = 0.
+                           IF (ABS(iresist).EQ.4) eta_ohmi = 0.
 
                            CALL nimhd_get_dBdt(dBnonideal
      &                         ,eta_ohmi,eta_halli,eta_ambii
@@ -1773,9 +1808,10 @@ c--physical (Ohmic resistivity + Hall effect + ambipolar diffusion)
                               CALL nimhd_get_jcbcb(jcbcb,jcb
      &                           ,jcurrent(:,j),Bxj,Byj,Bzj,Bj1)
 c
-c--If iresist<0, then Ohmic resistivity is done implicitly
+c--If ABS(iresist)=4, then Ohmic resistivity is done using Bate & Price
+c     direct second derivative method
 c
-                              IF (iresist.LT.0) eta_ohmj = 0.
+                              IF (ABS(iresist).EQ.4) eta_ohmj = 0.
 
                               CALL nimhd_get_dBdt(dBnonideal
      &                            ,eta_ohmj,eta_hallj,eta_ambij

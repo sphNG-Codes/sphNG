@@ -374,6 +374,7 @@ c
                WRITE (iprint, 99632) iDRT_gasdust
                WRITE (iprint, 99634) iISR_MIR
                WRITE (iprint, 99636) iISR_Draine
+               WRITE (iprint, 99638) G0
                IF (iatomic) THEN
                   WRITE (iprint, 99650)
                ELSE
@@ -388,6 +389,8 @@ c
 99632          FORMAT('    Gas-Dust Thermal Coupling             : ',I1)
 99634          FORMAT('    Interstellar Radiation Field: Mid-IR  : ',L1)
 99636          FORMAT('                                Draine UV : ',L1)
+99638          FORMAT('                             Strength, G0 : ',
+     &              1PE8.2)
 99650          FORMAT('    Initial conditions : Fully Atomic', //)
 99651          FORMAT('    Initial conditions : Fully Molecular', //)
             ELSE

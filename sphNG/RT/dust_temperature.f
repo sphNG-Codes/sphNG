@@ -50,7 +50,7 @@ c
 c--heatingISR is in erg/s/H_2 so must be divided by mu*mH to get 
 c     into erg/g/s
 c
-      heatingISRi = heatingISR(1,ipart) * 4.0*pi /(gmw*mH)
+      heatingISRi = G0*heatingISR(1,ipart) * 4.0*pi /(gmw*mH)
 c
 c--We assume that the net cooling from the interaction with the non-ISR
 c     radiation can be expressed as
@@ -676,7 +676,7 @@ c
       REAL log_depletion
       REAL xdiff24, xdiff34, cooling_log3, cooling_log4
       REAL xpos1,xpos2,xpos3,xpos4
-      REAL xnH, xne, brackets, G0, recombination, phiPAH
+      REAL xnH, xne, brackets, Gr, recombination, phiPAH
       REAL oxygen
       REAL electron_fraction, x_Cplus
       REAL carbon_chemistry, depletion, cooling_line_rate_dep, x_CO
@@ -993,9 +993,9 @@ c
 c--Needs the local UV ISR, but the recombination cooling should only
 c     be significant when the extinction is very low anyway.
 c
-         G0 = heatingISR(2,ipart)
-c         G0 = 1.0
-         brackets = G0*SQRT(gas_temp)/xne/phiPAH
+         Gr = G0*heatingISR(2,ipart)
+c         Gr = 1.0
+         brackets = Gr*SQRT(gas_temp)/xne/phiPAH
 
          recombination = 4.65E-30 * gas_temp**0.94 *
      &        brackets**(0.74/gas_temp**0.068)*xne*xnH/phiPAH *
@@ -1029,13 +1029,12 @@ c
       REAL gas_temp,dust_temp,xnH2,grain_formation_rate
       REAL h2_formation,fA,fB
 
-      REAL xnH,G0
+      REAL xnH
 c
 c--nH is twice nH2, where nH is actually the number density of protons from
 c     hydrogen (i.e. it does not depend on the fractions of H and H_2 )
 c
       xnH = 2.0*xnH2
-      G0 = 1.0
 c
 c--Partial rate from Glover et al. 2010 (rate 165 in appendix)
 c
@@ -1089,13 +1088,12 @@ c     on or off for the thermal behaviour.
 c
       LOGICAL icosmic_ray
 
-      REAL xnH,G0
+      REAL xnH
 c
 c--nH is twice nH2, where nH is actually the number density of protons from
 c     hydrogen (i.e. it does not depend on the fractions of H and H_2 )
 c
       xnH = 2.0*xnH2
-      G0 = 1.0
 c
 c--Table B2 of Glover et al. (2010), and Section 2.2.
 c     Includes cosmic ray dissociation.
@@ -1153,12 +1151,10 @@ c
 
       INTEGER ipart
       REAL carbon_chemistry,xnH2,gas_temp,depletion
-      REAL x_CO_Cplus,x_C_Cplus,x_Cplus,x_C,x_CO,G0
+      REAL x_CO_Cplus,x_C_Cplus,x_Cplus,x_C,x_CO
       REAL Vtherm,tau_on,tau_off
 
-      G0 = 1.0
-
-      IF (heatingISR(3,ipart).LT.1.0E-10) THEN
+      IF (G0*heatingISR(3,ipart).LT.1.0E-10) THEN
          x_Cplus = 0.
          x_C = 23333./350000. * heatingISR(3,ipart)**0.6
          x_CO = 1.
@@ -1225,7 +1221,10 @@ c
 c-----------------------------------------------------------
 
       FUNCTION get_heatingISR(ext)
-
+c
+c--NOTE: This gives the heating rate assuming a standard ISRF (G0=1).
+c     The scaling for G0!=1 is done elsewhere.
+c
       IMPLICIT NONE
 
       INCLUDE 'idim'
@@ -1387,21 +1386,21 @@ c
       INCLUDE 'COMMONS/interstellar'
 
       REAL*8 photoelectric_heating,xnH2,gas_temp,metallicity
-      REAL xne,phiPAH,xnH,G0,ep,electron_fraction
+      REAL xne,phiPAH,xnH,Gr,ep,electron_fraction
       INTEGER ipart
 
       xnH = 2.0 * xnH2
       xne = electron_fraction(xnH,phiPAH)
-      G0 = heatingISR(2,ipart)
-c      G0 = 1.
+      Gr = G0*heatingISR(2,ipart)
+c      Gr = 1.
 
-      ep = 0.049/(1.0+0.004*(G0*SQRT(gas_temp)/xne/phiPAH)**0.73) +
+      ep = 0.049/(1.0+0.004*(Gr*SQRT(gas_temp)/xne/phiPAH)**0.73) +
      &     0.037*(gas_temp/1.E+4)**0.7/
-     &     (1.0+2.0E-4*(G0*SQRT(gas_temp)/xne/phiPAH))      
+     &     (1.0+2.0E-4*(Gr*SQRT(gas_temp)/xne/phiPAH))      
 c      ep = 0.05
 
       IF (iDRT_photoelectric) THEN
-         photoelectric_heating = 1.3E-24*ep*G0
+         photoelectric_heating = 1.3E-24*ep*Gr
      &        *xnH  *metallicity
       ELSE
          photoelectric_heating = 0.

@@ -257,7 +257,7 @@ subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
 !$omp shared(ihallX,ihallA,ihallN,iahallX,iahallA,iahallN) &
 !$omp shared(ihallfX,ihallfA,ihallfN,iahallfX,iahallfA,iahallfN) &
 !$omp shared(iambiX,iambiA,iambiN,iambifX,iambifA,iambifN) &
-!$omp shared(inenX,inenA,ineX,ineA,innX,innA,inihrX,inihrA,inimrX,inimrA) &
+!$omp shared(inenX,inenA,inenN,ineX,ineA,innX,innA,inihrX,inihrA,inimrX,inimrA) &
 !$omp shared(ingnX,ingnA,ingX,ingA,ingpX,ingpA,inistX,inistA,inidtX,inidtA,izetaA,izetaN) &
 !$omp private(i,ierr,rhoi,B2i,Bi,temperature,vsigi,etaart,etaart1,etaohm,etahall,etaambi) &
 !$omp private(data_out,n_total) &

@@ -80,7 +80,7 @@ c
       CALL MPI_TYPE_COMMIT(i3REAL8, ierr)
 #endif
 
-      WRITE (*,*) 'Entered Resistivity_Implicit ',nlst_end,ncompact
+c      WRITE (*,*) 'Entered Resistivity_Implicit ',nlst_end,ncompact
 c
 c--Set errors to zero for iteration start
 c
@@ -89,7 +89,7 @@ c
 
       numcomp = 0
       ipos = 1
-      print *,' ENTERED resistivity_implicit ',itime
+c      print *,' ENTERED resistivity_implicit ',itime
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(xmaxerr1old,xmaxerr2old,ncompact,ivar)
@@ -875,7 +875,7 @@ c
          IF (iproc.EQ.0) THEN
 #endif
          IF (MOD(nosweep,1).EQ.0) THEN
-           PRINT 97001,nosweep,nswmax,maxerrB,maxerrB2
+c           PRINT 97001,nosweep,nswmax,maxerrB,maxerrB2
 97001      FORMAT('GSIMPL: Finished iteration ',I4,' of ',I4,' (',
      &        1PE12.5,1PE12.5,')')
          ENDIF
@@ -886,7 +886,7 @@ c
 c--The actual test
 c
          IF(maxerrB.LE.tolmhd.AND.maxerrB2.LE.tolmhd) THEN
-            PRINT *,"Complete with ",nosweep," iterations"
+c            PRINT *,"Complete with ",nosweep," iterations"
             GOTO 150
          ENDIF
 

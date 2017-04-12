@@ -165,6 +165,13 @@ c
       IF (imhd.EQ.idim) THEN
          READ (iterm, *) ifsvi, alpha, beta, alphamin(2), alphamax(2)
          READ (iterm, *) ndivBsubcycles,overclean_fac,iresist,etamhd
+#ifdef NONIDEAL
+         IF (iresist.NE.0 .AND. ABS(iresist).NE.4) THEN
+            WRITE (*,*)'ERROR - iresist must be either 0, -4, or 4,'
+     &           ' when using NONIDEAL MHD'
+            CALL quit(0)
+         ENDIF
+#endif         
       ELSE
          READ (iterm, *) ifsvi, alpha, beta
          READ (iterm, *)

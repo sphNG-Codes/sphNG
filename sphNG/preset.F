@@ -509,7 +509,7 @@ c--Read in equation of state tables
 c      
       IF (encal.EQ.'r' .OR. 
      &     (encal.EQ.'i' .AND. (ibound.EQ.102 .OR. ibound.EQ.103))
-     &     .OR. ABS(iresist).GT.1) THEN
+     &     .OR. ABS(iresist).EQ.2 .OR. ABS(iresist).EQ.3) THEN
 
 c         filetable = TRIM(homedir)//'tables/gasttbl'
          filetable = TRIM(homedir)//'tables/gasttbl_lowdens'

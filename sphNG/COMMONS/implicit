@@ -1,5 +1,5 @@
       INTEGER nelements_varinew
-      PARAMETER (nelements_varinew=3+4*(imhd/idim))
+      PARAMETER (nelements_varinew=2+5*(imhd/idim))
 
       REAL vari, varinew
       COMMON /implicit/ vari(2,idim2),

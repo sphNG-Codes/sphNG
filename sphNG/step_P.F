@@ -1860,6 +1860,7 @@ C$OMP& private(errdivtol,rap,rmod1,divvi,aux1,aux2,aux3,denom,valfven2)
 C$OMP& private(crstepi,rmodcr,force21,force22,force2,rmodcr2,rmod)
 C$OMP& private(stepi,ibin,factor,istep2,irat,r2,pmassi,rmodsg1,rmodsg2)
 C$OMP& private(Bxi,Byi,Bzi,B2i,xi,yi,zi,dti,dteta,rmodeta,etai,rmodcool)
+C$OMP& private(rmod_du1,rmod_du2)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin,istepmingas)
 C$OMP& reduction(+:istepeta,etafac)
@@ -2452,6 +2453,18 @@ c
                rmodgd = 0.1*planetesimaltimestep(i)/planetesimalnorm(i)/
      &              (dt*isteps(i)/imaxstep)
                rmod = MIN(rmod, rmodgd)
+            ENDIF
+c
+c--Timestep from change in thermal energy
+c
+            IF (iradtrans.EQ.idim .AND. encal.EQ.'r') THEN
+               IF (f1vxyzu(4,i).GT.tiny .AND. f2vxyzu(4,i).GT.tiny) THEN
+                  rmod_du1 = 0.1*ABS(vxyzu(4,i)/f1vxyzu(4,i))/
+     &                 (dt*isteps(i)/imaxstep)
+                  rmod_du2 = 0.1*ABS(vxyzu(4,i)/f2vxyzu(4,i))/
+     &                 (dt*isteps(i)/imaxstep)
+                  rmod = MIN(rmod,rmod_du1,rmod_du2)
+               ENDIF
             ENDIF
 
 #ifdef NONIDEAL

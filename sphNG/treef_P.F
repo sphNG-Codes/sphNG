@@ -575,3 +575,165 @@ c
 
       RETURN
       END
+
+
+      SUBROUTINE getneigh_los(m,rrx,rry,rrz,ntot,numneigh,neighb,
+     &     dist2,xyzmh)
+c
+c*********************************************************************
+c                                                                    *
+c     Return list of gas particles that lie between particle 'm' and *
+c     the position (rrx, rry, rrz)                                   *
+c     MRB: 18.02.2016                                                *
+c                                                                    *
+c*********************************************************************
+c
+      INCLUDE 'idim'
+      INCLUDE 'igrape'
+
+      DIMENSION xyzmh(5,mmax2),neighb(idim),dist2(idim)
+
+      INCLUDE 'COMMONS/treecom_P'
+      INCLUDE 'COMMONS/logun'
+      INCLUDE 'COMMONS/phase'
+      INCLUDE 'COMMONS/sort'
+      INCLUDE 'COMMONS/kerne'
+
+      PARAMETER (istacksize=200)
+      DIMENSION nstack(istacksize)
+      SAVE nstack
+C$OMP THREADPRIVATE(nstack)
+
+      numneigh = 0
+c
+c--Stop if particle m is not in the tree (because it is dead or it is
+c     a sink particle and the code is being run with iptintree=0)
+c
+      IF (iphase(m).EQ.-1 .OR. iphase(m).GE.1 .AND. iphase(m).LT.10
+     &     .AND. iptintree.EQ.0) THEN
+         WRITE (iprint,*) 'ERROR: getneigh_los with iphase ',iphase(m)
+         CALL quit(1)
+      ENDIF
+
+      istack = 0
+#ifdef PERIODIC_NO_GHOSTS
+c     for periodic with no ghosts we need to start the search
+c     from the (two daughters of the) root node. Thus we place
+c     the daughter of root on the stack and line 100 puts the
+c     sibling of the daughter and we are away
+      mpar = isibdaupar(2,nroot)
+      istack = istack + 1
+      nstack(istack) = mpar
+#else
+c     otherwise we start the search from the current node
+      mpar = m
+#endif
+
+#ifdef MPI
+      IF (m.GT.ntot) THEN
+c
+c--Particle 'm' will not be in the tree because it resides on another
+c     MPI process, so need to start tree walk from root node.
+c
+         mpar = isibdaupar(2,nroot)
+         istack = istack + 1
+         nstack(istack) = mpar
+
+         mtot2 = m + ntot + 2
+         rmx = xyzmh(1,mtot2)
+         rmy = xyzmh(2,mtot2)
+         rmz = xyzmh(3,mtot2)
+         hm = xyzmh(5,mtot2)
+      ELSE
+#endif
+         rmx = xyzmh(1,m)
+         rmy = xyzmh(2,m)
+         rmz = xyzmh(3,m)
+         hm = xyzmh(5,m)
+#ifdef MPI
+      ENDIF
+#endif
+
+      d21 = (rmx-rrx)**2 + (rmy-rry)**2 + (rmz-rrz)**2
+
+ 300  node = isibdaupar(1,mpar)
+      IF (node.NE.0) THEN
+         istack = istack + 1
+         nstack(istack) = node
+ 350     IF (istack.NE.0) THEN
+            n = nstack(istack)
+            istack = istack - 1
+#ifdef PERIODIC_NO_GHOSTS
+c           do not get self in neighbour list
+            IF (n.EQ.m) GOTO 350
+#endif
+            dx1 = xyzmh(1,n) - rrx
+            dy1 = xyzmh(2,n) - rry
+            dz1 = xyzmh(3,n) - rrz
+            dx2 = xyzmh(1,n) - rmx
+            dy2 = xyzmh(2,n) - rmy
+            dz2 = xyzmh(3,n) - rmz
+
+            rcut2 = (radkernel*xyzmh(5,n))**2
+            rcut2 = (radkernel*(xyzmh(5,n)+hm))**2
+
+#ifdef PERIODIC_NO_GHOSTS
+            CALL modbound(dx1,dy1,dz1)
+            CALL modbound(dx2,dy2,dz2)
+#endif
+c
+c--Distance squared of node 'n' from line - see:
+c     http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
+c
+            rr = ((dy1*dz2 - dz1*dy2)**2 + (dx1*dz2 - dz1*dx2)**2 +
+     &           (dx1*dy2 - dy1*dx2)**2)/d21
+c
+c--Decide whether to open up the node
+c
+            IF (n.GT.natom) THEN
+               qcut2 = (qrad(1,n) + radkernel*xyzmh(5,n))**2
+c               qcut2 = (qrad(1,n) + radkernel*(xyzmh(5,n)+hm))**2
+               IF (rr.LT.qcut2) THEN
+                  j = isibdaupar(2,n)
+                  IF (istack+2.GT.istacksize) THEN
+                     WRITE(iprint,*)
+     &                    'ERROR: stack overflow in getneigh_los'
+     &                    ,istack+2,istacksize
+                     CALL quit(1)
+                  ENDIF
+                  istack = istack + 1
+                  nstack(istack) = j
+                  istack = istack + 1
+                  nstack(istack) = isibdaupar(1,j)
+               ENDIF
+            ELSE
+               IF (rr.LT.rcut2) THEN
+                  IF (iphase(n).EQ.0) THEN
+c
+c--Keep only if particle lies between sink and particle m
+c
+               IF (dx1*dx2 + dy1*dy2 + dz1*dz2.LT.0.) THEN
+c               IF ((dx1*dx2 + dy1*dy2 + dz1*dz2)/
+c     &                    SQRT(dx2**2 + dy2**2 + dz2**2).LT.
+c     &                    radkernel*xyzmh(5,n)) THEN
+                        numneigh = numneigh + 1
+                        IF (numneigh.LE.idim) THEN
+                           neighb(numneigh) = n
+                           rcut2 = (radkernel*(xyzmh(5,n)))**2
+                           dist2(numneigh) = radkernel**2*rr/rcut2
+                        ELSE
+                           WRITE (iprint,*) 'ERROR: nneighmax exceeded'
+                           STOP
+                        ENDIF
+                     ENDIF
+                  ENDIF
+               ENDIF
+            ENDIF
+            GOTO 350
+         ENDIF
+         mpar = isibdaupar(3,mpar)
+         GOTO 300
+      ENDIF
+
+      RETURN
+      END

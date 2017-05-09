@@ -1,0 +1,61 @@
+c
+c--Contains many parameters and tables required for the inclusion
+c	 of radiation from sink particles (stars) for ADDITION
+c	 to the radiative transfer + diffuse interstellar medium model
+c	 originally developed by Bate & Keto (2015).
+c
+c--The types of direct feedback:
+c      Thermal heating
+c      Ionisation
+c      Radiation pressure
+c
+      LOGICAL istellar_heating,istellar_ionisation,istellar_rapres
+      PARAMETER (istellar_heating = .FALSE.)
+      PARAMETER (istellar_ionisation = .FALSE.)
+      PARAMETER (istellar_rapres = .FALSE.)
+
+c      PARAMETER (idim_ionisation = idim)
+      PARAMETER (idim_ionisation = 1)
+c      PARAMETER (idim_stellarrad = idim)
+      PARAMETER (idim_stellarrad = 1)
+
+      LOGICAL istellarradiation
+      PARAMETER (istellarradiation = istellar_heating.OR.
+     &		istellar_ionisation.OR.istellar_rapres)
+c
+c--Arrays for storing sink particle properties (from all MPI processes)
+c
+      COMMON /stellarprop/ stellar_radtemp(2,iptdim),
+     &	     stellar_xyzmhrt(7,iptdim)
+c
+c--Keep fraction of HII
+c
+      REAL*8 HIIion, dHIIdt
+      COMMON /ionise/ HIIion(idim_ionisation),
+     &       dHIIdt(2,idim_ionisation)
+c
+c--Arrays for storing direct feedback quantities
+c
+      INTEGER nstellar_T
+      PARAMETER (nstellar_T = 100)
+      INTEGER nstellar_Av
+      PARAMETER (nstellar_Av = 350)
+      INTEGER nstellar_radpres
+      PARAMETER (nstellar_radpres = 865)
+
+      REAL xSTARlogfac
+      PARAMETER (xSTARlogfac = 0.04)
+
+      REAL*4 stellar_AvT_table, radpres_table
+      REAL*8 stellar_radpres,stellarrad,stellar_xyzmhrt,stellar_radtemp
+      REAL*8 asymmetry
+
+      COMMON /stellarrad_t/ stellar_AvT_table(2,nstellar_Av,nstellar_T),
+     &	     radpres_table(nstellar_radpres)
+      COMMON /stellarrad_p/ stellar_radpres(3,2*idim_stellarrad)
+      COMMON /stellar/stellarrad(4,iptdim,
+     &	     3*MAX(idim_ionisation,idim_stellarrad))
+      COMMON /stellarrad_f/ stellarflux_vec(3,2*idim_stellarrad),
+     &	     divstellarflux(idim_stellarrad)
+      COMMON /stellarasym/ asymmetry(3*idim_stellarrad),
+     &	     stellar_tau(idim_stellarrad)

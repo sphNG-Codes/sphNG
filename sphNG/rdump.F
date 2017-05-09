@@ -60,6 +60,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/stellarradiation'
 
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
@@ -641,6 +642,37 @@ c--Default real
             ENDIF
             READ (idisk1, END=100) abco(icount+1:icount+nhydro)
           ENDIF
+
+          IF (istellar_ionisation) THEN
+             IF (idim_ionisation.NE.idim) THEN
+                WRITE (*,*) 'ERROR - ionisation TRUE but ',
+     &               'idim_ionisation.NE.idim'
+                CALL quit(0)
+             ENDIF
+
+             iwanted = iwanted + 6
+
+             IF (nums1(6).LT.iwanted) THEN
+                WRITE (*,*) 'ERROR - nums1(6).LT.iwanted ',
+     &               nums1(6),iwanted
+                CALL quit(0)
+             ENDIF
+
+             IF (tagged) READ (idisk1, END=100) tagi
+             CALL checktag('HIIFrac', tagi, ierr)
+             READ (idisk1, END=100) 
+     &            HIIion(icount+1:icount+nhydro)
+
+             IF (tagged) READ (idisk1, END=100) ! skip tags
+             READ (idisk1, END=100) 
+     &            dHIIdt(1,icount+1:icount+nhydro)
+
+             DO j = 1, 4
+                IF (tagged) READ (idisk1, END=100)
+                READ (idisk1, END=100)
+             END DO
+          ENDIF
+
 c--skip unnecessary reals
          IF (nums1(6).GT.iwanted) THEN
             DO j=1,nums1(6)-iwanted

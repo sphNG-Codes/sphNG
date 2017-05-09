@@ -68,6 +68,8 @@ c#endif
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
 #endif
+      INCLUDE 'COMMONS/stellarradiation'
+
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
 
@@ -388,6 +390,8 @@ c--For Clare's chemistry
 c
       IF (iener.EQ.4) nums(6) = nums(6) + 5
 
+      IF (istellar_ionisation) nums(6) = nums(6) + 6
+
       IF (nlmax.EQ.1) THEN
          nums(7) = 4
       ELSE
@@ -514,6 +518,22 @@ c--Default real
          WRITE (idisk1, ERR=100) tag('abco')
          WRITE (idisk1, ERR=100) (abco(isort(i)), i=1, nprint)         
       ENDIF       
+
+      IF (istellar_ionisation) THEN
+         WRITE (idisk1, ERR=100) tag('HIIFrac')
+         WRITE (idisk1, ERR=100) (HIIion(isort(i)), i=1, 
+     &        nprint)
+         WRITE (idisk1, ERR=100) tag('dHIIdt')
+         WRITE (idisk1, ERR=100) (dHIIdt(1,isort(i)), i=1, 
+     &           nprint)
+         tagarr(1:4) = (/tag('StellarExt'),tag('StellarCol'),
+     &        tag('StellarH2Col'),tag('StellarHII')/)
+         DO j = 1, 4
+            WRITE (idisk1, ERR=100) tag(tagarr(j))
+            WRITE (idisk1, ERR=100) 
+     &           (stellarrad(j,1,isort(i)),i=1,nprint)
+         END DO
+      ENDIF
 
       IF (iplotdump.EQ.1) THEN
          tagarr(1:2) = (/'gas ','dust'/)

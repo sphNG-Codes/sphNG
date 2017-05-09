@@ -317,6 +317,7 @@ c
             d2 = (xyzmh(1,i) - cmx1)**2 + (xyzmh(2,i) - cmy1)**2 +dz*dz
 #endif
             dmax1 = MAX(dmax1, d2)
+            dmin1 = MIN(dmin1, d2)
             zmax1 = MAX(zmax1, ABS(dz))
             IF (d2.LT.rmin2 .AND. 
      &                      (iphase(i).EQ.0 .OR. iphase(i).GE.10)) THEN
@@ -326,6 +327,7 @@ c
          ENDIF
       END DO
       dmax1 = SQRT(dmax1)
+      rmin1 = SQRT(rmin2)
       IF (imin.NE.0) THEN
          rocen1 = rho(imin)
          IF (encal.EQ.'r') THEN

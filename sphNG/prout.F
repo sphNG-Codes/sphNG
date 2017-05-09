@@ -115,6 +115,7 @@ c         n1tot = n1
          hmi1tot = hmi1
          hma1tot = hma1
          dmax1tot = dmax1
+         rmin1tot = rmin1
          zmax1tot = zmax1
          romean1tot = romean1
          romax1tot = romax1
@@ -243,6 +244,8 @@ c     &     MPI_COMM_WORLD,ierr)
          CALL MPI_REDUCE(hma1,hma1tot,1,MPI_REAL8,MPI_MAX,0,
      &        MPI_COMM_WORLD,ierr)
          CALL MPI_REDUCE(dmax1,dmax1tot,1,MPI_REAL8,MPI_MAX,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(rmin1,rmin1tot,1,MPI_REAL8,MPI_MIN,0,
      &        MPI_COMM_WORLD,ierr)
          CALL MPI_REDUCE(zmax1,zmax1tot,1,MPI_REAL8,MPI_MAX,0,
      &        MPI_COMM_WORLD,ierr)
@@ -695,6 +698,8 @@ c
 c
 c--Object no 1
 c
+c         WRITE (96,*) gt, rmin1tot
+
          WRITE (iprint, 99006, ERR=100) n1,cmx1tot,cmy1tot,cmz1tot,
      &        vcmx1tot,vcmy1tot, vcmz1tot, hmi1tot, hma1tot, dmax1tot,
      &        zmax1tot, romean1tot, romax1tot, rocen1tot,

@@ -1,13 +1,13 @@
 
       REAL*4 romax1, valphamax1, valphamin1
-      REAL cmx1, cmy1, cmz1, vcmx1, vcmy1, vcmz1 
-      REAL dmax1, zmax1, tmean1, tmax1, hmi1, hma1, romean1, rocen1
+      REAL cmx1, cmy1, cmz1, vcmx1, vcmy1, vcmz1, dmax1, rmin1
+      REAL zmax1, tmean1, tmax1, hmi1, hma1, romean1, rocen1
       REAL tgmean1, tgmax1, tgcen1, trmean1, trmax1, trcen1, h2mass1 
       REAL tdmax1, tdmin1, tdmean1
       INTEGER n1new
 
       COMMON /out1  / cmx1, cmy1, cmz1, vcmx1, vcmy1, vcmz1, 
-     &                dmax1, zmax1, tmean1, tmax1, 
+     &                dmax1, rmin1, zmax1, tmean1, tmax1, 
      &                hmi1, hma1, romean1, rocen1, 
      &                tgmean1, tgmax1, tgcen1, trmean1, trmax1, trcen1,
      &                h2mass1, tdmax1, tdmin1, tdmean1, 

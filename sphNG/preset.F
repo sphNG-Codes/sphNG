@@ -67,6 +67,7 @@ c************************************************************
       INCLUDE 'COMMONS/vargam'
       INCLUDE 'COMMONS/physcon'
 #endif
+      INCLUDE 'COMMONS/stellarradiation'
 
       CHARACTER*7 where
       CHARACTER*6 dummy
@@ -689,6 +690,20 @@ c
          CALL build_interstellar_radiation_table
          CALL build_photoelectric_table
          CALL build_planck_mean_table
+      ENDIF
+c
+c--Build tables for direct stellar radiation from sink particles
+c
+      IF (istellarradiation) THEN
+         IF (istellar_ionisation .AND. idim_ionisation.NE.idim) THEN
+            WRITE (*,*) 'ERROR - stellar ionisation TRUE but ',
+     &           'idim_ionisation.NE.idim'
+            CALL quit(0)
+         ENDIF
+         CALL build_kernel_column
+         CALL build_kernel_n2
+         CALL build_stellar_radiation_table
+c         CALL build_radpres_table
       ENDIF
 #endif
 c

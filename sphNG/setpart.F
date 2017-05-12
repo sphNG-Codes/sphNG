@@ -1339,6 +1339,11 @@ c
 c--Radiative transfer
 c
          ELSE IF (encal.EQ.'r') THEN
+            IF (iradtrans.NE.idim) THEN
+               WRITE (*,*) 'ERROR - encal=r, but iradtrans.NE.idim'
+               CALL quit(0)
+            ENDIF
+
             gamma = 5.0/3.0
             gm1 = gamma - 1.0
             IF (ien.EQ.'s') thermal = vsoundin2/(gamma*gm1)

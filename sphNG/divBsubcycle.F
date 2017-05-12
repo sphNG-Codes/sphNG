@@ -61,6 +61,11 @@ c--Allow for tracing flow
 c
       IF (itrace.EQ.'all') WRITE (iprint, 250)
   250 FORMAT(' entry subroutine divBsubcycle')
+
+#ifdef MPIALL
+      CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
+      CALL MPI_TYPE_COMMIT(i4REAL8, ierr)
+#endif
 c
 c--Set up constants in Code units
 c
@@ -366,6 +371,101 @@ c
                Bxyzpnew(k,i) = Bxyzpnew(k,j)
             END DO
          END DO
+
+#ifdef MPI
+c
+c--Update values of Bxyzpnew for copies of particles on MPI processes
+c
+      inumbertotallocal = 0
+      inumberreturned = 0
+      DO i = 0, numproc - 1
+         IF (iproc.EQ.i) THEN
+            IF (nneighsentanyatall) THEN
+c
+c--Otherwise this process does not need to send any particle back!
+c
+c--Send active node data to be processed by other processes.  Data from all
+c     other processes is received before any processing is done.  This
+c     is because here it is assumed that the total number of remote particles
+c     on which forces need to be calculated by this MPI process is less
+c     than idim.
+c
+               DO j = 0, numproc - 1
+                  IF (j.NE.iproc) THEN
+c
+c--Only sends anything at all to another MPI process if it needs to (the
+c     other MPI process knows when it doesn't need to expect anything)
+c
+                     IF (nneighsentany(j+1)) THEN
+#ifdef MPIDEBUG
+                        print *,iproc,': sending Bxyzpnew to ',j,
+     &                     ' starting at ',llistsentback(1,j+1),'+1 ',
+     &                       nneighsentback(j+1),' list '
+c     &             ,(llistsentback(kkk,j+1),kkk=1,nneighsentback(j+1))
+#endif
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &             1,llistsentback(1,j+1),i4REAL8,indexB,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                llistsentback(1,j+1),i4REAL8,indexB,ierr)
+                CALL MPI_TYPE_COMMIT(indexB,ierr)
+
+                        CALL MPI_SEND(Bxyzpnew,1,indexB,j,154,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_TYPE_FREE(indexB,ierr)
+#ifdef MPIDEBUG
+                        print *,iproc,' sent Bxyzpnew'
+#endif
+                     ENDIF
+                  ENDIF
+               END DO
+            ENDIF
+c
+c--Other processes receive the particles being sent
+c
+         ELSE
+            IF (inumberreturned.LT.inumofreturns .AND.
+     &           nneightogetback(i+1).GT.0) THEN
+               inumberreturned = inumberreturned + 1
+#ifdef MPIDEBUG
+               print *,iproc,': receiving Bxyzpnew data ',
+     &              inumberreturned,inumofreturns
+#endif
+               istart = ntot + inumbertotallocal + 1
+               CALL MPI_RECV(Bxyzpnew(1,istart), idim, MPI_REAL8,
+     &              i, 154, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               iprocrec = istatus(MPI_SOURCE)
+
+#ifdef MPIDEBUG
+               print *,iproc,': got Bxyzpnew from ',iprocrec,inumber
+#endif
+               inumbertotallocal = inumbertotallocal + inumber/4
+               IF (inumberindiv(inumberreturned)*4.NE.inumber) THEN
+                  WRITE (*,*) iproc,': ERR - inumberindiv ',inumber,
+     &                 inumberindiv(inumberreturned),inumberreturned
+                  CALL quit(1)
+               ENDIF
+               IF (inumbercumm(inumberreturned).NE.istart) THEN
+                  WRITE (*,*) iproc,': ERR - inumbercumm ',istart,
+     &                 inumbercumm(inumberreturned),inumberreturned
+                  CALL quit(1)
+               ENDIF
+               IF (inumberproc(inumberreturned).NE.iprocrec) THEN
+                  WRITE (*,*) iproc,': ERR - inumberproc ',iprocrec,
+     &                 inumberproc(inumberreturned),inumberreturned
+                  CALL quit(1)
+               ENDIF
+            ENDIF
+         ENDIF
+      END DO
+      IF (inumbertotallocal.NE.inumbertotal) THEN
+         WRITE (*,*) iproc,': inumbertotallocal.NE.inumbertotal ',
+     &        inumbertotallocal,inumbertotal
+         CALL quit(1)
+      ENDIF
+
+#endif
 c
 c--Then calculate derivatives of B and psi at half-timestep
 c
@@ -427,6 +527,101 @@ c
             END DO
          ENDIF
 
+#ifdef MPI
+c
+c--Update values of Bxyzpnew for copies of particles on MPI processes
+c
+      inumbertotallocal = 0
+      inumberreturned = 0
+      DO i = 0, numproc - 1
+         IF (iproc.EQ.i) THEN
+            IF (nneighsentanyatall) THEN
+c
+c--Otherwise this process does not need to send any particle back!
+c
+c--Send active node data to be processed by other processes.  Data from all
+c     other processes is received before any processing is done.  This
+c     is because here it is assumed that the total number of remote particles
+c     on which forces need to be calculated by this MPI process is less
+c     than idim.
+c
+               DO j = 0, numproc - 1
+                  IF (j.NE.iproc) THEN
+c
+c--Only sends anything at all to another MPI process if it needs to (the
+c     other MPI process knows when it doesn't need to expect anything)
+c
+                     IF (nneighsentany(j+1)) THEN
+#ifdef MPIDEBUG
+                        print *,iproc,': sending Bxyzpnew to ',j,
+     &                     ' starting at ',llistsentback(1,j+1),'+1 ',
+     &                       nneighsentback(j+1),' list '
+c     &             ,(llistsentback(kkk,j+1),kkk=1,nneighsentback(j+1))
+#endif
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &             1,llistsentback(1,j+1),i4REAL8,indexB,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                llistsentback(1,j+1),i4REAL8,indexB,ierr)
+                CALL MPI_TYPE_COMMIT(indexB,ierr)
+
+                        CALL MPI_SEND(Bxyzpnew,1,indexB,j,154,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_TYPE_FREE(indexB,ierr)
+#ifdef MPIDEBUG
+                        print *,iproc,' sent Bxyzpnew'
+#endif
+                     ENDIF
+                  ENDIF
+               END DO
+            ENDIF
+c
+c--Other processes receive the particles being sent
+c
+         ELSE
+            IF (inumberreturned.LT.inumofreturns .AND.
+     &           nneightogetback(i+1).GT.0) THEN
+               inumberreturned = inumberreturned + 1
+#ifdef MPIDEBUG
+               print *,iproc,': receiving Bxyzpnew data ',
+     &              inumberreturned,inumofreturns
+#endif
+               istart = ntot + inumbertotallocal + 1
+               CALL MPI_RECV(Bxyzpnew(1,istart), idim, MPI_REAL8,
+     &              i, 154, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               iprocrec = istatus(MPI_SOURCE)
+
+#ifdef MPIDEBUG
+               print *,iproc,': got Bxyzpnew from ',iprocrec,inumber
+#endif
+               inumbertotallocal = inumbertotallocal + inumber/4
+               IF (inumberindiv(inumberreturned)*4.NE.inumber) THEN
+                  WRITE (*,*) iproc,': ERR - inumberindiv ',inumber,
+     &                 inumberindiv(inumberreturned),inumberreturned
+                  CALL quit(1)
+               ENDIF
+               IF (inumbercumm(inumberreturned).NE.istart) THEN
+                  WRITE (*,*) iproc,': ERR - inumbercumm ',istart,
+     &                 inumbercumm(inumberreturned),inumberreturned
+                  CALL quit(1)
+               ENDIF
+               IF (inumberproc(inumberreturned).NE.iprocrec) THEN
+                  WRITE (*,*) iproc,': ERR - inumberproc ',iprocrec,
+     &                 inumberproc(inumberreturned),inumberreturned
+                  CALL quit(1)
+               ENDIF
+            ENDIF
+         ENDIF
+      END DO
+      IF (inumbertotallocal.NE.inumbertotal) THEN
+         WRITE (*,*) iproc,': inumbertotallocal.NE.inumbertotal ',
+     &        inumbertotallocal,inumbertotal
+         CALL quit(1)
+      ENDIF
+
+#endif
+
 c         print *,'it ',nosweep,divBmax,divBmean/ncompact,ncompact
 
 c      print *,'Mean/Max divergence is ',nosweep,divBmax,divBmean,
@@ -437,6 +632,10 @@ c
 c--Then calculate derivatives of B and psi at the end
 c
       CALL divB_dBpsi(Bxyzpnew,ntot)
+
+#ifdef MPIALL
+      CALL MPI_TYPE_FREE(i4REAL8,ierr)
+#endif
 
       RETURN
 

@@ -362,9 +362,10 @@ OBJKERNEL= $(KERNEL:.f=.o)
 # these are the sources common to all compilations
 
 SOURCES= sph.F accrete_P.F addump.f angmom.f \
-	bonnorebert.F boundry.f buildsightlines.f \
+	bonnorebert.F boundry.f build_kernel_column.f build_kernel_n2.f \
+	buildsightlines.f build_stellar_radiation_table.f \
 	cartdis.f cartmas.f cartpres.f cartvel.f chanref.f chekopt.f \
-	condense.f \
+	condense.f column_los.F \
 	coolcurve.f coolinmo.F cool_func.F \
 	coriol.f cyldis.f cylmas.f discboundary.f \
 	divBclean_subcycle.F divBsubcycle.F \
@@ -383,8 +384,8 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f \
 	makedust.F makeplot.f mesop.f mhdparams_mhd.f \
 	modif.f mtree_P.f newrun.f options.f \
 	optimise_column_density.f phoenix.f phoenix2.f \
-	planetpotential.f planet_setup.f planetesimals.f potential.f \
-	preset.F prout.F polytrope.F \
+	planetpotential.f planet_setup.f planetesimals.f planck.f \
+	potential.f preset.F prout.F polytrope.F Qv.f \
 	ran1.f rdump.F rdump_wrapper.F read_dragtable.f reduce.f \
 	maketables/specificheat.f resistivity.f resistivity_implicit.F save.f \
 	scaling.f \
@@ -408,14 +409,14 @@ SRCMPI=balance.F classify_MPI.F
 endif
 
 # these are the extra routines required for the radiative transfer code to compile
-        
+
 SRCRT= ass.f RT/newgsimpl_MPI.f RT/boundaryparticle.f quartic_gs1t.f \
-	RT/getblock.f RT/dust_temperature.f column_density.F 
+	RT/getblock.f RT/dust_temperature.f column_density.F
 SRCNORT =
 RTFPPFLAGS=${FPP_SEP}-DRT
 
 # these are the extra routines required for Monte-Carlo radiative transfer
-        
+
 SRCTORUS= montecarloRT.F
 
 # these are the extra routines required for non-ideal MHD

@@ -36,6 +36,8 @@ c************************************************************
       INCLUDE 'COMMONS/call'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/raddust'
+      INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/ptmass'
 
 c      DATA epsil2/1.E-4/
 c
@@ -43,6 +45,11 @@ c--Allow for tracing flow
 c
       IF (itrace.EQ.'all') WRITE (iprint, 250)
   250 FORMAT(' entry subroutine dissipative_source')
+c
+c--Position value to allow full timestep and half timestep derivatives
+c     to be used (as in normal R-K integrator)
+c
+      ih2pos = MIN(2,icall)
 c
 c--Calculate dissipative source terms
 c
@@ -54,12 +61,13 @@ C$OMP& shared(alphaMMpass,alphamin,alphamax)
 C$OMP& shared(Bxyz,divcurlB,gradB,dBxyz,Bevolxyz,overclean_fac)
 C$OMP& shared(ivar)
 C$OMP& shared(dh2dt,dust_tk,vxyzu,ekcle,utime,udens,icall)
+C$OMP& shared(dHIIdt,umass,nptmasstot,stellarrad,ih2pos)
 C$OMP& private(ipart,k)
 C$OMP& private(hi,hi1,rhoi,rho1i,vsoundi)
 C$OMP& private(fi,tdecay1,source)
 C$OMP& private(Bxi,Byi,Bzi,B2i)
 C$OMP& private(vsigi,vs2i,dB2,psi,gradBmag)
-C$OMP& private(dust_temp,gas_temp,xnH2,ih2pos)
+C$OMP& private(dust_temp,gas_temp,xnH2,isink)
       DO n = nlst_in, nlst_end
          ipart = ivar(3,n)
          
@@ -87,20 +95,34 @@ c
             dha(k,ipart) = 0.0
          END DO
 c
-c--Dissipation and H_2 formation below only applies to gas particles
+c--Dissipation, H_2 formation, and stellar feedback below only applies 
+c     to gas particles
 c
          IF (iphase(ipart).EQ.0) THEN
-
+c
+c--Compute rate of ionisation
+c
+            IF (istellar_ionisation) THEN
+               dHIIdt(ih2pos,ipart) = 0.
+               DO isink = 1, nptmasstot
+c                  dHIIdt(ih2pos,ipart) = dHIIdt(ih2pos,ipart) + 
+c     &                 1.0E+46/(4.0*pi)*(gmw/2.*mH) - 
+c     &                 stellarrad(3,isink,ipart)*3.0E-13/(gmw/2.*mH)
+                  dHIIdt(ih2pos,ipart) = dHIIdt(ih2pos,ipart) + 
+     &                 1.0E+49/(4.0*pi)*(gmw/gmw*mH) - 
+     &                 stellarrad(3,isink,ipart)*2.7E-13/(gmw/gmw*mH)
+               END DO
+c
+c--Convert to code units
+c
+               dHIIdt(ih2pos,ipart) = dHIIdt(ih2pos,ipart)/
+     &              (xyzmh(4,ipart)*umass/2.0)*utime
+            ENDIF
 #ifdef RT
 c
 c--Evolution of H_2
 c
             IF (idustRT.GT.0) THEN
-c
-c--Position value to allow full timestep and half timestep derivatives
-c     to be used (as in normal R-K integrator)
-c
-               ih2pos = MIN(2,icall)
                dust_temp = dust_tk(1,ipart)
                gas_temp = vxyzu(4,ipart)/ekcle(3,ipart)
                xnH2 = trho(ipart)*udens/(gmw*mH)

@@ -25,6 +25,7 @@ c      PARAMETER (idim_stellarrad = idim)
 c
 c--Arrays for storing sink particle properties (from all MPI processes)
 c
+      REAL*8 stellar_xyzmhrt,stellar_radtemp
       COMMON /stellarprop/ stellar_radtemp(2,iptdim),
      &	     stellar_xyzmhrt(7,iptdim)
 c
@@ -47,7 +48,7 @@ c
       PARAMETER (xSTARlogfac = 0.04)
 
       REAL*4 stellar_AvT_table, radpres_table
-      REAL*8 stellar_radpres,stellarrad,stellar_xyzmhrt,stellar_radtemp
+      REAL*8 stellar_radpres,stellarrad
       REAL*8 asymmetry
 
       COMMON /stellarrad_t/ stellar_AvT_table(2,nstellar_Av,nstellar_T),

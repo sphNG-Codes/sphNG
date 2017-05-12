@@ -105,6 +105,7 @@ c      INCLUDE 'COMMONS/neighbor_P'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
 #endif
+      INCLUDE 'COMMONS/stellarradiation'
 
       DIMENSION nsteplist(30)
       INTEGER*8 nneightotsave
@@ -220,6 +221,7 @@ ccc               isteps(i) = idtini
                   IF (gt.EQ.0.0) THEN
 c
 c--Set gas initially to be entirely atomic or entirely molecular (=0.5)
+c     and unionised
 c
                      IF (iphase(i).EQ.0) THEN
                         IF (iatomic) THEN
@@ -230,6 +232,7 @@ c
                      ENDIF
                      dh2dt(1,i) = 0.0
                      dh2dt(2,i) = 0.0
+                     IF (idim_ionisation.EQ.idim) hIIion(i) = 0.
                   ENDIF
                   IF (ioptimise_column.EQ.1) icolumnnext(i) = 0
                ENDIF
@@ -1051,6 +1054,7 @@ C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,vsmooth,ifullstep)
 C$OMP& shared(ifsvi,alphaMM,alphamax,encal,dumBevolxyz,Bevolxyz)
 C$OMP& shared(pdvvisc,alphamin,utime,h2frac,dh2dt,udens,rho)
+C$OMP& shared(HIIion,dHIIdt,stellarrad)
 C$OMP& private(i,j,k,dtfull,dtf21,dtf22,xold,yold,delvx,delvy,delvz)
 C$OMP& private(vxstore,vystore,dx,dy,delgx,delgy,delpx,delpy)
 C$OMP& private(delax,delay,extraxt,extrayt,extraxg,extrayg)
@@ -1190,6 +1194,11 @@ c     &              dtf22*f2vxyzu(4,i),dumvxyzu(4,i)- vxyzu(4,i)
 c               print *,' '
 c            ENDIF
 
+            IF (istellar_ionisation) THEN
+               HIIion(i) = MIN(1.0,MAX(0.0,HIIion(i) +
+     &              dtf21*dHIIdt(1,i) + dtf22*dHIIdt(2,i) -
+     &              stellarrad(4,1,i)   ))
+            ENDIF
             IF (encal.EQ.'r') THEN
                pdvvisc(i) = dtf21*f1vxyzu(4,i) + dtf22*f2vxyzu(4,i)
 
@@ -1203,9 +1212,8 @@ c--Evolve molecular hydrogen fraction if encal='r' and idustRT=1
 c
                IF (idustRT.GT.0) THEN
                   h2frac(i) = MIN(0.5,MAX(0.0,h2frac(i) +
-     &                  dtf21*dh2dt(1,i) + dtf22*dh2dt(2,i) ))
+     &                 dtf21*dh2dt(1,i) + dtf22*dh2dt(2,i) ))
                ENDIF
-
             ELSEIF (encal.EQ.'m') THEN
                vxyzu(4,i) = dumvxyzu(4,i)
             ELSE
@@ -1860,7 +1868,6 @@ C$OMP& private(errdivtol,rap,rmod1,divvi,aux1,aux2,aux3,denom,valfven2)
 C$OMP& private(crstepi,rmodcr,force21,force22,force2,rmodcr2,rmod)
 C$OMP& private(stepi,ibin,factor,istep2,irat,r2,pmassi,rmodsg1,rmodsg2)
 C$OMP& private(Bxi,Byi,Bzi,B2i,xi,yi,zi,dti,dteta,rmodeta,etai,rmodcool)
-C$OMP& private(rmod_du1,rmod_du2)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin,istepmingas)
 C$OMP& reduction(+:istepeta,etafac)

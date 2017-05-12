@@ -92,9 +92,11 @@ c     that are neighbours of active particles for updating their densities etc
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/sightlines'
+      INCLUDE 'COMMONS/stellarradiation'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
 #endif
+
       COMMON /rhominval/ rhomin
 
 #ifdef MPICOPY
@@ -253,6 +255,7 @@ C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)
 C$OMP& shared(iphase,dBxyz,divcurlB,gradB,it0,itime,hfact)
 C$OMP& shared(curlv,gradhs,sightcolumns,hi_2back)
 C$OMP& shared(planetesimaltimestep,planetesimalnorm,iplanetesimals)
+C$OMP& shared(stellarrad,nptmasstot)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend)
 #endif
@@ -327,23 +330,21 @@ c            ENDIF
                gradB(k,ipart) = 0.
             END DO
          ENDIF
-#ifdef MPI
          IF (idustRT.GT.0) THEN
-            DO k = 1, nsightlinesmax
-               sightcolumns(k,1,ipart) = 0.
-               sightcolumns(k,2,ipart) = 0.
-            END DO
-         ENDIF
+#ifdef MPI
+            sightcolumns(1:nsightlinesmax,1:2,ipart) = 0.
 #endif
+         ENDIF
+         IF (istellarradiation) THEN
+            stellarrad(1:4,1:nptmasstot,ipart) = 0.
+         ENDIF
          IF (iplanetesimals.GT.0) THEN
             planetesimaltimestep(ipart) = 0.0
             planetesimalnorm(ipart) = 0.0
          ENDIF
       END DO
 C$OMP END PARALLEL DO
-c
-c--Iterate density calculation for particle ipart
-c
+
 #ifdef MPI
       inumofreturns = 0
       inumofsends = 0
@@ -359,6 +360,7 @@ C$OMP END PARALLEL DO
 
       CALL MPI_TYPE_CONTIGUOUS(15, MPI_REAL8, i15REAL8, ierr)
 c      CALL MPI_TYPE_CONTIGUOUS(12, MPI_REAL8, i12REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(7, MPI_REAL8, i7REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(imhdevol, MPI_REAL8, imhdevolREAL8,ierr)
       CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
@@ -367,6 +369,7 @@ c      CALL MPI_TYPE_CONTIGUOUS(12, MPI_REAL8, i12REAL8, ierr)
 
       CALL MPI_TYPE_COMMIT(i15REAL8,ierr)
 c      CALL MPI_TYPE_COMMIT(i12REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i7REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
       CALL MPI_TYPE_COMMIT(imhdevolREAL8,ierr)
       CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
@@ -379,6 +382,50 @@ c      CALL MPI_TYPE_COMMIT(i12REAL8,ierr)
       nlstdo_tot = nlstdo
 #endif
 
+      IF (istellarradiation) THEN
+c
+c--For stellar radiation from sink particles, need to know about all
+c     sink particles on all MPI processes.  For non-MPI, still keep
+c     this in the same array for consistency.
+c      
+         DO ipt = 1, nptmass
+            stellar_xyzmhrt(1:5,ipt) = xyzmh(1:5,listpm(ipt))
+            stellar_xyzmhrt(6:7,ipt) = stellar_radtemp(1:2,ipt)
+         END DO
+#ifdef MPI
+c
+c--Get iproc=0 to gather all sink information, then broadcast.  This has
+c     the advantage that all MPI processes have the same order
+c
+         IF (iproc.EQ.0) THEN
+            ipos = nptmass + 1
+            IF (ipos.GT.iptdim) THEN
+               WRITE (*,*) 'ERROR - ipos.GT.iptdim'
+               CALL quit(1)
+            ENDIF
+            DO i = 1, numproc-1
+               CALL MPI_RECV(stellar_xyzmhrt(1,ipos), iptdim, MPI_REAL8,
+     &              MPI_ANY_SOURCE,218, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               ipos = ipos + inumber/7
+            END DO
+            print *,'0: total ipos ',ipos
+            IF (ipos-1.NE.nptmasstot) THEN
+               WRITE (*,*) iproc,': ERROR - ipos-1.NE.nptmasstot',
+     &              ipos-1,nptmasstot
+               CALL quit(1)
+            ENDIF
+         ELSE
+            CALL MPI_SEND(stellar_xyzmhrt(1,1),nptmass,i7REAL8,0,218,
+     &                       MPI_COMM_WORLD, ierr)
+         ENDIF
+         CALL MPI_BCAST(stellar_xyzmhrt(1,1),nptmasstot,i7REAL8,0,
+     &        MPI_COMM_WORLD, ierr)
+#endif
+      ENDIF
+c
+c--Iterate density calculation for particle ipart
+c
       DO iteration = 1, maxiterations
 
 #ifdef MPI
@@ -612,7 +659,7 @@ c
                      ENDIF
                   ENDIF
                ENDIF
-            ENDIF
+            ENDIF   ! ideniteratebal
 c
 c--This calculates the contributions to rhoi, gradhi, numneighreal, and 
 c     gravity forces from non-neighbours
@@ -634,7 +681,7 @@ c
                   IF (iuniquestore(nptmasslocal).NE.
      &                 iuniquestoreold(nptmasslocal)) nptmasstotlast=-1
 
-c                  WRITE (*,*) iproc,' Trans ',ipart,
+c                  WRITE (*,*) iproc,': Trans ',ipart,
 c     &                 iuniquestore(nptmasslocal),
 c     &                 iuniquestoreold(nptmasslocal),nptmasstotlast
 
@@ -650,13 +697,10 @@ c     &                 iuniquestoreold(nptmasslocal),nptmasstotlast
                ENDIF
             ENDIF
 
-c            IF (iproc.EQ.58 .OR. iproc.EQ.59) print *,iproc,
-c     &           ' received-icol ',inumber,ntot + inumber,iteration
-
             inumreturn = 0
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(inumber,ntot,npart,xyzmh,dvxyzu,inumreturn,llistrec)
-C$OMP& shared(nlstdo_tot,itime,iproc)
+C$OMP& shared(nlstdo_tot,itime,iproc,iphase)
 C$OMP& private(i,ipart,nneighlocal)
             DO i = 1, inumber
                ipart = i + ntot
@@ -665,13 +709,13 @@ C$OMP& private(i,ipart,nneighlocal)
                   CALL quit(1)
                ENDIF
 
-c               IF (itime.EQ.276824064 .AND. 
-c     &              (iproc.EQ.58 .OR. iproc.EQ.59)) THEN
-c                  print *,iproc,' doing-densgrad ',i,ipart
-c               ENDIF
-
                CALL densitygradh(ipart,itime,npart,ntot,nlstdo_tot,
      &              xyzmh,nneighlocal,dvxyzu)
+
+               IF (istellarradiation) THEN
+                  IF (iphase(ipart).EQ.0)
+     &                 CALL column_los(ipart,itime,ntot,xyzmh)
+               ENDIF
 c
 c--Make a list of indices to return densities
 c
@@ -933,7 +977,7 @@ c
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstsend,lsendlist,ntotplusinumber,sightcolumns)
-C$OMP& private(l,ipos,jpos)
+C$OMP& private(l,k,ipos,jpos)
                   DO l = 1, nlstsend
                      ipos = lsendlist(l) + 1
                      jpos = ntotplusinumber + l
@@ -946,7 +990,44 @@ C$OMP& private(l,ipos,jpos)
                      END DO
                   END DO
 C$OMP END PARALLEL DO
-               ENDIF
+               ENDIF   ! idustRT>0
+               IF (istellarradiation) THEN
+c
+c--Transfer stellarrad contributions from other MPI processes
+c
+                  CALL MPI_SENDRECV(stellarrad(1,1,ntot+1),
+     &                 4*iptdim*inumber,
+     &                 MPI_REAL8,ibehind,201,
+     &                 stellarrad(1,1,ntotplusinumber+1),
+     &                 4*iptdim*nlstsend,MPI_REAL8, iahead, 201,
+     &                 MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_REAL8,ireturned,ierr)
+                  IF (ireturned.NE.4*iptdim*nlstsend) THEN
+                     WRITE (*,*) 'ERROR - ireturned.NE.',
+     &                    '4*iptdim*nlstsend'
+                     CALL quit
+                  ENDIF
+#ifdef MPIDEBUG
+                  print *,iproc,': transferred stellarrad ',ibehind,
+     &                 iahead
+#endif
+C$OMP PARALLEL default(none)
+C$OMP& shared(nlstsend,lsendlist,ntotplusinumber,nptmasstot,stellarrad)
+C$OMP& private(l,k,ipos,jpos)
+C$OMP DO SCHEDULE(runtime)
+                  DO l = 1, nlstsend
+                     ipos = lsendlist(l) + 1
+                     jpos = ntotplusinumber + l
+
+                     DO k = 1, nptmasstot
+                        stellarrad(1:4,k,ipos) =
+     &                       stellarrad(1:4,k,ipos) +
+     &                       stellarrad(1:4,k,jpos)
+                     END DO
+                  END DO
+C$OMP END DO
+C$OMP END PARALLEL
+               ENDIF   ! istellarradiation
 c
 c--End circular send/receive
 c
@@ -1247,7 +1328,11 @@ c
  444     CALL MPI_TYPE_FREE(indexMPI_INT1,ierr)
          CALL MPI_TYPE_FREE(indexMPI_INT,ierr)
          CALL MPI_TYPE_FREE(indexMPI5,ierr)
-         IF (individualtimesteps.NE.2) THEN
+c
+c--If individualtimesteps=2, then not all sink particles may have been
+c     transferred because some might not be being evolved this timestep.
+c
+         IF (individualtimesteps.NE.2) THEN 
             IF (iteration.EQ.1) THEN
                IF (nptmasslocal2.NE.nptmasstot) THEN
                   WRITE (*,*) 'ERROR - nptmasslocal2.NE.nptmasstot ',
@@ -2688,6 +2773,7 @@ C$OMP END PARALLEL DO
       CALL MPI_TYPE_FREE(i4REAL8,ierr)
       CALL MPI_TYPE_FREE(imhdevolREAL8,ierr)
       CALL MPI_TYPE_FREE(i5REAL8,ierr)
+      CALL MPI_TYPE_FREE(i7REAL8,ierr)
 c      CALL MPI_TYPE_FREE(i12REAL8,ierr)
       CALL MPI_TYPE_FREE(i15REAL8,ierr)
 

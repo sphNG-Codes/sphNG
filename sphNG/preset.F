@@ -691,6 +691,14 @@ c
          CALL build_photoelectric_table
          CALL build_planck_mean_table
       ENDIF
+#else
+c
+c--Allow ionisation to be used without radiative transfer
+c
+      IF (istellar_ionisation) THEN
+         metallicity = 1.
+      ENDIF
+#endif
 c
 c--Build tables for direct stellar radiation from sink particles
 c
@@ -705,7 +713,6 @@ c
          CALL build_stellar_radiation_table
 c         CALL build_radpres_table
       ENDIF
-#endif
 c
 c--Initialise non-ideal MHD
 c

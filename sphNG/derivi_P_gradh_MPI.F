@@ -117,6 +117,7 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
 #endif
+      INCLUDE 'COMMONS/stellarradiation'
 
       DIMENSION dedxyz(3,iradtrans2)
 #ifdef MPI
@@ -782,6 +783,14 @@ c
          CALL quit(1)
       ENDIF
 c
+c--If direct radiation field from sink particles, calculate the column
+c     densities between particles and sinks here for local particles.
+c
+      IF (istellarradiation .AND. nptmasstot.GT.0) THEN
+         CALL stellar_radiation(nlst_in,nlst_end,nlst_tot,
+     &        npart,ntot,itime,xyzmh)
+      ENDIF
+c
 c--Compute implicit magnetic resistivity
 c
       IF (imhd.EQ.idim .AND. (iresist.LT.0 .OR. 
@@ -1277,6 +1286,18 @@ c
                               print *,iproc,' sent dust_tk'
 #endif
                            ENDIF
+                           IF (istellar_radpres .AND.
+     &                          nptmasstot.GT.0) THEN
+                              CALL MPI_TYPE_INDEXED(nneighsentback(j+1),
+     &                             lblocklengths,llistsentback(1,j+1),
+     &                             i3REAL8,indexRP,ierr)
+                              CALL MPI_TYPE_COMMIT(indexRP,ierr)
+
+                              CALL MPI_SEND(stellar_radpres,1,indexRP,
+     &                             j,215,MPI_COMM_WORLD, ierr)
+
+                              CALL MPI_TYPE_FREE(indexRP,ierr)
+                           ENDIF
                         ENDIF
 
                         CALL MPI_TYPE_INDEXED(nneighsentback(j+1),
@@ -1381,6 +1402,17 @@ c
 #ifdef MPIDEBUGRT
                      print *,iproc,': got dust_tk from ',iprocrec,inumber
 #endif
+                  ENDIF
+                  IF (istellar_radpres .AND. nptmasstot.GT.0) THEN
+                     CALL MPI_RECV(stellar_radpres(1,istart), idim, 
+     &                       MPI_REAL8,
+     &                    i, 215, MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus, MPI_REAL8,inumber,ierr)
+                     iprocrec = istatus(MPI_SOURCE)
+                     IF (icheck.NE.inumber/3) THEN
+                       WRITE (*,*) iproc,': ERROR - icheck.NE.inumber/3'
+                       CALL quit
+                     ENDIF
                   ENDIF
                ENDIF
 
@@ -1732,6 +1764,6 @@ c
 #ifdef MPIDEBUG
       print *,iproc,': Exited derivi ',itime
 #endif
-                   
+
       RETURN
       END

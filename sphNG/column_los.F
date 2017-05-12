@@ -66,11 +66,6 @@ c--Stop for iptintree=2 because then sink particles are put in the tree
 c     with their full mass and the column densities will include the 
 c     sink particle masses
 c     
-      IF (idustRT.NE.1) THEN
-         WRITE (*,*) 'ERROR - idustRT.NE.1'
-         CALL quit(0)
-      ENDIF
-
       IF (iptintree.LT.0 .OR. iptintree.GT.1) THEN
          WRITE (*,*) 'ERROR - cannot use column_los.f when sink',
      &        ' particles are stored in the tree with their mass'

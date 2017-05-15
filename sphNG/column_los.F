@@ -97,13 +97,13 @@ c
 c--For each massive sink particle, need to calculate direct radiation
 c
       DO isink = 1, nptmasstot
-         sinkx = stellar_xyzmhrt(1,isink)
-         sinky = stellar_xyzmhrt(2,isink)
-         sinkz = stellar_xyzmhrt(3,isink)
+         sinkx = stellar_xyzmhrti(1,isink)
+         sinky = stellar_xyzmhrti(2,isink)
+         sinkz = stellar_xyzmhrti(3,isink)
 
 c         sinkh = 7.50000E-04
 c         sinkh = 0.
-c         sinkh = stellar_xyzmhrt(5,isink)
+c         sinkh = stellar_xyzmhrti(5,isink)
 
          column_to_sinks(1:4,isink) = 0.
 c

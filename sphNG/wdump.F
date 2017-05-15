@@ -409,6 +409,7 @@ c
       nums(4) = 0
       nums(5) = 0
       nums(6) = 9
+      IF (istellar_ionisation) nums(6) = nums(6) + 1
       nums(7) = 0
       nums(8) = 0
       WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
@@ -595,6 +596,13 @@ c--Default real
       WRITE (idisk1, ERR=100) (spinady(i),i=1,nptmass)
       WRITE (idisk1, ERR=100) tag('spinadz')
       WRITE (idisk1, ERR=100) (spinadz(i),i=1,nptmass)
+
+      IF (istellar_ionisation) THEN
+         WRITE (idisk1, ERR=100) tag('ionflux')
+         WRITE (idisk1, ERR=100) (stellar_radtempion(3,i), i=1,nptmass)
+         print *,(stellar_radtempion(3,i), i=1,nptmass)
+      ENDIF
+
 c--real*4
 
 c--real*8

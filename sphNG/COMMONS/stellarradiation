@@ -25,9 +25,9 @@ c      PARAMETER (idim_stellarrad = idim)
 c
 c--Arrays for storing sink particle properties (from all MPI processes)
 c
-      REAL*8 stellar_xyzmhrt,stellar_radtemp
-      COMMON /stellarprop/ stellar_radtemp(2,iptdim),
-     &	     stellar_xyzmhrt(7,iptdim)
+      REAL*8 stellar_xyzmhrti,stellar_radtempion
+      COMMON /stellarprop/ stellar_radtempion(3,iptdim),
+     &	     stellar_xyzmhrti(8,iptdim)
 c
 c--Keep fraction of HII
 c

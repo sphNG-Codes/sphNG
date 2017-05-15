@@ -64,6 +64,7 @@ c************************************************************
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/init'
       INCLUDE 'COMMONS/potent'
+      INCLUDE 'COMMONS/stellarradiation'
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
@@ -312,7 +313,20 @@ c
       END DO
       
       WRITE (*,*) 'Number of point masses created: ',nptmass
-
+c
+c--If stellar radiation, then set ionising photon rate from point masses
+c
+      IF (istellarradiation) THEN
+         WRITE (*,*) 'Enter ionising flux from each sink particle'
+         DO i = 1, nptmass
+            READ (*,*) flux
+            stellar_radtempion(1:2,i) = 0.
+            stellar_radtempion(3,i) = flux
+         END DO
+      ENDIF
+c
+c--Allow dynamic point mass creation
+c
       ptmcrit = 0.
       WRITE (*, 99061)
 99061 FORMAT (' Do you want dynamic point mass creation (y/n)')

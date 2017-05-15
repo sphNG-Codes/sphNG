@@ -77,6 +77,7 @@ c
       INCLUDE 'COMMONS/dum'
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/rbnd'
+      INCLUDE 'COMMONS/stellarradiation'
 
 c      INCLUDE 'COMMONS/angm'
 
@@ -790,7 +791,15 @@ c
          xmomadd(nptmass) = 0.0
          ymomadd(nptmass) = 0.0
          zmomadd(nptmass) = 0.0
-
+c
+c--Set initial parameters for stellar radius, temperature, and ionising
+c     photon rate (all in cgs units).
+c
+         IF (istellarradiation) THEN
+            stellar_radtempion(1,nptmass) = solarr
+            stellar_radtempion(2,nptmass) = 0.0
+            stellar_radtempion(3,nptmass) = 1.0E+49
+         ENDIF
 c
 c--DON'T set acceleration because leapfrog integrator uses this for 1/2 kick
 c

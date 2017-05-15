@@ -823,6 +823,15 @@ c--Default real
            CALL checktag('spinadz', tagi, ierr)
          ENDIF
          READ (idisk1, END=100) spinadz(icountsink+1:icountsink+nptmass)
+
+         IF (istellar_ionisation) THEN
+            IF (tagged) THEN 
+               READ (idisk1, END=100) tagi
+               CALL checktag('ionflux', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) stellar_radtempion(3,icountsink+1:
+     &           icountsink+nptmass)
+         ENDIF
 c--real*4
 
 c--real*8
@@ -1230,6 +1239,10 @@ c
 #else
       nptmasstot = nptmass
       print *,' FINISHED READ ',npart,nptmass
+
+      IF (istellar_ionisation) THEN
+         stellar_xyzmhrti(8,1:nptmass) = stellar_radtempion(3,1:nptmass)
+      ENDIF
 #endif
 
       IF (iskip.EQ.1) RETURN

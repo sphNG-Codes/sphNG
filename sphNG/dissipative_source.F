@@ -62,6 +62,7 @@ C$OMP& shared(Bxyz,divcurlB,gradB,dBxyz,Bevolxyz,overclean_fac)
 C$OMP& shared(ivar)
 C$OMP& shared(dh2dt,dust_tk,vxyzu,ekcle,utime,udens,icall)
 C$OMP& shared(dHIIdt,umass,nptmasstot,stellarrad,ih2pos)
+C$OMP& shared(stellar_xyzmhrti)
 C$OMP& private(ipart,k)
 C$OMP& private(hi,hi1,rhoi,rho1i,vsoundi)
 C$OMP& private(fi,tdecay1,source)
@@ -106,11 +107,12 @@ c
                dHIIdt(ih2pos,ipart) = 0.
                DO isink = 1, nptmasstot
 c                  dHIIdt(ih2pos,ipart) = dHIIdt(ih2pos,ipart) + 
-c     &                 1.0E+46/(4.0*pi)*(gmw/2.*mH) - 
-c     &                 stellarrad(3,isink,ipart)*3.0E-13/(gmw/2.*mH)
+c     &               stellar_xyzmhrti(8,isink)/(4.0*pi)*(gmw/2.*mH) - 
+c     &               stellarrad(3,isink,ipart)*2.7E-13/(gmw/2.*mH)
+
                   dHIIdt(ih2pos,ipart) = dHIIdt(ih2pos,ipart) + 
-     &                 1.0E+49/(4.0*pi)*(gmw/gmw*mH) - 
-     &                 stellarrad(3,isink,ipart)*2.7E-13/(gmw/gmw*mH)
+     &               stellar_xyzmhrti(8,isink)/(4.0*pi)*(gmw/gmw*mH) - 
+     &               stellarrad(3,isink,ipart)*2.7E-13/(gmw/gmw*mH)
                END DO
 c
 c--Convert to code units

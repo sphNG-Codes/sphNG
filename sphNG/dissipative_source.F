@@ -38,6 +38,8 @@ c************************************************************
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/ptmass'
+      INCLUDE 'COMMONS/stepopt'
+      INCLUDE 'COMMONS/timei'
 
 c      DATA epsil2/1.E-4/
 c
@@ -63,7 +65,8 @@ C$OMP& shared(ivar)
 C$OMP& shared(dh2dt,dust_tk,vxyzu,ekcle,utime,udens,icall)
 C$OMP& shared(dHIIdt,umass,nptmasstot,stellarrad,ih2pos)
 C$OMP& shared(stellar_xyzmhrti)
-C$OMP& private(ipart,k)
+C$OMP& shared(dtmax,imaxstep,isteps)
+C$OMP& private(ipart,k,dti)
 C$OMP& private(hi,hi1,rhoi,rho1i,vsoundi)
 C$OMP& private(fi,tdecay1,source)
 C$OMP& private(Bxi,Byi,Bzi,B2i)
@@ -105,14 +108,18 @@ c--Compute rate of ionisation
 c
             IF (istellar_ionisation) THEN
                dHIIdt(ih2pos,ipart) = 0.
+
+               dti = (dtmax/imaxstep)*isteps(ipart)
                DO isink = 1, nptmasstot
 c                  dHIIdt(ih2pos,ipart) = dHIIdt(ih2pos,ipart) + 
 c     &               stellar_xyzmhrti(8,isink)/(4.0*pi)*(gmw/2.*mH) - 
 c     &               stellarrad(3,isink,ipart)*2.7E-13/(gmw/2.*mH)
 
-                  dHIIdt(ih2pos,ipart) = dHIIdt(ih2pos,ipart) + 
+                  dHIIdt(ih2pos,ipart) = dHIIdt(ih2pos,ipart) + MAX(0.0,
      &               stellar_xyzmhrti(8,isink)/(4.0*pi)*(gmw/gmw*mH) - 
-     &               stellarrad(3,isink,ipart)*2.7E-13/(gmw/gmw*mH)
+     &               stellarrad(3,isink,ipart)*2.7E-13/(gmw/gmw*mH) 
+     &                 - stellarrad(4,isink,ipart)/dti
+     &                 )
                END DO
 c
 c--Convert to code units

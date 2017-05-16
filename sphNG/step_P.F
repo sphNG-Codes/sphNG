@@ -1196,8 +1196,7 @@ c            ENDIF
 
             IF (istellar_ionisation) THEN
                HIIion(i) = MIN(1.0,MAX(0.0,HIIion(i) +
-     &              dtf21*dHIIdt(1,i) + dtf22*dHIIdt(2,i) -
-     &              stellarrad(4,1,i)   ))
+     &              dtf21*dHIIdt(1,i) + dtf22*dHIIdt(2,i)))
             ENDIF
             IF (encal.EQ.'r') THEN
                pdvvisc(i) = dtf21*f1vxyzu(4,i) + dtf22*f2vxyzu(4,i)

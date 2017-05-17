@@ -404,7 +404,7 @@ c
                CALL quit(1)
             ENDIF
             DO i = 1, numproc-1
-               CALL MPI_RECV(stellar_xyzmhrti(1,ipos), iptdim, MPI_REAL8,
+               CALL MPI_RECV(stellar_xyzmhrti(1,ipos),iptdim,MPI_REAL8,
      &              MPI_ANY_SOURCE,218, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
                ipos = ipos + inumber/8

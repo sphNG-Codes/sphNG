@@ -675,7 +675,7 @@ c           do not get self in neighbour list
             dz2 = xyzmh(3,n) - rmz
 
             rcut2 = (radkernel*xyzmh(5,n))**2
-            rcut2 = (radkernel*(xyzmh(5,n)+hm))**2
+c            rcut2 = (radkernel*(xyzmh(5,n)+hm))**2
 
 #ifdef PERIODIC_NO_GHOSTS
             CALL modbound(dx1,dy1,dz1)

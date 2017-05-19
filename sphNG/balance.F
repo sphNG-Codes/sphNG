@@ -58,6 +58,7 @@ c************************************************************
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
 #endif
+      INCLUDE 'COMMONS/stellarradiation'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -100,6 +101,11 @@ c
       IF (encal.EQ.'r') THEN
          CALL MPI_TYPE_CONTIGUOUS(nmaxexposed, MPI_INTEGER, iNINT, ierr)
          CALL MPI_TYPE_COMMIT(iNINT,ierr)
+      ENDIF
+
+      IF (istellar_ionisation) THEN
+         CALL MPI_TYPE_CONTIGUOUS(4*iptdim,MPI_REAL8,istellarREAL8,ierr)
+         CALL MPI_TYPE_COMMIT(istellarREAL8,ierr)
       ENDIF
 c
 c--Find particles that need to be transferred to each MPI process.
@@ -349,6 +355,14 @@ c     &       lsendlist, ialphaREAL41, indexMPIalpha1, ierr)
      &                       indexMPIalpha1, ierr)
                         CALL MPI_TYPE_COMMIT(indexMPIalpha1,ierr)
 
+                        IF (istellar_ionisation) THEN
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
+c     &       lsendlist, istellarREAL8, indexMPIstellar, ierr)
+                        CALL MPI_TYPE_INDEXED(numlist(j+1), 
+     &                       lblocklengths, lsendlist, istellarREAL8, 
+     &                       indexMPIstellar, ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPIstellar,ierr)
+                        ENDIF
 c
 c--NOTE: itempsort is used to send iunique indexes of particles which 
 c     are not sorted like all the other arrays
@@ -519,9 +533,19 @@ c     &                          MPI_COMM_WORLD, ierr)
      &                             167,MPI_COMM_WORLD, ierr)
                            ENDIF
                         ENDIF
+
+                        IF (istellar_ionisation) THEN
+                           CALL MPI_SEND(HIIion,1,indexMPIR,
+     &                          j,175,MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(stellarrad,1,indexMPIstellar,
+     &                          j,176,MPI_COMM_WORLD, ierr)
+                        ENDIF
 c
 c--Deallocate types
 c
+                        IF (istellar_ionisation) THEN
+                           CALL MPI_TYPE_FREE(indexMPIstellar,ierr)
+                        ENDIF
                         CALL MPI_TYPE_FREE(indexMPIalpha1,ierr)
                         CALL MPI_TYPE_FREE(indexMPIalpha,ierr)
                         CALL MPI_TYPE_FREE(indexMPI1,ierr)
@@ -575,7 +599,14 @@ c
      &                             iNINT, indexMPI_LIST, ierr)
                               CALL MPI_TYPE_COMMIT(indexMPI_LIST,ierr)
                            ENDIF
-                 
+
+                           IF (istellar_ionisation) THEN
+                              CALL MPI_TYPE_INDEXED(npttrans, 
+     &                             lblocklengths, listptmass, 
+     &                             i3REAL8, indexMPI_S3R8, ierr)
+                              CALL MPI_TYPE_COMMIT(indexMPI_S3R8,ierr)
+                           ENDIF
+
                            CALL MPI_SEND(spinx,1,indexMPI1,j,122,
      &                          MPI_COMM_WORLD, ierr)
                            CALL MPI_SEND(spiny,1,indexMPI1,j,123,
@@ -647,6 +678,12 @@ c
                            CALL MPI_SEND(listexposedold,1,indexMPI_LIST,
      &                             j,150,MPI_COMM_WORLD,ierr)
                            ENDIF
+
+                           IF (istellar_ionisation) THEN
+                              CALL MPI_SEND(stellar_radtempion,1,
+     &                             indexMPI_S3R8,
+     &                             j,177,MPI_COMM_WORLD,ierr)
+                           ENDIF
 c
 c--Send information about which particle matches each sink so that listpm
 c     can be re-constructed on the new MPI process
@@ -664,6 +701,9 @@ c
      &               ptmsyn(listptmass(1)+1),xmomsyn(listptmass(1)+1),
      &               xmomadd(listptmass(1)+1)
 #endif
+                           IF (istellar_ionisation) THEN
+                              CALL MPI_TYPE_FREE(indexMPI_S3R8,ierr)
+                           ENDIF
                            IF (encal.EQ.'r') THEN
                               CALL MPI_TYPE_FREE(indexMPI_LIST,ierr)
                            ENDIF
@@ -1102,6 +1142,26 @@ c                  ENDIF
                   ENDIF
 
                ENDIF
+
+               IF (istellar_ionisation) THEN
+                  CALL MPI_RECV(HIIion(npartnew+1), idim, MPI_REAL8,
+     &                 iprocrec, 175, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber HIIion'
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_RECV(stellarrad(1,1,npartnew+1), idim,
+     &                 istellarREAL8,
+     &                 iprocrec, 176, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,istellarREAL8,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber stellarrad'
+                     CALL quit(1)
+                  ENDIF
+               ENDIF
+
 #ifdef MPIDEBUGT
                print *,iproc,': Received transfer of ',inumber,' from ',
      &              iprocrec
@@ -1384,6 +1444,19 @@ c
                      ENDIF
                   ENDIF
 
+                  IF (istellar_ionisation) THEN
+                     CALL MPI_RECV(stellar_radtempion(1,nptmassnew+1),
+     &                    nptrecv,
+     &                    i3REAL8, iprocrec, 177, MPI_COMM_WORLD,
+     &                    istatus,ierr)
+                     CALL MPI_GET_COUNT(istatus,i3REAL8,inumber,ierr)
+                     IF (inumber.NE.nptrecv) THEN
+                        WRITE (*,*) 'ERROR - inumber.NE.nptrecvSR ',
+     &                       inumber,nptrecv
+                        CALL quit(1)
+                     ENDIF                     
+                  ENDIF
+
                   CALL MPI_RECV(listpm(nptmassnew+1),nptrecv,
      &                 MPI_INTEGER, iprocrec, 141, MPI_COMM_WORLD,
      &                 istatus,ierr)
@@ -1420,6 +1493,10 @@ c
 
       print *,iproc,': New value of npart, nptmass = ',npartnew, npart, 
      &     nptmassnew, nptmass
+
+      IF (istellar_ionisation) THEN
+         CALL MPI_TYPE_FREE(istellarREAL8,ierr)
+      ENDIF
 
       IF (encal.EQ.'r') THEN
          CALL MPI_TYPE_FREE(iNINT,ierr)
@@ -2209,6 +2286,7 @@ c*************************`***********************************
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
 #endif
+      INCLUDE 'COMMONS/stellarradiation'
 
       DO i = 1, 5
          xyzmh(i,ito) = xyzmh(i,ifrom)
@@ -2320,6 +2398,10 @@ c         h2mol(ito) = h2mol(ifrom)
                dh2dt(i,ito) = dh2dt(i,ifrom)
             END DO
          ENDIF
+      ENDIF
+      IF (istellar_ionisation) THEN
+         HIIion(ito) = HIIion(ifrom)
+         stellarrad(1:4,1:iptdim,ito) =stellarrad(1:4,1:iptdim,ifrom)
       ENDIF
 
       RETURN

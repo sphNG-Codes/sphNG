@@ -32,7 +32,7 @@ c
 c--Keep fraction of HII
 c
       REAL*8 HIIion, dHIIdt
-      COMMON /ionise/ HIIion(idim_ionisation),
+      COMMON /ionise/ HIIion(2*idim_ionisation),
      &       dHIIdt(2,idim_ionisation)
 c
 c--Arrays for storing direct feedback quantities

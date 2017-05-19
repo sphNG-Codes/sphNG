@@ -994,6 +994,10 @@ C$OMP END PARALLEL DO
                IF (istellarradiation) THEN
 c
 c--Transfer stellarrad contributions from other MPI processes
+c     NOTE:  This transfers the data for iptdim sink particles all at
+c     once (so iptdim should not be too much larger than the actual
+c     number of sinks or the total amount of data transferred will be
+c     much larger than necessary).
 c
                   CALL MPI_SENDRECV(stellarrad(1,1,ntot+1),
      &                 4*iptdim*inumber,

@@ -537,8 +537,10 @@ c     &                          MPI_COMM_WORLD, ierr)
                         IF (istellar_ionisation) THEN
                            CALL MPI_SEND(HIIion,1,indexMPIR,
      &                          j,175,MPI_COMM_WORLD, ierr)
-                           CALL MPI_SEND(stellarrad,1,indexMPIstellar,
+                           CALL MPI_SEND(dHIIdt,1,indexMPI2,
      &                          j,176,MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(stellarrad,1,indexMPIstellar,
+     &                          j,177,MPI_COMM_WORLD, ierr)
                         ENDIF
 c
 c--Deallocate types
@@ -682,7 +684,7 @@ c
                            IF (istellar_ionisation) THEN
                               CALL MPI_SEND(stellar_radtempion,1,
      &                             indexMPI_S3R8,
-     &                             j,177,MPI_COMM_WORLD,ierr)
+     &                             j,178,MPI_COMM_WORLD,ierr)
                            ENDIF
 c
 c--Send information about which particle matches each sink so that listpm
@@ -1152,9 +1154,17 @@ c                  ENDIF
                      CALL quit(1)
                   ENDIF
 
+                  CALL MPI_RECV(dHIIdt(1,npartnew+1), idim, i2REAL8,
+     &                 iprocrec, 176, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,i2REAL8,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber dHIIdt'
+                     CALL quit(1)
+                  ENDIF
+
                   CALL MPI_RECV(stellarrad(1,1,npartnew+1), idim,
      &                 istellarREAL8,
-     &                 iprocrec, 176, MPI_COMM_WORLD, istatus, ierr)
+     &                 iprocrec, 177, MPI_COMM_WORLD, istatus, ierr)
                   CALL MPI_GET_COUNT(istatus,istellarREAL8,inumber,ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber stellarrad'
@@ -1447,7 +1457,7 @@ c
                   IF (istellar_ionisation) THEN
                      CALL MPI_RECV(stellar_radtempion(1,nptmassnew+1),
      &                    nptrecv,
-     &                    i3REAL8, iprocrec, 177, MPI_COMM_WORLD,
+     &                    i3REAL8, iprocrec, 178, MPI_COMM_WORLD,
      &                    istatus,ierr)
                      CALL MPI_GET_COUNT(istatus,i3REAL8,inumber,ierr)
                      IF (inumber.NE.nptrecv) THEN
@@ -2401,6 +2411,7 @@ c         h2mol(ito) = h2mol(ifrom)
       ENDIF
       IF (istellar_ionisation) THEN
          HIIion(ito) = HIIion(ifrom)
+         dHIIdt(1:2,ito) = dHIIdt(1:2,ifrom)
          stellarrad(1:4,1:iptdim,ito) =stellarrad(1:4,1:iptdim,ifrom)
       ENDIF
 

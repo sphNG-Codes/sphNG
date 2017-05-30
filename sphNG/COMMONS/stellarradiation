@@ -9,7 +9,7 @@ c      Thermal heating
 c      Ionisation
 c      Radiation pressure
 c
-      LOGICAL istellar_heating,istellar_ionisation,istellar_rapres
+      LOGICAL istellar_heating,istellar_ionisation,istellar_radpres
       PARAMETER (istellar_heating = .FALSE.)
       PARAMETER (istellar_ionisation = .FALSE.)
       PARAMETER (istellar_radpres = .FALSE.)
@@ -22,7 +22,7 @@ c      PARAMETER (idim_stellarrad = idim)
 
       LOGICAL istellarradiation
       PARAMETER (istellarradiation = istellar_heating.OR.
-     &		istellar_ionisation.OR.istellar_rapres)
+     &		istellar_ionisation.OR.istellar_radpres)
 c
 c--Arrays for storing sink particle properties (from all MPI processes)
 c

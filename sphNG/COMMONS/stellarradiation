@@ -12,7 +12,7 @@ c
       LOGICAL istellar_heating,istellar_ionisation,istellar_rapres
       PARAMETER (istellar_heating = .FALSE.)
       PARAMETER (istellar_ionisation = .FALSE.)
-      PARAMETER (istellar_rapres = .FALSE.)
+      PARAMETER (istellar_radpres = .FALSE.)
 
       INTEGER idim_ionisation,idim_stellarrad
 c      PARAMETER (idim_ionisation = idim)

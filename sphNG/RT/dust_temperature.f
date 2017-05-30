@@ -1,4 +1,4 @@
-      FUNCTION dust_temperature(ipart,uradconst,Erad,Ugas,
+      FUNCTION dust_temperature(ipart,ntot,uradconst,Erad,Ugas,
      &     ekcle,rhoi,dust_kappai,dust_cooling,heatingISRi,dust_gas)
 c
 c--This function calculates the dust temperature by balancing the

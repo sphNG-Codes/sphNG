@@ -14,6 +14,7 @@ c
       PARAMETER (istellar_ionisation = .FALSE.)
       PARAMETER (istellar_rapres = .FALSE.)
 
+      INTEGER idim_ionisation,idim_stellarrad
 c      PARAMETER (idim_ionisation = idim)
       PARAMETER (idim_ionisation = 1)
 c      PARAMETER (idim_stellarrad = idim)
@@ -31,9 +32,10 @@ c
 c
 c--Keep fraction of HII
 c
-      REAL*8 HIIion, dHIIdt
+      REAL*8 HIIion, dHIIdt, HIIion_smooth
       COMMON /ionise/ HIIion(2*idim_ionisation),
-     &       dHIIdt(2,idim_ionisation)
+     &       dHIIdt(2,idim_ionisation),
+     &	     HIIion_smooth(idim_ionisation)
 c
 c--Arrays for storing direct feedback quantities
 c
@@ -49,7 +51,7 @@ c
 
       REAL*4 stellar_AvT_table, radpres_table
       REAL*8 stellar_radpres,stellarrad
-      REAL*8 asymmetry
+      REAL*8 stellarflux_vec,divstellarflux,asymmetry,stellar_tau
 
       COMMON /stellarrad_t/ stellar_AvT_table(2,nstellar_Av,nstellar_T),
      &	     radpres_table(nstellar_radpres)

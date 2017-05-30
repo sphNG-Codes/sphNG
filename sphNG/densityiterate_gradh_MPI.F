@@ -1663,8 +1663,8 @@ c
 
                                     gas_temp = 
      &                                   gas_temperature_equilibrium(
-     &                          ipart,dust_temperature(ipart,uradconst,
-     &                          0.0,vxyzu(4,ipart),ekcle,
+     &                          ipart,dust_temperature(ipart,ntot,
+     &                          uradconst,0.0,vxyzu(4,ipart),ekcle,
      &                          rhoi,dust_kappai,dust_cooling,
      &                          heatingISRival,dust_gas),rhoi,photo,
      &                          cooling,gas_dust,cosmic_ray,func_gas,
@@ -1676,7 +1676,7 @@ c
      &                                getcv(rho(ipart),vxyzu(4,ipart))
 
                                     dust_tk(1,ipart) = 
-     &                                   dust_temperature(ipart,
+     &                                   dust_temperature(ipart,ntot,
      &                          uradconst,0.0,vxyzu(4,ipart),ekcle,
      &                          rhoi,dust_kappai,dust_cooling,
      &                          heatingISRival,dust_gas)
@@ -1688,7 +1688,7 @@ ccc                           IF (rhoi.GT.0.05 .AND. rhoi.LT.0.08)
 c                       WRITE (19,445) SQRT(xyzmh(1,ipart)**2+
 c     &                       xyzmh(2,ipart)**2+xyzmh(3,ipart)**2),
 c     &                       vxyzu(4,ipart)/ekcle(3,ipart),
-c     &                       dust_temperature(ipart,uradconst,
+c     &                       dust_temperature(ipart,ntot,uradconst,
 c     &                       0.0,vxyzu(4,ipart),ekcle,
 c     &                       rhoi,dust_kappai,dust_cooling,
 c     &                       heatingISRival,dust_gas),

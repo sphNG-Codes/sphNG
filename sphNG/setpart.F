@@ -314,9 +314,9 @@ c
       
       WRITE (*,*) 'Number of point masses created: ',nptmass
 c
-c--If stellar radiation, then set ionising photon rate from point masses
+c--If stellar ionisation, then set ionising photon rate from point masses
 c
-      IF (istellarradiation) THEN
+      IF (istellar_ionisation) THEN
          WRITE (*,*) 'Enter ionising flux from each sink particle'
          DO i = 1, nptmass
             READ (*,*) flux

@@ -957,7 +957,7 @@ c--Diffuse ISM: Set dust temperature and opacity
 c
             IF (idustRT.GT.0 .AND. n.LE.ncompactlocal) THEN
                rhoi = rho(i)
-               dust_tk(1,i) = dust_temperature(i,uradconst,
+               dust_tk(1,i) = dust_temperature(i,ntot,uradconst,
      &              ekcle(1,i),vxyzu(4,i),ekcle,rhoi,
      &              dust_kappai,dust_cooling,heatingISRi,dust_gas)
                dust_tk(2,i) = dust_kappai
@@ -1407,9 +1407,9 @@ C$OMP& shared(hoverr,ibound)
 C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)
 C$OMP& shared(e_planetesimal,pcolen)
 C$OMP& shared(iunique,iorig,n1,n2)
-C$OMP& shared(udens,uergcc,utime,dust_tk,metallicity)
+C$OMP& shared(udens,uergcc,utime,dust_tk,ntot,metallicity)
 #ifdef MPI
-C$OMP& shared(istart,ntot,istartrec,inumbertotal,inumberreturned)
+C$OMP& shared(istart,istartrec,inumbertotal,inumberreturned)
 C$OMP& shared(numproc,iproc,inumofsends,maxnneighsentback,istatus)
 C$OMP& shared(ierr,ireturned,iprocrec,nneighsentback,ipos,jpos,inumber)
 C$OMP& shared(llistsentback,inumofreturns,jjj,inumberproc,iprocsend)
@@ -2145,7 +2145,7 @@ c
  456        IF (idustRT.GT.0) THEN
                rhoreal4 = rhoi
                ekcle(2,i) = GETKAPPA(EU0(2,i),ekcle(3,i),rhoreal4)
-               dust_tempi = dust_temperature(i,uradconst,
+               dust_tempi = dust_temperature(i,ntot,uradconst,
      &              EU0(1,i),EU0(2,i),ekcle,rhoi,dust_kappai,
      &              dust_cooling,heatingISRi,dust_gas)
                gas_temp = EU0(2,i)/ekcle(3,i)
@@ -2679,7 +2679,7 @@ c
 
             IF (idustRT.GT.0) THEN
                rhoi = rho(i)
-               dust_tk(1,i) = dust_temperature(i,uradconst,
+               dust_tk(1,i) = dust_temperature(i,ntot,uradconst,
      &              ekcle(1,i),EU0(2,i),ekcle,rhoi,
      &              dust_kappai,dust_cooling,heatingISRi,dust_gas)
                dust_tk(2,i) = dust_kappai
@@ -3126,7 +3126,7 @@ C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)
 C$OMP& shared(gamma,dedxyz)
 C$OMP& shared(iunique,iorig,n1,n2,uzero_n2)
 C$OMP& shared(ifullstep,pcolen)
-C$OMP& shared(dust_tk)
+C$OMP& shared(dust_tk,ntot)
 C$OMP& private(temp, rho0)
 C$OMP& private(boundtest,radu)
 C$OMP& private(bounddenslocal,izoverh)
@@ -3150,7 +3150,7 @@ C$OMP& private(rhoi,dust_kappai,dust_cooling,heatingISRi,dust_gas)
                dedxyz(3,i) = 0.
                IF (idustRT.GT.0) THEN
                   rhoi = rho(i)
-                  dust_tk(1,i) = dust_temperature(i,uradconst,
+                  dust_tk(1,i) = dust_temperature(i,ntot,uradconst,
      &                 ekcle(1,i),vxyzu(4,i),ekcle,rhoi,
      &                 dust_kappai,dust_cooling,heatingISRi,dust_gas)
                   dust_tk(2,i) = dust_kappai
@@ -3187,7 +3187,7 @@ C$OMP& private(rhoi,dust_kappai,dust_cooling,heatingISRi,dust_gas)
                ekcle(2,i) = GETKAPPA(vxyzu(4,i),ekcle(3,i),rho(i))
                IF (idustRT.GT.0) THEN
                   rhoi = rho(i)
-                  dust_tk(1,i) = dust_temperature(i,uradconst,
+                  dust_tk(1,i) = dust_temperature(i,ntot,uradconst,
      &                 ekcle(1,i),vxyzu(4,i),ekcle,rhoi,
      &                 dust_kappai,dust_cooling,heatingISRi,dust_gas)
                   dust_tk(2,i) = dust_kappai

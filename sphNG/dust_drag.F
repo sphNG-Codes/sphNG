@@ -323,7 +323,7 @@ c
                      ELSE
                         chi = beta*(1.0-dexp(-0.5*deltat/ts))
                      ENDIF
-                     lambda = (deltat+ts)*chi - deltat*beta*dumrho(igas)
+                     lambda = (deltat+ts)*chi - deltat*beta
                   ELSE
                      WRITE (*,*) 'ERROR - ts.LE.0.0 ',ts,idust,igas
                      CALL quit(1)

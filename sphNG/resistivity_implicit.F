@@ -876,8 +876,8 @@ c
 #endif
          IF (MOD(nosweep,1).EQ.0) THEN
 c           PRINT 97001,nosweep,nswmax,maxerrB,maxerrB2
-97001      FORMAT('GSIMPL: Finished iteration ',I4,' of ',I4,' (',
-     &        1PE12.5,1PE12.5,')')
+c97001      FORMAT('GSIMPL: Finished iteration ',I4,' of ',I4,' (',
+c     &        1PE12.5,1PE12.5,')')
          ENDIF
 #ifdef MPIALL
          ENDIF

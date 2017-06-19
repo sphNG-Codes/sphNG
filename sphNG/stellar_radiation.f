@@ -12,6 +12,7 @@ c************************************************************
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
+      INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/sort'

@@ -44,7 +44,6 @@ c
 c      COMMON /stuff/ columndens(idim)
 
       DIMENSION xyzmh(5,mmax2)
-      LOGICAL itest
 c
 c--These arrays needs to be thread private because treef_P.F
 c     which calls this subroutine is called by multiple OpenMP threads

@@ -22,20 +22,20 @@ c      PARAMETER (idim_stellarrad = idim)
 
       LOGICAL istellarradiation
       PARAMETER (istellarradiation = istellar_heating.OR.
-     &		istellar_ionisation.OR.istellar_radpres)
+     &          istellar_ionisation.OR.istellar_radpres)
 c
 c--Arrays for storing sink particle properties (from all MPI processes)
 c
       REAL*8 stellar_xyzmhrti,stellar_radtempion
       COMMON /stellarprop/ stellar_radtempion(3,iptdim),
-     &	     stellar_xyzmhrti(8,iptdim)
+     &       stellar_xyzmhrti(8,iptdim)
 c
 c--Keep fraction of HII
 c
       REAL*8 HIIion, dHIIdt, HIIion_smooth
       COMMON /ionise/ HIIion(2*idim_ionisation),
      &       dHIIdt(2,idim_ionisation),
-     &	     HIIion_smooth(idim_ionisation)
+     &       HIIion_smooth(idim_ionisation)
 c
 c--Arrays for storing direct feedback quantities
 c
@@ -54,11 +54,11 @@ c
       REAL*8 stellarflux_vec,divstellarflux,asymmetry,stellar_tau
 
       COMMON /stellarrad_t/ stellar_AvT_table(2,nstellar_Av,nstellar_T),
-     &	     radpres_table(nstellar_radpres)
+     &       radpres_table(nstellar_radpres)
       COMMON /stellarrad_p/ stellar_radpres(3,2*idim_stellarrad)
       COMMON /stellar/stellarrad(4,iptdim,
-     &	     3*MAX(idim_ionisation,idim_stellarrad))
+     &       3*MAX(idim_ionisation,idim_stellarrad))
       COMMON /stellarrad_f/ stellarflux_vec(3,2*idim_stellarrad),
-     &	     divstellarflux(idim_stellarrad)
+     &       divstellarflux(idim_stellarrad)
       COMMON /stellarasym/ asymmetry(3*idim_stellarrad),
-     &	     stellar_tau(idim_stellarrad)
+     &       stellar_tau(idim_stellarrad)

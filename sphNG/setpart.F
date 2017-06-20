@@ -699,7 +699,8 @@ c
      &           '                      random        = 3', /,
      &           '                      body centred  = 4', /,
      &           '                      custom        = 5', /,
-     &           '                      rings         = 6')
+     &           '                      rings         = 6', /,
+     &           '       (offset cubic) diamonds      = 7')
          READ (iread, *) idist
       ENDIF
  210  WRITE (*, 88009)
@@ -752,7 +753,7 @@ c
 c--Compute number of particles and check if ok
 c
  320  IF (idist.EQ.1 .OR. idist.EQ.3 .OR. idist.EQ.5 .OR. 
-     &                                           idist.EQ.6) THEN
+     &                    idist.EQ.6 .OR. idist.EQ.7) THEN
          facx = 1.
          facy = 1.
          facz = 1.
@@ -772,7 +773,7 @@ c
          dely = h1*SQRT(3.)/6.
       ENDIF
 
-      IF (idist.EQ.1 .OR. idist.EQ.2) THEN
+      IF (idist.EQ.1 .OR. idist.EQ.2 .OR. idist.EQ.7) THEN
          nx = INT(deltax/(facx*h1)) + 1
          ny = INT(deltay/(facy*h1)) + 2
          nz = INT(deltaz/(facz*h1)) + 1
@@ -960,7 +961,7 @@ c        adjust particle spacing of medium to give density contrast
             delx = 0.5*h1
             dely = h1*SQRT(3.)/6.
          ENDIF
-         IF (idist.EQ.1 .OR. idist.EQ.2) THEN
+         IF (idist.EQ.1 .OR. idist.EQ.2 .OR. idist.EQ.7) THEN
             nx = INT(deltax/(facx*h1)) + 1
             ny = INT(deltay/(facy*h1)) + 1
             nz = INT(deltaz/(facz*h1)) + 2

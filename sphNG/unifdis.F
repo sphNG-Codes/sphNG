@@ -299,7 +299,7 @@ c               zstart = FLOAT(INT(zmin/stepz))*stepz + 0.5*stepz
                 xstart = xstart + delx
              ENDIF
 
-            ELSEIF (idist.EQ.1) THEN
+            ELSEIF (idist.EQ.1 .OR. idist.EQ.7) THEN
                 xstart = (xmin+xmax)/2.0
      &               -(INT(ABS(0.5*(xmax-xmin)/stepx)+0.5))*stepx
      &               + 0.5*stepx      
@@ -308,7 +308,7 @@ c               zstart = FLOAT(INT(zmin/stepz))*stepz + 0.5*stepz
      &               + 0.5*stepy
                 zstart = (zmin+zmax)/2.0
      &              -(INT(ABS(0.5*(zmax-zmin)/stepz)+0.5))*stepz
-     &               + 0.5*stepz
+                IF (idist.EQ.1) zstart = zstart + 0.5*stepz
 
 !               xstart = (xmin+xmax)/2.0-(INT(ABS(xmin/stepx)+0.5))*stepx
 !     &              + 0.5*stepx
@@ -337,6 +337,10 @@ c               zstart = FLOAT(INT(zmin/stepz))*stepz + 0.5*stepz
             ENDIF
             xi = xstart + FLOAT(k - 1)*stepx
             yi = ystart + FLOAT(l - 1)*stepy
+            IF (idist.EQ.7) THEN
+               xi = xi + 0.5*stepx*MOD(m,2)
+               yi = yi + 0.5*stepx*MOD(m,2)
+            ENDIF
             zi = zstart + FLOAT(m - 1)*stepz 
             r2 = xi*xi + yi*yi
             d2 = r2 + zi*zi

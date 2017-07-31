@@ -4,6 +4,6 @@
       use nicil, only: nimhd_get_dudt, nimhd_get_dt
       use nicil, only: nelements_max,nlevels
       use nicil_sup, only: nimhd_init_gastemp,nimhd_gastemp
-      use nicil_sup, only: energ_nimhd
+      use nicil_sup, only: nimhd_get_eta,energ_nimhd
       use nicil_sup, only: nimhd_write_evheader,nimhd_write_ev
       use nicil_sup, only: inumev,ielements,nimhd_get_stats

@@ -383,7 +383,7 @@ c--Compute various properties to do with non-ideal MHD
      &               vsound,
      &               alphaMM,alphamin,n_R,n_electronT,iphase,gamma,
      &               ifsvi,encal,np_nimhd,et_nimhd,evdata,
-     &               ionfrac_eta,n1,n2,iunique,iorig)
+     &               eta_nimhd,n1,n2,iunique,iorig)
 #endif
 c
       IF (where(1:6).NE.'newrun') THEN

@@ -2791,7 +2791,7 @@ c
 C$OMP PARALLEL DO SCHEDULE (runtime) default(none)
 C$OMP& shared(npart,ntot,ireal,rho,dumrho,xyzmh,gradhs)
 #ifdef NONIDEAL
-C$OMP& shared(n_R,n_electronT)
+C$OMP& shared(eta_nimhd,n_R,n_electronT)
 #endif
 C$OMP& private(i,j)
       DO i = npart + 1, ntot
@@ -2801,6 +2801,7 @@ C$OMP& private(i,j)
          xyzmh(5,i) = xyzmh(5,j)
          gradhs(1,i) = gradhs(1,j)
 #ifdef NONIDEAL
+         eta_nimhd(:,i) = eta_nimhd(:,j)
          n_R(:,i) = n_R(:,j)
          n_electronT(i) = n_electronT(j)
 #endif

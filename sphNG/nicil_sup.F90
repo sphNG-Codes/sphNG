@@ -11,7 +11,7 @@
 !+
 !----------------------------------------------------------------------!
 module nicil_sup
- use nicil, only: nicil_get_eta,nimhd_get_dudt
+ use nicil, only: nicil_get_eta,nimhd_get_dudt,nicil_translate_error
  use nicil, only: use_ohm,use_hall,use_ambi,ion_rays,ion_thermal, &
                   nelements,nelements_max,nlevels,meanmolmass, &
                  zeta_of_rho,n_data_out
@@ -40,7 +40,7 @@ module nicil_sup
   character(len=19),private   :: ev_label(inumev)
   integer(kind=1),  private   :: ev_action(inumev)
   !--Subroutines
-  public                      :: nimhd_init_gastemp,nimhd_gastemp,energ_nimhd
+  public                      :: nimhd_init_gastemp,nimhd_gastemp,nimhd_get_eta,energ_nimhd
   public                      :: nimhd_write_evheader,nimhd_write_ev,nimhd_get_stats
   private                     :: get_coef_gamma,fill_one_label,fill_xan_label
 
@@ -130,24 +130,65 @@ end function nimhd_gastemp
 !  wrapper routine to calculate and include du/dt
 !+
 !-----------------------------------------------------------------------
-subroutine energ_nimhd(fxyzu4i,jcurrenti,Bxyzi,vxyzu4i,ekcle3i,rhoi,n_Ri,n_electronTi,gamma,encal,n1,n2,ipart0)
- integer,          intent(in)    :: n1,n2
- integer(kind=8),  intent(in)    :: ipart0
+subroutine energ_nimhd(fxyzu4i,rhoi,eta_nimhd,jcurrenti,Bxyzi)
  real,             intent(inout) :: fxyzu4i
- real,             intent(in)    :: jcurrenti(3),Bxyzi(3),n_Ri(:)
- real,             intent(in)    :: vxyzu4i,ekcle3i,rhoi,n_electronTi,gamma
- character(len=*), intent(in)    :: encal
- integer                         :: ierr
- real                            :: Bi,temperaturei,etaohmi,etahalli,etaambii
+ real,             intent(in)    :: rhoi
+ real,             intent(in)    :: eta_nimhd(3),jcurrenti(3),Bxyzi(3)
  real                            :: dudtnonideal
  !
- Bi           = sqrt( dot_product(Bxyzi,Bxyzi) )
- temperaturei = nimhd_gastemp(encal,vxyzu4i,ekcle3i,rhoi,gamma,n1,n2,ipart0)
- call nicil_get_eta(etaohmi,etahalli,etaambii,Bi,rhoi,temperaturei,n_Ri,n_electronTi,ierr)
- call nimhd_get_dudt(dudtnonideal,etaohmi,etaambii,rhoi,jcurrenti,Bxyzi)
- fxyzu4i      = fxyzu4i + dudtnonideal
+ call nimhd_get_dudt(dudtnonideal,eta_nimhd(1),eta_nimhd(3),rhoi,jcurrenti,Bxyzi)
+ fxyzu4i = fxyzu4i + dudtnonideal
  !
 end subroutine energ_nimhd
+!-----------------------------------------------------------------------
+!+
+!  A loop to calculated the non-ideal MHD coefficients
+!+
+!-----------------------------------------------------------------------
+subroutine nimhd_get_eta(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz,trho &
+                       ,eta_nimhd,n_R,n_electronT,iphase,iunique,iorig,ivar,gamma,encal)
+ integer,          intent(in)    :: n1,n2,nlst_in,nlst_tot
+ real,             intent(in)    :: vxyzu(:,:),ekcle(:,:),Bxyz(:,:)
+ real(kind=4),     intent(in)    :: trho(:)
+ real,             intent(in)    :: n_R(:,:),n_electronT(:)
+ real,             intent(inout) :: eta_nimhd(:,:)
+ integer,          intent(in)    :: iorig(:),ivar(:,:)
+ integer(kind=1),  intent(in)    :: iphase(:)
+ integer(kind=8),  intent(in)    :: iunique(:)
+ real,             intent(in)    :: gamma
+ character(len=*), intent(in)    :: encal
+ integer                         :: n,ipart,ierr
+ real                            :: Bi,temperature,ekclei
+
+!$omp parallel default(none) &
+!$omp shared(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz,trho,iphase,iunique,iorig,ivar) &
+!$omp shared(eta_nimhd,n_R,n_electronT,gamma,encal) &
+!$omp private(n,ipart,Bi,ekclei,temperature,ierr)
+!$omp do
+ do n = nlst_in, nlst_tot
+    ipart = ivar(3,n)
+    if (iphase(ipart)==0) then
+       Bi = dot_product(Bxyz(1:3,ipart),Bxyz(1:3,ipart))
+       Bi = sqrt(Bi)
+       if (encal.EQ.'r') then
+          ekclei = ekcle(3,ipart)
+       else
+          ekclei = 0.0
+       endif
+       temperature = nimhd_gastemp(encal,vxyzu(4,ipart),ekclei,real(trho(ipart)),gamma &
+                                  ,n1,n2,iunique(iorig(ipart)))
+       call nicil_get_eta(eta_nimhd(1,ipart),eta_nimhd(2,ipart),eta_nimhd(3,ipart) &
+                         ,Bi,real(trho(ipart)),temperature,n_R(:,ipart),n_electronT(ipart),ierr)
+       if (ierr/=0) then
+          call nicil_translate_error(ierr)
+          if (ierr > 0) call quit(1)
+       endif
+    endif
+ enddo
+!$omp enddo
+!$omp end parallel
+
+end subroutine nimhd_get_eta
 !-----------------------------------------------------------------------
 !+
 !  Calculates Header and initialises indicies; initialises .ev file if
@@ -222,7 +263,7 @@ end subroutine nimhd_write_evheader
 !-----------------------------------------------------------------------
 subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
                         alphaMM,alphamin,n_R,n_electronT,iphase,&
-                        gamma,ifsvi,encal,np,et,ev_data,ionfrac_eta,n1,n2,iunique,iorig)
+                        gamma,ifsvi,encal,np,et,ev_data,eta_nimhd,n1,n2,iunique,iorig)
  real,             intent(in)  :: gamma
  real,             intent(in)  :: xyzmh(:,:),vxyzu(:,:),ekcle(:,:),Bxyz(:,:),&
                                   n_R(:,:),n_electronT(:),alphamin(:)
@@ -234,7 +275,7 @@ subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
  character(len=*), intent(in)  :: encal
  integer,          intent(out) :: np
  real,             intent(out) :: et,ev_data(0:inumev)
- real(kind=4),     intent(out) :: ionfrac_eta(4,imhd2)
+ real,             intent(out) :: eta_nimhd(4,imhd2)
  integer                       :: i,ierr,c0,c1,crate,cmax,iekcle
  real                          :: rhoi,B2i,Bi,temperature,vsigi, &
                                   etaart,etaart1,etaohm,etahall,etaambi,n_total
@@ -252,7 +293,7 @@ subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
 !$omp shared(xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,iphase,npart,encal,n1,n2,iunique,iorig) &
 !$omp shared(n_R,n_electronT,alphaMM,alphamin,gamma,ifsvi) &
 !$omp shared(use_ohm,use_hall,use_ambi,ion_rays,ion_thermal,nelements) &
-!$omp shared(ielements,ev_data,ev_action,ionfrac_eta) &
+!$omp shared(ielements,ev_data,ev_action,eta_nimhd) &
 !$omp shared(itX,itA,itN,ietaFX,ietaFA,iohmX,iohmA,iohmN,iohmfX,iohmfA,iohmfN) &
 !$omp shared(ihallX,ihallA,ihallN,iahallX,iahallA,iahallN) &
 !$omp shared(ihallfX,ihallfA,ihallfN,iahallfX,iahallfA,iahallfN) &
@@ -306,10 +347,7 @@ subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,vsound,&
        endif
        n_total = data_out(7) + data_out(8) + data_out(9) + data_out(10) + data_out(11)
        call ev_update(ev_data_thread,data_out(6)/n_total,inenX,inenA,inenN)
-       ionfrac_eta(1,i) = real(data_out(6)/n_total,kind=4)
-       ionfrac_eta(2,i) = real(etaohm, kind=4)  ! Save eta_OR for the dump file
-       ionfrac_eta(3,i) = real(etahall,kind=4)  ! Save eta_HE for the dump file
-       ionfrac_eta(4,i) = real(etaambi,kind=4)  ! Save eta_AD for the dump file
+       eta_nimhd(4,i) = data_out(6)/n_total
        call ev_update(ev_data_thread,      data_out( 6), ineX,   ineA             )
        call ev_update(ev_data_thread,      data_out( 7), innX,   innA             )
        if (ion_rays) then

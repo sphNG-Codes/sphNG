@@ -1849,9 +1849,8 @@ C$OMP& shared(dh2dt,icolumnsteps,icolumnnext)
 C$OMP& shared(iproc)
 #endif
 #ifdef NONIDEAL
-C$OMP& shared(n_R,n_electronT,gamma,jcurrent)
-C$OMP& private(dtohmi,dthalli,dtambii,eta_ohmi,eta_halli,eta_ambii)
-C$OMP& private(temperature,ekclei,ierr,dudtnonideal,Bi)
+C$OMP& shared(eta_nimhd)
+C$OMP& private(dtohmi,dthalli,dtambii,eta_ohmi)
 #endif
 #ifdef DGRID
 C$OMP& shared(dragenergy)
@@ -2479,44 +2478,16 @@ c
 c--Gas timestep from non-ideal MHD
 c
             IF (imhd.EQ.idim .AND. iphase(i).EQ.0) THEN
-               Bxi = Bxyz(1,i)
-               Byi = Bxyz(2,i)
-               Bzi = Bxyz(3,i)
-               IF (iBext.GT.0 .AND. iexf.NE.9) THEN
-                  xi  = xyzmh(1,i)
-                  yi  = xyzmh(2,i)
-                  zi  = xyzmh(3,i)
-                  Bxi = Bxi + BEXTERNAL(xi,yi,zi,1)
-                  Byi = Byi + BEXTERNAL(xi,yi,zi,2)
-                  Bzi = Bzi + BEXTERNAL(xi,yi,zi,3)
-               ENDIF
-               B2i = (Bxi*Bxi +  Byi*Byi + Bzi*Bzi)
-               IF (encal.EQ.'r') THEN
-                  ekclei = ekcle(3,i)
-               ELSE
-                  ekclei = 0.0
-               ENDIF
-               temperature = nimhd_gastemp(encal,vxyzu(4,i),ekclei
-     &                                    ,dble(rho(i)),gamma,n1,n2
-     &                                    ,iunique(iorig(i)))
-               call nicil_get_eta(eta_ohmi,eta_halli,eta_ambii
-     &             ,SQRT(B2i),dble(rho(i)),temperature
-     &             ,n_R(:,i),n_electronT(i),ierr)
-               IF (ierr/=0) THEN
-                  CALL nicil_translate_error(ierr)
-                  IF (ierr > 0) THEN
-                     CALL quit(1)
-                  ELSE
-                     print*, 'nicil: step: T = 0 for i = ', i
-                  ENDIF
-               ENDIF
 c
 c--If iresist<0, then Ohmic resistivity is done implicitly
 c
-               IF (iresist.LT.0) eta_ohmi = 0.
-
+               IF (iresist.LT.0) THEN
+                  eta_ohmi = 0.
+               ELSE
+                  eta_ohmi = eta_nimhd(1,i)
+               ENDIF
                call nimhd_get_dt(dtohmi,dthalli,dtambii,xyzmh(5,i)
-     &             ,eta_ohmi,eta_halli,eta_ambii)
+     &             ,eta_ohmi,eta_nimhd(2,i),eta_nimhd(3,i))
                dtohmi  = dtohmi / (dt*isteps(i)/imaxstep)
                dthalli = dthalli/ (dt*isteps(i)/imaxstep)
                dtambii = dtambii/ (dt*isteps(i)/imaxstep)

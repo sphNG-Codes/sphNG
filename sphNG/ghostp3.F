@@ -38,7 +38,7 @@ c************************************************************
       INCLUDE 'COMMONS/eosq'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
-      REAL*8  jcurrenti(3),n_electronTi,n_Ri(4)
+      REAL*8  jcurrenti(3),n_electronTi,n_Ri(4),eta_nimhdi(4)
 #endif
 
       CHARACTER*7 where
@@ -91,9 +91,10 @@ c
          drmin2 = drmin*drmin
          drmax2 = rmax2 + delta2 - 2*rmax*delta
 #ifdef NONIDEAL
-         jcurrenti(1:3) = jcurrent(1:3,i)
-         n_electronTi   = n_electronT(i)
-         n_Ri(1:4)      = n_R(1:4,i)
+         jcurrenti(1:3)  = jcurrent(1:3,i)
+         n_electronTi    = n_electronT(i)
+         n_Ri(1:4)       = n_R(1:4,i)
+         eta_nimhdi(1:4) = eta_nimhd(1:4,i)
 #endif
 
          IF (r2.GT.rshell*rshell) inshell = inshell + 1
@@ -127,9 +128,10 @@ c            print *,i,r2,hi
             pr(nptot) = presi
             iphase(nptot) = 0
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot) = jcurrenti(1:3)
-            n_electronT(nptot) = n_electronTi
-            n_R(1:4,nptot) = n_Ri(1:4)
+            jcurrent(1:3,nptot)  = jcurrenti(1:3)
+            n_electronT(nptot)   = n_electronTi
+            n_R(1:4,nptot)       = n_Ri(1:4)
+            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
 #endif
          ENDIF
 

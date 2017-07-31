@@ -44,9 +44,6 @@
 
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
-      INCLUDE 'COMMONS/cgas'
-      INCLUDE 'COMMONS/bodys'
-      INCLUDE 'COMMONS/sort'
 #endif
 
 #ifdef MPICOPY
@@ -131,8 +128,7 @@ C$OMP& shared(ihasghost,iphase,ifullstep,iresist,etamhd)
 C$OMP& shared(ntot,ncompactlocal,radkernel,gradhs,ncompact)
 C$OMP& shared(ido,ido_j,vsound,alphaMMpass,alphamin,ifsvi)
 #ifdef NONIDEAL
-C$OMP& shared(encal,ekcle,gamma,n1,n2,iunique,iorig,n_R,n_electron)
-C$OMP& shared(n_electronT)
+C$OMP& shared(eta_nimhd)
 #endif
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend)
@@ -145,10 +141,6 @@ C$OMP& private(dWi,dWj,dWidrmj,dWidrmi,dWjdrmj)
 C$OMP& private(etai,etaj,etaij,dWidrmjrhojrhoieta,dWidrmirhojrhoieta)
 C$OMP& private(dWjdrmjrhojrhoieta)
 C$OMP& private(B2i,B2j,vsigi,vsigj,etaart)
-#ifdef NONIDEAL
-C$OMP& private(ekclei,ekclej,temperature)
-C$OMP& private(eta_ohm,eta_hall,eta_ambi,ierr)
-#endif
 C$OMP& reduction(+:ihasghostcount)
 c
 c--Set up values that don't change during sweeps
@@ -212,28 +204,7 @@ c
             B2i = Bxyz(1,i)**2 + Bxyz(2,i)**2 + Bxyz(3,i)**2
 #ifdef NONIDEAL
             IF (ABS(iresist).EQ.4) THEN
-               IF (encal.EQ.'r') THEN
-                  ekclei = ekcle(3,i)
-               ELSE
-                  ekclei = 0.0
-               ENDIF
-               temperature = nimhd_gastemp(encal
-     &              ,vxyzu(4,i),ekclei
-     &              ,rhoi,gamma,n1,n2
-     &              ,iunique(iorig(i)))
-c
-c--Note that despite get_eta taking B, the Ohmic eta is independent
-c     of B (see, e.g., eqns 22-23 and 30 of Wurster, Price & Bate 2016,
-c     or more clearly eqn 28 of Pandey & Wardle 2008).
-c
-               CALL nicil_get_eta(eta_ohm,eta_hall
-     &              ,eta_ambi,SQRT(B2i),rhoi,temperature
-     &              ,n_R(:,i),n_electronT(i),ierr)
-               IF (ierr/=0) THEN
-                  CALL nicil_translate_error(ierr)
-                  IF (ierr > 0) CALL quit(1)
-               ENDIF
-               etai = eta_ohm
+               etai = eta_nimhd(1,i)
             ELSE
 #endif
             IF (ABS(iresist).EQ.2 .OR. ABS(iresist).EQ.3) THEN
@@ -326,28 +297,7 @@ c
                B2j = Bxyz(1,j)**2 + Bxyz(2,j)**2 + Bxyz(3,j)**2
 #ifdef NONIDEAL
                IF (ABS(iresist).GE.3) THEN
-                  IF (encal.EQ.'r') THEN
-                     ekclej = ekcle(3,j)
-                  ELSE
-                     ekclej = 0.0
-                  ENDIF
-                  temperature = nimhd_gastemp(encal
-     &                 ,vxyzu(4,j),ekclej
-     &                 ,rhoj,gamma,n1,n2
-     &                 ,iunique(iorig(j)))
-c
-c--Note that despite get_eta taking B, the Ohmic eta is independent
-c     of B (see, e.g., eqns 22-23 and 30 of Wurster, Price & Bate 2016,
-c     or more clearly eqn 28 of Pandey & Wardle 2008).
-c
-               CALL nicil_get_eta(eta_ohm,eta_hall
-     &              ,eta_ambi,SQRT(B2j),rhoj,temperature
-     &              ,n_R(:,j),n_electronT(j),ierr)
-               IF (ierr/=0) THEN
-                  CALL nicil_translate_error(ierr)
-                  IF (ierr > 0) CALL quit(1)
-               ENDIF
-               etaj = eta_ohm
+                  etaj = eta_nimhd(1,j)
                ELSE
 #endif
                IF (ABS(iresist).GE.2) THEN
@@ -1113,8 +1063,8 @@ C$OMP END PARALLEL DO
       CALL MPI_TYPE_FREE(i3REAL8,ierr)
 #endif
 
-      WRITE (*,*) 'Exiting Resistivity_Implicit ',nlst_end,ncompact
+c     WRITE (*,*) 'Exiting Resistivity_Implicit ',nlst_end,ncompact
 
       RETURN
 
-      END !SUBROUTINE GSIMPL
+      END !SUBROUTINE resistivity_implicit

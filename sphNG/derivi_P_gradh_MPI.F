@@ -51,7 +51,9 @@ c************************************************************
 #ifdef MPIALL
 #include "mpi_sup.h"
 #endif
-
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
@@ -796,6 +798,13 @@ c
       IF (imhd.EQ.idim .AND. (iresist.LT.0 .OR. 
      &     isubcycle_divB.GT.0 .AND. ndivBsubcycles.GT.0)) THEN
        IF (iresist.LT.0) THEN
+#ifdef NONIDEAL
+c        Need to update eta_ohm, which is independent of B
+         CALL nimhd_get_eta(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz
+     &                     ,dumrho,eta_nimhd,n_R,n_electronT
+     &                     ,iphase,iunique,iorig,ivar,gamma,encal)
+
+#endif
          CALL resistivity_implicit(nlst_in,nlst_end,llist,dt,itime,
      &        npart,ntot,Bxyz,xyzmh,vxyzu,dumrho,vsound,alphaMM,ekcle,
      &        nit,xerror)
@@ -988,8 +997,9 @@ c
       ENDIF   ! Endif for imhd.EQ.idim and iresist<0 or subcycling
 #ifdef NONIDEAL
 c
-c--Now calculate magnetic current.  Need to do this after the final values
-c     of magnetic field (Bxyz) have been determined.
+c--Now calculate magnetic current
+c     Need to do this after the final values of magnetic field (Bxyz)
+c     have been determined.
 c
       IF (imhd.EQ.idim) THEN
          CALL calc_curlB(nlst_in,nlst_tot,ntot,npart,xyzmh,Bxyz,dumrho)
@@ -1217,14 +1227,35 @@ C$OMP END PARALLEL DO
 
 
 
+#ifdef NONIDEAL
+      ENDIF
 
+c--Now calculate non-ideal MHD coefficients
+c     Need to do this after the final values of magnetic field (Bxyz)
+c     have been determined and n_R & n_electronT have been updated in eospg.
+c     Splitting the loop since nimhd_get_eta needs to be called regardless
+c     of eos since B & rho have changed.
+c     
+c
+      IF (imhd.EQ.idim) THEN
+         CALL nimhd_get_eta(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz
+     &                     ,dumrho,eta_nimhd,n_R,n_electronT
+     &                     ,iphase,iunique,iorig,ivar,gamma,encal)
+      ENDIF
+
+      IF(encal.EQ.'r' .OR. (encal.EQ.'i' .AND. 
+     &     (ibound.EQ.100 .OR. ibound.EQ.102
+     &     .OR. ibound.EQ.103 .OR. ibound.EQ.104
+     &     .OR. ibound.EQ.105))) THEN
+
+#endif
 
 #ifdef MPI
 c
 c--Transfer new values of vxyzu, ekcle, pr, vsound
 c     to other MPI processes.
 c     Also, for NONIDEAL MHD, needs to transfer updated values of
-c     jcurrent, n_R, n_electronT
+c     jcurrent, eta_nimhd,n_R,n_electronT
 c
       inumbertotallocal = 0
       inumberreturned = 0
@@ -1294,7 +1325,7 @@ c
                               CALL MPI_TYPE_COMMIT(indexRP,ierr)
 
                               CALL MPI_SEND(stellar_radpres,1,indexRP,
-     &                             j,215,MPI_COMM_WORLD, ierr)
+     &                             j,219,MPI_COMM_WORLD, ierr)
 
                               CALL MPI_TYPE_FREE(indexRP,ierr)
                            ENDIF
@@ -1329,7 +1360,10 @@ c
      &                       i4REAL8,indexMPI4,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
 
-                        CALL MPI_SEND(n_R,1,indexMPI4,j,216,
+                        CALL MPI_SEND(eta_nimhd,1,indexMPI4,j,216,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_SEND(n_R,1,indexMPI4,j,217,
      &                       MPI_COMM_WORLD, ierr)
 
                         CALL MPI_TYPE_FREE(indexMPI4,ierr)
@@ -1339,7 +1373,7 @@ c
      &                       MPI_REAL8,indexMPIR,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPIR,ierr)
 
-                        CALL MPI_SEND(n_electronT,1,indexMPIR,j,217,
+                        CALL MPI_SEND(n_electronT,1,indexMPIR,j,218,
      &                       MPI_COMM_WORLD, ierr)
 
                         CALL MPI_TYPE_FREE(indexMPIR,ierr)
@@ -1406,7 +1440,7 @@ c
                   IF (istellar_radpres .AND. nptmasstot.GT.0) THEN
                      CALL MPI_RECV(stellar_radpres(1,istart), idim, 
      &                       MPI_REAL8,
-     &                    i, 215, MPI_COMM_WORLD, istatus, ierr)
+     &                    i, 219, MPI_COMM_WORLD, istatus, ierr)
                      CALL MPI_GET_COUNT(istatus, MPI_REAL8,inumber,ierr)
                      iprocrec = istatus(MPI_SOURCE)
                      IF (icheck.NE.inumber/3) THEN
@@ -1444,17 +1478,25 @@ c
                   CALL quit(1)
                ENDIF
 
-               CALL MPI_RECV(n_R(1,istart), idim, MPI_REAL8,
+               CALL MPI_RECV(eta_nimhd(1,istart), idim, MPI_REAL8,
      &              i, 216, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               iprocrec = istatus(MPI_SOURCE)
+               IF (icheck.NE.inumber/4) THEN
+                  WRITE (*,*)iproc,': ERROR-icheck.NE.inumber eta_nimhd'
+                  CALL quit(1)
+               ENDIF
+
+               CALL MPI_RECV(n_R(1,istart), idim, MPI_REAL8,
+     &              i, 217, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
                iprocrec = istatus(MPI_SOURCE)
                IF (icheck.NE.inumber/4) THEN
                   WRITE (*,*) iproc,': ERROR - icheck.NE.inumber n_R'
                   CALL quit(1)
                ENDIF
-
                CALL MPI_RECV(n_electronT(istart), idim, MPI_REAL8,
-     &              i, 217, MPI_COMM_WORLD, istatus, ierr)
+     &              i, 218, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
                iprocrec = istatus(MPI_SOURCE)
                IF (icheck.NE.inumber) THEN
@@ -1747,6 +1789,7 @@ c
 #endif
 
 #endif
+
 
 c
 c--Calculate source terms for variable viscosity and resistivity

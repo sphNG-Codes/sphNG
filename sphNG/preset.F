@@ -721,6 +721,7 @@ c
       IF (ierr/=0) CALL quit(0)
       CALL nimhd_init_gastemp(Rg,gamma,gam,gamdh,gamah,uergg
      &                       ,rhocrit,rhocrit2,rhocrit3)
+      eta_nimhd   = 0.0
       n_R         = 0.0
       n_electronT = 0.0
       WRITE (nimhdfile,99994) namerun

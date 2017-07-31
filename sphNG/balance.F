@@ -510,6 +510,8 @@ c     &                          MPI_COMM_WORLD, ierr)
      &                          MPI_COMM_WORLD, ierr)
                            CALL MPI_SEND(n_electronT,1,indexMPIR,j,174,
      &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(eta_nimhd,1,indexMPI4,j,179,
+     &                          MPI_COMM_WORLD, ierr)
 #endif
                         ENDIF
 
@@ -1071,6 +1073,14 @@ c                  ENDIF
                   CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber: n_elecT'
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_RECV(eta_nimhd(1,npartnew+1), idim, i4REAL8,
+     &                 iprocrec, 179, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, i4REAL8, inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber: eta_nimhd'
                      CALL quit(1)
                   ENDIF
 #endif
@@ -2254,7 +2264,7 @@ c     NOTE: Does not alter listbins for timesteps or ireal  *
 c     or hasghost for ghost particles.                      *
 c     Does not alter tree.                                  *
 c                                                           *
-c*************************`***********************************
+c************************************************************
 
       INCLUDE 'idim'
       INCLUDE 'igrape'
@@ -2381,6 +2391,9 @@ c         h2mol(ito) = h2mol(ifrom)
             n_R(i,ito) = n_R(i,ifrom)
          END DO
          n_electronT(ito) = n_electronT(ifrom)
+         DO i = 1,4
+            eta_nimhd(i,ito) = eta_nimhd(i,ifrom)
+         END DO
 #endif
       ENDIF
       IF (iradtrans.EQ.idim) THEN

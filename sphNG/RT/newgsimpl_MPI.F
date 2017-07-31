@@ -1624,11 +1624,16 @@ c--If using diffuse ISM, use Rosseland mean opacity from the frequency
 c     dependent opacity when dust temperatures are cold (T_d<100 K).
 c     Otherwise use the tabulated grey dust opacities.
 c
-               IF (idustRT.GT.0 .AND. dust_tk(1,i).LT.100.) THEN
-                  opacity = dust_tk(2,i)
+               IF (idustRT.GT.0) THEN
+                  IF (dust_tk(1,i).LT.100.) THEN
+                     opacity = dust_tk(2,i)
+                  ELSE
+                     opacity = ekcle(2,i)
+                  ENDIF
                ELSE
                   opacity = ekcle(2,i)
                ENDIF
+
                IF (opacity.LE.0.) THEN
                   WRITE (*,*) 'ERROR - opacity1 ',opacity,
      &              dust_tk(1,i),ekcle(2,i),dust_tk(2,i),i
@@ -1865,8 +1870,12 @@ c
 c
 c--Set c*lambda/kappa*rho term for current quantities
 c
-                     IF (idustRT.GT.0 .AND. dust_tk(1,i).LT.100.) THEN
-                        opacity = dust_tk(2,i)
+                     IF (idustRT.GT.0) THEN
+                        IF (dust_tk(1,i).LT.100.) THEN
+                           opacity = dust_tk(2,i)
+                        ELSE
+                           opacity = ekcle(2,i)
+                        ENDIF
                      ELSE
                         opacity = ekcle(2,i)
                      ENDIF
@@ -1877,8 +1886,12 @@ c
                      ENDIF
                      bi = ekcle(4,i)/(opacity*rhoi)
 
-                     IF (idustRT.GT.0 .AND. dust_tk(1,j).LT.100.) THEN
-                        opacity = dust_tk(2,j)
+                     IF (idustRT.GT.0) THEN
+                        IF (dust_tk(1,j).LT.100.) THEN
+                           opacity = dust_tk(2,j)
+                        ELSE
+                           opacity = ekcle(2,j)
+                        ENDIF
                      ELSE
                         opacity = ekcle(2,j)
                      ENDIF

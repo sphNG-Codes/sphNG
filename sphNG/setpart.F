@@ -12,6 +12,9 @@ c************************************************************
 #ifdef MPIALL
 #include "mpi_sup.h"
 #endif
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
       INCLUDE 'idim'
 
 #ifdef MPI
@@ -1456,6 +1459,9 @@ c            print*,'uzero = ',thermal,' uzero2 = ',uzero_n2
             ENDDO
 c            print*,'rho(medium) = ',rhozero/rhocontrast,rhozero
             rho(1) = rhozero
+#ifdef NONIDEAL
+            CALL nicil_initialise(utime,udist,umass,umagfd,ierr)
+#endif
             CALL eospg(1,vxyzu,rho,pr,vsound,ekcle)
             rho(n1+1) = rhozero/rhocontrast
             CALL eospg(n1+1,vxyzu,rho,pr,vsound,ekcle)
@@ -1487,6 +1493,9 @@ c
                rho(i) = rhozero
             END DO
 c  only robust way is to actually call eospg to make sure pext=p
+#ifdef NONIDEAL
+            CALL nicil_initialise(utime,udist,umass,umagfd,ierr)
+#endif
             CALL eospg(1,vxyzu,rho,pr,vsound,ekcle)
             IF (exttemp.LT.0.) THEN
                pext = pr(1)

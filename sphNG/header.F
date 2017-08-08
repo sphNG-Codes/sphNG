@@ -390,7 +390,7 @@ c
 99634          FORMAT('    Interstellar Radiation Field: Mid-IR  : ',L1)
 99636          FORMAT('                                Draine UV : ',L1)
 99638          FORMAT('                             Strength, G0 : ',
-     &              1PE8.2)
+     &              1PE9.2)
 99650          FORMAT('    Initial conditions : Fully Atomic', //)
 99651          FORMAT('    Initial conditions : Fully Molecular', //)
             ELSE

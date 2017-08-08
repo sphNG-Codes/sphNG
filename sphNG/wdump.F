@@ -527,10 +527,10 @@ c--Default real
          WRITE (idisk1, ERR=100) tag('dHIIdt')
          WRITE (idisk1, ERR=100) (dHIIdt(1,isort(i)), i=1, 
      &           nprint)
-         tagarr(1:4) = (/tag('StellarExt'),tag('StellarCol'),
-     &        tag('StellarH2Col'),tag('StellarHII')/)
+         tagarr(1:4) = tag((/'StellarExt  ','StellarCol  ',
+     &        'StellarH2Col','StellarHII  '/))
          DO j = 1, 4
-            WRITE (idisk1, ERR=100) tag(tagarr(j))
+            WRITE (idisk1, ERR=100) tagarr(j)
             WRITE (idisk1, ERR=100) 
      &           (stellarrad(j,1,isort(i)),i=1,nprint)
          END DO

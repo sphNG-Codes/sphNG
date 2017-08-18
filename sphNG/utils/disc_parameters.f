@@ -34,7 +34,7 @@ c***********************************************************
       INTEGER*8 iunique_sink(1000),iunique_companion(3,1000)
       DIMENSION ilocalsink(1000),icompanion(3,1000)
       DIMENSION ilocalsinkindx(1000)
-      DIMENSION discmass(1000),angmom(3,1000),discradius(12,1000)
+      DIMENSION discmass(1000),angmom(3,1000),discradius(13,1000)
       DIMENSION discmasstot(1000)
       DIMENSION radsearchmax(1000)
       DIMENSION nsink_mult(1000), node_mult(1000)
@@ -1150,10 +1150,10 @@ c
             print *,contour1
 
             OPEN (16,file=contour1,ACCESS='append')
-         WRITE (16,"(16(1PE12.5,1x),I4,1x,6(1PE12.5,1x),1x,6(I9,1x))") 
+         WRITE (16,"(17(1PE12.5,1x),I4,1x,6(1PE12.5,1x),1x,6(I9,1x))") 
      &           gt,formtime(i),xyzmh(4,ilocalsink(i)),
      &           discmass(i),
-     &           (discradius(j,i)*udisti/1.496E+13,j=1,12),
+     &           (discradius(j,i)*udisti/1.496E+13,j=1,13),
      &           nsink_mult(i),
      &           (angmom(j,i),j=1,3),
      &           spinx(ilocalsinkindx(i)),spiny(ilocalsinkindx(i)),
@@ -1259,14 +1259,14 @@ c--If pair, then want to write separate disc masses and angular
 c     momentum of two c-s discs and the c-b disc
 c
                   OPEN (16,file=contour3,ACCESS='append')
-      WRITE (16,"(I3,1x,58(1PE12.5,1x),4(I4,1x),6(1PE12.5,1x))")
+      WRITE (16,"(I3,1x,61(1PE12.5,1x),4(I4,1x),6(1PE12.5,1x))")
      &                 iordermax,gt,formtime(i),pmassnode(i),
      &                 primarymass,
      &                 discmasstot(i),discmass(i),discmass(iprimary),
      &                 discmass(isecondary),
-     &                 (discradius(j,i)*udisti/1.496E+13,j=1,12),
-     &                 (discradius(j,iprimary)*udisti/1.496E+13,j=1,12),
-     &               (discradius(j,isecondary)*udisti/1.496E+13,j=1,12),
+     &                 (discradius(j,i)*udisti/1.496E+13,j=1,13),
+     &                 (discradius(j,iprimary)*udisti/1.496E+13,j=1,13),
+     &               (discradius(j,isecondary)*udisti/1.496E+13,j=1,13),
      &                 (xnode_axis(i)*udisti/1.496E+13),
      &                 xnode_ecc(i), (xnode_plane(j,i),j=1,3),
      &                 (angmom(j,i),j=1,3),
@@ -1358,7 +1358,7 @@ c
 c--Determine disc radius that contains certain percentage of mass
 c
                OPEN (16,file=contour3,ACCESS='append')
-               WRITE (16,"(I2,1x,104(1PE12.5,1x),4(I4,1x))") 
+               WRITE (16,"(I2,1x,111(1PE12.5,1x),4(I4,1x))") 
      &              node_components(i),gt,formtime(i),
      &              pmassnode(i),primarymass,
      &              discmasstot(i),discmass(i),
@@ -1368,13 +1368,13 @@ c
      &              discmass(iclist(4)),
      &              discmass(iclist(5)),
      &              discmass(iclist(6)),
-     &              (discradius(j,i)*udisti/1.496E+13,j=1,12),
-     &              (discradius(j,iclist(1))*udisti/1.496E+13,j=1,12),
-     &              (discradius(j,iclist(2))*udisti/1.496E+13,j=1,12),
-     &              (discradius(j,iclist(3))*udisti/1.496E+13,j=1,12),
-     &              (discradius(j,iclist(4))*udisti/1.496E+13,j=1,12),
-     &              (discradius(j,iclist(5))*udisti/1.496E+13,j=1,12),
-     &              (discradius(j,iclist(6))*udisti/1.496E+13,j=1,12),
+     &              (discradius(j,i)*udisti/1.496E+13,j=1,13),
+     &              (discradius(j,iclist(1))*udisti/1.496E+13,j=1,13),
+     &              (discradius(j,iclist(2))*udisti/1.496E+13,j=1,13),
+     &              (discradius(j,iclist(3))*udisti/1.496E+13,j=1,13),
+     &              (discradius(j,iclist(4))*udisti/1.496E+13,j=1,13),
+     &              (discradius(j,iclist(5))*udisti/1.496E+13,j=1,13),
+     &              (discradius(j,iclist(6))*udisti/1.496E+13,j=1,13),
      &              (xnode_axis(i)*udisti/1.496E+13),
      &              xnode_ecc(i), (xnode_plane(j,i),j=1,3),
      &              (angmom(j,i),j=1,3),

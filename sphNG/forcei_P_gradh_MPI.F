@@ -50,8 +50,9 @@ c           Tricco & Price (2012) switch.
 c        1: uses Alfven+sound speed signal velocity, and not average
 c           density formulation, with Tricco & Price (2012) switch
 c        2: uses |v_a-v_b| signal velocity, not average density
-c        3: uses |v_a x v_b| signal velocity, and not average density,
-c           like in Price et al. (2016) Phantom paper
+c        3: uses |(v_a-v_b)x(r_a-r_b)|/|(r_a-r_b)| signal velocity,
+c           and not average density, like in Price et al. (2017)
+c           Phantom paper
 c
       INTEGER iPhantom_resistivity
 c      PARAMETER (iPhantom_resistivity = 0)

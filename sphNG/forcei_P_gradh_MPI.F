@@ -38,12 +38,26 @@ c************************************************************
       DIMENSION Bevolxyz(imhdevol,imhd3) ! needed for prediction only
 c
 c--Parameters for switching between different implementations of SPMHD.
-c     FALSE is normal for both iMorris and iPhantom_resistivity
+c     iMorris:   FALSE is standard
 c
       LOGICAL iMorris
       PARAMETER (iMorris = .FALSE.)
-      LOGICAL iPhantom_resistivity
-      PARAMETER (iPhantom_resistivity = .FALSE.)
+c
+c     iPhantom_resistivity has the following meanings
+c        0: sphNG resistivity prior to 23 August 2017.  Uses average
+c           density formulation, Joe Monaghan's signal velocity, and
+c           Tricco & Price (2012) switch.
+c        1: uses Alfven+sound speed signal velocity, and not average
+c           density formulation, with Tricco & Price (2012) switch
+c        2: uses |v_a-v_b| signal velocity, not average density
+c        3: uses |v_a x v_b| signal velocity, and not average density,
+c           like in Price et al. (2016) Phantom paper
+c
+      INTEGER iPhantom_resistivity
+c      PARAMETER (iPhantom_resistivity = 0)
+c      PARAMETER (iPhantom_resistivity = 1)
+c      PARAMETER (iPhantom_resistivity = 2)
+      PARAMETER (iPhantom_resistivity = 3)
 c
 c--Whether or not to use an average h formalism for two of the MHD 
 c     equations: the anisotropic magnetic force, and the induction 
@@ -342,7 +356,7 @@ C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(fxi,fyi,fzi,numneigh,hmin)
 C$OMP& private(poteni,dphiti,gradxi,gradyi,gradzi,artxi,artyi,artzi)
 C$OMP& private(gasdragxi,gasdragyi,gasdragzi,ig,f_drag_co,dvij)
-C$OMP& private(rsub,fgd)
+C$OMP& private(dv_cross_dx,rsub,fgd)
 C$OMP& private(rho_g,f_drag_i,ptsi,ptsj,ptsnormi,ptsnormj)
 C$OMP& private(pdvi,dqi,rhoi,pro2i,pro2j,vsoundi,k,j,hj,dx,dy,dz)
 #ifdef DGRID
@@ -700,6 +714,12 @@ c
             projv = dvx*runix + dvy*runiy + dvz*runiz
             dvij = SQRT(dvx**2 + dvy**2 + dvz**2)
 
+            IF (iPhantom_resistivity.EQ.3) THEN
+               dv_cross_dx = SQRT((dvy*runiz - dvz*runiy)**2 +
+     &              (dvz*runix - dvx*runiz)**2 +
+     &              (dvx*runiy - dvy*runix)**2)
+            ENDIF
+
             v2i = rij2*hi21
             vi = rij*hi1
             v2j = rij2*hj21
@@ -1041,9 +1061,15 @@ c
                      vs2j = vsoundj**2 + B2j*rho1j
 c Note: vsj != vsigj; the latter includes a `projection' term
                      vsj = SQRT(vs2j)
-                     IF (iPhantom_resistivity) THEN
+                     IF (iPhantom_resistivity.EQ.1) THEN
                         vsigi = SQRT(vs2i)
                         vsigj = SQRT(vs2j)
+                     ELSEIF (iPhantom_resistivity.EQ.2) THEN
+                        vsigi = dvij
+                        vsigj = dvij
+                     ELSEIF (iPhantom_resistivity.EQ.3) THEN
+                        vsigi = dv_cross_dx
+                        vsigj = dv_cross_dx
                      ELSE
                         vsproji = 2.*vsoundi*projBi*sqrtrho1i
                         vsprojj = 2.*vsoundj*projBj*SQRT(rho1j)
@@ -1065,20 +1091,15 @@ c
                            alphaB = alphamin(2)
                         ENDIF
 c                        alphaB = 1.0
-                        IF (iPhantom_resistivity) THEN
-c
-c--Phantom version:  (the 1/robar1 is to cancel that term in the dBxdissi 
-c     equation below)
-c
-                           termB = alphaMMpass(2,ipart)*vsigi*rho21i*
-     &                          grkern/robar1
+                        IF (iPhantom_resistivity.EQ.1) THEN
+                           termB = alphaMMpass(2,ipart)*
+     &                          vsigi*rho21i*grkern
+                        ELSEIF (iPhantom_resistivity.GE.2) THEN
+                           termB = vsigi*rho21i*grkern
                         ELSE
-c                           termB = alphaB*pmassj*grkern*
-c     &                           MAX(vsbar - projv,0.0)*robar1
                            termB = alphaB*grkern*
-     &                           (vsbar + 2.0*abs(projv))*robar1
+     &                           (vsbar + 2.0*abs(projv))*robar1**2
                         ENDIF
-
                         termBpmj = termB*pmassj
 c
 c--Physical resistivity
@@ -1088,18 +1109,18 @@ c
 
                         IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
 c--artificial
-                           dBxdissi = dBxdissi + termBpmj*dBevolx
-                           dBydissi = dBydissi + termBpmj*dBevoly
-                           dBzdissi = dBzdissi + termBpmj*dBevolz
+                           dBxdissi = dBxdissi + termBpmj*dBevolx/robar1
+                           dBydissi = dBydissi + termBpmj*dBevoly/robar1
+                           dBzdissi = dBzdissi + termBpmj*dBevolz/robar1
 c--physical
                            dBxdissi = dBxdissi + termetapmj*dBevolx
                            dBydissi = dBydissi + termetapmj*dBevoly
                            dBzdissi = dBzdissi + termetapmj*dBevolz
                         ELSE
 c--artificial
-                           dBxdissi = dBxdissi + termBpmj*dBx*robar1
-                           dBydissi = dBydissi + termBpmj*dBy*robar1
-                           dBzdissi = dBzdissi + termBpmj*dBz*robar1
+                           dBxdissi = dBxdissi + termBpmj*dBx
+                           dBydissi = dBydissi + termBpmj*dBy
+                           dBzdissi = dBzdissi + termBpmj*dBz
 c        dBxdissi = dBxdissi + termBpmj*(dBx - runix*projdB)*robar1
 c        dBydissi = dBydissi + termBpmj*(dBy - runiy*projdB)*robar1
 c        dBzdissi = dBzdissi + termBpmj*(dBz - runiz*projdB)*robar1
@@ -1148,7 +1169,7 @@ c--add contribution to thermal energy
 c
                         dB2 = dBx*dBx + dBy*dBy + dBz*dBz
 c                        dqi = dqi - termBpmj*(dB2 - projdB**2)*robar1
-                        dqi = dqi - termBpmj*dB2*robar1
+                        dqi = dqi - termBpmj*dB2
                      ENDIF
                   ELSE
 c
@@ -1184,7 +1205,8 @@ c
                      ELSEIF (ifsvi.EQ.6) THEN
                         alphamean = (alphaMMpass(1,ipart) +
      &                       alphaMMpass(1,j))/2.0
-                        t12j = alphamean*grkern*f*(2.0*f - vsbar)*robar1
+c                        t12j = alphamean*grkern*f*(2.0*f - vsbar)*robar1
+                        t12j = grkern*f*(2.0*f - alphamean*vsbar)*robar1
                      ELSEIF (ifsvi.EQ.7) THEN
                         alphamean = (alphaMMpass(1,ipart) +
      &                       alphaMMpass(1,j))/2.0
@@ -1323,18 +1345,18 @@ c
 
                         IF (varmhd.EQ.'eulr' .OR. varmhd.EQ.'vecp') THEN
 c--artificial
-                           dBxdissj = dBxdissj + termBpmi*dBevolx
-                           dBydissj = dBydissj + termBpmi*dBevoly
-                           dBydissj = dBydissj + termBpmi*dBevolz
+                           dBxdissj = dBxdissj + termBpmi*dBevolx/robar1
+                           dBydissj = dBydissj + termBpmi*dBevoly/robar1
+                           dBydissj = dBydissj + termBpmi*dBevolz/robar1
 c--physical
                            dBxdissj = dBxdissj + termetapmi*dBevolx
                            dBydissj = dBydissj + termetapmi*dBevoly
                            dBzdissj = dBzdissj + termetapmi*dBevolz
                         ELSE
 c--artificial
-                           dBxdissj = dBxdissj + termBpmi*dBx*robar1
-                           dBydissj = dBydissj + termBpmi*dBy*robar1
-                           dBzdissj = dBzdissj + termBpmi*dBz*robar1
+                           dBxdissj = dBxdissj + termBpmi*dBx
+                           dBydissj = dBydissj + termBpmi*dBy
+                           dBzdissj = dBzdissj + termBpmi*dBz
 c--physical
                            dBxdissj = dBxdissj + termetapmi*dBx*rho1j
                            dBydissj = dBydissj + termetapmi*dBy*rho1j
@@ -1347,7 +1369,7 @@ c--physical
 c
 c--add contribution to thermal energy
 c
-                        dqj = dqj - termBpmi*dB2*robar1
+                        dqj = dqj - termBpmi*dB2
                      ENDIF
 c
 c--Artificial viscosity
@@ -1668,9 +1690,15 @@ c
 c
 c--Signal velocity (MHD)
 c
-                        IF (iPhantom_resistivity) THEN
+                        IF (iPhantom_resistivity.EQ.1) THEN
                            vsigi = SQRT(vs2i)
                            vsigj = SQRT(vs2j)
+                        ELSEIF (iPhantom_resistivity.EQ.2) THEN
+                           vsigi = dvij
+                           vsigj = dvij
+                        ELSEIF (iPhantom_resistivity.EQ.3) THEN
+                           vsigi = dv_cross_dx
+                           vsigj = dv_cross_dx
                         ELSE
                            vsproji = 2.*vsoundi*projBi*sqrtrho1i
                            vsprojj = 2.*vsoundj*projBj*SQRT(rho1j)
@@ -1693,19 +1721,16 @@ c
                            ENDIF
 c                           alphaB = 1.0
 
-                           IF (iPhantom_resistivity) THEN
-c
-c--Phantom version:  (the 1/robar1 is to cancel that term in the dBxdissi 
-c     equation below)
-c
-                              termB = alphaMMpass(2,j)*vsigj*
-     &                             rho1j*rho1j*grkern/robar1
+                           IF (iPhantom_resistivity.EQ.1) THEN
+                              termB = alphaMMpass(2,j)*
+     &                             vsigj*rho1j*rho1j*grkern
+                           ELSEIF (iPhantom_resistivity.GE.2) THEN
+                              termB = vsigj*rho1j*rho1j*grkern
                            ELSE
-c                              termB = alphaB*pmassj*grkern*
-c     &                             MAX(vsbar - projv,0.0)*robar1
-                              termB = alphaB*pmassj*grkern*
-     &                             (vsbar + 2.0*abs(projv))*robar1
+                              termB = alphaB*grkern*
+     &                             (vsbar + 2.0*abs(projv))*robar1**2
                            ENDIF
+                           termBpmj = termB*pmassj
 c
 c--Real resistivity
 c
@@ -1714,18 +1739,21 @@ c
 
                            IF(varmhd.EQ.'eulr'.OR.varmhd.EQ.'vecp') THEN
 c--artificial
-                              dBxdissi = dBxdissi + termB*dBevolx
-                              dBydissi = dBydissi + termB*dBevoly
-                              dBzdissi = dBzdissi + termB*dBevolz
+                              dBxdissi = dBxdissi + 
+     &                             termBpmj*dBevolx/robar1
+                              dBydissi = dBydissi + 
+     &                             termBpmj*dBevoly/robar1
+                              dBzdissi = dBzdissi + 
+     &                             termBpmj*dBevolz/robar1
 c--physical
                               dBxdissi = dBxdissi + termeta*dBevolx
                               dBydissi = dBydissi + termeta*dBevoly
                               dBzdissi = dBzdissi + termeta*dBevolz
                            ELSE
 c--artificial
-                              dBxdissi = dBxdissi + termB*dBx*robar1
-                              dBydissi = dBydissi + termB*dBy*robar1
-                              dBzdissi = dBzdissi + termB*dBz*robar1
+                              dBxdissi = dBxdissi + termBpmj*dBx
+                              dBydissi = dBydissi + termBpmj*dBy
+                              dBzdissi = dBzdissi + termBpmj*dBz
 c               dBxdissi = dBxdissi + termB*(dBx - runix*projdB)*robar1
 c               dBydissi = dBydissi + termB*(dBy - runiy*projdB)*robar1
 c               dBzdissi = dBzdissi + termB*(dBz - runiz*projdB)*robar1
@@ -1774,7 +1802,7 @@ c--Add contribution to thermal energy
 c
                            dB2 = dBx*dBx + dBy*dBy + dBz*dBz
 c                        dqi = dqi - termB*(dB2 - projdB**2)*robar1
-                           dqi = dqi - termB*dB2*robar1 
+                           dqi = dqi - termBpmj*dB2
                         ENDIF
                      ELSE
 c
@@ -1810,7 +1838,8 @@ c
                         ELSEIF (ifsvi.EQ.6) THEN
                            alphamean = (alphaMMpass(1,ipart) + 
      &                          alphaMMpass(1,j))/2.0
-                        t12j = alphamean*grkern*f*(2.0*f - vsbar)*robar1
+c                        t12j = alphamean*grkern*f*(2.0*f - vsbar)*robar1
+                        t12j = grkern*f*(2.0*f - alphamean*vsbar)*robar1
                         ELSEIF (ifsvi.EQ.7) THEN
                            alphamean = (alphaMMpass(1,ipart) + 
      &                          alphaMMpass(1,j))/2.0

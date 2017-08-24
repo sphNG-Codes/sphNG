@@ -2,6 +2,10 @@
 c************************************************************
 c                                                           *
 c  This routine reads a dump into memory                    *
+c     NOTE: If iskip equals a pre-existing value of npart   *
+c     then the particles from the dump file will be added   *
+c     to the end of an existing set of particles (for use   *
+c     with addump.F                                         *
 c                                                           *
 c************************************************************
 
@@ -84,10 +88,19 @@ c
 99001 FORMAT (' entry subroutine rdump')
 
       ichkl = 0
-      icount = 0
-      icountinactive = 0
-      icountsink = 0
-      nhydrocumulative = 0
+      IF (npart.GT.0 .AND. iskip.EQ.npart) THEN
+         icount = npart
+         icountinactive = nlistinactive
+         icountsink = nptmass
+         nhydrocumulative = iskip
+         iunique_offset = iuniquemax
+      ELSE
+         icount = 0
+         icountinactive = 0
+         icountsink = 0
+         nhydrocumulative = 0
+         iunique_offset = 0
+      ENDIF
 
       iplanetesimals = 0
       irotpot = 0
@@ -565,6 +578,11 @@ c--int*8
             ENDIF
             READ (idisk1, END=100) (iunique(i), i=icount+1,
      &           icount+nhydro)
+            IF (iunique_offset.GT.0) THEN
+               DO i=icount+1, icount+nhydro
+                  iunique(i) = iunique(i) + iunique_offset
+               END DO
+            ENDIF
          ENDIF
 #ifdef MPIDEBUG
          print *,iproc,': read iunique ',iunique(icount+1)
@@ -577,7 +595,7 @@ c         END DO
          IF (nums1(5).LT.1 .OR. iunique(icount+1).EQ.0) THEN
             print *,'Read iunique ',(iunique(i), i=icount+1,icount+10)
             DO i=icount+1,icount+nhydro
-               iunique(i) = nhydrocumulative + i
+               iunique(i) = iunique_offset + nhydrocumulative + i
             END DO
          ENDIF
 c--Default real

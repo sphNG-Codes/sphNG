@@ -121,7 +121,7 @@ c
       fmas2 = 0.
 
       n1new = 0
-      n2new = 0.
+      n2new = 0
       DO i = 1, npart
          IF (iunique(iorig(i)).LE.n1 .AND. 
      &                    (iphase(i).EQ.0 .OR. iphase(i).GE.10)) THEN
@@ -291,9 +291,11 @@ c
          vcmy2 = vcmy2/fmas2
          vcmz2 = vcmz2/fmas2
 
-         romean2 = romean2/n2new
-         tgmean2 = tgmean2/n2new
-         trmean2 = trmean2/n2new
+         IF (n2new.NE.0) THEN
+            romean2 = romean2/n2new
+            tgmean2 = tgmean2/n2new
+            trmean2 = trmean2/n2new
+         ENDIF
          IF (idustRT.GT.0) THEN
             tdmean2 = tdmean2/n1new
          ENDIF
@@ -301,6 +303,7 @@ c
 c
 c--Compute maximum distance
 c
+      dmin1 = 1.0E+30
       dmax1 = 0.
       zmax1 = 0.
       rmin2 = 1.0E+30

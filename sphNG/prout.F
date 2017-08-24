@@ -903,13 +903,15 @@ c
 99016       FORMAT (//, ' new initial conditions made from file ', A7,
      &              ' and ', A7)
             WRITE (iprint, 99017) n1, xx1, yy1, zz1, vvx1, vvy1, vvz1
-99017       FORMAT (/, ' first   object is made of ', I4,
-     &              ' particles : ', /, '  x : ', 1PE12.5, '   y : ',
+99017       FORMAT (/, ' first   object is made of ', I8,
+     &              ' particles with offsets : ', /,
+     &              '  x : ', 1PE12.5, '   y : ',
      &              1PE12.5, '   z :', 1PE12.5, /, ' vx : ', 1PE12.5,
      &              '  vy : ', 1PE12.5, '  vz :', 1PE12.5)
             WRITE (iprint, 99018) n2, xx2, yy2, zz2, vvx2, vvy2, vvz2
-99018       FORMAT (/, ' second  object is made of ', I4,
-     &              ' particles : ', /, '  x : ', 1PE12.5, '   y : ',
+99018       FORMAT (/, ' second  object is made of ', I8,
+     &              ' particles with offsets : ', /,
+     &              '  x : ', 1PE12.5, '   y : ',
      &              1PE12.5, '   z :', 1PE12.5, /, ' vx : ', 1PE12.5,
      &              '  vy : ', 1PE12.5, '  vz :', 1PE12.5)
             WRITE (iprint, 99019) angto

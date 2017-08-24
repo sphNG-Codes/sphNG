@@ -98,11 +98,11 @@ c
          OPEN (idisk3, FILE=file3, STATUS='unknown', FORM='unformatted',
      &        RECL=imaxrec)
          CALL addump
-         CALL inform(where)
          DO i = 1, npart
             isort(i) = i
             iorig(i) = i
          END DO
+         CALL inform(where)
          nfullstep = 1
          CALL wdump_wrapper(idisk3)
          CLOSE (idisk3)

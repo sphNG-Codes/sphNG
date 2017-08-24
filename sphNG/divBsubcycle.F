@@ -293,7 +293,7 @@ c            pmjdWrij1rhoj = pmj*dW*vsigij/rhoj
 
 c don't need 0.5 divv term during substepping, only when part of full MHD equations
          vari2(1,n) = vs2i
-         vari2(2,n) = 0.8*vsigi/hi !+ 0.5*divv(i)*rho1i
+         vari2(2,n) = 0.5*vsigi/hi !+ 0.5*divv(i)*rho1i
          vari2(3,n) = dtsize
       END DO
 C$OMP END DO

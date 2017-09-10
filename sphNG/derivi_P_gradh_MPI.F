@@ -402,6 +402,10 @@ c     &                  1,llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
                 CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
      &                  llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
                               CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
+
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),MPI_REAL8,indexMPIR,ierr)
+                              CALL MPI_TYPE_COMMIT(indexMPIR,ierr)
 #endif
 
                         ENDIF
@@ -467,12 +471,13 @@ c     &    iorig(llistsentback(1,j+1)+1),MPI_INTEGER8,indexMPI_I8,ierr)
 #ifdef MPIDEBUG
                            print *,iproc,' sent n_R to ',j
 #endif
-                           CALL MPI_SEND(n_electronT,1,indexMPI1,j,234,
+                           CALL MPI_SEND(n_electronT,1,indexMPIR,j,234,
      &                          MPI_COMM_WORLD, ierr)
 #ifdef MPIDEBUG
                            print *,iproc,' sent n_electronT to ',j
 #endif
                            CALL MPI_TYPE_FREE(indexMPI4,ierr)
+                           CALL MPI_TYPE_FREE(indexMPIR,ierr)
 #endif
                            CALL MPI_TYPE_FREE(indexMPI3,ierr)
                            CALL MPI_TYPE_FREE(indexMPIimhdevol,ierr)
@@ -644,9 +649,9 @@ c     &                 istart+inumber)
                      print *,iproc,': got n_R from ',iprocrec,icheck
 #endif
                      CALL MPI_RECV(n_electronT(istart),inumber,
-     &                    MPI_REAL4,iprocrec,234, MPI_COMM_WORLD, 
+     &                    MPI_REAL8,iprocrec,234, MPI_COMM_WORLD, 
      &                    istatus,ierr)
-                     CALL MPI_GET_COUNT(istatus, MPI_REAL4, icheck,ierr)
+                     CALL MPI_GET_COUNT(istatus, MPI_REAL8, icheck,ierr)
                      IF (icheck.NE.inumber) THEN
                         WRITE (*,*) 'ERROR - icheck.NE.inumber 13 ',
      &                       iproc

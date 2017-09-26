@@ -78,6 +78,7 @@ c
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/astrcon'
 
 c      INCLUDE 'COMMONS/angm'
 
@@ -1965,7 +1966,7 @@ c            IF (r2.LT.(MAX(xyzmh(5,iptm1),xyzmh(5,iptm2))**2.0)) THEN
 c
 c--Merge if pass within some fraction of softening radius
 c
-                        IF (r2.LT.(1.5E-6)**2.0) THEN
+                        IF (r2.LT.(6.0*solarr/udist)**2.0) THEN
 c                        IF (r2.LT.(0.03)**2.0) THEN
 cC$OMP CRITICAL(mergesinks)
                            IF (imerge.EQ.0) THEN

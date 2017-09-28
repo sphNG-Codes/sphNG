@@ -33,13 +33,13 @@ c***********************************************************
 
       INTEGER*8 iunique_sink(1000),iunique_companion(3,1000)
       DIMENSION ilocalsink(1000),icompanion(3,1000)
-      DIMENSION ilocalsinkindx(1000)
+      DIMENSION ilocalsinkindx(1000),ilocal2name(1000)
       DIMENSION discmass(1000),angmom(3,1000),discradius(13,1000)
       DIMENSION discmasstot(1000)
       DIMENSION radsearchmax(1000)
       DIMENSION nsink_mult(1000), node_mult(1000)
       DIMENSION listdone(1000)
-      DIMENSION formtime(1000)
+      DIMENSION formtime(1000),formtime_unique(1000)
       DIMENSION nodelist(1000),pmassnode(1000),node_components(1000),
      &     node_comp_list(100,1000)
       DIMENSION nnode_mult_comp(1000)
@@ -288,12 +288,13 @@ c
          print *,'Units are ',umassi, udisti, nptmass
 
          IF (k.EQ.1) THEN
-            IF (nptmass.GT.1) THEN
+c            IF (nptmass.GT.1) THEN
+            IF (nptmass.GT.0) THEN
                OPEN (19,FILE='Names')
-               READ (19,*,END=677) nptmass,nunique_sink
+               READ (19,*,END=677) nptmass_in,nunique_sink
                READ (19,*,END=677) (iunique_sink(iii),
      &              iii=1,nunique_sink)
-               READ (19,*,END=677) (formtime(iii),
+               READ (19,*,END=677) (formtime_unique(iii),
      &              iii=1,nunique_sink)
                CLOSE(19)
                GOTO 679
@@ -304,7 +305,7 @@ c
                nunique_sink = nptmass
                IF (nunique_sink.EQ.1) THEN
                   iunique_sink(1) = iunique(listpm(1))
-                  formtime(1) = gt
+                  formtime_unique(1) = gt
                ENDIF
             ENDIF
          ELSE
@@ -322,13 +323,15 @@ c--Add unknown sinks to list
 c
                   nunique_sink = nunique_sink + 1
                   iunique_sink(nunique_sink) = iunique(listpm(iii))
-                  formtime(nunique_sink) = gt
+                  formtime_unique(nunique_sink) = gt
  678              CONTINUE
                END DO
             ENDIF
          ENDIF
- 679     IF (nptmass.NE.nunique_sink) THEN
-            PRINT *,'ERROR - nptmass.NE.nunique_sink ',nptmass,
+ 679     CONTINUE
+c         IF (nptmass.NE.nunique_sink) THEN
+         IF (nptmass.GT.nunique_sink) THEN
+            PRINT *,'ERROR - nptmass.GT.nunique_sink ',nptmass,
      &           nunique_sink
             STOP
          ENDIF
@@ -337,7 +340,7 @@ c
          WRITE(19,*) nptmass,nunique_sink
          WRITE(19,*) (iunique_sink(iii),
      &        iii=1,nunique_sink)
-         WRITE(19,*) (formtime(iii),
+         WRITE(19,*) (formtime_unique(iii),
      &        iii=1,nunique_sink)
          CLOSE(19)
 
@@ -347,17 +350,20 @@ c
 c
 c--Find local index
 c
-         DO iii = 1, nunique_sink
-            DO jjj = 1, nptmass
+         DO jjj = 1, nptmass
+            DO iii = 1, nunique_sink
                IF (iunique(listpm(jjj)).EQ.iunique_sink(iii)) THEN
                   ilocalsink(iii) = listpm(jjj)
                   ilocalsinkindx(iii) = jjj
+                  ilocal2name(jjj) = iii
+                  formtime(jjj) = formtime_unique(iii)
                   GOTO 680
                ENDIF
             END DO
             PRINT *,'ERROR - not found ',iii,iunique_sink(iii)
             STOP
  680        CONTINUE
+            WRITE (*,*) 'Identified ',jjj,' as ',iii,iunique_sink(iii)
          END DO
 c
 c--Values for disc radii
@@ -386,20 +392,22 @@ C$OMP& shared(nunique_sink,ilocalsink,xyzmh,vxyzu,node_components)
 C$OMP& shared(node_comp_list,cmtot,vtot,discmass,angmom,npart)
 C$OMP& shared(icompanion,iunique_companion,iphase,nsink_mult,iunique)
 C$OMP& shared(iunique_sink,radsearchmax,udisti,ipartindisc)
-C$OMP& shared(discmasstot,discradius,values)
+C$OMP& shared(discmasstot,discradius,values,nptmass,listpm)
+C$OMP& shared(ilocal2name)
 C$OMP& private(isink,i,j,l,iii,jjj,iptcur,xsink,ysink,zsink,sinkmass)
 C$OMP& private(dx,dy,dz,ipart,xipart,yipart,zipart,dvx,dvy,dvz)
 C$OMP& private(ndisc,nsinks,distcomp2,jpart,r2,jjj_mindist)
 C$OMP& private(totalmass,dist,etot,semimajor,eccentricity)
 C$OMP& private(radapastron,ipos)
-         DO isink = 1, nunique_sink
-            iptcur = ilocalsink(isink)
+C$OMP& private(jval,jjval)
+         DO isink = 1, nptmass
+            iptcur = listpm(isink)
             xsink = xyzmh(1,iptcur)
             ysink = xyzmh(2,iptcur)
             zsink = xyzmh(3,iptcur)
             sinkmass = xyzmh(4,iptcur)
             node_components(isink) = 1
-            node_comp_list(1,isink) = isink
+            node_comp_list(1,isink) = ilocal2name(isink)
 c
 c--Initialise centre of mass to that of sink, and for multiple
 c
@@ -481,7 +489,16 @@ c
                         yipart = xyzmh(2,ipart)
                         zipart = xyzmh(3,ipart)
                         distcomp2 = 1.0E+30
-                        DO jjj = 1, nunique_sink
+                        DO jval = 1, nptmass
+                           DO jjval = 1, nunique_sink
+                  IF (iunique(listpm(jval)).EQ.iunique_sink(jjval)) THEN
+                                 jjj = jjval
+                                 GOTO 789
+                              ENDIF
+                           END DO
+                        WRITE (*,*) 'iunique(jval).NE.iunique_sink(jjj)'
+                           STOP
+ 789                       CONTINUE
                            IF (jjj.NE.iii) THEN
                               jpart = ilocalsink(jjj)
                               r2 = (xyzmh(1,jpart)-xipart)**2 + 
@@ -502,7 +519,7 @@ c     NOTE: If the companion number is NEGATIVE, then the companion
 c     is not the mutual nearest neighbour, but we record its information
 c     anyway (with a minus sign).
 c
-                        IF (jjj_mindist.EQ.isink) THEN
+                        IF (jjj_mindist.EQ.ilocal2name(isink)) THEN
                            icompanion(nsinks-1,isink) = iii
                            iunique_companion(nsinks-1,isink) =
      &                          iunique(i)
@@ -657,11 +674,11 @@ c
          ntriple = 0
          nquadpair = 0
          nquadhier = 0
-         nnodes = nunique_sink
-         nnodes_list = nunique_sink
+         nnodes = nptmass
+         nnodes_list = nptmass
          DO inode = 1, nnodes_list
             nodelist(inode) = inode
-            pmassnode(inode) = xyzmh(4,ilocalsink(inode))
+            pmassnode(inode) = xyzmh(4,listpm(inode))
             node_mult(inode) = 1
          END DO
 c
@@ -743,9 +760,9 @@ c
 c
 c--Orbital plane
 c
-                     planex = -(vydiff*rz - vzdiff*ry)
-                     planey = -(vzdiff*rx - vxdiff*rz)
-                     planez = -(vxdiff*ry - vydiff*rx)
+                     planex = vydiff*rz - vzdiff*ry
+                     planey = vzdiff*rx - vxdiff*rz
+                     planez = vxdiff*ry - vydiff*rx
                      planelength = SQRT(planex**2+planey**2+planez**2)
                      planex = planex/planelength
                      planey = planey/planelength
@@ -1119,47 +1136,61 @@ c
 c
 c--Write out information for all individual sink particles
 c
-         DO i = 1, nunique_sink
-            IF (i.GT.99) THEN
-               WRITE (ivalue,"(I3)") i
-            ELSEIF (i.GT.9) THEN
-               WRITE (ivalue,"('0',I2)") i
+         DO i = 1, nptmass
+            DO jval = 1, nunique_sink
+               IF (iunique(listpm(i)).EQ.iunique_sink(jval)) THEN
+                  ival = jval
+                  GOTO 790
+               ENDIF
+            END DO
+            WRITE (*,*) 'Not found X ',nptmass,nunique_list,listpm(1),
+     &           iunique_sink(1)
+            STOP
+ 790        CONTINUE
+            IF (ival.GT.99) THEN
+               WRITE (ivalue,"(I3)") ival
+            ELSEIF (ival.GT.9) THEN
+               WRITE (ivalue,"('0',I2)") ival
             ELSE
-               WRITE (ivalue,"('00',I1)") i
+               WRITE (ivalue,"('00',I1)") ival
             ENDIF
-            IF (iunique_sink(i).GT.9999999) THEN
-               WRITE (iuvalue,"(I8)") iunique_sink(i)
-            ELSEIF (iunique_sink(i).GT.999999) THEN
-               WRITE (iuvalue,"('0',I7)") iunique_sink(i)
-            ELSEIF (iunique_sink(i).GT.99999) THEN
-               WRITE (iuvalue,"('00',I6)") iunique_sink(i)
-            ELSEIF (iunique_sink(i).GT.9999) THEN
-               WRITE (iuvalue,"('000',I5)") iunique_sink(i)
-            ELSEIF (iunique_sink(i).GT.999) THEN
-               WRITE (iuvalue,"('0000',I4)") iunique_sink(i)
-            ELSEIF (iunique_sink(i).GT.99) THEN
-               WRITE (iuvalue,"('00000',I3)") iunique_sink(i)
-            ELSEIF (iunique_sink(i).GT.9) THEN
-               WRITE (iuvalue,"('000000',I2)") iunique_sink(i)
+            IF (iunique_sink(ival).GT.9999999) THEN
+               WRITE (iuvalue,"(I8)") iunique_sink(ival)
+            ELSEIF (iunique_sink(ival).GT.999999) THEN
+               WRITE (iuvalue,"('0',I7)") iunique_sink(ival)
+            ELSEIF (iunique_sink(ival).GT.99999) THEN
+               WRITE (iuvalue,"('00',I6)") iunique_sink(ival)
+            ELSEIF (iunique_sink(ival).GT.9999) THEN
+               WRITE (iuvalue,"('000',I5)") iunique_sink(ival)
+            ELSEIF (iunique_sink(ival).GT.999) THEN
+               WRITE (iuvalue,"('0000',I4)") iunique_sink(ival)
+            ELSEIF (iunique_sink(ival).GT.99) THEN
+               WRITE (iuvalue,"('00000',I3)") iunique_sink(ival)
+            ELSEIF (iunique_sink(ival).GT.9) THEN
+               WRITE (iuvalue,"('000000',I2)") iunique_sink(ival)
             ELSE
-               WRITE (iuvalue,"('0000000',I1)") iunique_sink(i)
+               WRITE (iuvalue,"('0000000',I1)") iunique_sink(ival)
             ENDIF
             contour1 = 'Disc_' // ivalue(1:3) // '_' // iuvalue(1:8) 
-     &           // '.dat'
+     &           // '.txt'
 
             print *,contour1
-
+c
+c--NOTE: Sink particle spins are defined as the negative of the way
+c     disc and orbital angular momentum are defined in this code,
+c     hence the need to multiply the spins by -1.Ã
+c
             OPEN (16,file=contour1,ACCESS='append')
-         WRITE (16,"(17(1PE12.5,1x),I4,1x,6(1PE12.5,1x),1x,6(I9,1x))") 
-     &           gt,formtime(i),xyzmh(4,ilocalsink(i)),
+         WRITE (16,"(17(1PE12.5,1x),I4,1x,6(1PE12.5,1x),1x,2(I9,1x))") 
+     &           gt,formtime(i),xyzmh(4,listpm(i)),
      &           discmass(i),
      &           (discradius(j,i)*udisti/1.496E+13,j=1,13),
      &           nsink_mult(i),
      &           (angmom(j,i),j=1,3),
-     &           spinx(ilocalsinkindx(i)),spiny(ilocalsinkindx(i)),
-     &           spinz(ilocalsinkindx(i)),
-     &           (icompanion(j,i),j=1,3),
-     &           (iunique_companion(j,i),j=1,3)
+     &           -spinx(i),-spiny(i),
+     &           -spinz(i),
+     &           (icompanion(j,i),j=1,1),
+     &           (iunique_companion(j,i),j=1,1)
             CLOSE (16)
          END DO
 
@@ -1184,7 +1215,7 @@ c
 c
 c--Write out information on the binary (actually a pair, which maybe
 c     a sub-component of a higher-order system).
-c     File name is Pair_N_[component_].dat
+c     File name is Pair_N_[component_].txt
 c     Where N is the number of stars in the system, and [] is repeated
 c     for the N sink particle numbers that make up the system.
 c
@@ -1203,7 +1234,7 @@ c
                      contour3 = contour3(1:iend) // '_' // ivalue(1:3)
                   END DO
                   iend = 4 + 4*node_components(i)
-                  contour3 = contour3(1:iend)  // '.dat'
+                  contour3 = contour3(1:iend)  // '.txt'
                   print *,contour3
 c
 c--Need to compute total disc quantities for the system as a whole
@@ -1216,16 +1247,17 @@ c
 c--Add in discs of individual protostars
 c
                   DO j = 1, node_components(i)
-                     icomp = node_comp_list(j,i)
+                     icomp = ilocalsinkindx(node_comp_list(j,i))
                      IF (pmassnode(icomp).GT.primarymass) THEN
                         primarymass = pmassnode(icomp)
                         iprimary = icomp
                      ENDIF
                   END DO
-                  IF (iprimary.EQ.node_comp_list(1,i)) THEN
-                     isecondary = node_comp_list(2,i)
+                  IF (iprimary.EQ.
+     &                 ilocalsinkindx(node_comp_list(1,i))) THEN
+                     isecondary = ilocalsinkindx(node_comp_list(2,i))
                   ELSE
-                     isecondary = node_comp_list(1,i)
+                     isecondary = ilocalsinkindx(node_comp_list(1,i))
                   ENDIF
 c
 c--Check if component of higher order multiple up to 4 components
@@ -1234,7 +1266,8 @@ c
                   DO j = i+1, nnodes
                      IF (node_components(j).LE.4) THEN
                         DO l = 1, node_components(j)
-                           IF (iprimary.EQ.node_comp_list(l,j)) THEN
+                           IF (iprimary.EQ.
+     &                        ilocalsinkindx(node_comp_list(l,j))) THEN
                               iordermax = node_components(j)
                               EXIT
                            ENDIF
@@ -1273,12 +1306,12 @@ c
      &                 (angmom(j,iprimary),j=1,3),
      &                 (angmom(j,isecondary),j=1,3),
      &                 (node_comp_list(j,i),j=1,4),
-     &                 spinx(ilocalsinkindx(iprimary)),
-     &                 spiny(ilocalsinkindx(iprimary)),
-     &                 spinz(ilocalsinkindx(iprimary)),
-     &                 spinx(ilocalsinkindx(isecondary)),
-     &                 spiny(ilocalsinkindx(isecondary)),
-     &                 spinz(ilocalsinkindx(isecondary))
+     &                 -spinx(iprimary),
+     &                 -spiny(iprimary),
+     &                 -spinz(iprimary),
+     &                 -spinx(isecondary),
+     &                 -spiny(isecondary),
+     &                 -spinz(isecondary)
                   CLOSE (16)
                END IF
 c--END OF PAIRS-----------------------
@@ -1303,7 +1336,7 @@ c
                END DO
 c
 c--Write out information on the multiple system
-c     File name is System_N_[component_].dat
+c     File name is System_N_[component_].txt
 c     Where N is the number of stars in the system, and [] is repeated
 c     for the N sink particle numbers that make up the system.
 c
@@ -1323,7 +1356,7 @@ c
                   contour3 = contour3(1:iend) // '_' // ivalue(1:3)
                END DO
                iend = 8+4*node_components(i)
-               contour3 = contour3(1:iend)  // '.dat'
+               contour3 = contour3(1:iend)  // '.txt'
                print *,contour3
 c
 c--Need to compute total disc quantities for the system as a whole
@@ -1337,7 +1370,7 @@ c--Add in discs of individual protostars (including itself if the
 c     system is a single star).
 c
                DO j = 1, node_components(i)
-                  icomp = node_comp_list(j,i)
+                  icomp = ilocalsinkindx(node_comp_list(j,i))
                   iclist(j) = icomp
                   primarymass = MAX(primarymass,pmassnode(icomp))
                END DO
@@ -1345,7 +1378,7 @@ c
 c--Add in discs of components that are multiple (i.e. binary or triple)
 c
                DO j = 1, nnode_mult_comp(i)
-                  icomp = node_mult_comp(j,i)
+                  icomp = ilocalsinkindx(node_mult_comp(j,i))
                   iclist(node_components(i)+j) = icomp
                END DO
 c

@@ -141,7 +141,7 @@ c
 99015 FORMAT (' set up completed', /,
      &        ' particles in object 1          :', I6, /,
      &        ' particles in object 2          :', I6, /,
-     &        ' total number of particles used :', I6, I4B)
+     &        ' total number of particles used :', I6, I4)
       WRITE (*, 99016)
 99016 FORMAT (//, ' END SET UP')
 

@@ -1378,7 +1378,7 @@ c
 c--Add in discs of components that are multiple (i.e. binary or triple)
 c
                DO j = 1, nnode_mult_comp(i)
-                  icomp = ilocalsinkindx(node_mult_comp(j,i))
+                  icomp = node_mult_comp(j,i)
                   iclist(node_components(i)+j) = icomp
                END DO
 c

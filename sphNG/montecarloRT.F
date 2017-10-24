@@ -52,7 +52,7 @@
       INTEGER :: nptmass_all
      
 ! fixed source parameters
-      logical, parameter :: use_fixed_source=.true. 
+      logical, parameter :: use_fixed_source=.false. 
       real, parameter    :: fix_source_R = 2.0    ! solar radii
       real, parameter    :: fix_source_L = 1.78   ! l_sun
       real, parameter    :: fix_source_T = 4000   ! kelvin
@@ -129,20 +129,23 @@ c--Call torus for Monte-Carlo radiative transfer
 
         if ( use_fixed_source ) then 
 
-           CALL torus(idim,  npart, nptmass, num_gas, 
-     &          xyzmh, trho,  iphase, 
-     &          udist, umass, utime, 
-     &          time,  temperature, temp_min,
-     &          totalgasmass, file1,              
-     &          fix_source_R=fix_source_R, fix_source_L=fix_source_L,
-     &          fix_source_T=fix_source_T, remove_radius=haccall*udist )
+c$$$           CALL torus(idim,  npart, nptmass, num_gas, 
+c$$$     &          xyzmh, trho,  iphase, 
+c$$$     &          udist, umass, utime, 
+c$$$     &          time,  temperature,
+c$$$     &          totalgasmass, file1,              
+c$$$     &          fix_source_R=fix_source_R, fix_source_L=fix_source_L,
+c$$$     &          fix_source_T=fix_source_T, remove_radius=haccall*udist )
+
+           write(*,*) 
+     &      "ERROR: Fixed source not available. See montecarloRT.F"
 
         else
 
            CALL torus(idim,  npart, nptmass, num_gas, 
      &          xyzmh, trho,  iphase, 
      &          udist, umass, utime, 
-     &          time,  temperature, temp_min,
+     &          time,  temperature,
      &          totalgasmass, file1 )
 
         end if

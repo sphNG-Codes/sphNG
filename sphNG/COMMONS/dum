@@ -1,7 +1,8 @@
-      REAL dumxyzmh, dumvxyzu, dumekcle, dumBevolxyz
+      REAL dumxyzmh, dumvxyzu, dumekcle, dumBevolxyz, dumdustvar
       REAL*4 dumalpha
 
       COMMON /dum   / dumxyzmh(5,mmax2), dumvxyzu(4,idim2), 
      &                dumekcle(5,iradtrans2),
      &                dumBevolxyz(imhdevol,imhd2),
+     &                dumdustvar(idim_dustfluid2),
      &                dumalpha(isizealphaMM,idim2)

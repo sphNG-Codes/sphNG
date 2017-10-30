@@ -1,6 +1,6 @@
       SUBROUTINE forcei(nlst_in,nlst_end,nlst_tot,listp,dt,itime,npart,
      &      ntot,xyzmh,vxyzu,fxyzu,dha,trho,pr,vsound,alphaMMpass,
-     &      ekcle,dedxyz,Bxyz,dBxyz,Bevolxyz)
+     &      ekcle,dedxyz,Bxyz,dBxyz,Bevolxyz,dustvar,ddust)
 c************************************************************
 c                                                           *
 c  This subroutine computes the forces on particle ipart    *
@@ -36,6 +36,7 @@ c************************************************************
       DIMENSION dedxyz(3,iradtrans2)
       DIMENSION Bxyz(3,imhd2),dBxyz(imhdevol,imhd2)
       DIMENSION Bevolxyz(imhdevol,imhd3) ! needed for prediction only
+      DIMENSION dustvar(idim_dustFluid2),ddust(idim_dustFluid2)
 c
 c--Parameters for switching between different implementations of SPMHD.
 c     iMorris:   FALSE is standard
@@ -127,6 +128,7 @@ c
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/radtran3'
       INCLUDE 'COMMONS/pxpy'
+      INCLUDE 'COMMONS/dustfluidvelu'
 c
 c--Used for listparents list to keep a list of iupdated
 c
@@ -157,7 +159,7 @@ c
       DATA where/'forcei'/
       DATA epsil/1.E-2/
       DATA epsil2/1.E-4/
-      
+
       EXTERNAL etafunc
 c
 c--Allow for tracing flow
@@ -339,7 +341,7 @@ C$OMP& shared(forcei_lock)
 C$OMP& shared(gasdrag,iregime)
 C$OMP& shared(planetesimaltimestep,planetesimalnorm)
 C$OMP& shared(gasdist,nearestgas,idragscheme)
-C$OMP& shared(itot)
+C$OMP& shared(itot,dustvar,ddust,dustfluidvxyz,dustfluiddu)
 #ifdef DGRID
 C$OMP& shared(dragenergy,dragqchange,px,py,pz)
 #endif
@@ -357,13 +359,14 @@ C$OMP& private(xi,yi,zi,vxi,vyi,vzi,pmassi,dhi,hi,gravxi,gravyi,gravzi)
 C$OMP& private(fxi,fyi,fzi,numneigh,hmin)
 C$OMP& private(poteni,dphiti,gradxi,gradyi,gradzi,artxi,artyi,artzi)
 C$OMP& private(gasdragxi,gasdragyi,gasdragzi,ig,f_drag_co,dvij)
-C$OMP& private(dv_cross_dx,rsub,fgd)
+C$OMP& private(dv_cross_dx,rsub,fgd,prrho2i,prrho2j)
 C$OMP& private(rho_g,f_drag_i,ptsi,ptsj,ptsnormi,ptsnormj)
 C$OMP& private(pdvi,dqi,rhoi,pro2i,pro2j,vsoundi,k,j,hj,dx,dy,dz)
 #ifdef DGRID
 C$OMP& private(dragr,dragp,dragt,idragr,idragp,idragt)
 #endif
 C$OMP& private(dq_drag,dq_dragi,dq_dragj)
+C$OMP& private(gradvdustxi,gradvdustyi,gradvdustzi)
 C$OMP& private(rho1i,rho21i,sqrtrho1i,rho1j,rho21j)
 C$OMP& private(rij2,rij,rij1,pmassj,runix,runiy,runiz,hmean,hmean21)
 C$OMP& private(hi1,hi21,hi31,hi41,v2i,vi)
@@ -378,7 +381,7 @@ C$OMP& private(vlowcorrection,qi,qj)
 C$OMP& private(tdecay1,source)
 C$OMP& private(ii,iptcurv,xii,yii,zii,vpos)
 C$OMP& private(alphamean,projddv,termx,termy,termz,ddvscalar)
-C$OMP& private(gradhi,gradsofti,gradp,gradpi,gradpj)
+C$OMP& private(gradhi,gradsofti,gradp,gradpi,gradpj,gradpr)
 C$OMP& private(Bxi,Byi,Bzi,B2i,Bevolxi,Bevolyi,Bevolzi)
 C$OMP& private(Bxj,Byj,Bzj,B2j,projBi,projBj,dBx,dBy,dBz)
 C$OMP& private(dBxideali,dByideali,dBzideali,dBxdissi,dBydissi,dBzdissi)
@@ -402,6 +405,9 @@ C$OMP& private(Bevoldotdv,termBpmi,termBpmj,termetapmj,termetapmi)
 C$OMP& private(dBxidealj,dByidealj,dBzidealj)
 C$OMP& private(dBxdissj,dBydissj,dBzdissj,dBxyz_xi,dBxyz_yi,dBxyz_zi)
 C$OMP& private(ioffset,etai,etaj,ui,uj,dqj)
+C$OMP& private(ddusti,ts_rhoi,ts_rhoj,termdust,termdustpmi,termdustpmj)
+C$OMP& private(dudusti,termdudustj,one_over_rho_1minus_epsilon,dustvari)
+C$OMP& private(gradpj_ts_over_1minus_epsilon,ts_over_1minus_epsilon)
 #ifdef MPICOPY
 C$OMP& private(i,ierr)
 #endif
@@ -465,6 +471,7 @@ c         dha(1,ipart) = 0.0
          ptsnormi = 0.
 
          pdvi = 0.
+         IF (idustFluid.EQ.1) dudusti = 0.
          dqi = 0.
          dq_dragi = 0.
          
@@ -600,6 +607,17 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
             etai = 0.
          ENDIF
 c
+c--For one-fluid dust evolution
+c
+         IF (idustFluid.EQ.1) THEN
+            dustvari = dustvar(ipart)
+            ddusti = 0.
+            gradvdustxi = 0.
+            gradvdustyi = 0.
+            gradvdustzi = 0.
+            ts_rhoi = stoppingtime(ipart)*rho1i
+         ENDIF
+c
 c--Note that pressure term includes isotropic magnetic pressure.
 c     It also allows pressure to be negativ due to an external pressure
 c     boundary (allowing the pressure to be negative may be necessary
@@ -608,6 +626,7 @@ c
 c         pro2i = (pr(ipart) - pext)*rho21i
 c         pro2i = max((pr(ipart) - pext + 0.5*(B2i-B2ext)),0.0)*rho21i
          pro2i = (pr(ipart) - pext + 0.5*(B2i-B2ext))*rho21i
+         prrho2i = (pr(ipart) - pext)*rho21i
          vsoundi = vsound(ipart)
          vs2i = vsoundi**2 + B2i*rho1i
 c Note: vsi != vsigi; the latter includes a `projection' term
@@ -617,16 +636,10 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D3 ',n
 c
 c--Loop over neighbors
 c
-ccc         DO 70 k = 1, nneigh(ipart)
-ccc            j = neighlist(k)
          ioffset = ivar(2,n)
-c         IF (iproc.EQ.0) print *,': ipart ',ipart,iunique(iorig(ipart)),
-c     &        ivar(1,n)
 
          DO 70 k = 1, ivar(1,n)
             j = ijvar(ioffset + k)
-
-c         IF (ipart.GT.ntot) print *,iprocdebug,': D4 ',n,k
 
             IF (iphase(j).GE.1 .AND. iphase(j).LT.10) GOTO 70
 
@@ -790,7 +803,7 @@ c               projBrho2j = (projBj - projBext)*rho1j*rho1j
                   projdB = 0.
                   etaj = 0.
                ENDIF
-            ENDIF
+            ENDIF  !!! End imhd.EQ.idim
 c
 c--Determine whether or not there is a sink particle between i and j
 c
@@ -867,9 +880,11 @@ c
 
                grpmi = grkerni*pmassj
 c
-c--i contribution to pressure gradient and pdv
+c--i contribution to pressure gradient and pdv (gradp includes isotropic
+c     magnetic pressure, while gradpr is only gas pressure)
 c
                gradp = grkerni*pro2i
+               gradpr = grkerni*prrho2i
 c
 c--Only allow gas work between two gas particles
 c
@@ -984,7 +999,7 @@ c
                   gradBzxi = gradBzxi - grpmi*dBz*runix
                   gradBzyi = gradBzyi - grpmi*dBz*runiy
                   gradBzzi = gradBzzi - grpmi*dBz*runiz
-               ENDIF
+               ENDIF  !!! End imhd.EQ.idim and i and j are gas
 
 c
 c--If i and j are not across a sink particle
@@ -998,7 +1013,7 @@ c
 c--Add terms to particle i
 c-------------------------
 c
-c--Pressure force
+c--Pressure force  (includes isotropic magnetic pressure)
 c
                   gradpi = gradp*pmassj
                   gradxi = gradxi - gradpi*runix
@@ -1227,6 +1242,25 @@ c                        t12j = alphamean*grkern*f*(2.0*f - vsbar)*robar1
                      t12j = 0.
                   ENDIF
 c
+c--For one-fluid dust, evolve dust fraction
+c
+                  IF (idustFluid.EQ.1) THEN
+                     ts_rhoj = stoppingtime(j)*rho1j
+                     termdust = 0.5*(ts_rhoi+ts_rhoj)*
+     &                    grkern*rij1*
+     &                    (pr(ipart)-pr(j))
+                     termdustpmj = dustvar(j)*termdust*pmassj*rho1j
+                     ddusti = ddusti - termdustpmj
+
+                     dudusti = dudusti - termdustpmj*dustvari*
+     &                    (ui-uj)/(rhoi-dustvari**2)
+
+                     gradpi = gradpr*pmassj
+                     gradvdustxi = gradvdustxi + gradpi*runix
+                     gradvdustyi = gradvdustyi + gradpi*runiy
+                     gradvdustzi = gradvdustzi + gradpi*runiz
+                  ENDIF
+c
 c--This is the end of gas-gas interactions (i.e. iphase(i) and iphase(j) both 0)
 c
                   ENDIF
@@ -1255,7 +1289,6 @@ c
                      f_drag_co = 0.0
                   ENDIF
 
-
                   IF (gasdrag .AND.  (iphase(ipart).EQ.11 .AND.
      &                 iphase(j).EQ.0)) THEN
                      IF (rij.LT.gasdist(ipart)) THEN
@@ -1281,7 +1314,7 @@ c--Next region only for gas-gas interactions
 c
                   IF (iphase(ipart).EQ.0 .AND. iphase(j).EQ.0) THEN
 c
-c--Pressure force
+c--Pressure force (includes isotropic magnetic pressure)
 c
                      IF (igrp.NE.0) THEN
                         gradpj = gradp*pmassi
@@ -1389,6 +1422,28 @@ c                     ENDIF
                         dqj = dqj + t12jpmassi*projv
                      ENDIF
 c
+c--For one-fluid dust, evolve dust fraction
+c
+                     IF (idustFluid.EQ.1) THEN
+                        ts_rhoj = stoppingtime(j)*rho1j
+                        termdust = 0.5*(ts_rhoi+ts_rhoj)*
+     &                       grkern*rij1*
+     &                    (pr(ipart)-pr(j))
+                        termdustpmi = dustvari*
+     &                       termdust*pmassi*rho1i
+c
+c--Sign does not change because involves (Pi-Pj)*(ui-uj)
+c
+                        one_over_rho_1minus_epsilon = 
+     &                       1./(rhoj-dustvar(j)**2)
+                        termdudustj = - termdustpmi*dustvar(j)*
+     &                       (ui-uj)*one_over_rho_1minus_epsilon
+
+                        gradpj_ts_over_1minus_epsilon = gradpr*pmassi*
+     &                       stoppingtime(j)*rhoj*
+     &                       one_over_rho_1minus_epsilon
+                     ENDIF
+c
 c--This is the end of gas-gas interactions (i.e. iphase(i) and iphase(j) both 0)
 c
                   ENDIF
@@ -1442,20 +1497,42 @@ C$OMP END CRITICAL
      &                       planetesimalnorm(j) + ptsnormj
                      ENDIF
 
-                     IF (imhd.EQ.idim) THEN
+                     IF (iphase(ipart).EQ.0 .AND. iphase(j).EQ.0) THEN
+                        IF (imhd.EQ.idim) THEN
 c
 c--NOTE: dBxidealj = 0. unless haverage code
 c
-                        dBxyz(1,j) = dBxyz(1,j) -dBxdissj-dBnonidealj(1)
-     &                             + dBxidealj*rho21j
-                        dBxyz(2,j) = dBxyz(2,j) -dBydissj-dBnonidealj(2)
-     &                             + dByidealj*rho21j
-                        dBxyz(3,j) = dBxyz(3,j) -dBzdissj-dBnonidealj(3)
-     &                             + dBzidealj*rho21j
-                        IF (imhdevol.EQ.4) THEN
-                           dBxyz(1,j) = dBxyz(1,j) + dBpsixj
-                           dBxyz(2,j) = dBxyz(2,j) + dBpsiyj
-                           dBxyz(3,j) = dBxyz(3,j) + dBpsizj
+                           dBxyz(1,j) = dBxyz(1,j) - dBxdissj -
+     &                          dBnonidealj(1) + dBxidealj*rho21j
+                           dBxyz(2,j) = dBxyz(2,j) - dBydissj -
+     &                          dBnonidealj(2) + dByidealj*rho21j
+                           dBxyz(3,j) = dBxyz(3,j) - dBzdissj -
+     &                          dBnonidealj(3) + dBzidealj*rho21j
+                           IF (imhdevol.EQ.4) THEN
+                              dBxyz(1,j) = dBxyz(1,j) + dBpsixj
+                              dBxyz(2,j) = dBxyz(2,j) + dBpsiyj
+                              dBxyz(3,j) = dBxyz(3,j) + dBpsizj
+                           ENDIF
+                        ENDIF
+c
+c--For one-fluid dust, evolve dust fraction
+c
+                        IF (idustFluid.EQ.1) THEN
+                           ddust(j) = ddust(j) + termdustpmi
+                           dustfluiddu(j) = dustfluiddu(j) + termdudustj
+c
+c--This is the for computing the velocity difference between gas & dust.
+c     It is not required for evolution, but is dumped to allow the 
+c     separate velocities of the gas and dust to be computed.
+c     Note that the momentum equation is -gradP/rho whereas this is 
+c     +gradP/rho
+c
+                           dustfluidvxyz(1,j) = dustfluidvxyz(1,j) - 
+     &                          gradpj_ts_over_1minus_epsilon*runix
+                           dustfluidvxyz(2,j) = dustfluidvxyz(2,j) - 
+     &                          gradpj_ts_over_1minus_epsilon*runiy
+                           dustfluidvxyz(3,j) = dustfluidvxyz(3,j) - 
+     &                          gradpj_ts_over_1minus_epsilon*runiz
                         ENDIF
                      ENDIF
 #ifdef _OPENMP
@@ -1595,7 +1672,9 @@ c                  pro2j = (pr(j) - pext)*rho1j*rho1j
 c                  pro2j = max((pr(j) - pext + 0.5*(B2j-B2ext)),0.0)
 c     &                 *rho1j*rho1j
                   pro2j = (pr(j) - pext + 0.5*(B2j-B2ext))*rho1j*rho1j
+                  prrho2j = (pr(j) - pext)*rho1j*rho1j
                   gradp = grkernj*pro2j
+                  gradpr = grkernj*prrho2j
 c
 c--j contribution to force softening (including pseudo-pressure term)
 c
@@ -1628,7 +1707,7 @@ c
 c--Add terms to particle i
 c-------------------------
 c
-c--Pressure force
+c--Pressure force (includes isotropic magnetic pressure)
 c
                      gradpj = gradp*pmassj
                      gradxi = gradxi - gradpj*runix
@@ -1859,6 +1938,25 @@ c                        print *,' P0418dqi ',j,t12jpmassj,projv
 c                     ENDIF
 
                         dqi = dqi + t12jpmassj*projv
+                     ENDIF
+c
+c--For one-fluid dust, evolve dust fraction
+c
+                     IF (idustFluid.EQ.1) THEN
+                        ts_rhoj = stoppingtime(j)*rho1j
+                        termdust = 0.5*(ts_rhoi+ts_rhoj)*grkern*rij1*
+     &                       (pr(ipart)-pr(j))
+                        termdustpmj = dustvar(j)*termdust*pmassj*rho1j
+
+                        ddusti = ddusti - termdustpmj
+
+                        dudusti = dudusti - termdustpmj*dustvari*
+     &                    (ui-uj)/(rhoi-dustvari**2)
+
+                        gradpj = gradpr*pmassj
+                        gradvdustxi = gradvdustxi + gradpj*runix
+                        gradvdustyi = gradvdustyi + gradpj*runiy
+                        gradvdustzi = gradvdustzi + gradpj*runiz
                      ENDIF
 c
 c--This is the end of gas-gas interactions (i.e. iphase(i) and iphase(j) both 0)
@@ -2119,6 +2217,12 @@ c
                forcezi = forcezi -
      &              ekcle(4,ipart)/trho(ipart)*dedxyz(3,ipart)
             ENDIF
+c
+c--For one-fluid dust, evolve dust fraction
+c
+            IF (idustFluid.EQ.1 .AND. iphase(ipart).EQ.0) THEN
+               ddusti = ddusti - 0.5*dustvari*divv(ipart)*rho1i
+            ENDIF
          ENDIF
 c
 c--END for: force contributions that only apply to gas particles
@@ -2147,6 +2251,13 @@ c
          IF (iexpan.GT.0) CALL homexp(ipart,ntot,realtime,vxyzu,forcexi,
      &        forceyi,forcezi) 
 
+         IF (idustFluid.EQ.1) THEN
+            ts_over_1minus_epsilon = 
+     &           stoppingtime(ipart)*rhoi/(rhoi-dustvari**2)
+            gradvdustxi = gradvdustxi*ts_over_1minus_epsilon
+            gradvdustyi = gradvdustyi*ts_over_1minus_epsilon
+            gradvdustzi = gradvdustzi*ts_over_1minus_epsilon
+         ENDIF
 c
 c--Add local values to global force
 c
@@ -2177,6 +2288,27 @@ c               print *,iproc,': P0418dqs ',dq(ipart),dqi
 c            ENDIF
 
             dq(ipart) = dq(ipart) + dqi
+c
+c--For one-fluid dust, evolve dust fraction
+c
+            IF (idustFluid.EQ.1) THEN
+               ddust(ipart) = ddust(ipart) + ddusti
+               dustfluiddu(ipart) = dustfluiddu(ipart) + dudusti
+c
+c--This is the for computing the velocity difference between gas & dust.
+c     It is not required for evolution, but is dumped to allow the 
+c     separate velocities of the gas and dust to be computed.
+c     Note that the momentum equation is -gradP/rho whereas this is 
+c     +gradP/rho
+c
+c
+               dustfluidvxyz(1,ipart) = dustfluidvxyz(1,ipart) + 
+     &              gradvdustxi
+               dustfluidvxyz(2,ipart) = dustfluidvxyz(2,ipart) + 
+     &              gradvdustyi
+               dustfluidvxyz(3,ipart) = dustfluidvxyz(3,ipart) + 
+     &              gradvdustzi
+            ENDIF
 
 #ifdef DGRID
             IF (gasdrag) THEN
@@ -2444,24 +2576,22 @@ c
 c
 c--Energy conservation
 c
-         IF (idim_h2.EQ.1) THEN
+            IF (idim_h2.EQ.1) THEN
+               CALL energ(ipart,npart,ntot,realtime,vxyzu,fxyzu,xyzmh,
+     &              trho)
+            ELSE
+               IF (it1(ipart).EQ.imax) THEN
+                  dtime = (dt*isteps(ipart)/2)/imaxstep
+               ELSE
+                  dtime = (dt*isteps(ipart))/imaxstep
+               ENDIF 
 
-           CALL energ(ipart,npart,ntot,realtime,vxyzu,fxyzu,xyzmh,trho)
+               CALL energ_cooling(ipart,npart,ntot,realtime,vxyzu,fxyzu,
+     &              xyzmh,h2ratio,dtime,abhpq,abeq,abHIq,abco,trho)
+            END IF 
 
-         ELSE
-
-           IF (it1(ipart).EQ.imax) THEN
-             dtime = (dt*isteps(ipart)/2)/imaxstep
-           ELSE
-             dtime = (dt*isteps(ipart))/imaxstep
-           ENDIF 
-
-           CALL energ_cooling(ipart,npart,ntot,realtime,vxyzu,fxyzu,
-     &           xyzmh,h2ratio,dtime,abhpq,abeq,abHIq,abco,trho)
-
-         END IF 
 #ifdef NONIDEAL
-         CALL energ_nimhd(fxyzu(4,ipart),real(trho(ipart))
+            CALL energ_nimhd(fxyzu(4,ipart),real(trho(ipart))
      &                   ,eta_nimhd(1:3,ipart),jcurrent(1:3,ipart)
      &                   ,Bxyz(1:3,ipart))
 #endif
@@ -2708,7 +2838,6 @@ C$OMP END PARALLEL DO
       ENDIF
 
 #endif
-
 c
 c--Allow for tracing flow
 c
@@ -2726,7 +2855,7 @@ c
 
 
       SUBROUTINE extrapolate(j,dt,itime,trho,vxyzu,pr,vsound,
-     &                       ekcle,Bxyz,Bevolxyz)
+     &                       ekcle,Bxyz,Bevolxyz,dustvar)
 c************************************************************
 c                                                           *
 c  This subroutine extrapolates the density and quantities  *
@@ -2747,6 +2876,7 @@ c************************************************************
       DIMENSION ekcle(5,iradtrans2)
       DIMENSION Bxyz(3,imhd2)
       DIMENSION Bevolxyz(imhdevol,imhd3)
+      DIMENSION dustvar(idim_dustFluid2)
       
       IF (it1(j).EQ.imax) THEN
          deltat = dt*(itime - it0(j) - isteps(j)/2)/imaxstep
@@ -2787,7 +2917,7 @@ c
             ekcle(2,j) = GETKAPPA(vxyzu(4,j),ekcle(3,j),trho(j))
          ENDIF
 
-         CALL eospg(j, vxyzu, trho, pr, vsound, ekcle)
+         CALL eospg(j, vxyzu, trho, pr, vsound, ekcle, dustvar)
       ENDIF
 
       RETURN

@@ -1,5 +1,6 @@
       SUBROUTINE divv_gradhsoft (dt,npart,ntot,xyzmh,vxyzu,
-     &            nlst_in,nlst_end,listp,itime,ekcle,Bevol,Bxyz)
+     &            nlst_in,nlst_end,listp,itime,ekcle,Bevol,Bxyz,
+     &            dustvar)
 c************************************************************
 c                                                           *
 c  Subroutine to compute the velocity divergence, the curl, *
@@ -40,6 +41,7 @@ c************************************************************
       DIMENSION listp(idim2)
       DIMENSION ekcle(5,iradtrans2)
       DIMENSION Bevol(imhdevol,imhd3),Bxyz(3,imhd2)
+      DIMENSION dustvar(idim_dustFluid2)
 
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/physcon'
@@ -675,7 +677,7 @@ C$OMP PARALLEL default(none)
 C$OMP& shared(npart,ntot,ireal,rho,dumrho,xyzmh,pr,vsound,divv,curlv)
 C$OMP& shared(vxyzu,gradhs,Bxyz,encal,ibound,ekcle,varmhd,listp,Bevol)
 C$OMP& shared(nlst_in,nlst_end,listparents,nlistupdated,iupdated,icall)
-C$OMP& shared(dt,itime,iphase,dust_tk)
+C$OMP& shared(dt,itime,iphase,dust_tk,dustvar)
 C$OMP& private(i,j,k,ipart)
 c
 c--Update density and quantities depending on density for inactive particles
@@ -686,7 +688,7 @@ C$OMP DO SCHEDULE (runtime)
          j = listparents(i)
          iupdated(j) = .FALSE.
          CALL extrapolate(j,dt,itime,dumrho,vxyzu,pr,vsound,
-     &        ekcle,Bxyz,Bevol)
+     &        ekcle,Bxyz,Bevol,dustvar)
       END DO
 C$OMP END DO
 c

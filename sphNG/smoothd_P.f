@@ -26,6 +26,7 @@ c************************************************************
       INCLUDE 'COMMONS/eosq'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/mhd'
+      INCLUDE 'COMMONS/dustfluid'
 
       REAL*4 sm, q
       DIMENSION sm(idim), q(idim)
@@ -49,7 +50,7 @@ c
          iscurrent(i) = .TRUE.
       END DO
 
-      CALL ghostp(ntot, npart, xyzmh, vxyzu, ekcle, Bevolxyz)
+      CALL ghostp(ntot, npart, xyzmh, vxyzu, ekcle, Bevolxyz, dustvar)
 c
 c--Build tree
 c

@@ -106,6 +106,8 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/nonideal'
 #endif
       INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/dustfluid'
+      INCLUDE 'COMMONS/dustfluidderiv'
 
       DIMENSION nsteplist(30)
       INTEGER*8 nneightotsave
@@ -265,6 +267,7 @@ c
                      dumekcle(k,i) = ekcle(k,i)
                   END DO
                ENDIF
+               IF (idustFluid.EQ.1) dumdustvar(i) = dustvar(i)
                IF (imhd.EQ.idim) THEN
                   DO k = 1, imhdevol
                      dumBevolxyz(k,i) = Bevolxyz(k,i)
@@ -291,7 +294,7 @@ c               ENDIF
 c
 c--Create ghost particles
 c
-         CALL ghostp(ntot, npart, xyzmh, vxyzu, ekcle, Bevolxyz)
+         CALL ghostp(ntot,npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
 
          DO i = npart + 1, ntot
             DO k = 1, 5
@@ -305,6 +308,7 @@ c
                   dumekcle(k,i) = ekcle(k,i)
                END DO
             ENDIF
+            IF (idustFluid.EQ.1) dumdustvar(i) = dustvar(i)
             IF (imhd.EQ.idim) THEN
                DO k = 1, imhdevol
                   dumBevolxyz(k,i) = Bevolxyz(k,i)
@@ -345,7 +349,8 @@ c      WRITE (*,*) 'passed 2'
 
 c432    CONTINUE
        CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
-     &        ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz)
+     &        ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz,
+     &        dumdustvar,f1dust)
 
 c         WRITE (*,*) 'passed 3'
 
@@ -662,6 +667,7 @@ C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle,vsmooth)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
+C$OMP& shared(dustvar,dumdustvar,f1dust)
 C$OMP& private(j,k,deltat)
       DO j = 1, npart
          IF (iphase(j).GE.0) THEN
@@ -702,6 +708,8 @@ c                  dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
      &           deltat*f1ha(k+1,j)),alphamin(k))
                ENDDO
             ENDIF
+            IF (idustFluid.EQ.1) dumdustvar(j) = dustvar(j) +
+     &           deltat*f1dust(j)
             IF (imhd.EQ.idim) THEN
                DO k = 1, imhdevol
                   dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
@@ -725,6 +733,7 @@ C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle,vsmooth)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
+C$OMP& shared(dustvar,dumdustvar,f1dust)
 C$OMP& private(j,k,ipart,deltat)
                DO j = 1, nlstbins(i)
                   ipart = listbins(j,i)
@@ -767,6 +776,8 @@ c            dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
      &                         alphamin(k))
                        ENDDO
                     ENDIF
+                    IF (idustFluid.EQ.1) dumdustvar(ipart) = 
+     &                   dustvar(ipart) + deltat*f1dust(ipart)
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, imhdevol
                            dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) 
@@ -790,6 +801,7 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nptmass,listpm,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,vsmooth)
 C$OMP& shared(dumxyzmh,dumvxyzu,iflagtree)
+C$OMP& shared(dustvar,dumdustvar,f1dust)
 C$OMP& private(i,k,ipart,deltat)
             DO i = 1, nptmass
                ipart = listpm(i)
@@ -818,6 +830,7 @@ C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle,vsmooth)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& shared(iflagtree,alphamin)
+C$OMP& shared(dustvar,dumdustvar,f1dust)
 C$OMP& private(j,k,l,deltat)
       DO j = npart + 1, npart + nghost
          IF (iphase(j).GE.0) THEN
@@ -869,6 +882,8 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
      &                 deltat*f1ha(l+1,k)),alphamin(l))
                ENDDO
             ENDIF
+            IF (idustFluid.EQ.1) dumdustvar(j) = dustvar(j) +
+     &           deltat*f1dust(k)
             IF (imhd.EQ.idim) THEN
                DO l = 1, imhdevol
                   dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,k)
@@ -919,7 +934,8 @@ c--Compute forces on list particles
 c
       icall = 2
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f2vxyzu,f2ha,npart,
-     &     ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f2Bxyz)
+     &     ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f2Bxyz,
+     &     dumdustvar,f2dust)
 
 c      print *,'icall=2 ',dumvxyzu(4,llist(1))-vxyzu(4,llist(1)),
 c     &     f2vxyzu(4,llist(1)),dt*(itime - it0(llist(1)))/imaxstep,
@@ -1055,6 +1071,7 @@ C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,vsmooth,ifullstep)
 C$OMP& shared(ifsvi,alphaMM,alphamax,encal,dumBevolxyz,Bevolxyz)
 C$OMP& shared(pdvvisc,alphamin,utime,h2frac,dh2dt,udens,rho)
 C$OMP& shared(HIIion,dHIIdt,stellarrad)
+C$OMP& shared(dustvar,f1dust,f2dust)
 C$OMP& private(i,j,k,dtfull,dtf21,dtf22,xold,yold,delvx,delvy,delvz)
 C$OMP& private(vxstore,vystore,dx,dy,delgx,delgy,delpx,delpy)
 C$OMP& private(delax,delay,extraxt,extrayt,extraxg,extrayg)
@@ -1248,6 +1265,13 @@ c
                ENDDO
             ENDIF
 c
+c--One-fluid dust
+c
+            IF (idustFluid.EQ.1) THEN
+               dustvar(i) = dustvar(i) +
+     &              dtf21*f1dust(i) + dtf22*f2dust(i)
+            ENDIF
+c
 c-MHD
 c
             IF (imhd.EQ.idim) THEN
@@ -1286,7 +1310,7 @@ c
      &                                    .OR. idonebound.EQ.1) THEN
 c      IF (imakeghost.EQ.1 .OR. idonebound.EQ.1) THEN
 
-         CALL ghostp(ntot, npart, xyzmh, vxyzu, ekcle, Bevolxyz)
+         CALL ghostp(ntot,npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
       ENDIF
 c
 c--Identify particles to predict
@@ -1438,6 +1462,7 @@ C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
+C$OMP& shared(dustvar,dumdustvar,f1dust)
 C$OMP& private(j,k,deltat)
       DO j = 1, npart
          IF (iphase(j).GE.0) THEN
@@ -1477,6 +1502,8 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
      &              deltat*f1ha(k+1,j)),alphamin(k))
                ENDDO
             ENDIF
+            IF (idustFluid.EQ.1) dumdustvar(j) = dustvar(j) +
+     &           deltat*f1dust(j)
             IF (imhd.EQ.idim) THEN
                DO k = 1, imhdevol
                   dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
@@ -1500,6 +1527,7 @@ C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
+C$OMP& shared(dustvar,dumdustvar,f1dust)
 C$OMP& private(j,k,ipart,deltat)
                DO j = 1, nlstbins(i)
                   ipart = listbins(j,i)
@@ -1542,6 +1570,8 @@ c           dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
      &                          alphamin(k))
                         ENDDO
                      ENDIF
+                     IF (idustFluid.EQ.1) dumdustvar(ipart) = 
+     &                    dustvar(ipart) + deltat*f1dust(ipart)
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, imhdevol
                            dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) 
@@ -1594,6 +1624,7 @@ C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(iflagtree,alphamin)
+C$OMP& shared(dustvar,dumdustvar,f1dust)
 C$OMP& private(j,k,l,deltat)
       DO j = npart + 1, npart + nghost
          IF (iphase(j).GE.0) THEN
@@ -1645,6 +1676,8 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
      &               + deltat*f1ha(l+1,k)),alphamin(l))
                ENDDO
             ENDIF
+            IF (idustFluid.EQ.1) dumdustvar(j) = dustvar(j) +
+     &           deltat*f1dust(k)
             IF (imhd.EQ.idim) THEN
                DO l = 1, imhdevol
                   dumBevolxyz(l,j) = Bevolxyz(l,j) + deltat*f1Bxyz(l,k)
@@ -1697,7 +1730,8 @@ c     evaluations!!
 c
       icall = 3
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f2vxyzu,f2ha,npart,
-     &     ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f2Bxyz)
+     &     ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f2Bxyz,
+     &     dumdustvar,f2dust)
 
 c      print *,'icall=3 ',dumvxyzu(4,llist(nlst))-vxyzu(4,llist(nlst)),
 c     &    f2vxyzu(4,llist(nlst)),dt*(isteps(llist(nlst)))/imaxstep,
@@ -1845,6 +1879,7 @@ C$OMP& shared(rcyl,Bevolxyz,dumBevolxyz,planetesimalnorm)
 C$OMP& shared(pcolen,xmass,overclean_fac)
 C$OMP& shared(gasdist,nearestgas,planetmass,coremass)
 C$OMP& shared(dh2dt,icolumnsteps,icolumnnext)
+C$OMP& shared(dustvar,f1dust,f2dust)
 #ifdef MPICOPY
 C$OMP& shared(iproc)
 #endif
@@ -1866,7 +1901,7 @@ C$OMP& private(errdivtol,rap,rmod1,divvi,aux1,aux2,aux3,denom,valfven2)
 C$OMP& private(crstepi,rmodcr,force21,force22,force2,rmodcr2,rmod)
 C$OMP& private(stepi,ibin,factor,istep2,irat,r2,pmassi,rmodsg1,rmodsg2)
 C$OMP& private(Bxi,Byi,Bzi,B2i,xi,yi,zi,dti,dteta,rmodeta,etai,rmodcool)
-C$OMP& private(rmod_du1,rmod_du2)
+C$OMP& private(rmod_du1,rmod_du2,dtdust,rmoddust)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin,istepmingas)
 C$OMP& reduction(+:istepeta,etafac)
@@ -2559,6 +2594,17 @@ c--Constant resistivity
             ENDIF
          ENDIF
 c
+c--Timestep criterion for one-fluid dust
+c
+         IF (idustFluid.EQ.1) THEN
+            IF (iphase(i).EQ.0) THEN
+               dtdust = 0.3*(xyzmh(5,i)/vsound(i))**2/
+     &              (dustvar(i)**2/rho(i)*stoppingtime(i))
+               rmoddust = dtdust/(dt*isteps(i)/imaxstep)
+               rmod = MIN(rmod, rmoddust)
+            ENDIF
+         ENDIF
+c
 c--Reduce time step (no synchronization needed)
 c
          IF (rmod.LT.0.97) THEN
@@ -2707,6 +2753,7 @@ c
                   f1Bxyz(k,i) = f2Bxyz(k,i)
                END DO
             ENDIF
+            IF (idustFluid.EQ.1) f1dust(i) = f2dust(i)
 c
 c--The f1ha/f2ha quantities are:
 c     1:  The time derivative of the smoothing length (which is
@@ -3275,7 +3322,7 @@ c
             END DO
 
             nghost = 0
-            CALL ghostp3(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+            CALL ghostp3(npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
             ntot = npart + nghost
 
             DO j = npart - nlst0 + 1, npart
@@ -3367,7 +3414,8 @@ c
 
             icall = 4
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
-     &      f1ha,npart,ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz)
+     &      f1ha,npart,ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz,
+     &      dumdustvar,f1dust)
 
             time = dt*itime/imaxstep + gt
             DO j = 1, nlst0
@@ -3542,6 +3590,7 @@ c
                         dumalpha(k,j) = alphaMM(k,j)
                      ENDDO
                   ENDIF
+                  IF (idustFluid.EQ.1) dumdustvar(j) = dustvar(j)
                ENDIF
             END DO
 c
@@ -3576,6 +3625,8 @@ c
      &                   alphaMM(l,k) + deltat*f1ha(l+1,k)),alphamin(l))
                      ENDDO
                   ENDIF
+                  IF (idustFluid.EQ.1) dumdustvar(j) = dustvar(j)
+     &                 + f1dust(k)
                   IF (imhd.EQ.idim) THEN
                      DO l = 1, imhdevol
                         dumBevolxyz(l,j) = Bevolxyz(l,j) 
@@ -3649,7 +3700,8 @@ c
             PRINT *,"icall 4 triggered"
 
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
-     &      f1ha,npart,ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz)
+     &      f1ha,npart,ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz,
+     &      dumdustvar,f1dust)
 #ifdef MPI
 c
 c--If MPI code, particles are only injected by MPI process 0

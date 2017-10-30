@@ -1,5 +1,6 @@
       SUBROUTINE derivi (dt,itime,xyzmh,vxyzu,
-     &     dvxyzu,dha,npart,ntot,ireal,alphaMM,ekcle,Bevolxyz,dBevolxyz)
+     &     dvxyzu,dha,npart,ntot,ireal,alphaMM,ekcle,Bevolxyz,dBevolxyz,
+     &     dustvar,ddust)
 c************************************************************
 c                                                           *
 c  This subroutine drives the computation of the forces on  *
@@ -70,6 +71,7 @@ c************************************************************
       DIMENSION ireal(idim)
       DIMENSION ekcle(5,iradtrans2)
       DIMENSION Bevolxyz(imhdevol,imhd2),dBevolxyz(imhdevol,imhd3)
+      DIMENSION dustvar(idim_dustFluid2),ddust(idim_dustFluid2)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/astrcon'
@@ -181,7 +183,7 @@ c
 
       CALL densityiterate_gradh(dt,npart,ntot,xyzmh,vxyzu,dvxyzu,
      &     nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz,
-     &     dBevolxyz)
+     &     dBevolxyz,dustvar,ddust)
 
 #ifdef MPIDEBUG
       print *,iproc,' DERIVI: called densityiterate_gradh'
@@ -209,7 +211,7 @@ c--Now calculate other quantities that are needed to calculate the forces
 c     on particles (divv, graviational softening, curlv, etc).
 c
       CALL divv_gradhsoft(dt,npart,ntot,xyzmh,vxyzu,
-     &     nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz)
+     &     nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz,dustvar)
 
 c         IF (encal.EQ.'v' .OR. encal.EQ.'i') THEN
 c            CALL montecarloRT(npart, xyzmh, vxyzu, dumrho, 
@@ -1216,14 +1218,15 @@ ccc99556    FORMAT(I2,': ENER-A ',I1,1PE14.7,1PE14.7,1PE14.7)
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end,vxyzu,dumrho,pr,vsound,llist,iphase)
-C$OMP& shared(ekcle)
+C$OMP& shared(ekcle,dustvar)
 C$OMP& shared(gasdist,gasdrag)
 C$OMP& private(i,ipart)
 
             DO i = nlst_in, nlst_end
                ipart = llist(i)
                IF (iphase(ipart).EQ.0) 
-     &              CALL eospg(ipart,vxyzu,dumrho,pr,vsound,ekcle)
+     &              CALL eospg(ipart,vxyzu,dumrho,pr,vsound,ekcle,
+     &              dustvar)
                IF (iphase(ipart).EQ.11 .AND. gasdrag)
      &              gasdist(ipart) = 1.0E6
             END DO
@@ -1557,7 +1560,7 @@ c
 
       CALL forcei(nlst_in,nlst_end,nlst_tot,llist,dt,itime,npart,ntot,
      &     xyzmh,vxyzu,dvxyzu,dha,dumrho,pr,vsound,alphaMM,ekcle,
-     &     dedxyz,Bxyz,dBevolxyz,Bevolxyz)
+     &     dedxyz,Bxyz,dBevolxyz,Bevolxyz,dustvar,ddust)
 
 
 #ifdef MPIDEBUG
@@ -1812,6 +1815,13 @@ c
 #ifdef MPIDEBUG
       print *,iproc,': Exited derivi ',itime
 #endif
+
+c
+c--If want to test static calculation, set accelerations to zero here
+c
+c      DO i = 1, npart
+c         dvxyzu(1:3,i) = 0.
+c      END DO
 
       RETURN
       END

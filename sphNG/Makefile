@@ -391,8 +391,8 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f \
 	scaling.f \
 	semimajoraxis.f setBfield_mhd.f setpart.F setup_torus.f \
 	smoothd_P.f sphericalposition.f \
-	sphdis.f sphmas.f spline.F stellar_radiation.f thermeq.f \
-	toten.f treef_P.F unifdis.F unit.f uset.f \
+	sphdis.f sphmas.f spline.F stellar_radiation.f stoppingtime.f \
+	thermeq.f toten.f treef_P.F unifdis.F unit.f uset.f \
 	wdump.F wdump_wrapper.F wrinsph.F write_dragtable.f zeusread.f
 
 # these are the sources required for the gradh code to compile

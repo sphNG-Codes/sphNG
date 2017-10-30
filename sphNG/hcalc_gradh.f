@@ -35,6 +35,8 @@ c************************************************************
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/Bxyz'
       INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/dustfluid'
+      INCLUDE 'COMMONS/dustfluidderiv'
       
       CHARACTER*4 varmhdtemp
 c
@@ -74,7 +76,7 @@ c      WRITE(*,*) neimax, neimean, neimin, neisup, neiinf, neirange
      &        icolumnnext(i) = 0
       END DO
 
-      CALL ghostp(ntot, npart, xyzmh, vxyzu, ekcle, Bevolxyz)
+      CALL ghostp(ntot, npart, xyzmh, vxyzu, ekcle, Bevolxyz, dustvar)
 
       DO i = 1, ntot
          DO j = 1, 5
@@ -157,8 +159,8 @@ c
       ENDIF
 
       CALL derivi(dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,ntot,
-     &            ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz)
-
+     &            ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz,
+     &            dustvar,f1dust)
 c
 c--Copy dumekcle values back into ekcle and dumvxyzu(4) into vxyzu
 c

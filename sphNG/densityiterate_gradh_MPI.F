@@ -1,5 +1,6 @@
       SUBROUTINE densityiterate_gradh (dt,npart,ntot,xyzmh,vxyzu,dvxyzu,
-     &            nlst_in,nlst_end,listp,itime,ekcle,Bevol,Bxyz,dBxyz)
+     &            nlst_in,nlst_end,listp,itime,ekcle,Bevol,Bxyz,dBxyz,
+     &            dustvar,ddust)
 c************************************************************
 c                                                           *
 c  Subroutine to compute the density and smoothing lengths  *
@@ -37,7 +38,8 @@ c************************************************************
       DIMENSION listp(idim2)
       DIMENSION ekcle(5,iradtrans2)
       DIMENSION Bevol(imhdevol,imhd3),Bxyz(3,imhd2),
-     &     dBxyz(imhdevol,imhd2)
+     &     dBxyz(imhdevol,imhd2),dustvar(idim_dustFluid2),
+     &     ddust(idim_dustFluid2)
 
       PARAMETER (htol = 1.e-3)
       PARAMETER (hstretch = 1.01)
@@ -93,6 +95,7 @@ c     that are neighbours of active particles for updating their densities etc
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/sightlines'
       INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/dustfluidvelu'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
 #endif
@@ -255,7 +258,7 @@ C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)
 C$OMP& shared(iphase,dBxyz,divcurlB,gradB,it0,itime,hfact)
 C$OMP& shared(curlv,gradhs,sightcolumns,hi_2back)
 C$OMP& shared(planetesimaltimestep,planetesimalnorm,iplanetesimals)
-C$OMP& shared(stellarrad,nptmasstot)
+C$OMP& shared(stellarrad,nptmasstot,ddust,dustfluiddu,dustfluidvxyz)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend)
 #endif
@@ -329,6 +332,11 @@ c            ENDIF
             DO k = 1, 9
                gradB(k,ipart) = 0.
             END DO
+         ENDIF
+         IF (idustFluid.EQ.1) THEN
+            ddust(ipart) = 0.
+            dustfluiddu(ipart) = 0.
+            dustfluidvxyz(1:3,ipart) = 0.
          ENDIF
          IF (idustRT.GT.0) THEN
 #ifdef MPI
@@ -1371,6 +1379,7 @@ C$OMP& shared(ivar,ijvar,ncompact,icompact,iteration,dust_tk)
 C$OMP& shared(hminbisec,hmaxbisec,iupdated,nlistupdated,listparents)
 C$OMP& shared(heatingISR,sightcolumns,nsightlines,umass,udist)
 C$OMP& shared(chemistry,icolumnnext,icolumnsteps,bounddens)
+C$OMP& shared(dustvar)
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend,ijvartemp,listparentstemp)
 #endif
@@ -1565,7 +1574,10 @@ c
 
                      xyzmh(5,ipart) = hi
                      gradhs(1,ipart) = 1./omegai
-
+c
+c--The 4th element is used to compute the potential energy while in
+c     densityiterate
+c
                      poten(ipart) = dvxyzu(4,ipart)
 
                      IF (iphase(ipart).EQ.0) THEN
@@ -1728,7 +1740,8 @@ c
 c
 c--Pressure and sound velocity from ideal gas law...
 c
-                        CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
+                        CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle,
+     &                       dustvar)
                      ENDIF
 c
 c--Set up compact list of neighbours within h_i and non-active neighbours
@@ -1796,6 +1809,10 @@ c--Else for sink particles
 c
          isucceed(ipart) = 1
          numsucceeded = numsucceeded + 1
+c
+c--The 4th element is used to compute the potential energy while in
+c     densityiterate
+c
          poten(ipart) = dvxyzu(4,ipart)
 c
 c--Set up compact list of neighbours within h_i and non-active neighbours
@@ -2430,7 +2447,7 @@ c--Pressure and sound velocity from ideal gas law...
 c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP&shared(idisplacementsi,irecvcounti,llisttrans)
-C$OMP&shared(vxyzu,rho,pr,vsound,ekcle,numproc,iproc,iphase)
+C$OMP&shared(vxyzu,rho,pr,vsound,ekcle,numproc,iproc,iphase,dustvar)
 C$OMP&private(i,j,ipart)
       DO j = 0, numproc - 1
          IF (j.NE.iproc) THEN
@@ -2439,7 +2456,8 @@ C$OMP&private(i,j,ipart)
                ipart = llisttrans(i) + 1
 
                IF (iphase(ipart).EQ.0)
-     &              CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle)
+     &              CALL eospg(ipart, vxyzu, rho, pr, vsound, ekcle,
+     &              dustvar)
             END DO
          ENDIF
       END DO

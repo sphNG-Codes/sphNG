@@ -1,4 +1,4 @@
-      SUBROUTINE ghostp102(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
+      SUBROUTINE ghostp102(npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
 c************************************************************
 c                                                           *
 c  This subroutine computes the list of ghost particles for *
@@ -12,6 +12,7 @@ c************************************************************
       DIMENSION vxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
       DIMENSION Bevolxyz(imhdevol,imhd)
+      DIMENSION dustvar(idim_dustFluid)
 
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/densi'
@@ -65,6 +66,7 @@ c
          rhoi = rho(i)
          vsoundi = vsound(i)
          presi = pr(i)
+         IF (idustFluid.EQ.1) dustvari = dustvar(i)
 
          r2 = xi**2 + yi**2 + zi**2
          r = SQRT(r2)
@@ -93,6 +95,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
+            IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
             iphase(nptot) = 0
          ENDIF
          goto 234
@@ -121,6 +124,7 @@ c
                   rho(nptot) = rhoi
                   vsound(nptot) = vsoundi
                   pr(nptot) = presi
+                  IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
                   iphase(nptot) = 0
                ENDIF
             ENDIF

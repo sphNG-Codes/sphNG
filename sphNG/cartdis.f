@@ -30,15 +30,48 @@ c
 c
 c--Set Condensed Areas In Cartesian Coordinates
 c
-      IF (idist.EQ.1) THEN
-         npart = np + nptmass
-         WRITE (*,99002)
-99002    FORMAT (' NOT IMPLEMENTED')
-         CALL quit(0)
-      ELSE IF (idist.EQ.2) THEN   
-         npart = np + nptmass
-         WRITE (*,99002)
-         CALL quit(0)
+      IF (idist.EQ.1 .OR. idist.EQ.2) THEN
+         WRITE (*,*) 'Enter amplitude of sine wave '
+         READ (*,*) ampl
+c
+c--Shift particles to sinusoidal density profile (from Daniel Price)
+c
+         itsmax = 100
+         tol = 1.0e-5
+         dxmax = xmax - xmin
+         wk = 2.0*pi/(dxmax/1.)
+         denom = dxmax - ampl/wk*(COS(wk*dxmax)-1.0)
+
+         DO i = 1,npart
+
+            dxi = xyzmh(1,i)-xmin
+            dxprev = dxmax*2.
+            xmassfrac = dxi/dxmax ! current mass fraction
+                                  ! (for uniform density)
+c
+c--Use rootfinder on the integrated density perturbation
+c  to find the new position of the particle
+c    
+            its = 0
+
+            DO WHILE ((abs(dxi-dxprev).GT.tol).AND.(its.LT.itsmax))
+               dxprev = dxi
+               func = xmassfrac*denom - (dxi -ampl/wk*(COS(wk*dxi)-1.0))
+               fderiv = -1.0 - ampl*SIN(wk*dxi)
+               dxi = dxi - func/fderiv ! Newton-Raphson iteration
+               its = its + 1 
+c              PRINT*,'iteration',its,'dxi =',dxi,xmin,xmax,xyzmh(1,i)
+            END DO
+
+            IF (its.GE.itsmax) THEN
+               WRITE (*,*) 'Error: soundwave - too many iterations'
+               CALL quit(0)
+            ENDIF
+
+c            PRINT *,xyzmh(1,i),xmin + dxi,dxi
+
+            xyzmh(1,i) = xmin + dxi
+         END DO
       ELSE
          npart = np + nptmass
          rcyl2 = rcyl * rcyl 

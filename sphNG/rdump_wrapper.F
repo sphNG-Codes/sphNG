@@ -58,6 +58,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/abundances'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/dustfluid'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -286,6 +287,14 @@ c
                Bevolxyz(k,i) = tempsort(i)
             END DO
          ENDDO
+      ENDIF
+      IF (idustFluid.EQ.1) THEN
+         DO i = 1, npart
+            tempsort(i) = dustvar(iorig(i))
+         END DO
+         DO i = 1, npart
+            dustvar(i) = tempsort(i)
+         END DO
       ENDIF
 
       DO i = 1, npart

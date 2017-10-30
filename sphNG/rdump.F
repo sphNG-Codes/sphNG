@@ -65,6 +65,8 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/dustfluid'
+      INCLUDE 'COMMONS/dustfluidvelu'
 
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
@@ -689,6 +691,42 @@ c--Default real
                 IF (tagged) READ (idisk1, END=100)
                 READ (idisk1, END=100)
              END DO
+          ENDIF
+
+          IF (idustFluid.EQ.1) THEN
+             iwanted = iwanted + 4
+
+             IF (nums1(6).LT.iwanted) THEN
+                WRITE (*,*) 'ERROR - nums1(6).LT.iwanted ',
+     &               nums1(6),iwanted
+                CALL quit(0)
+             ENDIF
+c
+c--Note dustfrac (=epsilon) is dumped, but dustvar (=SQRT(epsilon*rho)
+c     is the variable that is integrated.  Also note that dustfluidvxyz
+c     is dumped to allow the dust and gas velocities to be computed, 
+c     but it is not used in the integration at all.
+c
+             IF (tagged) READ (idisk1, END=100) tagi
+             CALL checktag('dustfrac', tagi, ierr)
+             IF (ierr.NE.0) THEN
+                PRINT *,'ERROR - dustfrac not found in dump file'
+                CALL quit(0)
+             ENDIF
+             READ (idisk1, END=100) dustvar(icount+1:icount+nhydro)
+             dustvar(icount+1:icount+nhydro) = 
+     &            SQRT(dustvar(icount+1:icount+nhydro)*
+     &            rho(icount+1:icount+nhydro))
+
+             DO j = 1, 3
+                IF (tagged) READ (idisk1, END=100) tagi
+                READ (idisk1, END=100)
+             END DO
+             CALL checktag('deltavz', tagi, ierr)
+             IF (ierr.NE.0) THEN
+                PRINT *,'ERROR - deltavz not found in dump file'
+                CALL quit(0)
+             ENDIF
           ENDIF
 
 c--skip unnecessary reals

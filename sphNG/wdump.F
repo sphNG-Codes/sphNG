@@ -69,6 +69,8 @@ c#endif
       INCLUDE 'COMMONS/nonideal'
 #endif
       INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/dustfluid'
+      INCLUDE 'COMMONS/dustfluidvelu'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -392,6 +394,8 @@ c
 
       IF (istellar_ionisation) nums(6) = nums(6) + 6
 
+      IF (idustFluid.EQ.1) nums(6) = nums(6) + 4
+
       IF (nlmax.EQ.1) THEN
          nums(7) = 4
       ELSE
@@ -533,6 +537,24 @@ c--Default real
             WRITE (idisk1, ERR=100) tagarr(j)
             WRITE (idisk1, ERR=100) 
      &           (stellarrad(j,1,isort(i)),i=1,nprint)
+         END DO
+      ENDIF
+
+      IF (idustFluid.EQ.1) THEN
+c
+c--Note dustfrac (=epsilon) is dumped, but dustvar (=SQRT(epsilon*rho)
+c     is the variable that is integrated.  Also note that dustfluidvxyz 
+c     is dumped to allow the dust and gas velocities to be computed, 
+c     but it is not used in the integration at all.
+c
+         WRITE (idisk1, ERR=100) tag('dustfrac')
+         WRITE (idisk1, ERR=100) (dustvar(isort(i))**2/rho(isort(i)), 
+     &        i=1,nprint)
+         tagarr(1:3) = (/'deltavx','deltavy','deltavz'/)
+         DO j = 1, 3
+            WRITE (idisk1, ERR=100) tag(tagarr(j))
+            WRITE (idisk1, ERR=100) (dustfluidvxyz(j,isort(i)),
+     &           i=1,nprint)
          END DO
       ENDIF
 

@@ -1,0 +1,4 @@
+      REAL dustfluidvxyz
+      COMMON /dustfluidvel/ dustfluidvxyz(3,idim_dustFluid2)
+      REAL dustfluiddu
+      COMMON /dustfdu/ dustfluiddu(idim_dustFluid2)

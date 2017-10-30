@@ -1,0 +1,3 @@
+      REAL f1dust, f2dust
+      COMMON /dustfderiv/ f1dust(idim_dustFluid2),
+     &	     f2dust(idim_dustFluid2)

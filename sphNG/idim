@@ -4,6 +4,7 @@
       INTEGER imhdevol, isubcycle_divB
       INTEGER idim_h2, idim_h2_2, idim_MPI
       INTEGER ioptimise_column
+      INTEGER idustFluid, idim_dustfluid, idim_dustfluid2
       REAL tiny
 
       PARAMETER (idim=2001000)
@@ -58,6 +59,11 @@ c
 c      PARAMETER (idustIMPL = 1)
       PARAMETER (idustIMPL = 0)
 c
+c--One-fluid dust
+c
+c      PARAMETER (idustFluid = 1)
+      PARAMETER (idustFluid = 0)
+c
 c--For chemistry need to use idim_h2 = idim
 c
 c      PARAMETER (idim_h2 = idim)
@@ -79,3 +85,6 @@ c
       PARAMETER (imhd3 = imhd + 2*idim_MPI)
       PARAMETER (iradtrans2 = iradtrans + idim_MPI)
       PARAMETER (idim_h2_2 = idim_h2 + idim_MPI)
+
+      PARAMETER (idim_dustFluid = idustFluid*idim)
+      PARAMETER (idim_dustFluid2 = idustFluid*idim2)

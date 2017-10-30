@@ -1,4 +1,4 @@
-      SUBROUTINE eospg(ipart,vxyzu,rho,pr,vsound,ekcle)
+      SUBROUTINE eospg(ipart,vxyzu,rho,pr,vsound,ekcle,dustvar)
 c************************************************************
 c                                                           *
 c  This routine computes the pressure and sound speed       *
@@ -13,7 +13,7 @@ c************************************************************
 
       REAL*4 rho,pr,vsound
       DIMENSION vxyzu(4,idim), rho(idim), pr(idim), vsound(idim)
-      DIMENSION ekcle(5,iradtrans)
+      DIMENSION ekcle(5,iradtrans),dustvar(idustFluid)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/cgas'
@@ -31,6 +31,7 @@ c************************************************************
 #endif
 
       CHARACTER*7 where
+      REAL*4 rho_gas_r4
 
       DATA where/'eospg'/
 
@@ -40,6 +41,17 @@ c************************************************************
          WRITE (*,*) 'ERROR - vxyzu(4,ipart).LE.0 ',vxyzu(4,ipart),ipart
          CALL quit(1)
       ENDIF
+c
+c--For one fluid dust, need to reduce the gas density based on the
+c     dust fraction since the density is the total density, not the
+c     density of the gas
+c
+      IF (idustFluid.EQ.1) THEN
+         rho_gas = rho(ipart) - dustvar(ipart)**2
+      ELSE
+         rho_gas = rho(ipart)
+      ENDIF
+      rho_gas_r4 = rho_gas
 c
 c--Variable is internal energy
 c
@@ -58,22 +70,22 @@ c
           RK3 = uzero / (rhocrit ** gam1)
           RK4 = RK3 * (rhocrit2 ** gam1) / (rhocrit2 ** gamdh1)
           RK5 = RK4 * (rhocrit3 ** gamdh1) / (rhocrit3 ** gamah1)
-          IF (rho(ipart).LT.rhocrit) THEN
+          IF (rho_gas.LT.rhocrit) THEN
              vxyzu(4,ipart) = uzero
-             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho(ipart)
-             vsound(ipart) = SQRT(pr(ipart)/rho(ipart))
-          ELSE IF (rho(ipart).LT.rhocrit2) THEN
-             vxyzu(4,ipart) = RK3 * (rho(ipart) ** gam1)
-             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho(ipart)
-             vsound(ipart) = SQRT(gam * pr(ipart) / rho(ipart))
-          ELSE IF (rho(ipart).LT. rhocrit3) THEN
-             vxyzu(4,ipart) = RK4 * (rho(ipart) ** gamdh1)
-             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho(ipart)
-             vsound(ipart) = SQRT(gamdh * pr(ipart) / rho(ipart))
+             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho_gas
+             vsound(ipart) = SQRT(pr(ipart)/rho_gas)
+          ELSE IF (rho_gas.LT.rhocrit2) THEN
+             vxyzu(4,ipart) = RK3 * (rho_gas ** gam1)
+             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho_gas
+             vsound(ipart) = SQRT(gam * pr(ipart) / rho_gas)
+          ELSE IF (rho_gas.LT. rhocrit3) THEN
+             vxyzu(4,ipart) = RK4 * (rho_gas ** gamdh1)
+             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho_gas
+             vsound(ipart) = SQRT(gamdh * pr(ipart) / rho_gas)
           ELSE 
-             vxyzu(4,ipart) = RK5 * (rho(ipart) ** gamah1)
-             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho(ipart)
-             vsound(ipart) = SQRT(gamah * pr(ipart) / rho(ipart))
+             vxyzu(4,ipart) = RK5 * (rho_gas ** gamah1)
+             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho_gas
+             vsound(ipart) = SQRT(gamah * pr(ipart) / rho_gas)
           ENDIF
 c
 c--Physical equation of state
@@ -88,37 +100,37 @@ c
           ELSE
              uzero = RK2 * (rhozero ** gama1)
           ENDIF
-          IF (rho(ipart).LT.rhochange1) THEN
-             vxyzu(4,ipart) = uzero*(1.0 + (rho(ipart)/rhoref1)**gam1)
-             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho(ipart)
-             vsound(ipart) = SQRT(gamphys1*pr(ipart)/rho(ipart))
-          ELSE IF (rho(ipart).LT.rhochange2) THEN
-             vxyzu(4,ipart) = uzero*(1.0 + (rho(ipart)/rhoref2)**gam2)
-             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho(ipart)
-             vsound(ipart) = SQRT(gamphys2* pr(ipart) / rho(ipart))
+          IF (rho_gas.LT.rhochange1) THEN
+             vxyzu(4,ipart) = uzero*(1.0 + (rho_gas/rhoref1)**gam1)
+             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho_gas
+             vsound(ipart) = SQRT(gamphys1*pr(ipart)/rho_gas)
+          ELSE IF (rho_gas.LT.rhochange2) THEN
+             vxyzu(4,ipart) = uzero*(1.0 + (rho_gas/rhoref2)**gam2)
+             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho_gas
+             vsound(ipart) = SQRT(gamphys2* pr(ipart) / rho_gas)
           ELSE 
-             vxyzu(4,ipart) = uzero*(1.0 + (rho(ipart)/rhoref3)**gam3)
-             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho(ipart)
-             vsound(ipart) = SQRT(gamphys3* pr(ipart) / rho(ipart))
+             vxyzu(4,ipart) = uzero*(1.0 + (rho_gas/rhoref3)**gam3)
+             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho_gas
+             vsound(ipart) = SQRT(gamphys3* pr(ipart) / rho_gas)
           ENDIF
 c
 c--Isothermal equation of state
 c
       ELSEIF (encal.EQ.'i') THEN
-            pr(ipart) = (2./3.) * vxyzu(4,ipart) * rho(ipart)
-            vsound(ipart) = SQRT(pr(ipart)/rho(ipart))
+            pr(ipart) = (2./3.) * vxyzu(4,ipart) * rho_gas
+            vsound(ipart) = SQRT(pr(ipart)/rho_gas)
 c
 c--Thermal instability equation of state
 c
       ELSEIF (encal.EQ.'t') THEN
-            pr(ipart) = (2./3.) * vxyzu(4,ipart) * rho(ipart)
-            vsound(ipart) = SQRT(pr(ipart)/rho(ipart))
+            pr(ipart) = (2./3.) * vxyzu(4,ipart) * rho_gas
+            vsound(ipart) = SQRT(pr(ipart)/rho_gas)
 c
 c--Adiabatic equation of state
 c
       ELSEIF (encal.EQ.'a' .OR. encal.EQ.'c') THEN
-            pr(ipart) =  gama1 * vxyzu(4,ipart) * rho(ipart)
-            vsound(ipart) = SQRT(gamma*pr(ipart)/rho(ipart))
+            pr(ipart) =  gama1 * vxyzu(4,ipart) * rho_gas
+            vsound(ipart) = SQRT(gamma*pr(ipart)/rho_gas)
 c
 c--Radiative transfer equation of state
 c
@@ -126,35 +138,35 @@ c
           IF (iunique(iorig(ipart)).GT.n1 .AND. 
      &         iunique(iorig(ipart)).LE.n1+n2) THEN
              vxyzu(4,ipart) = uzero_n2
-             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho(ipart)
-             vsound(ipart) = SQRT(pr(ipart)/rho(ipart))
+             pr(ipart) = 2./3. * vxyzu(4,ipart) * rho_gas
+             vsound(ipart) = SQRT(pr(ipart)/rho_gas)
           ELSE
-             pr(ipart)= Rg*rho(ipart)*(vxyzu(4,ipart)/
-     &            getcv(rho(ipart),vxyzu(4,ipart)))*
-     &            get1overmu(rho(ipart),vxyzu(4,ipart))/uergg
-             vsound(ipart) = SQRT(gamma*pr(ipart)/rho(ipart))
+             pr(ipart)= Rg*rho_gas*(vxyzu(4,ipart)/
+     &            getcv(rho_gas_r4,vxyzu(4,ipart)))*
+     &            get1overmu(rho_gas_r4,vxyzu(4,ipart))/uergg
+             vsound(ipart) = SQRT(gamma*pr(ipart)/rho_gas)
           ENDIF
 c
 c--Radiative transfer equation of state using Monte Carlo code
 c
       ELSEIF (encal.EQ.'m') THEN
-           pr(ipart)= Rg*rho(ipart)*(vxyzu(4,ipart)/
-     &        getcv(rho(ipart),vxyzu(4,ipart)))*
-     &        get1overmu(rho(ipart),vxyzu(4,ipart))/uergg
-            vsound(ipart) = SQRT(gamma*pr(ipart)/rho(ipart))
+           pr(ipart)= Rg*rho_gas*(vxyzu(4,ipart)/
+     &        getcv(rho_gas_r4,vxyzu(4,ipart)))*
+     &        get1overmu(rho_gas_r4,vxyzu(4,ipart))/uergg
+            vsound(ipart) = SQRT(gamma*pr(ipart)/rho_gas)
 c
 c--Polytropic equation of state
 c
       ELSEIF (encal.EQ.'p') THEN
-            vxyzu(4,ipart) = RK2 * (rho(ipart) ** gama1)
-            pr(ipart) = (2./3.) * vxyzu(4,ipart) * rho(ipart)
-            vsound(ipart) = SQRT(gamma*pr(ipart)/rho(ipart))
+            vxyzu(4,ipart) = RK2 * (rho_gas ** gama1)
+            pr(ipart) = (2./3.) * vxyzu(4,ipart) * rho_gas
+            vsound(ipart) = SQRT(gamma*pr(ipart)/rho_gas)
 c
 c--Variable of state is entropy
 c
       ELSEIF (varsta.EQ.'entropy') THEN
-            pr(ipart) = vxyzu(4,ipart)*rho(ipart)**gamma
-            vsound(ipart) = SQRT(gamma*pr(ipart)/rho(ipart))
+            pr(ipart) = vxyzu(4,ipart)*rho_gas**gamma
+            vsound(ipart) = SQRT(gamma*pr(ipart)/rho_gas)
       ELSE
          WRITE (iprint,99500) encal
 99500    FORMAT ('encal = ',A1)
@@ -168,14 +180,14 @@ c  (use getvc rather than ekcle since that is the method used above)
 c
       IF (encal.EQ.'r') THEN
 c        ekclei = ekcle(3,ipart)
-         ekclei = getcv(rho(ipart),vxyzu(4,ipart))
+         ekclei = getcv(rho_gas_r4,vxyzu(4,ipart))
       ELSE
          ekclei = 0.0
       ENDIF
       temperature = nimhd_gastemp(encal,vxyzu(4,ipart),ekclei
-     &                           ,dble(rho(ipart)),gamma
+     &                           ,rho_gas,gamma
      &                           ,n1,n2,iunique(iorig(ipart)))
-      CALL nicil_get_ion_n(dble(rho(ipart)),temperature
+      CALL nicil_get_ion_n(rho_gas,temperature
      &                     ,n_R(:,ipart),n_electronT(ipart),ierr)
       IF (ierr/=0) THEN
          CALL nicil_translate_error(ierr)

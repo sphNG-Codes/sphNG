@@ -68,6 +68,7 @@ c************************************************************
       INCLUDE 'COMMONS/init'
       INCLUDE 'COMMONS/potent'
       INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/dustfluid'
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
@@ -916,6 +917,9 @@ c
             ENDIF
          ELSE
             IF (icoord.EQ.1) THEN
+               CALL unifdis(igeom, idist, np, h1, facx, facy, facz,
+     &              delx, dely, nx, ny, nz, ibound)
+
                CALL cartdis(igeom, idist, np, h1)
             ELSE IF (icoord.EQ.2) THEN
                CALL cyldis(igeom,np)
@@ -1462,9 +1466,9 @@ c            print*,'rho(medium) = ',rhozero/rhocontrast,rhozero
 #ifdef NONIDEAL
             CALL nicil_initialise(utime,udist,umass,umagfd,ierr)
 #endif
-            CALL eospg(1,vxyzu,rho,pr,vsound,ekcle)
+            CALL eospg(1,vxyzu,rho,pr,vsound,ekcle,dustvar)
             rho(n1+1) = rhozero/rhocontrast
-            CALL eospg(n1+1,vxyzu,rho,pr,vsound,ekcle)
+            CALL eospg(n1+1,vxyzu,rho,pr,vsound,ekcle,dustvar)
             WRITE(*,*) 'pr(sphere) = ',pr(1),vsound(1),
      &          'pr(box) =',pr(n1+1),vsound(n1+1)
             WRITE(*,*) 'vsound**2/GM/R = ',vsound(n1+1)**2*rmax/totmas
@@ -1496,7 +1500,7 @@ c  only robust way is to actually call eospg to make sure pext=p
 #ifdef NONIDEAL
             CALL nicil_initialise(utime,udist,umass,umagfd,ierr)
 #endif
-            CALL eospg(1,vxyzu,rho,pr,vsound,ekcle)
+            CALL eospg(1,vxyzu,rho,pr,vsound,ekcle,dustvar)
             IF (exttemp.LT.0.) THEN
                pext = pr(1)
                WRITE(*,*) 'setting external pressure = ',pext
@@ -2192,8 +2196,17 @@ c If this would create a dtmax lower than dtini, lower dtini to match
 
 999   CONTINUE
 c
+c--IF one-fluid dust, enter initial dust-to-gas ratio
+c
+      IF (idustFluid.EQ.1) THEN
+         WRITE (*, 99043)
+99043    FORMAT(' Enter initial dust to gas ratio (rho_d/rho_g)')
+         READ (iread, *) dust_to_gas
+         dust_epsilon = 1.0/(1.0+1.0/dust_to_gas)
+      ENDIF
+c
 c--adjust smoothing lengths (also calculates initial density)
-c  MUST be done (to get density) if evolving B/rho
+c  MUST be done (to get density) if evolving B/rho or one-fluid dust
 c
       nactive = npart
       WRITE (*, 99044)
@@ -2225,8 +2238,39 @@ c     After this, n1 and n2 are global values.
 c
       n1 = n1tot
       n2 = n2tot
+c
+c--Set initial dust to gas ratio (to avoid divide by zero)
+c
+      IF (idustFluid.EQ.1) dustvar(1:npart) = 1.0
 
-      IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim) CALL hcalc
+      IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim .OR. 
+     &     idustFluid.EQ.1) CALL hcalc
+
+c
+c--Update initial dust to gas ratio
+c
+      IF (idustFluid.EQ.1) THEN
+         DO i = 1, npart
+            IF (iphase(i).EQ.0) THEN
+               dustvar(i) = SQRT(dust_epsilon*rho(i))
+            ENDIF
+         END DO
+c
+c--For spherical dust diffusion test
+c
+         IF (.FALSE.) THEN
+            DO i = 1, npart
+               radius = SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2+xyzmh(3,i)**2)
+               IF (iphase(i).EQ.0) THEN
+                  IF (radius.LT.0.25) THEN
+                     dustvar(i) =SQRT(0.9*(1.0-(radius/0.25)**2)*rho(i))
+                  ELSE
+                     dustvar(i) = 0.
+                  ENDIF
+               ENDIF
+            END DO
+         ENDIF
+      ENDIF
 
       IF (igeom.EQ.10 .AND. use_tprof .AND. encal.EQ.'r') CALL uset
 c

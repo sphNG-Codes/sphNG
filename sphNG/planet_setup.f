@@ -161,6 +161,7 @@ c---------------------------------------------------------------
       INCLUDE 'COMMONS/prdrag'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/planetesimal'
+      INCLUDE 'COMMONS/dustfluid'
 
       REAL*8 inclination
       CHARACTER*1 iok, iwhat, idens
@@ -1343,7 +1344,15 @@ c
          dtmax = dtfrac*tcomp
          WRITE(*,*) 'setting dtmax = ',dtmax
       ENDIF
-
+c
+c--IF one-fluid dust, enter initial dust-to-gas ratio
+c
+      IF (idustFluid.EQ.1) THEN
+         WRITE (*, 99043)
+99043    FORMAT(' Enter initial dust to gas ratio (rho_d/rho_g)')
+         READ (iread, *) dust_to_gas
+         dust_epsilon = 1.0/(1.0+1.0/dust_to_gas)
+      ENDIF
 c
 c--adjust smoothing lengths (also calculates initial density)
 c  MUST be done (to get density) if evolving B/rho
@@ -1372,10 +1381,26 @@ c Set abundances of main species
          gapfac = 0.0
          CALL gapfactor(variation, hmass, gapfac)
       ENDIF
+c
+c--Set initial dust to gas ratio (to avoid divide by zero)
+c
+      IF (idustFluid.EQ.1) dustvar(1:npart) = 1.0
 
-      IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim) CALL hcalc
+      IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim .OR.
+     &     idustFluid.EQ.1) CALL hcalc
+c
+c--Update initial dust to gas ratio
+c
+      IF (idustFluid.EQ.1) THEN
+         DO i = 1, npart
+            IF (iphase(i).EQ.0) THEN
+               dustvar(i) = SQRT(dust_epsilon*rho(i))
+            ENDIF
+         END DO
+      ENDIF
 
-      IF (iok.NE.'y' .AND. iok.NE.'Y' .AND. imhd.NE.idim)
+      IF (iok.NE.'y' .AND. iok.NE.'Y' .AND. imhd.NE.idim .AND. 
+     &     idustFluid.NE.1)
      &     print *, 'Warning: uset being called without rho set'
       IF (igeom.EQ.10 .AND. use_tprof) CALL uset
 

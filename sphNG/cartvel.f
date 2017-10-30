@@ -162,6 +162,8 @@ c
          vxyzu(1,i) = 1.0E10
       END DO
 
+      IF (imhd.NE.idim) valfven = vsound
+
       DO 240 i = 1, npart
          DO 220 j = 1, ireg
             IF ((xyzmh(1,i).GE.rxmin(j)) .AND. 

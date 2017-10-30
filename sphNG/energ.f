@@ -28,6 +28,7 @@ c************************************************************
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/tcooling'
+      INCLUDE 'COMMONS/dustfluidvelu'
 
       REAL omega1
 c
@@ -130,7 +131,12 @@ c
             IF (ichoc.NE.0) THEN
                dvxyzu(4,ipart) = dvxyzu(4,ipart) + 0.5*dq(ipart)
             ENDIF
-
+c
+c  c) Heating from one-fluid dust if appropriate
+c
+            IF (idustFluid.EQ.1) THEN
+               dvxyzu(4,ipart) = dvxyzu(4,ipart) + dustfluiddu(ipart)
+            ENDIF
 c
 c  c) Cooling for adiabatic-with-cooling eos
 c

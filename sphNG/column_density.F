@@ -236,6 +236,7 @@ c
                   fraction = (angle_node2*CBD + angle_pixel2*CAD -
      &                 0.5*SQRT(value))
      &                 / (pi*angle_pixel2)
+                  fraction = MAX(0.0, fraction)
                ENDIF
 
                contribution = pmassn/(pi*sizenode**2)*fraction

@@ -664,6 +664,11 @@ c
                divcurlB(k,i) = tempsort(i)
             END DO
          END DO
+#ifdef NONIDEAL
+         print*, "Array re-ordering is currently"
+         print*, "not setup for non-ideal MHD.  Aborting"
+         stop
+#endif
       ENDIF
 c
 c--iorig

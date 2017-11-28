@@ -1774,6 +1774,7 @@ c************************************************************
       INCLUDE 'COMMONS/mpidebug'
       INCLUDE 'COMMONS/densi'
       INCLUDE 'COMMONS/active'
+      INCLUDE 'COMMONS/ptmass'
 
       DIMENSION listtrans(idim), numlist(nummaxproc), xyzmh(5,idim)
       INTEGER classify
@@ -1839,10 +1840,38 @@ c
             print *,iproc,': BALANCE: location unchanged'
          ENDIF
       ENDIF
+c
+c--For balance type '1', if there is only one sink particle, then centre
+c     the MPI domain decomposition on it.  If there is more than one,
+c     then leave the centre unchanged from last time.
+c
+      IF (mpitype.EQ.'1') THEN
+         IF (nptmasstot.EQ.1) THEN
+            IF (nptmass.EQ.1) THEN
+               iprocsinklocal = iproc
+            ELSE
+               iprocsinklocal = 0
+            ENDIF
+            CALL MPI_ALLREDUCE(iprocsinklocal,iprocsink,1,MPI_INTEGER,
+     &           MPI_MAX,MPI_COMM_WORLD, ierr)
 
-
-
-
+            IF (iprocsink.EQ.iproc) THEN
+               xlocationmpi = xyzmh(1,listpm(1))
+               ylocationmpi = xyzmh(2,listpm(1))
+               zlocationmpi = xyzmh(3,listpm(1))
+            ENDIF
+            CALL MPI_BCAST(xlocationmpi,1,MPI_REAL8,iprocsink,
+     &           MPI_COMM_WORLD, ierr)
+            CALL MPI_BCAST(ylocationmpi,1,MPI_REAL8,iprocsink,
+     &           MPI_COMM_WORLD, ierr)
+            CALL MPI_BCAST(zlocationmpi,1,MPI_REAL8,iprocsink,
+     &           MPI_COMM_WORLD, ierr)
+            print *,iproc,': BALANCE location for mpitype.EQ.1 ',
+     &           xlocationmpi,ylocationmpi,zlocationmpi
+         ELSE
+            print *,iproc,': BALANCE: location unchanged'
+         ENDIF
+      ENDIF
 c
 c--For Cartesian geometry, process 0 finds out how many particles are on each
 c     node so that it can figure out where the new boundaries should be.  It 

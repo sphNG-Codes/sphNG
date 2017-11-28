@@ -1427,7 +1427,8 @@ c--Type of domain decomposition
 c
 c--Disc-type domain decomposition
 c
-      IF (mpitype.EQ.'d' .OR. mpitype.EQ.'r' .OR. mpitype.EQ.'p') THEN
+      IF (mpitype.EQ.'d' .OR. mpitype.EQ.'r' .OR. mpitype.EQ.'p' .OR.
+     &     mpitype.EQ.'1') THEN
          DO i = icount+1, nhydro
             ibelong = classify(mpitype,xyzmh(1,i))
             IF (iproc.EQ.ibelong) THEN

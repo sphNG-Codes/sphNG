@@ -22,6 +22,8 @@
          ibelong = classify_disc(xyzmh)
       ELSEIF (mpitype.EQ.'r') THEN
          ibelong = classify_disc(xyzmh)
+      ELSEIF (mpitype.EQ.'1') THEN    ! Centre on single sink particle
+         ibelong = classify_disc(xyzmh)
       ELSEIF (mpitype.EQ.'s') THEN
          ibelong = classify_sphere(xyzmh)
       ELSE

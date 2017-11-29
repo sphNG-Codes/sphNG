@@ -43,7 +43,6 @@ c      INCLUDE 'COMMONS/torq'
       CHARACTER*11 ifile(10), ofile
       CHARACTER*1 iok, iok2, iokm, iaddmhd, iexs
       
-1000  FORMAT (A40)
 1001  FORMAT (A1)
 1002  FORMAT (A11)
 
@@ -57,11 +56,12 @@ c
       PRINT *, 'name of file to be extracted ?'
 
       DO i = 1, nfile
-         READ (*, 1000) ifile(i)
+         READ (*, 1002) ifile(i)
       END DO
 
       PRINT *, 'name of reduced file ?'
-      READ (*, 1000) ofile
+      READ (*, 1002) ofile
+      print *,'xxx',ofile,'xxx',ifile(1)
       OPEN (UNIT = 7, FILE = ofile, FORM = 'unformatted')
 
       PRINT *, 'name of corresponding ifile ?'
@@ -72,7 +72,7 @@ c
       READ *, ireduct
       PRINT *, 'do you want time reset to zero ?'
       READ (*,1001) iok
-      PRINT *, 'do you want to reset centre of mass ?'
+      PRINT *, 'do you want to reset (m) centre of mass or (s) sink(1)?'
       READ (*,1001) iokm
       IF (imhd.EQ.idim) THEN
          PRINT *, 'do you want to add/reset magnetic fields ?'
@@ -106,30 +106,39 @@ c--------------------------
 c
       IF (image.EQ.ireduct) THEN
 
-         IF (iokm.EQ.'y' .OR. iokm.EQ.'Y') THEN
-            cmx = 0. 
-            cmy = 0.
-            cmz = 0.
-            vcmx = 0. 
-            vcmy = 0.
-            vcmz = 0.
-            pmtot = 0.
-            DO i =1, npart
-               pmassi = xyzmh(4,i)
-               cmx = cmx + pmassi*xyzmh(1,i)
-               cmy = cmy + pmassi*xyzmh(2,i)
-               cmz = cmz + pmassi*xyzmh(3,i)
-               vcmx = vcmx + pmassi*vxyzu(1,i)
-               vcmy = vcmy + pmassi*vxyzu(2,i)
-               vcmz = vcmz + pmassi*vxyzu(3,i)
-               pmtot = pmtot + pmassi
-            END DO
-            cmx = cmx/pmtot
-            cmy = cmy/pmtot
-            cmz = cmz/pmtot
-            vcmx = vcmx/pmtot
-            vcmy = vcmy/pmtot
-            vcmz = vcmz/pmtot
+         IF (iokm.EQ.'m' .OR. iokm.EQ.'s') THEN
+            IF (iokm.EQ.'m') THEN
+               cmx = 0. 
+               cmy = 0.
+               cmz = 0.
+               vcmx = 0. 
+               vcmy = 0.
+               vcmz = 0.
+               pmtot = 0.
+               DO i =1, npart
+                  pmassi = xyzmh(4,i)
+                  cmx = cmx + pmassi*xyzmh(1,i)
+                  cmy = cmy + pmassi*xyzmh(2,i)
+                  cmz = cmz + pmassi*xyzmh(3,i)
+                  vcmx = vcmx + pmassi*vxyzu(1,i)
+                  vcmy = vcmy + pmassi*vxyzu(2,i)
+                  vcmz = vcmz + pmassi*vxyzu(3,i)
+                  pmtot = pmtot + pmassi
+               END DO
+               cmx = cmx/pmtot
+               cmy = cmy/pmtot
+               cmz = cmz/pmtot
+               vcmx = vcmx/pmtot
+               vcmy = vcmy/pmtot
+               vcmz = vcmz/pmtot
+            ELSE
+               cmx = xyzmh(1,listpm(1))
+               cmy = xyzmh(2,listpm(1))
+               cmz = xyzmh(3,listpm(1))
+               vcmx = 0.
+               vcmy = 0.
+               vcmz = 0.
+            ENDIF
             DO i = 1, npart
                xyzmh(1,i) = xyzmh(1,i) - cmx
                xyzmh(2,i) = xyzmh(2,i) - cmy

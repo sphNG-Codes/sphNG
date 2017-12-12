@@ -124,6 +124,29 @@ ifeq ($(SYSTEM), isca)
     ZZFILE= zzibm.f
 endif
 
+ifeq ($(SYSTEM), slave)
+    ifeq ($(mpiall), yes)
+       FC= $(MPIDIR)mpiifort
+    else
+       FC= ifort
+    endif
+    FFLAGS= -O3 -axAVX -mcmodel=medium \
+            -warn uninitialized -warn truncated_source\
+            -warn interfaces -nogen-interfaces
+# -check_mpi
+    OMPFLAG= -qopenmp
+    DBLFLAG= -r8
+    DEBUGFLAG= -check all -traceback -g -fpe0 -fp-stack-check -heap-arrays -O0
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -convert big_endian
+    ENDIANFLAGLITTLE= -convert little_endian
+    LDFLAGS= -L/opt/intel/composer_xe_2015.0.090/compiler/lib/intel64/
+
+    IPOFLAG=
+# or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
+    ZZFILE= zzibm.f
+endif
+
 ifeq ($(SYSTEM), complexity)
     ifeq ($(mpiall), yes)
        FC= $(MPIDIR)mpiifort
@@ -588,6 +611,16 @@ movie3DRG: checksystem checkparams utils/movie3DRG/imcol3DNG_zoom_DT.o rdump.o e
 
 disc: checksystem checkparams utils/disc_parameters.o rdump.o error.o indexx2.o
 	$(FC) $(FFLAGS) -o $@ utils/disc_parameters.o rdump.o error.o indexx2.o
+
+# Ptmass evaluate properties of multiple systems
+
+multiples: checksystem checkparams utils/ptmass_multiples.o indexx.o
+	$(FC) $(FFLAGS) -o $@ utils/ptmass_multiples.o indexx.o
+
+# Ptmass join multiple P-files together into one P-file
+
+join: checksystem checkparams utils/ptmass_join_Pfiles.o
+	$(FC) $(FFLAGS) -o $@ utils/ptmass_join_Pfiles.o
 
 # Take radial cross sections through dump files
 

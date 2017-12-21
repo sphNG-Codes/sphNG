@@ -1,9 +1,8 @@
-      INTEGER iptcreat, iptout, iptprint, iptoutnum
+      INTEGER iptout, iptprint, iptoutnum
 
       PARAMETER (iptprint = 14)
 
-      COMMON /ptdump/ iptcreat, iptout, iptoutnum,
-     &       ptfile
+      COMMON /ptdump/ iptout, iptoutnum, ptfile
 
       CHARACTER*25 ptfile
 

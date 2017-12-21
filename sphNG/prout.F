@@ -500,8 +500,7 @@ c
 c--Number of cycle
 c
 c         IF (nbuild.EQ.1 .OR. MOD(ncount, nstep).EQ.0 .OR. 
-         IF (MOD(ncount, nstep).EQ.0 .OR. 
-     &                                        iptcreat.EQ.1) THEN
+         IF (MOD(ncount, nstep).EQ.0) THEN
             WRITE (iprint, 99002, ERR=100) irec, MOD(ncount, nstep)+1
          ELSE
             WRITE (iprint, 99202, ERR=100) irec, MOD(ncount, nstep)+1

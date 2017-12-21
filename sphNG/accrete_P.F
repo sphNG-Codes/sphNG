@@ -672,10 +672,6 @@ c
 c
 c--Create point mass from particles
 c
-c--Make a dump next time save is called
-c
-         iptcreat = 1
-
 
 
 c         xlinearx = 0.

@@ -395,8 +395,7 @@ c--Write dump on disk
 c
          IF (nstep.LT.1) nstep = 1
 c         IF (nbuild.EQ.1 .OR. MOD(ncount, nstep).EQ.0 .OR. 
-         IF (MOD(ncount, nstep).EQ.0 .OR. 
-     &                       iptcreat.EQ.1) THEN
+         IF (MOD(ncount, nstep).EQ.0) THEN
 #ifdef MPI
             IF (iproc.EQ.0) CALL file
 #else
@@ -424,7 +423,6 @@ c--Write global results on listing
 c
          where2 = 'inform'
          CALL prout(where2)
-         iptcreat = 0
 c
 c--Update input file
 c

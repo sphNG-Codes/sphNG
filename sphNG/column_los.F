@@ -206,7 +206,7 @@ c
 c--These quantities are for:
 c     1: Total column density
 c     2: Column density of H_2
-c     3: Integral of density^2 (all types of H)
+c     3: Integral of density^2 (for HII only)
 c     4: Column density excluding HII
 c
                column_to_sinks(1,isink) = column_to_sinks(1,isink) + 
@@ -218,7 +218,7 @@ c
                column_to_sinks(3,isink) = column_to_sinks(3,isink) +
      &              (distance2(indx(j)) * quantity2 * 
      &              pmassn**2/(hn)**5
-     &              + quantity3 * pmassn**2/(hn)**3)
+     &              + quantity3 * pmassn**2/(hn)**3) * HIIion(n)
 
                column_to_sinks(4,isink) = column_to_sinks(4,isink) +
      &              distance2(indx(j)) * contribution * (1.0-HIIion(n))
@@ -251,8 +251,8 @@ c
             stellarrad(3,isink,m) = column_n2
 
             stellarrad(4,isink,m) = column_to_sinks(4,isink)
-c     &        *umass            /(gmw*1.67E-24)/(pmassm*umass/2.0)
-     &           /(gmw*1.67E-24)/(pmassm/2.0)
+     &        *umass !           /(gmw*1.67E-24)/(pmassm*umass/2.0)
+c     &           /(gmw*1.67E-24)/(pmassm/2.0)
          ELSE
             stellarrad(1,isink,m) = stellarrad(1,isink,m) + ext
             stellarrad(2,isink,m) = stellarrad(2,isink,m) + 
@@ -261,8 +261,8 @@ c     &        *umass            /(gmw*1.67E-24)/(pmassm*umass/2.0)
 
             stellarrad(4,isink,m) = stellarrad(4,isink,m) + 
      &           column_to_sinks(4,isink)
-cc     &        *umass            /(gmw*1.67E-24)/(pmassm*umass/2.0)
-     &           /(gmw*1.67E-24)/(pmassm/2.0)
+     &        *umass !           /(gmw*1.67E-24)/(pmassm*umass/2.0)
+c     &           /(gmw*1.67E-24)/(pmassm/2.0)
          ENDIF
       END DO
 

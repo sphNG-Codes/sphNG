@@ -1879,7 +1879,7 @@ C$OMP& shared(rcyl,Bevolxyz,dumBevolxyz,planetesimalnorm)
 C$OMP& shared(pcolen,xmass,overclean_fac)
 C$OMP& shared(gasdist,nearestgas,planetmass,coremass)
 C$OMP& shared(dh2dt,icolumnsteps,icolumnnext)
-C$OMP& shared(dustvar,f1dust,f2dust)
+C$OMP& shared(dustvar,f1dust,f2dust,dHIIdt)
 #ifdef MPICOPY
 C$OMP& shared(iproc)
 #endif
@@ -2754,6 +2754,9 @@ c
                END DO
             ENDIF
             IF (idustFluid.EQ.1) f1dust(i) = f2dust(i)
+            IF (istellar_ionisation) THEN
+               dHIIdt(1,i) = dHIIdt(2,i)
+            ENDIF
 c
 c--The f1ha/f2ha quantities are:
 c     1:  The time derivative of the smoothing length (which is

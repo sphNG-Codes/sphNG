@@ -116,7 +116,7 @@ c
 c         CALL appendiproc(21,ptfile,iproc)
 c         CALL appendiproc(21,accfile,iproc)
 #endif
-         IF (nptmass.NE.0 .OR. iptmass.NE.0) THEN
+         IF (nptmasstot.NE.0 .OR. iptmass.NE.0) THEN
 #ifdef MPIALL
             print *,iproc,': Preset ',ptfile
             IF (iproc.EQ.0) THEN

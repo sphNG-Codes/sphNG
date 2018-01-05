@@ -64,14 +64,14 @@ C$OMP& shared(Bxyz,divcurlB,gradB,dBxyz,Bevolxyz,overclean_fac)
 C$OMP& shared(ivar)
 C$OMP& shared(dh2dt,dust_tk,vxyzu,ekcle,utime,udens,icall)
 C$OMP& shared(dHIIdt,umass,nptmasstot,stellarrad,ih2pos)
-C$OMP& shared(stellar_xyzmhrti)
+C$OMP& shared(stellar_xyzmhrti,HIIion)
 C$OMP& shared(dtmax,imaxstep,isteps)
 C$OMP& private(ipart,k,dti)
 C$OMP& private(hi,hi1,rhoi,rho1i,vsoundi)
 C$OMP& private(fi,tdecay1,source)
 C$OMP& private(Bxi,Byi,Bzi,B2i)
 C$OMP& private(vsigi,vs2i,dB2,psi,gradBmag)
-C$OMP& private(dust_temp,gas_temp,xnH2,isink)
+C$OMP& private(dust_temp,gas_temp,xnH2,isink,h2_over_dist2)
       DO n = nlst_in, nlst_end
          ipart = ivar(3,n)
          
@@ -111,21 +111,27 @@ c
 
                dti = (dtmax/imaxstep)*isteps(ipart)
                DO isink = 1, nptmasstot
-c                  dHIIdt(ih2pos,ipart) = dHIIdt(ih2pos,ipart) + 
-c     &               stellar_xyzmhrti(8,isink)/(4.0*pi)*(gmw/2.*mH) - 
-c     &               stellarrad(3,isink,ipart)*2.7E-13/(gmw/2.*mH)
+                  h2_over_dist2 = xyzmh(5,ipart)**2/(
+     &                 (xyzmh(1,ipart)-stellar_xyzmhrti(1,isink))**2 + 
+     &                 (xyzmh(2,ipart)-stellar_xyzmhrti(2,isink))**2 + 
+     &                 (xyzmh(3,ipart)-stellar_xyzmhrti(3,isink))**2)
 
-                  dHIIdt(ih2pos,ipart) = dHIIdt(ih2pos,ipart) + MAX(0.0,
-     &               stellar_xyzmhrti(8,isink)/(4.0*pi)*(gmw/gmw*mH) - 
-     &               stellarrad(3,isink,ipart)*2.7E-13/(gmw/gmw*mH) 
-     &                 - stellarrad(4,isink,ipart)/dti
+                  dHIIdt(ih2pos,ipart) = dHIIdt(ih2pos,ipart) + 
+     &                 h2_over_dist2 * MAX(0.0,
+     &                 stellar_xyzmhrti(8,isink)/(4.0*pi)*(gmw/gmw*mH) - 
+     &                 stellarrad(3,isink,ipart)*2.7E-13/(gmw/gmw*mH) 
+     &                 - stellarrad(4,isink,ipart)/(dti*utime)
      &                 )
                END DO
 c
-c--Convert to code units
+c--Account for recombinations, and convert to code units
 c
-               dHIIdt(ih2pos,ipart) = dHIIdt(ih2pos,ipart)/
-     &              (xyzmh(4,ipart)*umass/2.0)*utime
+               dHIIdt(ih2pos,ipart) = (dHIIdt(ih2pos,ipart)
+     &              - (trho(ipart)*udens/mH)*2.7E-13*HIIion(ipart)*
+     &              xyzmh(4,ipart)*umass
+     &              ) /
+     &              (xyzmh(4,ipart)*umass/1.0)*utime
+
             ENDIF
 #ifdef RT
 c

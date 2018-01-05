@@ -206,7 +206,7 @@ c
 c--These quantities are for:
 c     1: Total column density
 c     2: Column density of H_2
-c     3: Integral of density^2 (for HII only)
+c     3: Integral of density^2 (for all forms of H)
 c     4: Column density excluding HII
 c
                column_to_sinks(1,isink) = column_to_sinks(1,isink) + 
@@ -218,7 +218,7 @@ c
                column_to_sinks(3,isink) = column_to_sinks(3,isink) +
      &              (distance2(indx(j)) * quantity2 * 
      &              pmassn**2/(hn)**5
-     &              + quantity3 * pmassn**2/(hn)**3) * HIIion(n)
+     &              + quantity3 * pmassn**2/(hn)**3)
 
                column_to_sinks(4,isink) = column_to_sinks(4,isink) +
      &              distance2(indx(j)) * contribution * (1.0-HIIion(n))

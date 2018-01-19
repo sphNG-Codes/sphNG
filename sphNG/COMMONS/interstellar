@@ -36,8 +36,9 @@ c
       LOGICAL iISR_MIR, iISR_Draine
       PARAMETER (iISR_MIR = .TRUE.)
       PARAMETER (iISR_Draine = .TRUE.)
-      REAL*8 G0
+      REAL*8 G0, redshift
       PARAMETER (G0 = 1.0)
+      PARAMETER (redshift = 0.0)
 c
 c--Parameters for the tables that store the effects of dust extinction
 c        (i.e. attenutation) on the local ISRF and UV radiation fields.

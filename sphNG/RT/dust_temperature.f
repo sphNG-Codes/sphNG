@@ -533,7 +533,7 @@ c
       xlambda(2) = 0.75E-4
       xlambda(3) = 1.0E-4
       xlambda(4) = 140.0E-4
-      xlambda(5) = 1.06E-1
+      xlambda(5) = 1.06E-1 * (1.0 + redshift)
 
       power(1) = 0.
       power(2) = 0.
@@ -551,7 +551,7 @@ c
       temperature(2) = 4000.0
       temperature(3) = 3000.0
       temperature(4) = 23.3
-      temperature(5) = 2.728
+      temperature(5) = 2.728 * (1.0 + redshift)
 
       hoverk = planckconst/boltzmannk
 

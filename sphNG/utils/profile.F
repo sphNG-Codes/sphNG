@@ -35,12 +35,13 @@ c***********************************************************
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/vargam'
 #endif
+      INCLUDE 'COMMONS/stellarradiation'
 
       COMMON /unitsin/ umassi, udisti, utimei, umagfdi
 
       COMMON /gridv/ iline, isec
       COMMON /origi/ cmx, cmy, cmz
-      COMMON /files/ fileout, filein(100), inname
+      COMMON /files/ fileout, filein(1000), inname
       COMMON /optio/ what, idump, icont
       COMMON /forma/ ien
       COMMON /eost/ temp(idim), entropy_per_baryon(idim)
@@ -418,6 +419,36 @@ c            WRITE (42,*) radius(i)*udist,entropy_per_baryon(i)
          etahallmean = 0.
          etaambimean = 0.
 #endif
+         IF (istellarradiation) THEN
+            rionfront = 0.
+            rionfront001 = 0.
+            rionfront01 = 0.
+            rionfrontmean = 0.
+            dionfront = 0.
+            densitymax = 0.
+            fracion_mean = 0.
+            fracion_meanvert = 0.
+         ENDIF
+
+         IF (istellarradiation) THEN
+            icountfront = 0
+            DO i = ikount, 1, -1
+               ipos = list(indx(i))
+
+               IF (HIIion(ipos).GT.0.01 .AND. rionfront001.EQ.0.) THEN
+                  rionfront001 = radius(ipos)
+               ENDIF
+               IF (HIIion(ipos).GT.0.1) THEN
+                  rionfront01 = radius(ipos)
+               ENDIF
+               IF (HIIion(ipos).GT.0.01 .AND. HIIion(ipos).LT.0.2) THEN
+                  icountfront = icountfront + 1
+                  rionfrontmean = rionfrontmean + radius(ipos)
+               ENDIF
+            END DO
+            IF (icountfront.GT.1)
+     &           rionfrontmean = rionfrontmean/icountfront
+         ENDIF
 c
 c--Find quantities with spherical radius or near x-y plane
 c
@@ -504,6 +535,9 @@ c               WRITE (42,*) radiuswant,JcrossB(ipos),lorentzmean
                       etahallmean = etahallmean + eta_halli
                       etaambimean = etaambimean + eta_ambii
 #endif
+                      IF (istellarradiation) THEN
+                         fracion_mean = fracion_mean + HIIion(ipos)
+                      ENDIF
                   ELSEIF (iphase(ipos).GE.11) THEN
                      number_dust = number_dust + 1
                      shellmass_dust = shellmass_dust + xyzmh(4,ipos)
@@ -539,6 +573,9 @@ c     &              JcrossB_dot_rhat(ipos))
                      Emeanvert = Emeanvert + ekcle(1,ipos)*rho(ipos)
                      fluxmeanvert = fluxmeanvert + 
      &                    ekcle(4,ipos)*3.0E+10/ekcle(2,ipos)/rho(ipos)
+                     IF (istellarradiation) THEN
+                        fracion_meanvert = fracion_meanvert+HIIion(ipos)
+                     ENDIF
                   ELSEIF (iphase(ipos).GE.11) THEN
                      numbervert_dust = numbervert_dust + 1
                      radvertmean_dust = radvertmean_dust + radius(ipos)
@@ -569,6 +606,21 @@ c     &              JcrossB_dot_rhat(ipos))
                   etahallmean = etahallmean/number
                   etaambimean = etaambimean/number
 #endif
+                  IF (istellarradiation) THEN
+                     fracion_mean = fracion_mean/number
+c
+c--Note - works from outder radius inward!
+c
+                     IF (fracion_mean.LT.0.5) rionfront = radmean
+                     IF (densitymean.GT.densitymax .AND. 
+     &                    (gt*utime/(3600.0*24.*365.25).GT.10000. 
+     &                    .OR. radmean.LT.1.0)) THEN
+                        densitymax = densitymean
+                        dionfront = radmean
+                     ENDIF
+                     print *,'rionfront ',rionfront,dionfront
+                  ENDIF
+
                   pressuregradient =ABS((pressureold-pressuremean)/
      &                 (dradius*udist))
                   pressureold = pressuremean
@@ -618,6 +670,9 @@ c                  lorentzmeanvertout = lorentzmeanvert
 !     &                 *4*pi*(radvertmeanout*udist)**2
 
                      densityvertout = densityvert/numbervert
+                     IF (istellarradiation) THEN
+                        fracion_meanvert = fracion_meanvert/numbervert
+                     ENDIF
                   ELSE
                      radvertmeanout = 0.
                      vertvelmeanout = 0. ! -1.E+30
@@ -630,7 +685,10 @@ c                  lorentzmeanvertout = lorentzmeanvert
                      Egradientvertout = 0.
                      fluxmeanvertout = 0.
                      densityvertout = 0.
-                  ENDIF
+                     IF (istellarradiation) THEN
+                        fracion_meanvert = 0.
+                     ENDIF
+                   ENDIF
 c
 c--Normalise dust quantities
 c
@@ -691,7 +749,8 @@ c
      &                 fluxmean, fluxmeanvertout,
      &                 0.5*densitymean*velmean**3,
      &                 0.5*densityvertout*vertvelmeanout**3,
-     &                 gravity/densitymean
+     &                 gravity/densitymean,
+     &                 fracion_mean, fracion_meanvert
 
                   WRITE (22,88515) radmean_dust*udist,velmean_dust*uvel, 
      &                 veltmean_dust*uvel, 
@@ -735,6 +794,9 @@ c
                   etahallmean = 0.
                   etaambimean = 0.
 #endif
+                  IF (istellarradiation) THEN
+                     fracion_mean = 0.
+                  ENDIF
 
                   number_dust = 0.
                   shellmass_dust = 0.
@@ -757,6 +819,9 @@ c
                      Emeanvert = 0.
                      Egradientvert = 0.
                      fluxmeanvert = 0.
+                     IF (istellarradiation) THEN
+                        fracion_meanvert = 0.
+                     ENDIF
                   ENDIF
                   IF (numbervert_dust.GT.naveragemin/ndivisor) THEN
                      numbervert_dust = 0
@@ -782,7 +847,7 @@ c
 88445    FORMAT(4(1PE12.5,1X),I6)
 88515    FORMAT(5(1PE12.5,1X),I7,1X,5(1PE12.5,1X))
 88555    FORMAT(5(1PE12.5,1X))
-88551    FORMAT(5(1PE12.5,1X),I7,1X,37(1PE12.5,1X))
+88551    FORMAT(5(1PE12.5,1X),I7,1X,39(1PE12.5,1X))
 88556    FORMAT(5(1PE12.5,1X),I6)
 88166    FORMAT(I6, 1X, 5(1PE12.5,1X))
 88666    FORMAT(6(1PE12.5,1X))
@@ -799,7 +864,8 @@ c      WRITE (*,*) 'tmass2=',tmass2,' tmass3=',tmass3
 
          WRITE(15,99080) gt, timeff, fileout
 99080    FORMAT(1PE12.5,1X,1PE12.5,1X,A11)
-         WRITE(19,88444) gt, timeff, gt*utime, tmass1
+         WRITE(19,88999) gt, timeff, gt*utime, tmass1, rionfront,
+     &        dionfront, rionfront001, rionfront01, rionfrontmean
 
 c      WRITE (*,*) 'total mass=', totmass
 c

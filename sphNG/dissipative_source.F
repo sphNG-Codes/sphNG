@@ -71,7 +71,7 @@ C$OMP& private(hi,hi1,rhoi,rho1i,vsoundi)
 C$OMP& private(fi,tdecay1,source)
 C$OMP& private(Bxi,Byi,Bzi,B2i)
 C$OMP& private(vsigi,vs2i,dB2,psi,gradBmag)
-C$OMP& private(dust_temp,gas_temp,xnH2,isink,h2_over_dist2)
+C$OMP& private(dust_temp,gas_temp,xnH2,isink,h2_over_dist2,recomb)
       DO n = nlst_in, nlst_end
          ipart = ivar(3,n)
          
@@ -127,10 +127,22 @@ c
 c--Account for recombinations, and convert to code units
 c
                dHIIdt(ih2pos,ipart) = (dHIIdt(ih2pos,ipart)
-     &              - (trho(ipart)*udens/mH)*2.7E-13*HIIion(ipart)*
-     &              xyzmh(4,ipart)*umass
+c     &              - (trho(ipart)*udens/mH)*2.7E-13*HIIion(ipart)*
+c     &              xyzmh(4,ipart)*umass
      &              ) /
      &              (xyzmh(4,ipart)*umass/1.0)*utime
+c
+c--Local recombination rate (g/s) for a fully ionised particle,
+c     in code units
+c
+               recomb = (trho(ipart)*udens/mH)*2.7E-13*
+     &              xyzmh(4,ipart)*umass
+     &              / (xyzmh(4,ipart)*umass/1.0)*utime
+
+               IF (dHIIdt(ih2pos,ipart).EQ.0.) THEN
+                  dHIIdt(ih2pos,ipart) = dHIIdt(ih2pos,ipart)
+     &                 - HIIion(ipart)**2  * recomb
+               ENDIF
 
             ENDIF
 #ifdef RT

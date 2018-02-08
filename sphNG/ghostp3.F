@@ -37,6 +37,7 @@ c************************************************************
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/eosq'
+      INCLUDE 'COMMONS/stellarradiation'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
       REAL*8  jcurrenti(3),n_electronTi,n_Ri(4),eta_nimhdi(4)
@@ -85,6 +86,9 @@ c
          vsoundi = vsound(i)
          presi = pr(i)
          IF (idustFluid.EQ.1) dustvari = dustvar(i)
+         IF (istellar_ionisation) THEN
+            HIIioni = HIIion(i)
+         ENDIF
 
          delta = 0.001*hi
          hi2 = hi*hi
@@ -131,6 +135,9 @@ c            print *,i,r2,hi
             pr(nptot) = presi
             iphase(nptot) = 0
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
+            IF (istellar_ionisation) THEN
+               HIIion(nptot) = HIIioni
+            ENDIF
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)  = jcurrenti(1:3)
             n_electronT(nptot)   = n_electronTi

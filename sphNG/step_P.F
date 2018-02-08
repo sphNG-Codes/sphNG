@@ -1071,7 +1071,7 @@ C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,vsmooth,ifullstep)
 C$OMP& shared(ifsvi,alphaMM,alphamax,encal,dumBevolxyz,Bevolxyz)
 C$OMP& shared(pdvvisc,alphamin,utime,h2frac,dh2dt,udens,rho)
 C$OMP& shared(HIIion,dHIIdt,stellarrad)
-C$OMP& shared(dustvar,f1dust,f2dust)
+C$OMP& shared(dustvar,f1dust,f2dust,deltaHII)
 C$OMP& private(i,j,k,dtfull,dtf21,dtf22,xold,yold,delvx,delvy,delvz)
 C$OMP& private(vxstore,vystore,dx,dy,delgx,delgy,delpx,delpy)
 C$OMP& private(delax,delay,extraxt,extrayt,extraxg,extrayg)
@@ -1212,8 +1212,13 @@ c               print *,' '
 c            ENDIF
 
             IF (istellar_ionisation) THEN
-               HIIion(i) = MIN(1.0,MAX(0.0,HIIion(i) +
-     &              dtf21*dHIIdt(1,i) + dtf22*dHIIdt(2,i)))
+               deltaHII = dtf21*dHIIdt(1,i) + dtf22*dHIIdt(2,i)
+               IF (deltaHII.LT.0.) THEN
+                  HIIion(i) = HIIion(i)/(1.0 - HIIion(i)*deltaHII)
+               ELSE
+                  HIIion(i) = MIN(1.0,MAX(0.0,HIIion(i) +
+     &                 dtf21*dHIIdt(1,i) + dtf22*dHIIdt(2,i)))
+               ENDIF
             ENDIF
             IF (encal.EQ.'r') THEN
                pdvvisc(i) = dtf21*f1vxyzu(4,i) + dtf22*f2vxyzu(4,i)

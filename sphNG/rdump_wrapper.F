@@ -59,6 +59,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/dustfluid'
+      INCLUDE 'COMMONS/stellarradiation'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -294,6 +295,20 @@ c
          END DO
          DO i = 1, npart
             dustvar(i) = tempsort(i)
+         END DO
+      ENDIF
+      IF (istellar_ionisation) THEN
+         DO i = 1, npart
+            tempsort(i) = HIIion(iorig(i))
+         END DO
+         DO i = 1, npart
+            HIIion(i) = tempsort(i)
+         END DO
+         DO i = 1, npart
+            tempsort(i) = dHIIdt(1,iorig(i))
+         END DO
+         DO i = 1, npart
+            dHIIdt(1,i) = tempsort(i)
          END DO
       ENDIF
 

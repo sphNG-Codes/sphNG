@@ -412,12 +412,17 @@ c
                CALL quit(1)
             ENDIF
             DO i = 1, numproc-1
-               CALL MPI_RECV(stellar_xyzmhrti(1,ipos),iptdim,MPI_REAL8,
-     &              MPI_ANY_SOURCE,218, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_RECV(stellar_xyzmhrti(1,ipos), 8*iptdim,
+     &              MPI_REAL8, MPI_ANY_SOURCE, 218, MPI_COMM_WORLD,
+     &              istatus, ierr)
                CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               IF (MOD(inumber,8).NE.0) THEN
+                  WRITE (*,*) iproc,': ERROR - 218 MOD(inumber,8).NE.0',
+     &              i,inumber,iptdim,ipos
+                  CALL quit(1)
+               ENDIF
                ipos = ipos + inumber/8
             END DO
-            print *,'0: total ipos ',ipos
             IF (ipos-1.NE.nptmasstot) THEN
                WRITE (*,*) iproc,': ERROR - ipos-1.NE.nptmasstot',
      &              ipos-1,nptmasstot

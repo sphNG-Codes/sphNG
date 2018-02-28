@@ -13,9 +13,15 @@ c************************************************************
 #ifdef MPIALL
 #include "mpi_sup.h"
 #endif
+#ifdef USEKROME
+      INCLUDE 'COMMONS/krome_mods'
+#endif
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
+#ifdef USEKROME
+      INCLUDE 'COMMONS/kromevar'
+#endif
 #ifdef MPI
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
@@ -71,7 +77,13 @@ c      INCLUDE 'COMMONS/torq'
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
       INTEGER*8 number8
-      CHARACTER*16 tagsreal(128),tagexp(10),tagi
+      CHARACTER*16 tagexp(10),tagi
+#ifdef USEKROME
+      CHARACTER*16 tagsreal(1024)
+      INTEGER dumpmols,countmols
+#else
+      CHARACTER*16 tagsreal(128)
+#endif
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
       PARAMETER (idimhead = 30)
       DIMENSION rheader(idimhead)
@@ -559,6 +571,7 @@ c--int*1
          READ (idisk1, END=100) (iphase(i), i=icount+1, icount+nhydro)
          print *,'iphases ',iphase(1),iphase(nhydro),nums1(5),icount
 
+#ifndef USEKROME
          DO i = icountinactive+1,icountinactive+nlistinactive
             IF (iphase(listinactive(i)).NE.-1) THEN
                print *,'ERROR - Read active particle as inactive ',
@@ -567,6 +580,7 @@ c--int*1
                CALL quit(0)
             ENDIF
          END DO
+#endif
 
 c--int*2
 
@@ -940,6 +954,37 @@ c--Default real
                END DO
                ireadekcle = ireadekcle + 2
             ENDIF
+
+#ifdef USEKROME
+c----     Read in krome chemistry    
+            IF ( usekrome .EQ. 1 ) THEN
+               WRITE(*,*) "Reading selected molecules from dump"
+               dumpmols = countmols()
+            ELSE IF ( usekrome.EQ.2 ) THEN
+               WRITE(*,*) "Reading all molecules from dump"
+               dumpmols = krome_nmols
+            ENDIF
+            k = 0
+            IF ( usekrome .GT. 0 ) THEN
+               DO j=1, dumpmols
+                  IF (tagged) THEN
+                     READ (idisk1, END=100) tagi
+                     index = krome_get_index(tagi)
+                     CALL checktag(molnames(index),tagi,ierr)
+                  ENDIF
+                  READ (idisk1, END=100) mfracs(index,icount+1:
+     &                 icount+nhydro)
+                  k = k + 1
+               END DO
+               IF (k .NE. dumpmols) THEN
+                  PRINT *, "Warning:", k,"molecules read,"
+     &                 "expected", dumpmols
+               ENDIF
+               PRINT *, k,"molecules read, expected", dumpmols
+               ireadekcle = ireadekcle + k
+            ENDIF
+            PRINT *, "Finished krome chemistry read."
+#endif
 
             DO j = 1, nums3(6) - ireadekcle
                IF (tagged) READ (idisk1, END=100) ! skip tags
@@ -2198,4 +2243,3 @@ c      n1 = icountnew
       RETURN
       END
 #endif
-

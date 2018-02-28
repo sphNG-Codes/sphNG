@@ -9,9 +9,14 @@ c************************************************************
 #include "mpi_sup.h"
 #endif
       !IMPLICIT NONE
-
+#ifdef USEKROME
+      INCLUDE 'COMMONS/krome_mods'
+#endif
       INCLUDE 'idim'
       INCLUDE 'igrape'
+#ifdef USEKROME
+      INCLUDE 'COMMONS/kromevar'
+#endif
 
 #ifdef MPIALL
       INCLUDE 'COMMONS/mpiall'
@@ -84,6 +89,13 @@ c      EQUIVALENCE (itempsort, next1)
       INTEGER iversion
       CHARACTER*1 labelx(3)
       PARAMETER (labelx = (/'x','y','z'/))
+#ifdef USEKROME
+      PARAMETER (maxmols=150)
+      CHARACTER*16 mollist(maxmols)
+      INTEGER dumpmols, index
+      REAL*8 masses(krome_nmols), abundj(idim)
+#endif
+
 c
 c--Standard numbers
 c
@@ -91,7 +103,12 @@ c
       PARAMETER (int1o=690706)
 
       DATA where/'wdump'/
-    
+#ifdef USEKROME
+      dumpmols = 0
+      if (usekrome .EQ. 1) then
+         CALL readmolfile(maxmols,mollist,dumpmols)
+      end if
+#endif
  
       tagarr = ''
 c
@@ -438,8 +455,19 @@ c
             number8 = 0
             nums(:) = 0
          ENDIF
+#ifdef USEKROME
+         number8 = nprint
+         IF (usekrome .EQ. 1) THEN
+            nums(6) = nums(6) + dumpmols
+         ELSE IF (usekrome .EQ. 2 .OR. usekrome.EQ.3) THEN
+            nums(6) = nums(6) + krome_nmols
+         END IF
+#endif
          WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
       ENDIF
+
+
+
 c
 c--Array length 4 header
 c
@@ -660,6 +688,36 @@ c--Default real
                WRITE (idisk1, ERR=100) (dust_tk(j,isort(i)),i=1,nprint)
             END DO
          ENDIF
+#ifdef USEKROME
+         masses = krome_get_mass()
+         IF(usekrome.EQ.1) THEN
+c  -     dump selected abundances /H2 abundance             
+            DO j=1, dumpmols
+               index = krome_get_index(adjustl(mollist(j)))
+               DO i=1,nprint
+                  IF (mfracs(krome_idx_H2,isort(i)) .GT. 0d0) THEN
+                     abundj(isort(i)) = mfracs(index,isort(i))*
+     &                  masses(krome_idx_H2)/
+     &                  (masses(index) * mfracs(krome_idx_H2,isort(i)))
+                  ELSE
+                     abundj(isort(i)) = 0d0
+                  END IF
+               END DO
+               WRITE (idisk1,ERR=100) tag(molnames(index))
+c              WRITE (idisk1,ERR=100) (mfracs(index,isort(i)),i=1,nprint)
+               WRITE (idisk1,ERR=100) (abundj(isort(i)),i=1,nprint)
+            END DO
+         ELSE IF (usekrome.EQ.2 .OR. usekrome.EQ.3) THEN
+c -      dump mass fractions of all species
+            PRINT *, "Dumping all mass fractions"
+            DO j=1, krome_nmols
+               WRITE (idisk1,ERR=100) tag(molnames(j))
+               WRITE (idisk1,ERR=100) (mfracs(j,isort(i)),i=1,nprint)
+            END DO
+         ENDIF
+         PRINT *, "Written chemistry"
+#endif
+
 c--real*4
          IF (idustRT.GT.0) THEN
             tagarr(1:3) = tag((/'Cplus  ','AtomicC','CO     '/))

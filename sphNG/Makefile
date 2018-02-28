@@ -366,6 +366,14 @@ ifeq ($(nonideal), yes)
     FPPFLAGS+=${FPP_SEP}-DNONIDEAL
 endif
 
+ifeq ($(krome), yes)
+   FFLAGS+=-I${HOME}/Codes/krome/build
+#   KLIB=-L${HOME}/Codes/krome/build
+   FPPFLAGS+=${FPP_SEP}-DUSEKROME
+   KROMEOBJ=libkrome.so
+endif
+
+
 # do double precision flag last (append only to FFLAGS)
 
 ZZFFLAGS := ${FFLAGS}
@@ -624,8 +632,8 @@ join: checksystem checkparams utils/ptmass_join_Pfiles.o
 
 # Take radial cross sections through dump files
 
-profile: checksystem checkparams utils/profile.o rdump.o error.o indexx.o utils/movie3DRG/origin.o getcv.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o)
-	$(FC) $(FFLAGS) -o $@ utils/profile.o rdump.o error.o indexx.o utils/movie3DRG/origin.o getcv.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o)
+profile: checksystem checkparams $(KROMEOBJ) utils/profile.o rdump.o error.o indexx.o utils/movie3DRG/origin.o getcv.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o)
+	$(FC) $(FFLAGS) $(CPPFLAGS) -o $@ $(KROMEOBJ) utils/profile.o rdump.o error.o indexx.o utils/movie3DRG/origin.o getcv.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o)
 
 ptmass: utils/ptmassmerge.o
 	$(FC) $(FFLAGS) -o $@ utils/ptmassmerge.o
@@ -651,6 +659,19 @@ getdeltat: checksystem checkparams utils/getdeltat.o utils/readdump_sphNG.o idim
 
 zzsun_f77_double2.o: zzsun_f77_double2.f
 	$(FC) -c $(ZZFFLAGS) zzsun_f77_double2.f -o zzsun_f77_double2.o
+
+krome_sph: checksystem checkparams libkrome.so utils/krome_sph.o rdump.o rdump_wrapper.o wdump.o error.o indexx.o chanref.o scaling.o unit.o $(ZZFILE:.f=.o)
+	@echo "cppflags"
+	@echo  $(CPPFLAGS)
+	@echo "end flags"
+	$(FC) $(FFLAGS) $(CPPFLAGS) -o $@ libkrome.so utils/krome_sph.o rdump.o rdump_wrapper.o wdump.o error.o indexx.o chanref.o scaling.o unit.o $(ZZFILE:.f=.o)
+
+krome_init:
+	$(FC) $(FFLAGS) $(CPPFLAGS) libkrome.so -o krome_init.out utils/krome_init.f90
+
+krome_rw: checksystem checkparams libkrome.so utils/krome_rw.o rdump.o wdump.o error.o indexx.o chanref.o scaling.o unit.o $(ZZFILE:.f=.o)
+	$(FC) $(FFLAGS) $(CPPFLAGS) -o $@ libkrome.so utils/krome_rw.o rdump.o wdump.o error.o indexx.o chanref.o  scaling.o unit.o $(ZZFILE:.f=.o)
+
 
 checksystem:
    ifeq ($(KNOWN_SYSTEM), yes)

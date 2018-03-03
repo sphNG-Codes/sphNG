@@ -3634,7 +3634,7 @@ c
                      ENDDO
                   ENDIF
                   IF (idustFluid.EQ.1) dumdustvar(j) = dustvar(j)
-     &                 + f1dust(k)
+     &                 + deltat*f1dust(k)
                   IF (imhd.EQ.idim) THEN
                      DO l = 1, imhdevol
                         dumBevolxyz(l,j) = Bevolxyz(l,j) 

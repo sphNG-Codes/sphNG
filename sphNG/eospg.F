@@ -13,7 +13,7 @@ c************************************************************
 
       REAL*4 rho,pr,vsound
       DIMENSION vxyzu(4,idim), rho(idim), pr(idim), vsound(idim)
-      DIMENSION ekcle(5,iradtrans),dustvar(idustFluid)
+      DIMENSION ekcle(5,iradtrans),dustvar(idim_dustFluid)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/cgas'

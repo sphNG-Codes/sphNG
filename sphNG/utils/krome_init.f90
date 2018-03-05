@@ -16,7 +16,7 @@ program krome_once
   character*24 :: molnames(krome_nspec),name
   character*24 :: Tchar, rhochar,dtchar,FMT
   integer :: j,niter,k,Hnuc,Tint,i,ind
-  real*8 :: crate,COice,xprint(nsp)
+  real*8 :: crate,xprint(nsp)
   logical :: exptstep
   character(len=1) :: steptype 
 
@@ -102,16 +102,7 @@ program krome_once
   time_yrs = 0
   ! write initial abundances
   do j=1, nsp
-     if (index(molnames(j), "total") .gt. 0 ) then
-        i = index(molnames(j),"_total")
-        name = molnames(j)
-        print *, name(:i-1)
-        ind = krome_get_index(name(:i-1))
-        n(j) = rho *x(ind)/masses(ind)
-        print *, n(j)
-     else
-        n(j) = rho *x(j)/masses(j)
-     end if 
+     n(j) = rho *x(j)/masses(j)
      print *, molnames(j),x(j),masses(j)
   end do
   
@@ -128,29 +119,18 @@ program krome_once
 !     Print *, "initial x(:)"
  !    print *, x
      WRITE(*,*) "calling krome", x(krome_idx_H),rho,Tgas,dt/spy,Av
-     PRINT *, "Before: Ftotal", x(krome_idx_F_total), x(krome_idx_N_total)
      call krome(x(:),rho,Tgas, dt) !call KROME
-     PRINT *, "After: Ftotal", x(krome_idx_F_total), x(krome_idx_N_total)
      time = newtime
      time_yrs = time/spy
      print *, "Time = ", time_yrs
 
-     COice = x(krome_idx_CO_total) - x(krome_idx_CO)
-     print *, "COice=", COice
      do j=1, nsp
         if (x(j) .lt. 1d-40) then
            xprint(j) = 0d0
         else
            xprint(j) = x(j)
         end if
-        if (index(molnames(j),"total") .gt. 0) then
-           i = index(molnames(j),"_total")
-           ind = krome_get_index(molnames(j)(:i-1))
-           n(j) = rho *xprint(j)/masses(ind)
-        else
-           n(j) = rho *xprint(j)/masses(j)
-        end if
-!        print *, molnames(j), n(j)
+        n(j) = rho *xprint(j)/masses(j)
      end do
      print *, "H:", x(krome_idx_H), "H2:", x(krome_idx_H2)
 !   dt , mol1, mol2, mol3 ...
@@ -217,9 +197,6 @@ end program krome_once
          CHARACTER*20 :: abundfile,name,molnames(nmols)
          CHARACTER*30 :: kromename
          INTEGER :: iunit,iostat,ind,j,isgrain,iscation
-         CHARACTER*15 :: trimname
-         INTEGER :: appendto
-
 
          iunit=16
          iostat=0
@@ -273,7 +250,6 @@ end program krome_once
             IF (index(molnames(j),"GRAIN") > 0) THEN
                CYCLE
             END IF
-            IF(index(molnames(j),"total") > 0) CYCLE
             x(j) = abunds(j) * masses(j)
            ! print *, "xj=", x(j)
             xtot = xtot + x(j)
@@ -282,17 +258,7 @@ end program krome_once
               PRINT *, "Initial cation:", molnames(j)
                cations = cations + abunds(j)
             END IF
-            trimname = trim(molnames(j))
-            appendto = index(molnames(j)," ")
-            if (trimname.ne."H2" .and. trimname.ne."HE" .and. index(trimname,"+").eq.0 .and. &
-                 abunds(j) .gt.0. ) then 
-                  ind = krome_get_index(trimname(:appendto-1)//"_total")
-                  !print *, "TOTALS:",trimname(:appendto-1)//"_total"
-                  x(ind) = x(j)
-               end if
-
          END DO
-
          PRINT *, "xtot, cations", xtot, cations
 
          !Calculate initial electron abundance

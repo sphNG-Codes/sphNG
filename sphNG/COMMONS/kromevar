@@ -1,6 +1,6 @@
 c     extra variables for krome
       INTEGER usekrome, nmols
-      REAL  mfracs
+      REAL*8  mfracs
       CHARACTER*16 molnames
 
       COMMON /kromevar/ usekrome,nmols,mfracs(krome_nmols,idim),

@@ -957,11 +957,12 @@ c--Default real
 
 #ifdef USEKROME
 c----     Read in krome chemistry    
+            print *, "usekrome= ", usekrome
             IF ( usekrome .EQ. 1 ) THEN
-               WRITE(*,*) "Reading selected molecules from dump"
+               WRITE(*,*) "Reading  abunds/H2 from dump"
                dumpmols = countmols()
             ELSE IF ( usekrome.EQ.2 ) THEN
-               WRITE(*,*) "Reading all molecules from dump"
+               WRITE(*,*) "Reading all molecule mfracs from dump"
                dumpmols = krome_nmols
             ENDIF
             k = 0

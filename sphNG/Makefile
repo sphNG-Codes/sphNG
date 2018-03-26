@@ -412,7 +412,15 @@ ifeq ($(krome), yes)
    FFLAGS+=-I${HOME}/Codes/krome/build
 #   KLIB=-L${HOME}/Codes/krome/build
    FPPFLAGS+=${FPP_SEP}-DUSEKROME
-   KROMEOBJ=libkrome.so
+   KROMEOBJ=libkrome.so utils/krome_sph_subrtns.F
+endif
+
+ifeq ($(kromempi),yes)
+   FC=${MPIDIR}mpiifort
+   FFLAGS+=-I${HOME}/Codes/krome/build
+#   KLIB=-L${HOME}/Codes/krome/build
+   FPPFLAGS+=${FPP_SEP}-DUSEKROME -DKROMEMPI
+   KROMEOBJ=libkrome.so utils/krome_sph.F
 endif
 
 

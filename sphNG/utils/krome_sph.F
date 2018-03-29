@@ -55,7 +55,7 @@ c*******************************************************************
       REAL*8 init_x(krome_nmols),ktime,init_dt !ktime=krometime
       CHARACTER*40 infile,filelist(maxdumps),infofile
       CHARACTER*40 outfilename,tempchar,tmpofilename
-      INTEGER n,k,niter,sdumpfreq,nskipped,fdumpfreq,inew(idim)
+      INTEGER n,k,niter,sdumpfreq,nskipped,fdumpfreq,inew(idim2)
       INTEGER ioutinfo,iindump,itime,kstart,iunique_orig(idim2)
       LOGICAL init_from_dump,havefile,restart,fixed_dt,found
       CHARACTER*6 ctime
@@ -219,10 +219,10 @@ C$OMP PARALLEL DO SCHEDULE(static,1) default(none)
 C$OMP& PRIVATE(i,j,found) SHARED(npart,iunique,iunique_orig,inew,
 C$OMP& istart,iend,iphase) 
            DO i=1,npart
-              IF (iphase(i) .NE. 0 ) THEN
-                 inew(i) = -1 
-                 CYCLE
-              END IF
+c              IF (iphase(i) .NE. 0 ) THEN
+c                 inew(i) = -1 
+c                 CYCLE
+c              END IF
               found = .FALSE.
               DO j=1,npart
                  IF (iunique(i) .EQ. iunique_orig(j) ) THEN
@@ -340,7 +340,7 @@ c     &                iphase(i)
                  CYCLE
               END IF 
               
-              IF ( mfracs_orig(krome_idx_H2,i) .eq. 3.14157) THEN
+              IF ( mfracs_orig(krome_idx_H2,i) .eq. 3.141579) THEN
                  Print *, "PROBLEM", mfracs_orig(krome_idx_H2,i),
      &                iunique(i),iphase(i)
                  CYCLE
@@ -475,14 +475,16 @@ c           END DO
                     iend = npart
                     count = (chunksize + MOD(npart,nproc)) * krome_nmols
                  END IF
-                 CALL MPI_RECV(mfracs(1,istart),count,MPI_REAL8,n,1,
-     &                MPI_COMM_WORLD,status,ierr)
-                 CALL MPI_GET_COUNT(status,MPI_REAL8,inumber,ierr)
-                 IF (inumber .ne. count) THEN
-                    WRITE (*,*) n,':ERROR partial chem transferred',
-     &                   inumber
-                    CALL quit(1)
-                 ENDIF
+                DO i=istart,iend
+                   CALL MPI_RECV(mfracs(1,i),krome_nmols,MPI_REAL8,n,1,
+     &                  MPI_COMM_WORLD,status,ierr)
+                   CALL MPI_GET_COUNT(status,MPI_REAL8,inumber,ierr)
+                   IF (inumber .ne. krome_nmols) THEN
+                      WRITE (*,*) n,':ERROR partial chem transferred',
+     &                     inumber
+                      CALL quit(1)
+                   ENDIF
+                END DO
 c                 CALL MPI_RECV(iunique(1),npart,MPI_INTEGER,n,2,
 c     &                MPI_COMM_WORLD, status,ierr)
                  PRINT *, "Received", istart," to",iend,"from rank",n
@@ -501,10 +503,10 @@ c              END DO
 c              PRINT *, "CO rank", rank, buffer(krome_idx_CO)
 c              CALL MPI_SEND(buffer,lchunksize*krome_nmols,MPI_REAL8,
 cc     &             MASTER,1,MPI_COMM_WORLD,ierr)
-              CALL MPI_SEND(mfracs(1,istart),krome_nmols*lchunksize,
+             DO i=istart, iend
+                CALL MPI_SEND(mfracs(1,i),krome_nmols,
      &             MPI_REAL8,MASTER,1,MPI_COMM_WORLD,ierr)
-c              CALL MPI_SEND(iunique(1),lchunksize,MPI_INTEGER,
-c     &             MASTER,2,MPI_COMM_WORLD,ierr)
+             END DO
              PRINT *, "Rank", rank, " sending",istart,
      &             mfracs(krome_idx_CO,istart)
            END IF
@@ -576,15 +578,13 @@ cC$OMP PARALLEL DO SCHEDULE(runtime) DEFAULT(none)
 cC$OMP& PRIVATE(i,j) SHARED(iunique_orig,iunique,mfracs_orig,
 cC$OMP& npart,mfracs)
 c              DO i=1,idim
-c                 iunique_orig(i) = iunique(i)
 c                 DO j=1,krome_nmols
 c                    mfracs_orig(j,i) = mfracs(j,i)
 c                 END DO
 c              END DO
+cC$OMP END PARALLEL DO
               iunique_orig = iunique
               mfracs_orig = mfracs
-cC$OMP END PARALLEL DO
-
 #ifdef KROMEMPI
               PRINT *, "orig,rank",rank,
      &             mfracs_orig(krome_idx_H2,npart-1)

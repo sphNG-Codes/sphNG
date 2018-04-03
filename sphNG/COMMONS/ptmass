@@ -5,7 +5,9 @@
      &        angaddx, angaddy, angaddz, spinadx, spinady, spinadz,
      &        ptmassinitial, ptmassaccrate, ptmassoldtime, ptmassold, 
      &        stellarluminosity, stellarmass, stellarenergy, 
-     &        stellartime, stellarradius, ptmassrecord, ptaccrecord
+     &        stellartime, stellarradius, diskinit,
+     &        ptmassrecord, ptaccrecord,
+     &        lyontime, lyonmass, lyonradius, lyonluminosity
 
       REAL*8 ptmassform
 
@@ -13,14 +15,18 @@
       PARAMETER (iaccrec=10)
 
       COMMON /ptmass/ hacc,haccall,ptmcrit,radcrit,
-     &                ptmassform(iptdim),stellarmass(iptdim),
+     &                stellarmass(iptdim),
      &                stellarradius(iptdim),
      &                stellarluminosity(iptdim),
      &                stellartime(iptdim),
+     &                diskinit(iptdim),
+     &                lyontime(iptdim),lyonmass(iptdim),
+     &                lyonradius(iptdim),lyonluminosity(iptdim),
      &                ptmassinitial(iptdim),
      &                ptmassaccrate(iptdim),
      &                ptmassold(iptdim),
      &                ptmassoldtime(iptdim),
+     &                ptmassform(iptdim),
      &                spinx(iptdim),spiny(iptdim),spinz(iptdim),
      &                angaddx(iptdim),angaddy(iptdim),angaddz(iptdim),
      &                spinadx(iptdim),spinady(iptdim),spinadz(iptdim),

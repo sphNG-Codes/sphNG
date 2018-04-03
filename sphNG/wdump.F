@@ -70,6 +70,7 @@ c#endif
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/makeplt'
+      INCLUDE 'COMMONS/radsink'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
 #endif
@@ -430,6 +431,8 @@ c
       nums(4) = 0
       nums(5) = 0
       nums(6) = 9
+      IF (istellarfeedback.EQ.5) nums(6) = nums(6) + 6
+      IF (istellarfeedback.EQ.6) nums(6) = nums(6) + 10
       IF (istellar_ionisation) nums(6) = nums(6) + 1
       nums(7) = 0
       nums(8) = 0
@@ -651,6 +654,32 @@ c--Default real
          WRITE (idisk1, ERR=100) tag('ionflux')
          WRITE (idisk1, ERR=100) (stellar_radtempion(3,i), i=1,nptmass)
          print *,(stellar_radtempion(3,i), i=1,nptmass)
+      ENDIF
+
+      IF (istellarfeedback.EQ.5 .OR. istellarfeedback.EQ.6) THEN
+         WRITE (idisk1, ERR=100) tag('ptmassform')
+         WRITE (idisk1, ERR=100) (ptmassform(i),i=1,nptmass)
+         WRITE (idisk1, ERR=100) tag('diskinit')
+         WRITE (idisk1, ERR=100) (diskinit(i),i=1,nptmass)
+         WRITE (idisk1, ERR=100) tag('stellartime')
+         WRITE (idisk1, ERR=100) (stellartime(i),i=1,nptmass)
+         WRITE (idisk1, ERR=100) tag('stellarmass')
+         WRITE (idisk1, ERR=100) (stellarmass(i),i=1,nptmass)
+         WRITE (idisk1, ERR=100) tag('stellarradius')
+         WRITE (idisk1, ERR=100) (stellarradius(i),i=1,nptmass)
+         WRITE (idisk1, ERR=100) tag('stellarlum')
+         WRITE (idisk1, ERR=100) (stellarluminosity(i),i=1,nptmass)
+      ENDIF
+
+      IF (istellarfeedback.EQ.6) THEN
+         WRITE (idisk1, ERR=100) tag('lyontime')
+         WRITE (idisk1, ERR=100) (lyontime(i),i=1,nptmass)
+         WRITE (idisk1, ERR=100) tag('lyonmass')
+         WRITE (idisk1, ERR=100) (lyonmass(i),i=1,nptmass)
+         WRITE (idisk1, ERR=100) tag('lyonradius')
+         WRITE (idisk1, ERR=100) (lyonradius(i),i=1,nptmass)
+         WRITE (idisk1, ERR=100) tag('lyonlum')
+         WRITE (idisk1, ERR=100) (lyonluminosity(i),i=1,nptmass) 
       ENDIF
 
 c--real*4

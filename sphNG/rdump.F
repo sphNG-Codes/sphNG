@@ -73,6 +73,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/dustfluid'
       INCLUDE 'COMMONS/dustfluidvelu'
+      INCLUDE 'COMMONS/radsink'
 
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
@@ -902,6 +903,120 @@ c--Default real
             READ (idisk1, END=100) stellar_radtempion(3,icountsink+1:
      &           icountsink+nptmass)
          ENDIF
+
+         IF (nums2(6).EQ.10) THEN
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('stellarmass', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) stellarmass(icountsink+1:
+     &           icountsink+nptmass)
+         ENDIF
+
+         IF (nums2(6).EQ.15) THEN
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('ptmassform', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) ptmassform(icountsink+1:
+     &           icountsink+nptmass)
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('diskinit', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) diskinit(icountsink+1:
+     &           icountsink+nptmass)
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('stellartime', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) stellartime(icountsink+1:
+     &           icountsink+nptmass)
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('stellarmass', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) stellarmass(icountsink+1:
+     &           icountsink+nptmass)
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('stellarradius', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) stellarradius(icountsink+1:
+     &           icountsink+nptmass)
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('stellarlum', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) stellarluminosity(icountsink+1:
+     &           icountsink+nptmass)
+         ENDIF
+
+
+
+         IF (nums2(6).EQ.19) THEN
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('ptmassform', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) ptmassform(icountsink+1:
+     &           icountsink+nptmass)
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('diskinit', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) diskinit(icountsink+1:
+     &           icountsink+nptmass)
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('stellartime', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) stellartime(icountsink+1:
+     &           icountsink+nptmass)
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('stellarmass', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) stellarmass(icountsink+1:
+     &           icountsink+nptmass)
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('stellarradius', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) stellarradius(icountsink+1:
+     &           icountsink+nptmass)
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('stellarlum', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) stellarluminosity(icountsink+1:
+     &           icountsink+nptmass)
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('lyontime', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) lyontime(icountsink+1:
+     &           icountsink+nptmass)
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('lyonmass', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) lyonmass(icountsink+1:
+     &           icountsink+nptmass)
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('lyonradius', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) lyonradius(icountsink+1:
+     &           icountsink+nptmass)
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('lyonlum', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) lyonluminosity(icountsink+1:
+     &           icountsink+nptmass)
+         ENDIF
+
 c--real*4
 
 c--real*8
@@ -1340,6 +1455,7 @@ c
       print *,iproc,' FINISHED READ ',npart,nptmass,nptmasstot
 #else
       nptmasstot = nptmass
+      nptmasslast = nptmass
       print *,' FINISHED READ ',npart,nptmass
 
       IF (istellar_ionisation) THEN

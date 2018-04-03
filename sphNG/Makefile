@@ -578,6 +578,10 @@ default: gradhrk
 #	endif
 #	$(FC) $(FFLAGS) -c sph.f
 
+# Recursive make to build Baraffe stellar evo code
+baraffe:
+	cd RT/Baraffe/ && $(MAKE)
+
 pin_to_cpu.o: pin_to_cpu.c
 	icc -c pin_to_cpu.c -openmp
 
@@ -624,7 +628,7 @@ sph_tree_rk_gradh_RT: $(OBJGRADHRKRT)
 	@echo ""
 	$(FC) $(FFLAGS) -o $@ $(OBJGRADHRKRT) $(LDFLAGS)
 
-sph_tree_rk_gradh_RT_BAR: $(OBJGRADHRKRT) $(OBJBAR)
+sph_tree_rk_gradh_RT_BAR: $(OBJGRADHRKRT) baraffe
 	@echo ""
 	@echo "This is the gradh, Runge Kutta, radiative transfer version"
 	@echo "It includes the Baraffe stellar evolution code"
@@ -781,5 +785,5 @@ updatedepends:
 include .depends
 
 clean:
-	\rm -f *.o *.mod RT/Baraffe/*.o RT/Baraffe/*.mod RT/*.o RT/*.mod sph_tree_lf_gradh sph_tree_lf_gradh_RT sph_tree_lf sph_tree_rk_gradh sph_tree_rk_gradh_RT sph_tree_rk ./utils/*.o ./utils/*/*.o maketables/*.o svn_version.h
+	\rm -f *.o *.mod RT/Baraffe/*.o RT/Baraffe/*.mod RT/*.o RT/*.mod sph_tree_lf_gradh sph_tree_lf_gradh_RT sph_tree_lf sph_tree_rk_gradh sph_tree_rk_gradh_RT sph_tree_rk_gradh_RT_BAR sph_tree_rk ./utils/*.o ./utils/*/*.o maketables/*.o svn_version.h
 # DO NOT DELETE

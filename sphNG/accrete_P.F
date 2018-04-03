@@ -78,6 +78,7 @@ c
       INCLUDE 'COMMONS/treecom_P'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/radsink'     
       INCLUDE 'COMMONS/astrcon'
 
 c      INCLUDE 'COMMONS/angm'
@@ -2312,19 +2313,45 @@ c            print *,iproc,': Trying to open ',ptfile,' file'
          DO i = 1, nptmass
             j = listpm(i)
             IF (ibound.EQ.8 .OR. ibound/10.EQ.9) THEN
-               WRITE (iptprint)iunique(iorig(j)),xyzmh(1,j),xyzmh(2,j),
-     &              xyzmh(3,j),vxyzu(1,j),vxyzu(2,j),vxyzu(3,j),
-     &              xyzmh(4,j),rho(j),nactotal(i),ptmassinner(i),
-     &              spinx(i),spiny(i),spinz(i),angaddx(i),angaddy(i),
-     &              angaddz(i),spinadx(i),spinady(i),spinadz(i),
+               IF (istellarfeedback.EQ.5.OR.6) THEN
+                  WRITE (iptprint)iunique(iorig(j)),
+     &              xyzmh(1,j),xyzmh(2,j),xyzmh(3,j),vxyzu(1,j),
+     &              vxyzu(2,j),vxyzu(3,j),xyzmh(4,j),rho(j),nactotal(i),
+     &              ptmassinner(i),spinx(i),spiny(i),spinz(i),
+     &              angaddx(i),angaddy(i),angaddz(i),spinadx(i),
+     &              spinady(i),spinadz(i),
+     &              stellartime(i),stellarmass(i),stellarradius(i),
+     &              stellarluminosity(i),ptmassluminosity(i),
      &              naccretetot,anglostx,anglosty,anglostz,nkill
+               ELSE
+                  WRITE (iptprint)iunique(iorig(j)),
+     &              xyzmh(1,j),xyzmh(2,j),xyzmh(3,j),vxyzu(1,j),
+     &              vxyzu(2,j),vxyzu(3,j),xyzmh(4,j),rho(j),nactotal(i),
+     &              ptmassinner(i),spinx(i),spiny(i),spinz(i),
+     &              angaddx(i),angaddy(i),angaddz(i),spinadx(i),
+     &              spinady(i),spinadz(i),
+     &              naccretetot,anglostx,anglosty,anglostz,nkill
+               ENDIF
             ELSE
-               WRITE (iptprint)iunique(iorig(j)),xyzmh(1,j),xyzmh(2,j),
-     &              xyzmh(3,j),vxyzu(1,j),vxyzu(2,j),vxyzu(3,j),
-     &              xyzmh(4,j),rho(j),nactotal(i),ptmassinner(i),
-     &              spinx(i),spiny(i),spinz(i),angaddx(i),angaddy(i),
-     &              angaddz(i),spinadx(i),spinady(i),spinadz(i),
+               IF (istellarfeedback.EQ.5.OR.6) THEN
+                  WRITE (iptprint)iunique(iorig(j)),
+     &              xyzmh(1,j),xyzmh(2,j),xyzmh(3,j),vxyzu(1,j),
+     &              vxyzu(2,j),vxyzu(3,j),xyzmh(4,j),rho(j),nactotal(i),
+     &              ptmassinner(i),spinx(i),spiny(i),spinz(i),
+     &              angaddx(i),angaddy(i),angaddz(i),spinadx(i),
+     &              spinady(i),spinadz(i),
+     &              stellartime(i),stellarmass(i),stellarradius(i),
+     &              stellarluminosity(i),ptmassluminosity(i),
      &              naccretetot
+               ELSE
+                  WRITE (iptprint)iunique(iorig(j)),
+     &              xyzmh(1,j),xyzmh(2,j),xyzmh(3,j),vxyzu(1,j),
+     &              vxyzu(2,j),vxyzu(3,j),xyzmh(4,j),rho(j),nactotal(i),
+     &              ptmassinner(i),spinx(i),spiny(i),spinz(i),
+     &              angaddx(i),angaddy(i),angaddz(i),spinadx(i),
+     &              spinady(i),spinadz(i),
+     &              naccretetot               
+               ENDIF
             ENDIF
             nactotal(i) = 0
             ptmassinner(i) = 0.

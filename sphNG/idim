@@ -1,5 +1,6 @@
       INTEGER idim, idim2, idim3, iptdim, iptneigh, nlmax
       INTEGER mmax, mmax2, iradtrans, iradtrans2, idustRT, idustIMPL
+      INTEGER istellarfeedback
       INTEGER imhd, imhd2, imhd3, imhdxsph, isizealphaMM
       INTEGER imhdevol, isubcycle_divB
       INTEGER idim_h2, idim_h2_2, idim_MPI
@@ -31,6 +32,23 @@ c--For radiative transfer that separates gas and dust need idustRT = 1
 c
 c      PARAMETER (idustRT = 1)
       PARAMETER (idustRT = 0)
+c
+c--Type of stellar evolution and feedback
+c     0: No stellar feedback
+c     1: Tout stellar evolution code
+c     2: Baraffe stellar evolution code
+c     3: Constant luminosity
+c     4: Constant radius
+c     5: Disk accretion
+c     6: Disk accretion + Baraffe stellar evolution code
+
+      PARAMETER (istellarfeedback=0)
+c      PARAMETER (istellarfeedback=1)
+c      PARAMETER (istellarfeedback=2)
+c      PARAMETER (istellarfeedback=3)
+c      PARAMETER (istellarfeedback=4)
+c      PARAMETER (istellarfeedback=5)
+c      PARAMETER (istellarfeedback=6)
 c
 c--With idustRT = 1, the ioptimise_column parameter determines whether the
 c	column densities are calculated every (half-)timestep (0), 

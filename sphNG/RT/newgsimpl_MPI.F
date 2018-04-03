@@ -24,19 +24,6 @@
 
       EXTERNAL boundaryparticle
       LOGICAL boundaryparticle
-c
-c--Type of stellar evolution and feedback
-c     0: No stellar feedback
-c     1: Tout stellar evolution code
-c     2: Baraffe stellar evolution code
-c     3: Constant luminosity
-c     4: Constant radius
-c
-      PARAMETER (istellarfeedback=0)
-c      PARAMETER (istellarfeedback=1)
-c      PARAMETER (istellarfeedback=2)
-c      PARAMETER (istellarfeedback=3)
-c      PARAMETER (istellarfeedback=4)
 
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/physcon'
@@ -123,7 +110,10 @@ c      DIMENSION fractionexposed(nmaxexposed)
 
 #ifdef RTBAR
 c Needed for LYON stellar evolution code only
-      REAL*8 starradius,starluminosity,startime,starmass
+      REAL*8 starradius,starluminosity,startime,starmass,evolveto,
+     &lyonaccrate
+      INTEGER nflag,starid
+      COMMON /cepsilon/epsilon
 #endif
 
       REAL maxerrE2,maxerrE2last,maxerrU2,maxerrU2last,maxerrU2old
@@ -235,7 +225,6 @@ c     &     xyzmh(2,ivar(3,nkeepit)),xyzmh(3,ivar(3,nkeepit))
 c      print *,'pre-stellar-feedback ',ncompact,ncompactlocal
 
       IF (istellarfeedback.EQ.0) GOTO 888
-
 c
 c--If new sink particle has been created, need to initialize object
 c
@@ -316,6 +305,42 @@ c
 
                print *,'New star noted ',iptn,ptmasstime,
      &              ptmassform(iptn),ptmassinitial(iptn)
+
+            ELSEIF (istellarfeedback.EQ.5) THEN
+
+               PRINT *, 'NEW STAR NOTED',
+     &         iptn,ptmasstime,ptmassform(iptn)
+               PRINT *, ' '
+               PRINT *, 'DISK ACCRETION'
+               PRINT *, ' '
+
+               diskinit(iptn) = 0.0
+
+               stellartime(iptn) = 0.0
+               stellarmass(iptn) = 0.0 
+               stellarradius(iptn) = 0.0
+               stellarluminosity(iptn) = 0.0
+
+            ELSEIF (istellarfeedback.EQ.6) THEN
+
+               PRINT *, 'NEW STAR NOTED',
+     &         iptn,ptmasstime,ptmassform(iptn)
+               PRINT *, ' '
+               PRINT *, 'DISK ACCRETION + STELLAR EVOLUTION'
+               PRINT *, ' '
+ 
+               diskinit(iptn) = 0.0
+ 
+               stellartime(iptn) = 0.0
+               stellarmass(iptn) = 0.0
+               stellarradius(ipnt) = 0.0
+               stellarluminosity(iptn) = 0.0
+
+               lyontime(iptn) = 0.0
+               lyonmass(iptn) = 0.0
+               lyonradius(ipnt) = 0.0
+               lyonluminosity(iptn) = 0.0
+
             ELSE
                WRITE (iprint,*) 'ERROR - istellarfeedback ',
      &              istellarfeedback
@@ -598,7 +623,7 @@ c            ptmassluminosity(iptn) = 0.0
               CALL quit(0)
 #endif
          ELSEIF (istellarfeedback.EQ.3) THEN
-            ptmassluminosity(iptn)=1.0E+02*solarl/(uergg*umass/utime)
+            ptmassluminosity(iptn)=1.0E+01*solarl/(uergg*umass/utime)
 c            ptmassluminosity(iptn) = 0.0
          ELSEIF (istellarfeedback.EQ.4) THEN
             realtime = gt + (dtmax*itime)/imaxstep
@@ -711,7 +736,177 @@ c
 78789          FORMAT(I3,1X,9(1PE12.5),1X,I2)
                CALL FLUSH(52)
             ENDIF
+         
+         ELSEIF (istellarfeedback.EQ.5) THEN
+
+            IF (ptmasstime.LT.10.0) THEN
+
+c               PRINT *, 'PTMASS TIME LESS THAN 10 YEARS'
+
+c               PRINT *, 'DISK MODEL DISABLED'
+
+            ELSEIF (ptmasstime.GE.10.0) THEN
+
+c               PRINT *, 'PTMASS TIME GREATER THAN 10 YEARS'
+
+               IF (stellartime(iptn).EQ.0.0) THEN
+  
+                  stellartime(iptn) = 0.1
+                  stellarmass(iptn) = 1.0E-03*solarm
+                  stellarradius(iptn) = 2.0*solarr
+                  stellarluminosity(iptn) = 0.0
+ 
+c                  PRINT *, 'DISK MODEL INITIALISING'
+
+                  diskinit(iptn) = (xyzmh(4,listpm(iptn))*umass)
+     &            -stellarmass(iptn)
+                 
+               ENDIF
+
+c               PRINT *, 'DISK MODEL RUNNING'
+
+               accrate = (1.0E-05*solarm/31557600.0)*
+     &         ((xyzmh(4,listpm(iptn))*umass)-
+     &         stellarmass(iptn))/diskinit(iptn)
+
+               accluminosity = 1.0*((gg*stellarmass(iptn)*
+     &         accrate)/stellarradius(iptn))
+
+c               PRINT *, 'accrate (Msun/yr) = ',
+c     &         accrate*31557600.0/solarm
+c               PRINT *, 'accluminosity (Lsun) = ',
+c     &         accluminosity/solarl
+
+               stellartime(iptn) = stellartime(iptn)+dtstep
+               stellarmass(iptn) = stellarmass(iptn)+
+     &         (accrate*dtstep*31557600.0)
+               stellarradius(iptn) = stellarradius(iptn)
+               stellarluminosity(iptn) = stellarluminosity(iptn)
+
+c               PRINT *, 'stellartime (yr) = ',
+c     &         stellartime(iptn)
+c               PRINT *, 'stellarmass (Msun) = ',
+c     &         stellarmass(iptn)/solarm
+c               PRINT *, 'stellarradius (Rsun) = ',
+c     &         stellarradius(iptn)/solarr
+c               PRINT *, 'stellarluminosity (Lsun) = ',
+c     &         stellarluminosity(iptn)/solarl
+
+            ENDIF
+
+            ptmassluminosity(iptn) = accluminosity/
+     &      (uergg*umass/utime)
+
+         ELSEIF (istellarfeedback.EQ.6) THEN
+
+            IF (ptmasstime.LT.10.0) THEN
             
+               PRINT *, 'PTMASS TIME LESS THAN 10 YEARS'
+               
+               PRINT *, 'DISK MODEL DISABLED'
+
+               PRINT *, 'STELLAR MODEL DISABLED'
+                               
+            ELSEIF (ptmasstime.GE.10.0) THEN
+
+               PRINT *, 'PTMASS TIME GREATER THAN 10 YEARS'
+
+               IF (stellartime(iptn).EQ.0.0) THEN
+                 
+                  PRINT *, 'STELLAR MODEL INITIALISING'          
+
+                  nflag = 1
+                  evolveto = 0.1
+                  accrate = 1.0E-07
+                  epsilon = 0.0                  
+
+                  CALL evollyon(nflag,iptn,evolveto,accrate,
+     &            lyonradius(iptn),lyonluminosity(iptn),
+     &            lyontime(iptn),lyonmass(iptn))
+
+                  stellartime(iptn) = lyontime(iptn)
+                  stellarmass(iptn) = lyonmass(iptn)*solarm
+                  stellarradius(iptn) = lyonradius(iptn)
+                  stellarluminosity(iptn) = lyonluminosity(iptn)
+
+                  PRINT *, 'DISK MODEL INITIALISING' 
+
+                  diskinit(iptn) = (xyzmh(4,listpm(iptn))*umass)
+     &            -stellarmass(iptn)
+                
+               ENDIF
+
+               PRINT *, 'DISK MODEL RUNNING'
+
+               accrate = (1.0E-05*solarm/31557600.0)*
+     &         ((xyzmh(4,listpm(iptn))*umass)-
+     &         stellarmass(iptn))/diskinit(iptn)
+
+               accluminosity = 1.0*((gg*stellarmass(iptn)*
+     &         accrate)/stellarradius(iptn))
+
+               PRINT *, 'accrate (Msun/yr) = ',
+     &         accrate/solarm*31557600.0
+               PRINT *, 'accluminosity (Lsun) = ',
+     &         accluminosity/solarl
+
+               IF (stellartime(iptn).GE.(lyontime(iptn)+1.0)) THEN
+ 
+                  PRINT *, 'STELLAR MODEL RUNNING'
+
+                  nflag = 99 
+                  evolveto = stellartime(iptn)+dtstep
+                  accrate = accrate/solarm*31557600.0
+                  epsilon = 0.05
+
+                  CALL evollyon(nflag,iptn,evolveto,accrate,
+     &            lyonradius(iptn),lyonluminosity(iptn),
+     &            lyontime(iptn),lyonmass(iptn))
+
+                  stellartime(iptn) = lyontime(iptn)
+                  stellarmass(iptn) = lyonmass(iptn)*solarm
+                  stellarradius(iptn) = lyonradius(iptn)
+                  stellarluminosity(iptn) = lyonluminosity(iptn)
+
+                  PRINT *, 'lyontime (yr) = ',
+     &            lyontime(iptn)
+                  PRINT *, 'lyonmass (Msun) = ',
+     &            lyonmass(iptn)
+                  PRINT *, 'lyonradius (Rsun) = ',
+     &            lyonradius(iptn)/solarr
+                  PRINT *, 'lyonluminosity (Lsun) = ',
+     &            lyonluminosity(iptn)/solarl
+
+               ELSE
+
+                  PRINT *, 'STELLAR MODEL IDLING'
+
+                  stellartime(iptn) = stellartime(iptn)+dtstep
+                  stellarmass(iptn) = stellarmass(iptn)+
+     &            (accrate*dtstep*31557600.0)
+                  stellarradius(iptn) = stellarradius(iptn)
+                  stellarluminosity(iptn) = stellarluminosity(iptn)
+
+               ENDIF
+
+               PRINT *, 'stellartime (yr) = ',
+     &         stellartime(iptn)
+               PRINT *, 'stellarmass (Msun) = ',
+     &         stellarmass(iptn)/solarm
+               PRINT *, 'stellarradius (Rsun) = ',
+     &         stellarradius(iptn)/solarr
+               PRINT *, 'stellarluminosity (Lsun) = ',
+     &         stellarluminosity(iptn)/solarl
+
+            ENDIF
+c
+c--Total sink luminosity is sum of accretion luminosity and stellar
+c  model luminosity.            
+c
+            ptmassluminosity(iptn) =
+     &      (stellarluminosity(iptn)+accluminosity)/
+     &      (uergg*umass/utime)
+
          ELSE
             WRITE (iprint,*) 'ERROR - istellarfeedback ',
      &           istellarfeedback

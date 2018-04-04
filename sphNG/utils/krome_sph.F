@@ -63,12 +63,13 @@ c*******************************************************************
       REAL*8 mfracs_orig(krome_nmols,idim)
       CHARACTER*1 cdump
       PARAMETER (spy = 3.1536d7) !seconds per year
+      INTEGER iphasecount
 #ifdef KROMEMPI
       INTEGER master,status(MPI_STATUS_SIZE),bufflen,inumber
       PARAMETER (bufflen = krome_nmols*idim/2)
       PARAMETER (MASTER=0)
       INTEGER ierr,nproc,rank,lchunksize,chunksize,buffnum,count
-      INTEGER totskipped
+      INTEGER totskipped,totipcount
       REAL*8 buffer(bufflen)
       call mpi_init(ierr)
       call mpi_comm_rank(MPI_COMM_WORLD,rank,ierr)
@@ -149,7 +150,7 @@ c----- Beginning of loop over filelist
 c---  initialise whole mfracs array to 0      
         mfracs = 0d0
 
-        WRITE(*,*) (mfracs_orig(krome_idx_H2,i),i=50,150)
+c        WRITE(*,*) (mfracs_orig(krome_idx_H2,i),i=50,150)
         usekrome = 0
 c ---- Determine kind of dump to read and set chem dumpfile name
         tempchar = filelist(idump)
@@ -169,7 +170,7 @@ c          usekrome = 3
       
 c ---- Read dumpfile      
         OPEN (UNIT=iindump,FILE=filelist(idump),FORM ='unformatted',
-     &        RECL=maxrec)
+     &        RECL=maxrec,SHARED,ACTION='read')
         WRITE (*,*) 'File open; usekrome =', usekrome
         CALL rdump(iindump, ichkl, 0)
         CLOSE(iindump)
@@ -177,8 +178,13 @@ c ---- Read dumpfile
         WRITE(*,"(A7,X,A,X,E9.2,A)") filelist(idump),"sphNG time= ",
      &       gt*utime/spy,"years"
 
-        DO i=1, npart
+        DO i=1,npart
            isort(i) = i
+c     --- Now wipe dead particles' iuniques so live particles aren't
+c     --- matched up with dead ones by accident
+           IF (iphase(i) .NE. 0) THEN
+              iunique(i) = -1
+           END IF
         END DO
 
 #ifdef KROMEMPI
@@ -203,11 +209,6 @@ c        if idump > 1 iunique_orig is previous dump
 c     ---  i.e. iunique_orig(i) = iunique(i) for all i
            iunique_orig = iunique
            IF (restart .AND. .NOT. fixed_dt) THEN
-c              DO i=1, npart
-c                 DO j=1,krome_nmols
-c                    mfracs_orig(j,i) = mfracs(j,i)
-c                 END DO
-c              END DO
               mfracs_orig = mfracs
              CYCLE
 c     ---    Don't need to run chem as read from dump
@@ -219,10 +220,10 @@ C$OMP PARALLEL DO SCHEDULE(static,1) default(none)
 C$OMP& PRIVATE(i,j,found) SHARED(npart,iunique,iunique_orig,inew,
 C$OMP& istart,iend,iphase) 
            DO i=1,npart
-c              IF (iphase(i) .NE. 0 ) THEN
-c                 inew(i) = -1 
-c                 CYCLE
-c              END IF
+              IF (iphase(i) .NE. 0 ) THEN
+                 inew(i) = -1 
+                 CYCLE
+              END IF
               found = .FALSE.
               DO j=1,npart
                  IF (iunique(i) .EQ. iunique_orig(j) ) THEN
@@ -235,20 +236,13 @@ c              END IF
               END IF
            END DO
 C$OMP END PARALLEL DO
-c         PRINT *, "iunique orig in orig order"
-c         PRINT *, (iunique_orig(i),i=1,20)
-c         PRINT *, "iunique in read order"
-c         PRINT *, (iunique(i), i=1,20)
-c         PRINT *, "iunique_orig in new order"
-c         PRINT *, (iunique_orig(inew(i)),i=1,20)
-c         PRINT *, (inew(i),i=1,20)
 
            write(cdump,'(I1)') idump
            print *, "done iuniques for idump=", idump
           print *, (mfracs_orig(krome_idx_H2,inew(i)),i=1,50)
            OPEN(UNIT=32,FILE="newunique"//cdump,FORM='formatted',
      &        STATUS='replace')
-           WRITE(32,'(I0)') (iunique(i),i=1,40)
+           WRITE(32,'(2I0)') (iunique(i),iphase(i),i=1,40)
            CLOSE(32)
            OPEN(UNIT=31,FILE="oldunique"//cdump,FORM='formatted',
      &          STATUS='replace')
@@ -256,7 +250,7 @@ c         PRINT *, (inew(i),i=1,20)
            CLOSE(31)
            
            PRINT *, "OLD H2:", mfracs_orig(krome_idx_H2,inew(23)),
-     &          iunique_orig(inew(23)), iunique(23)
+     &          iunique_orig(inew(23)),iunique(23),iphase(23)
 
            PRINT *, "particle 500000", mfracs_orig(krome_idx_H2,
      &          inew(500000))
@@ -319,16 +313,16 @@ c--   after each run
            WRITE (*,*) "Beginning at krometime t=", ktime/spy,
      &          "timestep = ", local_dt/spy
 
+           iphasecount = 0
 c     Main loop over particles to initialise mass fracs and call krome
 c     
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(rho,ekcle,mfracs,vxyzu,udens,npart,iunique,iunique_orig,
 C$OMP& iphase,k,init_from_dump,dust_tk,heatingISR,init_x,nskipped,
-C$OMP& idump,mfracs_orig,inew,local_dt,istart,iend)
+C$OMP& idump,mfracs_orig,inew,local_dt,istart,iend,iphasecount)
 C$OMP& private(i,j,Tgas,rhoi,x,Av)
  
            DO i=istart, iend
-c            DO i=70, 100
               IF (MOD(i,10000) .EQ. 0) THEN
                  PRINT *, "particle", i,"of",npart,"nskipped=",nskipped
               END IF
@@ -336,13 +330,8 @@ c            DO i=70, 100
               IF (iphase(i) .NE. 0) THEN
 c                 PRINT *, "skipping iunique",iunique(i),"due to iphase",
 c     &                iphase(i)
-                 mfracs(krome_idx_H2,i) = 3.141579
-                 CYCLE
-              END IF 
-              
-              IF ( mfracs_orig(krome_idx_H2,i) .eq. 3.141579) THEN
-                 Print *, "PROBLEM", mfracs_orig(krome_idx_H2,i),
-     &                iunique(i),iphase(i)
+c$OMP ATOMIC
+                 iphasecount = iphasecount + 1
                  CYCLE
               END IF
 
@@ -390,16 +379,15 @@ c           print *, "init,xh2=", x(krome_idx_H2)
                     mfracs(j,i) = 0d0
                  END DO
 c            print *, "chem dens cut" 
-c$OMP CRITICAL
+c$OMP ATOMIC
                  nskipped = nskipped + 1
-c$OMP END CRITICAL
                  CYCLE
               ELSE IF (x(krome_idx_H2) .LT. tiny) THEN
 c             ELSE IF (ALL(x.eq.0.d0)) THEN
 c-------- If H2 abundance=zero then it must have been set so            
-c$OMP CRITICAL
+c$OMP ATOMIC
                  nskipped = nskipped + 1
-c$OMP END CRITICAL
+
                  PRINT *, "skipping H2 = 0,iphase=",iphase(i),"i=", i,
      &                "i prev=",inew(i),iunique_orig(inew(i)),iunique(i)
                  CYCLE
@@ -446,24 +434,7 @@ c     ---  Update time
               ktime = 0d0
            END IF
 
-#ifdef KROMEMPI
-c           print *, "reducing..."
-c           CALL MPI_Allreduce(mfracs,mfracs_orig,krome_nmols*npart,
-c     &          MPI_REAL8,MPI_SUM,MPI_COMM_WORLD)
-c           print *, "reduced. rank", rank
-c --- Make data buffer to send and work out sendcounts array
-c           PRINT * , i, lchunksize,buffnum,krome_nmols
-c           DO i=1,lchunksize
-c              DO j=1,krome_nmols
-c                 buffnum = ((i-1) * krome_nmols) + j
-c                 buffer(buffnum) = mfracs(j,i+istart-1)
-c              END DO
-c              IF (i .eq. 1) THEN
-c                 PRINT *, "buffnum=",buffnum,"bf=",
-c     &                buffer(krome_idx_CO),mfracs(j,i+istart-1)
-c              END IF
-c           END DO
-           
+#ifdef KROMEMPI           
            IF (rank .EQ. MASTER) THEN
               DO n=1, nproc-1
                  PRINT *, "MASTER waiting to receive from process", n
@@ -485,37 +456,29 @@ c           END DO
                       CALL quit(1)
                    ENDIF
                 END DO
-c                 CALL MPI_RECV(iunique(1),npart,MPI_INTEGER,n,2,
-c     &                MPI_COMM_WORLD, status,ierr)
                  PRINT *, "Received", istart," to",iend,"from rank",n
-c     &                buffer(krome_idx_CO)
-c                 DO i=istart,iend
-c                    DO j=1,krome_nmols
-c                       buffnum = ((i - istart) * krome_nmols) + j
-c                       mfracs(j,i) = buffer(buffnum)
-c                    END DO
-c              END DO
                  PRINT *, "CO particle at iend",iend,
      &                mfracs(krome_idx_CO,iend)
               END DO
           ELSE
 
-c              PRINT *, "CO rank", rank, buffer(krome_idx_CO)
-c              CALL MPI_SEND(buffer,lchunksize*krome_nmols,MPI_REAL8,
-cc     &             MASTER,1,MPI_COMM_WORLD,ierr)
              DO i=istart, iend
                 CALL MPI_SEND(mfracs(1,i),krome_nmols,
      &             MPI_REAL8,MASTER,1,MPI_COMM_WORLD,ierr)
              END DO
              PRINT *, "Rank", rank, " sending",istart,
      &             mfracs(krome_idx_CO,istart)
-           END IF
+          END IF
            
-           CALL MPI_Reduce(nskipped,totskipped,1,MPI_INTEGER,MPI_SUM,
+          CALL MPI_Reduce(nskipped,totskipped,1,MPI_INTEGER,MPI_SUM,
      &          MASTER,MPI_COMM_WORLD,ierr)
 
-           IF (rank .EQ. MASTER) THEN
-              PRINT *, "Total skipped = ", totskipped
+          CALL MPI_Reduce(iphasecount,totipcount,1,MPI_INTEGER,
+     &         MPI_SUM,MASTER,MPI_COMM_WORLD,ierr)
+
+          IF (rank .EQ. MASTER) THEN
+             PRINT *, "Total skipped = ", totskipped,"iphase skipped=",
+     &            totipcount
 #endif
 
 c     ---  Create dumpfile name
@@ -570,38 +533,29 @@ c-- End of multiple krome runs loop
 #ifdef KROMEMPI
            IF (rank .EQ. MASTER) THEN
 #endif
-c         print *, "mfracs h2(50)=", mfracs(krome_idx_H2,50)
               Print *, "updating mfracs_orig"
               PRINT *, "particle 23", mfracs(krome_idx_H2,238126)     
 c ---- update iunique_orig and mfracs_orig
-cC$OMP PARALLEL DO SCHEDULE(runtime) DEFAULT(none)
-cC$OMP& PRIVATE(i,j) SHARED(iunique_orig,iunique,mfracs_orig,
-cC$OMP& npart,mfracs)
-c              DO i=1,idim
-c                 DO j=1,krome_nmols
-c                    mfracs_orig(j,i) = mfracs(j,i)
-c                 END DO
-c              END DO
-cC$OMP END PARALLEL DO
-              iunique_orig = iunique
-              mfracs_orig = mfracs
+              iunique_orig(:) = iunique(:)
+              mfracs_orig(:,:) = mfracs(:,:)
 #ifdef KROMEMPI
               PRINT *, "orig,rank",rank,
      &             mfracs_orig(krome_idx_H2,npart-1)
+           ELSE IF (rank .GT. MASTER) THEN
+              iunique_orig(:) = iunique(:)
+              mfracs_orig = 0d0
            END IF
-           PRINT *, "rank",rank,"part npart", mfracs(krome_idx_H2,npart)
+c     --- all ranks onwards           
            PRINT *, "NPART=",npart
            DO i=1,npart
               IF ((i.eq.npart) .or.
      &             (MOD(i,10000) .eq. 0) ) THEN
-                 Print *,"Before: mfracs This is rank",rank,"particle:",
+                 PRINT *,"Before: mfracs This is rank",rank,"particle:",
      &                i, "H2:",mfracs(krome_idx_H2,i)
               END IF
               CALL MPI_Bcast(mfracs_orig(1,i),krome_nmols,
      &             MPI_REAL8,MASTER,MPI_COMM_WORLD,
      &             ierr)
-c     CALL MPI_BCAST(iunique_orig(1),npart,MPI_INTEGER,MASTER,
-c     &       MPI_COMM_WORLD,ierr)
 c     PRINT *, "rank", rank,"completed broadcast"
               IF ((i .eq. npart) .OR.
      &             ((rank .eq. 1) .AND. (MOD(i,10000).eq.0))) THEN

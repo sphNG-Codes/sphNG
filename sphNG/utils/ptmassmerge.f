@@ -14,6 +14,10 @@ c
       PARAMETER (nbinimf = 100)
       PARAMETER (nbinbin = 40)
       PARAMETER (nmassratio = 10)
+
+      REAL*4 rho4, ptmass4
+      INTEGER*2 nactotal2
+
       DIMENSION ipart(idim,ilines), x(idim,ilines), y(idim,ilines), 
      &     z(idim,ilines), vx(idim,ilines), 
      &     vy(idim,ilines), vz(idim,ilines), pmass(idim,ilines), 

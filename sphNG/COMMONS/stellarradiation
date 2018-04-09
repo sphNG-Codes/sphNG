@@ -27,8 +27,10 @@ c
 c--Arrays for storing sink particle properties (from all MPI processes)
 c
       REAL*8 stellar_xyzmhrti,stellar_radtempion
+      INTEGER*2 liststellarID
       COMMON /stellarprop/ stellar_radtempion(3,iptdim),
      &       stellar_xyzmhrti(8,iptdim)
+      COMMON /stellarid/ liststellarID(iptdim)
 c
 c--Keep fraction of HII
 c

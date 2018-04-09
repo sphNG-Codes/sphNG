@@ -1,6 +1,6 @@
       INTEGER nptmass, nptmasstot, nptmasstotlast, nptmasslocal, 
      &        listpm, iptmass
-      INTEGER*2 listrealpm, iptmassrecord
+      INTEGER*2 listrealpm, iptmassrecord, listlyon
       REAL    spinx, spiny, spinz, hacc, haccall, ptmcrit, radcrit,
      &        angaddx, angaddy, angaddz, spinadx, spinady, spinadz,
      &        ptmassinitial, ptmassaccrate, ptmassoldtime, ptmassold, 
@@ -31,7 +31,7 @@
      &                angaddx(iptdim),angaddy(iptdim),angaddz(iptdim),
      &                spinadx(iptdim),spinady(iptdim),spinadz(iptdim),
      &                stellarenergy(iradtrans2),
-     &                listpm(iptdim),listrealpm(idim),
+     &                listpm(iptdim),listrealpm(idim),listlyon(iptdim),
      &                nptmass,nptmasstot,nptmasstotlast,nptmasslocal,
      &                iptmass
       COMMON /ptaccr/ ptmassrecord(iaccrec,iptdim),

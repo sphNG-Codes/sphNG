@@ -1,0 +1,2 @@
+       INTEGER ibelong_sink
+       COMMON /mpisink/ ibelong_sink(iptdim)

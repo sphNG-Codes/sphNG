@@ -309,7 +309,7 @@ c
             ELSEIF (istellarfeedback.EQ.5) THEN
 
                PRINT *, 'NEW STAR NOTED',
-     &         iptn,ptmasstime,ptmassform(iptn)
+     &         iptn,nptmasstot,ptmassform(iptn)
                PRINT *, ' '
                PRINT *, 'DISK ACCRETION'
                PRINT *, ' '
@@ -324,13 +324,13 @@ c
             ELSEIF (istellarfeedback.EQ.6) THEN
 
                PRINT *, 'NEW STAR NOTED',
-     &         iptn,ptmasstime,ptmassform(iptn)
+     &         iptn,nptmasstot,ptmassform(iptn)
                PRINT *, ' '
                PRINT *, 'DISK ACCRETION + STELLAR EVOLUTION'
                PRINT *, ' '
- 
+
                diskinit(iptn) = 0.0
- 
+
                stellartime(iptn) = 0.0
                stellarmass(iptn) = 0.0
                stellarradius(ipnt) = 0.0
@@ -340,6 +340,7 @@ c
                lyonmass(iptn) = 0.0
                lyonradius(ipnt) = 0.0
                lyonluminosity(iptn) = 0.0
+               listlyon(iptn) = nptmasstot
 
             ELSE
                WRITE (iprint,*) 'ERROR - istellarfeedback ',
@@ -739,11 +740,20 @@ c
          
          ELSEIF (istellarfeedback.EQ.5) THEN
 
+            accluminosity = 0.
+
             IF (ptmasstime.LT.10.0) THEN
 
 c               PRINT *, 'PTMASS TIME LESS THAN 10 YEARS'
 
+               stellartime(iptn) = 0.
+               stellarmass(iptn) = 0.
+               stellarradius(iptn) = 0.
+               stellarluminosity(iptn) = 0.
+
 c               PRINT *, 'DISK MODEL DISABLED'
+
+               diskinit(iptn) = 0.
 
             ELSEIF (ptmasstime.GE.10.0) THEN
 
@@ -799,13 +809,20 @@ c     &         stellarluminosity(iptn)/solarl
 
          ELSEIF (istellarfeedback.EQ.6) THEN
 
+            accluminosity = 0.
+
             IF (ptmasstime.LT.10.0) THEN
             
-               PRINT *, 'PTMASS TIME LESS THAN 10 YEARS'
-               
-               PRINT *, 'DISK MODEL DISABLED'
+c               PRINT *, 'PTMASS TIME LESS THAN 10 YEARS'
 
-               PRINT *, 'STELLAR MODEL DISABLED'
+               stellartime(iptn) = 0.
+               stellarmass(iptn) = 0.
+               stellarradius(iptn) = 0.
+               stellarluminosity(iptn) = 0.
+
+c               PRINT *, 'DISK MODEL DISABLED'
+
+               diskinit(iptn) = 0.
                                
             ELSEIF (ptmasstime.GE.10.0) THEN
 
@@ -818,9 +835,10 @@ c     &         stellarluminosity(iptn)/solarl
                   nflag = 1
                   evolveto = 0.1
                   accrate = 1.0E-07
-                  epsilon = 0.0                  
+                  epsilon = 0.0
+                  iptnlyon = listlyon(iptn)
 
-                  CALL evollyon(nflag,iptn,evolveto,accrate,
+                  CALL evollyon(nflag,iptnlyon,evolveto,accrate,
      &            lyonradius(iptn),lyonluminosity(iptn),
      &            lyontime(iptn),lyonmass(iptn))
 
@@ -858,8 +876,9 @@ c     &         stellarluminosity(iptn)/solarl
                   evolveto = stellartime(iptn)+dtstep
                   accrate = accrate/solarm*31557600.0
                   epsilon = 0.05
+                  iptnlyon = listlyon(iptn)
 
-                  CALL evollyon(nflag,iptn,evolveto,accrate,
+                  CALL evollyon(nflag,iptnlyon,evolveto,accrate,
      &            lyonradius(iptn),lyonluminosity(iptn),
      &            lyontime(iptn),lyonmass(iptn))
 

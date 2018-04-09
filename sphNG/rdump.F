@@ -1366,6 +1366,20 @@ c      GOTO 10000
 c      IF (nblocks.NE.1) THEN
 c         IF (iproc.EQ.iblock-1) THEN
             IF (nblocks.EQ.1) THEN
+c
+c--Need to check for sinks and feedback.  The problem is that the MPI
+c     decomposition done below will not enforce SPH particles near 
+c     sink particles to be on the same MPI process (which is required
+c     for the energy injection to be done properly).
+c
+               IF (istellarfeedback.GT.0 .AND. nptmass.GT.0) THEN
+                  WRITE (*,*) 'ERROR - Cannot start MPI calculation ',
+     &                 'from scalar calculation if it'
+                  WRITE (*,*) 'has stellar feedback and exisiting ',
+     &                 'sink particles'
+                  CALL quit(0)
+               ENDIF
+
                CALL split(npart,n1,nptmass,icount,nhydro,
      &              nlistinactive,isteps,iphase,
      &              xyzmh,vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,
@@ -1455,13 +1469,16 @@ c
       print *,iproc,' FINISHED READ ',npart,nptmass,nptmasstot
 #else
       nptmasstot = nptmass
-      nptmasslast = nptmass
       print *,' FINISHED READ ',npart,nptmass
 
       IF (istellar_ionisation) THEN
          stellar_xyzmhrti(8,1:nptmass) = stellar_radtempion(3,1:nptmass)
       ENDIF
 #endif
+c
+c--This is the local number of sink particles
+c
+      nptmasslast = nptmass
 
       IF (iskip.EQ.1) RETURN
 c
@@ -1592,7 +1609,7 @@ c
       IF (mpitype.EQ.'d' .OR. mpitype.EQ.'r' .OR. mpitype.EQ.'p' .OR.
      &     mpitype.EQ.'1') THEN
          DO i = icount+1, nhydro
-            ibelong = classify(mpitype,xyzmh(1,i))
+            ibelong = classify(mpitype,xyzmh(1,i),0)
             IF (iproc.EQ.ibelong) THEN
                icountnew = icountnew + 1
                imap(i) = icountnew

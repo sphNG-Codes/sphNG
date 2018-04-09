@@ -412,7 +412,7 @@ c
       xyzmh_local(4,1) = 0.
       xyzmh_local(5,1) = 0.
 
-      IF (iproc.NE.classify(mpitype,xyzmh_local)) THEN
+      IF (iproc.NE.classify(mpitype,xyzmh_local,0)) THEN
          iexcludepart = 1
       ELSE
 #endif

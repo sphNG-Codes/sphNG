@@ -1,16 +1,32 @@
-      FUNCTION classify(mpitype,xyzmh)
+      FUNCTION classify(mpitype,xyzmh,isinkfeedback)
+
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
 
       IMPLICIT NONE
 
       INCLUDE 'idim'
 
+#ifdef MPI
+      INCLUDE 'COMMONS/mpiall'
+      INCLUDE 'COMMONS/mpisink'
+#endif
+
+      INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/astrcon'
+      INCLUDE 'COMMONS/ptmass'
+      INCLUDE 'COMMONS/stellarradiation'
+
       CHARACTER*1 mpitype
       REAL xyzmh(5,1)
+      INTEGER isinkfeedback
 
       INTEGER classify_binary,classify_cartesian,classify_disc,
      &     classify_sphere
 
-      INTEGER classify,ibelong
+      INTEGER classify,ibelong,i
+      REAL*8 distance2
 
       IF (mpitype.EQ.'b') THEN
          ibelong = classify_binary(xyzmh)
@@ -29,6 +45,25 @@
       ELSE
          WRITE (*,*) 'ERROR - mpitype ',mpitype,' not defined'
          CALL quit(1)
+      ENDIF
+
+c
+c--Now if stellarfeedback is on, make sure that particles close to a 
+c     sink particle are on the same MPI process as that sink particle.
+c     Previously, need to have ensured that sink particles that are close
+c     to each other (e.g. binaries) are also on the same MPI process as 
+c     each other.
+c     Note: this does not have to check the type of the particle
+c     because it will already be true for sink particles.
+c
+      IF (istellarfeedback.GT.0 .AND. isinkfeedback.EQ.1) THEN
+         DO i = 1, nptmasstot
+            distance2 = (xyzmh(1,1)-stellar_xyzmhrti(1,i))**2 +
+     &           (xyzmh(2,1)-stellar_xyzmhrti(2,i))**2 +
+     &           (xyzmh(3,1)-stellar_xyzmhrti(3,i))**2
+            IF (distance2.LT.(500.0*au/udist)**2)
+     &           ibelong = ibelong_sink(i)
+         END DO
       ENDIF
 
       classify = ibelong

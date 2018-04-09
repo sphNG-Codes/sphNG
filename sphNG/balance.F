@@ -59,12 +59,17 @@ c************************************************************
       INCLUDE 'COMMONS/nonideal'
 #endif
       INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/recor'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
 
       DIMENSION listtrans(idim), numlist(nummaxproc),numrecv(nummaxproc)
       DIMENSION listptmass(iptdim), listpmtrans(iptdim)
+
+      CHARACTER*13 filename_split
+      CHARACTER*3 idumpnumber
+      CHARACTER*3 iprocnumber
 
       IF (iproc.EQ.0) WRITE (iprint,*) 'BALANCING'
 c
@@ -602,6 +607,13 @@ c
      &                             lblocklengths, listptmass, 
      &                             iNINT, indexMPI_LIST, ierr)
                               CALL MPI_TYPE_COMMIT(indexMPI_LIST,ierr)
+
+                              IF (istellarfeedback.GE.5) THEN
+                                 CALL MPI_TYPE_INDEXED(npttrans, 
+     &                                lblocklengths, listptmass, 
+     &                                MPI_INTEGER2, indexMPI_INT2, ierr)
+                                CALL MPI_TYPE_COMMIT(indexMPI_INT2,ierr)
+                              ENDIF
                            ENDIF
 
                            IF (istellar_ionisation) THEN
@@ -681,6 +693,42 @@ c
 
                            CALL MPI_SEND(listexposedold,1,indexMPI_LIST,
      &                             j,150,MPI_COMM_WORLD,ierr)
+
+                              IF (istellarfeedback.GE.5) THEN
+                                 CALL MPI_SEND(ptmassform,1,indexMPI1,
+     &                                j,180,MPI_COMM_WORLD, ierr)
+
+                                 CALL MPI_SEND(diskinit,1,indexMPI1,
+     &                                j,181,MPI_COMM_WORLD, ierr)
+
+                                 CALL MPI_SEND(stellartime,1,indexMPI1,
+     &                                j,182,MPI_COMM_WORLD, ierr)
+
+                                 CALL MPI_SEND(stellarmass,1,indexMPI1,
+     &                                j,183,MPI_COMM_WORLD, ierr)
+
+                                 CALL MPI_SEND(stellarradius,1,
+     &                            indexMPI1,j,184,MPI_COMM_WORLD, ierr)
+
+                                 CALL MPI_SEND(stellarluminosity,1,
+     &                            indexMPI1,j,185,MPI_COMM_WORLD, ierr)
+
+                                 CALL MPI_SEND(lyontime,1,indexMPI1,
+     &                                j,186,MPI_COMM_WORLD, ierr)
+
+                                 CALL MPI_SEND(lyonmass,1,indexMPI1,
+     &                                j,187,MPI_COMM_WORLD, ierr)
+
+                                 CALL MPI_SEND(lyonradius,1,indexMPI1,
+     &                                j,188,MPI_COMM_WORLD, ierr)
+
+                                 CALL MPI_SEND(lyonluminosity,1,
+     &                            indexMPI1,j,189,MPI_COMM_WORLD, ierr)
+
+                                 CALL MPI_SEND(listlyon,1,indexMPI_INT2,
+     &                                j,190,MPI_COMM_WORLD, ierr)
+
+                              ENDIF
                            ENDIF
 
                            IF (istellar_ionisation) THEN
@@ -710,6 +758,9 @@ c
                            ENDIF
                            IF (encal.EQ.'r') THEN
                               CALL MPI_TYPE_FREE(indexMPI_LIST,ierr)
+                              IF (istellarfeedback.GE.5) THEN
+                                 CALL MPI_TYPE_FREE(indexMPI_INT2,ierr)
+                              ENDIF
                            ENDIF
                            CALL MPI_TYPE_FREE(indexMPI_L,ierr)
                            CALL MPI_TYPE_FREE(indexMPI_INT,ierr)
@@ -1462,7 +1513,121 @@ c
      &                       inumber,nptrecv
                         CALL quit(1)
                      ENDIF
-                  ENDIF
+
+                     IF (istellarfeedback.GE.5) THEN
+
+                        CALL MPI_RECV(ptmassform(nptmassnew+1),
+     &                       nptrecv, MPI_REAL8, iprocrec, 180, 
+     &                       MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                        IF (inumber.NE.nptrecv) THEN
+                           WRITE (*,*) 'ERROR - inumber.NE.nptrecvS ',
+     &                       inumber,nptrecv
+                           CALL quit(1)
+                        ENDIF
+
+                        CALL MPI_RECV(diskinit(nptmassnew+1),
+     &                       nptrecv, MPI_REAL8, iprocrec, 181, 
+     &                       MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                        IF (inumber.NE.nptrecv) THEN
+                           WRITE (*,*) 'ERROR - inumber.NE.nptrecvT ',
+     &                       inumber,nptrecv
+                           CALL quit(1)
+                        ENDIF
+
+                        CALL MPI_RECV(stellartime(nptmassnew+1),
+     &                       nptrecv, MPI_REAL8, iprocrec, 182, 
+     &                       MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                        IF (inumber.NE.nptrecv) THEN
+                           WRITE (*,*) 'ERROR - inumber.NE.nptrecvU ',
+     &                       inumber,nptrecv
+                           CALL quit(1)
+                        ENDIF
+
+                        CALL MPI_RECV(stellarmass(nptmassnew+1),
+     &                       nptrecv, MPI_REAL8, iprocrec, 183, 
+     &                       MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                        IF (inumber.NE.nptrecv) THEN
+                           WRITE (*,*) 'ERROR - inumber.NE.nptrecvV ',
+     &                       inumber,nptrecv
+                           CALL quit(1)
+                        ENDIF
+
+                        CALL MPI_RECV(stellarradius(nptmassnew+1),
+     &                       nptrecv, MPI_REAL8, iprocrec, 184, 
+     &                       MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                        IF (inumber.NE.nptrecv) THEN
+                           WRITE (*,*) 'ERROR - inumber.NE.nptrecvW ',
+     &                       inumber,nptrecv
+                           CALL quit(1)
+                        ENDIF
+
+                        CALL MPI_RECV(stellarluminosity(nptmassnew+1),
+     &                       nptrecv, MPI_REAL8, iprocrec, 185, 
+     &                       MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                        IF (inumber.NE.nptrecv) THEN
+                           WRITE (*,*) 'ERROR - inumber.NE.nptrecvX ',
+     &                       inumber,nptrecv
+                           CALL quit(1)
+                        ENDIF
+
+                        CALL MPI_RECV(lyontime(nptmassnew+1),
+     &                       nptrecv, MPI_REAL8, iprocrec, 186, 
+     &                       MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                        IF (inumber.NE.nptrecv) THEN
+                           WRITE (*,*) 'ERROR - inumber.NE.nptrecvY ',
+     &                       inumber,nptrecv
+                           CALL quit(1)
+                        ENDIF
+
+                        CALL MPI_RECV(lyonmass(nptmassnew+1),
+     &                       nptrecv, MPI_REAL8, iprocrec, 187, 
+     &                       MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                        IF (inumber.NE.nptrecv) THEN
+                           WRITE (*,*) 'ERROR - inumber.NE.nptrecvY ',
+     &                       inumber,nptrecv
+                           CALL quit(1)
+                        ENDIF
+
+                        CALL MPI_RECV(lyonradius(nptmassnew+1),
+     &                       nptrecv, MPI_REAL8, iprocrec, 188, 
+     &                       MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                        IF (inumber.NE.nptrecv) THEN
+                           WRITE (*,*) 'ERROR - inumber.NE.nptrecvZ ',
+     &                       inumber,nptrecv
+                           CALL quit(1)
+                        ENDIF
+
+                        CALL MPI_RECV(lyonluminosity(nptmassnew+1),
+     &                       nptrecv, MPI_REAL8, iprocrec, 189, 
+     &                       MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                        IF (inumber.NE.nptrecv) THEN
+                           WRITE (*,*) 'ERROR - inumber.NE.nptrecvAA ',
+     &                       inumber,nptrecv
+                           CALL quit(1)
+                        ENDIF
+
+                        CALL MPI_RECV(listlyon(nptmassnew+1),
+     &                       nptrecv, MPI_INTEGER2, iprocrec, 190, 
+     &                       MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_INTEGER2,inumber,ierr)
+                        IF (inumber.NE.nptrecv) THEN
+                           WRITE (*,*) 'ERROR - inumber.NE.nptrecvAB ',
+     &                       inumber,nptrecv
+                           CALL quit(1)
+                        ENDIF
+
+                     ENDIF ! istellarfeedback
+                  ENDIF ! encal
 
                   IF (istellar_ionisation) THEN
                      CALL MPI_RECV(stellar_radtempion(1,nptmassnew+1),
@@ -1629,6 +1794,7 @@ c
       npartold = npart
       npart = npartnew
 c      n1 = npart
+      nptmasslast = nptmass
 
       CALL MPI_ALLREDUCE(nptmass, nptmasstot, 1, MPI_INTEGER, MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
@@ -1659,6 +1825,44 @@ c      n1 = n1 - (nlistinactiveold - nlistinactive)
       IF (iproc.EQ.0) WRITE (iprint,*) 'MOVE-POST ',npart,
      &     nlistinactive,nlistinactiveold
 c
+c--Test MPI decomposition: writes out particles assigned to each process
+c
+      IF (.FALSE.) THEN
+         IF (irec.LT.10) THEN
+            WRITE (idumpnumber,99200) irec
+99200       FORMAT('00',I1)
+         ELSEIF (irec.LT.100) THEN
+            WRITE (idumpnumber,99201) irec
+99201       FORMAT('0',I2)
+         ELSEIF (irec.LT.1000) THEN
+            WRITE (idumpnumber,99202) irec
+99202       FORMAT(I3)
+         ENDIF
+
+         IF (iproc.LT.10) THEN
+            WRITE (iprocnumber,99300) iproc
+99300       FORMAT('0',I1)
+         ELSEIF (iproc.LT.100) THEN
+            WRITE (iprocnumber,99301) iproc
+99301       FORMAT(I2)
+         ENDIF
+
+         filename_split = 'TESTMPI'//idumpnumber//iprocnumber
+         OPEN (60+iproc,FILE=filename_split)
+         DO i = 1, npart
+            IF (iphase(i).NE.-1) THEN
+               WRITE (60+iproc,777) xyzmh(1,i),xyzmh(2,i),xyzmh(3,i)
+ 777           FORMAT(3(1PE12.5,1X))
+            ENDIF
+         
+         END DO
+
+         CLOSE (60+iproc)
+      ENDIF
+c
+c--End of test of MPI decomposition
+c
+c
 c--Need to reset lists of particles in each timestep bin
 c
       DO i = 1, nbinmax
@@ -1668,8 +1872,6 @@ c
       END DO
 
       xlog2 = 0.30103
-
-c      goto 200
 
       DO i = 1, npart
          IF (iphase(i).NE.-1) THEN
@@ -1741,12 +1943,6 @@ c--End of MPI-only section
 c
 #endif
 
-c 200  CALL quit(1)
-
-c      IF (npart.GE.6581) THEN
-c         print *,iproc,': EXIT-6581 ',(xyzmh(ijk,6581), ijk=1,5)
-c      ENDIF
-
       RETURN
       END
 
@@ -1771,10 +1967,14 @@ c************************************************************
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpisink'
       INCLUDE 'COMMONS/mpidebug'
       INCLUDE 'COMMONS/densi'
       INCLUDE 'COMMONS/active'
       INCLUDE 'COMMONS/ptmass'
+      INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/astrcon'
 
       DIMENSION listtrans(idim), numlist(nummaxproc), xyzmh(5,idim)
       INTEGER classify
@@ -2254,19 +2454,82 @@ c
 
          print *,iproc,' BAL: New coords ',
      &        (binarysplits(i), i=1,nsplitbeingdone)
+
+      ENDIF
+c
+c--With sink particle radiative feedback and MPI, need to make sure
+c     that sink particles that are close to each other are on the same
+c     MPI process.  This needs to be done iteratively until convergence.
+c
+      IF (istellarfeedback.GT.0) THEN
+         DO i = 1, nptmasstot
+            ibelong_sink(i) = classify(mpitype,stellar_xyzmhrti(1,i),0)
+            PRINT 99100,iproc,i,ibelong_sink(i),stellar_xyzmhrti(1:3,i)
+99100       FORMAT(I3,1X,' BAL: Initial sink classification ',2(I3,1X),
+     &           3(1PE12.5,1x))
+         END DO
+ 900     nchanged = 0
+         DO i = 1, nptmasstot
+            DO j = i+1, nptmasstot
+               IF (ibelong_sink(i).NE.ibelong_sink(j)) THEN
+                  distance2 = 
+     &                 (stellar_xyzmhrti(1,i)-stellar_xyzmhrti(1,j))**2+
+     &                 (stellar_xyzmhrti(2,i)-stellar_xyzmhrti(2,j))**2+
+     &                 (stellar_xyzmhrti(3,i)-stellar_xyzmhrti(3,j))**2
+                 PRINT *,' BAL: sink dist ',i,j,SQRT(distance2)*udist/au
+                 IF (distance2.LT.(1000.0*au/udist)**2) THEN
+                    ibelong_new = MIN(ibelong_sink(i),ibelong_sink(j))
+                    ibelong_sink(i) = ibelong_new
+                    ibelong_sink(j) = ibelong_new
+                    nchanged = nchanged + 1
+                 ENDIF
+              ENDIF
+            END DO
+         END DO
+         IF (nchanged.NE.0) GOTO 900
+
+         DO i = 1, nptmasstot
+            print *,iproc,' BAL: Final sink classification ',
+     &           i,ibelong_sink(i)
+         END DO
       ENDIF
 c
 c--Now classify every particle as to which MPI process it should belong to
 c
+c     If istellarfeedback.GT.0, need to make sure that sink particles
+c     near an MPI boundary have sufficient particles around them on
+c     the same MPI process as them to give their stellar feedback too.
+c
       DO ipart = 1, npart
-         IF (iphase(ipart).GE.0) THEN
-            ibelong = classify(mpitype,xyzmh(1,ipart))
+         IF (istellarfeedback.GT.0) THEN
+            IF (iphase(ipart).GE.1 .AND. iphase(ipart).LE.9) THEN
+               ibelong = ibelong_sink(liststellarID(listrealpm(ipart)))
+               PRINT *,iproc,' BAL: ibelong of sink ',ipart,
+     &              listrealpm(ipart),liststellarID(listrealpm(ipart)),
+     &              ibelong
 
-            ibelong1 = ibelong + 1
-            numlist(ibelong1) = numlist(ibelong1) + 1
-            listtrans(ipart) = ibelong
+               ibelong1 = ibelong + 1
+               numlist(ibelong1) = numlist(ibelong1) + 1
+               listtrans(ipart) = ibelong
+            ELSEIF (iphase(ipart).GE.0) THEN
+               ibelong = classify(mpitype,xyzmh(1,ipart),1)
+               
+               ibelong1 = ibelong + 1
+               numlist(ibelong1) = numlist(ibelong1) + 1
+               listtrans(ipart) = ibelong
+            ELSE
+               listtrans(ipart) = -1
+            ENDIF
          ELSE
-            listtrans(ipart) = -1
+            IF (iphase(ipart).GE.0) THEN
+               ibelong = classify(mpitype,xyzmh(1,ipart),0)
+               
+               ibelong1 = ibelong + 1
+               numlist(ibelong1) = numlist(ibelong1) + 1
+               listtrans(ipart) = ibelong
+            ELSE
+               listtrans(ipart) = -1
+            ENDIF
          ENDIF
       END DO
 c

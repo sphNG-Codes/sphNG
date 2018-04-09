@@ -111,6 +111,7 @@ c     that are neighbours of active particles for updating their densities etc
 
       DIMENSION ldolist(idim),hi_old(idim),hi_2back(idim)
       LOGICAL*1 iconvergence1,iconvergence2,iconvergence3
+      LOGICAL ifound
 #ifdef MPI
       DIMENSION nneighrec(ineighproc),nneighsentbackold(nummaxproc)
       REAL*4 rhorec(ineighproc), dumrhorec(ineighproc), rhonextmax
@@ -390,7 +391,7 @@ c      CALL MPI_TYPE_COMMIT(i12REAL8,ierr)
       nlstdo_tot = nlstdo
 #endif
 
-      IF (istellarradiation) THEN
+      IF (istellarfeedback.GT.0 .OR. istellarradiation) THEN
 c
 c--For stellar radiation from sink particles, need to know about all
 c     sink particles on all MPI processes.  For non-MPI, still keep
@@ -398,7 +399,11 @@ c     this in the same array for consistency.
 c      
          DO ipt = 1, nptmass
             stellar_xyzmhrti(1:5,ipt) = xyzmh(1:5,listpm(ipt))
-            stellar_xyzmhrti(6:8,ipt) = stellar_radtempion(1:3,ipt)
+            IF (istellarradiation) THEN
+               stellar_xyzmhrti(6:8,ipt) = stellar_radtempion(1:3,ipt)
+            ELSE
+               stellar_xyzmhrti(6:8,ipt) = 0.
+            ENDIF
          END DO
 #ifdef MPI
 c
@@ -434,6 +439,23 @@ c
          ENDIF
          CALL MPI_BCAST(stellar_xyzmhrti(1,1),nptmasstot,i8REAL8,0,
      &        MPI_COMM_WORLD, ierr)
+c
+c--Find local sink particle in the global list
+c
+         DO ipt = 1, nptmass
+            DO jpt = 1, nptmasstot
+               ifound = .TRUE.
+               DO k = 1, 3
+                  ifound = (ifound .AND. 
+     &      (ABS(xyzmh(k,listpm(ipt))-stellar_xyzmhrti(k,jpt)).LT.tiny))
+               END DO
+               IF (ifound) THEN
+                  liststellarID(ipt) = jpt
+                  GOTO 400
+               ENDIF
+            END DO
+ 400        CONTINUE
+         END DO
 #endif
       ENDIF
 c

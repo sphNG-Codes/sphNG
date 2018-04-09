@@ -431,9 +431,10 @@ c
       nums(4) = 0
       nums(5) = 0
       nums(6) = 9
-      IF (istellarfeedback.EQ.5) nums(6) = nums(6) + 6
-      IF (istellarfeedback.EQ.6) nums(6) = nums(6) + 10
       IF (istellar_ionisation) nums(6) = nums(6) + 1
+      IF (istellarfeedback.EQ.5 .OR. istellarfeedback.EQ.6)
+     &     nums(6) = nums(6) + 6
+      IF (istellarfeedback.EQ.6) nums(6) = nums(6) + 4
       nums(7) = 0
       nums(8) = 0
       WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)

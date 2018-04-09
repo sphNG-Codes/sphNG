@@ -400,6 +400,13 @@ c
                WRITE (iprint, 99699)
 99699          FORMAT(' Diffuse ISM model not used', //)
             ENDIF
+            IF (istellarfeedback.EQ.0) THEN
+               WRITE (iprint, 99700)
+99700          FORMAT(' Low-mass stellar feedback not used', //)
+            ELSE
+               WRITE (iprint, 99701) istellarfeedback
+99701          FORMAT(' Low-mass stellar feedback type: ',I2, //)
+            ENDIF
          ELSEIF (encal.EQ.'c') THEN
             WRITE (iprint, 99313) coolingrate
 99313       FORMAT (' Cooling Rate                    : ',1PE12.3, //)

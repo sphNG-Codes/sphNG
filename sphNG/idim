@@ -33,6 +33,14 @@ c
 c      PARAMETER (idustRT = 1)
       PARAMETER (idustRT = 0)
 c
+c--With idustRT = 1, the ioptimise_column parameter determines whether the
+c	column densities are calculated every (half-)timestep (0), 
+c	or less frequently (=1) [ever full timestep or even less often].
+c	Tolerence is set in column_density.F file.
+c
+c      PARAMETER (ioptimise_column = 1)
+      PARAMETER (ioptimise_column = 0)
+c
 c--Type of stellar evolution and feedback
 c     0: No stellar feedback
 c     1: Tout stellar evolution code
@@ -49,14 +57,6 @@ c      PARAMETER (istellarfeedback=3)
 c      PARAMETER (istellarfeedback=4)
 c      PARAMETER (istellarfeedback=5)
 c      PARAMETER (istellarfeedback=6)
-c
-c--With idustRT = 1, the ioptimise_column parameter determines whether the
-c	column densities are calculated every (half-)timestep (0), 
-c	or less frequently (=1) [ever full timestep or even less often].
-c	Tolerence is set in column_density.F file.
-c
-c      PARAMETER (ioptimise_column = 1)
-      PARAMETER (ioptimise_column = 0)
 c
 c--For MHD need to use imhd = idim
 c

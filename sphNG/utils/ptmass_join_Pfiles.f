@@ -7,6 +7,9 @@ c
       CHARACTER*21 infile(nfilemax), outfile
       CHARACTER*1 ians
 
+      REAL*4 rho4,ptmass4
+      INTEGER*2 nactotal2
+
       INTEGER*8 j, imerged1, imerged2
 
       INTEGER*8 listsink_old(1000),listsink_new(1000)
@@ -72,18 +75,18 @@ c      write (*,*) ilow,fftime
             DO i = 1, nptmass
                IF (ians.EQ.'y' .OR. ians.EQ.'Y') THEN
                   READ (ilow, END=200, ERR=200) j, x, y, z, 
-     &                 vx, vy, vz, pmass, rho, 
-     &                 nactotal, ptmassinner,spinx,spiny,spinz,angaddx,
+     &                 vx, vy, vz, pmass, rho4, 
+     &                 nactotal2, ptmass4,spinx,spiny,spinz,angaddx,
      &                 angaddy, angaddz, naccrete, anglostx, anglosty,
      &                 anglostz, nkill
-                  WRITE (17) j, x, y, z, vx, vy, vz,pmass,rho,nactotal,
-     &                 ptmassinner, spinx, spiny, spinz, angaddx, 
+                  WRITE (17) j, x, y, z, vx, vy, vz, pmass, rho4,
+     &                 nactotal2, ptmass4, spinx, spiny, spinz, angaddx,
      &                 angaddy, angaddz, naccrete, anglostx, anglosty,
      &                 anglostz, nkill
                ELSE
                   READ (ilow, END=200,  ERR=200) j, x, y, z, 
-     &                 vx, vy, vz, pmass, rho, 
-     &                 nactotal, ptmassinner,spinx,spiny,spinz,angaddx, 
+     &                 vx, vy, vz, pmass, rho4, 
+     &                 nactotal2, ptmass4,spinx,spiny,spinz,angaddx, 
      &                 angaddy, angaddz, naccrete
 
                   listsink_new(i) = j
@@ -107,8 +110,8 @@ c      write (*,*) ilow,fftime
                      IF (j.EQ.imerged2) imerged2 = 0
                   ENDIF                     
 
-                  WRITE (17) j, x, y, z, vx,vy,vz,pmass,rho,nactotal,
-     &                 ptmassinner, spinx, spiny, spinz, angaddx, 
+                  WRITE (17) j, x, y, z, vx,vy,vz,pmass,rho4,
+     &                 nactotal2, ptmass4, spinx, spiny, spinz, angaddx,
      &                 angaddy, angaddz, naccrete
                ENDIF
             END DO
@@ -150,18 +153,18 @@ c      write (*,*) ilow,fftime
          DO i = 1, nptmass2
             IF (ians.EQ.'y' .OR. ians.EQ.'Y') THEN
                READ (ihi, END=500, ERR=500) j, x, y, z, 
-     &              vx, vy, vz, pmass, rho, 
-     &              nactotal, ptmassinner, spinx, spiny, spinz, angaddx,
+     &              vx, vy, vz, pmass, rho4, 
+     &              nactotal2, ptmass4, spinx, spiny, spinz, angaddx,
      &              angaddy, angaddz, naccrete, anglostx, anglosty,
      &              anglostz, nkill
-               WRITE (17) j, x, y, z, vx, vy, vz, pmass, rho, 
-     &              nactotal, ptmassinner, spinx, spiny, spinz, angaddx, 
+               WRITE (17) j, x, y, z, vx, vy, vz, pmass, rho4, 
+     &              nactotal2, ptmass4, spinx, spiny, spinz, angaddx, 
      &              angaddy, angaddz, naccrete, anglostx, anglosty,
      &              anglostz, nkill
             ELSE
                READ (ihi, END=500, ERR=500) j, x, y, z, 
-     &              vx, vy, vz, pmass, rho, 
-     &              nactotal, ptmassinner, spinx, spiny, spinz, angaddx, 
+     &              vx, vy, vz, pmass, rho4, 
+     &              nactotal2, ptmass4, spinx, spiny, spinz, angaddx, 
      &              angaddy, angaddz, naccrete
 
                listsink_new(i) = j
@@ -182,8 +185,8 @@ c      write (*,*) ilow,fftime
                   END DO
                ENDIF
 
-               WRITE (17) j, x, y, z, vx, vy, vz, pmass, rho, 
-     &              nactotal, ptmassinner, spinx, spiny, spinz, angaddx, 
+               WRITE (17) j, x, y, z, vx, vy, vz, pmass, rho4, 
+     &              nactotal2, ptmass4, spinx, spiny, spinz, angaddx, 
      &              angaddy, angaddz, naccrete
             ENDIF
          END DO
@@ -233,18 +236,18 @@ c      write (*,*) ilow,fftime
             DO i = 1, nptmass
             IF (ians.EQ.'y' .OR. ians.EQ.'Y') THEN
                READ (ilow, END=400, ERR=400) j, x, y, z, 
-     &              vx, vy, vz, pmass, rho, 
-     &              nactotal, ptmassinner, spinx, spiny, spinz, angaddx,
+     &              vx, vy, vz, pmass, rho4, 
+     &              nactotal2, ptmass4, spinx, spiny, spinz, angaddx,
      &              angaddy, angaddz, naccrete, anglostx, anglosty,
      &              anglostz, nkill
-               WRITE (17) j, x, y, z, vx, vy, vz, pmass, rho, nactotal,
-     &              ptmassinner, spinx, spiny, spinz, angaddx, 
+               WRITE (17) j, x, y, z, vx, vy, vz, pmass, rho4, 
+     &              nactotal2, ptmass4, spinx, spiny, spinz, angaddx, 
      &              angaddy, angaddz, naccrete, anglostx, anglosty,
      &              anglostz, nkill
             ELSE
                READ (ilow, END=400, ERR=400) j, x, y, z, 
-     &              vx, vy, vz, pmass, rho, 
-     &              nactotal, ptmassinner, spinx, spiny, spinz, angaddx, 
+     &              vx, vy, vz, pmass, rho4, 
+     &              nactotal2, ptmass4, spinx, spiny, spinz, angaddx, 
      &              angaddy, angaddz, naccrete
 
                listsink_new(i) = j
@@ -266,8 +269,8 @@ c      write (*,*) ilow,fftime
                   IF (j.EQ.imerged2) imerged2 = 0
                ENDIF
 
-               WRITE (17) j, x, y, z, vx, vy, vz, pmass, rho, nactotal,
-     &              ptmassinner, spinx, spiny, spinz, angaddx, 
+               WRITE (17) j, x, y, z, vx, vy, vz, pmass, rho4,
+     &              nactotal2 ,ptmass4, spinx, spiny, spinz, angaddx, 
      &              angaddy, angaddz, naccrete
             ENDIF
             END DO

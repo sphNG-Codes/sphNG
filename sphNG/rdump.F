@@ -832,6 +832,21 @@ c--Default int
          ENDIF
          READ (idisk1, END=100) listpm(icountsink+1:icountsink+nptmass)
 
+         IF (istellarfeedback.EQ.6) THEN
+            IF (nums2(1).EQ.2) THEN
+               IF (tagged) THEN
+                  READ (idisk1, END=100) tagi
+                  CALL checktag('listlyon', tagi, ierr)
+               ENDIF
+               READ (idisk1, END=100)
+     &              listlyon(icountsink+1:icountsink+nptmass)
+            ELSEIF (nptmass.EQ.0) THEN
+               PRINT *,'Found no listlyon array, but nptmass=0 so okay'
+            ELSE
+               CALL quit(0)
+            ENDIF
+         ENDIF
+
 c--int*1
 
 c--int*2

@@ -426,6 +426,7 @@ c--Array length 2 header
 c
       number8 = nptmass
       nums(1) = 1
+      IF (istellarfeedback.EQ.6) nums(1) = nums(1) + 1
       nums(2) = 0
       nums(3) = 0
       nums(4) = 0
@@ -623,6 +624,11 @@ c
 c--Default int
       WRITE (idisk1, ERR=100) tag('listpm')
       WRITE (idisk1, ERR=100) (iorig(listpm(i)), i=1,nptmass)
+
+      IF (istellarfeedback.EQ.6) THEN
+         WRITE (idisk1, ERR=100) tag('listlyon')
+         WRITE (idisk1, ERR=100) (listlyon(i), i=1,nptmass)
+      ENDIF
 c--int*1
 
 c--int*2

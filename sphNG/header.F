@@ -395,17 +395,17 @@ c
 99640          FORMAT('                                 Redshift : ',
      &              1PE9.2)
 99650          FORMAT('    Initial conditions : Fully Atomic', //)
-99651          FORMAT('    Initial conditions : Fully Molecular', //)
+99651          FORMAT('    Initial conditions : Fully Molecular', /)
             ELSE
                WRITE (iprint, 99699)
-99699          FORMAT(' Diffuse ISM model not used', //)
+99699          FORMAT(' Diffuse ISM model not used', /)
             ENDIF
             IF (istellarfeedback.EQ.0) THEN
                WRITE (iprint, 99700)
-99700          FORMAT(' Low-mass stellar feedback not used', //)
+99700          FORMAT(' Low-mass stellar feedback not used', /)
             ELSE
                WRITE (iprint, 99701) istellarfeedback
-99701          FORMAT(' Low-mass stellar feedback type: ',I2, //)
+99701          FORMAT(' Low-mass stellar feedback type : ',I2,/)
             ENDIF
          ELSEIF (encal.EQ.'c') THEN
             WRITE (iprint, 99313) coolingrate

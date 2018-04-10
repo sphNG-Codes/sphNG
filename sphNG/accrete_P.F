@@ -1964,7 +1964,6 @@ c
 c--Merge if pass within some fraction of softening radius
 c
                         IF (r2.LT.(6.0*solarr/udist)**2.0) THEN
-c                        IF (r2.LT.(0.03)**2.0) THEN
 cC$OMP CRITICAL(mergesinks)
                            IF (imerge.EQ.0) THEN
                               imerge = 1
@@ -2104,6 +2103,31 @@ c     &                    pmass2*f1vxyzu(3,iptm2))/totalmass
                      xmomadd(i1list) = 0.0
                      ymomadd(i1list) = 0.0
                      zmomadd(i1list) = 0.0
+c
+c--Treatment of stellar merger with stellar feedback
+c
+                     IF (istellarfeedback.GT.0) THEN
+                        IF (istellarfeedback.EQ.5) THEN
+c
+c--Add stellar masses and the initial disc masses (the latter of which
+c     acts as a normalisation for the accretion rate).  This means
+c     that the disc masses are added (since disc mass is sink particle
+c     mass minus the stellar mass).
+c     The stellar radius and stellar time remain the same as for sink
+c     particle number i1list, and the stellar luminosity remains at 
+c     zero (since it is neglected for istellarfeedback.EQ.5).
+c
+                           stellarmass(i1list) = stellarmass(i1list) +
+     &                          stellarmass(i2list)
+                           diskinit(i1list) = diskinit(i1list) +
+     &                          diskinit(i2list)
+                        ELSE
+                           WRITE (*,*) 'ERROR - stellar merger not ',
+     &                          'possible with istellarfeedback=',
+     &                          istellarfeedback
+                           CALL quit(1)
+                        ENDIF
+                     ENDIF
                   ENDIF
 cC$OMP END CRITICAL(mergesinks)
                         ENDIF
@@ -2189,6 +2213,21 @@ c
                   DO jjj = 1, nptlist(icount)
                      nearpt(jjj,icount) = nearpt(jjj,iii)
                   END DO
+c
+c--For stellar feedback
+c
+                  IF (istellarfeedback.EQ.5) THEN
+                     stellartime(icount) = stellartime(iii)
+                     stellarmass(icount) = stellarmass(iii)
+                     stellarradius(icount) = stellarradius(iii)
+                     stellarluminosity(icount) = stellarluminosity(iii)
+                     diskinit(icount) = diskinit(iii)
+c
+c--Not necessary to do listlyon, but put here as a reminder in case
+c     istellarfeedback.EQ.6 case is done in the future
+c
+                     listlyon(icount) = listlyon(iii)
+                  ENDIF
                ENDIF
             END DO
             nptmass = icount
@@ -2313,7 +2352,7 @@ c            print *,iproc,': Trying to open ',ptfile,' file'
          DO i = 1, nptmass
             j = listpm(i)
             IF (ibound.EQ.8 .OR. ibound/10.EQ.9) THEN
-               IF (istellarfeedback.EQ.5.OR.6) THEN
+               IF (istellarfeedback.EQ.5 .OR. istellarfeedback.EQ.6)THEN
                   WRITE (iptprint)iunique(iorig(j)),
      &              xyzmh(1,j),xyzmh(2,j),xyzmh(3,j),vxyzu(1,j),
      &              vxyzu(2,j),vxyzu(3,j),xyzmh(4,j),rho(j),nactotal(i),
@@ -2333,7 +2372,7 @@ c            print *,iproc,': Trying to open ',ptfile,' file'
      &              naccretetot,anglostx,anglosty,anglostz,nkill
                ENDIF
             ELSE
-               IF (istellarfeedback.EQ.5.OR.6) THEN
+               IF (istellarfeedback.EQ.5 .OR. istellarfeedback.EQ.6)THEN
                   WRITE (iptprint)iunique(iorig(j)),
      &              xyzmh(1,j),xyzmh(2,j),xyzmh(3,j),vxyzu(1,j),
      &              vxyzu(2,j),vxyzu(3,j),xyzmh(4,j),rho(j),nactotal(i),

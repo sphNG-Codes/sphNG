@@ -28,7 +28,6 @@ c************************************************************
 
       LOGICAL ifirst
       DATA ifirst/.TRUE./
-      CHARACTER*5 name
 
 c      DATA maxsize/10000000/
 
@@ -52,50 +51,7 @@ c      CLOSE (idisk1)
 c  Do not increment the name on initialization. Needed for MPI set ups to match
 c     non-MPI.
       IF (job(1:7).NE.'initial') THEN
-      IF ((file1(4:4).GE.'0') .AND. (file1(4:4).LE.'9') .AND. 
-     &     (file1(5:5).GE.'0') .AND. (file1(5:5).LE.'9')) THEN
-         READ (file1, 99303) name, inum
-99303    FORMAT (A3, I4)
-         inum = inum + 1
-         iadd = 0
-         IF (inum.LE.9) THEN
-            WRITE (file1, 99311) name, iadd, iadd, iadd, inum
-99311       FORMAT (A3, I1, I1, I1, I1)
-         ELSEIF (inum.LE.99) THEN
-            WRITE (file1, 99312) name, iadd, iadd, inum
-99312       FORMAT (A3, I1, I1, I2)
-         ELSEIF (inum.LE.999) THEN
-            WRITE (file1, 99313) name, iadd, inum
-99313       FORMAT (A3, I1, I3)
-         ELSE
-            WRITE (file1, 99303) name, inum
-         ENDIF
-      ELSEIF ((file1(5:5).GE.'0') .AND. (file1(5:5).LE.'9')) THEN
-         READ (file1, 99403) name, inum
-99403    FORMAT (A4, I3)
-         inum = inum + 1
-         iadd = 0
-         IF (inum.LE.9) THEN
-            WRITE (file1, 99411) name, iadd, iadd, inum
-99411       FORMAT (A4, I1, I1, I1)
-         ELSEIF (inum.LE.99) THEN
-            WRITE (file1, 99412) name, iadd, inum
-99412       FORMAT (A4, I1, I2)
-         ELSE
-            WRITE (file1, 99403) name, inum
-         ENDIF
-      ELSE
-         READ (file1, 99502) name, inum
-99502    FORMAT (A5, I2)
-         inum = inum + 1
-         IF (inum.LE.9) THEN
-            iadd = 0
-            WRITE (file1, 99511) name, iadd, inum
-99511       FORMAT (A5, I1, I1)
-         ELSE
-            WRITE (file1, 99502) name, inum
-         ENDIF
-      ENDIF
+         CALL increment_dump_filename(file1)
       ENDIF
 
 #ifdef MPI
@@ -147,4 +103,58 @@ c
 
 c 100  CONTINUE
       RETURN
+      END
+c
+c====================================================================
+c
+      SUBROUTINE increment_dump_filename(file1)
+
+      CHARACTER*11 file1
+      CHARACTER*5 name
+
+      IF ((file1(4:4).GE.'0') .AND. (file1(4:4).LE.'9') .AND. 
+     &     (file1(5:5).GE.'0') .AND. (file1(5:5).LE.'9')) THEN
+         READ (file1, 99303) name, inum
+99303    FORMAT (A3, I4)
+         inum = inum + 1
+         iadd = 0
+         IF (inum.LE.9) THEN
+            WRITE (file1, 99311) name, iadd, iadd, iadd, inum
+99311       FORMAT (A3, I1, I1, I1, I1)
+         ELSEIF (inum.LE.99) THEN
+            WRITE (file1, 99312) name, iadd, iadd, inum
+99312       FORMAT (A3, I1, I1, I2)
+         ELSEIF (inum.LE.999) THEN
+            WRITE (file1, 99313) name, iadd, inum
+99313       FORMAT (A3, I1, I3)
+         ELSE
+            WRITE (file1, 99303) name, inum
+         ENDIF
+      ELSEIF ((file1(5:5).GE.'0') .AND. (file1(5:5).LE.'9')) THEN
+         READ (file1, 99403) name, inum
+99403    FORMAT (A4, I3)
+         inum = inum + 1
+         iadd = 0
+         IF (inum.LE.9) THEN
+            WRITE (file1, 99411) name, iadd, iadd, inum
+99411       FORMAT (A4, I1, I1, I1)
+         ELSEIF (inum.LE.99) THEN
+            WRITE (file1, 99412) name, iadd, inum
+99412       FORMAT (A4, I1, I2)
+         ELSE
+            WRITE (file1, 99403) name, inum
+         ENDIF
+      ELSE
+         READ (file1, 99502) name, inum
+99502    FORMAT (A5, I2)
+         inum = inum + 1
+         IF (inum.LE.9) THEN
+            iadd = 0
+            WRITE (file1, 99511) name, iadd, inum
+99511       FORMAT (A5, I1, I1)
+         ELSE
+            WRITE (file1, 99502) name, inum
+         ENDIF
+      ENDIF
+
       END

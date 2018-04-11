@@ -66,6 +66,7 @@ c      INCLUDE 'COMMONS/rad2'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/fullstep'
       INCLUDE 'COMMONS/rtstat'
+      INCLUDE 'COMMONS/lyonfiles'
 
 #ifdef MPICOPY
       INCLUDE 'COMMONS/mpicopy'
@@ -839,8 +840,11 @@ c               PRINT *, 'DISK MODEL DISABLED'
                   iptnlyon = listlyon(iptn)
 
                   CALL evollyon(nflag,iptnlyon,evolveto,accrate,
-     &            lyonradius(iptn),lyonluminosity(iptn),
-     &            lyontime(iptn),lyonmass(iptn))
+     &                 lyonradius(iptn),lyonluminosity(iptn),
+     &                 lyontime(iptn),lyonmass(iptn),
+     &                 file_stellarmodel_in,file_stellarmodel_out)
+
+                  file_stellarmodel_in = file_stellarmodel_out
 
                   stellartime(iptn) = lyontime(iptn)
                   stellarmass(iptn) = lyonmass(iptn)*solarm
@@ -875,12 +879,15 @@ c               PRINT *, 'DISK MODEL DISABLED'
                   nflag = 99 
                   evolveto = stellartime(iptn)+dtstep
                   accrate = accrate/solarm*31557600.0
-                  epsilon = 0.05
+                  epsilon = 0.02
                   iptnlyon = listlyon(iptn)
 
                   CALL evollyon(nflag,iptnlyon,evolveto,accrate,
-     &            lyonradius(iptn),lyonluminosity(iptn),
-     &            lyontime(iptn),lyonmass(iptn))
+     &                 lyonradius(iptn),lyonluminosity(iptn),
+     &                 lyontime(iptn),lyonmass(iptn),
+     &                 file_stellarmodel_in,file_stellarmodel_out)
+
+                  file_stellarmodel_in = file_stellarmodel_out
 
                   stellartime(iptn) = lyontime(iptn)
                   stellarmass(iptn) = lyonmass(iptn)*solarm

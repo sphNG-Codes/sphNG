@@ -52,6 +52,8 @@ c************************************************************
       INCLUDE 'COMMONS/nonideal'
       INCLUDE 'COMMONS/eosq'
 #endif
+      INCLUDE 'COMMONS/files'
+      INCLUDE 'COMMONS/lyonfiles'
 
       CHARACTER*7 where, where2
 c
@@ -402,6 +404,19 @@ c         IF (nbuild.EQ.1 .OR. MOD(ncount, nstep).EQ.0 .OR.
             CALL file
 #endif
             CALL wdump_wrapper(idisk1)
+c
+c--For stellar evolution code, need to make file name to store stellar
+c     evolution model that is appropriate for the *next* dump file.
+c     This file will be used to store the stellar model in going
+c     from the current dump to the next dump, with the last write to
+c     this file containing the state of the stellar model when the
+c     next dump file is written.
+c
+            IF (istellarfeedback.EQ.6) THEN
+               file_stellarmodel_in = file1
+               file_stellarmodel_out = file1
+               CALL increment_dump_filename(file_stellarmodel_out)
+            ENDIF
          ENDIF
 
 #ifdef DGRID

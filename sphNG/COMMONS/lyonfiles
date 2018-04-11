@@ -1,0 +1,2 @@
+      CHARACTER*11 file_stellarmodel_in,file_stellarmodel_out
+      COMMON /lyonfiles/ file_stellarmodel_in,file_stellarmodel_out

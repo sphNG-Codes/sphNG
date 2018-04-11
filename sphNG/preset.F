@@ -68,6 +68,7 @@ c************************************************************
       INCLUDE 'COMMONS/physcon'
 #endif
       INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/lyonfiles'
 
       CHARACTER*7 where
       CHARACTER*6 dummy
@@ -105,6 +106,15 @@ c
          CALL rdump_wrapper(idisk1, ichkl, 0)
          CLOSE (idisk1)
          IF (ichkl.EQ.1) CALL error(where, ichkl)
+c
+c--For stellar evolution code, need to make file name to store stellar
+c     evolution model that is appropriate for the *next* dump file.
+c
+         IF (istellarfeedback.EQ.6) THEN
+            file_stellarmodel_in = file1
+            file_stellarmodel_out = file1
+            CALL increment_dump_filename(file_stellarmodel_out)
+         ENDIF
 c
 c--Open point mass data output file
 c

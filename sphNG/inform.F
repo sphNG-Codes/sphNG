@@ -413,9 +413,13 @@ c     this file containing the state of the stellar model when the
 c     next dump file is written.
 c
             IF (istellarfeedback.EQ.6) THEN
-               file_stellarmodel_in = file1
-               file_stellarmodel_out = file1
-               CALL increment_dump_filename(file_stellarmodel_out)
+               DO i = 1, nptmass
+                  file_stellarmodel_in(i) = file1
+                  file_stellarmodel_out(i) = file1
+                  CALL increment_dump_filename(file_stellarmodel_out(i))
+               END DO
+               file_stellarmodel_new = file1
+               CALL increment_dump_filename(file_stellarmodel_new)
             ENDIF
          ENDIF
 

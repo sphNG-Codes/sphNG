@@ -343,6 +343,9 @@ c
                lyonluminosity(iptn) = 0.0
                listlyon(iptn) = nptmasstot
 
+               file_stellarmodel_in(iptn) = file_stellarmodel_new
+               file_stellarmodel_out(iptn) = file_stellarmodel_new
+
             ELSE
                WRITE (iprint,*) 'ERROR - istellarfeedback ',
      &              istellarfeedback
@@ -842,9 +845,11 @@ c               PRINT *, 'DISK MODEL DISABLED'
                   CALL evollyon(nflag,iptnlyon,evolveto,accrate,
      &                 lyonradius(iptn),lyonluminosity(iptn),
      &                 lyontime(iptn),lyonmass(iptn),
-     &                 file_stellarmodel_in,file_stellarmodel_out)
+     &                 file_stellarmodel_in(iptn),
+     &                 file_stellarmodel_out(iptn))
 
-                  file_stellarmodel_in = file_stellarmodel_out
+                  file_stellarmodel_in(iptn) = 
+     &                 file_stellarmodel_out(iptn)
 
                   stellartime(iptn) = lyontime(iptn)
                   stellarmass(iptn) = lyonmass(iptn)*solarm
@@ -885,9 +890,11 @@ c               PRINT *, 'DISK MODEL DISABLED'
                   CALL evollyon(nflag,iptnlyon,evolveto,accrate,
      &                 lyonradius(iptn),lyonluminosity(iptn),
      &                 lyontime(iptn),lyonmass(iptn),
-     &                 file_stellarmodel_in,file_stellarmodel_out)
+     &                 file_stellarmodel_in(iptn),
+     &                 file_stellarmodel_out(iptn))
 
-                  file_stellarmodel_in = file_stellarmodel_out
+                  file_stellarmodel_in(iptn) = 
+     &                 file_stellarmodel_out(iptn)
 
                   stellartime(iptn) = lyontime(iptn)
                   stellarmass(iptn) = lyonmass(iptn)*solarm
@@ -915,14 +922,14 @@ c               PRINT *, 'DISK MODEL DISABLED'
 
                ENDIF
 
-               PRINT *, 'stellartime (yr) = ',
-     &         stellartime(iptn)
-               PRINT *, 'stellarmass (Msun) = ',
-     &         stellarmass(iptn)/solarm
-               PRINT *, 'stellarradius (Rsun) = ',
-     &         stellarradius(iptn)/solarr
-               PRINT *, 'stellarluminosity (Lsun) = ',
-     &         stellarluminosity(iptn)/solarl
+c               PRINT *, 'stellartime (yr) = ',
+c     &         stellartime(iptn)
+c               PRINT *, 'stellarmass (Msun) = ',
+c     &         stellarmass(iptn)/solarm
+c               PRINT *, 'stellarradius (Rsun) = ',
+c     &         stellarradius(iptn)/solarr
+c               PRINT *, 'stellarluminosity (Lsun) = ',
+c     &         stellarluminosity(iptn)/solarl
 
             ENDIF
 c

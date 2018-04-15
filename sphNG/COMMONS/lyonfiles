@@ -1,2 +1,5 @@
-      CHARACTER*11 file_stellarmodel_in,file_stellarmodel_out
-      COMMON /lyonfiles/ file_stellarmodel_in,file_stellarmodel_out
+      CHARACTER*11 file_stellarmodel_new,
+     &		   file_stellarmodel_in,file_stellarmodel_out
+      COMMON /lyonfiles/ file_stellarmodel_new,
+     &	     file_stellarmodel_in(iptdim),
+     &	     file_stellarmodel_out(iptdim)

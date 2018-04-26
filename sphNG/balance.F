@@ -1785,6 +1785,20 @@ c
                xmomadd(nptmass) = xmomadd(ipt)
                ymomadd(nptmass) = ymomadd(ipt)
                zmomadd(nptmass) = zmomadd(ipt)
+
+               IF (istellarfeedback.GE.5) THEN
+                  ptmassform(nptmass) = ptmassform(ipt)
+                  diskinit(nptmass) = diskinit(ipt)
+                  stellartime(nptmass) = stellartime(ipt)
+                  stellarmass(nptmass) = stellarmass(ipt)
+                  stellarradius(nptmass) = stellarradius(ipt)
+                  stellarluminosity(nptmas) = stellarluminosity(ipt)
+                  lyontime(nptmass) = lyontime(ipt)
+                  lyonmass(nptmass) = lyonmass(ipt)
+                  lyonradius(nptmass) = lyonradius(ipt)
+                  lyonluminosity(nptmass) = lyonluminosity(ipt)
+                  listlyon(nptmass) = listlyon(ipt)
+               ENDIF
             ENDIF
          END DO
       ELSE

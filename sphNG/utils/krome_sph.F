@@ -27,6 +27,7 @@ c*******************************************************************
 #ifdef KROMEMPI
       INCLUDE 'mpif.h'
 #endif
+      INCLUDE 'omp_lib.h'
       INCLUDE 'idim'
       INCLUDE 'COMMONS/kromevar'
       INCLUDE 'igrape'
@@ -44,7 +45,7 @@ c*******************************************************************
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/interstellar'
       
-      INTEGER  maxdumps,istart,iend
+      INTEGER  maxdumps,istart,iend,iostat
       PARAMETER (maxdumps=400)
       REAL denscut
       PARAMETER (denscut=5.d-5)
@@ -58,34 +59,48 @@ c*******************************************************************
       INTEGER n,k,niter,sdumpfreq,nskipped,fdumpfreq,inew(idim2)
       INTEGER ioutinfo,iindump,itime,kstart,iunique_orig(idim2)
       LOGICAL init_from_dump,havefile,restart,fixed_dt,found
+      LOGICAL prv_uncnvgd
       CHARACTER*6 ctime
       CHARACTER*40 fdumpname
-      REAL*8 mfracs_orig(krome_nmols,idim)
+      REAL*8 mfracs_orig(krome_nmols,idim),ltlastconv(idim)
       CHARACTER*1 cdump
       PARAMETER (spy = 3.1536d7) !seconds per year
-      INTEGER iphasecount
-#ifdef KROMEMPI
-      INTEGER master,status(MPI_STATUS_SIZE),bufflen,inumber
-      PARAMETER (bufflen = krome_nmols*idim/2)
+      PARAMETER(ioutinfo = 21)
+      INTEGER iphasecount,rank,master
       PARAMETER (MASTER=0)
-      INTEGER ierr,nproc,rank,lchunksize,chunksize,buffnum,count
+      INTEGER*4 numfails_orig(idim)
+#ifdef KROMEMPI
+      INTEGER status(MPI_STATUS_SIZE),bufflen,inumber
+      PARAMETER (bufflen = krome_nmols*idim/2)
+      INTEGER ierr,nproc,lchunksize,chunksize,buffnum,count
       INTEGER totskipped,totipcount
       REAL*8 buffer(bufflen)
       call mpi_init(ierr)
       call mpi_comm_rank(MPI_COMM_WORLD,rank,ierr)
       call mpi_comm_size(MPI_COMM_WORLD,nproc,ierr)
+#else 
+      rank = 0
 #endif 
      
-      WRITE(*,*) "Beginning with:",krome_nmols, "molecules"
+      IF (rank .EQ. MASTER) THEN
+         WRITE(*,*) "Beginning with:", krome_nmols, "molecules"
+C$OMP PARALLEL
+         IF (OMP_GET_THREAD_NUM() .eq. 0) THEN
+C$       WRITE(*,*) "Using", OMP_GET_NUM_THREADS(), "openMP threads."
+         END IF
+C$OMP END PARALLEL
+      END IF
+
+      tlastconv = 0.
       imax = 1073741824
       ifulldump = 0
       nfullstep = 1
-      parunit = 1
+      parunit = 11
       iout = 12
       iindump = 13
-      ioutinfo = 14
       maxrec = 100 * idim
       ktime = 0d0 !seconds
+      numfails = 0
 c     usekrome is an INT looked at by rdump and wdump
 c     usekrome = 0 read normal non-chem dump
 c     usekrome = 1 write chemistry to dump from dumpmols (no mhd)
@@ -95,52 +110,79 @@ c                  write chemistry without mhd data
 
 c     write small dump every sdumpfreq iterations
       init_from_dump = .False.
-      nskipped=0
+      nskipped = 0
       
-      WRITE(*,*) "Getting molecule names from krome"
+c      WRITE(*,*) "Getting molecule names from krome"
       molnames = get_names()
-      WRITE(*,*) "Found molecule names"
+c      WRITE(*,*) "Found molecule names"
       CALL unit
 c-- Read list of dumpfiles
       CALL readparams(parunit,maxdumps,numdumps,filelist,dt,niter,
      &     sdumpfreq,fdumpfreq,restart,infofile,fixed_dt,init_dt)
+      IF (fixed_dt) THEN
+         dt = dt * spy
+      END IF
       WRITE(*,*) "Finished reading parameters"
       CALL checkfilespresent(maxdumps,filelist,infofile,restart)
-
+#ifdef KROMEMPI
+      CALL MPI_BARRIER(MPI_COMM_WORLD,IERR)
+#endif
       IF (restart) THEN
-               OPEN (UNIT=ioutinfo,FILE=infofile,FORM ='formatted',
-     &        STATUS="old", POSITION="append")         
-               WRITE(ioutinfo,"(/,A,/)") "RESTARTED"
-               CALL readtime(ktime,k,filelist(1),infofile,spy)
+         CALL readtime(ktime,k,filelist(1),infofile,spy)
+#ifdef KROMEMPI
+         CALL MPI_BARRIER(MPI_COMM_WORLD,IERR)
+#endif
+         IF (rank .EQ.MASTER) THEN
+            OPEN (UNIT=ioutinfo,FILE=infofile,FORM ='formatted',
+     &           STATUS="old",POSITION="append",ACTION="write",
+     &           IOSTAT=iostat)
+            IF (iostat .NE. 0) THEN
+               PRINT *, "ERROR opening", infofile
+               CALL QUIT(1)
+            END IF
+            print *, "Restarted. Master opened", infofile
+            WRITE(ioutinfo,"(/,A9,/)") "RESTARTED"
+         END IF
       ELSE
-               OPEN (UNIT=ioutinfo,FILE=infofile,FORM ='formatted',
-     &        STATUS="replace")         
-               write(ioutinfo,*) "PARAMETERS:"
-               IF (imhd.EQ.idim) then
-                  write(ioutinfo,*) "MHD run"
-               ELSE IF (imhd.EQ.1) then
-                  write(ioutinfo,*) "Not MHD"
-               ELSE
-                  write(ioutinfo,*) "Not MHD but imhd .NE. 1"
-               ENDIF
-               IF (iradtrans.EQ.idim) then
-                  write(ioutinfo,*) "RT run"
-               ENDIF
-               IF (idustRT.GT.0) then
-                  write(ioutinfo,*) "Dust RT"
-               ENDIF
-               write(ioutinfo,*) "udist", udist
-       END IF
-
-      IF (fixed_dt) THEN
-         WRITE(ioutinfo,*) "Files:", (filelist(i),i=1,numdumps) 
-         WRITE(ioutinfo,"(A,F9.1,X,A,I0)") "dt=",dt,"niter=",niter
-      ELSE
-         WRITE(ioutinfo,"(A)") "dt set from dumps"
-         WRITE(ioutinfo,"(A,F9.1)") "Initial timestep:", init_dt
+         IF (rank .eq. MASTER) THEN
+            PRINT *, "new run, master opening infofile"
+            OPEN(UNIT=ioutinfo,FILE=infofile,FORM='formatted',
+     &           STATUS="replace",IOSTAT=iostat)
+            IF (iostat .NE. 0) THEN
+               PRINT *, "Error ioutinfo"
+               CALL QUIT(0)
+            END IF
+            write(ioutinfo,*) "PARAMETERS:"
+            IF (imhd.EQ.idim) then
+               write(ioutinfo,*) "MHD run"
+            ELSE IF (imhd.EQ.1) then
+               write(ioutinfo,*) "Not MHD"
+            ELSE
+               write(ioutinfo,*) "Not MHD but imhd .NE. 1"
+            ENDIF
+            IF (iradtrans.EQ.idim) then
+               write(ioutinfo,*) "RT run"
+            ENDIF
+            IF (idustRT.GT.0) then
+               write(ioutinfo,*) "Dust RT"
+            ENDIF
+            write(ioutinfo,*) "udist", udist
+         END IF
       END IF
+      
+      IF (rank .EQ. MASTER) THEN
+         IF (fixed_dt) THEN
+            WRITE(ioutinfo,*) "Files:", (filelist(i),i=1,numdumps) 
+            WRITE(ioutinfo,"(A,F9.1,X,A,I0)") "dt=",dt/spy,
+     &           "niter=",niter
+         ELSE
+            WRITE(ioutinfo,"(A)") "dt set from dumps"
+            WRITE(ioutinfo,"(A,F9.1)") "Initial timestep:", init_dt
+         END IF
+      END IF
+
       varmhd = 'Brho'
-      WRITE(*,*) "Initialising krome"
+      IF (rank .EQ. MASTER) WRITE(*,*) "Initialising krome"
       CALL krome_init()
 
 c-----
@@ -149,7 +191,6 @@ c----- Beginning of loop over filelist
         WRITE(*,"(A,X,A)") "FILE:", filelist(idump)
 c---  initialise whole mfracs array to 0      
         mfracs = 0d0
-
 c        WRITE(*,*) (mfracs_orig(krome_idx_H2,i),i=50,150)
         usekrome = 0
 c ---- Determine kind of dump to read and set chem dumpfile name
@@ -171,13 +212,12 @@ c          usekrome = 3
 c ---- Read dumpfile      
         OPEN (UNIT=iindump,FILE=filelist(idump),FORM ='unformatted',
      &        RECL=maxrec,SHARED,ACTION='read')
-        WRITE (*,*) 'File open; usekrome =', usekrome
+c        WRITE (*,*) 'File open; usekrome =', usekrome
         CALL rdump(iindump, ichkl, 0)
         CLOSE(iindump)
-        WRITE(*,"(A,X,I0,X,A)") "Read", npart,"particles"
-        WRITE(*,"(A7,X,A,X,E9.2,A)") filelist(idump),"sphNG time= ",
-     &       gt*utime/spy,"years"
-
+        WRITE(*,284) filelist(idump),"sphNG time= ",
+     &       gt*utime/spy,"years. Read", npart,"particles."
+ 284    FORMAT(A7,X,A,X,E9.2,A,I0,A)
         DO i=1,npart
            isort(i) = i
 c     --- Now wipe dead particles' iuniques so live particles aren't
@@ -208,6 +248,7 @@ c           npart = 200000 ! for testing
 c        if idump > 1 iunique_orig is previous dump      
 c     ---  i.e. iunique_orig(i) = iunique(i) for all i
            iunique_orig = iunique
+           numfails_orig = numfails
            IF (restart .AND. .NOT. fixed_dt) THEN
               mfracs_orig = mfracs
              CYCLE
@@ -242,7 +283,7 @@ C$OMP END PARALLEL DO
           print *, (mfracs_orig(krome_idx_H2,inew(i)),i=1,50)
            OPEN(UNIT=32,FILE="newunique"//cdump,FORM='formatted',
      &        STATUS='replace')
-           WRITE(32,'(2I0)') (iunique(i),iphase(i),i=1,40)
+           WRITE(32,'(2(I0,X))') (iunique(i),iphase(i),i=1,40)
            CLOSE(32)
            OPEN(UNIT=31,FILE="oldunique"//cdump,FORM='formatted',
      &          STATUS='replace')
@@ -252,8 +293,8 @@ C$OMP END PARALLEL DO
            PRINT *, "OLD H2:", mfracs_orig(krome_idx_H2,inew(23)),
      &          iunique_orig(inew(23)),iunique(23),iphase(23)
 
-           PRINT *, "particle 500000", mfracs_orig(krome_idx_H2,
-     &          inew(500000))
+c           PRINT *, "particle 500000", mfracs_orig(krome_idx_H2,
+c     &          inew(500000))
         END IF
 
 c Test order
@@ -281,52 +322,69 @@ c      write(*,*) "user crate=", krome_get_user_crate()
 c---- get init_x = init abundance rel to H nuclei     
         IF (idump.EQ.1 .AND..NOT. init_from_dump ) THEN
            CALL get_init_abunds(krome_nmols,init_x)
-           WRITE(ioutinfo,*) "Initial Mass Fractions:"
-           DO j=1,krome_nmols
-              WRITE(ioutinfo,"(A12,E16.5)") molnames(j),init_x(j) 
-           END DO
-        ELSE IF (idump.EQ.1 .AND. init_from_dump) THEN
+c           CALL MPI_Barrier(MPI_COMM_WORLD,IERR)
+           IF (rank .EQ. MASTER) THEN
+              WRITE(ioutinfo,*) "Using", krome_nmols, "species."
+              WRITE(ioutinfo,*) "Initial Mass Fractions:"
+              WRITE(ioutinfo,*) ("j=",j,molnames(j),j=1,krome_nmols) 
+c              WRITE(ioutinfo,286) 
+c     &             (j,molnames(j),init_x(j),j=1,krome_nmols) 
+             WRITE(ioutinfo,*) (j,init_x(j),j=1,krome_nmols) 
+             WRITE(ioutinfo,287) "File","Time","Iter No."
+           END IF
+        ELSE IF (idump.EQ.1 .AND. init_from_dump .AND.
+     &          (rank .EQ. MASTER) ) THEN
            WRITE(ioutinfo,*) "Initialising mass fractions from dump"
-        ENDIF
+           WRITE(ioutinfo,287) "File","Time","Iter No."
+        END IF
+ 286    FORMAT(I4,XA12,E11.4)
+ 287    FORMAT(/,A,6X,A,6X,A,/)
+#ifdef KROMEMPI
+        CALL MPI_Barrier(MPI_COMM_WORLD,IERR)
+#endif
 
-        WRITE(ioutinfo,"(/,A,6X,A,6X,A/)") "File", "Time", "Iter No."
-        PRINT *, "idump= ", idump
+        IF (rank .EQ. MASTER) PRINT *, "idump= ", idump
 
 c---  Set timestep local_dt used to call KROME
 c---  Local_dt in SECONDS
         IF (fixed_dt) THEN
-           local_dt = dt * spy
+           dt = dt
         ELSE if (idump.EQ.1 .AND. .NOT. restart) THEN
-           local_dt = init_dt * spy
+           dt = init_dt * spy
         ELSE
-           local_dt = (gt * utime) - ktime 
+           dt = (gt * utime) - ktime + (init_dt*spy) 
         END IF
 
 c--   Loop to run chemistry more than once on dumpfile, dumping
 c--   after each run
         DO k=kstart, niter
            nskipped = 0
+           ltlastconv = 0.
+           numfails = 0
            WRITE (*,104) "Iteration number: ",k,"of",niter,"for file",
      &          filelist(idump)
  104       FORMAT (A,X,I0,X,A,X,I0,A,X,A7)
            
            WRITE (*,*) "Beginning at krometime t=", ktime/spy,
-     &          "timestep = ", local_dt/spy
+     &          "sph time", gt*utime/spy,
+     &          "min timestep = ", dt/spy
 
            iphasecount = 0
 c     Main loop over particles to initialise mass fracs and call krome
 c     
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(rho,ekcle,mfracs,vxyzu,udens,npart,iunique,iunique_orig,
-C$OMP& iphase,k,init_from_dump,dust_tk,heatingISR,init_x,nskipped,
-C$OMP& idump,mfracs_orig,inew,local_dt,istart,iend,iphasecount)
-C$OMP& private(i,j,Tgas,rhoi,x,Av)
- 
+C$OMP& iphase,k,init_from_dump,dust_tk,heatingISR,init_x, init_dt,
+C$OMP& idump,mfracs_orig,inew,local_dt,istart,iend,iphasecount,
+C$OMP& tlastconv,ltlastconv,ktime,numfails,numfails_orig,dt,gt,utime)
+C$OMP& private(i,j,Tgas,rhoi,x,Av,prv_uncnvgd) reduction(+ : nskipped)
+
            DO i=istart, iend
-              IF (MOD(i,10000) .EQ. 0) THEN
+              IF (MOD(i,100000) .EQ. 0) THEN
                  PRINT *, "particle", i,"of",npart,"nskipped=",nskipped
               END IF
-
+              local_dt = dt
+              prv_uncnvgd = .False.
               IF (iphase(i) .NE. 0) THEN
 c                 PRINT *, "skipping iunique",iunique(i),"due to iphase",
 c     &                iphase(i)
@@ -347,14 +405,12 @@ c     ----     Use mass fracs from prev krome run(same dump) or full_dump
                  DO j=1, krome_nmols
                     x(j) = mfracs(j,i)
                  END DO
-c           PRINT *, "x = mfracs"
               ELSE IF ( k.EQ.1 ) THEN   
                  DO j=1, krome_nmols 
                     x(j) = init_x(j)
                  END DO
-c           print *, "init,xh2=", x(krome_idx_H2) 
               ELSE
-                 print *, "ERROR- don't know init mfracs!"
+                 PRINT *, "ERROR: don't know init mfracs!"
                  STOP
               END IF
          
@@ -362,7 +418,7 @@ c           print *, "init,xh2=", x(krome_idx_H2)
                  DO j=1, krome_nmols
                     mfracs(j,i) = 0d0
                  END DO
-                 print *, "skipping due to imhd"
+c                 print *, "skipping due to imhd"
                  CYCLE
               END IF
               
@@ -374,21 +430,29 @@ c           print *, "init,xh2=", x(krome_idx_H2)
               Tgas = DBLE(vxyzu(4,i)/ekcle(3,i))
 
               rhoi = DBLE(rho(i) * udens)
-              IF (rhoi .GT. 4d-11) THEN
-                 DO j=1, krome_nmols
-                    mfracs(j,i) = 0d0
-                 END DO
-c            print *, "chem dens cut" 
-c$OMP ATOMIC
+c     --- skip particles over density cut or that have failed more
+c     --- than 5 times (not necessarily in a row)
+              IF ((rhoi .GT. 1d-10) .OR. 
+     &             (numfails_orig(inew(i)) .GT. 5)) THEN
+                 mfracs(:,i) = mfracs_orig(:,inew(i))
+                 ltlastconv(i) = tlastconv(inew(i))
+                 numfails(i) = numfails_orig(inew(i)) + 1
                  nskipped = nskipped + 1
                  CYCLE
+              ELSE IF (tlastconv(inew(i)) .LT. ktime/spy) THEN
+                 local_dt = (gt * utime) - tlastconv(inew(i))*spy
+     &                + (init_dt * spy)
+                 prv_uncnvgd = .True.
+                 PRINT *, "previously unconverged",
+     &                numfails_orig(inew(i)),"times. New dt ",
+     &                local_dt/spy 
               ELSE IF (x(krome_idx_H2) .LT. tiny) THEN
-c             ELSE IF (ALL(x.eq.0.d0)) THEN
 c-------- If H2 abundance=zero then it must have been set so            
-c$OMP ATOMIC
+c -- Keep this condition because if first dump run (t=0) doesn't converge
+c -- it's gonna be zero.
                  nskipped = nskipped + 1
 
-                 PRINT *, "skipping H2 = 0,iphase=",iphase(i),"i=", i,
+                 PRINT *, "skipping H2 = 0, iphase=",iphase(i),"i=", i,
      &                "i prev=",inew(i),iunique_orig(inew(i)),iunique(i)
                  CYCLE
               END IF
@@ -408,31 +472,42 @@ c$OMP ATOMIC
               CALL krome_set_user_crate(1.3d-17)         
               CALL krome_set_user_rhogas(rhoi)
 
-c         WRITE(*,*) "calling krome:"
 c         WRITE(*,*) "rho, T, AV,dt", rhoi,Tgas,Av, local_dt/spy
-c------- CALLING KROME
               CALL krome(x,rhoi,Tgas,local_dt)
-cfor testing
-c              DO j=1, krome_nmols
-c                 x(j) = i*10.d0
-c              END DO
 c-------Update mfracs array
-              DO j=1, krome_nmols
-                 mfracs(j,i) = x(j)
-              END DO
-
-c         print *, "Graintot", 
-c     &        x(krome_idx_GRAIN0)+x(krome_idx_GRAINk),Tgas,rhoi
+c --- x(:) comes back from krome as 0 if not converged -> revert back to 
+c --- previous abundances
+              IF (x(krome_idx_H2) .GT. 0. ) THEN 
+                 DO j=1, krome_nmols
+                    mfracs(j,i) = x(j)
+                 END DO
+c     ---      set ltlastconv to ktime reached (i.e. +dt NOT +localdt)
+                 ltlastconv(i) = (ktime + dt)/spy
+                 IF (prv_uncnvgd) THEN
+                    numfails(i) = 0
+                 END IF
+              ELSE
+                 DO j=1,krome_nmols
+                    mfracs(j,i) = mfracs_orig(j,inew(i))
+                 END DO
+                 ltlastconv(i) = tlastconv(inew(i))
+                 numfails(i) = numfails_orig(inew(i)) + 1
+                 print *, "particle",i,"didn't converge",
+     &                "H2", mfracs(krome_idx_H2,i),
+     &                tlastconv(inew(i)),"failed ", numfails(i),
+     &                "times."
+                 nskipped = nskipped + 1
+             END IF
            END DO
 C$OMP END PARALLEL DO
 c     --- End of loop over i particles
 
 c     ---  Update time
-           IF ( (idump.GT.1.AND..NOT.restart) .OR.restart ) THEN
-              ktime = ktime + local_dt
-           ELSE
-              ktime = 0d0
-           END IF
+c           IF ( (idump.GT.1.AND..NOT.restart) .OR.restart ) THEN
+              ktime = ktime + dt
+c           ELSE
+c              ktime = 0d0
+c           END IF
 
 #ifdef KROMEMPI           
            IF (rank .EQ. MASTER) THEN
@@ -463,7 +538,7 @@ c     ---  Update time
           ELSE
 
              DO i=istart, iend
-                CALL MPI_SEND(mfracs(1,i),krome_nmols,
+                CALL MPI_Ssend(mfracs(1,i),krome_nmols,
      &             MPI_REAL8,MASTER,1,MPI_COMM_WORLD,ierr)
              END DO
              PRINT *, "Rank", rank, " sending",istart,
@@ -475,58 +550,69 @@ c     ---  Update time
 
           CALL MPI_Reduce(iphasecount,totipcount,1,MPI_INTEGER,
      &         MPI_SUM,MASTER,MPI_COMM_WORLD,ierr)
+          CALL MPI_Allreduce(ltlastconv,tlastconv,idim,MPI_REAL8,
+     &         MPI_SUM,MPI_COMM_WORLD,ierr)
 
+          print *, "All reduced tlastconv"
+c          print *, tlastconv(20000:57000)
+          numfails_orig(:) = 0
+          CALL MPI_Allreduce(numfails,numfails_orig,idim,MPI_INTEGER4,
+     &         MPI_SUM,MPI_COMM_WORLD,ierr)
+#endif
+
+c     --- Master only writes dumps
           IF (rank .EQ. MASTER) THEN
+#ifdef KROMEMPI
              PRINT *, "Total skipped = ", totskipped,"iphase skipped=",
      &            totipcount
 #endif
+             numfails(:) = numfails_orig(:)
 
 c     ---  Create dumpfile name
-           itime = INT(ktime/spy)
-           write(ctime,"(I6.6)") itime
-           print *, "itime=", itime
-           n= index(outfilename," ")
-           tmpofilename = outfilename(1:n-1)//ctime
-           print *, "tmpname ", tmpofilename
+             itime = INT(ktime/spy)
+             write(ctime,"(I6.6)") itime
+             print *, "itime=", itime
+             n= index(outfilename," ")
+             tmpofilename = outfilename(1:n-1)//ctime
+             print *, "tmpname ", tmpofilename
 c     ---  Do small dump every <sdumpfreq> iterations
-           IF (MOD(k,sdumpfreq).EQ.0 .OR. 
-     &          MOD(idump,sdumpfreq).EQ.0) THEN
-              WRITE(*,*) "writing to file: ", tmpofilename
-              OPEN (UNIT=iout, FILE = tmpofilename, FORM= 'unformatted', 
-     &             RECL=maxrec, STATUS='replace')
-              usekrome = 1
-              CALL wdump(iout)
-              WRITE(*,*) "usekrome", usekrome
-              CLOSE(iout)
-              WRITE(ioutinfo,"(A,X,F14.1,X,I0)") tmpofilename,ktime,k 
-           END IF
+             IF (MOD(k,sdumpfreq).EQ.0 .OR. 
+     &            MOD(idump,sdumpfreq).EQ.0) THEN
+                WRITE(*,*) "writing to file: ", tmpofilename
+                OPEN (UNIT=iout, FILE = tmpofilename,FORM='unformatted', 
+     &               RECL=maxrec, STATUS='replace')
+                usekrome = 1
+                CALL wdump(iout)
+                WRITE(*,*) "usekrome", usekrome
+                CLOSE(iout)
+                WRITE(ioutinfo,"(A,X,F14.1,X,I0)") tmpofilename,
+     &               ktime/spy,k 
+             END IF
 
 c     --- Do full dump every <fdumpfreq> iterations
-           IF ((idump.EQ.1).OR.(niter.GT.1 .AND. k.EQ.niter)
-     &          .OR.(MOD(k,fdumpfreq).EQ.0)
-     &          .OR. (MOD(idump,fdumpfreq).EQ.0)
-     &          .OR. (idump.EQ.numdumps) ) THEN
-              IF (imhd.EQ. idim) THEN
-                 usekrome = 2
-c      usekrome=2 dumps mhd info where present
-              ELSE
-                 usekrome = 2
-              ENDIF
-              n = index(tmpofilename," ") 
-              fdumpname = trim(tmpofilename)//"full"
-              OPEN (UNIT=iout, FILE=fdumpname, FORM='unformatted'
-     &             ,RECL=maxrec,STATUS='replace')
-              CALL wdump(iout)
-              PRINT *, "Written full chemistry dump: ", fdumpname
-              CLOSE(iout)
-              WRITE(ioutinfo,"(A,X,F14.1,X,I0)") fdumpname,ktime/spy,k 
-              usekrome = 1
-           END IF
-#ifdef KROMEMPI
-           END IF
-#endif
-           PRINT *, "End of timestep", k, "Nskipped=,", nskipped
-        END DO
+             IF ((idump.EQ.1).OR.(niter.GT.1 .AND. k.EQ.niter)
+     &            .OR.(MOD(k,fdumpfreq).EQ.0)
+     &            .OR. (MOD(idump,fdumpfreq).EQ.0)
+     &            .OR. (idump.EQ.numdumps) ) THEN
+                IF (imhd.EQ. idim) THEN
+                   usekrome = 2
+c     usekrome=2 dumps mhd info where present
+                ELSE
+                   usekrome = 2
+                ENDIF
+                n = index(tmpofilename," ") 
+                fdumpname = trim(tmpofilename)//"full"
+                OPEN (UNIT=iout, FILE=fdumpname, FORM='unformatted'
+     &               ,RECL=maxrec,STATUS='replace')
+                CALL wdump(iout)
+                PRINT *, "Written full chemistry dump: ", fdumpname
+                CLOSE(iout)
+                WRITE(ioutinfo,"(A,X,F14.1,X,I0)") fdumpname,ktime/spy,k 
+                usekrome = 1
+             END IF             
+          END IF
+          PRINT *, "End of timestep", k, "Nskipped=,", nskipped
+       END DO
 c-- End of multiple krome runs loop
 
         IF (idump.LT.numdumps) THEN
@@ -545,11 +631,11 @@ c ---- update iunique_orig and mfracs_orig
               iunique_orig(:) = iunique(:)
               mfracs_orig = 0d0
            END IF
-c     --- all ranks onwards           
+c     --- End if if MASTER. All ranks onwards:
            PRINT *, "NPART=",npart
            DO i=1,npart
               IF ((i.eq.npart) .or.
-     &             (MOD(i,10000) .eq. 0) ) THEN
+     &             (MOD(i,1000000) .eq. 0) ) THEN
                  PRINT *,"Before: mfracs This is rank",rank,"particle:",
      &                i, "H2:",mfracs(krome_idx_H2,i)
               END IF
@@ -558,7 +644,7 @@ c     --- all ranks onwards
      &             ierr)
 c     PRINT *, "rank", rank,"completed broadcast"
               IF ((i .eq. npart) .OR.
-     &             ((rank .eq. 1) .AND. (MOD(i,10000).eq.0))) THEN
+     &             ((rank .eq. 1) .AND. (MOD(i,1000000).eq.0))) THEN
                  Print *, "After: orig This is rank",rank,"particle:",
      &                i,"H2:",mfracs_orig(krome_idx_H2,i)
               END IF
@@ -567,13 +653,15 @@ c     PRINT *, "rank", rank,"completed broadcast"
         ELSE 
            WRITE(*,*) "END"
         END IF
+c     ---end of if .LT. numdumps
       END DO
 c-- End of loop over filelist
 
-      CLOSE(ioutinfo)
-      
 #ifdef KROMEMPI
+      IF (rank .EQ. MASTER) CLOSE(ioutinfo)
       CALL mpi_finalize(ierr)
+#else
+      CLOSE(ioutinfo)
 #endif
       CALL quit(0)
       END PROGRAM krome_sph
@@ -602,29 +690,29 @@ c-----Reads list of dumpfiles and other parameters
       CHARACTER(len=1) :: tmp
 
       OPEN(UNIT=parunit, FILE="params", FORM="FORMATTED",
-     &     STATUS="OLD") 
+     &     STATUS="OLD",SHARED,ACTION="read") 
       READ(parunit,*) tmp
       IF (tmp.EQ."N" .OR. tmp.EQ."S") THEN
          restart = .False.
-         PRINT *, "New run"
+         IF (rank .EQ. MASTER) PRINT *, "New run"
       ELSE IF (tmp.EQ."R") THEN
          restart = .True.
-         PRINT *, "Restarting"
+         IF (rank .EQ. MASTER) PRINT *, "Restarting"
       ELSE
          PRINT *, "ERROR no restart option specified in params"
          CALL QUIT(1)
       END IF
       READ(parunit,*) infofile
       READ(parunit,*) numdumps
-      PRINT *, "expecting", numdumps, "dump files"
+c      PRINT *, "expecting", numdumps, "dump files"
       IF (numdumps.GT.maxdumps) THEN
          PRINT *, "Error numdumps > maxdumps"
          CALL QUIT(1)
       END IF
       DO i=1, numdumps
-         PRINT *, i
+c         PRINT *, i
         READ(parunit,*) filelist(i)
-        PRINT *, filelist(i)
+c        PRINT *, filelist(i)
       END DO
       IF ( i < numdumps) THEN
          PRINT *, "Error filenames < numdumps"
@@ -894,7 +982,7 @@ c ---- reads ktime and iteration number reached previously
         found = .FALSE.
         n = INDEX(filename," ")
         OPEN(UNIT=iread,FILE=infofile,FORM='formatted',
-     &     STATUS='old')
+     &     STATUS='old',ACTION='READ')
         PRINT *, "Reading krome time from info file..."
         DO
            READ(iread,'(A)',IOSTAT=reason) line

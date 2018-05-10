@@ -462,10 +462,11 @@ c
          ENDIF
 #ifdef USEKROME
          number8 = nprint
+c         nums(4) = nums(4) + 1
          IF (usekrome .EQ. 1) THEN
-            nums(6) = nums(6) + dumpmols
+            nums(6) = nums(6) + dumpmols + 2
          ELSE IF (usekrome .EQ. 2 .OR. usekrome.EQ.3) THEN
-            nums(6) = nums(6) + krome_nmols
+            nums(6) = nums(6) + krome_nmols + 2
          END IF
 #endif
          WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
@@ -730,20 +731,22 @@ c--Default real
 c  -     dump selected abundances /H2 abundance             
             DO j=1, dumpmols
                index = krome_get_index(adjustl(mollist(j)))
-               DO i=1,nprint
-                  IF (mfracs(krome_idx_H2,isort(i)) .GT. 0d0) THEN
-                     abundj(isort(i)) = mfracs(index,isort(i))*
-     &                  masses(krome_idx_H2)/
-     &                  (masses(index) * mfracs(krome_idx_H2,isort(i)))
-                  ELSE
-                     abundj(isort(i)) = 0d0
-                  END IF
+c               DO i=1,nprint
+c                  IF (mfracs(krome_idx_H2,isort(i)) .GT. 0d0) THEN
+c                     abundj(isort(i)) = mfracs(index,isort(i))*
+c     &                  masses(krome_idx_H2)/
+c     &                  (masses(index) * mfracs(krome_idx_H2,isort(i)))
+c                 ELSE
+c                     abundj(isort(i)) = 0d0
+c                 END IF
+c               END DO
+c     - I'm now going to dump mass fractions not abundances /H2
+                  WRITE (idisk1,ERR=100) tag(molnames(index))
+                  WRITE (idisk1,ERR=100) 
+     &                 (mfracs(index,isort(i)),i=1,nprint)
+c               WRITE (idisk1,ERR=100) (abundj(isort(i)),i=1,nprint)
                END DO
-               WRITE (idisk1,ERR=100) tag(molnames(index))
-c              WRITE (idisk1,ERR=100) (mfracs(index,isort(i)),i=1,nprint)
-               WRITE (idisk1,ERR=100) (abundj(isort(i)),i=1,nprint)
-            END DO
-         ELSE IF (usekrome.EQ.2 .OR. usekrome.EQ.3) THEN
+            ELSE IF (usekrome.EQ.2 .OR. usekrome.EQ.3) THEN
 c -      dump mass fractions of all species
             PRINT *, "Dumping all mass fractions"
             DO j=1, krome_nmols
@@ -751,6 +754,17 @@ c -      dump mass fractions of all species
                WRITE (idisk1,ERR=100) (mfracs(j,isort(i)),i=1,nprint)
             END DO
          ENDIF
+         WRITE (idisk1,ERR=100) tag('tlastconv')
+         WRITE (idisk1,ERR=100) (tlastconv(isort(i)),i=1,nprint)
+#ifdef USEKROME
+         print *, "writing numfails", usekrome
+         IF (usekrome .GT. 0) THEN  
+            WRITE (idisk1, ERR=100) tag('numfails')
+            WRITE (idisk1, ERR=100) 
+     &           (real(numfails(isort(i))),i=1,nprint)
+         END IF
+#endif
+
          PRINT *, "Written chemistry"
 #endif
 

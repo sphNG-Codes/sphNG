@@ -63,7 +63,10 @@ c*******************************************************************
       CHARACTER*6 ctime
       CHARACTER*40 fdumpname
       REAL*8 mfracs_orig(krome_nmols,idim),ltlastconv(idim)
+      REAL*4 rhomax
+      REAL*8 tff,dtFac,get_tff
       CHARACTER*1 cdump
+      PARAMETER (dtFac = 0.33)
       PARAMETER (spy = 3.1536d7) !seconds per year
       PARAMETER(ioutinfo = 21)
       INTEGER iphasecount,rank,master
@@ -74,7 +77,6 @@ c*******************************************************************
       PARAMETER (bufflen = krome_nmols*idim/2)
       INTEGER ierr,nproc,lchunksize,chunksize,buffnum,count
       INTEGER totskipped,totipcount
-      REAL*8 buffer(bufflen)
       call mpi_init(ierr)
       call mpi_comm_rank(MPI_COMM_WORLD,rank,ierr)
       call mpi_comm_size(MPI_COMM_WORLD,nproc,ierr)
@@ -218,10 +220,33 @@ c        WRITE (*,*) 'File open; usekrome =', usekrome
         WRITE(*,284) filelist(idump),"sphNG time= ",
      &       gt*utime/spy,"years. Read", npart,"particles."
  284    FORMAT(A7,X,A,X,E9.2,A,I0,A)
+
+c---  Set chemistry timestep dt in SECONDS
+        IF (fixed_dt) THEN
+           dt = dt
+        ELSE if (idump.EQ.1 .AND. .NOT. restart) THEN
+           dt = init_dt * spy
+        ELSE
+           dt = (gt * utime) - ktime + (init_dt*spy) 
+        END IF
+
+c     --- If dt < a fraction of tff,skip to next dump
+        IF (idump .GT. 1 .AND. dt .LT. dtFac*tff) THEN
+           WRITE (*,'(2A,2(A,F7.1),A)') "Skipping ", filelist(idump),
+     &          ": tff frac=", dtFac*tff/spy, " dt=", dt/spy, "years."
+           CYCLE
+        ELSE
+           WRITE (*,'(2A,2(A,F7.1),A)') "NOT skipping", filelist(idump),
+     &          ": tff frac=", dtFac*tff/spy, " dt=", dt/spy, "years."
+        END IF
+        
+        tff = get_tff(rho)
+        WRITE (*,'(A,F7.1)') "Free fall time: ", tff/spy
+        
+c     --- Now wipe dead particles' iuniques so live particles aren't
+c     --- matched up with dead ones by accident.(isort needed for wdump)
         DO i=1,npart
            isort(i) = i
-c     --- Now wipe dead particles' iuniques so live particles aren't
-c     --- matched up with dead ones by accident
            IF (iphase(i) .NE. 0) THEN
               iunique(i) = -1
            END IF
@@ -244,6 +269,7 @@ c           npart = 200000 ! for testing
            iend = npart
 #endif
 
+c     --- Set iunique * iunique_orig
         IF (idump .EQ. 1) THEN
 c        if idump > 1 iunique_orig is previous dump      
 c     ---  i.e. iunique_orig(i) = iunique(i) for all i
@@ -292,9 +318,6 @@ C$OMP END PARALLEL DO
            
            PRINT *, "OLD H2:", mfracs_orig(krome_idx_H2,inew(23)),
      &          iunique_orig(inew(23)),iunique(23),iphase(23)
-
-c           PRINT *, "particle 500000", mfracs_orig(krome_idx_H2,
-c     &          inew(500000))
         END IF
 
 c Test order
@@ -344,17 +367,7 @@ c     &             (j,molnames(j),init_x(j),j=1,krome_nmols)
 #endif
 
         IF (rank .EQ. MASTER) PRINT *, "idump= ", idump
-
-c---  Set timestep local_dt used to call KROME
-c---  Local_dt in SECONDS
-        IF (fixed_dt) THEN
-           dt = dt
-        ELSE if (idump.EQ.1 .AND. .NOT. restart) THEN
-           dt = init_dt * spy
-        ELSE
-           dt = (gt * utime) - ktime + (init_dt*spy) 
-        END IF
-
+        
 c--   Loop to run chemistry more than once on dumpfile, dumping
 c--   after each run
         DO k=kstart, niter
@@ -369,6 +382,7 @@ c--   after each run
      &          "sph time", gt*utime/spy,
      &          "min timestep = ", dt/spy
 
+           
            iphasecount = 0
 c     Main loop over particles to initialise mass fracs and call krome
 c     
@@ -379,8 +393,8 @@ C$OMP& idump,mfracs_orig,inew,local_dt,istart,iend,iphasecount,
 C$OMP& tlastconv,ltlastconv,ktime,numfails,numfails_orig,dt,gt,utime)
 C$OMP& private(i,j,Tgas,rhoi,x,Av,prv_uncnvgd) reduction(+ : nskipped)
 
-           DO i=istart, iend
-              IF (MOD(i,100000) .EQ. 0) THEN
+           DO i=istart,iend
+              IF (MOD(i,10000) .EQ. 0) THEN
                  PRINT *, "particle", i,"of",npart,"nskipped=",nskipped
               END IF
               local_dt = dt
@@ -537,7 +551,7 @@ c           END IF
               END DO
           ELSE
 
-             DO i=istart, iend
+             DO i=istart,iend
                 CALL MPI_Ssend(mfracs(1,i),krome_nmols,
      &             MPI_REAL8,MASTER,1,MPI_COMM_WORLD,ierr)
              END DO
@@ -1088,3 +1102,27 @@ c Used in profile.F
       END DO
       
       END SUBROUTINE get_mol_inds
+
+c************************************************
+      REAL FUNCTION get_tff(rho) RESULT(tff)
+      INCLUDE 'idim'
+      INCLUDE 'COMMONS/gtime'
+      INCLUDE 'COMMONS/part'
+      INCLUDE 'COMMONS/units'
+      REAL*8 pi
+      REAL*4 rho(idim2)
+      PARAMETER (pi=3.141592653589)
+      rhomax = 0.
+      
+c$OMP PARALLEL DO schedule(static,1) default(none)
+c$OMP& shared(rho,npart) reduction(max:rhomax)
+      DO i=1, npart
+         rhomax = MAX(rhomax,rho(i))
+      END DO
+c$OMP END PARALLEL DO
+c     in seconds      
+      print *, "rhomax = ", rhomax,utime,pi
+      tff = utime *SQRT((3d0 * pi )/ (32d0 * rhomax))
+      print *,"tff srtn", tff
+      RETURN
+      END FUNCTION get_tff

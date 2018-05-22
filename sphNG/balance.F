@@ -60,6 +60,7 @@ c************************************************************
 #endif
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/recor'
+      INCLUDE 'COMMONS/lyonfiles'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -1657,6 +1658,10 @@ c
                   DO k = nptmassnew + 1, nptmassnew + nptrecv
                      listpm(k) = listpm(k) + npartnew
                      listrealpm(listpm(k)) = k
+                     IF (istellarfeedback.EQ.6) THEN
+                        file_stellarmodel_in(k) = file_stellarmodel_new
+                        file_stellarmodel_out(k) = file_stellarmodel_new
+                     ENDIF
                   END DO
 
 #ifdef MPIDEBUGT
@@ -1735,7 +1740,7 @@ c
       END DO
       numtransfer = numtransfer - numlist(iproc+1)
 #ifdef MPIDEBUGT
-      print *,iproc,': Total number transferred ',numtransfer
+      print *,iproc,': Total number transferred ',numtransfer,npttrans
 #endif
       npttrans = 0
       IF (numtransfer.GT.0) THEN
@@ -1753,6 +1758,11 @@ c
          END DO
       ENDIF
       IF (npttrans.GT.0) THEN
+#ifdef MPIDEBUGT
+         print *,iproc,': PTT: nptmass, nptmassnew ',
+     &        nptmass, nptmassnew,file_stellarmodel_new
+         print *,iproc,': PTT: listpm ',(listpm(i),i=1,nptmassnew)
+#endif
          nptmass = 0
          DO ipt = 1, nptmassnew
             IF (listpm(ipt).NE.0) THEN

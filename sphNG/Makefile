@@ -189,7 +189,7 @@ ifeq ($(SYSTEM), slave)
     ZZFILE= zzibm.f
 endif
 
-ifeq ($(SYSTEM), complexity)
+ifeq ($(SYSTEM), dirac2)
     ifeq ($(mpiall), yes)
        FC= $(MPIDIR)mpiifort
 #       FC= ifort -lmpi
@@ -203,7 +203,7 @@ ifeq ($(SYSTEM), complexity)
 #To use above MPI check need to:
 #source /sw/sdev/itac/7.2.0.011/bin/itacvars.csh
 #
-    OMPFLAG= -openmp #-DZEN
+    OMPFLAG= -qopenmp #-DZEN
     DBLFLAG= -r8
     DEBUGFLAG= -check all -traceback -g -fpe0 -fp-stack-check -heap-arrays -O0
     KNOWN_SYSTEM=yes

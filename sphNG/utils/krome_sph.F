@@ -83,12 +83,12 @@ c*******************************************************************
 #else 
       rank = 0
 #endif 
-     
+      PRINT *, "Running on rank", rank
       IF (rank .EQ. MASTER) THEN
          WRITE(*,*) "Beginning with:", krome_nmols, "molecules"
 C$OMP PARALLEL
          IF (OMP_GET_THREAD_NUM() .eq. 0) THEN
-C$       WRITE(*,*) "Using", OMP_GET_NUM_THREADS(), "openMP threads."
+            WRITE(*,*) "Using", OMP_GET_NUM_THREADS(), "openMP threads."
          END IF
 C$OMP END PARALLEL
       END IF
@@ -142,7 +142,7 @@ c-- Read list of dumpfiles
                PRINT *, "ERROR opening", infofile
                CALL QUIT(1)
             END IF
-            print *, "Restarted. Master opened", infofile
+            print *, "Restarted. Master opened ", infofile
             WRITE(ioutinfo,"(/,A9,/)") "RESTARTED"
          END IF
       ELSE
@@ -183,6 +183,7 @@ c-- Read list of dumpfiles
          END IF
       END IF
 
+      
       varmhd = 'Brho'
       IF (rank .EQ. MASTER) WRITE(*,*) "Initialising krome"
       CALL krome_init()
@@ -232,16 +233,22 @@ c---  Set chemistry timestep dt in SECONDS
 
 c     --- If dt < a fraction of tff,skip to next dump
         IF (idump .GT. 1 .AND. dt .LT. dtFac*tff) THEN
-           WRITE (*,'(2A,2(A,F7.1),A)') "Skipping ", filelist(idump),
+           WRITE (*,'(2A,2(A,F11.4),A)') "Skipping ", filelist(idump),
      &          ": tff frac=", dtFac*tff/spy, " dt=", dt/spy, "years."
            CYCLE
+        ELSE IF (idump .EQ. 1 .AND. .NOT. restart) THEN
+           WRITE (*,'(A,F7.1)') "Initial file: dt=", dt/spy
+        ELSE IF (idump .EQ. 1 .AND. restart) THEN
+           WRITE (*,'(A30,A7)') "Restarting from file ", filelist(idump)
         ELSE
-           WRITE (*,'(2A,2(A,F7.1),A)') "NOT skipping", filelist(idump),
-     &          ": tff frac=", dtFac*tff/spy, " dt=", dt/spy, "years."
+           WRITE (*,285) "Rank ",rank,
+     &          "Working on: ", filelist(idump),": tff frac=",
+     &           dtFac*tff/spy, " dt=", dt/spy, "years."
+ 285       FORMAT(A5,I0,2A12,2(A,F7.1),A)
         END IF
         
         tff = get_tff(rho)
-        WRITE (*,'(A,F7.1)') "Free fall time: ", tff/spy
+        WRITE (*,'(A,F10.3)') "Free fall time: ", tff/spy
         
 c     --- Now wipe dead particles' iuniques so live particles aren't
 c     --- matched up with dead ones by accident.(isort needed for wdump)
@@ -286,13 +293,13 @@ c ---   find order of current particles in previous dump
 C$OMP PARALLEL DO SCHEDULE(static,1) default(none)
 C$OMP& PRIVATE(i,j,found) SHARED(npart,iunique,iunique_orig,inew,
 C$OMP& istart,iend,iphase) 
-           DO i=1,npart
+           DO i=1,idim
               IF (iphase(i) .NE. 0 ) THEN
                  inew(i) = -1 
                  CYCLE
               END IF
               found = .FALSE.
-              DO j=1,npart
+              DO j=1,idim
                  IF (iunique(i) .EQ. iunique_orig(j) ) THEN
                     inew(i) = j ! tells you position in old list
                     found = .TRUE.
@@ -307,6 +314,9 @@ C$OMP END PARALLEL DO
            write(cdump,'(I1)') idump
            print *, "done iuniques for idump=", idump
           print *, (mfracs_orig(krome_idx_H2,inew(i)),i=1,50)
+#ifdef KROMEMPI
+          IF (rank .EQ. MASTER) THEN
+#endif
            OPEN(UNIT=32,FILE="newunique"//cdump,FORM='formatted',
      &        STATUS='replace')
            WRITE(32,'(2(I0,X))') (iunique(i),iphase(i),i=1,40)
@@ -318,6 +328,9 @@ C$OMP END PARALLEL DO
            
            PRINT *, "OLD H2:", mfracs_orig(krome_idx_H2,inew(23)),
      &          iunique_orig(inew(23)),iunique(23),iphase(23)
+#ifdef KROMEMPI
+           END IF
+#endif
         END IF
 
 c Test order
@@ -394,7 +407,7 @@ C$OMP& tlastconv,ltlastconv,ktime,numfails,numfails_orig,dt,gt,utime)
 C$OMP& private(i,j,Tgas,rhoi,x,Av,prv_uncnvgd) reduction(+ : nskipped)
 
            DO i=istart,iend
-              IF (MOD(i,10000) .EQ. 0) THEN
+              IF (MOD(i,50000) .EQ. 0) THEN
                  PRINT *, "particle", i,"of",npart,"nskipped=",nskipped
               END IF
               local_dt = dt
@@ -453,7 +466,8 @@ c     --- than 5 times (not necessarily in a row)
                  numfails(i) = numfails_orig(inew(i)) + 1
                  nskipped = nskipped + 1
                  CYCLE
-              ELSE IF (tlastconv(inew(i)) .LT. ktime/spy) THEN
+              ELSE IF ((tlastconv(inew(i)) .LT. ktime/spy) .AND.
+     &                (numfails_orig(inew(i)) .GT. 0) ) THEN
                  local_dt = (gt * utime) - tlastconv(inew(i))*spy
      &                + (init_dt * spy)
                  prv_uncnvgd = .True.
@@ -488,6 +502,7 @@ c -- it's gonna be zero.
 
 c         WRITE(*,*) "rho, T, AV,dt", rhoi,Tgas,Av, local_dt/spy
               CALL krome(x,rhoi,Tgas,local_dt)
+
 c-------Update mfracs array
 c --- x(:) comes back from krome as 0 if not converged -> revert back to 
 c --- previous abundances
@@ -996,7 +1011,7 @@ c ---- reads ktime and iteration number reached previously
         found = .FALSE.
         n = INDEX(filename," ")
         OPEN(UNIT=iread,FILE=infofile,FORM='formatted',
-     &     STATUS='old',ACTION='READ')
+     &     STATUS='old',ACTION='READ',SHARED)
         PRINT *, "Reading krome time from info file..."
         DO
            READ(iread,'(A)',IOSTAT=reason) line
@@ -1020,7 +1035,7 @@ c        print *, ctime
 c        print *, "converting time to real"
 c        READ(ctime,"(E16.8)") time
         
-        print *, ":) krome time=", ktime, "k=", k
+        WRITE (*,'(A,F710.2,A3,I0)') ":) krome time=", ktime, "k=", k
         CLOSE(iread)
         ktime = ktime * spy
 

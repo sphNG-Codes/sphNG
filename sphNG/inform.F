@@ -123,7 +123,9 @@ c
       fmas2 = 0.
 
       n1new = 0
+      n1new_temp = 0
       n2new = 0
+      n2new_temp = 0
       DO i = 1, npart
          IF (iunique(iorig(i)).LE.n1 .AND. 
      &                    (iphase(i).EQ.0 .OR. iphase(i).GE.10)) THEN
@@ -147,36 +149,39 @@ c
             valphamax1 = MAX(valphamax1, alphaMM(1,i))
             valphamin1 = MIN(valphamin1, alphaMM(1,i))
 
-            IF (encal.EQ.'r') THEN
-               tempgas = vxyzu(4,i)/ekcle(3,i)
-               tgmean1 = tgmean1 + tempgas
-               tgmax1 = MAX(tgmax1, tempgas)
-               temprad = (ekcle(1,i)*rho(i)/uradconst)**0.25
-               trmean1 = trmean1 + temprad
-               trmax1 = MAX(trmax1, temprad)
+            IF (iphase(i).EQ.0) THEN
+               n1new_temp = n1new_temp + 1
+               IF (encal.EQ.'r') THEN
+                  tempgas = vxyzu(4,i)/ekcle(3,i)
+                  tgmean1 = tgmean1 + tempgas
+                  tgmax1 = MAX(tgmax1, tempgas)
+                  temprad = (ekcle(1,i)*rho(i)/uradconst)**0.25
+                  trmean1 = trmean1 + temprad
+                  trmax1 = MAX(trmax1, temprad)
 
-               IF (idustRT.GT.0) THEN
-                  tdmean1 = tdmean1 + dust_tk(1,i)
-                  tdmax1 = MAX(tdmax1, dust_tk(1,i))
-                  tdmin1 = MIN(tdmin1, dust_tk(1,i))
+                  IF (idustRT.GT.0) THEN
+                     tdmean1 = tdmean1 + dust_tk(1,i)
+                     tdmax1 = MAX(tdmax1, dust_tk(1,i))
+                     tdmin1 = MIN(tdmin1, dust_tk(1,i))
 c
 c--The factor of two is because h2frac=0.5 when fully molecular
 c
-                  h2mass1 = h2mass1 + pmassi*2.0*h2frac(i)
-               ENDIF
+                     h2mass1 = h2mass1 + pmassi*2.0*h2frac(i)
+                  ENDIF
 
-            ELSEIF (encal.EQ.'m') THEN
-               tempgas = vxyzu(4,i)/getcv(rho(i),vxyzu(4,i))
-               tgmean1 = tgmean1 + tempgas
-               tgmax1 = MAX(tgmax1, tempgas)
-            ELSEIF (gamma.EQ.1.0) THEN
-               tempgas = gmw*uergg/Rg*2.0/3.0*vxyzu(4,i)
-               tgmean1 = tgmean1 + tempgas
-               tgmax1 = MAX(tgmax1, tempgas)
-            ELSE
-               tempgas = gmw*uergg/Rg*(gamma-1.0)*vxyzu(4,i)
-               tgmean1 = tgmean1 + tempgas
-               tgmax1 = MAX(tgmax1, tempgas)
+               ELSEIF (encal.EQ.'m') THEN
+                  tempgas = vxyzu(4,i)/getcv(rho(i),vxyzu(4,i))
+                  tgmean1 = tgmean1 + tempgas
+                  tgmax1 = MAX(tgmax1, tempgas)
+               ELSEIF (gamma.EQ.1.0) THEN
+                  tempgas = gmw*uergg/Rg*2.0/3.0*vxyzu(4,i)
+                  tgmean1 = tgmean1 + tempgas
+                  tgmax1 = MAX(tgmax1, tempgas)
+               ELSE
+                  tempgas = gmw*uergg/Rg*(gamma-1.0)*vxyzu(4,i)
+                  tgmean1 = tgmean1 + tempgas
+                  tgmax1 = MAX(tgmax1, tempgas)
+               ENDIF
             ENDIF
          ENDIF
       END DO
@@ -203,11 +208,13 @@ c
 
       IF (n1new.GT.0) THEN
          romean1 = romean1/n1new
-         tgmean1 = tgmean1/n1new
-         trmean1 = trmean1/n1new
       ENDIF
-      IF (idustRT.GT.0) THEN
-         tdmean1 = tdmean1/n1new
+      IF (n1new_temp.GT.0) THEN
+         tgmean1 = tgmean1/n1new_temp
+         trmean1 = trmean1/n1new_temp
+         IF (idustRT.GT.0) THEN
+            tdmean1 = tdmean1/n1new_temp
+         ENDIF
       ENDIF
 c
 c--If doing accretion on to binary, then recentre the centre of mass and
@@ -253,34 +260,38 @@ c
 
                valphamax2 = MAX(valphamax2, alphaMM(1,i))
                valphamin2 = MIN(valphamin2, alphaMM(1,i))
-               IF (encal.EQ.'r') THEN
-                  tempgas = vxyzu(4,i)/ekcle(3,i)
-                  tgmean2 = tgmean2 + tempgas
-                  tgmax2 = MAX(tgmax2, tempgas)
-                  temprad = (ekcle(1,i)*rho(i)/uradconst)**0.25
-                  trmean2 = trmean2 + temprad
-                  trmax2 = MAX(trmax2, temprad)
 
-                  IF (idustRT.GT.0) THEN
-                     tdmean2 = tdmean2 + dust_tk(1,i)
-                     tdmax2 = MAX(tdmax2, dust_tk(1,i))
-                     tdmin2 = MIN(tdmin2, dust_tk(1,i))
+               IF (iphase(i).EQ.0) THEN
+                  IF (encal.EQ.'r') THEN
+                     n2new_temp = n2new_temp + 1
+                     tempgas = vxyzu(4,i)/ekcle(3,i)
+                     tgmean2 = tgmean2 + tempgas
+                     tgmax2 = MAX(tgmax2, tempgas)
+                     temprad = (ekcle(1,i)*rho(i)/uradconst)**0.25
+                     trmean2 = trmean2 + temprad
+                     trmax2 = MAX(trmax2, temprad)
 
-                     h2mass2 = h2mass2 + pmassi*2.0*h2frac(i)
+                     IF (idustRT.GT.0) THEN
+                        tdmean2 = tdmean2 + dust_tk(1,i)
+                        tdmax2 = MAX(tdmax2, dust_tk(1,i))
+                        tdmin2 = MIN(tdmin2, dust_tk(1,i))
+
+                        h2mass2 = h2mass2 + pmassi*2.0*h2frac(i)
+                     ENDIF
+
+                  ELSEIF (encal.EQ.'m') THEN
+                     tempgas = vxyzu(4,i)/getcv(rho(i),vxyzu(4,i))
+                     tgmean2 = tgmean2 + tempgas
+                     tgmax2 = MAX(tgmax2, tempgas)
+                  ELSEIF (gamma.EQ.1.0) THEN
+                     tempgas = gmw*uergg/Rg*2.0/3.0*vxyzu(4,i)
+                     tgmean2 = tgmean2 + tempgas
+                     tgmax2 = MAX(tgmax2, tempgas)
+                  ELSE
+                     tempgas = gmw*uergg/Rg*(gamma-1.0)*vxyzu(4,i)
+                     tgmean2 = tgmean2 + tempgas
+                     tgmax2 = MAX(tgmax2, tempgas)
                   ENDIF
-
-               ELSEIF (encal.EQ.'m') THEN
-                  tempgas = vxyzu(4,i)/getcv(rho(i),vxyzu(4,i))
-                  tgmean2 = tgmean2 + tempgas
-                  tgmax2 = MAX(tgmax2, tempgas)
-               ELSEIF (gamma.EQ.1.0) THEN
-                  tempgas = gmw*uergg/Rg*2.0/3.0*vxyzu(4,i)
-                  tgmean2 = tgmean2 + tempgas
-                  tgmax2 = MAX(tgmax2, tempgas)
-               ELSE
-                  tempgas = gmw*uergg/Rg*(gamma-1.0)*vxyzu(4,i)
-                  tgmean2 = tgmean2 + tempgas
-                  tgmax2 = MAX(tgmax2, tempgas)
                ENDIF
             ENDIF
          END DO
@@ -293,13 +304,15 @@ c
          vcmy2 = vcmy2/fmas2
          vcmz2 = vcmz2/fmas2
 
-         IF (n2new.NE.0) THEN
+         IF (n2new.GT.0) THEN
             romean2 = romean2/n2new
-            tgmean2 = tgmean2/n2new
-            trmean2 = trmean2/n2new
          ENDIF
-         IF (idustRT.GT.0) THEN
-            tdmean2 = tdmean2/n1new
+         IF (n2new_temp.GT.0) THEN
+            tgmean2 = tgmean2/n2new_temp
+            trmean2 = trmean2/n2new_temp
+            IF (idustRT.GT.0) THEN
+               tdmean2 = tdmean2/n2new_temp
+            ENDIF
          ENDIF
       ENDIF
 c
@@ -324,8 +337,7 @@ c
             dmax1 = MAX(dmax1, d2)
             dmin1 = MIN(dmin1, d2)
             zmax1 = MAX(zmax1, ABS(dz))
-            IF (d2.LT.rmin2 .AND. 
-     &                      (iphase(i).EQ.0 .OR. iphase(i).GE.10)) THEN
+            IF (d2.LT.rmin2 .AND. iphase(i).EQ.0) THEN
                imin = i
                rmin2 = d2
             ENDIF
@@ -360,8 +372,7 @@ c
 #endif
             dmax2 = MAX(dmax2, d2)
             zmax2 = MAX(zmax2, ABS(dz))
-            IF (d2.LT.rmin2 .AND. 
-     &                      (iphase(i).EQ.0 .OR. iphase(i).GE.10)) THEN
+            IF (d2.LT.rmin2 .AND. iphase(i).EQ.0) THEN
                imin = i
                rmin2 = d2
             ENDIF

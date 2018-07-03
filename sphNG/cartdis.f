@@ -40,7 +40,7 @@ c
          tol = 1.0e-5
          dxmax = xmax - xmin
          wk = 2.0*pi/(dxmax/1.)
-         denom = dxmax - ampl/wk*(COS(wk*dxmax)-1.0)
+         denom = dxmax + ampl/wk*(COS(wk*dxmax)-1.0)
 
          DO i = 1,npart
 
@@ -56,8 +56,8 @@ c
 
             DO WHILE ((abs(dxi-dxprev).GT.tol).AND.(its.LT.itsmax))
                dxprev = dxi
-               func = xmassfrac*denom - (dxi -ampl/wk*(COS(wk*dxi)-1.0))
-               fderiv = -1.0 - ampl*SIN(wk*dxi)
+               func = xmassfrac*denom - (dxi +ampl/wk*(COS(wk*dxi)-1.0))
+               fderiv = -1.0 + ampl*SIN(wk*dxi)
                dxi = dxi - func/fderiv ! Newton-Raphson iteration
                its = its + 1 
 c              PRINT*,'iteration',its,'dxi =',dxi,xmin,xmax,xyzmh(1,i)

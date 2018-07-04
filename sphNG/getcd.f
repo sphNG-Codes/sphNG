@@ -19,30 +19,41 @@ c************************************************************
       REAL rho_g, dvij, cs
       REAL getcd_pmc, getcd_bb, getcd_lp
       REAL r_planetesimal, rho_planetesimal
+      REAL dvij_cs
       INTEGER iregime, ipart, idragscheme
+c
+c--If want fixed value of 'K', need to uncomment lines below.  The
+c     value of '3' is required for 3 dimensions.
+c
+c      getcd = 3.0 * 100.
+c      RETURN
 
       r_planetesimal = r_planetesimals(1)
       rho_planetesimal = rho_planetesimals(1)
+c
+c--Avoid divergence if relative velocity is very small
+c
+      dvij_cs = dvij + 0.01*cs
 
       IF (idragscheme.EQ.0) THEN
 c
 c--Perret-Murray-Cley
 c
-         getcd = getcd_pmc(rho_g, dvij, cs, r_planetesimal)
+         getcd = getcd_pmc(rho_g, dvij_cs, cs, r_planetesimal)
          getcd = getcd*9.*dvij/(8.*r_planetesimal*rho_planetesimal)
 
       ELSEIF (idragscheme.EQ.1) THEN
 c
 c--Brasser et al. 2007 + Baines et al. 1968
 c
-         getcd = getcd_bb(rho_g, dvij, cs, iregime, ipart)
+         getcd = getcd_bb(rho_g, dvij_cs, cs, iregime, ipart)
          getcd = getcd*9.*dvij/(8.*r_planetesimal*rho_planetesimal)
 
       ELSEIF (idragscheme.EQ.2) THEN
 c
 c--Laibe & Price 2012b.
 c
-         getcd = getcd_lp(ipart, rho_g, dvij, cs)
+         getcd = getcd_lp(ipart, rho_g, dvij_cs, cs)
 
       ELSE
          WRITE (iprint,*) 'Invalid idragscheme selected'

@@ -313,7 +313,7 @@ c
       IF (iplanetesimal_info.EQ.'p') THEN
          WRITE (iterm, 99006) iplanetesimal_info
          WRITE (iterm, 11060) n_planetesimal_types
-11060    FORMAT(3X, I2, ' Number of planetesimal types')
+11060    FORMAT(2X, I2, ' Number of planetesimal types')
          DO i = 1, n_planetesimal_types
             r_planetesimal = r_planetesimals(i)*udist
             rho_planetesimal = rho_planetesimals(i)*udens
@@ -322,9 +322,11 @@ c
      &           ' planetesimal radius (cm), density (g/cm^3)')
          END DO
          WRITE (iterm, 11070) gasdrag
-11070    FORMAT(3X,L1, ' Explicit planetesimal-gas drag')
-         WRITE (iterm, 11071) prswitch
-11071    FORMAT(3X, L1, ' PR-drag & rad. pres. switch')
+11070    FORMAT(2X,L1, ' Explicit planetesimal-gas drag')
+         IF (gasdrag) WRITE (iterm, 11071) idragscheme 
+11071    FORMAT(2X,I2, ' Drag scheme (0,1,2)')
+         WRITE (iterm, 11072) prswitch
+11072    FORMAT(2X, L1, ' PR-drag & rad. pres. switch')
          IF (prswitch) WRITE (iterm, 11073) pbeta
 11073    FORMAT(2X,1PE12.5, ' grain beta (Burns et al. 1979)')
       ENDIF

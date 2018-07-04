@@ -367,9 +367,15 @@ c
             r_planetesimals(i) = r_planetesimals(i)/udist
             rho_planetesimals(i) = rho_planetesimals(i)/udens
          END DO
+
          gasdrag = .FALSE.
+         idragscheme = 0
          prswitch = .FALSE.
          READ (iterm, *, END=300) gasdrag
+         IF (gasdrag) THEN
+            READ (iterm, *, END=150) idragscheme
+            WRITE (*,*) 'Drag scheme is ',idragscheme
+         ENDIF         
          READ (iterm, *, END=400) prswitch
          IF (prswitch) READ (iterm, *) pbeta
       ENDIF
@@ -377,6 +383,9 @@ c
 c
 c--Note missing planetesimal and dust data
 c
+ 150  WRITE (*,*) 'ERROR: Explicit drag, need to define idragscheme'
+      CALL quit(0)
+
  200  WRITE (*,*) 'NOTE: No planetesimal information has been given'
  300  WRITE (*,*) 'NOTE: Explicit gasdrag is assumed to be FALSE'
  400  WRITE (*,*) 'NOTE: Poynting-Robertson is assumed to be OFF'

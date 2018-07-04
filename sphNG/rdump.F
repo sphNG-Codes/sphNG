@@ -119,7 +119,6 @@ c
 
       iplanetesimals = 0
       irotpot = 0
-      idragscheme = 100
 c
 c--Dump file
 c-------------
@@ -222,7 +221,7 @@ c--Default int
       ELSEIF (number.EQ.12+NTAB) THEN
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks,iyr,idum,(iv(i), i=1,NTAB), iplanetesimals,
-     &        irotpot, idragscheme
+     &        irotpot, idragscheme_in
          print *,'USING 12+NTAB', irotpot, idragscheme
       ELSEIF (number.EQ.7) THEN
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
@@ -283,9 +282,15 @@ c--fake the tags for older formats
       READ (idisk1, END=100) (rheader(i),i=1,min(number,idimhead))
 c
 c--extract variables from the header
-c     
+c
       CALL extract('gt',gt,rheader,tagsreal,number,ierr)
       IF (ierr.NE.0) CALL quit(0)
+      IF (gt.GT.0.) THEN
+         IF (idragscheme.NE.idragscheme_in) THEN
+            WRITE (*,*) 'WARNING: dragscheme has changed ',idragscheme,
+     &           idragscheme_in
+         ENDIF
+      ENDIF
       CALL extract('dtmax',dtmaxdp,rheader,tagsreal,number,ierr)
       IF (ierr.NE.0) CALL quit(0)
       CALL extract('gamma',gamma,rheader,tagsreal,number,ierr)

@@ -9,6 +9,9 @@ c***********************************************************
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nicil_subs'
 #endif
+#ifdef USEKROME
+      INCLUDE 'COMMONS/krome_mods'
+#endif
       INCLUDE 'idim'
 
       REAL*8 udist, umass, utime, umagfd, udens, uvel, uergg
@@ -34,6 +37,9 @@ c***********************************************************
       INCLUDE 'COMMONS/nonideal'
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/vargam'
+#endif
+#ifdef USEKROME
+      INCLUDE 'COMMONS/kromevar'
 #endif
       INCLUDE 'COMMONS/stellarradiation'
 
@@ -64,12 +70,26 @@ c***********************************************************
       CHARACTER*100 fileident
       DIMENSION indx(idim),list(idim)
 
-      CHARACTER*7 filein
       CHARACTER*11 inname, imageout
-      CHARACTER*11 fileout, fileout2, fileout3, fileout4
+      CHARACTER*11 fileout, fileout2, fileout3, fileout4, fileout5
       CHARACTER*9  name
       CHARACTER*1  ien, icont, icor, icent, isink, itorq, itype
       CHARACTER*1  ivarbnd, inewdump, itstep
+#ifdef USEKROME
+      INTEGER maxmos,dumpmols,j,nwrite,nexc,nExcV
+      PARAMETER (maxmols=40)
+      INTEGER molinds(maxmols)
+      CHARACTER*14 molsfile
+      CHARACTER*16 mollist(maxmols)
+      REAL abundsmean(krome_nmols),masses(krome_nmols),abund
+      REAL abundsmeanvert(krome_nmols)
+      CHARACTER*7 FMT
+      CHARACTER*2 cdumpmols
+      CHARACTER*24 filein
+      CHARACTER*1 mfrac2abund
+#else
+      CHARACTER*7 filein
+#endif
 
       varmhd = 'Brho'
 c
@@ -80,8 +100,13 @@ c
       
       WRITE (*,*) 'Enter names of input files:'
       DO k=1, number_files
+#ifdef USEKROME
+         READ(*,91) filein(k)
+#else
          READ(*,90) filein(k)
+#endif
  90      FORMAT(A7)
+ 91      FORMAT(A24)
       END DO
 
  110  FORMAT(A1)
@@ -127,6 +152,11 @@ c
 
       WRITE (*,*) 'Enter radin (e.g. 0.999)'
       READ (*,*) radin
+#ifdef USEKROME
+      WRITE (*,*) 'Convert mass fracs to abunds/H2? (y/n)'
+      READ (*,*) mfrac2abund
+#endif
+
 
       OPEN(19,file='interest')
 
@@ -139,6 +169,7 @@ c
          fileout2 = 'QD' // filein(k)
          fileout3 = 'QA' // filein(k)
          fileout4 = 'QN' // filein(k)
+         fileout5 = 'QC' // filein(k)
          imageout = 'IP' // filein(k)
          maxrec = 100*idim
          OPEN(15,file=imageout)
@@ -147,6 +178,19 @@ c
      &        RECL=maxrec)
 
          WRITE (*,*) 'File open'
+#ifdef USEKROME
+         molnames = get_names()
+         masses = krome_get_mass()
+         print *, "file is", filein(k)
+         IF (index(filein(k),"full") .gt. 0) THEN
+c     ---   read mfracs from dump      
+            usekrome = 2
+         ELSE
+c     ---   read mfracs from dump
+            usekrome = 1
+         END IF
+#endif
+
 
          CALL rdump(11, ichkl, 0)
 
@@ -172,6 +216,7 @@ c
          WRITE(fileout2, 99002) fileout2, iadd, ifile
          WRITE(fileout3, 99002) fileout3, iadd, ifile
          WRITE(fileout4, 99002) fileout4, iadd, ifile
+         WRITE(fileout5, 99002) fileout5, iadd, ifile
 99002    FORMAT(A9, I1, I1)
 
    10    OPEN(21,file=fileout)
@@ -185,6 +230,18 @@ c
 #ifdef NONIDEAL
          OPEN(24,file=fileout4)
 #endif
+#ifdef USEKROME
+         OPEN(25,file=fileout5)
+         CALL readmolfile(maxmols,mollist,dumpmols)
+         CALL get_mol_inds(mollist,maxmols,dumpmols,molinds)
+         IF (usekrome .eq. 1) THEN
+            nwrite = dumpmols
+         ELSE IF (usekrome .EQ. 2) THEN
+            nwrite = krome_nmols
+         END IF
+         CALL writekey(31,nwrite,maxmols,molinds)
+#endif
+
          WRITE(*,*) npart, rhozero, nptmass,xyzmh(4,1),rho(3),iphase(1)
          WRITE(*,*) 'RK2=',RK2,' gamma=',gamma,' rhozero=',rhozero
          WRITE(*,*) 'Units=',udist, umass, utime
@@ -419,6 +476,12 @@ c            WRITE (42,*) radius(i)*udist,entropy_per_baryon(i)
          etahallmean = 0.
          etaambimean = 0.
 #endif
+#ifdef USEKROME
+         abundsmean = 0.
+         abundsmeanvert = 0.
+         nExc = 0
+         nExcV= 0
+#endif
          IF (istellarradiation) THEN
             rionfront = 0.
             rionfront001 = 0.
@@ -538,6 +601,43 @@ c               WRITE (42,*) radiuswant,JcrossB(ipos),lorentzmean
                       IF (istellarradiation) THEN
                          fracion_mean = fracion_mean + HIIion(ipos)
                       ENDIF
+#ifdef USEKROME
+                      IF (mfracs(krome_idx_H2,ipos) .lt. 1e-37) THEN
+                         print *, "zero:", mfracs(krome_idx_H2,ipos)
+                         nExc = nExc + 1
+                      ELSE IF (numfails(ipos) .GT. 5) THEN
+                         print *, 'excluding failed particle'
+                         nExc = nExc + 1
+c                         CYCLE
+                      ELSE
+                         IF (usekrome .eq. 1) THEN
+c                            print *, "H2", mfracs(krome_idx_H2,ipos)
+                            DO j=1, maxmols
+                               IF (molinds(j).eq.0) EXIT
+                               IF (mfrac2abund .EQ. "y") THEN
+                                  abund = mfracs(molinds(j),ipos) *
+     &                                 masses(krome_idx_H2)/
+     &                                 (masses(molinds(j)) * 
+     &                                 mfracs(krome_idx_H2,ipos))
+                               ELSE 
+                                  abund = mfracs(molinds(j),ipos)  
+                               END IF
+                               abundsmean(molinds(j)) = 
+     &                              abundsmean(molinds(j)) + abund
+                            END DO
+                         ELSE IF (usekrome .eq. 2) THEN
+                            DO j=1, krome_nmols
+c     ---                   convert mfracs to abundance/H2  
+                               abund = mfracs(j,ipos) *
+     &                              masses(krome_idx_H2) / (masses(j) *
+     &                              mfracs(krome_idx_H2,ipos))
+  
+                              abundsmean(j) = abundsmean(j) + abund
+                           END DO
+                         END IF
+                      END IF
+c                      print *, "nwrite =", nwrite  
+#endif
                   ELSEIF (iphase(ipos).GE.11) THEN
                      number_dust = number_dust + 1
                      shellmass_dust = shellmass_dust + xyzmh(4,ipos)
@@ -576,6 +676,42 @@ c     &              JcrossB_dot_rhat(ipos))
                      IF (istellarradiation) THEN
                         fracion_meanvert = fracion_meanvert+HIIion(ipos)
                      ENDIF
+#ifdef USEKROME
+                     IF (mfracs(krome_idx_H2,ipos) .lt. 1.e-37) THEN
+                         print *, "zero:", mfracs(krome_idx_H2,ipos)
+                         nExcV = nExcV + 1
+                     ELSE IF (numfails(ipos) .GT. 10) THEN
+                         print *, 'excluding failed particle'
+                         nExcV = nExcV + 1
+                     ELSE
+                         IF (usekrome .eq. 1) THEN
+                            DO j=1, maxmols
+                               if (molinds(j).eq.0) EXIT
+                               IF (mfrac2abund .EQ. "y") THEN
+                                  abund = mfracs(molinds(j),ipos) *
+     &                                 masses(krome_idx_H2)/
+     &                                 (masses(molinds(j)) *
+     &                                 mfracs(krome_idx_H2,ipos))
+                               ELSE
+                                  abund = mfracs(molinds(j),ipos)
+                               END IF
+                               abundsmeanvert(molinds(j)) = 
+     &                              abundsmeanvert(molinds(j)) +
+     &                              abund
+                            END DO
+                         ELSE IF (usekrome .eq. 2) THEN
+                            DO j=1, krome_nmols
+c     ---                   convert mfracs to abundance/H2 
+                              abund = mfracs(j,ipos) * 
+     &                        masses(krome_idx_H2)/                       
+     &                         (masses(j) * mfracs(krome_idx_H2,ipos))
+                              abundsmeanvert(j) = abundsmeanvert(j) +
+     &                             abund
+                            END DO
+                         END IF
+                      END IF
+c                      print *, "nwrite =", nwrite
+#endif
                   ELSEIF (iphase(ipos).GE.11) THEN
                      numbervert_dust = numbervert_dust + 1
                      radvertmean_dust = radvertmean_dust + radius(ipos)
@@ -605,6 +741,27 @@ c     &              JcrossB_dot_rhat(ipos))
                   etaohmmean  = etaohmmean/number
                   etahallmean = etahallmean/number
                   etaambimean = etaambimean/number
+#endif
+#ifdef USEKROME
+                     print *, "nexc=",nexc, "number=", number
+                     print *, "nexcv=", nexcv,"numberv=", numbervert
+                     print *, "abundsmean tot", abundsmean(krome_idx_H2)
+     &                    ,"abund vert tot", 
+     &                    abundsmeanvert(krome_idx_H2)
+                  IF (nexc .lt. number) THEN
+                     abundsmean = abundsmean/(number-nExc)
+                  ELSE
+                     abundsmean = 0.
+                  END IF
+                  IF (nExcV .lt. numbervert) THEN
+                     abundsmeanvert = abundsmeanvert/(numbervert-nExcV)
+                  ELSE
+                     abundsmeanvert = 0.
+                  END IF
+                  nexc = 0
+                  nexcv = 0
+                  WRITE(*,"(A8,1X,E9.1)") "radmean", radmean*udist
+                  print *, "abundsmean CO", abundsmean(krome_idx_CO)
 #endif
                   IF (istellarradiation) THEN
                      fracion_mean = fracion_mean/number
@@ -768,6 +925,25 @@ c
      &                 etahallmean*udist*udist/utime,
      &                 etaambimean*udist*udist/utime
 #endif
+#ifdef USEKROME 
+                  print *, "writing QC file"
+c                  print *, (abundsmean(molinds(j)),j=1,nwrite)
+                  IF (usekrome .eq. 1) THEN
+                     WRITE (25,89555) radmean*udist, densitymean*udens,
+     &                    densityvertout*udens, tempmean,
+     &                    tempmeanvertout,
+     &                    (abundsmean(molinds(j)),j=1,nwrite),
+     &                    radvertmeanout*udist,
+     &                    (abundsmeanvert(molinds(j)),j=1,nwrite)
+                  ELSE IF (usekrome .eq. 2) THEN
+                     WRITE (25,89666) radmean*udist, densitymean*udens,
+     &                    densityvertout*udens, tempmean,
+     &                    tempmeanvertout,
+     &                    (abundsmean(j),j=1,krome_nmols),
+     &                    radmeanvertout*udist,
+     &                    (abundsmeanvert(j),j=1,krome_nmols)
+                  END IF
+#endif
 
                   WRITE (*,*) radmean,omega
                   number = 0.
@@ -793,6 +969,12 @@ c
                   etaohmmean = 0.
                   etahallmean = 0.
                   etaambimean = 0.
+#endif
+#ifdef USEKROME
+                  abundsmean = 0.
+                  abundsmeanvert =0.
+                  nexc = 0
+                  nexcv = 0
 #endif
                   IF (istellarradiation) THEN
                      fracion_mean = 0.
@@ -860,6 +1042,13 @@ c
 89333    FORMAT(13(1PE12.5,1X))
 89444    FORMAT(14(1PE12.5,1X))
 
+#ifdef USEKROME
+c         nwritePE12.5
+89555    FORMAT(5(1PE12.5,1X),<nwrite>(1PE12.5,1X),1PE12.5,1X,
+     &        <nwrite>(1PE12.5,1X))
+89666    FORMAT(5(1PE12.5,1X),<krome_nmols>(1PE12.5,1X),
+     &        1PE12.5,1X,<krome_nmols>(1PE12.5,1X))
+#endif
 c      WRITE (*,*) 'tmass2=',tmass2,' tmass3=',tmass3
 
          WRITE(15,99080) gt, timeff, fileout
@@ -883,6 +1072,9 @@ c
          ENDIF
 #ifdef NONIDEAL
          CLOSE(24)
+#endif
+#ifdef USEKROME
+         CLOSE(25)
 #endif
          READ(fileout, 99006) name, ifile
 99006    FORMAT(A9,I2)
@@ -915,6 +1107,16 @@ c
             WRITE(fileout4, 99006) name, ifile
          ENDIF
 #endif
+#ifdef USEKROME
+          READ(fileout5, 99006) name, ifile
+         ifle = ifile + 1
+         IF (ifile.LE.9) THEN
+            WRITE(fileout5, 99002) name, izero, ifile
+         ELSE
+            WRITE(fileout5, 99006) name, ifile
+         ENDIF
+#endif
+
    20    CONTINUE
 
          CLOSE(15)

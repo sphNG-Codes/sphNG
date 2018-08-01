@@ -82,6 +82,7 @@ c      INCLUDE 'COMMONS/torq'
 #ifdef USEKROME
       CHARACTER*16 tagsreal(1024)
       INTEGER dumpmols,countmols
+      REAL realnumfails(idim)
 #else
       CHARACTER*16 tagsreal(128)
 #endif
@@ -1118,6 +1119,26 @@ c----     Read in krome chemistry
                ENDIF
                PRINT *, k,"molecules read, expected", dumpmols
                ireadekcle = ireadekcle + k
+               IF (tagged) THEN
+                  READ (idisk1, END=100) tagi
+                  CALL checktag('tlastconv',tagi,ierr)
+                  READ (idisk1,END=100) 
+     &                 tlastconv(icount+1:icount+nhydro)
+                  ireadekcle = ireadekcle + 1
+                  PRINT *, "Read tlastconv"
+               ENDIF
+
+               IF (usekrome .GT. 0) THEN
+                  IF (tagged) THEN
+                     READ (idisk1, END=100) tagi
+                     CALL checktag("numfails",tagi,ierr)
+                  END IF
+                  READ (idisk1, END=100) 
+     &                 realnumfails(icount+1:icount+nhydro)
+                  ireadekcle = ireadekcle + 1
+                  numfails(:) = INT(realnumfails(:),4)
+            END IF
+
             ENDIF
             PRINT *, "Finished krome chemistry read."
 #endif

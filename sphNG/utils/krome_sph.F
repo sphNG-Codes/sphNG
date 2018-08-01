@@ -1035,7 +1035,7 @@ c        print *, ctime
 c        print *, "converting time to real"
 c        READ(ctime,"(E16.8)") time
         
-        WRITE (*,'(A,F710.2,A3,I0)') ":) krome time=", ktime, "k=", k
+        WRITE (*,'(A,F10.2,A3,I0)') ":) krome time=", ktime, "k=", k
         CLOSE(iread)
         ktime = ktime * spy
 

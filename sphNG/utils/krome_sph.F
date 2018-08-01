@@ -59,7 +59,7 @@ c*******************************************************************
       INTEGER n,k,niter,sdumpfreq,nskipped,fdumpfreq,inew(idim2)
       INTEGER ioutinfo,iindump,itime,kstart,iunique_orig(idim2)
       LOGICAL init_from_dump,havefile,restart,fixed_dt,found
-      LOGICAL prv_uncnvgd
+      LOGICAL prv_uncnvgd,unconverged
       CHARACTER*6 ctime
       CHARACTER*40 fdumpname
       REAL*8 mfracs_orig(krome_nmols,idim),ltlastconv(idim)
@@ -69,8 +69,9 @@ c*******************************************************************
       PARAMETER (dtFac = 0.33)
       PARAMETER (spy = 3.1536d7) !seconds per year
       PARAMETER(ioutinfo = 21)
-      INTEGER iphasecount,rank,master
+      INTEGER iphasecount,rank,master,isubdt,ntries,maxtries,nsubdt
       PARAMETER (MASTER=0)
+      PARAMETER (MAXTRIES=2)
       INTEGER*4 numfails_orig(idim)
 #ifdef KROMEMPI
       INTEGER status(MPI_STATUS_SIZE),bufflen,inumber
@@ -232,7 +233,10 @@ c---  Set chemistry timestep dt in SECONDS
         END IF
 
 c     --- If dt < a fraction of tff,skip to next dump
-        IF (idump .GT. 1 .AND. dt .LT. dtFac*tff) THEN
+        IF (fixed_dt) THEN
+           CONTINUE
+        ELSE IF (idump .GT. 1 .AND. dt .LT. dtFac*tff .AND.
+     &       idump .LT. numdumps) THEN
            WRITE (*,'(2A,2(A,F11.4),A)') "Skipping ", filelist(idump),
      &          ": tff frac=", dtFac*tff/spy, " dt=", dt/spy, "years."
            CYCLE
@@ -283,8 +287,10 @@ c     ---  i.e. iunique_orig(i) = iunique(i) for all i
            iunique_orig = iunique
            numfails_orig = numfails
            IF (restart .AND. .NOT. fixed_dt) THEN
+c     -- above line excluding fixed_dt needed for multiple runs of same dump  
+c     -- and assumes mfracs are taken from the same dump that's being run.  
               mfracs_orig = mfracs
-             CYCLE
+              CYCLE
 c     ---    Don't need to run chem as read from dump
            END IF
         ELSE
@@ -404,7 +410,8 @@ C$OMP& shared(rho,ekcle,mfracs,vxyzu,udens,npart,iunique,iunique_orig,
 C$OMP& iphase,k,init_from_dump,dust_tk,heatingISR,init_x, init_dt,
 C$OMP& idump,mfracs_orig,inew,local_dt,istart,iend,iphasecount,
 C$OMP& tlastconv,ltlastconv,ktime,numfails,numfails_orig,dt,gt,utime)
-C$OMP& private(i,j,Tgas,rhoi,x,Av,prv_uncnvgd) reduction(+ : nskipped)
+C$OMP& private(i,j,Tgas,rhoi,x,Av,prv_uncnvgd,unconverged,isubdt,ntries,
+C$OMP& nsubdt) reduction(+ : nskipped)
 
            DO i=istart,iend
               IF (MOD(i,50000) .EQ. 0) THEN
@@ -478,10 +485,15 @@ c     --- than 5 times (not necessarily in a row)
 c-------- If H2 abundance=zero then it must have been set so            
 c -- Keep this condition because if first dump run (t=0) doesn't converge
 c -- it's gonna be zero.
+c     --    If x returns as H2=0 from krome it is overwritten with prev
+c     --   value so it can't be zero. It might be zero if particle no.
+c     --    >npart so never had a value. Particle order shuffled.
+c     --   Get rid of zero values by setting iphase(i) = 1
                  nskipped = nskipped + 1
 
                  PRINT *, "skipping H2 = 0, iphase=",iphase(i),"i=", i,
      &                "i prev=",inew(i),iunique_orig(inew(i)),iunique(i)
+                 iphase(i) = 1
                  CYCLE
               END IF
 
@@ -501,33 +513,76 @@ c -- it's gonna be zero.
               CALL krome_set_user_rhogas(rhoi)
 
 c         WRITE(*,*) "rho, T, AV,dt", rhoi,Tgas,Av, local_dt/spy
-              CALL krome(x,rhoi,Tgas,local_dt)
+
+c     ---    loop for sub timesteps if initially unconverged
+              ntries = 1
+              isubdt = 1
+              nsubdt = MAXTRIES
+              DO WHILE (ntries .LE. MAXTRIES)
+                 IF (idustRT .GT. 0 ) then
+                    CALL krome_set_user_Tdust(dust_tk(1,i))
+                 ELSE 
+                    CALL krome_set_user_Tdust(Tgas)
+                 ENDIF
+                 Tgas = DBLE(vxyzu(4,i)/ekcle(3,i))
+                 IF (ntries .GT. 1) PRINT *, "Tgas=", Tgas
+                 CALL krome(x,rhoi,Tgas,local_dt)
 
 c-------Update mfracs array
 c --- x(:) comes back from krome as 0 if not converged -> revert back to 
 c --- previous abundances
-              IF (x(krome_idx_H2) .GT. 0. ) THEN 
-                 DO j=1, krome_nmols
-                    mfracs(j,i) = x(j)
-                 END DO
+                IF (x(krome_idx_H2) .GT. tiny .AND.
+     &               (ntries.EQ.1 .OR. isubdt.EQ.nsubdt) ) THEN 
+                   DO j=1, krome_nmols
+                      mfracs(j,i) = x(j)
+                   END DO
 c     ---      set ltlastconv to ktime reached (i.e. +dt NOT +localdt)
-                 ltlastconv(i) = (ktime + dt)/spy
-                 IF (prv_uncnvgd) THEN
-                    numfails(i) = 0
-                 END IF
-              ELSE
-                 DO j=1,krome_nmols
-                    mfracs(j,i) = mfracs_orig(j,inew(i))
-                 END DO
-                 ltlastconv(i) = tlastconv(inew(i))
-                 numfails(i) = numfails_orig(inew(i)) + 1
-                 print *, "particle",i,"didn't converge",
-     &                "H2", mfracs(krome_idx_H2,i),
-     &                tlastconv(inew(i)),"failed ", numfails(i),
-     &                "times."
-                 nskipped = nskipped + 1
-             END IF
-           END DO
+                   ltlastconv(i) = (ktime + dt)/spy
+                   IF (prv_uncnvgd) THEN
+                      numfails(i) = 0
+                   END IF
+                   IF ( ntries .GT. 1 )  THEN
+                      PRINT *, "Converged after", ntries," attempts."
+                   END IF
+                   EXIT
+                ELSE IF (x(krome_idx_H2) .GT. tiny 
+     &                  .AND. isubdt.LT.nsubdt) THEN
+                   PRINT *, "Substep", isubdt, "converged."
+                   isubdt = isubdt + 1
+                   CONTINUE
+                ELSE IF (x(krome_idx_H2) .LT. tiny .AND. 
+     &                  ntries .LT. MAXTRIES ) THEN
+                   ntries = ntries + 1
+                   PRINT *, "Attempt", ntries, "at convergence."
+                   local_dt = local_dt / REAL(ntries)
+                   IF (idump .GT. 1) THEN
+                      x(:) = mfracs_orig(:,inew(i))
+                   ELSE IF (init_from_dump) THEN
+                      x(:) = mfracs(:,i)
+                   END IF
+                   CONTINUE
+                ELSE IF (x(krome_idx_H2) .LT. tiny .AND. 
+     &                  ntries .EQ. MAXTRIES) THEN
+                   DO j=1,krome_nmols
+                      mfracs(j,i) = mfracs_orig(j,inew(i))
+                   END DO
+                   ltlastconv(i) = tlastconv(inew(i))
+                   numfails(i) = numfails_orig(inew(i)) + 1
+                   print *, "particle",i,"didn't converge",
+     &                  "H2", mfracs(krome_idx_H2,i),
+     &                  ltlastconv(inew(i)),"failed ", numfails(i),
+     &                  "times."
+                   nskipped = nskipped + 1
+                   EXIT
+                   ELSE
+                      PRINT *, "PROBLEM!", x(krome_idx_H2), ntries, 
+     &                     maxtries,isubdt
+                      EXIT
+                END IF
+
+             END DO
+c     --     END OF subdt loop            
+          END DO
 C$OMP END PARALLEL DO
 c     --- End of loop over i particles
 

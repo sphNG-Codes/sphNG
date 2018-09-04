@@ -395,8 +395,8 @@ c
 c
 c--Compute various properties to do with non-ideal MHD
 #ifdef NONIDEAL
-      CALL nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,rho,
-     &               vsound,
+      CALL nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,
+     &               jcurrent,rho,vsound,
      &               alphaMM,alphamin,n_R,n_electronT,iphase,gamma,
      &               ifsvi,encal,np_nimhd,et_nimhd,evdata,
      &               eta_nimhd,n1,n2,iunique,iorig)

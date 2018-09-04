@@ -866,7 +866,8 @@ c--real*4
           ELSE
            WRITE (idisk1, ERR=100) tag('curlB'//labelx(j-1))
 #ifdef NONIDEAL
-           WRITE (idisk1, ERR=100) (jcurrent(j-1,isort(i)), i=1, nprint)
+           WRITE (idisk1, ERR=100) (real(jcurrent(j-1,isort(i)),kind=4),
+     &            i=1, nprint)
 #else
            WRITE (idisk1, ERR=100) (divcurlB(j,isort(i)), i=1, nprint)
 #endif

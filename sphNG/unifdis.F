@@ -339,7 +339,9 @@ c               zstart = FLOAT(INT(zmin/stepz))*stepz + 0.5*stepz
             yi = ystart + FLOAT(l - 1)*stepy
             IF (idist.EQ.7) THEN
                xi = xi + 0.5*stepx*MOD(m,2)
-               yi = yi + 0.5*stepx*MOD(m,2)
+               yi = yi + 0.5*stepy*MOD(m,2)
+               if (xi > xmax) xi = xi - xmax
+               if (yi > xmax) yi = yi - ymax
             ENDIF
             zi = zstart + FLOAT(m - 1)*stepz 
             r2 = xi*xi + yi*yi

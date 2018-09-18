@@ -76,7 +76,7 @@ c***********************************************************
       CHARACTER*1  ien, icont, icor, icent, isink, itorq, itype
       CHARACTER*1  ivarbnd, inewdump, itstep
 #ifdef USEKROME
-      INTEGER maxmos,dumpmols,j,nwrite,nexc,nExcV
+      INTEGER maxmols,dumpmols,j,nwrite,nexc,nExcV
       PARAMETER (maxmols=40)
       INTEGER molinds(maxmols)
       CHARACTER*14 molsfile

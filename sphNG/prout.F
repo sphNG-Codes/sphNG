@@ -577,7 +577,7 @@ c
 c--Accretion
 c
          WRITE (iprint, 88002, ERR=100) nactivetot, nptmasstot
-88002    FORMAT (' number of active particles    : ', I8, I8)
+88002    FORMAT (' number of active particles    : ', I10, I8)
          IF (ibound.EQ.8 .OR. ibound/10.EQ.9 .OR. ibound.EQ.100) THEN
             WRITE (iprint, 88003, ERR=100) nreassigntot
 88003       FORMAT (' number of reassigned part.    : ', I8)
@@ -703,7 +703,7 @@ c         WRITE (96,*) gt, rmin1tot
      &        vcmx1tot,vcmy1tot, vcmz1tot, hmi1tot, hma1tot, dmax1tot,
      &        zmax1tot, romean1tot, romax1tot, rocen1tot,
      &        valphamin1tot,valphamax1tot,tgmean1tot,tgmax1tot,tgcen1tot
-99006    FORMAT (/, ' Object number 1 (', I8, ' particles ) : ', /,
+99006    FORMAT (/, ' Object number 1 (', I10, ' particles ) : ', /,
      &           ' center of mass  x :', 1PE14.5, '  y :', 1PE14.5,
      &           '  z :', 1PE14.5, /, ' velocity cm    vx :', 1PE14.5,
      &           ' vy :', 1PE14.5, ' vz :', 1PE14.5, /,
@@ -746,7 +746,7 @@ c
      &           dmax2tot,zmax2tot,romean2tot,
      &           romax2tot,rocen2tot,valphamin2tot,valphamax2tot,
      &           tgmean2, tgmax2, tgcen2
-99007       FORMAT (/, ' Object number 2 (', I8, ' particles ) : ', /,
+99007       FORMAT (/, ' Object number 2 (', I10, ' particles ) : ', /,
      &           ' center of mass  x :', 1PE14.5, '  y :', 1PE14.5,
      &           '  z :', 1PE14.5, /, ' velocity cm    vx :', 1PE14.5,
      &           ' vy :', 1PE14.5, ' vz :', 1PE14.5, /,

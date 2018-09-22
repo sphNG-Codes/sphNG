@@ -226,8 +226,8 @@ c
      &           nstepphase(1,j+1),nstepphase(2,j+1),nsteplisttot(2,j+1)
          ENDIF
       END DO
-99102 FORMAT (I2,1PE12.4,1X,I8,1X,I8,1X,I8)
-99103 FORMAT (I2,1PE12.4,1X,I8,1X,I8,1X,I8,1X,I8)
+99102 FORMAT (I2,1PE12.4,1X,I10,1X,I10,1X,I10)
+99103 FORMAT (I2,1PE12.4,1X,I10,1X,I10,1X,I10,1X,I10)
 
 #ifdef MPI
       ELSE

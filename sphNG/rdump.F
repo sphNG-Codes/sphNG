@@ -91,6 +91,7 @@ c      INCLUDE 'COMMONS/torq'
       DIMENSION rheader(idimhead)
       INTEGER iversion, maxversion
       LOGICAL tagged, isequential
+      LOGICAL ireadblock
 c
 c--Is an invalid cleaning wave array a fatal error?
 c    Do not change this value unless you know
@@ -398,6 +399,18 @@ c
          WRITE (*,*) 'ERROR 7 in rdump ', number, numberexp
          CALL quit(0)
 #ifdef MPI
+      ELSEIF (mpitype.EQ.'b' .AND. numproc.EQ.nblocks/2) THEN
+         IF (gt.NE.0.) THEN
+            WRITE (*,*) 'ERROR in rdump: nblocks.NE.numproc ',
+     &        nblocks,numberexp,numproc
+            WRITE (*,*) 'You are not allowed to restart a job with a',
+     &           ' different number of MPI processes.'
+            WRITE (*,*) 'If you ignore this error message, you may',
+     &           ' be able to do so, but you should be careful!'
+            CALL quit(0)
+         ENDIF
+         WRITE (*,*) 'CHANGING number of MPI processes from ',
+     &        nblocks,' to ',numproc
       ELSEIF (nblocks.NE.1 .AND. nblocks.NE.numproc) THEN
          WRITE (*,*) 'ERROR in rdump: nblocks.NE.numproc ',
      &        nblocks,numberexp,numproc
@@ -413,6 +426,21 @@ c
       DO iblock = 1, nblocks
 #ifdef MPI
          print *,iproc,': Doing block ',iblock
+c
+c--Read this block if the MPI process number equals that of the block
+c     (as for a calculation starting with the same number of MPI
+c     processes that were used to make the dump file), or
+c     if the dump file has type "b" domain decomposition AND the
+c     aim is to reduce the number of MPI domains by a factor of 2.
+c
+c     WARNING: There is no way to check the type of domain decomposition
+c     of the incoming dump file.  If the dump file is assumed to have
+c     type "b" domain decomposition, but it doesn't, then the particles
+c     could be distributed between MPI processes in a very weird manner!
+c
+         ireadblock = (nblocks.NE.1 .AND. (iproc.EQ.(iblock-1) .OR. 
+     &     (mpitype.EQ.'b' .AND. numproc.EQ.nblocks/2 .AND. 
+     &     iproc.EQ.MOD(iblock-1,nblocks/2))))
 #else
          print *,'Doing block ',iblock
 #endif
@@ -426,11 +454,11 @@ c
          CALL quit(0)
       ENDIF
 #ifdef MPI
-      IF (nblocks.EQ.1 .OR. nblocks.NE.1 .AND. iproc.EQ.iblock-1) THEN
+      IF (nblocks.EQ.1 .OR. ireadblock) THEN
 #endif
       nhydro = min(number8,npart)
       IF (iskip.EQ.1 .AND. icount + nhydro.GT.idim) THEN
-         WRITE (*,*) 'ERROR - idim exceeded'
+         WRITE (*,*) 'ERROR - idim exceeded ',icount,nhydro,idim
          CALL quit(0)
       ENDIF
 #ifdef MPI
@@ -452,7 +480,7 @@ c
          CALL quit(0)
       ENDIF
 #ifdef MPI
-      IF (nblocks.EQ.1 .OR. nblocks.NE.1 .AND. iproc.EQ.iblock-1) THEN
+      IF (nblocks.EQ.1 .OR. ireadblock) THEN
 #endif
       nptmass = number8
 #ifdef MPI
@@ -501,7 +529,7 @@ c      nums4(7) = 4
 c
 c--IF MPI code, then need to skip blocks that are not for this process
 c
-      IF (nblocks.NE.1 .AND. iproc.NE.iblock-1) THEN
+      IF (nblocks.NE.1 .AND. .NOT.(ireadblock)) THEN
 #ifdef MPIDEBUG
          print *,iproc,': Skipping block ',iblock
 #endif
@@ -1427,6 +1455,17 @@ c
      &              iunique,ekcle,listpm,spinx,spiny,spinz,angaddx,
      &              angaddy,angaddz,spinadx,spinady,spinadz,
      &              listinactive)
+            ELSEIF (mpitype.EQ.'b' .AND. numproc.EQ.nblocks/2) THEN
+               IF (nblocks.NE.1) THEN
+                  DO i = icountsink+1, icountsink+nptmass
+                     listpm(i) = listpm(i) + icount
+                  END DO
+               ENDIF
+               icount = icount + nhydro
+               icountinactive = icountinactive + nlistinactive
+               icountsink = icountsink + nptmass
+               print *,'Totals at this point npart, nptmass ',icount,
+     &              icountsink
             ELSE
                print *,iproc,': MAINTAIN PARTICLE SPLIT ',npart,nhydro
                npart = nhydro
@@ -1469,7 +1508,8 @@ c
 c--If found block for this process, can skip rest of file
 c
 #ifdef MPI
-      IF (nblocks.NE.1 .AND. iproc.EQ.iblock-1) THEN
+      IF (nblocks.NE.1 .AND. numproc.EQ.nblocks .AND. 
+     &     iproc.EQ.iblock-1) THEN
 #ifdef MPIDEBUG
          print *,iproc,': Skipping remainder of dump file ',iblock
 #endif
@@ -1484,6 +1524,24 @@ c
 11000 CONTINUE
 #endif
 #ifdef MPI
+c
+c--If reducing number of blocks, need to set npart, etc
+c
+      IF (mpitype.EQ.'b' .AND. numproc.EQ.nblocks/2) THEN
+         npart = icount
+         nptmass = icountsink
+         nlistinactive = icountinactive
+         WRITE (*,11500) iproc,npart,nptmass,nlistinactive
+11500    FORMAT(I3,': Final npart, nptmass ',I10,1X,I4,1X,I10)
+         DO i = 1, nlistinactive
+            IF (iphase(listinactive(i)).NE.-1) THEN
+               WRITE (*,*) 'ERROR - iphase(listinactive(i)).NE.-1',
+     &              i,nlistinactive,listinactive(i),
+     &              iphase(listinactive(i))
+               CALL quit(0)
+            ENDIF
+         END DO
+      ENDIF
 c
 c--This is the second section that is required to force sequential MPI
 c     reads of the dump file by different MPI processors.

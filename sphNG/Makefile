@@ -654,7 +654,13 @@ convert: checksystem checkparams utils/convert.o utils/readdump_sphNG.o utils/wr
 convertmpi: checksystem checkparams utils/convert_to_mpi.o wdump.o rdump.o error.o classify_MPI.o file.o options.o chekopt.o 
 	$(FC) $(FFLAGS) -o $@ utils/convert_to_mpi.o wdump.o rdump.o error.o classify_MPI.o file.o options.o chekopt.o 
 
-# convert from scalar dump file to MPI dump file (i.e. multiple blocks)
+# convert from MPI dump with type "b" domain decompostion and N domains
+#    to N/2 domains (e.g. from 128 domains to 64 domains).
+
+mpi_reduce: checksystem checkparams utils/mpi_reduce.o wdump.o rdump.o error.o classify_MPI.o file.o options.o chekopt.o balance.o
+	$(FC) $(FFLAGS) -o $@ utils/mpi_reduce.o wdump.o rdump.o error.o classify_MPI.o file.o options.o chekopt.o balance.o
+
+# convert from MPI dump with type "d" domain decomposition to type "b"
 
 mpi_balance: checksystem checkparams utils/mpi_balance.o wdump.o rdump.o error.o classify_MPI.o file.o options.o chekopt.o balance.o
 	$(FC) $(FFLAGS) -o $@ utils/mpi_balance.o wdump.o rdump.o error.o classify_MPI.o file.o options.o chekopt.o balance.o

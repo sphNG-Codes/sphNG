@@ -61,6 +61,7 @@ c************************************************************
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/recor'
       INCLUDE 'COMMONS/lyonfiles'
+      INCLUDE 'COMMONS/gtime'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -542,6 +543,9 @@ c     &                          MPI_COMM_WORLD, ierr)
                            ENDIF
                         ENDIF
 
+#ifdef MPIDEBUGT
+                        print *,iproc,': Sent RT to ',j
+#endif
                         IF (istellar_ionisation) THEN
                            CALL MPI_SEND(HIIion,1,indexMPIR,
      &                          j,175,MPI_COMM_WORLD, ierr)
@@ -799,8 +803,10 @@ c
                ENDIF
                igotnumber = inumber
                IF (inumber.NE.numrecv(ii+1)) THEN
-                  WRITE (*,*) 'ERROR - inumber.NE.numrecv(ii+1) ',
-     &                 inumber,numrecv(ii+1),ii,iprocrec
+                  WRITE (*,99800) inumber,numrecv(ii+1),ii,iprocrec,
+     &                 iproc
+99800             FORMAT('ERROR - inumber.NE.numrecv(ii+1) ',
+     &                 2(I10,1X),I3,1X,I3,1X,I3)
                   CALL quit(1)
                ENDIF
 
@@ -1888,7 +1894,13 @@ c--End of test of MPI decomposition
 c
 c
 c--Need to reset lists of particles in each timestep bin
+c     If gt=0, then balance.F is being called from balance_mpi_d_to_b or
+c     an equivalent program that is modifying a starting dump file.
+c     In this case, the timesteps are not set and there is no need to
+c     make ghosts or the tree, so balance.F simply returns.
 c
+      IF (gt.EQ.0.) RETURN
+
       DO i = 1, nbinmax
          nlstbins(i) = 0
          it1bin(i) = 2**(i-1)

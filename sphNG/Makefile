@@ -654,6 +654,11 @@ convert: checksystem checkparams utils/convert.o utils/readdump_sphNG.o utils/wr
 convertmpi: checksystem checkparams utils/convert_to_mpi.o wdump.o rdump.o error.o classify_MPI.o file.o options.o chekopt.o 
 	$(FC) $(FFLAGS) -o $@ utils/convert_to_mpi.o wdump.o rdump.o error.o classify_MPI.o file.o options.o chekopt.o 
 
+# convert from scalar dump file to MPI dump file (i.e. multiple blocks)
+
+mpi_balance: checksystem checkparams utils/mpi_balance.o wdump.o rdump.o error.o classify_MPI.o file.o options.o chekopt.o balance.o
+	$(FC) $(FFLAGS) -o $@ utils/mpi_balance.o wdump.o rdump.o error.o classify_MPI.o file.o options.o chekopt.o balance.o
+
 # convert from full to small dump file
 
 convertfs: checksystem checkparams utils/convert_full_small.o wdump.o rdump.o error.o balance.o

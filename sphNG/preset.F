@@ -526,8 +526,12 @@ c
      &     (encal.EQ.'i' .AND. (ibound.EQ.102 .OR. ibound.EQ.103))
      &     .OR. ABS(iresist).EQ.2 .OR. ABS(iresist).EQ.3) THEN
 
+#ifdef ENDIANBIG
 c         filetable = TRIM(homedir)//'tables/gasttbl'
          filetable = TRIM(homedir)//'tables/gasttbl_lowdens'
+#else
+      filetable = TRIM(homedir)//'tables/gasttbl_lowdens_little_endian'
+#endif
          OPEN(itablerd,FILE=filetable,FORM='unformatted',
      &        STATUS='old',ACTION='read')
          DO i=1, tgmxu
@@ -535,8 +539,12 @@ c         filetable = TRIM(homedir)//'tables/gasttbl'
          ENDDO
          CLOSE(itablerd)
 
+#ifdef ENDIANBIG
 c         filetable = TRIM(homedir)//'tables/utbl'
          filetable = TRIM(homedir)//'tables/utbl_lowdens'
+#else
+         filetable = TRIM(homedir)//'tables/utbl_lowdens_little_endian'
+#endif
          OPEN(itablerd,FILE=filetable,FORM='unformatted',
      &        STATUS='old',ACTION='read')
          DO i=1, umxrh
@@ -544,8 +552,13 @@ c         filetable = TRIM(homedir)//'tables/utbl'
          ENDDO
          CLOSE(itablerd)
  
+#ifdef ENDIANBIG
 c         filetable = TRIM(homedir)//'tables/molmasstbl'
          filetable = TRIM(homedir)//'tables/molmasstbl_lowdens'
+#else
+         filetable = TRIM(homedir)//
+     &        'tables/molmasstbl_lowdens_little_endian'
+#endif
          OPEN(itablerd,FILE=filetable,FORM='unformatted',
      &        STATUS='old',ACTION='read')
          DO i=1, mumxu

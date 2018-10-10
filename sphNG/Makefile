@@ -358,10 +358,12 @@ endif
 
 ifeq ($(ENDIAN), BIG)
     FFLAGS += ${ENDIANFLAGBIG}
+    FPPFLAGS+=${FPP_SEP}-DENDIANBIG
 endif
 
 ifeq ($(ENDIAN), LITTLE)
     FFLAGS += ${ENDIANFLAGLITTLE}
+    FPPFLAGS+=${FPP_SEP}-DENDIANLITTLE
 endif
 
 ifeq ($(openmp), yes)
@@ -379,6 +381,7 @@ ifeq ($(mpi), yes)
     FPPFLAGS+=${FPP_SEP}-DMPIALL
     FPPFLAGS+=${FPP_SEP}-DMPI
 endif
+
 ifeq ($(mpicopy), yes)
     FPPFLAGS+=${FPP_SEP}-DMPIALL
     FPPFLAGS+=${FPP_SEP}-DMPICOPY

@@ -1969,7 +1969,7 @@ c
      &                 iphase(j).EQ.0)) THEN
 
                      f_drag_co = getcd(rhoj, dvij, vsoundj,
-     &                    ipart, idragscheme)
+     &                    j, idragscheme)
 
                      f_drag_i = f_drag_co*projv*wtij*pmassj
 

@@ -182,7 +182,7 @@ c  This means the gas drag should be zero, hence CD = 0.
          ENDIF
 
       ELSEIF (iregime.EQ.1) THEN
-         IF (encal.EQ.'r' .OR. (encal.EQ.'i' .AND. use_tprof)) THEN
+         IF (encal.EQ.'r') THEN
             gamma_l = Rg/uergg/getcv(rho(ipart),vxyzu(4,ipart))*
      &        get1overmu(rho(ipart),vxyzu(4,ipart)) + 1.
          ELSEIF (encal.EQ.'i') THEN
@@ -255,7 +255,7 @@ c************************************************************
 c
 c--Calculate value of gamma for RT calculations
 c
-      IF (encal.EQ.'r' .OR. (encal.EQ.'i' .AND. use_tprof)) THEN
+      IF (encal.EQ.'r') THEN
          gamma_l = Rg/uergg/getcv(rho(ipart),vxyzu(4,ipart))*
      &        get1overmu(rho(ipart),vxyzu(4,ipart)) + 1.
       ELSEIF (encal.EQ.'i') THEN

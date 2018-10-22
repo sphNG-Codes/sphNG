@@ -254,14 +254,6 @@ c
          ifound(i) = .FALSE.
       END DO
 
-      IF (nptmassold .LT. nptmass) THEN
-         DO i=listmerge(nptmassold+1),listmerge(nptmass)
-            tform(i) = fftime
-            tffform(i) = time
-         END DO
-         write (*,*) 'Setting formation ',fftime, time, nptmass
-      ENDIF
-
       IF (nptmass+nmerge.GT.idim) THEN
       WRITE (*,*) 'GREATER THAN ',idim,' POINT MASSES ',nptmass,nmerge
          STOP
@@ -294,7 +286,11 @@ c
             WRITE (*,*) 'New sink found: ',iunique,' assigned ',
      &           nptmasscurrent, i
             ifound(nptmasscurrent) = .TRUE.
-            
+
+            tform(i) = fftime
+            tffform(i) = time
+            write (*,*) 'Setting formation ',fftime, time, nptmass, i
+
  555        CONTINUE
 
             x(i) = xi

@@ -2591,9 +2591,11 @@ c
             END IF 
 
 #ifdef NONIDEAL
-            CALL energ_nimhd(fxyzu(4,ipart),real(trho(ipart))
-     &                   ,eta_nimhd(1:3,ipart),jcurrent(1:3,ipart)
-     &                   ,Bxyz(1:3,ipart))
+            IF (n.LE.nlst_end) THEN
+               CALL energ_nimhd(fxyzu(4,ipart),real(trho(ipart))
+     &                      ,eta_nimhd(1:3,ipart),jcurrent(1:3,ipart)
+     &                      ,Bxyz(1:3,ipart))
+            END IF 
 #endif
 c
 c--Translate to dB/dt and add divv term if B is evolved

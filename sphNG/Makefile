@@ -751,8 +751,8 @@ checksystem:
 	@echo ""
 	@echo "Compiling sphNG for $(SYSTEM) system..........."
 	@echo ""
-	@echo "calling createsvnversion"
-	@./createsvnversion.sh
+	@echo "calling creategitversion"
+	@./creategitversion.sh
 	@echo "...done"
    else
 	@echo ""
@@ -804,5 +804,5 @@ updatedepends:
 include .depends
 
 clean:
-	\rm -f *.o *.mod RT/Baraffe/*.o RT/Baraffe/*.mod RT/*.o RT/*.mod sph_tree_lf_gradh sph_tree_lf_gradh_RT sph_tree_lf sph_tree_rk_gradh sph_tree_rk_gradh_RT sph_tree_rk_gradh_RT_BAR sph_tree_rk ./utils/*.o ./utils/*/*.o maketables/*.o svn_version.h
+	\rm -f *.o *.mod RT/Baraffe/*.o RT/Baraffe/*.mod RT/*.o RT/*.mod sph_tree_lf_gradh sph_tree_lf_gradh_RT sph_tree_lf sph_tree_rk_gradh sph_tree_rk_gradh_RT sph_tree_rk_gradh_RT_BAR sph_tree_rk ./utils/*.o ./utils/*/*.o maketables/*.o git_version.h
 # DO NOT DELETE

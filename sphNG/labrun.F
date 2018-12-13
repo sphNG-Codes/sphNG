@@ -10,7 +10,7 @@ c************************************************************
 
       INCLUDE 'idim'
       INCLUDE 'igrape'
-      INCLUDE 'svn_version.h'
+      INCLUDE 'git_version.h'
 
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/actio'
@@ -38,7 +38,7 @@ c
      &        '*              WITH POINT MASSES             *', /, 1X,
      &        '*                                            *', /, 1X,
      &        '**********************************************')
-      WRITE (iprint, 99002) svnversion
+      WRITE (iprint, 99002) gitversion
 99002 FORMAT (/, 1X, 'Current version : ', A20)
 
       WRITE (iprint, 99010) __DATE__, __TIME__

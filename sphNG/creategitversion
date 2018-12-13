@@ -1,0 +1,23 @@
+#!/bin/bash
+# Uses bash as some systems don't have c shell: D. Acreman 18 Jul 2014
+# Convert from subversion to git: D. Acreman, 7 November 2017
+
+echo '      CHARACTER*20 gitversion' > git_version.h
+
+which git > /dev/null
+
+# Set the version string using git if available or set to unknown otherwise
+if [ $? -eq 0 ]; then
+
+# A seven character abbreviation of the commit object name matches the name used on bitbucket
+    thisVersion=`git show -s --pretty=oneline --abbrev-commit  --abbrev=7 | awk '{print $1}'`
+
+# Check whether this is a clean working copy
+    state='clean'; test -z "$(git diff-index --name-only HEAD --)" || state='dirty'
+
+    echo '      PARAMETER (gitversion = "-'${thisVersion}-${state}'")' >> git_version.h
+
+else
+    echo '      PARAMETER (gitversion = "-'unknown'")' >> git_version.h
+fi
+

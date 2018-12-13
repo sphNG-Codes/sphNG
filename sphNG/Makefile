@@ -752,7 +752,7 @@ checksystem:
 	@echo "Compiling sphNG for $(SYSTEM) system..........."
 	@echo ""
 	@echo "calling creategitversion"
-	@./creategitversion.sh
+	@./creategitversion
 	@echo "...done"
    else
 	@echo ""

@@ -164,7 +164,11 @@ c
                qrad(7,new) = qrad(7,new) + qrad(7,ll)
             ENDIF
             IF (idustRT.GT.0) THEN
-               h2frac(new) = h2frac(l)*fl+h2frac(ll)*fll
+               IF (ll.EQ.0) THEN
+                  h2frac(new) = h2frac(l)*fl
+               ELSE
+                  h2frac(new) = h2frac(l)*fl+h2frac(ll)*fll
+               ENDIF
             ENDIF
          END DO
 C$OMP END DO
@@ -257,7 +261,11 @@ c
                qrad(7,new) = qrad(7,new) + qrad(7,ll)
             ENDIF
             IF (idustRT.GT.0) THEN
-               h2frac(new) = h2frac(l)*fl+h2frac(ll)*fll
+               IF (ll.EQ.0) THEN
+                  h2frac(new) = h2frac(l)*fl
+               ELSE
+                  h2frac(new) = h2frac(l)*fl+h2frac(ll)*fll
+               ENDIF
             ENDIF
          END DO
 
@@ -547,7 +555,11 @@ c
                qrad(7,new) = qrad(7,new) + qrad(7,ll)
             ENDIF
             IF (idustRT.GT.0) THEN
-               h2frac(new) = h2frac(l)*fl+h2frac(ll)*fll
+               IF (ll.EQ.0) THEN
+                  h2frac(new) = h2frac(l)*fl
+               ELSE
+                  h2frac(new) = h2frac(l)*fl+h2frac(ll)*fll
+               ENDIF
             ENDIF
 
 c            IF (ilevel.LT.nlevel .OR. 

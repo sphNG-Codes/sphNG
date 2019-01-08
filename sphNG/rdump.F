@@ -438,9 +438,13 @@ c     of the incoming dump file.  If the dump file is assumed to have
 c     type "b" domain decomposition, but it doesn't, then the particles
 c     could be distributed between MPI processes in a very weird manner!
 c
-         ireadblock = (nblocks.NE.1 .AND. (iproc.EQ.(iblock-1) .OR. 
-     &     (mpitype.EQ.'b' .AND. numproc.EQ.nblocks/2 .AND. 
-     &     iproc.EQ.MOD(iblock-1,nblocks/2))))
+         IF (nblocks.EQ.1) THEN
+            ireadblock = .TRUE.
+         ELSE
+            ireadblock = (nblocks.NE.1 .AND. (iproc.EQ.(iblock-1) .OR. 
+     &           (mpitype.EQ.'b' .AND. numproc.EQ.nblocks/2 .AND. 
+     &           iproc.EQ.MOD(iblock-1,nblocks/2))))
+         ENDIF
 #else
          print *,'Doing block ',iblock
 #endif

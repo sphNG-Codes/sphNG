@@ -108,9 +108,12 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/dustfluid'
       INCLUDE 'COMMONS/dustfluidderiv'
+      INCLUDE 'COMMONS/timecrit'
 
       DIMENSION nsteplist(30)
       INTEGER*8 nneightotsave
+
+      REAL rmodall(15)
 
       LOGICAL ifirst
       LOGICAL icenter, killme
@@ -1885,6 +1888,7 @@ C$OMP& shared(pcolen,xmass,overclean_fac)
 C$OMP& shared(gasdist,nearestgas,planetmass,coremass)
 C$OMP& shared(dh2dt,icolumnsteps,icolumnnext)
 C$OMP& shared(dustvar,f1dust,f2dust,dHIIdt)
+C$OMP& shared(timestepcriterion)
 #ifdef MPICOPY
 C$OMP& shared(iproc)
 #endif
@@ -1906,7 +1910,7 @@ C$OMP& private(errdivtol,rap,rmod1,divvi,aux1,aux2,aux3,denom,valfven2)
 C$OMP& private(crstepi,rmodcr,force21,force22,force2,rmodcr2,rmod)
 C$OMP& private(stepi,ibin,factor,istep2,irat,r2,pmassi,rmodsg1,rmodsg2)
 C$OMP& private(Bxi,Byi,Bzi,B2i,xi,yi,zi,dti,dteta,rmodeta,etai,rmodcool)
-C$OMP& private(rmod_du1,rmod_du2,dtdust,rmoddust)
+C$OMP& private(rmod_du1,rmod_du2,dtdust,rmoddust,rmodall)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin,istepmingas)
 C$OMP& reduction(+:istepeta,etafac)
@@ -2407,6 +2411,19 @@ c--Compute ratio of present to next timestep
 c
          rap = dt*isteps(i)/imaxstep*errdivtol*e1 + small
          rmod1 = 1./SQRT(rap)
+
+         rmodall(:) = 1.0E+30
+         IF (errm/tolpart.GT.errh/tolh) THEN
+            IF (errm.EQ.erru) THEN
+               rmodall(3) = rmod1
+            ELSEIF (errm.EQ.MAX(errvx,errvy,errvz)) THEN
+               rmodall(2) = rmod1
+            ELSE
+               rmodall(1) = rmod1
+            ENDIF
+         ELSE
+            rmodall(4) = rmod1
+         ENDIF
 c
 c--Compute the time step from the force condition
 c
@@ -2421,6 +2438,7 @@ c
          ELSE
             rmodcr2 = 1.0E+30
          ENDIF
+         rmodall(5) = rmodcr2
 c
 c--Compute the time step for the gas from the Courant condition
 c
@@ -2478,6 +2496,7 @@ c     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
      &                   + 1.2*(aux1 + aux2)
             crstepi = 0.3*xyzmh(5,i)/denom
             rmodcr = crstepi/(dt*isteps(i)/imaxstep)
+            rmodall(6) = rmodcr
 c
 c--Decide which time step to take
 c
@@ -2491,6 +2510,7 @@ c
                 rmodsg2=(0.05*ABS(vxyzu(4,i)/f2vxyzu(4,i)))
      &          /(dt*isteps(i)/imaxstep)
                 rmod=MIN(rmod,rmodsg1,rmodsg2)
+                rmodall(7) = MIN(rmodsg1,rmodsg2)
             END IF 
 c
 c--Gas timestep from gas-dust drag
@@ -2499,6 +2519,7 @@ c
                rmodgd = 0.1*planetesimaltimestep(i)/planetesimalnorm(i)/
      &              (dt*isteps(i)/imaxstep)
                rmod = MIN(rmod, rmodgd)
+               rmodall(8) = rmodgd
             ENDIF
 c
 c--Timestep from change in thermal energy
@@ -2510,6 +2531,7 @@ c
                   rmod_du2 = 0.1*ABS(vxyzu(4,i)/f2vxyzu(4,i))/
      &                 (dt*isteps(i)/imaxstep)
                   rmod = MIN(rmod,rmod_du1,rmod_du2)
+                  rmodall(9) = MIN(rmod_du1,rmod_du2)
                ENDIF
             ENDIF
 
@@ -2532,6 +2554,9 @@ c
                dthalli = dthalli/ (dt*isteps(i)/imaxstep)
                dtambii = dtambii/ (dt*isteps(i)/imaxstep)
                rmod    = MIN(rmod,dtohmi,dthalli,dtambii)
+               rmodall(10) = dtohmi
+               rmodall(11) = dthalli
+               rmodall(12) = dtambii
             ENDIF
 #endif
 
@@ -2548,6 +2573,7 @@ c
      &              )**1.5/xyzmh(4,listpm(1)))
                rmodcool = rmodcool/(dt*isteps(i)/imaxstep)
                rmod = MIN(rmod, rmodcool)
+               rmodall(13) = rmodcool
             ENDIF
          ELSEIF (iphase(i).GE.10) THEN
 c
@@ -2561,6 +2587,7 @@ c
                rmodgd = 1.0E10
             ENDIF
             rmod = MIN(rmod1, rmodcr2, rmodgd)
+            rmodall(8) = rmodgd
 c            IF (rmod.EQ.rmodgd) print *, 'Use rmodgd D ', rmod, rmodcr2
          ELSE
             rmod = rmod1
@@ -2581,6 +2608,7 @@ c--Resistivity which is a function of density
                         etafac = etafac 
      &                       + rmod*(dt*isteps(i)/imaxstep)/dteta
                         rmod = MIN(rmod, rmodeta)
+                        rmodall(14) = rmodeta
                      ENDIF
                   ENDIF            
                ELSEIF (iresist.EQ.1) THEN
@@ -2593,6 +2621,7 @@ c--Constant resistivity
                         etafac = etafac 
      &                       + rmod*(dt*isteps(i)/imaxstep)/dteta
                         rmod = MIN(rmod, rmodeta)
+                        rmodall(14) = rmodeta
                      ENDIF
                   ENDIF
                ENDIF
@@ -2607,8 +2636,13 @@ c
      &              (dustvar(i)**2/rho(i)*stoppingtime(i))
                rmoddust = dtdust/(dt*isteps(i)/imaxstep)
                rmod = MIN(rmod, rmoddust)
+               rmodall(15) = rmoddust
             ENDIF
          ENDIF
+c
+c--Record limiting criterion for timestep
+c
+         timestepcriterion(i) = MINLOC(rmodall,DIM=1)
 c
 c--Reduce time step (no synchronization needed)
 c

@@ -1,0 +1,2 @@
+      INTEGER timestepcriterion
+      COMMON /timecrit/ timestepcriterion(idim)

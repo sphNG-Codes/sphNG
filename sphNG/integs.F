@@ -51,9 +51,15 @@ c************************************************************
       INCLUDE 'COMMONS/gaptbl'
       INCLUDE 'COMMONS/initpt'
       INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/timecrit'
+
+      CHARACTER*80 outputstring
 
       DIMENSION nsteplist(2,30),nsteplisttot(2,30)
       INTEGER nstepphase(2,30)
+      PARAMETER (numtimestepcrit = 15)
+      INTEGER nstepcriterion(numtimestepcrit,30)
+      INTEGER nstepcriteriontot(numtimestepcrit,30)
 c
 c--Allow for tracing flow
 c
@@ -110,15 +116,6 @@ c  for planet including gas mass
          ENDIF
       ENDIF
 
-#ifdef MPI
-c
-c--Load balance MPI processes
-c
-c      IF (iresort.EQ.0) THEN
-      CALL balance
-c      ENDIF
-#endif
-
 #ifdef MPIALL
       IF (iproc.EQ.0) THEN
 #endif
@@ -158,12 +155,9 @@ c      ENDIF
 c
 c--Report number of particles with each timestep
 c
-      DO j = 1, 30
-         nsteplist(1,j) = 0
-         nsteplist(2,j) = 0
-         nstepphase(1,j) = 0
-         nstepphase(2,j) = 0
-      END DO
+      nsteplist(:,:) = 0
+      nstepphase(:,:) = 0
+      nstepcriterion(:,:) = 0
 
       DO j = 1, npart
          IF (iupdated(j)) THEN
@@ -171,20 +165,23 @@ c
          ENDIF
          IF (iphase(j).GE.0) THEN
             dttime = dtmax*isteps(j)/imaxstep
-            ipostime = INT((LOG10(dtmax/dttime) * 3.3219281) + 1.01)
-            IF ((ipostime.GE.1) .AND. (ipostime.LE.29)) THEN
-               nsteplist(1,ipostime) = nsteplist(1,ipostime) + 1
-               IF (iphase(j).EQ.0)
-     &              nstepphase(1,ipostime) = nstepphase(1,ipostime) + 1
-               IF (iphase(j).GT.0)
-     &              nstepphase(2,ipostime) = nstepphase(2,ipostime) + 1
-            ELSE
-               nsteplist(1,30) = nsteplist(1,30) + 1
-               IF (iphase(j).EQ.0)
-     &              nstepphase(1,30) = nstepphase(1,30) + 1
-               IF (iphase(j).GT.0)
-     &              nstepphase(2,30) = nstepphase(2,30) + 1
+            ipostime = MAX(1,MIN(30,
+     &           INT((LOG10(dtmax/dttime) * 3.3219281) + 1.01) ))
+
+            nsteplist(1,ipostime) = nsteplist(1,ipostime) + 1
+            IF (iphase(j).EQ.0)
+     &           nstepphase(1,ipostime) = nstepphase(1,ipostime) + 1
+            IF (iphase(j).GT.0)
+     &           nstepphase(2,ipostime) = nstepphase(2,ipostime) + 1
+            IF (timestepcriterion(j).GT.numtimestepcrit) THEN
+               WRITE (iprint,*) 'ERROR - numtimestepcrit too small'
+               timestepcriterion(j) = numtimestepcrit
             ENDIF
+            IF (timestepcriterion(j).GT.0) 
+     &           nstepcriterion(timestepcriterion(j),ipostime) =
+     &           nstepcriterion(timestepcriterion(j),ipostime) + 1
+            IF (timestepcriterion(j).LE.0) print *,'TS ',j,
+     &           timestepcriterion(j),iphase(j)
 
             IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1 
      &           .AND. iphase(j).EQ.0) THEN
@@ -200,8 +197,8 @@ c
       END DO
 
       DO j = 1, 30
-         nsteplisttot(1,j) = nsteplist(1,j)
-         nsteplisttot(2,j) = nsteplist(2,j)
+         nsteplisttot(:,j) = nsteplist(:,j)
+         nstepcriteriontot(:,j) = nstepcriterion(:,j)
       END DO
 
 #ifdef MPI
@@ -209,34 +206,82 @@ c
      &     MPI_COMM_WORLD,ierr)
       CALL MPI_REDUCE(nactive,nactivetot,1,MPI_INTEGER,MPI_SUM,0,
      &     MPI_COMM_WORLD,ierr)
+      CALL MPI_REDUCE(nstepcriterion,nstepcriteriontot,
+     &     numtimestepcrit*30,MPI_INTEGER,MPI_SUM,0,MPI_COMM_WORLD,ierr)
       IF (iproc.EQ.0) THEN
+         WRITE (iprint,*)
          WRITE (iprint,99100) nparttot, nactivetot
 #else
          WRITE (iprint,99100) npart, nactive
 #endif
-
+c
+c--Write out timestep distributions
+c
 99100 FORMAT ('Timestep distribution ',I10,' number active ',I10)
+
+      IF (ioptimise_column.NE.1) THEN
+         WRITE (iprint,99101)
+99101    FORMAT ('Bin Timestep  All Types  Local Gas  Local Non-Gas')
+      ELSE
+         WRITE (iprint,99102)
+99102    FORMAT ('Bin Timestep  All Types  Local Gas  Local Non-Gas',
+     &     ' Optimise Col')
+      ENDIF
 
       DO j = 0, 29
          IF (ioptimise_column.NE.1) THEN
-            WRITE (iprint,99102) j, dtmax/2**j, nsteplisttot(1,j+1),
+            WRITE (iprint,99110) j, dtmax/2**j, nsteplisttot(1,j+1),
      &           nstepphase(1,j+1),nstepphase(2,j+1)
          ELSE
-            WRITE (iprint,99103) j, dtmax/2**j, nsteplisttot(1,j+1),
+            WRITE (iprint,99111) j, dtmax/2**j, nsteplisttot(1,j+1),
      &           nstepphase(1,j+1),nstepphase(2,j+1),nsteplisttot(2,j+1)
          ENDIF
       END DO
-99102 FORMAT (I2,1PE12.4,1X,I10,1X,I10,1X,I10)
-99103 FORMAT (I2,1PE12.4,1X,I10,1X,I10,1X,I10,1X,I10)
-
+99110 FORMAT (I2,1PE12.4,1X,I10,1X,I10,1X,I10)
+99111 FORMAT (I2,1PE12.4,1X,I10,1X,I10,1X,I10,1X,I10)
+c
+c--Write out how many particles have timesteps set by which criterion
+c
+      WRITE (iprint,*)
+      WRITE (iprint,99120)
+99120 FORMAT ('Distributions of timestep criteria - numbers',
+     &     ' are LOG10(n)')
+      WRITE (iprint,99121)
+99121 FORMAT ('Bin RK-x RK-v RK-u RK-h CR-2 CR-1 Cool Drag DuDt',
+     &     ' Ohm  Hall Ambi CCol etaB 1Dust')
+      DO j = 0, 29
+         WRITE (outputstring,'(I2)') j
+         DO k = 1, 15
+            IF (nstepcriteriontot(k,j+1).GT.0) THEN
+               WRITE (outputstring(4+(k-1)*5:4+k*5),'(1X,F4.1)')
+     &              LOG10(REAL(nstepcriteriontot(k,j+1)))
+c         WRITE (iprint,99106) j, LOG10(REAL(nstepcriteriontot(1:15,j+1)))
+            ELSE
+               WRITE (outputstring(4+(k-1)*5:4+k*5),*) '  -  '
+            ENDIF
+         END DO
+         WRITE (iprint,'(A80)') outputstring
+      END DO
+c
+c--Other MPI processes (iproc>0), write out local timestep distributions
+c
 #ifdef MPI
       ELSE
          WRITE (iprint,99100) npart, nactive
          DO j = 0, 29
-            WRITE (iprint,99101) j, dtmax/2**j, nsteplist(1,j+1)
+            WRITE (iprint,99130) j, dtmax/2**j, nsteplist(1,j+1)
          END DO
       ENDIF
-99101 FORMAT (I2,1PE12.4,I10)
+99130 FORMAT (I2,1PE12.4,I10)
+#endif
+
+#ifdef MPI
+c
+c--Load balance MPI processes
+c
+c      IF (iresort.EQ.0) THEN
+      CALL balance
+c      ENDIF
 #endif
 c
 c--Get time and compute time needed for this timestep

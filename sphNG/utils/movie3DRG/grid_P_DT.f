@@ -199,7 +199,7 @@ c
 C$OMP DO SCHEDULE(dynamic, 10)
       DO j=1, iliney
          DO i=1, ilinex
-            v2(i,j)=v2(i,j)/v1(i,j)
+            IF (v1(i,j).GT.0.) v2(i,j)=v2(i,j)/v1(i,j)
             v1(i,j)=v1(i,j)*ucolumndens
             xmaxdens = MAX(xmaxdens, v1(i,j))
             xmindens = MIN(xmindens, v1(i,j))

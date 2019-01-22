@@ -102,8 +102,10 @@ c--Input filename
 c
       fullname = 'BIN0000'
 
-      isort(1:idim) = i
-      iorig(1:idim) = i
+      DO i = 1, idim
+         isort(i) = i
+         iorig(i) = i
+      END DO
 c
 c--Set output file (number is one less than it will actually be)
 c

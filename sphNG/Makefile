@@ -412,7 +412,7 @@ ifeq ($(nonideal), yes)
 endif
 
 ifeq ($(krome), yes)
-   FFLAGS+=-I${HOME}/Codes/krome/build
+   FFLAGS+=-I${HOME}/Codes/krome2/build_complexity
 #   KLIB=-L${HOME}/Codes/krome/build
    FPPFLAGS+=${FPP_SEP}-DUSEKROME
    KROMEOBJ=libkrome.so utils/krome_sph_subrtns.F
@@ -420,7 +420,7 @@ endif
 
 ifeq ($(kromempi),yes)
    FC=${MPIDIR}mpiifort
-   FFLAGS+=-I${HOME}/Codes/krome/build
+   FFLAGS+=-I${HOME}/Codes/krome2/build_complexity
 #   KLIB=-L${HOME}/Codes/krome/build
    FPPFLAGS+=${FPP_SEP}-DUSEKROME -DKROMEMPI
    KROMEOBJ=libkrome.so utils/krome_sph.F
@@ -762,6 +762,9 @@ checksystem:
 	@echo ""
 	quit
    endif
+
+splitdump: checksystem checkparams $(KROMEOBJ) utils/splitdump.F90 rdump.o wdump.o error.o indexx.o options.o chekopt.o labrun.o zzibm.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o) idim igrape
+	$(FC) -fixed $(FFLAGS) $(CPPFLAGS) -o $@ $(KROMEOBJ) utils/splitdump.F90 rdump.o wdump.o error.o indexx.o options.o chekopt.o labrun.o zzibm.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o)
 
 checkparams: updatedepends
    ifeq ($(DEBUG), yes)

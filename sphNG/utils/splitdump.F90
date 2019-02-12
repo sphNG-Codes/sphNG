@@ -21,9 +21,11 @@
       INCLUDE 'COMMONS/actio'
       INCLUDE 'COMMONS/binary'
       INCLUDE 'COMMONS/bodys'
+      INCLUDE 'COMMONS/Bxyz'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/debug'
       INCLUDE 'COMMONS/densi'
+      INCLUDE 'COMMONS/divcurlB'
       INCLUDE 'COMMONS/ener1'
       INCLUDE 'COMMONS/ener2'
       INCLUDE 'COMMONS/ener3'
@@ -49,8 +51,6 @@
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/interstellar'
-      INCLUDE 'COMMONS/divcurlB'
-      INCLUDE 'COMMONS/Bxyz'
       INCLUDE 'COMMONS/presb'
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/rbnd'
@@ -67,13 +67,13 @@
       INTEGER :: binsize,average,j,sinkcheck
       INTEGER,ALLOCATABLE :: bins(:,:),bintots(:),iout(:),countsink(:)
       INTEGER,ALLOCATABLE :: tmp_listpm(:,:)
-      CHARACTER(len=7) :: infile
-      CHARACTER(len=9) :: outfile
+      CHARACTER(len=25) :: infile
+      CHARACTER(len=30) :: outfile
       iindump = 1
       iterm  = 84
   
       PRINT *, "Enter name of file to split"
-      READ  (*,'(A7)') infile
+      READ  (*,*) infile
       PRINT *, "How many files to split it into?"
       READ (*,*) nbin
       IF (nbin .GT. 9) THEN
@@ -87,6 +87,10 @@
       OPEN (UNIT=iindump,FILE=infile,FORM ='unformatted',
      &            ACTION='READ')
 !     RECL=maxrec,         
+#IFDEF USEKROME
+       usekrome = 2
+#ENDIF
+
       CALL rdump(iindump, ichkl, 0)
       CLOSE(iindump)
 
@@ -148,6 +152,10 @@
          PRINT *, "ERROR: sinkcheck NE nptmass"
          STOP
       END IF
+      IF (imhd .eq. idim .AND. varmhd .NE. 'Brho') THEN
+         PRINT *, "Warning. Only copes with varmhd = Brho at the moment"
+         STOP
+      END IF
 
       DO ibin=1, nbin
          IF (ibin .GT. 1) THEN
@@ -203,9 +211,33 @@
      &              bintots(ibin))
 
          END IF
+         IF (imhd .EQ. idim) THEN
+            DO j=1, imhdevol
+               CALL extract_RD(Bevolxyz(j,:),binsize,bins(:,ibin),
+     &              bintots(ibin))
+            END DO
+            DO j=1,5
+               CALL extract_R4(divcurlB(j,:),binsize,bins(:,ibin),
+     &             bintots(ibin))
+            END DO
+            CALL extract_R4(etareal,binsize,bins(:,ibin),bintots(ibin))
+            CALL extract_R4(etaartificial,binsize,bins(:,ibin),
+     &             bintots(ibin))
+         END IF
          IF (countsink(ibin) .GT. 0) THEN
             CALL extract_sinks(countsink(ibin),tmp_listpm(:,ibin))
          END IF
+#IFDEF USEKROME
+         IF (usekrome .EQ. 2) THEN
+            DO j=1, krome_nmols
+               CALL extract_R8(mfracs(j,:),binsize,bins(:,ibin),
+     &              bintots(ibin))
+            END DO
+           CALL extract_R8(tlastconv,binsize,bins(:,ibin),
+     &              bintots(ibin))
+           CALL extract_I4(numfails,binsize,bins(:,ibin),bintots(ibin))
+         END IF
+#ENDIF
          IF (ibin .LT. nbin) THEN
             iuniquemax = ibin * binsize
          END IF
@@ -221,6 +253,7 @@
          END DO
          OPEN(UNIT=iout(ibin),FILE=outfile,FORM='unformatted',
      &        STATUS='replace')
+        
          CALL wdump(iout(ibin))
          CLOSE(iout(ibin))
          print *, "NEW"
@@ -291,6 +324,30 @@
         end do
 !       print *, "array reset"
       end subroutine extract_R4
+
+!     extract batch of REAL*8
+      subroutine extract_R8(array,binsize,binlist,bintotal)
+        INCLUDE 'idim'
+        real*8,dimension(:),intent(INOUT) :: array(idim)
+        integer,intent(IN) :: binsize
+        integer,intent(IN) :: binlist(binsize),bintotal
+        real*8,dimension(:) :: tmp_arr(binsize)
+        integer :: i
+        print *, "extracting Real*4 array"
+!        print *, "Doing particles", binlist(1), binlist(bintotal)
+        tmp_arr(:) = 0
+        do i=1, bintotal
+!           print *, i,array(binlist(i))
+           tmp_arr(i) = array(binlist(i))
+        end do
+!        print *, "wiping array"
+        array(:) = 0
+!        print *, "array wiped"
+        do i=1, bintotal
+           array(i) = tmp_arr(i)
+        end do
+!       print *, "array reset"
+      end subroutine extract_R8
 
 ! Extract INT*8 array
       subroutine extract_I8(array,binsize,binlist,bintotal)

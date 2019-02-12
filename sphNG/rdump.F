@@ -81,8 +81,10 @@ c      INCLUDE 'COMMONS/torq'
       CHARACTER*16 tagexp(10),tagi
 #ifdef USEKROME
       CHARACTER*16 tagsreal(1024)
-      INTEGER dumpmols,countmols
+      INTEGER dumpmols,countmols,maxmols
       REAL realnumfails(idim)
+      PARAMETER (maxmols=35)
+      CHARACTER*16 mollist(maxmols)
 #else
       CHARACTER*16 tagsreal(128)
 #endif
@@ -1127,8 +1129,15 @@ c--Default real
 c----     Read in krome chemistry    
             print *, "usekrome= ", usekrome
             IF ( usekrome .EQ. 1 ) THEN
-               WRITE(*,*) "Reading  abunds/H2 from dump"
+               WRITE(*,*) "Reading <dumpmols> mfracs from dump"
+               CALL readmolfile(maxmols,mollist,dumpmols)
                dumpmols = countmols()
+               IF (dumpmols .GT. maxmols) THEN
+                  PRINT *, dumpmols,"species found. Increase maxmols"
+                  STOP
+               ELSE 
+                  PRINT *, "ok maxmol=",maxmols 
+               END IF
             ELSE IF ( usekrome.EQ.2 ) THEN
                WRITE(*,*) "Reading all molecule mfracs from dump"
                dumpmols = krome_nmols
@@ -1139,10 +1148,18 @@ c----     Read in krome chemistry
                   IF (tagged) THEN
                      READ (idisk1, END=100) tagi
                      index = krome_get_index(tagi)
-                     CALL checktag(molnames(index),tagi,ierr)
-                  ENDIF
-                  READ (idisk1, END=100) mfracs(index,icount+1:
+                     IF (usekrome.EQ.1) THEN
+                        CALL checktag(mollist(j),tagi,ierr)
+c                 NOTE! usekrome=1 reads to mfracs(1:dumpmols,i)
+c                       i.e. in order of dumpmols
+                        READ (idisk1, END=100) mfracs(j,icount+1:
+     &                       icount+nhydro)
+                     ELSE IF (usekrome.EQ.2) THEN
+                        CALL checktag(molnames(index),tagi,ierr)
+                        READ (idisk1, END=100) mfracs(index,icount+1:
      &                 icount+nhydro)
+                     END IF
+                  ENDIF
                   k = k + 1
                END DO
                IF (k .NE. dumpmols) THEN

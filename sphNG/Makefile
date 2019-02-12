@@ -766,6 +766,9 @@ checksystem:
 splitdump: checksystem checkparams $(KROMEOBJ) utils/splitdump.F90 rdump.o wdump.o error.o indexx.o options.o chekopt.o labrun.o zzibm.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o) idim igrape
 	$(FC) -fixed $(FFLAGS) $(CPPFLAGS) -o $@ $(KROMEOBJ) utils/splitdump.F90 rdump.o wdump.o error.o indexx.o options.o chekopt.o labrun.o zzibm.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o)
 
+mergedump: checksystem checkparams $(KROMEOBJ) utils/mergedump.F90 rdump.o wdump.o error.o indexx.o options.o chekopt.o labrun.o zzibm.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o) idim igrape
+	$(FC) -fixed $(FFLAGS) $(CPPFLAGS) -o $@ $(KROMEOBJ) utils/mergedump.F90 rdump.o wdump.o error.o indexx.o options.o chekopt.o labrun.o zzibm.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o)
+
 checkparams: updatedepends
    ifeq ($(DEBUG), yes)
 	@echo "Debugging flags are ON"

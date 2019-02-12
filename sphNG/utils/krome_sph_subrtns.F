@@ -60,7 +60,7 @@ c     NB rdumpmols.txt is list to read if different to write
       ELSE
       molfile = "dumpmols.txt"
       END IF
-      print *, "Counting molecules in", molfile
+      print *, "Counting molecules in ", molfile
       OPEN (UNIT=unit,file=molfile,FORM='formatted',IOSTAT=iostat)
       i = 0
       DO
@@ -75,6 +75,7 @@ c     NB rdumpmols.txt is list to read if different to write
          ENDIF
       END DO
       countmols = i
+      CLOSE(unit)
       print *, "Found", countmols, "molecules to read."
       RETURN
       END FUNCTION countmols

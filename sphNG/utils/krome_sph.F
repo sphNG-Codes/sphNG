@@ -47,8 +47,9 @@ c*******************************************************************
       
       INTEGER  maxdumps,istart,iend,iostat
       PARAMETER (maxdumps=400)
-      REAL denscut
+      REAL denscut,minchemstep
       PARAMETER (denscut=5.d-5)
+      PARAMETER (minchemstep=700d0) 
       REAL*8 dust2gas
       PARAMETER (dust2gas=0.01d0)
       INTEGER i,maxrec,iout,ichkl,parunit,numdumps,idump,j 
@@ -66,7 +67,7 @@ c*******************************************************************
       REAL*4 rhomax
       REAL*8 tff,dtFac,get_tff
       CHARACTER*1 cdump
-      PARAMETER (dtFac = 0.33)
+      PARAMETER (dtFac = 0.01)
       PARAMETER (spy = 3.1536d7) !seconds per year
       PARAMETER(ioutinfo = 21)
       INTEGER iphasecount,rank,master,isubdt,ntries,maxtries,nsubdt
@@ -220,7 +221,8 @@ c        WRITE (*,*) 'File open; usekrome =', usekrome
         CALL rdump(iindump, ichkl, 0)
         CLOSE(iindump)
         WRITE(*,284) filelist(idump),"sphNG time= ",
-     &       gt*utime/spy,"years. Read", npart,"particles."
+     &       gt*utime/spy," years. Read", npart,"particles."
+        WRITE(*,*) "(utime=",utime," gt=", gt
  284    FORMAT(A7,X,A,X,E9.2,A,I0,A)
 
 c---  Set chemistry timestep dt in SECONDS
@@ -235,20 +237,29 @@ c---  Set chemistry timestep dt in SECONDS
 c     --- If dt < a fraction of tff,skip to next dump
         IF (fixed_dt) THEN
            CONTINUE
-        ELSE IF (idump .GT. 1 .AND. dt .LT. dtFac*tff .AND.
-     &       idump .LT. numdumps) THEN
-           WRITE (*,'(2A,2(A,F11.4),A)') "Skipping ", filelist(idump),
-     &          ": tff frac=", dtFac*tff/spy, " dt=", dt/spy, "years."
-           CYCLE
-        ELSE IF (idump .EQ. 1 .AND. .NOT. restart) THEN
-           WRITE (*,'(A,F7.1)') "Initial file: dt=", dt/spy
-        ELSE IF (idump .EQ. 1 .AND. restart) THEN
-           WRITE (*,'(A30,A7)') "Restarting from file ", filelist(idump)
-        ELSE
-           WRITE (*,285) "Rank ",rank,
-     &          "Working on: ", filelist(idump),": tff frac=",
-     &           dtFac*tff/spy, " dt=", dt/spy, "years."
- 285       FORMAT(A5,I0,2A12,2(A,F7.1),A)
+        ELSE IF (idump .EQ. 1) THEN
+           IF (restart) THEN
+              WRITE (*,'(A30,A7)') "Restarting from file ",
+     &              filelist(idump)   
+           ELSE IF (.NOT. restart) THEN
+              WRITE (*,'(A,F7.1)') "Initial file: dt=", dt/spy
+           END IF
+        ELSE IF (idump .GT. 1) THEN
+           IF ((idump .LT. numdumps) .AND. 
+     &          (dt .LT. minchemstep)) THEN
+c     &          (dt .LT. MIN(dtFac*tff/spy,minchemstep))) THEN
+c     i.e. skip to next dump if dt is less than the smaller of 
+c     minchemstep or dtFac * tff  
+              WRITE (*,*) "Minchemstep = ", minchemstep
+              WRITE (*,'(2A,2(A,F11.4),A)') "Skipping ",filelist(idump)
+     &          ,": tff frac=",dtFac*tff/spy," dt=",dt/spy,"years."
+              CYCLE
+           ELSE
+              WRITE (*,285) "Rank ",rank,
+     &             "Working on: ", filelist(idump),": tff frac=",
+     &             dtFac*tff/spy, " dt=", dt/spy, "years."
+ 285          FORMAT(A5,I0,2A12,2(A,F10.2),A)   
+           END IF
         END IF
         
         tff = get_tff(rho)
@@ -258,7 +269,7 @@ c     --- Now wipe dead particles' iuniques so live particles aren't
 c     --- matched up with dead ones by accident.(isort needed for wdump)
         DO i=1,npart
            isort(i) = i
-           IF (iphase(i) .NE. 0) THEN
+           IF (iphase(i) .LT. 0) THEN
               iunique(i) = -1
            END IF
         END DO
@@ -300,9 +311,11 @@ C$OMP PARALLEL DO SCHEDULE(static,1) default(none)
 C$OMP& PRIVATE(i,j,found) SHARED(npart,iunique,iunique_orig,inew,
 C$OMP& istart,iend,iphase) 
            DO i=1,idim
-              IF (iphase(i) .NE. 0 ) THEN
+              IF (iphase(i) .LT. 0 ) THEN
                  inew(i) = -1 
                  CYCLE
+              ELSE IF (iphase(i) .GT. 0 ) THEN
+                 PRINT *, "Found sink particle: iphase=", iphase(i)
               END IF
               found = .FALSE.
               DO j=1,idim
@@ -395,7 +408,7 @@ c--   after each run
            numfails = 0
            WRITE (*,104) "Iteration number: ",k,"of",niter,"for file",
      &          filelist(idump)
- 104       FORMAT (A,X,I0,X,A,X,I0,A,X,A7)
+ 104       FORMAT (A,X,I0,X,A,X,I0,A,X,A9)
            
            WRITE (*,*) "Beginning at krometime t=", ktime/spy,
      &          "sph time", gt*utime/spy,
@@ -408,10 +421,10 @@ c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(rho,ekcle,mfracs,vxyzu,udens,npart,iunique,iunique_orig,
 C$OMP& iphase,k,init_from_dump,dust_tk,heatingISR,init_x, init_dt,
-C$OMP& idump,mfracs_orig,inew,local_dt,istart,iend,iphasecount,
+C$OMP& idump,mfracs_orig,inew,local_dt,istart,iend,
 C$OMP& tlastconv,ltlastconv,ktime,numfails,numfails_orig,dt,gt,utime)
 C$OMP& private(i,j,Tgas,rhoi,x,Av,prv_uncnvgd,unconverged,isubdt,ntries,
-C$OMP& nsubdt) reduction(+ : nskipped)
+C$OMP& nsubdt) reduction(+ : nskipped,iphasecount)
 
            DO i=istart,iend
               IF (MOD(i,50000) .EQ. 0) THEN
@@ -422,7 +435,7 @@ C$OMP& nsubdt) reduction(+ : nskipped)
               IF (iphase(i) .NE. 0) THEN
 c                 PRINT *, "skipping iunique",iunique(i),"due to iphase",
 c     &                iphase(i)
-c$OMP ATOMIC
+cc c$OMP ATOMIC - changed iphasecount to reduction variable
                  iphasecount = iphasecount + 1
                  CYCLE
               END IF

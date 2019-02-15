@@ -12,9 +12,11 @@ program krome_once
   real*8,parameter :: dust2gas=0.01d0
   real*8::Tgas,dt,x(nsp),rho,spy,av,time,n(nsp),masses(nsp)
   real*8 :: dtk,maxtime,time_yrs,scaleconst,newtime,rhoj(nsp)
+  real*8 :: nH
   character*128 :: outfilename,foutfilename
   character*24 :: molnames(krome_nspec),name
   character*24 :: Tchar, rhochar,dtchar,FMT
+  character(len=2) :: denstype
   integer :: j,niter,k,Hnuc,Tint,i,ind
   real*8 :: crate,xprint(nsp)
   logical :: exptstep
@@ -28,8 +30,18 @@ program krome_once
 
   print *, "Enter Tgas"
   read (*,*) Tgas
-  print *, "Enter rho"
-  read (*,*) rho
+  print *, "Enter mass density (rho) or proton density (nH)?"
+  read (*,*) denstype
+  if (denstype.EQ.'rho') then
+     print *, "Enter mass density"
+     read (*,*) rho
+  else if (denstype.EQ.'nH') then
+     print *, "enter nH"
+     read (*,*) nH
+  else 
+     print *, "Response not recognised. Quitting..."
+     STOP
+  end if
   print *, "linear or exponential time steps?(l/e)?"
   read (*,*) steptype
   if (steptype.EQ."l") THEN
@@ -56,6 +68,12 @@ program krome_once
 
 !  x(:) = x(:) / sum(x) !normalize
 ! Reboussin 2014 abundances are rel to H nuclei no. density
+if (denstype.EQ.'nH') then
+! convert to rho
+   call convert_nH_to_rho(nH,rho)
+   print *, "nH= ", nH, "rho =",rho
+end if
+ 
 !  do j=1, nsp
 !     rhoj(j) = (rho/masses(krome_idx_H)) * masses(j) * x(j)
 !  end do
@@ -192,40 +210,17 @@ end program krome_once
          IMPLICIT NONE
          INTEGER :: nmols
          REAL*8,INTENT(IN) :: rho,dust2gas
-         REAL*8 :: x(nmols),abunds(nmols),abund,masses(nmols)
+         REAL*8 :: x(nmols),abunds(nmols),masses(nmols)
          REAL*8 :: xtot, cations
-         CHARACTER*20 :: abundfile,name,molnames(nmols)
+         CHARACTER*20 :: abundfile,molnames(nmols)
          CHARACTER*30 :: kromename
-         INTEGER :: iunit,iostat,ind,j,isgrain,iscation
+         INTEGER :: ind,j,isgrain,iscation
 
-         iunit=16
-         iostat=0
          molnames = krome_get_names()
          masses = krome_get_mass()
          WRITE(*,*) "No mols:", nmols
 
-         abunds(1:nmols) = (/ (0d0,j=1,nmols) /)
-         OPEN(UNIT=iunit,FILE=abundfile,FORM='formatted', &
-          STATUS='old')
-         DO
-            READ(iunit,*,IOSTAT=iostat) name, abund
-            IF (name(1:1) == "!") THEN
-               CYCLE
-            END IF
-            WRITE(*,*) "reading:", name,abund
-            IF (iostat > 0) THEN
-               WRITE(*,*) "Error reading abundances"
-               STOP
-            ELSE IF (iostat < 0) THEN
-               EXIT
-            ELSE
-               WRITE(*,*) name, abund
-               ind = krome_get_index(trim(name))
-               abunds(ind) = abund
-!               init_x(index) = abund
-            END IF
-         END DO
-         CLOSE(iunit)
+         CALL read_abund_file(abundfile,nmols,abunds)
 
          ! SET GRAIN MASS FRACTIONS
          IF ((x(krome_idx_GRAIN0) .EQ. 0d0) .AND. (x(krome_idx_GRAINk) &
@@ -288,6 +283,41 @@ end program krome_once
          PRINT *, "TOTAL should == 1:", xtot
       END SUBROUTINE read_abunds
 
+!--------------------------------------------------
+      SUBROUTINE read_abund_file(abundfile,nmols,abunds)
+        use krome_user
+        implicit none
+        character*20,intent(out) :: abundfile
+        integer :: nmols,j,iostat,iunit,ind
+        real*8 :: abunds(nmols),abund
+        character*20 :: name
+        iunit = 16
+        iostat = 0
+
+        abunds(1:nmols) = (/ (0d0,j=1,nmols) /)
+        OPEN(UNIT=iunit,FILE=abundfile,FORM='formatted', &
+             STATUS='old')
+        DO
+           READ(iunit,*,IOSTAT=iostat) name, abund
+           IF (name(1:1) == "!") THEN
+              CYCLE
+           END IF
+           WRITE(*,*) "reading:", name,abund
+           IF (iostat > 0) THEN
+              WRITE(*,*) "Error reading abundances"
+              STOP
+           ELSE IF (iostat < 0) THEN
+              EXIT
+           ELSE
+              WRITE(*,*) name, abund
+              ind = krome_get_index(trim(name))
+              abunds(ind) = abund
+              !  init_x(index) = abund
+            END IF
+         END DO
+         CLOSE(iunit)
+       END SUBROUTINE read_abund_file
+
 !---------------------------------------------------
       SUBROUTINE read_mfracs(nmols,x,mfracfile)
          INCLUDE "COMMONS/krome_mods"
@@ -303,7 +333,7 @@ end program krome_once
          molnames = krome_get_names()
 
          WRITE(*,*) "No mols:", nmols
-!         WRITE(*,*) molnames                                                        
+!         WRITE(*,*) molnames                                                 
          OPEN(UNIT=iunit,FILE=mfracfile,FORM='formatted', &
           STATUS='old')
          DO
@@ -325,3 +355,27 @@ end program krome_once
          END DO
          CLOSE(iunit)
        END SUBROUTINE read_mfracs
+
+!-------------------------------------------------------
+
+       subroutine convert_nH_to_rho(nH,rho)
+         include 'COMMONS/krome_mods'
+         implicit none
+         real*8,intent(in) :: nH
+         real*8, intent(out) :: rho
+         integer :: j
+         real*8 :: abunds(krome_nmols),masses(krome_nmols)
+         real*8 :: mtot
+         character*20 :: abundfile
+         abundfile="abundances.dat"
+         call read_abund_file(abundfile,krome_nmols,abunds)
+         masses = krome_get_mass()
+         print *, "H2 must be present in abundfile!"
+         mtot = 0d0
+         do j=1,krome_nmols
+            mtot = mtot + (abunds(j) * masses(j))
+         end do
+         print *, 'Assuming rhodust/rhogas = 0.01'
+         rho = (mtot * nH) * 1.01d0
+           
+       end subroutine convert_nH_to_rho

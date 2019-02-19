@@ -246,7 +246,7 @@ c     --- If dt < a fraction of tff,skip to next dump
            END IF
         ELSE IF (idump .GT. 1) THEN
            IF ((idump .LT. numdumps) .AND. 
-     &          (dt .LT. minchemstep)) THEN
+     &          (dt .LT. minchemstep*spy)) THEN
 c     &          (dt .LT. MIN(dtFac*tff/spy,minchemstep))) THEN
 c     i.e. skip to next dump if dt is less than the smaller of 
 c     minchemstep or dtFac * tff  

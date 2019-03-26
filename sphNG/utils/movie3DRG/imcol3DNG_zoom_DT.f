@@ -101,9 +101,9 @@ c
       ENDIF
 
       WRITE (*,220)
- 220  FORMAT('How many grid points in the plots (horizontal:1.6)?')
+ 220  FORMAT('How many grid horizontal pixels: 3840,1920,1280 ?')
       READ (*,*) ilinex
-      iliney=ilinex/1.6
+      iliney=ilinex*1080/1920
 
       WRITE (*,230)
  230    FORMAT('Enter start angles of viewing (0-360,0-180)?',/,

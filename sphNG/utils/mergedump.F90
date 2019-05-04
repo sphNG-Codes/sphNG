@@ -12,7 +12,7 @@
 !#ifdef KROMEMPI
 !      INCLUDE mpi
 !#endif
-!      INCLUDE 'omp_lib.h'                                                    
+      INCLUDE 'omp_lib.h'                                                    
       INCLUDE 'idim'
 #ifdef USEKROME
       INCLUDE 'COMMONS/kromevar'
@@ -89,22 +89,17 @@
       CHARACTER(len=30) :: outfile
       character*16 :: mollist(maxmols)
       character*20 :: molfile
-      integer :: dead, sink, other
+      integer :: count,sink, other,nsink,sinkIDs(iptdim)
+      LOGICAL :: found
 
-#IFDEF USEKROME
-         usekrome = 1
-! usekrome = 1 to use dumpmols not full dump
-#ENDIF
       iindump = 1
       iout = 3
-      nptmasstmp = 0
-      nparttmp = 0
       istart = 1
       ptstart = 1
       ifulldump = 0
       imax = 1073741824
       nfullstep = 1
-      iphasetmp = 0
+      
 #IFDEF USEKROME
       molnames = get_names()
       CALL readmolfile(maxmols,mollist,dumpmols)
@@ -114,14 +109,43 @@
       READ (*,*) numin
       ALLOCATE(infiles(numin))
       PRINT *, "Now enter", numin, "filenames"
-      DO n = 1, numin
+      DO n = 1, numin      
          READ (*,*) infiles(n)
       END DO
-      ALLOCATE(mfracstmp(dumpmols,idim))
+#IFDEF USEKROME
+      ALLOCATE(mfracstmp(krome_nmols,idim))
+#ENDIF
+
+         nsink = 0
+         sinkIDs = 0
+         nptmasstmp = 0
+         nparttmp = 0
+         iuniquetmp = -1
+         istepstmp = 0
+         iphasetmp = -1
+         xyzmhtmp = 0d0
+         vxyzutmp = 0d0
+         rhotmp =0d0
+         gradhstmp = 0d0
+         alphaMMtmp = 0d0
+         ekcletmp = 0d0
+         dust_tktmp = 0d0
+         chemistrytmp = 0d0
+         heatingISRtmp = 0d0
+         h2fractmp = 0d0
+         dh2dttmp = 0d0
+
 ! Read files and append to temp
 !      add nptmass to nptmasstmp
 
-      DO n=1,numin
+      fileloop:      DO n=1,numin 
+! getsinkIDs appends iuniques of sinks to list         
+         CALL getsinkIDs(infiles(n),sinkIDs,nsink)
+#IFDEF USEKROME
+         usekrome = 1
+! usekrome = 1 to use dumpmols not full dump
+#ENDIF
+
          PRINT *, "opening", infiles(n), 'istart=', istart
          OPEN (UNIT=iindump,FILE=infiles(n),FORM ='unformatted',
      &            ACTION='READ')
@@ -133,21 +157,47 @@
          nptmasstmp = nptmasstmp + nptmass
          nparttmp = nparttmp + npart
          PRINT *, "running totals: nptmass=", nptmasstmp,
-     &          "npart=",nparttmp 
-         DO i=1, npart
-            IF (iphase(i) .EQ. -1) THEN
-               dead = dead + 1
-            ELSE IF (iphase(i) .GT. 0 .AND. iphase(i) .LE.6) THEN
-               sink = sink + 1
-               print *, i, " is a sink"
-            ELSE IF (iphase(i) .NE. 0) THEN
-               other = other+1
+     &          "npart=",nparttmp
+ 
+! Make new listpm from iuniques
+         count = 0
+         DO j=1, nsink
+!$OMP PARALLEL DO schedule(static,10) default(none)
+!$OMP& private(i) shared(npart,iunique,sinkIDs,listpm,nptmass,
+!$OMP& count,j)
+           DO i=1, npart
+            IF (iunique(i) .EQ. sinkIDs(j)) THEN
+!$OMP CRITICAL               
+               count = count + 1
+!$OMP END CRITICAL
+               listpm(count) = i
+               IF (count .GT. nptmass) THEN
+                  PRINT *, "Error count > nptmass"
+                  CALL quit(1)
+               END IF
             END IF
+           END DO
+!$OMP END PARALLEL DO
          END DO
-         PRINT *, "Dead =", dead, " sink=", sink, "nptmass=", nptmass, 
-     &   "other =", other
-         PRINT *, "sink list", (listpm(j), j=1, nptmass)
 
+         found = .false.
+         DO i=1,npart
+            DO j=1,nsink
+               IF (i .EQ. listpm(j)) THEN
+                  found = .true.
+                  exit
+               END IF
+            END DO
+            IF (found) CYCLE
+            IF (iphase(i) .GT.0) THEN
+               PRINT *, "stray fakesink", iphase(i)
+               iphase(i) = -1
+            END IF
+            found = .false.
+         END DO
+
+         PRINT *,  " sink=", count, "nptmass=", nptmass
+         PRINT *, "sink list",(listpm(j),iphase(listpm(j)),j=1,nptmass)
          
          iuniquetmp(istart:istart+npart) = iunique(1:npart) 
          istepstmp(istart:istart+npart) = isteps(1:npart)
@@ -186,13 +236,13 @@
 !     &            listpm(1:nptmass) + istart
             DO i=1,nptmass
                tmp_listpm(ptstart-1+i) = 
-     &            listpm(i) + istart
+     &            listpm(i) + istart - 1
             
-               if (iphasetmp(tmp_listpm(ptstart-1+i)) .LT. 1) THEN
-                  PRINT *, i, "iphasetmp < 1"
+               if (iphasetmp(tmp_listpm(ptstart-1+i)) .LT. 2) THEN
+                  PRINT *, i, "iphasetmp < 2"
                end if
-               if (iphase(listpm(i)) .LT. 1) THEN
-                  PRINT *, i, "iphase < 1"
+               if (iphase(listpm(i)) .LT. 2) THEN
+                  PRINT *, i, "iphase < 2"
                end if
             END DO
             PRINT *, "listpm=", (tmp_listpm(ptstart-1+i),i=1,nptmass)
@@ -211,17 +261,20 @@
 #ifdef USEKROME
          PRINT *, "starting chemistry"
 !       krome chemistry
-         mfracstmp(1:dumpmols,istart:istart+npart) = 
-     &      mfracs(1:dumpmols,1:npart)
+! I think below is wrong - must be consistent with rdump
+!         mfracstmp(1:dumpmols,istart:istart+npart) = 
+!     &      mfracs(1:dumpmols,1:npart)
+         mfracstmp(:,istart:istart+npart) = 
+     &      mfracs(:,1:npart)
          PRINT *, "done mfracs"
          tlastconvtmp(istart:istart+npart) = tlastconv(1:npart)
          numfailstmp(istart:istart+npart) = numfails(1:npart)
          PRINT *, "Done chemistry"
 #endif
 
-      istart = istart + npart + 1
-      ptstart = ptstart + nptmass + 1
-      END DO
+         istart = istart + npart + 1
+         ptstart = ptstart + nptmass + 1
+      END DO fileloop
 ! Overwrite arrays from temp and call wdump
       nptmass = nptmasstmp
       npart = nparttmp
@@ -274,10 +327,11 @@
          PRINT *, "starting chemistry"
 !       krome chemistry
          mfracs = 0d0
-         DO j=1,dumpmols
-            index = krome_get_index(adjustl(mollist(j)))
-            mfracs(index,:) = mfracstmp(j,:)
-         END DO
+!         DO j=1,dumpmols
+!            index = krome_get_index(adjustl(mollist(j)))
+!            mfracs(index,:) = mfracstmp(j,:)
+!         END DO
+         mfracs = mfracstmp
          PRINT *, "done mfracs"
          tlastconv = tlastconvtmp
          numfails = numfailstmp
@@ -292,27 +346,39 @@
      &            ACTION='WRITE',STATUS='REPLACE')
       PRINT *, "usekrome=", usekrome, iradtrans, idustRT
 
-      usekrome = 1
-      CALL wdump(iout)
       dead = 0
       sink = 0
       other = 0
       DO i=1, npart
          IF (iphase(i) .EQ. -1) THEN
             dead = dead + 1
-         ELSE IF (iphase(i) .GT. 0 .AND. iphase(i) .LE.6) THEN
+         ELSE IF (iphase(i) .EQ. 1) THEN
             sink = sink + 1
+            print *, "type 1"
+            iphase(i) = -1
+         ELSE IF (iphase(i) .EQ. 2 ) THEN
+            sink = sink+1
+            print *, "type 2"
+         ELSE IF (iphase(i) .GT. 2 .AND. iphase(i) .LE.6) THEN
+            sink = sink + 1
+            print *, "other sink"
          ELSE IF (iphase(i) .NE. 0) THEN
             other = other+1
+            print *, "weird type", iphase(i)
          END IF
       END DO
       PRINT *, "Dead =", dead, " sink=", sink, "nptmass=", nptmass, 
      &  "other =", other
 
+      usekrome = 1
+      CALL wdump(iout)
       CLOSE(iout)
 
       PRINT *, "deallocating arrays"
-      DEALLOCATE(infiles,mfracstmp)
+      DEALLOCATE(infiles)
+#IFDEF USEKROME
+      DEALLOCATE(mfracstmp)
+#ENDIF
       END PROGRAM mergedump
 !******************************************
 
@@ -333,3 +399,87 @@
         PRINT *, "WRITING TO ", outfile
 
       END SUBROUTINE getoutfile
+
+!******************************************
+      SUBROUTINE getsinkIDs(infile,sinkIDs,nsink)
+#ifdef USEKROME
+      INCLUDE 'COMMONS/krome_mods'
+#endif       
+        INCLUDE 'idim'
+#ifdef USEKROME
+        INCLUDE 'COMMONS/kromevar'
+#endif
+        
+        INCLUDE 'igrape'
+        INCLUDE 'COMMONS/actio'
+        INCLUDE 'COMMONS/binary'
+        INCLUDE 'COMMONS/bodys'
+        INCLUDE 'COMMONS/Bxyz'
+        INCLUDE 'COMMONS/cgas'
+        INCLUDE 'COMMONS/debug'
+        INCLUDE 'COMMONS/densi'
+        INCLUDE 'COMMONS/divcurlB'
+        INCLUDE 'COMMONS/ener1'
+        INCLUDE 'COMMONS/ener2'
+        INCLUDE 'COMMONS/ener3'
+        INCLUDE 'COMMONS/fracg'
+        INCLUDE 'COMMONS/gtime'
+        INCLUDE 'COMMONS/gradhterms'
+        INCLUDE 'COMMONS/kerne'
+        INCLUDE 'COMMONS/mhd'
+        INCLUDE 'COMMONS/numpa'
+        INCLUDE 'COMMONS/part'
+        INCLUDE 'COMMONS/phase'
+        INCLUDE 'COMMONS/polyk2'
+        INCLUDE 'COMMONS/ptmass'
+        INCLUDE 'COMMONS/raddust'
+        INCLUDE 'COMMONS/radtrans'
+        INCLUDE 'COMMONS/recor'
+        INCLUDE 'COMMONS/stepopt'
+        INCLUDE 'COMMONS/timei'
+        INCLUDE 'COMMONS/tming'
+        INCLUDE 'COMMONS/treecom_P'
+        INCLUDE 'COMMONS/typef'
+        INCLUDE 'COMMONS/varmhd'
+        INCLUDE 'COMMONS/units'
+        INCLUDE 'COMMONS/sort'
+        INCLUDE 'COMMONS/interstellar'
+        INCLUDE 'COMMONS/presb'
+        INCLUDE 'COMMONS/xforce'
+        INCLUDE 'COMMONS/rbnd'
+        INCLUDE 'COMMONS/savernd'
+        INCLUDE 'COMMONS/abundances'
+        INCLUDE 'COMMONS/perform'
+        INCLUDE 'COMMONS/pxpy'
+        INCLUDE 'COMMONS/planetesimal'
+        INCLUDE 'COMMONS/makeplt'
+        INCLUDE 'COMMONS/radsink'
+      
+        CHARACTER(len=30) :: infile
+        INTEGER :: sinkIDs(iptdim),nsink,iindump,ichkl
+        INTEGER :: i
+        CHARACTER(len=9) :: sphfile
+        
+        iindump = 50
+        sphfile = infile(:9)
+        PRINT *, "Opening", sphfile
+#IFDEF USEKROME
+        usekrome = 0
+#ENDIF
+        OPEN (UNIT=iindump,FILE=sphfile,FORM ='unformatted',
+     &             ACTION='READ')
+        CALL rdump(iindump, ichkl, 0)
+        IF (nptmass .GT. 0) THEN
+           print *, "SPH dump listpm:", (listpm(i),i=1,10)
+        END IF
+        CLOSE(iidump)
+        DO i=1,npart
+           IF (iphase(i) .GT. 0) THEN
+              print *, "found sink", i,iunique(i),iphase(i)
+              nsink = nsink + nptmass
+              sinkIDs(nsink) = iunique(i)
+           END IF
+        END DO
+
+! keep total nsink in nsink for total chem dump
+      END SUBROUTINE getsinkIDs

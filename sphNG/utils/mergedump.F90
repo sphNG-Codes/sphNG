@@ -89,6 +89,7 @@
       CHARACTER(len=30) :: outfile
       character*16 :: mollist(maxmols)
       character*20 :: molfile
+      integer :: dead, sink, other
 
 #IFDEF USEKROME
          usekrome = 1
@@ -103,9 +104,11 @@
       ifulldump = 0
       imax = 1073741824
       nfullstep = 1
-
+      iphasetmp = 0
+#IFDEF USEKROME
       molnames = get_names()
       CALL readmolfile(maxmols,mollist,dumpmols)
+#ENDIF
 !  Find out how many files to read
       PRINT *, "Enter number of files"
       READ (*,*) numin
@@ -131,6 +134,20 @@
          nparttmp = nparttmp + npart
          PRINT *, "running totals: nptmass=", nptmasstmp,
      &          "npart=",nparttmp 
+         DO i=1, npart
+            IF (iphase(i) .EQ. -1) THEN
+               dead = dead + 1
+            ELSE IF (iphase(i) .GT. 0 .AND. iphase(i) .LE.6) THEN
+               sink = sink + 1
+               print *, i, " is a sink"
+            ELSE IF (iphase(i) .NE. 0) THEN
+               other = other+1
+            END IF
+         END DO
+         PRINT *, "Dead =", dead, " sink=", sink, "nptmass=", nptmass, 
+     &   "other =", other
+         PRINT *, "sink list", (listpm(j), j=1, nptmass)
+
          
          iuniquetmp(istart:istart+npart) = iunique(1:npart) 
          istepstmp(istart:istart+npart) = isteps(1:npart)
@@ -165,8 +182,20 @@
          END IF
          IF (nptmass.GT.0) THEN
 !       sink particles, nptmasstmp
-            tmp_listpm(ptstart:ptstart+nptmass) = 
-     &            listpm(1:nptmass) + istart
+!            tmp_listpm(ptstart:ptstart+nptmass) = 
+!     &            listpm(1:nptmass) + istart
+            DO i=1,nptmass
+               tmp_listpm(ptstart-1+i) = 
+     &            listpm(i) + istart
+            
+               if (iphasetmp(tmp_listpm(ptstart-1+i)) .LT. 1) THEN
+                  PRINT *, i, "iphasetmp < 1"
+               end if
+               if (iphase(listpm(i)) .LT. 1) THEN
+                  PRINT *, i, "iphase < 1"
+               end if
+            END DO
+            PRINT *, "listpm=", (tmp_listpm(ptstart-1+i),i=1,nptmass)
             spinxtmp(ptstart:ptstart+nptmass) = spinx(1:nptmass)
             spinytmp(ptstart:ptstart+nptmass) = spiny(1:nptmass)
             spinztmp(ptstart:ptstart+nptmass) = spinz(1:nptmass)
@@ -190,8 +219,8 @@
          PRINT *, "Done chemistry"
 #endif
 
-      istart = istart + npart
-      ptstart = ptstart + nptmass
+      istart = istart + npart + 1
+      ptstart = ptstart + nptmass + 1
       END DO
 ! Overwrite arrays from temp and call wdump
       nptmass = nptmasstmp
@@ -200,6 +229,7 @@
 
       iunique = iuniquetmp
       isteps = istepstmp
+      iphase(:) = 0
       iphase = iphasetmp
 
       xyzmh = xyzmhtmp
@@ -264,6 +294,21 @@
 
       usekrome = 1
       CALL wdump(iout)
+      dead = 0
+      sink = 0
+      other = 0
+      DO i=1, npart
+         IF (iphase(i) .EQ. -1) THEN
+            dead = dead + 1
+         ELSE IF (iphase(i) .GT. 0 .AND. iphase(i) .LE.6) THEN
+            sink = sink + 1
+         ELSE IF (iphase(i) .NE. 0) THEN
+            other = other+1
+         END IF
+      END DO
+      PRINT *, "Dead =", dead, " sink=", sink, "nptmass=", nptmass, 
+     &  "other =", other
+
       CLOSE(iout)
 
       PRINT *, "deallocating arrays"

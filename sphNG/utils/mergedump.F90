@@ -156,23 +156,29 @@
 ! count running total of npart and nptmass as dumps are added
          nptmasstmp = nptmasstmp + nptmass
          nparttmp = nparttmp + npart
-         PRINT *, "running totals: nptmass=", nptmasstmp,
-     &          "npart=",nparttmp
+         PRINT *, "running totals: nptmasstmp=", nptmasstmp,
+     &          "npart=",nparttmp, "nsink",nsink
+         IF (nptmasstmp .NE. nsink) THEN
+            PRINT *, "ERROR nptmass != nsink"
+            CALL QUIT(1)
+         END IF
+        
  
 ! Make new listpm from iuniques
          count = 0
          DO j=1, nsink
 !$OMP PARALLEL DO schedule(static,10) default(none)
 !$OMP& private(i) shared(npart,iunique,sinkIDs,listpm,nptmass,
-!$OMP& count,j)
+!$OMP& count,j,iphase)
            DO i=1, npart
-            IF (iunique(i) .EQ. sinkIDs(j)) THEN
+            IF ((iunique(i) .EQ. sinkIDs(j) ).AND.
+     &          (iphase(i) .GT. 0) ) THEN
 !$OMP CRITICAL               
                count = count + 1
 !$OMP END CRITICAL
                listpm(count) = i
                IF (count .GT. nptmass) THEN
-                  PRINT *, "Error count > nptmass"
+                  PRINT *, "Error count > nptmass", count, nptmass
                   CALL quit(1)
                END IF
             END IF
@@ -462,7 +468,7 @@
         
         iindump = 50
         sphfile = infile(:9)
-        PRINT *, "Opening", sphfile
+        PRINT *, "getsinkIDs Opening", sphfile
 #IFDEF USEKROME
         usekrome = 0
 #ENDIF
@@ -473,13 +479,14 @@
            print *, "SPH dump listpm:", (listpm(i),i=1,10)
         END IF
         CLOSE(iidump)
+        PRINT *, sphfile, "nptmass", ptmass, "prev nsink", nsink
         DO i=1,npart
            IF (iphase(i) .GT. 0) THEN
               print *, "found sink", i,iunique(i),iphase(i)
-              nsink = nsink + nptmass
+              nsink = nsink + 1
               sinkIDs(nsink) = iunique(i)
            END IF
         END DO
-
+        
 ! keep total nsink in nsink for total chem dump
       END SUBROUTINE getsinkIDs

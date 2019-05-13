@@ -688,6 +688,12 @@ movie3DRG: checksystem checkparams utils/movie3DRG/imcol3DNG_zoom_DT.o rdump.o e
 imcol3DNG: checksystem checkparams utils/movie_col3DALL/imcol3DNG_follow_iunique.o rdump.o error.o utils/movie_col3DALL/buildcol.o utils/movie_col3DALL/grid_follow.o utils/movie_col3DALL/origin.o utils/movie_col3DALL/value.o
 	$(FC) $(FFLAGS) -o $@ utils/movie_col3DALL/imcol3DNG_follow_iunique.o rdump.o error.o utils/movie_col3DALL/buildcol.o utils/movie_col3DALL/grid_follow.o utils/movie_col3DALL/origin.o utils/movie_col3DALL/value.o
 
+# Generate T vs rho chemistry pixel map
+
+pixmap: checksystem checkparams utils/image_pixmap.o rdump.o error.o utils/movie_col3DALL/origin.o unit.o
+	$(FC) $(FFLAGS) -o $@ utils/image_pixmap.o rdump.o error.o utils/movi\
+e_col3DALL/origin.o unit.o
+
 # Disc parameter extraction
 
 disc: checksystem checkparams utils/disc_parameters.o rdump.o error.o indexx2.o

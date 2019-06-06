@@ -20,7 +20,7 @@ c***********************************************************
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/bodys'
       INCLUDE 'COMMONS/gtime'
-      INCLUDE 'COMMONS/sort'
+      INCLUDE 'COMMONS/sort
       INCLUDE 'COMMONS/recor'
       INCLUDE 'COMMONS/tming'
       INCLUDE 'COMMONS/units'
@@ -384,7 +384,6 @@ c
 c--Process sinks
 c
 c        Initialise arrays
-         print*, 'initialise arrays'
          ipartindisc = .FALSE.
          nsink_mult = 1
          discradius = 0.
@@ -394,7 +393,7 @@ c        Initialise arrays
          Brpz_bg    = 0.
          Bave       = 0.
          Bmax       = 0.
-         print*, 'arrays initialised',nptmass
+         print*, 'arrays initialised.  nptmass = ',nptmass
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nunique_sink,ilocalsink,xyzmh,vxyzu,Bxyz,node_components)
 C$OMP& shared(node_comp_list,cmtot,vtot,discmass,angmom,npart,indisc)
@@ -412,23 +411,20 @@ C$OMP& private(totalmass,dist,etot,semimajor,eccentricity)
 C$OMP& private(radapastron,ipos)
 C$OMP& private(jval,jjval)
          DO isink = 1, nptmass
-            print*, "i=",isink
             iptcur = listpm(isink)
-            print*, 'iptcur=',iptcur
             xsink = xyzmh(1,iptcur)
             ysink = xyzmh(2,iptcur)
             zsink = xyzmh(3,iptcur)
             sinkmass = xyzmh(4,iptcur)
             node_components(isink) = 1
             node_comp_list(1,isink) = ilocal2name(isink)
-            print*, 'node = ',node_comp_list(1,isink)
 c
 c--Initialise centre of mass to that of sink, and for multiple
 c
             cmtot(1:3,isink) = sinkmass*xyzmh(1:3,iptcur)
             vtot(1:3,isink)  = sinkmass*vxyzu(1:3,iptcur)
 
-            print *,'Sink location, mass ',xsink,ysink,zsink,sinkmass
+c           print *,'Sink location, mass ',xsink,ysink,zsink,sinkmass
 
             discmass(isink) = 0.
             DO l = 1, 3
@@ -440,7 +436,6 @@ c
 c
 c--Compute distance^2 of all particle from sink
 c
-            print*, 'calculating distances'
             DO i = 1, npart
                dx = xyzmh(1,i)-xsink
                dy = xyzmh(2,i)-ysink
@@ -450,7 +445,7 @@ c
 c
 c--Sort by distance
 c
-            print *,'sorting ',isink,npart
+            print *,'sorting ',isink
             CALL indexx2(npart,distance2,indx)
 
 c            print *,'sorted ',indx(1),indx(2),distance2(indx(1)),

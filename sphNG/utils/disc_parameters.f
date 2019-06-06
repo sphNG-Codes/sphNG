@@ -20,7 +20,7 @@ c***********************************************************
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/bodys'
       INCLUDE 'COMMONS/gtime'
-      INCLUDE 'COMMONS/sort
+      INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/recor'
       INCLUDE 'COMMONS/tming'
       INCLUDE 'COMMONS/units'

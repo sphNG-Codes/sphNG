@@ -24,6 +24,8 @@ c***********************************************************
       INCLUDE 'COMMONS/recor'
       INCLUDE 'COMMONS/tming'
       INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/varmhd'
 
       COMMON /unitsin/ umassi, udisti, utimei, umagfdi
 
@@ -34,33 +36,40 @@ c***********************************************************
       COMMON /phase2/ sinksize, sinkrho, denshigh, ihigh
       COMMON /numfile/ nfile
 
-      INTEGER*8 iunique_sink(1000),iunique_companion(3,1000)
-      DIMENSION ilocalsink(1000),icompanion(3,1000)
-      DIMENSION ilocalsinkindx(1000),ilocal2name(1000)
-      DIMENSION discmass(1000),angmom(3,1000),discradius(13,1000)
-      DIMENSION discmasstot(1000)
-      DIMENSION radsearchmax(1000)
-      DIMENSION nsink_mult(1000), node_mult(1000)
-      DIMENSION listdone(1000)
-      DIMENSION formtime(1000),formtime_unique(1000)
-      DIMENSION nodelist(1000),pmassnode(1000),node_components(1000),
-     &     node_comp_list(100,1000)
-      DIMENSION nnode_mult_comp(1000)
-      DIMENSION node_mult_comp(2,1000)
-      DIMENSION xnode_axis(1000),xnode_ecc(1000),xnode_plane(3,1000)
+      PARAMETER (ndiscmax = 1000000)   ! max number of particles in a disc
+      PARAMETER (nsinkmax =    1000)   ! max number of systems that can be analysed
+      INTEGER*8 iunique_sink(nsinkmax),iunique_companion(3,nsinkmax)
+      DIMENSION ilocalsink(nsinkmax),icompanion(3,nsinkmax)
+      DIMENSION ilocalsinkindx(nsinkmax),ilocal2name(nsinkmax)
+      DIMENSION indisc(nsinkmax)
+      DIMENSION angmom(3,nsinkmax),discradius(13,nsinkmax)
+      DIMENSION discmass(nsinkmax),discmasstot(nsinkmax)
+      DIMENSION Bave(nsinkmax),Bmin(nsinkmax),Bmax(nsinkmax)
+      DIMENSION Bup(nsinkmax),Blo(nsinkmax)
+      DIMENSION Brpz_d(3,nsinkmax),Brpz_bg(3,nsinkmax),Brpz_di(3)
+      DIMENSION radsearchmax(nsinkmax)
+      DIMENSION nsink_mult(nsinkmax), node_mult(nsinkmax)
+      DIMENSION listdone(nsinkmax)
+      DIMENSION formtime(nsinkmax),formtime_unique(nsinkmax)
+      DIMENSION nodelist(nsinkmax),pmassnode(nsinkmax),
+     &     node_components(nsinkmax),node_comp_list(100,nsinkmax)
+      DIMENSION nnode_mult_comp(nsinkmax)
+      DIMENSION node_mult_comp(2,nsinkmax)
+      DIMENSION xnode_axis(nsinkmax),xnode_ecc(nsinkmax)
+      DIMENSION xnode_plane(3,nsinkmax)
 
       LOGICAL*1 ipartindisc(idim)
 
       DIMENSION iclist(6)
-      DIMENSION cmtot(3,1000)
-      DIMENSION vtot(3,1000)
+      DIMENSION cmtot(3,nsinkmax),cmtoti(3)
+      DIMENSION vtot(3,nsinkmax)
 
-      DIMENSION values(13)
+      DIMENSION values(13),Bnax(6)
 
-      PARAMETER (ndiscmax = 1000000)
-      DIMENSION listdisc(ndiscmax)
-      SAVE listdisc
-C$OMP THREADPRIVATE(listdisc)
+      DIMENSION listdisc(nsinkmax,ndiscmax),listnotdisc(ndiscmax)
+      DIMENSION Bdisc(ndiscmax)
+      SAVE listdisc,listnotdisc
+C$OMP THREADPRIVATE(listdisc,listnotdisc)
 
       DIMENSION distance2(idim),indx(idim)
       SAVE distance2,indx
@@ -70,18 +79,31 @@ C$OMP THREADPRIVATE(distance2,indx)
       SAVE xyzm,vxyz
 C$OMP THREADPRIVATE(xyzm,vxyz)
 
-      CHARACTER*7 filein
+      CHARACTER*7  filein
       CHARACTER*21 contour1, contour2
       CHARACTER*30 contour3
       CHARACTER*11 imageout
-      CHARACTER*10  conname
-      CHARACTER*1 icent,icor,imove,isecrot
-      CHARACTER*1 irepeat, ihigh, idt, idump, irot
+      CHARACTER*10 conname
+      CHARACTER*1  icent,icor,imove,isecrot
+      CHARACTER*1  irepeat, ihigh, idt, idump, irot
 
       CHARACTER*4 ivalue
       CHARACTER*9 iuvalue
 
+      LOGICAL     time_evol,print_pts,append2file,use_mhd
+
       DATA pi/3.141592654/
+c
+c--set input parameters
+c
+      time_evol = .TRUE.    ! if true, must start from beginning of simulation or inlcude sink file
+      print_pts = .FALSE.     ! if true, will print all the particles belonging to a disc to file
+      append2file = .TRUE.  ! if true, will append to file, else will overwrite
+      use_mhd   = .FALSE.     ! Will perform loops to calculate magnetic properties
+      rhothresh_cgs = 0. ! Will only include gas particles in the disc with density greater than this 
+      dthresh_au = 2000.0    ! Will only include gas particles in the disc with distance less than this
+      varmhd    = 'Brho'
+      encal     = 'r'
 c
 c--read options
 c
@@ -123,12 +145,14 @@ c
 
  444  ifile = 1
       izero = 0
+      nunique_sink = 0
 
       DO k = 1,numberfiles
 
          nfile=k
          ifile=1
 
+         xeye = 0. ! JHW: This value was never defined.
          IF (xeye.NE.0.) THEN
             contour1 = 'CCL' // filein(nfile)
             contour2 = 'CCR' // filein(nfile)
@@ -177,7 +201,9 @@ c
          umass = umassi
          udist = udisti
          utime = utimei
-         umagfd = umagfdi         
+         umagfd = umagfdi
+         rhothresh = rhothresh_cgs/(umass/udist**3)
+         dthresh   = dthresh_au*1.496d13 / udisti
 c
 c--Rotate if required
 c
@@ -254,7 +280,7 @@ c
             IF (iphase(i).EQ.0) iphase(i)=10
          END DO
 
-         IF (k.EQ.1) THEN
+         IF (k.EQ.1 .and. time_evol) THEN
             IF (nptmass.GT.1) THEN
                IF (nptmass.LT.6) THEN
                   PRINT *,'Found ',nptmass,' sinks'
@@ -357,46 +383,64 @@ c
 c
 c--Process sinks
 c
-         ipartindisc = .FALSE.  ! array
-         nsink_mult = 1  ! array
-         discradius = 0. ! array
+c        Initialise arrays
+         print*, 'initialise arrays'
+         ipartindisc = .FALSE.
+         nsink_mult = 1
+         discradius = 0.
+         indisc     = 0
+         Bmin       = 1.0d30
+         Brpz_d     = 0.
+         Brpz_bg    = 0.
+         Bave       = 0.
+         Bmax       = 0.
+         print*, 'arrays initialised',nptmass
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(nunique_sink,ilocalsink,xyzmh,vxyzu,node_components)
-C$OMP& shared(node_comp_list,cmtot,vtot,discmass,angmom,npart)
+C$OMP& shared(nunique_sink,ilocalsink,xyzmh,vxyzu,Bxyz,node_components)
+C$OMP& shared(node_comp_list,cmtot,vtot,discmass,angmom,npart,indisc)
 C$OMP& shared(icompanion,iunique_companion,iphase,nsink_mult,iunique)
-C$OMP& shared(iunique_sink,radsearchmax,udisti,ipartindisc)
-C$OMP& shared(discmasstot,discradius,values,nptmass,listpm)
-C$OMP& shared(ilocal2name)
+C$OMP& shared(iunique_sink,radsearchmax,udisti,ipartindisc,ilocal2name)
+C$OMP& shared(discmasstot,discradius,values,nptmass,listpm,use_mhd)
+C$OMP& shared(print_pts,Bmin,Bave,Bmax,Bup,Blo,Brpz_d,Brpz_bg,umagfdi)
+C$OMP& shared(rhothresh,dthresh,rho)
 C$OMP& private(isink,i,j,l,iii,jjj,iptcur,xsink,ysink,zsink,sinkmass)
-C$OMP& private(dx,dy,dz,ipart,xipart,yipart,zipart,dvx,dvy,dvz)
-C$OMP& private(ndisc,nsinks,distcomp2,jpart,r2,jjj_mindist)
+C$OMP& private(dx,dy,dz,ipart,xipart,yipart,zipart,dvx,dvy,dvz,Bi)
+C$OMP& private(Bdisc,Brpz_di,kn,kx,rmass)
+C$OMP& private(ij,idisc_id,ns,n0,cmtoti)
+C$OMP& private(ndisc,nnotdisc,nsinks,distcomp2,jpart,r2,jjj_mindist)
 C$OMP& private(totalmass,dist,etot,semimajor,eccentricity)
 C$OMP& private(radapastron,ipos)
 C$OMP& private(jval,jjval)
          DO isink = 1, nptmass
+            print*, "i=",isink
             iptcur = listpm(isink)
+            print*, 'iptcur=',iptcur
             xsink = xyzmh(1,iptcur)
             ysink = xyzmh(2,iptcur)
             zsink = xyzmh(3,iptcur)
             sinkmass = xyzmh(4,iptcur)
             node_components(isink) = 1
             node_comp_list(1,isink) = ilocal2name(isink)
+            print*, 'node = ',node_comp_list(1,isink)
 c
 c--Initialise centre of mass to that of sink, and for multiple
 c
             cmtot(1:3,isink) = sinkmass*xyzmh(1:3,iptcur)
-            vtot(1:3,isink) = sinkmass*vxyzu(1:3,iptcur)
+            vtot(1:3,isink)  = sinkmass*vxyzu(1:3,iptcur)
 
-c            print *,'Sink location, mass ',xsink,ysink,zsink,sinkmass
+            print *,'Sink location, mass ',xsink,ysink,zsink,sinkmass
 
             discmass(isink) = 0.
             DO l = 1, 3
                angmom(l,isink) = 0.
             END DO
             ndisc = 0
+            nnotdisc = 0
+            listdisc(isink,:) = 0
 c
 c--Compute distance^2 of all particle from sink
 c
+            print*, 'calculating distances'
             DO i = 1, npart
                dx = xyzmh(1,i)-xsink
                dy = xyzmh(2,i)-ysink
@@ -406,7 +450,7 @@ c
 c
 c--Sort by distance
 c
-            print *,'sorting ',isink
+            print *,'sorting ',isink,npart
             CALL indexx2(npart,distance2,indx)
 
 c            print *,'sorted ',indx(1),indx(2),distance2(indx(1)),
@@ -532,10 +576,10 @@ c
                   dz = xyzmh(3,i) - cmtot(3,isink)/totalmass
                   dist = SQRT(dx**2 + dy**2 + dz**2)
 c
-c--Make distance cut - 2000 AU
+c--Make distance cut: dthresh = 2000 AU
 c
 c                  print *,'dist = ',dist*udisti/1.496E+13
-                  IF (dist*udisti.GT.1.496E+13*2000.) THEN
+                  IF (dist.GT.dthresh) THEN
                      print *,' exiting A ',isink
                      radsearchmax(isink) = SQRT(distance2(i))
                      EXIT
@@ -556,12 +600,12 @@ c
 c--Add to disc if passes tests
 c
 c                     print *,i,dist,eccentricity,
-c     &                    radapastron*udisti/1.496E+13
-c     &                    ,vkep2,divvr2,
-c     &                    semimajoraxis
+c    &                    radapastron*udisti/1.496E+13,
+c    &                    etot,semimajoraxis
 
-                     IF (eccentricity.LT.0.3 .AND. 
-     &                    radapastron*udisti.LT.1.496E+13*2000.0) THEN
+                     IF (eccentricity.LT.0.3         .AND. 
+     &                    radapastron.LT.dthresh     .AND.
+     &                    rho(i).     GE.rhothresh ) THEN
                         IF (i.GT.idim) THEN
                            PRINT *,'i.GT.idim'
                            STOP
@@ -598,10 +642,15 @@ c     &                    semimajoraxis
                            STOP
                         ENDIF
 
-                        listdisc(ndisc) = i
+                        listdisc(isink,ndisc)  = i
 
-c                        WRITE (44+isink,'(3(1PE12.5,1X))') xyzmh(1,i),
-c     &                       xyzmh(2,i),xyzmh(3,i)
+                     ELSE IF (radapastron*udisti.LT.1.496E+13*200.) THEN
+                        nnotdisc = nnotdisc + 1
+                        IF (nnotdisc.GT.ndiscmax) THEN
+                           WRITE (*,*) 'nnotdisc.GT.ndiscmax'
+                           STOP
+                        ENDIF
+                        listnotdisc(nnotdisc) = i
                      ENDIF
                   ENDIF
                ENDIF
@@ -617,24 +666,94 @@ c
                   ipos = MAX(1,INT(values(iii)*ndisc))
                   IF (ipos.NE.0) THEN
                      discradius(iii,isink) =
-     &                    SQRT(distance2(listdisc(ipos)))
+     &                    SQRT(distance2(listdisc(isink,ipos)))
                   ELSE
                      discradius(iii,isink) = 0.
                   ENDIF
                END DO
+c              Determine which particles are in the 0.632M disc
+               DO iii = 1,ndisc
+                  rmass = xyzmh(4,jjj)
+                  jjj = listdisc(isink,iii)
+                  dx = xyzmh(1,jjj) - cmtot(1,isink)/totalmass
+                  dy = xyzmh(2,jjj) - cmtot(2,isink)/totalmass
+                  dz = xyzmh(3,jjj) - cmtot(3,isink)/totalmass
+                  dist = SQRT(dx**2 + dy**2 + dz**2)
+                  if (dist.LE.discradius(8,isink)) then
+                     indisc(isink) = indisc(isink) + 1
+                     listdisc(isink,iii) = -abs(listdisc(isink,iii))
+                  endif
+               enddo
+c              Calculate the magnetic field of the 0.632M disc
+               ij = 0
+               DO iii = 1,ndisc
+                  if (listdisc(isink,iii) < 0) then
+                     jjj = -listdisc(isink,iii)
+                     Bi  = dot_product(Bxyz(1:3,jjj),Bxyz(1:3,jjj))
+                     Bi  = sqrt(Bi)
+                     ij  = ij + 1
+                     if (ij.le.ndiscmax) Bdisc(ij) = Bi
+                     Bave(isink) = Bave(isink) + log10(Bi)
+                     Bmin(isink) = min(Bi,Bmin(isink))
+                     Bmax(isink) = max(Bi,Bmax(isink))
+                     idisc_id = 1
+                  else
+                     idisc_id = 0
+                  endif
+                  IF (print_pts) THEN
+                     WRITE (44+isink,'(6(1PE12.5,1X),I12)')
+     &                 xyzmh(1:3,jjj),Bxyz(1:3,jjj)*umagfdi,idisc_id
+                  ENDIF
+               enddo
+               IF (indisc(isink).gt.0 .and. use_mhd) THEN
+c                 Calculate the upper and lower percentiles
+                  ns = indisc(isink)
+                  CALL indexx2(ns,Bdisc(:),indx)
+                  if (ns.le.2) then
+                     kn = 1
+                     kx = ns
+                  else
+                     kn = indx(max(2,   int(0.025*ns)  ))
+                     kx = indx(min(ns-1,int(0.975*ns)+1))
+                  endif
+                  Blo(isink) = Bdisc(kn)
+                  Bup(isink) = Bdisc(kx)
+c                 Calculate the B-components in the disc
+                  print*, 'ndisc, n63.2 = ',ndisc,indisc(isink)
+                  n0 = ndisc
+                  if (totalmass.gt.0.0) then
+                     cmtoti = cmtot(1:3,isink)/totalmass
+                  else
+                     cmtoti = 0.
+                  endif
+                  call update_B(idim,imhd2,n0,listdisc(isink,1:n0),
+     &                          xyzmh,Bxyz,cmtoti,
+     &                          angmom(1:3,isink),Brpz_d(:,isink))
+               ENDIF
+            ELSE
+               print*, "There are no particles in the disc: ",
+     &                 ndisc,indisc(isink)
+            ENDIF
+            print*, 'nnotdisc = ',nnotdisc
+            IF (nnotdisc.GT.0 .and. use_mhd) THEN
+c              Calculate Bz component of the ambient B-field
+               if (totalmass.gt.0.0) then
+                  cmtoti = cmtot(1:3,isink)/totalmass
+               else
+                  cmtoti = 0.
+               endif
+               n0 = nnotdisc
+               call update_B(idim,imhd2,n0,-listnotdisc(1:n0),
+     &                       xyzmh,Bxyz,cmtoti,
+     &                       angmom(1:3,isink),Brpz_bg(:,isink))
             ENDIF
 
-            PRINT *,'Discmass ',isink,' : ',discmass(isink),ndisc,nsinks
-            PRINT *,'Disc radius ',isink,' : ',discradius(7,isink),
-     &           discradius(8,isink),discradius(9,isink),
-     &           discradius(10,isink)
-            PRINT *,'Angular momomentum ',isink,' : ',angmom(1,isink),
-     &           angmom(2,isink),angmom(3,isink)
-            PRINT *,' '
-
+            PRINT*,'Discmass ',isink,' : ',discmass(isink),ndisc,nsinks
+            PRINT*,'Disc radius ',isink,' : ',discradius(7:10,isink)
+            PRINT*,'Angular momomentum ',isink,' : ',angmom(1:3,isink)
+            PRINT*,' '
          END DO ! End of the loop over sink particles for c-s discs
-C$OMP END PARALLEL DO 
-
+C$OMP END PARALLEL DO
 c=====================================
 c
 c--Now look for discs around multiples
@@ -775,8 +894,8 @@ c
 c--Store information for new multiple system in new node
 c
          nnodes = nnodes + 1
-         IF (nnodes.GT.1000) THEN
-            PRINT *,'nnodes>1000'
+         IF (nnodes.GT.nsinkmax) THEN
+            PRINT *,'nnodes>nsinkmax'
             STOP
          ENDIF
          formtime(nnodes) = MIN(formtime(nkeep1),formtime(nkeep2))
@@ -890,6 +1009,8 @@ c
             angmom(l,nnodes) = 0.
          END DO
          ndisc = 0
+         nnotdisc = 0
+         listdisc(nnodes,:) = 0
 c
 c--Compute distance^2 of all particle from centre of mass
 c
@@ -975,7 +1096,7 @@ c
 c
 c--Make distance cut - 2000 AU
 c
-               IF (dist*udisti.GT.1.496E+13*2000.) THEN
+               IF (dist.GT.dthresh) THEN
                   print *,' exiting A'
                   radsearchmax(nnodes) = SQRT(distance2(i))
                   EXIT
@@ -1002,7 +1123,7 @@ c
      &                    (totalmass**2)
                      IF (tempnum.LT.0.0) THEN
                         WRITE(iprint,*) 'ERROR - tempnum'
-                        WRITE(iprint,*) vpotdif,specangmom2,pmassi
+                        WRITE(iprint,*) vpotdif,specangmom2
                         WRITE(iprint,*) vkep2,divvr2,r2,vtan2
                         STOP
                      ELSE
@@ -1017,8 +1138,9 @@ c
 c
 c--Add to disc if passes tests
 c
-                  IF (eccentricity.LT.0.3 .AND. 
-     &                 radapastron*udisti.LT.1.496E+13*2000.0) THEN
+                  IF (eccentricity.LT.0.3         .AND. 
+     &                 radapastron.LT.dthresh     .AND.
+     &                 rho(i)     .GE.rhothresh ) THEN
                      IF (i.GT.idim) THEN
                         PRINT *,'i.GT.idim'
                         STOP
@@ -1046,11 +1168,14 @@ c
                         WRITE (*,*) 'ndisc.GT.ndiscmax'
                         STOP
                      ENDIF
-
-                     listdisc(ndisc) = i
-
-c                        WRITE (44+nnodes,'(3(1PE12.5,1X))') xyzmh(1,i),
-c     &                       xyzmh(2,i),xyzmh(3,i)
+                     listdisc(nnodes,ndisc)  = i
+                  ELSE IF (radapastron*udisti.LT.1.496E+13*200.) THEN
+                     nnotdisc = nnotdisc + 1
+                     IF (nnotdisc.GT.ndiscmax) THEN
+                        WRITE (*,*) 'nnotdisc.GT.ndiscmax'
+                        STOP
+                     ENDIF
+                     listnotdisc(nnotdisc)  = i
                   ENDIF
                ENDIF
             ENDIF
@@ -1064,20 +1189,78 @@ c
             DO iii = 1, 13
                ipos = MAX(1,INT(values(iii)*ndisc))
                IF (ipos.NE.0) THEN
-                  discradius(iii,nnodes)=SQRT(distance2(listdisc(ipos)))
+                  discradius(iii,nnodes) = 
+     &            SQRT(distance2(listdisc(nnodes,ipos)))
                ELSE
                   discradius(iii,nnodes) = 0.
                ENDIF
             END DO
+
+c           calculate which particles are in the 0.632M disc
+            DO iii = 1,ndisc
+               jjj = listdisc(nnodes,iii)
+               dx = xyzmh(1,jjj) - cmtot(1,nnodes)/totalmass
+               dy = xyzmh(2,jjj) - cmtot(2,nnodes)/totalmass
+               dz = xyzmh(3,jjj) - cmtot(3,nnodes)/totalmass
+               dist = SQRT(dx**2 + dy**2 + dz**2)
+               if (dist.LE.discradius(8,nnodes)) then
+                  indisc(nnodes) = indisc(nnodes) + 1
+                  listdisc(nnodes,iii) = -abs(listdisc(nnodes,iii))
+               endif
+            enddo
+c           Calculate the magnetic field of the 0.632M disc
+            ij = 0
+            DO iii = 1,ndisc
+               if (listdisc(nnodes,iii) < 0) then
+                  jjj = -listdisc(nnodes,iii)
+                  Bi = dot_product(Bxyz(1:3,jjj),Bxyz(1:3,jjj))
+                  Bi = sqrt(Bi)
+                  ij = ij + 1
+                  if (ij.le.ndiscmax) Bdisc(ij) = Bi
+                  Bave(nnodes) = Bave(nnodes) + log10(Bi)
+                  Bmin(nnodes) = min(Bi,Bmin(nnodes))
+                  Bmax(nnodes) = max(Bi,Bmax(nnodes))
+                  idisc_id = 2
+               else
+                  idisc_id = 0
+               endif
+               IF (print_pts) THEN
+                  WRITE (44+nnodes,'(6(1PE12.5,1X),I12)')
+     &               xyzmh(1:3,jjj),Bxyz(1:3,jjj)*umagfdi,idisc_id
+               ENDIF
+            enddo
+
+            IF (use_mhd) THEN
+c              Calculate the B-components in the disc
+               print*, 'ndisc, n63.2 = ',ndisc,indisc(nnodes)
+               if (totalmass.gt.0.0) then
+                  cmtoti = cmtot(1:3,nnodes)/totalmass
+               else
+                  cmtoti = 0.
+               endif
+               n0 = ndisc
+               call update_B(idim,imhd2,n0,listdisc(nnodes,1:n0),
+     &                       xyzmh,Bxyz,cmtoti,
+     &                       angmom(1:3,nnodes),Brpz_d(:,nnodes))
+            ENDIF
+         ENDIF
+
+         IF (nnotdisc.GT.0 .and. use_mhd) THEN
+            print*, 'nnotdisc = ',nnotdisc
+c           Calculate Bz component of the ambient B-field
+            if (totalmass.gt.0.0) then
+               cmtoti = cmtot(1:3,nnodes)/totalmass
+            else
+               cmtoti = 0.
+            endif
+            n0 = nnotdisc
+            call update_B(idim,imhd2,n0,-listnotdisc(1:n0),xyzmh,Bxyz,
+     &                    cmtoti,angmom(1:3,nnodes),Brpz_bg(:,nnodes))
          ENDIF
 
          PRINT *,'Discmass ',nnodes,discmass(nnodes),ndisc
-         PRINT *,'Disc radius ',discradius(7,nnodes),
-     &        discradius(8,nnodes),discradius(9,nnodes),
-     &        discradius(10,nnodes)
-         PRINT *,'Angular momomentum ',angmom(1,nnodes),
-     &        angmom(2,nnodes),angmom(3,nnodes)
-
+         PRINT *,'Disc radius ',discradius(7:10,nnodes)
+         PRINT *,'Angular momomentum ',angmom(1:3,nnodes)
 c
 c--Remove the two component nodes that have been merged into a multiple
 c     system from the list of active nodes
@@ -1157,17 +1340,31 @@ c
 c
 c--NOTE: Sink particle spins are defined as the negative of the way
 c     disc and orbital angular momentum are defined in this code,
-c     hence the need to multiply the spins by -1.Ã
+c     hence the need to multiply the spins by -1.
 c
+         Bnax = 0.
+         IF (use_mhd) THEN
+            IF (indisc(i) .GT. 0) THEN
+               Bnax(1) = Bmin(i)
+               Bnax(2) = 10**(Bave(i)/indisc(i))
+               Bnax(3) = Bmax(i)
+            ENDIF
+         ENDIF
+
+         IF (append2file) THEN
             OPEN (16,file=contour1,ACCESS='append')
-         WRITE (16,"(17(1PE12.5,1x),I4,1x,6(1PE12.5,1x),1x,2(I9,1x))") 
+         ELSE
+            OPEN (16,file=contour1)
+         ENDIF
+         WRITE (16,"(17(1PE12.5,1x),I4,1x,17(1PE12.5,1x),1x,2(I9,1x))") 
      &           gt,formtime(i),xyzmh(4,listpm(i)),
      &           discmass(i),
      &           (discradius(j,i)*udisti/1.496E+13,j=1,13),
      &           nsink_mult(i),
      &           (angmom(j,i),j=1,3),
-     &           -spinx(i),-spiny(i),
-     &           -spinz(i),
+     &           -spinx(i),-spiny(i),-spinz(i),
+     &           Bnax(1:3)*umagfdi,Blo(i)*umagfdi,Bup(i)*umagfdi,        !25-27,28,29
+     &           Brpz_d(1:3,i)*umagfdi,Brpz_bg(1:3,i)*umagfdi,           !30-32,33-35
      &           (icompanion(j,i),j=1,1),
      &           (iunique_companion(j,i),j=1,1)
             CLOSE (16)
@@ -1270,27 +1467,91 @@ c
 c--If pair, then want to write separate disc masses and angular 
 c     momentum of two c-s discs and the c-b disc
 c
-                  OPEN (16,file=contour3,ACCESS='append')
-      WRITE (16,"(I3,1x,61(1PE12.5,1x),4(I4,1x),6(1PE12.5,1x))")
-     &                 iordermax,gt,formtime(i),pmassnode(i),
-     &                 primarymass,
-     &                 discmasstot(i),discmass(i),discmass(iprimary),
-     &                 discmass(isecondary),
-     &                 (discradius(j,i)*udisti/1.496E+13,j=1,13),
-     &                 (discradius(j,iprimary)*udisti/1.496E+13,j=1,13),
-     &               (discradius(j,isecondary)*udisti/1.496E+13,j=1,13),
-     &                 (xnode_axis(i)*udisti/1.496E+13),
-     &                 xnode_ecc(i), (xnode_plane(j,i),j=1,3),
-     &                 (angmom(j,i),j=1,3),
-     &                 (angmom(j,iprimary),j=1,3),
-     &                 (angmom(j,isecondary),j=1,3),
-     &                 (node_comp_list(j,i),j=1,4),
-     &                 -spinx(iprimary),
-     &                 -spiny(iprimary),
-     &                 -spinz(iprimary),
-     &                 -spinx(isecondary),
-     &                 -spiny(isecondary),
-     &                 -spinz(isecondary)
+                 IF (append2file) THEN
+                    OPEN (16,file=contour3,ACCESS='append')
+                 ELSE
+                    OPEN (16,file=contour3)
+                 ENDIF
+                 Bnax   = 0.
+                 itotal = 0
+                 IF (use_mhd) THEN
+                    IF (indisc(i).GT.0) THEN
+                       Bnax(1) = Bmin(i)
+                       Bnax(2) = 10**(Bave(i)/indisc(i))
+                       Bnax(3) = Bmax(i)
+                       Bnax(4) = Bmin(i)
+                       Bnax(5) = Bave(i)
+                       Bnax(6) = Bmax(i)
+                       itotal  = indisc(i)
+                    ENDIF
+                    IF (indisc(iprimary).GT.0) THEN
+                       Bnax(4) = min(Bnax(4),Bmin(iprimary))
+                       Bnax(5) = Bnax(5)+Bave(iprimary)
+                       Bnax(6) = max(Bnax(6),Bmax(iprimary))
+                       itotal  = itotal + indisc(iprimary)
+                    ENDIF
+                    IF (indisc(isecondary).GT.0) THEN
+                       Bnax(4) = min(Bnax(4),Bmin(isecondary))
+                       Bnax(5) = Bnax(5)+Bave(isecondary)
+                       Bnax(6) = max(Bnax(6),Bmax(isecondary))
+                       itotal  = itotal + indisc(isecondary)
+                    ENDIF
+                    Bnax(5) = 10**(Bnax(5)/itotal)
+c                   Calculate the upper and lower percentiles
+                    Bdisc = 0.
+                    jb    = 0
+                    do bloop = 1,3
+                       if (bloop==1) ibval = i
+                       if (bloop==2) ibval = iprimary
+                       if (bloop==3) ibval = isecondary
+                       j = 1
+                       do while (listdisc(ibval,j).ne.0)
+                          jj = listdisc(ibval,j)
+                          if (jj < 0) then
+                             jb = jb + 1
+                             if (jb.le.ndiscmax) then
+                                Bdisc(jb) = dot_product(Bxyz(1:3,-jj),
+     &                                                  Bxyz(1:3,-jj))
+                             else
+                                print*, 'exceeding ndiscmax (pair)',jb
+                             endif
+                          endif
+                          j = j + 1
+                       enddo
+                    enddo
+                    CALL indexx2(jb,Bdisc(:),indx)
+                    if (jb.le.2) then
+                       kn = 1
+                       kx = jb
+                    else
+                       kn = indx(max(2,   int(0.025*jb)  ))
+                       kx = indx(min(jb-1,int(0.975*jb)+1))
+                    endif
+                    Blo(i) = sqrt(Bdisc(kn))
+                    Bup(i) = sqrt(Bdisc(kx))
+                  ENDIF
+
+      WRITE (16,"(I3,1x,61(1PE12.5,1x),4(I4,1x),14(1PE12.5,1x))")
+     &              iordermax,gt,formtime(i),pmassnode(i),
+     &              primarymass,
+     &              discmasstot(i),discmass(i),discmass(iprimary),
+     &              discmass(isecondary),
+     &              (discradius(j,i)*udisti/1.496E+13,j=1,13),
+     &              (discradius(j,iprimary)*udisti/1.496E+13,j=1,13),
+     &              (discradius(j,isecondary)*udisti/1.496E+13,j=1,13),
+     &              (xnode_axis(i)*udisti/1.496E+13),
+     &              xnode_ecc(i), (xnode_plane(j,i),j=1,3),
+     &              (angmom(j,i),j=1,3),
+     &              (angmom(j,iprimary),j=1,3),
+     &              (angmom(j,isecondary),j=1,3),
+     &              (node_comp_list(j,i),j=1,4),
+     &              -spinx(iprimary),
+     &              -spiny(iprimary),
+     &              -spinz(iprimary),
+     &              -spinx(isecondary),
+     &              -spiny(isecondary),
+     &              -spinz(isecondary),
+     &              Bnax*umagfdi,Blo(i)*umagfdi,Bup(i)*umagfdi
                   CLOSE (16)
                END IF
 c--END OF PAIRS-----------------------
@@ -1364,24 +1625,92 @@ c
 c--Pad the rest of the array so that index does not give invalid value
 c
                DO j = node_components(i)+nnode_mult_comp(i)+1, 6
-                  iclist(j) = 1000
+                  iclist(j) = nsinkmax
                END DO
 c
 c--Determine disc radius that contains certain percentage of mass
-c
-               OPEN (16,file=contour3,ACCESS='append')
-               WRITE (16,"(I2,1x,111(1PE12.5,1x),4(I4,1x))") 
+c             NOTE: This assumes a maximimum of a quad system, which yeilds a maximum of 7 discs
+              IF (append2file) THEN
+                 OPEN (16,file=contour3,ACCESS='append')
+               ELSE
+                  OPEN (16,file=contour3)
+               ENDIF
+               Bnax   = 0.
+               itotal = 0
+               IF (use_mhd) THEN
+                  IF (indisc(i).GT.0) THEN
+                     Bnax(1) = Bmin(i)
+                     Bnax(2) = 10**(Bave(i)/indisc(i))
+                     Bnax(3) = Bmax(i)
+                     Bnax(4) = Bmin(i)
+                     Bnax(5) = Bave(i)
+                     Bnax(6) = Bmax(i)
+                     Brpz_di = Brpz_d(:,i)*indisc(i)
+                     itotal  = indisc(i)
+                  ENDIF
+c                 If this is system > 1, then discs of higher order do not include the 
+c                 particles from the lower order disc; else disc(i)==disc(iclist(1))
+                  IF (node_components(i).GT.1) THEN
+                     DO j = 1,6
+                        IF (indisc(iclist(j)).GT.0) THEN
+                           itotal  = itotal + indisc(iclist(j))
+                           Bnax(4) = min(Bnax(4),Bmin(iclist(j)))
+                           Bnax(5) = Bnax(5)+    Bave(iclist(j))
+                           Bnax(6) = max(Bnax(6),Bmax(iclist(j)))
+                           Brpz_di = Brpz_di
+     &                   + Brpz_d(:,iclist(j))*indisc(iclist(j))
+                        ENDIF
+                     ENDDO
+                     IF (itotal.GT.0.0) THEN
+                        Bnax(5) = 10**(Bnax(5)/itotal)
+                        Brpz_di = Brpz_di/itotal
+                     ENDIF
+                  ELSE
+                     Bnax(5) = Bnax(2)
+                  ENDIF
+c                 Calculate the upper and lower percentiles
+                  Bdisc = 0.
+                  jb    = 0
+                  do bloop = 0,6
+                     if (bloop==0) then
+                        ibval = i
+                     else
+                        ibval = iclist(bloop)
+                     endif
+                     j = 1
+                     do while (listdisc(ibval,j).ne.0)
+                        jj = listdisc(ibval,j)
+                        if (jj < 0) then
+                           jb = jb + 1
+                           if (jb.le.ndiscmax) then
+                              Bdisc(jb) = dot_product(Bxyz(1:3,-jj),
+     &                                                Bxyz(1:3,-jj))
+                           else
+                              print*, 'exceeding ndiscmax (system)',jb
+                           endif
+                        endif
+                        j = j + 1
+                     enddo
+                  enddo
+                  CALL indexx2(jb,Bdisc(:),indx)
+                  kn = indx(max(2,   int(0.025*jb)  ))
+                  kx = indx(min(jb-1,int(0.975*jb)+1))
+                  Blo(i) = sqrt(Bdisc(kn))
+                  Bup(i) = sqrt(Bdisc(kx))
+               ENDIF
+
+               WRITE (16,"(I2,1x,125(1PE12.5,1x),4(I4,1x))") 
      &              node_components(i),gt,formtime(i),
-     &              pmassnode(i),primarymass,
-     &              discmasstot(i),discmass(i),
-     &              discmass(iclist(1)),
-     &              discmass(iclist(2)),
+     &              pmassnode(i),primarymass,   ! Total mass of all the stars, mass of the most massive star.
+     &              discmasstot(i),discmass(i), ! Summed mass of all 7 possible discs, the mass of only the gas surrounding the total system.
+     &              discmass(iclist(1)),        ! Masses of the individual discs followd by masses of the pairs;
+     &              discmass(iclist(2)),        ! arrays are filled from 1 to 6, so end values will always be zero.
      &              discmass(iclist(3)),
      &              discmass(iclist(4)),
      &              discmass(iclist(5)),
      &              discmass(iclist(6)),
-     &              (discradius(j,i)*udisti/1.496E+13,j=1,13),
-     &              (discradius(j,iclist(1))*udisti/1.496E+13,j=1,13),
+     &              (discradius(j,i)*udisti/1.496E+13,j=1,13),         ! disc radii of either the total or circumsystem disc
+     &              (discradius(j,iclist(1))*udisti/1.496E+13,j=1,13), ! disc radii in the same order as the masses
      &              (discradius(j,iclist(2))*udisti/1.496E+13,j=1,13),
      &              (discradius(j,iclist(3))*udisti/1.496E+13,j=1,13),
      &              (discradius(j,iclist(4))*udisti/1.496E+13,j=1,13),
@@ -1389,7 +1718,10 @@ c
      &              (discradius(j,iclist(6))*udisti/1.496E+13,j=1,13),
      &              (xnode_axis(i)*udisti/1.496E+13),
      &              xnode_ecc(i), (xnode_plane(j,i),j=1,3),
-     &              (angmom(j,i),j=1,3),
+     &              (angmom(j,i),j=1,3),      ! Angular momentum of the circumsystem disc
+     &              Bnax*umagfdi,             ! 1:3=Bfields of the circumsystem disc;4:6=Bfields of the total disc
+     &              Blo(i)*umagfdi,Bup(i)*umagfdi,
+     &              Brpz_di*umagfdi,Brpz_bg(1:3,i)*umagfdi,
      &              (node_comp_list(j,i),j=1,4)
                CLOSE (16)
             ENDIF
@@ -1457,18 +1789,138 @@ c
 c
 c--Orbital parameters
 c
-      IF (etot.NE.0.) THEN
+cc      IF (etot.NE.0.) THEN
+      IF (etot.LE.0.) THEN
          semimajor = - totalmass/(2.0*etot)
          value = 1.0 - dang2/totalmass/semimajor
          IF (value.GE.0.0) THEN
             eccentricity = SQRT(value)
          ELSE
-            eccentricity = -1.0
+cc            eccentricity = -1.0
+            eccentricity = 1.0
          ENDIF
       ELSE
          semimajor = 1.0E+30
          eccentricity = 1.0
       ENDIF
+
+      RETURN
+      END
+c
+c--Update magnetic field components in the new orientation
+c
+      SUBROUTINE update_B(idim,imhd2,ndisc,listdisc,xyzmh,Bxyz,cmtot,
+     &                    angmom,Brpz)
+      INTEGER   idim,ndisc
+      DIMENSION xyzmh(5,idim),cmtot(3),Bxyz(3,imhd2),angmom(3)
+      DIMENSION listdisc(ndisc)
+      DIMENSION uhat(3),vhat(3),what(3)
+      DIMENSION nbdisc(6),Brpz(3),Brpz0(6)
+      LOGICAL   has_ang
+
+c
+      has_ang = .true.
+      if (abs(angmom(1)).le.epsilon(angmom(1)) .and. 
+     &    abs(angmom(2)).le.epsilon(angmom(2)) .and. 
+     &    abs(angmom(2)).le.epsilon(angmom(3))) has_ang = .false.
+
+c --Calculate the relevant vectors for angular momentum
+      if (has_ang) then
+         what(1) = angmom(1)
+         what(2) = angmom(2)
+         what(3) = angmom(3)
+         what    = what/sqrt(what(1)**2+what(2)**2+what(3)**2)
+         uhat(1) = 0.
+         uhat(2) = what(2)
+         uhat(3) = -what(2)*what(2)/what(3)
+         uhat    = uhat/sqrt(uhat(1)**2+uhat(2)**2+uhat(3)**2)
+         vhat(1) = what(1)
+         vhat(2) = -what(1)**2*what(2)/(what(3)**2+what(2)**2)
+         vhat(3) = -what(1)**2*what(3)/(what(3)**2+what(2)**2)
+         vhat    = vhat/sqrt(vhat(1)**2+vhat(2)**2+vhat(3)**2)
+      else
+         what(1) = 0.
+         what(2) = 0.
+         what(3) = 1.
+         uhat(1) = 1.
+         uhat(2) = 0.
+         uhat(3) = 0.
+         vhat(1) = 0.
+         vhat(2) = 1.
+         vhat(3) = 0.
+      endif
+      nbdisc = 0
+      Brpz0  = 0.
+      Brpz   = 0.
+      do j = 1,ndisc
+         if (listdisc(j) < 0) then
+            i   = -listdisc(j)
+            dx  = xyzmh(1,i) - cmtot(1)
+            dy  = xyzmh(2,i) - cmtot(2)
+            dz  = xyzmh(3,i) - cmtot(3)
+            Bx  = Bxyz(1,i)
+            By  = Bxyz(2,i)
+            Bz  = Bxyz(3,i)
+            xp  = uhat(1)*dx + uhat(2)*dy + uhat(3)*dz
+            yp  = vhat(1)*dx + vhat(2)*dy + vhat(3)*dz 
+            zp  = what(1)*dx + what(2)*dy + what(3)*dz
+            Bxp = uhat(1)*Bx + uhat(2)*By + uhat(3)*Bz
+            Byp = vhat(1)*Bx + vhat(2)*By + vhat(3)*Bz 
+            Bzp = what(1)*Bx + what(2)*By + what(3)*Bz
+            r2  = xp*xp + yp*yp
+            if (r2.gt.0.0) then
+               Br   = (xp*Bxp + yp*Byp)/sqrt(r2)
+               Bphi = (yp*Bxp - xp*Byp)/sqrt(r2)
+            else
+               Br   = 0.
+               Bphi = 0.
+            endif
+            if (Br > 0.) then
+               nbdisc(1) = nbdisc(1) + 1
+               Brpz0(1)  = Brpz0(1)  + log10(Br)
+            else
+               nbdisc(2) = nbdisc(2) + 1
+               Brpz0(2)  = Brpz0(2)  + log10(-Br)
+            endif
+            if (Bphi > 0.) then
+               nbdisc(3) = nbdisc(3) + 1
+               Brpz0(3)  = Brpz0(3)  + log10(Bphi)
+            else
+               nbdisc(4) = nbdisc(4) + 1
+               Brpz0(4)  = Brpz0(4)  + log10(-Bphi)
+            endif
+            if (Bzp > 0.) then
+               nbdisc(5) = nbdisc(5) + 1
+               Brpz0(5)  = Brpz0(5)  + log10(Bzp)
+            else
+               nbdisc(6) = nbdisc(6) + 1
+               Brpz0(6)  = Brpz0(6)  + log10(-Bzp)
+            endif
+            B2 = Bx**2 + By**2 + Bz**2
+            Bp2 = Bxp**2 + Byp**2 + Bzp**2
+            if (abs(B2-Bp2) > 100.*Bp2*epsilon(Bp2)) then
+               print*, "B & Bp are not the same magnitude!"
+               print*,B2,Bp2,abs(B2-Bp2),100.*Bp2*epsilon(Bp2)
+               stop
+            endif
+            Bp2 = Br**2 + Bphi**2 + Bzp**2
+            if (abs(B2-Bp2) > 100.*Bp2*epsilon(Bp2)) then
+               print*, "B & Brpz are not the same magnitude!"
+               print*, B2,Bp2,abs(B2-Bp2),100.*Bp2*epsilon(Bp2)
+               stop
+            endif
+         endif
+      enddo
+
+      do i = 1,6
+         if (nbdisc(i)>0) Brpz0(i) = 10**(Brpz0(i)/nbdisc(i))*nbdisc(i)
+      enddo
+      do i = 1,3
+         if (nbdisc(2*i-1) > 0 .or. nbdisc(2*i) > 0) then 
+            Brpz(i) = (Brpz0(2*i-1) - Brpz0(2*i))
+     &              / (nbdisc(2*i-1)+nbdisc(2*i))
+         endif
+      enddo
 
       RETURN
       END

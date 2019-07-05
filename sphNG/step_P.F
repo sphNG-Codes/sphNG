@@ -3783,7 +3783,7 @@ c
 c--Check that nactive and new particles set up correctly
 c
             IF (nactive - nptmass.LT.50 .AND. nactive.NE.nptmass)
-     &           CALL error(where,4)
+     &           CALL error(where,1)
 c
 c--Update the lists of particles in each bin
 c

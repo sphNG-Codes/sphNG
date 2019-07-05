@@ -3161,6 +3161,7 @@ c
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/gravi'
       INCLUDE 'COMMONS/initpt'
+      INCLUDE 'COMMONS/call'
 
 #ifdef MPI
       INCLUDE 'mpif.h'
@@ -3185,34 +3186,36 @@ c
          nneighprior = nneigh(ipart)
       ENDIF
 
-      IF (nlst_doing.GT.nptmasstot .OR. nptmasstot.NE.nptmasstotlast
-     &     .OR. iptintree.EQ.2 .OR. initialptm.EQ.5) THEN
-         CALL treef(ipart,itime,npart,ntot,xyzmh,acc,igphi,
-     &        fsx,fsy,fsz,epot)
+      IF (icall.NE.4) THEN
+         IF (nlst_doing.GT.nptmasstot .OR. nptmasstot.NE.nptmasstotlast
+     &        .OR. iptintree.EQ.2 .OR. initialptm.EQ.5) THEN
+            CALL treef(ipart,itime,npart,ntot,xyzmh,acc,igphi,
+     &           fsx,fsy,fsz,epot)
 
-         IF (iptintree.NE.2) THEN
-            IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
-               iptcur = listrealpm(ipart)
-               IF (listpm(iptcur).NE.ipart) THEN
-                  WRITE (*,*) 'ERROR - listpm(iptcur).NE.ipart'
-                  CALL quit(1)
+            IF (iptintree.NE.2) THEN
+               IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
+                  iptcur = listrealpm(ipart)
+                  IF (listpm(iptcur).NE.ipart) THEN
+                     WRITE (*,*) 'ERROR - listpm(iptcur).NE.ipart'
+                     CALL quit(1)
+                  ENDIF
+                  gravxyzpstore(1,iptcur) = fsx
+                  gravxyzpstore(2,iptcur) = fsy
+                  gravxyzpstore(3,iptcur) = fsz
+                  gravxyzpstore(4,iptcur) = epot
                ENDIF
-               gravxyzpstore(1,iptcur) = fsx
-               gravxyzpstore(2,iptcur) = fsy
-               gravxyzpstore(3,iptcur) = fsz
-               gravxyzpstore(4,iptcur) = epot
             ENDIF
+         ELSE
+            iptcur = listrealpm(ipart)
+            IF (listpm(iptcur).NE.ipart) THEN
+               WRITE (*,*) 'ERROR - listpm(iptcur).NE.ipart'
+               CALL quit(1)
+            ENDIF
+            fsx = gravxyzpstore(1,iptcur)
+            fsy = gravxyzpstore(2,iptcur)
+            fsz = gravxyzpstore(3,iptcur)
+            epot = gravxyzpstore(4,iptcur)
          ENDIF
-      ELSE
-         iptcur = listrealpm(ipart)
-         IF (listpm(iptcur).NE.ipart) THEN
-            WRITE (*,*) 'ERROR - listpm(iptcur).NE.ipart'
-            CALL quit(1)
-         ENDIF
-         fsx = gravxyzpstore(1,iptcur)
-         fsy = gravxyzpstore(2,iptcur)
-         fsz = gravxyzpstore(3,iptcur)
-         epot = gravxyzpstore(4,iptcur)
       ENDIF
 
       rhoi = 0.

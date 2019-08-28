@@ -6,7 +6,7 @@
 ! and the coefficients for the non-ideal MHD terms: Ohmic resistivity, !
 ! Hall Effect and Ambipolar diffusion.                                 !
 !                                                                      !
-!                 Copyright (c) 2015-2018 James Wurster                !
+!                 Copyright (c) 2015-2019 James Wurster                !
 !        See LICENCE file for usage and distribution conditions        !
 !----------------------------------------------------------------------!
 !+
@@ -15,7 +15,7 @@
 !  DESCRIPTION:
 !  Contains routines to calculation the ionisation rate, and related
 !  useful quantities.
-!  Copyright (c) 2015-2017 James Wurster
+!  Copyright (c) 2015-2019 James Wurster
 !  Reference: Wurster (2016) PASA, 33:e041.
 !  See LICENCE file for usage and distribution conditions
 !
@@ -117,7 +117,7 @@ module nicil
  !
  !--Cosmic ray ionisation
  integer, public, parameter :: nimass            =  2               ! Number of ion masses for cosmic ray ionisation
- real,    public            :: zeta_cgs          =  1.0d-17          ! ionisation rate [s^-1]
+ real,    public            :: zeta_cgs          =  1.00d-17        ! ionisation rate [s^-1] (if zeta_of_rho=.false.)
  real,    public            :: zeta_CR_cgs       =  9.24d-18        ! unattenuated cosmic ray ionisation rate [s^-1] (if zeta_of_rho=.true.)
  real,    public            :: zeta_R_cgs        =  7.60d-19        ! ionisation rate of decaying radionuclides [s^-1] (if zeta_of_rho=.true.)
  real,    public            :: mass_MionR_mp     = 24.3             ! mass of ion (default is mass of magnesium) [m_proton]
@@ -317,6 +317,8 @@ pure subroutine nicil_version(version)
            !               rho_is_rhogas = .false. by default
            !               n_gas rather than n_total is used for calculation thermal ionisation (if rho_is_rhogas = .false.)
  version = "Version 1.2.5: 19 October 2018"
+           !  4 Feb  2019: bug fix when using MRN grain distribution and size(n_R) .ne. 2+2*na
+ version = "Version 1.2.6: 28 August 2019"
 
 end subroutine nicil_version
 !----------------------------------------------------------------------!
@@ -774,7 +776,7 @@ subroutine nicil_print_summary(a01_grain,mass_HionR_mp,mass_grain_mp,meanmolmass
  !
  call nicil_version(version)
  write(iprint,'(2a)') "NICIL: ",trim(version)
- write(iprint,'(a)' ) "NICIL: Copyright (c) 2015-2017 James Wurster"
+ write(iprint,'(a)' ) "NICIL: Copyright (c) 2015-2019 James Wurster"
  write(iprint,'(a)' ) "NICIL: See LICENCE file for usage and distribution conditions"
  write(iprint,'(a)' ) "NICIL: Reference: Wurster (2016) PASA, 33:e041."
  !
@@ -1051,10 +1053,10 @@ pure subroutine nicil_get_eta(eta_ohm,eta_hall,eta_ambi,Bfield,rho,T,n_R,n_elect
        if (rho_is_rhogas) then
           rho_gas = rho
        else
-          if (use_fdg_in) then
-             rho_gas = rho*(1.0-fdg_local)
-          else
+          if (.not.use_fdg_in) then
              rho_gas = rho*one_minus_fdg
+          else
+             rho_gas = rho*(1.0-fdg_local)
           endif
        endif
        !
@@ -1067,7 +1069,7 @@ pure subroutine nicil_get_eta(eta_ohm,eta_hall,eta_ambi,Bfield,rho,T,n_R,n_elect
        !
        !--Calculate electron number densities from cosmic rays
        if (ion_rays) then
-          if (zeta_of_rho) then
+          if (.not.zeta_of_rho) then
              zeta = zeta0
           else
              zeta = zetaCR*exp(-zetaCRcoef*sqrt(T*rho_gas/mass_neutral_mp)) + zetaR
@@ -1315,9 +1317,9 @@ pure subroutine nicil_ion_get_sigma(Bmag,rho_gas,n_electronR,n_electronT,n_ionR,
     sigmas = sigmas*sigma_coef_onB                                   ! scale sigma
     if (sigmas(1) > 0.0) sigmas(6) = 1.0/sigmas(1)                   ! 1/sigma_O
     sigmas(7)   = sigmas(2)*sigmas(2) + sigmas(5)*sigmas(5)          ! perp^2 = P^2 + H^2
-    sigmas(8)   = max(0.0,sigmas(1)*sigmas(2) - sigmas(7))           ! OP - perp^2
-    if ( sigmas(7) > 0.0 ) sigmas(7) = 1.0/sigmas(7)                 ! perp^2 -> 1/perp^2
-    if ( sigmas(8) < small ) then
+    sigmas(8)   = sigmas(1)*sigmas(2) - sigmas(7)                    ! OP - perp^2
+    if ( sigmas(8) < coef_epsilonR*max(sigmas(1)*sigmas(2),sigmas(7))) then
+       sigmas(8) = 0.0
        do j = 1,nspecies
           do k = j+1,nspecies
              sigmas(8) = sigmas(8) + ns(j)*aZj(j)*betaj(j)*beta2p11(j) &
@@ -1327,6 +1329,7 @@ pure subroutine nicil_ion_get_sigma(Bmag,rho_gas,n_electronR,n_electronT,n_ionR,
        enddo
        sigmas(8) = sigmas(8)*sigma_coef_onB**2
     endif
+    if ( sigmas(7) > 0.0 ) sigmas(7) = 1.0/sigmas(7)                 ! perp^2 -> 1/perp^2
  else
     ! This is the Ideal MHD regime.  Turn off non-ideal terms.
     if (warn_verbose) ierr = ierr + ierr_alion
@@ -2475,4 +2478,3 @@ end subroutine nicil_get_vion
 
 !----------------------------------------------------------------------!
 end module nicil
-

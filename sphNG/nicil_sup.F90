@@ -525,7 +525,8 @@ subroutine initialise_ev_data(ielements,evaction,evdata)
  !
  evdata = 0.0
  do i = 1,ielements
-   if (evaction(i)==ievN) evdata(i) = huge(evdata(i))
+   if (evaction(i)==ievX) evdata(i) = -huge(evdata(i))
+   if (evaction(i)==ievN) evdata(i) =  huge(evdata(i))
  enddo
  !
 end subroutine initialise_ev_data

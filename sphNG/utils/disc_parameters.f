@@ -96,12 +96,15 @@ C$OMP THREADPRIVATE(xyzm,vxyz)
 c
 c--set input parameters
 c
-      time_evol = .TRUE.    ! if true, must start from beginning of simulation or inlcude sink file
-      print_pts = .FALSE.     ! if true, will print all the particles belonging to a disc to file
-      append2file = .TRUE.  ! if true, will append to file, else will overwrite
-      use_mhd   = .FALSE.     ! Will perform loops to calculate magnetic properties
-      rhothresh_cgs = 0. ! Will only include gas particles in the disc with density greater than this 
-      dthresh_au = 2000.0    ! Will only include gas particles in the disc with distance less than this
+      time_evol = .TRUE.     ! if true, must start from beginning of simulation or inlcude sink file
+      print_pts = .FALSE.    ! if true, will print all the particles belonging to a disc to file
+      append2file = .TRUE.   ! if true, will append to file, else will overwrite
+      use_mhd   = .FALSE.    ! Will perform loops to calculate magnetic properties
+      rhothresh_cgs = 1.d-14 ! Will only include gas particles in the disc with density greater than this [CLUSTER]
+      rhothresh_cgs = 1.d-13 ! Will only include gas particles in the disc with density greater than this [ISOLATED STAR]
+      rhothresh_cgs = 0.0    ! Will only include gas particles in the disc with density greater than this [DEFAULT]
+      dthresh_au = 2000.0    ! Will only include gas particles in the disc with distance less than this  [DEFAULT]
+      ethresh   =  0.3       ! Will only include gas particles in the disc with eccentricity less than this [DEFAULT]
       varmhd    = 'Brho'
       encal     = 'r'
 c
@@ -191,9 +194,7 @@ c
 c--skip files
 c
  10      CONTINUE
-
          CALL rdump(11, ichkl, 0)
-
          CLOSE (11)
 
          print *,'Units are ',umassi, udisti, nptmass
@@ -401,7 +402,7 @@ C$OMP& shared(icompanion,iunique_companion,iphase,nsink_mult,iunique)
 C$OMP& shared(iunique_sink,radsearchmax,udisti,ipartindisc,ilocal2name)
 C$OMP& shared(discmasstot,discradius,values,nptmass,listpm,use_mhd)
 C$OMP& shared(print_pts,Bmin,Bave,Bmax,Bup,Blo,Brpz_d,Brpz_bg,umagfdi)
-C$OMP& shared(rhothresh,dthresh,rho)
+C$OMP& shared(rhothresh,dthresh,ethresh,rho,umass,udist)
 C$OMP& private(isink,i,j,l,iii,jjj,iptcur,xsink,ysink,zsink,sinkmass)
 C$OMP& private(dx,dy,dz,ipart,xipart,yipart,zipart,dvx,dvy,dvz,Bi)
 C$OMP& private(Bdisc,Brpz_di,kn,kx,rmass)
@@ -424,7 +425,7 @@ c
             cmtot(1:3,isink) = sinkmass*xyzmh(1:3,iptcur)
             vtot(1:3,isink)  = sinkmass*vxyzu(1:3,iptcur)
 
-c           print *,'Sink location, mass ',xsink,ysink,zsink,sinkmass
+            print *,'Sink location, mass ',xsink,ysink,zsink,sinkmass
 
             discmass(isink) = 0.
             DO l = 1, 3
@@ -598,7 +599,7 @@ c                     print *,i,dist,eccentricity,
 c    &                    radapastron*udisti/1.496E+13,
 c    &                    etot,semimajoraxis
 
-                     IF (eccentricity.LT.0.3         .AND. 
+                     IF (eccentricity.LT.ethresh     .AND. 
      &                    radapastron.LT.dthresh     .AND.
      &                    rho(i).     GE.rhothresh ) THEN
                         IF (i.GT.idim) THEN
@@ -682,8 +683,8 @@ c              Determine which particles are in the 0.632M disc
 c              Calculate the magnetic field of the 0.632M disc
                ij = 0
                DO iii = 1,ndisc
+                  jjj = abs(listdisc(isink,iii))
                   if (listdisc(isink,iii) < 0) then
-                     jjj = -listdisc(isink,iii)
                      Bi  = dot_product(Bxyz(1:3,jjj),Bxyz(1:3,jjj))
                      Bi  = sqrt(Bi)
                      ij  = ij + 1
@@ -696,8 +697,9 @@ c              Calculate the magnetic field of the 0.632M disc
                      idisc_id = 0
                   endif
                   IF (print_pts) THEN
-                     WRITE (44+isink,'(6(1PE12.5,1X),I12)')
-     &                 xyzmh(1:3,jjj),Bxyz(1:3,jjj)*umagfdi,idisc_id
+                     WRITE (44+isink,'(7(1PE12.5,1X),I12)')
+     &                 xyzmh(1:3,jjj),Bxyz(1:3,jjj)*umagfdi,
+     &                 rho(i)*(umass/udist**3),idisc_id
                   ENDIF
                enddo
                IF (indisc(isink).gt.0 .and. use_mhd) THEN
@@ -1133,7 +1135,7 @@ c
 c
 c--Add to disc if passes tests
 c
-                  IF (eccentricity.LT.0.3         .AND. 
+                  IF (eccentricity.LT.ethresh     .AND. 
      &                 radapastron.LT.dthresh     .AND.
      &                 rho(i)     .GE.rhothresh ) THEN
                      IF (i.GT.idim) THEN
@@ -1206,8 +1208,8 @@ c           calculate which particles are in the 0.632M disc
 c           Calculate the magnetic field of the 0.632M disc
             ij = 0
             DO iii = 1,ndisc
+               jjj = abs(listdisc(nnodes,iii))
                if (listdisc(nnodes,iii) < 0) then
-                  jjj = -listdisc(nnodes,iii)
                   Bi = dot_product(Bxyz(1:3,jjj),Bxyz(1:3,jjj))
                   Bi = sqrt(Bi)
                   ij = ij + 1
@@ -1220,8 +1222,9 @@ c           Calculate the magnetic field of the 0.632M disc
                   idisc_id = 0
                endif
                IF (print_pts) THEN
-                  WRITE (44+nnodes,'(6(1PE12.5,1X),I12)')
-     &               xyzmh(1:3,jjj),Bxyz(1:3,jjj)*umagfdi,idisc_id
+                  WRITE (44+nnodes,'(7(1PE12.5,1X),I12)')
+     &               xyzmh(1:3,jjj),Bxyz(1:3,jjj)*umagfdi,
+     &               rho(i)*(umass/udist**3),idisc_id
                ENDIF
             enddo
 

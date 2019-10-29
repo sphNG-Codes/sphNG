@@ -1397,16 +1397,16 @@ c
             IF (inumberreturned.LT.inumofreturns .AND.
      &           nneightogetback(i+1).GT.0) THEN
                inumberreturned = inumberreturned + 1
-#ifdef MPIDEBUGRT
-               print *,iproc,': receiving vxyzu,ekcle,pr,vsound data ',
-     &              inumberreturned,inumofreturns
-#endif
                istart = ntot + inumbertotallocal + 1
-               CALL MPI_RECV(vxyzu(1,istart), idim, MPI_REAL8,
+#ifdef MPIDEBUGRT
+               print *,iproc,': rec vxyzu,ekcle,pr,vsound data ',
+     &              inumberreturned,inumofreturns,istart
+#endif
+               CALL MPI_RECV(vxyzu(1,istart), idim, i4REAL8,
      &              i, 210, MPI_COMM_WORLD, istatus, ierr)
-               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
-               icheck = inumber/4
-               IF (istart + icheck.GE.idim2) THEN
+               CALL MPI_GET_COUNT(istatus, i4REAL8, inumber, ierr)
+               icheck = inumber
+               IF (istart + inumber.GE.idim2) THEN
                   WRITE (*,*) iproc,': ERROR - istart+icheck.GE.idim2 ',
      &                 istart,icheck,idim2,ntot,inumbertotallocal,
      &                 inumberreturned,inumofreturns,
@@ -1419,12 +1419,12 @@ c
                print *,iproc,': got vxyzu from ',iprocrec,inumber
 #endif
                IF (encal.EQ.'r') THEN
-                  CALL MPI_RECV(ekcle(1,istart), idim, MPI_REAL8,
+                  CALL MPI_RECV(ekcle(1,istart), idim, i5REAL8,
      &                 i, 211, MPI_COMM_WORLD, istatus, ierr)
-                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
                   iprocrec = istatus(MPI_SOURCE)
-                  IF (icheck.NE.inumber/5) THEN
-                     WRITE (*,*) iproc,': ERROR - icheck.NE.inumber/5'
+                  IF (icheck.NE.inumber) THEN
+                     WRITE (*,*) iproc,': ERROR - icheck.NE.inumber'
                      CALL quit(1)
                   ENDIF
 
@@ -1432,12 +1432,12 @@ c
                   print *,iproc,': got ekcle from ',iprocrec,inumber
 #endif
                   IF (idustRT.GT.0) THEN
-                     CALL MPI_RECV(dust_tk(1,istart), idim, MPI_REAL8,
+                     CALL MPI_RECV(dust_tk(1,istart), idim, i2REAL8,
      &                    i, 214, MPI_COMM_WORLD, istatus, ierr)
-                     CALL MPI_GET_COUNT(istatus, MPI_REAL8,inumber,ierr)
+                     CALL MPI_GET_COUNT(istatus, i2REAL8,inumber,ierr)
                      iprocrec = istatus(MPI_SOURCE)
-                     IF (icheck.NE.inumber/2) THEN
-                       WRITE (*,*) iproc,': ERROR - icheck.NE.inumber/2'
+                     IF (icheck.NE.inumber) THEN
+                       WRITE (*,*) iproc,': ERROR - icheck.NE.inumber'
                        CALL quit
                      ENDIF
 
@@ -1447,12 +1447,12 @@ c
                   ENDIF
                   IF (istellar_radpres .AND. nptmasstot.GT.0) THEN
                      CALL MPI_RECV(stellar_radpres(1,istart), idim, 
-     &                       MPI_REAL8,
+     &                       i3REAL8,
      &                    i, 219, MPI_COMM_WORLD, istatus, ierr)
-                     CALL MPI_GET_COUNT(istatus, MPI_REAL8,inumber,ierr)
+                     CALL MPI_GET_COUNT(istatus, i3REAL8,inumber,ierr)
                      iprocrec = istatus(MPI_SOURCE)
-                     IF (icheck.NE.inumber/3) THEN
-                       WRITE (*,*) iproc,': ERROR - icheck.NE.inumber/3'
+                     IF (icheck.NE.inumber) THEN
+                       WRITE (*,*) iproc,': ERROR - icheck.NE.inumber'
                        CALL quit
                      ENDIF
                   ENDIF
@@ -1477,29 +1477,29 @@ c
                ENDIF
 
 #ifdef NONIDEAL
-               CALL MPI_RECV(jcurrent(1,istart), idim, MPI_REAL8,
+               CALL MPI_RECV(jcurrent(1,istart), idim, i3REAL8,
      &              i, 215, MPI_COMM_WORLD, istatus, ierr)
-               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               CALL MPI_GET_COUNT(istatus, i3REAL8, inumber, ierr)
                iprocrec = istatus(MPI_SOURCE)
-               IF (icheck.NE.inumber/3) THEN
-                  WRITE (*,*) iproc,': ERROR - icheck.NE.inumber/3'
+               IF (icheck.NE.inumber) THEN
+                  WRITE (*,*) iproc,': ERROR - icheck.NE.inumber'
                   CALL quit(1)
                ENDIF
 
-               CALL MPI_RECV(eta_nimhd(1,istart), idim, MPI_REAL8,
+               CALL MPI_RECV(eta_nimhd(1,istart), idim, i4REAL8,
      &              i, 216, MPI_COMM_WORLD, istatus, ierr)
-               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               CALL MPI_GET_COUNT(istatus, i4REAL8, inumber, ierr)
                iprocrec = istatus(MPI_SOURCE)
-               IF (icheck.NE.inumber/4) THEN
+               IF (icheck.NE.inumber) THEN
                   WRITE (*,*)iproc,': ERROR-icheck.NE.inumber eta_nimhd'
                   CALL quit(1)
                ENDIF
 
-               CALL MPI_RECV(n_R(1,istart), idim, MPI_REAL8,
+               CALL MPI_RECV(n_R(1,istart), idim, i4REAL8,
      &              i, 217, MPI_COMM_WORLD, istatus, ierr)
-               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+               CALL MPI_GET_COUNT(istatus, i4REAL8, inumber, ierr)
                iprocrec = istatus(MPI_SOURCE)
-               IF (icheck.NE.inumber/4) THEN
+               IF (icheck.NE.inumber) THEN
                   WRITE (*,*) iproc,': ERROR - icheck.NE.inumber n_R'
                   CALL quit(1)
                ENDIF

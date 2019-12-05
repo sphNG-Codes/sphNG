@@ -185,24 +185,6 @@ c
                IF (iunique(iorig(i)).LE.n1) tterm_o1 = tterm_o1 + ttermi
             ENDIF
          END DO
-         if ( .FALSE.) then
-c           Manually recalculate gravitational potential energy
-            print*,'manually calculating gravitational potential energy'
-            tgravA = 0.
-            DO i = 1, npart-1
-               IF (iphase(i).EQ.0.and.iunique(iorig(i)).LE.n1)THEN
-                  DO j = i+1,npart
-                     IF (iphase(j).EQ.0.and.iunique(iorig(j)).LE.n1)THEN
-                        rr2 = (xyzmh(1,i)-xyzmh(1,j))**2
-     &                      + (xyzmh(2,i)-xyzmh(2,j))**2
-     &                      + (xyzmh(3,i)-xyzmh(3,j))**2
-                        tgravA = tgravA - xyzmh(4,i)/sqrt(rr2)
-                     ENDIF
-                  ENDDO
-               ENDIF
-            ENDDO
-            print*, 'gravitational pot energy: ',tgravA, n1
-         ENDIF
 c
 c--Variable of state is specific entropy
 c

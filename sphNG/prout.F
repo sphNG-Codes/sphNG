@@ -101,6 +101,13 @@ c
          nactivetot = nactive
          nptmasstot = nptmass
 
+         tkintot_o1  = tkin_o1
+         tgravtot_o1 = tgrav_o1
+         ttermtot_o1 = tterm_o1
+         tmagtot_o1  = tmag_o1
+         trotztot_o1 = trotz_o1
+         trotxtot_o1 = trotx_o1
+
          nreassigntot = nreassign
          naccretetot = naccrete
          nkilltot = nkill
@@ -202,6 +209,19 @@ c         n2tot = n2
      &        MPI_COMM_WORLD,ierr)
 
          CALL MPI_ALLREDUCE(nptmass,nptmasstot,1,MPI_INTEGER,MPI_SUM,
+     &        MPI_COMM_WORLD,ierr)
+
+         CALL MPI_REDUCE(tkin_o1,tkintot_o1,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(tgrav_o1,tgravtot_o1,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(tterm_o1,ttermtot_o1,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(tmag_o1,tmagtot_o1,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(trotz_o1,trotztot_o1,1,MPI_REAL8,MPI_SUM,0,
+     &        MPI_COMM_WORLD,ierr)
+         CALL MPI_REDUCE(trotx_o1,trotxtot_o1,1,MPI_REAL8,MPI_SUM,0,
      &        MPI_COMM_WORLD,ierr)
 
          CALL MPI_REDUCE(nreassign,nreassigntot,1,MPI_INTEGER,MPI_SUM,0,
@@ -736,6 +756,36 @@ c         WRITE (96,*) gt, rmin1tot
                WRITE (iprint, 99108, ERR=100) h2mass1tot
 99108          FORMAT (' H_2 total mass    :', 1PE14.5)
             ENDIF
+         ENDIF
+c        Write energies for object 1; this is the same as total energies
+c        above if only one object present.
+c        Using short-hand notation to not confuse grepping with total
+c        values
+         IF (n2.NE.0) THEN
+            IF (ABS(tgravtot_o1).GT.tiny) THEN
+               alph = ttermtot_o1 / ABS(tgravtot_o1)
+               betl = trotztot_o1 / ABS(tgravtot_o1)
+               betr = trotxtot_o1 / ABS(tgravtot_o1)
+               betm = tmagtot_o1  / ABS(tgravtot_o1)
+            ELSE
+               alph = 0.
+               betl = 0.
+               betr = 0.
+            ENDIF
+            WRITE (iprint, 99109, ERR=100)tkintot_o1,
+     &                                    trotztot_o1,trotxtot_o1,
+     &                                    tgravtot_o1,ttermtot_o1,
+     &                                    tmagtot_o1,alph,betl,betr,betm
+99109       FORMAT (' E_kinetic              : ', 1PE14.5, /,
+     &              ' E_rotational_about_z   : ', 1PE14.5, /,
+     &              ' E_rotational_about_x   : ', 1PE14.5, /,
+     &              ' E_potential            : ', 1PE14.5, /,
+     &              ' E_internal             : ', 1PE14.5, /,
+     &              ' E_magnetic             : ', 1PE14.5, /,
+     &              ' alpha                  : ', 1PE14.5, /,
+     &              ' beta_para (z)          : ', 1PE14.5, /,
+     &              ' beta_perp (x)          : ', 1PE14.5, /,
+     &              ' beta_mag               : ', 1PE14.5, /)
          ENDIF
 c
 c--Object no 2

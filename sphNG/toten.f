@@ -26,8 +26,11 @@ c************************************************************
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/radtrans'
       INCLUDE 'COMMONS/Bxyz'
+      INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/physcon'
+
+      LOGICAL  is_object1
 c
 c--Allow for tracing flow
 c
@@ -45,6 +48,12 @@ c
       tterm = 0.
       tmag = 0.
       trad = 0.
+      tkin_o1  = 0.
+      trotz_o1 = 0.
+      trotx_o1 = 0.
+      tgrav_o1 = 0.
+      tmag_o1 = 0.
+      tterm_o1 = 0.
       escap = 0.
 c
 c--Scaling factors
@@ -53,6 +62,11 @@ c
 
       DO i = 1, npart
          IF (iphase(i).GE.0) THEN
+            IF (iunique(iorig(i)).LE.n1) THEN
+               is_object1 = .TRUE.
+            ELSE
+               is_object1 = .FALSE.
+            ENDIF
             xi = xyzmh(1,i)
             yi = xyzmh(2,i)
             zi = xyzmh(3,i)
@@ -65,23 +79,34 @@ c--Kinetic energy
 c
             vtot2 = vxi**2 + vyi**2 + vzi**2
             tkin = tkin + pmassi*vtot2
+            IF (is_object1) tkin_o1 = tkin_o1 + pmassi*vtot2
+
 c
 c--Rotational energy around z
 c
             r2xy = xi*xi + yi*yi
             rvz = xi*vyi - yi*vxi
-            IF (r2xy.NE.0) trotz = trotz + pmassi*rvz*rvz/r2xy
+            IF (r2xy.NE.0) THEN
+               trotz = trotz + pmassi*rvz*rvz/r2xy
+               IF (is_object1) trotz_o1 = trotz_o1 + pmassi*rvz*rvz/r2xy
+            ENDIF
+
 c
 c--Rotational energy around x
 c
             r2yz = yi*yi + zi*zi
             rvx = yi*vzi - zi*vyi
-            IF (r2yz.NE.0) trotx = trotx + pmassi*rvx*rvx/r2yz
+            IF (r2yz.NE.0) THEN
+               trotx = trotx + pmassi*rvx*rvx/r2yz
+               IF (is_object1) trotx_o1 = trotx_o1 + pmassi*rvx*rvx/r2yz
+            ENDIF
 c
 c--Potential energy
 c
             poteni = pmassi*(poten(i) + dgrav(i))/rscale
             tgrav = tgrav + poteni
+            IF (is_object1) tgrav_o1 = tgrav_o1 + poteni
+
 c
 c--Magnetic energy
 c
@@ -89,6 +114,7 @@ c
                B2i = Bxyz(1,i)**2 + Bxyz(2,i)**2 + Bxyz(3,i)**2
                tmagi = pmassi*B2i/rho(i)
                tmag = tmag + tmagi
+               IF (is_object1) tmag_o1 = tmag_o1 + tmagi
             ELSE
                tmagi = 0.
             ENDIF
@@ -124,6 +150,12 @@ c
       tgrav = 0.5*tgrav
       tmag = 0.5*tmag
       escap = escap
+      tkin_o1  = 0.5*tkin_o1
+      trotz_o1 = 0.5*trotz_o1
+      trotx_o1 = 0.5*trotx_o1
+      tgrav_o1 = 0.5*tgrav_o1
+      tmag_o1 = 0.5*tmag_o1
+
 c
 c--Thermal energy
 c
@@ -141,8 +173,36 @@ c
                ELSE
                   tterm = tterm + xyzmh(4,i)*vxyzu(4,i)
                ENDIF
+               IF (encal.EQ.'r' .AND. iradtrans.EQ.idim) THEN
+                  trad = trad + xyzmh(4,i)*ekcle(1,i)
+                  ttermi = xyzmh(4,i)*1.5*Rg*
+     &                     vxyzu(4,i)/ekcle(3,i)*
+     &                     get1overmu(rho(i),vxyzu(4,i))/uergg
+               ELSE
+                  ttermi = xyzmh(4,i)*vxyzu(4,i)
+               ENDIF
+               tterm = tterm + ttermi
+               IF (iunique(iorig(i)).LE.n1) tterm_o1 = tterm_o1 + ttermi
             ENDIF
          END DO
+         if ( .FALSE.) then
+c           Manually recalculate gravitational potential energy
+            print*,'manually calculating gravitational potential energy'
+            tgravA = 0.
+            DO i = 1, npart-1
+               IF (iphase(i).EQ.0.and.iunique(iorig(i)).LE.n1)THEN
+                  DO j = i+1,npart
+                     IF (iphase(j).EQ.0.and.iunique(iorig(j)).LE.n1)THEN
+                        rr2 = (xyzmh(1,i)-xyzmh(1,j))**2
+     &                      + (xyzmh(2,i)-xyzmh(2,j))**2
+     &                      + (xyzmh(3,i)-xyzmh(3,j))**2
+                        tgravA = tgravA - xyzmh(4,i)/sqrt(rr2)
+                     ENDIF
+                  ENDDO
+               ENDIF
+            ENDDO
+            print*, 'gravitational pot energy: ',tgravA, n1
+         ENDIF
 c
 c--Variable of state is specific entropy
 c

@@ -80,9 +80,9 @@ C$OMP THREADPRIVATE(distance2,indx)
 C$OMP THREADPRIVATE(xyzm,vxyz)
 
       CHARACTER*7  filein
+      CHARACTER*3  prefix
       CHARACTER*21 contour1, contour2
       CHARACTER*30 contour3
-      CHARACTER*11 imageout
       CHARACTER*10 conname
       CHARACTER*1  icent,icor,imove,isecrot
       CHARACTER*1  irepeat, ihigh, idt, idump, irot
@@ -90,7 +90,8 @@ C$OMP THREADPRIVATE(xyzm,vxyz)
       CHARACTER*4 ivalue
       CHARACTER*9 iuvalue
 
-      LOGICAL     time_evol,print_pts,append2file,use_mhd,fexist
+      LOGICAL     time_evol,print_pts,use_mhd,fexist
+      LOGICAL     append2file,start_appending
 
       DATA pi/3.141592654/
 c
@@ -177,12 +178,13 @@ c     Resort the list to remove all nonexistent files
  444  ifile = 1
       izero = 0
       nunique_sink = 0
+      start_appending = .FALSE.
 
       DO k = 1,numberfiles
 
          nfile=k
          ifile=1
-         IF (k.GT.1) append2file = .TRUE.
+         IF (start_appending) append2file = .TRUE.
 
          xeye = 0. ! JHW: This value was never defined.
          IF (xeye.NE.0.) THEN
@@ -192,8 +194,6 @@ c     Resort the list to remove all nonexistent files
             contour1 = 'CCD' // filein(nfile)
             contour2 = 'CCT' // filein(nfile)
          ENDIF
-         imageout = 'I' // filein(nfile)
-         OPEN(15,file=imageout)
 
          OPEN (UNIT = 11, FILE = filein(nfile), FORM = 'unformatted')
 c     
@@ -1382,6 +1382,7 @@ c
             OPEN (16,file=contour1,ACCESS='append')
          ELSE
             OPEN (16,file=contour1)
+            start_appending = .TRUE.
          ENDIF
          WRITE (16,"(17(1PE12.5,1x),I4,1x,17(1PE12.5,1x),1x,2(I9,1x))") 
      &           gt,formtime(i),xyzmh(4,listpm(i)),
@@ -1498,6 +1499,7 @@ c
                     OPEN (16,file=contour3,ACCESS='append')
                  ELSE
                     OPEN (16,file=contour3)
+                    start_appending = .TRUE.
                  ENDIF
                  Bnax   = 0.
                  itotal = 0
@@ -1661,6 +1663,7 @@ c             NOTE: This assumes a maximimum of a quad system, which yeilds a ma
                  OPEN (16,file=contour3,ACCESS='append')
                ELSE
                   OPEN (16,file=contour3)
+                  start_appending = .TRUE.
                ENDIF
                Bnax   = 0.
                itotal = 0
@@ -1754,8 +1757,6 @@ c                 Calculate the upper and lower percentiles
             ENDIF
  70         CONTINUE
          END DO
-
-         CLOSE(15)
 
          IF (idump.EQ.'Y' .OR. idump.EQ.'y') THEN
             DO i = 1, npart

@@ -90,7 +90,7 @@ C$OMP THREADPRIVATE(xyzm,vxyz)
       CHARACTER*4 ivalue
       CHARACTER*9 iuvalue
 
-      LOGICAL     time_evol,print_pts,append2file,use_mhd
+      LOGICAL     time_evol,print_pts,append2file,use_mhd,fexist
 
       DATA pi/3.141592654/
 c
@@ -115,8 +115,14 @@ c
          isort(i) = i
       END DO
 
-      WRITE (*,*) 'Enter number of input files:'
+      WRITE (*,*) 'Enter number of input files (or 1st in range*-1):'
       READ (*, *) numberfiles
+      IF (numberfiles.LE.0) THEN
+         WRITE (*,*) 'Enter the final file number in the ranges:'
+         READ (*, *) numberfiles_f
+         WRITE (*,*) 'Enter the simulation prefix:'
+         READ (*, *) prefix
+      ENDIF
 
       IF (numberfiles.EQ.1) THEN
          WRITE (*,*) 'DO YOU WANT TO DUMP DISCS AS A BINARY FILE?'
@@ -140,11 +146,33 @@ c
          ENDIF
       ENDIF
 
-      WRITE (*,*) 'Enter names of input files:'
-      DO k = 1, numberfiles
-         READ(*,90) filein(k)
- 90      FORMAT(A7)
-      END DO
+      IF (numberfiles.GT.0) THEN
+         WRITE (*,*) 'Enter names of input files:'
+         DO k = 1, numberfiles
+            READ(*,90) filein(k)
+ 90         FORMAT(A7)
+         END DO
+      ELSE
+         istart = abs(numberfiles)
+         numberfiles = abs(numberfiles_f)-abs(numberfiles)+1
+         DO k = 1, numberfiles
+            WRITE(filein(k),'(a,I4.4)') prefix,istart+k-1
+         END DO
+      ENDIF
+
+c     Resort the list to remove all nonexistent files
+      k = 1
+      DO WHILE (k.LE.numberfiles)
+         inquire(file=trim(filein(k)),exist=fexist)
+         IF (.not.fexist) THEN
+            DO j = k,numberfiles-1
+               filein(j) = filein(j+1)
+            ENDDO
+            numberfiles = numberfiles - 1
+         ELSE
+            k = k + 1
+         ENDIF
+      ENDDO
 
  444  ifile = 1
       izero = 0
@@ -154,6 +182,7 @@ c
 
          nfile=k
          ifile=1
+         IF (k.GT.1) append2file = .TRUE.
 
          xeye = 0. ! JHW: This value was never defined.
          IF (xeye.NE.0.) THEN

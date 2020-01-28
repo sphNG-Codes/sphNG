@@ -22,12 +22,11 @@ c      RETURN
 c
 c--If goes to very high density, use last values in table
 c
-      IF (lrho.GT.-1.0) lrho = -2.0
+      IF (lrho.GT.3.0) lrho = 3.0
 
       lu=log10(u)
 
       nkrho1=INT(lrho/0.005)+eostbl_rho1
-      IF(lrho.LT.0.0) nkrho1=nkrho1-1
       IF(nkrho1.GE.mumxrh) nkrho1 = mumxrh - 1
       nku1=INT(lu/0.005)-1545
       IF(nkrho1.LT.1.0) nkrho1=1

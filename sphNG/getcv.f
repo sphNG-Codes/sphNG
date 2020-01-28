@@ -26,7 +26,6 @@ c
       lu=log10(u)
 
       nkrho1=INT(lrho/0.005)+eostbl_rho1
-      IF(lrho.LT.0.0) nkrho1=nkrho1-1
       IF(nkrho1.GE.tgmxrh) nkrho1 = tgmxrh - 1
       nku1=INT(lu/0.005)-1545
       IF(nkrho1.LT.1) nkrho1=1

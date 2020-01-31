@@ -59,6 +59,7 @@ c-- Pass in rho in code units.
       nkt2 = nkt1 + 1
 
       nkrho1=INT(lrho/0.005)+eostbl_rho1
+      IF (lrho.LT.0.0) nkrho1=nkrho1-1
       IF (nkrho1.GE.tgmxrh) THEN
          nkrho1 = tgmxrh - 1
       ELSEIF (nkrho1.LT.1) THEN

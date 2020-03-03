@@ -95,7 +95,7 @@ c     $     CALL FAILED2(0,lu,lrho,nkrho1,nkrho2,nkt1,nkt2)
       u_got = 10.0**rug/uergg
 
 c
-c--Then uses Newton-Raphson iteration to get the value consistent with
+c--Then use Newton-Raphson iteration to get the value consistent with
 c     getcv().  Without this, the values can differ by ~1%
 c
       iteration = 0
@@ -116,7 +116,7 @@ c
       IF (ABS(u_got-u_last).GT.1.E-5) THEN
          iteration = iteration + 1
          IF (iteration.GT.100) THEN
-            WRITE (*,*) 'ERROR - getu failed ',u_got,temp_in
+            WRITE (*,*) 'ERROR - getu failed ',u_got,temp_in,rho
             CALL quit(1)
          ENDIF
          GOTO 100

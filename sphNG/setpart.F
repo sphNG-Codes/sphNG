@@ -826,8 +826,8 @@ c           move the outer boundaries to ensure periodicity of the lattice
      &           ' is that ok? (y/n)')
       ELSE
          WRITE (*, 99009) np, idim
-99009    FORMAT (' Total number of particles needed :', I8, /,
-     &           ' this number EXCEEDS the dimensions set to ', I8, /,
+99009    FORMAT (' Total number of particles needed :', I10, /,
+     &           ' this number EXCEEDS the dimensions set to ', I10, /,
      &           ' is this still ok? (y/n)')
       ENDIF
       READ (iread, 99004) iok

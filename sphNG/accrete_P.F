@@ -84,6 +84,7 @@ c
 c      INCLUDE 'COMMONS/angm'
 
       DIMENSION numberacc(iptdim), iaccretedby(idim)
+      REAL   merger_radius2
       REAL*4 ptminner(iptdim)
       CHARACTER*7 where
       LOGICAL idoaccrete
@@ -95,6 +96,9 @@ c      INCLUDE 'COMMONS/angm'
 #endif
 
       DATA where/'accrete'/
+
+c--Define the merger radius for the sink particles
+      merger_radius2 = (6.0*solarr/udist)**2
 
       numberacclocal = 0
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -1961,9 +1965,9 @@ c--Merge if sink radii (as stored in h's of sinks) overlap
 c
 c            IF (r2.LT.(MAX(xyzmh(5,iptm1),xyzmh(5,iptm2))**2.0)) THEN
 c
-c--Merge if pass within some fraction of softening radius
+c--Merge if pass within some fraction of softening radius; radius defined at the top of file
 c
-                        IF (r2.LT.(6.0*solarr/udist)**2.0) THEN
+                        IF (r2.LT.merger_radius2) THEN
 cC$OMP CRITICAL(mergesinks)
                            IF (imerge.EQ.0) THEN
                               imerge = 1

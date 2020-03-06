@@ -74,6 +74,10 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/dustfluid'
       INCLUDE 'COMMONS/dustfluidvelu'
       INCLUDE 'COMMONS/radsink'
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nonideal'
+      INCLUDE 'COMMONS/divcurlB'
+#endif
 
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
@@ -94,6 +98,9 @@ c      INCLUDE 'COMMONS/torq'
       INTEGER iversion, maxversion
       LOGICAL tagged, isequential
       LOGICAL ireadblock
+#ifdef NONIDEAL
+      REAL*4  eta_nimhd_tmp(imhd2)
+#endif
 c
 c--Is an invalid cleaning wave array a fatal error?
 c    Do not change this value unless you know
@@ -1407,16 +1414,43 @@ c
             ENDIF
 c--real*4
             iread = 0
+#ifndef NONIDEAL
             IF (nums4(7).GT.4.AND.ifsvi.GE.6) THEN
 
-c--skip current/div B
+c--skip current & div B
                DO j = 1, 4
                   iread = iread + 1
                   IF (tagged) READ (idisk1, END=100) ! skip tags
                   READ (idisk1, END=100)
                END DO
+            ENDIF
+#else
+c--read current & div B (required for analysis only)
+            IF (nums4(7).GT.4) THEN
+               tagexp(1:4) = (/'divB','curlBx','curlBy','curlBz'/)
+               DO j = 1,4
+                  iread = iread + 1
+                  IF (tagged) THEN 
+                     READ (idisk1, END=100) tagi
+                     CALL checktag(tagexp(j), tagi, ierr) 
+                     IF (ierr.NE.0) THEN
+c Fatal error on tag mismatch here
+                        WRITE(*,99984)
+                        WRITE(*,99985)
+                        CALL quit(0)
+                     ENDIF
+                  ENDIF
+                  READ(idisk1,END=100) divcurlB(j,icount+1:icount+nmhd)
+                  IF (j.GT.1) THEN
+                     jcurrent(j-1,icount+1:icount+nmhd) = 
+     &               real(divcurlB(j,icount+1:icount+nmhd),kind=8)
+                  ENDIF
+               ENDDO
+            ENDIF
+#endif
 
 c--read artificial resistivity parameter
+            IF (nums4(7).GT.4.AND.ifsvi.GE.6) THEN
                IF (tagged) THEN 
                  READ (idisk1, END=100) tagi
                  CALL checktag('alphaB', tagi, ierr)
@@ -1434,10 +1468,40 @@ c--read artificial resistivity parameter
                ENDDO
             ENDIF
 
+c--read non-ideal coefficients (required for analysis only)
+#ifdef NONIDEAL
+            DO i = iread + 1, nums4(7)-4
+               IF (tagged) READ (idisk1, END=100) ! skip tags
+               READ (idisk1, END=100)
+            END DO
+
+            IF (nums4(7).GT.4) THEN
+            tagexp(1:4)=(/'eta_{OR}','eta_{HE}','eta_{AD}','ne/n    '/)
+               DO j = 1,4
+                  iread = iread + 1
+                  IF (tagged) THEN 
+                    READ (idisk1, END=100) tagi
+                    CALL checktag(tagexp(j), tagi, ierr) 
+                    IF (ierr.NE.0) THEN
+c Fatal error on tag mismatch here
+                      WRITE(*,99984)
+                      WRITE(*,99985)
+                      CALL quit(0)
+                    ENDIF
+                  ENDIF
+                  READ (idisk1, END=100)
+     &               eta_nimhd_tmp(icount+1:icount+nmhd)
+                  eta_nimhd(j,icount+1:icount+nmhd) = 
+     &               real(eta_nimhd_tmp(icount+1:icount+nmhd),kind=8)
+               END DO
+            ENDIF
+#else
             DO i = iread + 1, nums4(7)
                IF (tagged) READ (idisk1, END=100) ! skip tags
                READ (idisk1, END=100)
             END DO
+#endif
+
 c--real*8
          ELSEIF (imhd.EQ.idim) THEN
             WRITE(*,*) ' no magnetic fields detected in dump file' 

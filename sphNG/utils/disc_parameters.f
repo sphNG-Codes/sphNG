@@ -37,7 +37,7 @@ c***********************************************************
       COMMON /numfile/ nfile
 
       PARAMETER (ndiscmax = 1000000)   ! max number of particles in a disc
-      PARAMETER (nsinkmax =    1000)   ! max number of systems that can be analysed
+      PARAMETER (nsinkmax =     100)   ! max number of systems that can be analysed
       INTEGER*8 iunique_sink(nsinkmax),iunique_companion(3,nsinkmax)
       DIMENSION ilocalsink(nsinkmax),icompanion(3,nsinkmax)
       DIMENSION ilocalsinkindx(nsinkmax),ilocal2name(nsinkmax)
@@ -59,6 +59,7 @@ c***********************************************************
       DIMENSION xnode_plane(3,nsinkmax)
 
       LOGICAL*1 ipartindisc(idim)
+      LOGICAL   L_good_alignment
 
       DIMENSION iclist(6)
       DIMENSION cmtot(3,nsinkmax),cmtoti(3)
@@ -79,6 +80,7 @@ C$OMP THREADPRIVATE(distance2,indx)
       SAVE xyzm,vxyz
 C$OMP THREADPRIVATE(xyzm,vxyz)
 
+      REAL         L_align_max,L_criteria(4,2)
       CHARACTER*7  filein
       CHARACTER*3  prefix
       CHARACTER*21 contour1, contour2
@@ -101,13 +103,18 @@ c
       print_pts = .FALSE.    ! if true, will print all the particles belonging to a disc to file
       append2file = .TRUE.   ! if true, will append to file, else will overwrite
       use_mhd   = .FALSE.    ! Will perform loops to calculate magnetic properties
+      L_align_max = 0.866    ! Maximum allowed alignment of a particle's angular momentum vector with circumstellar disc [60deg]
+      L_align_max   = 1.0    ! Maximum allowed alignment of a particle's angular momentum vector with circumstellar disc [OFF]
       rhothresh_cgs = 1.d-14 ! Will only include gas particles in the disc with density greater than this [CLUSTER]
       rhothresh_cgs = 1.d-13 ! Will only include gas particles in the disc with density greater than this [ISOLATED STAR]
       rhothresh_cgs = 0.0    ! Will only include gas particles in the disc with density greater than this [DEFAULT]
+      dthresh_au =  220.0    ! Will only include gas particles in the disc with distance less than this  [ISOLATED STAR]
       dthresh_au = 2000.0    ! Will only include gas particles in the disc with distance less than this  [DEFAULT]
       ethresh   =  0.3       ! Will only include gas particles in the disc with eccentricity less than this [DEFAULT]
       varmhd    = 'Brho'
       encal     = 'r'
+
+
 c
 c--read options
 c
@@ -435,6 +442,8 @@ C$OMP& shared(rhothresh,dthresh,ethresh,rho,umass,udist)
 C$OMP& private(isink,i,j,l,iii,jjj,iptcur,xsink,ysink,zsink,sinkmass)
 C$OMP& private(dx,dy,dz,ipart,xipart,yipart,zipart,dvx,dvy,dvz,Bi)
 C$OMP& private(Bdisc,Brpz_di,kn,kx,rmass)
+C$OMP& private(L_criteria,L_align_max,L_good_alignment)
+C$OMP& private(rLx,rLy,rLz,rLxt,rLyt,rLzt)
 C$OMP& private(ij,idisc_id,ns,n0,cmtoti)
 C$OMP& private(ndisc,nnotdisc,nsinks,distcomp2,jpart,r2,jjj_mindist)
 C$OMP& private(totalmass,dist,etot,semimajor,eccentricity)
@@ -463,6 +472,8 @@ c
             ndisc = 0
             nnotdisc = 0
             listdisc(isink,:) = 0
+            L_criteria = 0.
+            rhomax = 0.
 c
 c--Compute distance^2 of all particle from sink
 c
@@ -622,6 +633,32 @@ c
      &                    eccentricity)
                      radapastron = semimajor*(1.0+eccentricity)
 c
+c--Calculate angular momentum vectors
+c  (skip this check if 100rho < rhomax; all particles pass for L_align_max = 1)
+c
+                     dvx = vxyzu(1,i) - vtot(1,isink)/totalmass
+                     dvy = vxyzu(2,i) - vtot(2,isink)/totalmass
+                     dvz = vxyzu(3,i) - vtot(3,isink)/totalmass
+
+                     L_criteria(1,1) = xyzmh(4,i)*(dvy*dz - dvz*dy)
+                     L_criteria(2,1) = xyzmh(4,i)*(dvz*dx - dvx*dz)
+                     L_criteria(3,1) = xyzmh(4,i)*(dvx*dy - dvy*dx)
+                     L_criteria(4,1) = sqrt(dot_product(
+     &                        L_criteria(1:3,1),L_criteria(1:3,1)))
+                     rhomax = max(rhomax,rho(i))
+                     L_good_alignment = .true.
+                     if (L_criteria(4,2) > 0. .and. 
+     &                   100.*rho(i) < rhomax) then
+                        rlx  = L_criteria(1,1)/L_criteria(4,1)
+                        rly  = L_criteria(2,1)/L_criteria(4,1)
+                        rlz  = L_criteria(3,1)/L_criteria(4,1)
+                        rlxt = L_criteria(1,2)/L_criteria(4,2)
+                        rlyt = L_criteria(2,2)/L_criteria(4,2)
+                        rlzt = L_criteria(3,2)/L_criteria(4,2)
+                        if (abs(rlx*rlxt+rly*rlyt+rlz*rlzt) .ge.
+     &                      L_align_max) L_good_alignment = .false.
+                     endif
+c
 c--Add to disc if passes tests
 c
 c                     print *,i,dist,eccentricity,
@@ -630,7 +667,8 @@ c    &                    etot,semimajoraxis
 
                      IF (eccentricity.LT.ethresh     .AND. 
      &                    radapastron.LT.dthresh     .AND.
-     &                    rho(i).     GE.rhothresh ) THEN
+     &                    rho(i).     GE.rhothresh   .AND.
+     &                    L_good_alignment          ) THEN
                         IF (i.GT.idim) THEN
                            PRINT *,'i.GT.idim'
                            STOP
@@ -661,6 +699,13 @@ c    &                    etot,semimajoraxis
      &                       xyzmh(4,i)*(dvz*dx - dvx*dz)
                         angmom(3,isink) = angmom(3,isink) +
      &                       xyzmh(4,i)*(dvx*dy - dvy*dx)
+
+                        L_criteria(1,2)=L_criteria(1,2)+L_criteria(1,1)
+                        L_criteria(2,2)=L_criteria(2,2)+L_criteria(2,1)
+                        L_criteria(3,2)=L_criteria(3,2)+L_criteria(3,1)
+                        L_criteria(4,2)=sqrt(dot_product(
+     &                            L_criteria(1:3,2),L_criteria(1:3,2)))
+
                         ndisc = ndisc + 1
                         IF (ndisc.GT.ndiscmax) THEN
                            WRITE (*,*) 'ndisc.GT.ndiscmax'

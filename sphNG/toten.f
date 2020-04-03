@@ -167,14 +167,6 @@ c
             IF (iphase(i).EQ.0) THEN
                IF (encal.EQ.'r' .AND. iradtrans.EQ.idim) THEN
                   trad = trad + xyzmh(4,i)*ekcle(1,i)
-                  tterm = tterm + xyzmh(4,i)*1.5*Rg*
-     &                 vxyzu(4,i)/ekcle(3,i)*
-     &                 get1overmu(rho(i),vxyzu(4,i))/uergg
-               ELSE
-                  tterm = tterm + xyzmh(4,i)*vxyzu(4,i)
-               ENDIF
-               IF (encal.EQ.'r' .AND. iradtrans.EQ.idim) THEN
-                  trad = trad + xyzmh(4,i)*ekcle(1,i)
                   ttermi = xyzmh(4,i)*1.5*Rg*
      &                     vxyzu(4,i)/ekcle(3,i)*
      &                     get1overmu(rho(i),vxyzu(4,i))/uergg

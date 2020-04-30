@@ -1,3 +1,6 @@
       REAL trotz, trotx, tkin, tgrav, tterm, tmag, trad
+      REAL trotz_o1, trotx_o1, tkin_o1, tgrav_o1, tterm_o1, tmag_o1
 
-      COMMON /ener2 / trotz, trotx, tkin, tgrav, tterm, tmag, trad
+      COMMON /ener2 / trotz, trotx, tkin, tgrav, tterm, tmag, trad,
+     &                trotz_o1, trotx_o1, tkin_o1, tgrav_o1, tterm_o1,
+     &                tmag_o1

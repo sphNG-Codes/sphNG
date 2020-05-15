@@ -2081,7 +2081,7 @@ c--Note: Ben Ayliffe used spherical radius, whereas Pablo Loren-Aguilar
 c     uses cylindrical radius.  Ben also did not kill gas inside rmind,
 c     and he did not kill planetesimals at r>rcyl or r<min_rplan
 c
-            IF (ibound.EQ.102) THEN
+            IF (ibound.EQ.102 .OR. ibound.EQ.105) THEN
                r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
             ELSE
                r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2

@@ -39,6 +39,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/files'
       INCLUDE 'COMMONS/initpt'
       INCLUDE 'COMMONS/rbnd'
+      INCLUDE 'COMMONS/physcon'
 
       CHARACTER*11 ifile(10), ofile
       CHARACTER*1 iok, iok2, iokm, iaddmhd, iexs
@@ -177,6 +178,7 @@ c
                   vxyzu(4,inew) = tiny
                   rho(inew) = tiny
                   dgrav(inew) = 0.
+                  iunique(inew) = inew
                END DO
                n2 = nptmassnew
                hacc = xyzmh(5,inew)
@@ -279,6 +281,54 @@ c--disc struggling to adapt to the sudden addition.
                   uniformtslim2 = uniformtslim*uniformtslim
                ENDIF
             ENDIF
+         ENDIF
+
+         PRINT *, ' do you want to rotate gas ?'
+         READ (*,1001) iok2
+         IF (iok2.EQ.'y') THEN
+            PRINT *, ' set inner radius (>=0)?'
+            READ (*,*)  rinnercut
+            DO i = 1, npart
+               IF (iphase(i).EQ.0) THEN
+                  xtmp = xyzmh(1,i)
+                  ytmp = xyzmh(2,i)
+                  ztmp = xyzmh(3,i)
+                  radius = SQRT(xtmp**2+ytmp**2+ztmp**2)
+                  IF (radius.LT.rinnercut) THEN
+                     iphase(i) = -1
+                     nlistinactive = nlistinactive + 1
+                     listinactive(nlistinactive) = i
+                  ELSE
+                  vxtmp = vxyzu(1,i)
+                  vytmp = vxyzu(2,i)
+                  vztmp = vxyzu(3,i)
+c Alison - added rotation matrix
+                  posang = (-176d0)*pi/180d0
+c Rotation if LHS is nearest to us (assumed)
+c                  ang_inc = -142d0 * pi/ 180d0
+c Rotation if LHS is FATHEREST from us
+                  ang_inc = +142d0 * pi/ 180d0
+c rotfac is -1 for clockwise rotation on the sky
+                  rotfac = 1.0
+                  vxyzu(1,i) = rotfac*(vxtmp*COS(posang) + 
+     &                 vytmp*SIN(posang)*COS(ang_inc) +
+     &                 vztmp*SIN(posang)*SIN(ang_inc))
+                  vxyzu(2,i) = rotfac*(-vxtmp*SIN(posang) +
+     &                 vytmp*COS(ang_inc)*COS(posang) + 
+     &                 vztmp*COS(posang)*SIN(ang_inc))
+                  vxyzu(3,i) = rotfac*(-vytmp*SIN(ang_inc) +
+     &                 vztmp*COS(ang_inc))
+
+                  xyzmh(1,i) = -(xtmp*COS(posang) +
+     &                 ytmp*SIN(posang)*COS(ang_inc) +
+     &                 ztmp*SIN(posang)*SIN(ang_inc))
+                  xyzmh(2,i) = -(-xtmp*SIN(posang) +
+     &                 ytmp*COS(ang_inc)*COS(posang) +
+     &                 ztmp*COS(posang)*SIN(ang_inc))
+                  xyzmh(3,i) =-(-ytmp*SIN(ang_inc) +ztmp*COS(ang_inc))
+                  ENDIF
+               ENDIF
+            END DO
          ENDIF
 
          PRINT *, ' do you want to change masses and temps ? '

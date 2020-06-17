@@ -1,6 +1,6 @@
       CHARACTER*4 varmhd
       COMMON /varmhd / varmhd
 
-      REAL overclean_fac
+      REAL overclean_fac,hdivbbmax_max
       INTEGER ndivBsubcycles
-      COMMON /divBcontrol/ overclean_fac, ndivBsubcycles
+      COMMON /divBcontrol/ overclean_fac,hdivbbmax_max,ndivBsubcycles

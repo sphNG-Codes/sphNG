@@ -98,6 +98,7 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/fullstep'
+      INCLUDE 'COMMONS/divcurlB'
 #ifdef MPICOPY
       INCLUDE 'COMMONS/compact'
       INCLUDE 'COMMONS/mpicopy'
@@ -1884,7 +1885,7 @@ C$OMP& shared(phibound,nlistinactive,listinactive,variation,npart,rmind)
 C$OMP& shared(planetesimaltimestep,gasdrag,max_rplan,min_rplan)
 C$OMP& shared(pradfac,rplanet,px,py,irotpot,iplanetesimals)
 C$OMP& shared(rcyl,Bevolxyz,dumBevolxyz,planetesimalnorm)
-C$OMP& shared(pcolen,xmass,overclean_fac)
+C$OMP& shared(pcolen,xmass,overclean_fac,hdivbbmax_max,divcurlB)
 C$OMP& shared(gasdist,nearestgas,planetmass,coremass)
 C$OMP& shared(dh2dt,icolumnsteps,icolumnnext)
 C$OMP& shared(dustvar,f1dust,f2dust,dHIIdt)
@@ -1903,13 +1904,13 @@ C$OMP& private(dragr,dragp,dragt,idragr,idragp,idragt)
 C$OMP& private(rtemp,rtempm,k,keepk)
 C$OMP& private(ig,rp,pvel,theta,pvx,pvy,dvx,dvy,dvz,vmagnitude2)
 C$OMP& private(ipkill,rlim,eccentricity,smaxis,killme)
-C$OMP& private(phiparticle,rmodgd,rmodap)
+C$OMP& private(phiparticle,rmodgd,rmodap,dtclean_coef)
 C$OMP& private(i,j,l,tolpart,errBx,errBy,errBz)
 C$OMP& private(errx,erry,errz,errvx,errvy,errvz,erru,errh,errm)
 C$OMP& private(errdivtol,rap,rmod1,divvi,aux1,aux2,aux3,denom,valfven2)
 C$OMP& private(crstepi,rmodcr,force21,force22,force2,rmodcr2,rmod)
 C$OMP& private(stepi,ibin,factor,istep2,irat,r2,pmassi,rmodsg1,rmodsg2)
-C$OMP& private(Bxi,Byi,Bzi,B2i,xi,yi,zi,dti,dteta,rmodeta,etai,rmodcool)
+C$OMP& private(Bxi,Byi,Bzi,xi,yi,zi,dti,dteta,rmodeta,etai,rmodcool)
 C$OMP& private(rmod_du1,rmod_du2,dtdust,rmoddust,rmodall)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin,istepmingas)
@@ -2451,9 +2452,12 @@ c
      &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
                   aux1 = max(alphaMM(1,i),alphaMM(isizealphaMM,i))*
      &                   sqrt(vsound(i)**2 + valfven2)
+                  dtclean_coef = max(overclean_fac, 10.*divcurlB(5,i) )    ! divcurlB(5,i) is the max of h*divB/B of i & its neighbours; the 10 was empirically determined
+                  dtclean_coef = min( dtclean_coef, hdivbbmax_max )        ! limiter or to turn it off
                ELSE
                   valfven2 = 0.
                   aux1 = alphaMM(1,i)*vsound(i)
+                  dtclean_coef = overclean_fac
                ENDIF
                aux2 = xyzmh(5,i)*ABS(divvi)
                aux3 = aux2
@@ -2480,9 +2484,12 @@ c
 c                  valfven2 = (Bxyz(1,i)*Bxyz(1,i) +  Bxyz(2,i)*Bxyz(2,i)
 c     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
                   aux1 = alpha*sqrt(vsound(i)**2 + valfven2)
+                  dtclean_coef = max(overclean_fac, 10.*divcurlB(5,i) )    ! divcurlB(5,i) is the max of h*divB/B of i & its neighbours; the 10 was empirically determined
+                  dtclean_coef = min( dtclean_coef, hdivbbmax_max )        ! limiter or to turn it off
                ELSE
                   valfven2 = 0.
                   aux1 = alpha*vsound(i)
+                  dtclean_coef = overclean_fac
                ENDIF
                aux2 = xyzmh(5,i)*ABS(divvi)
                aux3 = aux2
@@ -2492,7 +2499,7 @@ c     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
                   aux2 = 0.0
                ENDIF
             ENDIF
-            denom = aux3 + sqrt(vsound(i)**2 + valfven2) * overclean_fac
+            denom = aux3 + sqrt(vsound(i)**2 + valfven2) * dtclean_coef
      &                   + 1.2*(aux1 + aux2)
             crstepi = 0.3*xyzmh(5,i)/denom
             rmodcr = crstepi/(dt*isteps(i)/imaxstep)

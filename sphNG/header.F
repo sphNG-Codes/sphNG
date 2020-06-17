@@ -458,10 +458,12 @@ c
 
             IF (imhdevol.EQ.4) THEN
                WRITE (iprint,99218)
-               WRITE (iprint,99219) ndivBsubcycles, overclean_fac
+               WRITE (iprint,99219) ndivBsubcycles, overclean_fac,
+     &                              hdivbbmax_max
 99218          FORMAT(' Magnetic field has hyperbolic cleaning ON')
 99219          FORMAT(' Cleaning done using ',I2,
-     &              ' subcycles and overcleaning factor ',1F6.3,//)
+     &              ' subcycles, overcleaning factor ',1F6.3,
+     &              ' and max decrease of dtclean by ',1F8.3,//)
             ENDIF
 
             IF (ABS(iresist).EQ.1) THEN

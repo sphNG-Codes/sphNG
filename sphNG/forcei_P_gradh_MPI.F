@@ -391,7 +391,7 @@ C$OMP& private(divBi,curlBxi,curlByi,curlBzi,fanisoxi,fanisoyi,fanisozi)
 C$OMP& private(gradBxxi,gradBxyi,gradBxzi)
 C$OMP& private(gradByxi,gradByyi,gradByzi)
 C$OMP& private(gradBzxi,gradBzyi,gradBzzi)
-C$OMP& private(dsoftxi,dsoftyi,dsoftzi,vsigi,vsigj,alphaB)
+C$OMP& private(dsoftxi,dsoftyi,dsoftzi,vsigi,vsigj,alphaB,divcurlB5i)
 C$OMP& private(vsproji,vsprojj,termb,vs2i,vsi,vs2j,vsj,dB2,robar1,fmi)
 C$OMP& private(grkerni,grpmi,phii,dsoftterm,dsofttermi,projdB,projbext)
 C$OMP& private(grkernj,phij,dsofttermj,rhoij1,fmj,vsoundj)
@@ -584,6 +584,7 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
             dBpsix = 0.
             dBpsiy = 0.
             dBpsiz = 0.
+            divcurlB5i = 0.0
             IF (iresist.EQ.4) THEN
 #ifdef NONIDEAL
                etai = eta_nimhd(1,ipart)
@@ -778,6 +779,13 @@ c if not done above
                   projBext = Bextxi*runix + Bextyi*runiy + Bextzi*runiz
 c               projBrho2i = (projBi - projBext)*rho21i
 c               projBrho2j = (projBj - projBext)*rho1j*rho1j
+c                 Depends on how divcurlB is calculated, this may be a race condition;
+c                 since this only affects dt, this race condition should not affect the results;
+c                 since forcei is called multiple times in step, we should have a decent approximation by the final call
+                  IF (B2j > 0.)
+     &               divcurlB5i = max(divcurlB5i,
+     &                                hj*abs(divcurlB(1,j))/sqrt(B2j))
+
                   IF (iresist.EQ.4) THEN
 #ifdef NONIDEAL
 
@@ -2089,6 +2097,9 @@ c            IF (ipart.LE.npart) THEN
                divcurlB(2,ipart) = curlBxi
                divcurlB(3,ipart) = curlByi
                divcurlB(4,ipart) = curlBzi
+               IF (B2i > 0.0) divcurlB5i = max(divcurlB5i,
+     &                        hi*abs(divcurlB(1,ipart))/sqrt(B2i))
+               divcurlB(5,ipart) = divcurlB5i
 
                gradB(1,ipart) = gradBxxi*rho1i
                gradB(2,ipart) = gradBxyi*rho1i

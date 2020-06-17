@@ -178,7 +178,9 @@ c
          ndivBsubcycles = 0
          overclean_fac = 1.0
       ENDIF
+      hdivbbmax_max = 1.0    ! max factor to decrease cleaning timestep; dtclean propto max(B/(h|divB|),1/hdivbbmax_max)
       IF (overclean_fac.LT.1.0) overclean_fac = 1.0
+      IF (hdivbbmax_max.LT.overclean_fac) hdivbbmax_max = overclean_fac
       IF ((imhd.NE.idim .OR. imhdevol.NE.4) 
      &     .AND. overclean_fac.NE.1.0) THEN
          WRITE (*,*)'ERROR - overclean_fac>1, but MHD cleaning not used'

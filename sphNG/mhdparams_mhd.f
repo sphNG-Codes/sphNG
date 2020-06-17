@@ -62,7 +62,7 @@ c
 c--Calculate quantities
 c
       DO i=1,npart
-         IF (iphase(i).GE.0) THEN
+         IF (iphase(i).EQ.0) THEN
             np = np + 1
             rhoi = rho(i)
             rho1i = 0.

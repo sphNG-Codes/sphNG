@@ -130,7 +130,7 @@ c         RETURN
      $     nktg1.GE.opmxtg)
      $     CALL FAILED(0,ltg,lrho)
 
-!     Bilinear interpolation from Numerical Recipes
+!     Bilinear interpolation (see Numerical Recipes 2 for explanation)
 !     Pollack table gives kappa, Alexander gives log10 kappa
 !     Interpolation is in log kappa
       

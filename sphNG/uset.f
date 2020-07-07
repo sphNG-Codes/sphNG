@@ -80,7 +80,7 @@ c      STOP
 c      IF(nkrho1.LT.1.0.OR.nkt1.LT.1)
 c     $     CALL FAILED2(0,lu,lrho,nkrho1,nkrho2,nkt1,nkt2)
       
-!     Bilinear interpolation from Numerical Recipes
+!     Bilinear interpolation (see Numerical Recipes 2 for explanation)
       
                                 !Interpolation in log10 space
       y1=(utable(nkt1,nkrho1))

@@ -656,8 +656,8 @@ c
 c
 c--Work out cooling rates at the three points surrounding the requested point
 c     and then use three-point polynomial interpolation from those rates 
-c     (in log space).  The polynomial interpolation is from Numerical
-c     Recipes, Section 3.1, equation 3.1.1.
+c     (in log space).  For an explanation of polynomial interpolation see 
+c     Numerical Recipes 2, Section 3.1
 c
 c     Straight 3-point polynomial interpolation works pretty well, but
 c     gives a "bulge" between log10(n_H2)=3-4.  So to fix this I calculate

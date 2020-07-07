@@ -52,7 +52,7 @@ c      IF(nkrho1.LT.1.0.OR.nkrho1.GE.mumxrh.OR.nku1.LT.1)
          RETURN
       ENDIF
 
-!     Bilinear interpolation from Numerical Recipes
+!     Bilinear interpolation (see Numerical Recipes 2 for explanation)
 !     Interpolation is in log T_g
        
  

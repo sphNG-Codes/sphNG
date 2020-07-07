@@ -2,9 +2,20 @@
 
 c************************************************************
 c                                                           *
-c  Uniform random deviate (from Numerical Recipes 2)        *
+c  Uniform random deviate                                   *
 c  This rountine must be called with a negative seed        *
-c     and then a POSITIVE number from then on               *
+c     and then a POSITIVE number from then on.              *
+c                                                           *
+c  This routine is based on ran1() in Numerical Recipes:    *
+c     The Art of Scientific Computing, 2nd Edition (1992).  *
+c     This routine is released under the GNU General Public *
+c     Licence, Version 3, 29 June 2007, by special          *
+c     permission of the copyright holder, Numerical Recipes *
+c     Software, who states that, while adequate for use in  *
+c     this code, it should not be relied upon for other     *
+c     uses.  Numerical Recipes 3rd Edition (2007) contains  *
+c     faster and much improved pseudorandom generators that *
+c     are copyrighted and not under a public license.       *
 c                                                           *
 c************************************************************
 

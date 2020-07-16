@@ -3,31 +3,121 @@ c************************************************************
 c************************************************************
 c************************************************************
 c******************                    **********************
-c******************   S  P (M, R) H    **********************
+c******************       sphNG        **********************
 c******************                    **********************
 c************************************************************
 c************************************************************
 c************************************************************
 c                                                           *
-c  This is a three-dimensional hydro, MHD and radiation     *
+c  sphNG is a three-dimensional hydro, MHD and radiation    *
 c  hydro code based on the Smoothed Particle Hydrodynamics  *
 c  method.                                                  *
 c                                                           *
 c************************************************************
 c                                                           *
+c  LICENSE                                                  *
+c                                                           *
+c  Copyright (c) 2007-2020 Matthew Bate and contributors    *
+c     (see below for author information).                   *
+c                                                           *
+c  sphNG is free software; you can redistribute it and/or   *
+c  modify it under the terms of the GNU General Public      *
+c  License as published by the Free Software Foundation;    *
+c  either version 3 of the License, or (at your option)     *
+c  any later version, supplemented by the following two     *
+c  conditions under section 7c of GPLv3:                    *
+c                                                           *
+c  1) Currently, there is no single code paper that         *
+c     describes the algorithms, capabilities, and           *
+c     performance of the sphNG code.                        *
+c                                                           *
+c     In the absence of such a code paper,                  *
+c     the following papers should be cited in scientific    *
+c     publications using the code:                          *
+c                                                           *
+c     Benz W., Bowers R.L., Cameron A.G.W., Press W.H.,     *
+c          1990, ApJ, 348, 647                              *
+c     Bate M.R., Bonnell I.A., 1995, MNRAS, 277, 362        *
+c     Price D.J., Monaghan J.J, 2007, MNRAS, 374, 1347      *
+c
+c     The above papers, and those cited by the above papers,*
+c     describe the fundamental hydrodynamical and           *
+c     gravitational algorithms implemented in sphNG.        *
+c                                                           *
+c     In addition:                                          *
+c                                                           *
+c     If the flux-limited diffusion radiation transport     *
+c     is used, the following papers should be cited:        *
+c                                                           *
+c     Whitehouse S.C., Bate M.R., Monaghan J.J., 2005,      *
+c          MNRAS, 364, 1367                                 *
+c     Whitehouse S.C., Bate M.R., 2006, MNRAS, 367, 32      *
+c                                                           *
+c     If magnetohydrodynamics (MHD) is used, these papers   *
+c     should be cited:                                      *
+c                                                           *
+c     Price D.J., Monaghan J.J, 2005, MNRAS, 364, 384       *
+c     Tricco T., Price D.J., Bate M.R., 2016, J. Comp.      *
+c          Phys., 322, 326                                  *
+c                                                           *
+c     If non-ideal MHD is used, these papers should be      *
+c          cited:                                           *
+c                                                           *
+c     Wurster J., Price D.J., Ayliffe B.A., 2014, MNRAS,    *
+c          444, 1104                                        *
+c     Wurster J., Price D.J., Bate M.R., 2016, MNRAS,       *
+c          457, 1037                                        *
+c                                                           *
+c     including: Wurster J., 2016, PASA, 33, 41             *
+c     if the NICIL library is used.                         *
+c                                                           *
+c  2) Any redistribution of substantial fractions of the    *
+c     code as a different project should preserve the name  *
+c     "sphNG" in the name of the code (in addition to the   *
+c     GPLv3 condition that this copyright notice be         *
+c     retained both here and in the source file headers) to *
+c     prohibit misrepresentation of a redistribution as     *
+c     entirely new work.                                    *
+c                                                           *
+c  sphNG is distributed WITHOUT ANY WARRANTY; without even  *
+c  the implied warranty of MERCHANTABILITY or FITNESS       *
+c  FOR A PARTICULAR PURPOSE.                                *
+c  See the GNU General Public License for more details.     *
+c                                                           *
+c  M.R.Bate@exeter.ac.uk, 7th July 2020                     *
+c                                                           *
+c                                                           *
+c************************************************************
+c                                                           *
+c  MAIN AUTHORS                                             *
+c                                                           *
 c  W. Benz        Los Alamos National Laboratory 31/08/86   *
 c                 Harvard College Observatory    10/03/87   *
+c                                                           *
+c  W. H. Press    Harvard University             21/11/86   *
 c                                                           *
 c  I. A. Bonnell  University de Montreal         XX/XX/91   *
 c                 University of Cambridge, UK    01/10/92   *
 c                                                           *
 c  M. R. Bate     University of Cambridge, UK    01/10/92   *
-c                 University of Exeter, UK                  *
+c                 University of Exeter, UK       01/03/01   *
 c                                                           *
 c  D. J. Price    University of Cambridge, UK    XX/XX/03   *
 c                 University of Exeter, UK       XX/XX/05   *
 c                 Monash University, Australia   XX/XX/11   *
+c                                                           *
+c  B. A. Ayliffe  University of Exeter, UK       20/12/06   *
+c                                                           *
 c  B. T. Lewis    University of Exeter, UK       XX/XX/13   *
+c                                                           *
+c  J. Wurster     University of Exeter, UK       XX/XX/15
+c                                                           *
+c  Other authors up until July 2020 include:                *
+c     S.C. Whitehouse, B.A. Ayliffe, C.L. Dobbs,            *
+c     D.M. Acreman, F, Meru, T.S. Tricco, A.K. Young,       *
+c     M.O. Jones                                            *
+c                                                           *
+c  See the git log for more recent authors.                 *
 c                                                           *
 c************************************************************
 c                                                           *
@@ -38,24 +128,31 @@ c  (2) cylindrical boundaries (ibound = 2): ghosp2          *
 c  (3) gforsa and gforsn are parallelized                   *
 c  (4) generator of axial density perturbations (ibound = 2)*
 c                                                           *
-c  Major Modifications by: M. R. Bate   UofCam  31/01/95    *
+c  Modifications by: M. R. Bate UofCam, MPIA, Exeter 1995-  *
 c                                                           *
 c  (1) individual particle timesteps                        *
 c  (2) inclusion of accreting, massive point masses (sink   *
 c         particles) with boundaries, identified by iphase. *
 c  (3) corrected ghost boundaries                           *
 c  (4) constant pressure boundaries                         *
-c                                                           *
-c  Major Modifications by: M. R. Bate and R. Klessen        *
-c                                         MPIA  02/02/96    *
-c                                                           *
-c  (1) switchable between BINARY TREE and GRAPE board       *
-c         computation of gravity and neighbours lists       *
+c  (5) OpenMP parallelisation (1999/2000)                   *
+c  (6) Flux-limited diffusion radiative transfer (2005)     *
+c  (7) MPI parallelisation (2007)                           *
+c  (8) Thermochemical interstellar medium model (2013-2015) *
+c  (9) Implicit dust drag (2015)                            *
+c  (10) One-fluid dust (2017)                               *
+c  (11) Stellar feedback and ionisation (2018)              *
 c                                                           *
 c  Modifications by: D. J. Price       UofExeter 2003-2006  *
 c                                                           *
 c  (1) grad h terms, grad soft terms                        *
 c  (2) MHD                                                  *
+c  (3) additional smoothing kernels                         *
+c                                                           *
+c  Modifications by: B. A. Ayliffe     UofExeter 2006-2012  *
+c                                                           *
+c  (1) modelling protoplanets in discs, planet surfaces     *
+c  (2) two-fluid dust/planetesimals                         *
 c                                                           *
 c  Modifications by: B. T. Lewis       UofExeter 2013-      *
 c                                                           *
@@ -65,6 +162,10 @@ c  (2) implemented modified div B cleaning method from      *
 c         Tricco, et al. (2016)                             *
 c  (3) many, many, code cleanups, modernisations, and       *
 c         miscellaneous improvements                        *
+c                                                           *
+c  Modifications by: J. Wurster  UofExeter, UofStAnd 2016-  *
+c                                                           *
+c  (1) non-ideal MHD                                        *
 c                                                           *
 c************************************************************
 c  General Description                                      *
@@ -97,93 +198,134 @@ c     (see subroutine evol)                                 *
 c                                                           *
 c************************************************************
 c                                                           *
-c  Running SPH                                              *
-c  ===========                                              *
+c  Compiling sphNG                                          *
+c  ===============                                          *
+c                                                           *
+c  File : idim                                              *
+c     The value 'idim' must be set >= number of particles   *
+c        per MPI process that are required                  *
+c     Options for the inclusion of different physical       *
+c        processes must be turned on or off                 *
+c                                                           *
+c  File : unit.f                                            *
+c     Code units need to be defined (mass and length)       *
+c                                                           *
+c  A Makefile is provided.  After setting compiler info     *
+c     compilation typically takes the form:                 *
+c                                                           *
+c     make mpi=no openmp=no gradhrk                         *
+c                                                           *
+c     for an executable without radiative transfer.         *
+c     yes, or no, are used in the above command to turn     *
+c     on, or off, MPI parallelisation and OpenMP.           *
+c                                                           *
+c     To include radiative transfer (requires additional    *
+c     external table files)                                 *
+c                                                           *
+c     make mpi=no openmp=no gradhrkrt                       *
+c                                                           *
+c************************************************************
+c                                                           *
+c  Running sphNG                                            *
+c  =============                                            *
 c                                                           *
 c  The main option of the code, JOB, is read from the       *
-c  command line. If JOB=INITIAL or TRANSFER, the code goes  *
-c  into an interactive mode. Just answer the questions      *
-c  after having read the informations below. If EVOLUTION   *
-c  is chosen, the code is looking for a file called INSPH   *
+c  command line. If JOB=INITIAL, TRANSFER, EXTRACT, PLANET, *
+c  MAKEDUST, or MAKEPLOT the code goes into an              *
+c  interactive mode. Just answer the questions after having *
+c  read the informations below.                             *
+c  If EVOLUTION is chosen, the code looks for a file        *
 c  where the various options have to be defined.            *
 c                                                           *
-c  files used and written by the code:                      *
+c  Files used and written by the code:                      *
 c  -----------------------------------                      *
 c                                                           *
 c  1) If JOB=INITIAL and the SCRATCH option is chosen, then *
-c     the code does not need any files but will produce     *
-c     a binary file containing all the quantities needed    *
-c     for the evolution part. Furthemore, the code produces *
-c     an ascii file callled OUTSPH summarizing the code's   *
-c     actions.                                              *
+c     the code uses the 'inspho' file and the answeres to   *
+c     questions to produce a binary file containing all the *
+c     quantities needed for the evolution, and an ASCII     *
+c     file containing parameters to control the evolution.  *
 c  2) If JOB=INITIAL and the EXIST option is chosen, then   *
 c     the code will require two files containing data to    *
-c     combine them into a third file. An ascii file OUTSPH  *
-c     is also produced.                                     *
-c  3) If JOB=TRANSFER the code needs an existing binary file*
-c     and upon completion it will create another one. Again *
-c     an ascii file OUTSPH is created                       *
-c  4) If JOB=EVOLUTION the code needs a binary file with    *
-c     initial conditions produces by the INITIAL evolution  *
+c     combine them into a third file.                       *
+c  3) JOB=PLANET is similar to JOB=INITIAL, but is          *
+c     specifically used to set up planets embedded in discs *
+c  4) If JOB=TRANSFER, EXTRACT, MAKEDUST, or MAKEPLOT the   *
+c     code needs an existing binary file and upon           *
+c     completion it will create another one. The code may   *
+c     also need the ASCII parameters file.                  *
+c  5) If JOB=EVOLUTION the code needs a binary file with    *
+c     initial conditions produced by the INITIAL option     *
 c     or the file resulting from a prior evolution run.     *
-c     Again the file OUTSPH is produced and contains all    *
-c     informations regarding the status of the evolution.   *
+c     The ASCII parameters file is continually updated      *
+c     during the evolution. An ASCII output file is also    *
+c     created that contains a variety of information        *
+c     regarding the status of the evolution.                *
 c     It is important to check the file periodically and    *
 c     monitor the total energy and angular momentum for     *
-c     example since both should be conserved (within 2% say)*
+c     example since both should be conserved (within some   *
+c     tolerance).                                            *
 c                                                           *
 c  Various important details                                *
 c  -------------------------                                *
-c  1) The code checks the size of the binary file. If it    *
-c     grows beyond 10Mb it opens a new one. To keep track   *
-c     of all these files, the code assumes that the name of *
-c     the binary file is of the form XXXXXYY. XXXXX being   *
-c     characters and YY numbers (typically 01 at the start).*
-c     When a new file is created, its name will be XXXXXYY+1*
-c     (see subroutine FILE)                                 *
-c  2) The number of neighbors for each particles is  stored *
-c     using the parameter ILIST. If dimensions too small    *
-c     the code will issue a warning message but do the job. *
-c     The dimensions should however be changed.             *
-c  3) The code checks periodically for a file called        *
-c     MESSAGE. This file permits to change some of the      *
+c  1) The code assumes that the name of the binary file     *
+c     is of the form XXXXXYY. XXXXX can be being either     *
+c     characters or digits and YY digits (typically 00 or 01*
+c     at the start). When a new file is created, its name   *
+c     will be XXXXXYY+1 (see subroutine FILE)               *
+c  2) The code checks periodically for a file called        *
+c     'message'. This file permits to change some of the    *
 c     options defined in the input deck during the code's   *
-c     execution (see MESOP)                                 *
-c  4) The debug option IDEBUG should be used with care since*
+c     execution or stops the code cleanly (see MESOP)       *
+c  3) The debug option IDEBUG should be used with care since*
 c     it produces a lont of output! ITRACE can be set to all*
 c     to trace the code through the various subroutines in  *
 c     case of mysterious errors!                            *
-c  5) All forces can be turned off or on at will except for *
-c     pressure gradients than should always be on.          *
-c  6) The code in its present version assumes a perfect gas *
-c     equation of state (see EOSPG). This can be complicated*
-c     at will!.                                             *
-c  7) The number of particles that can be used is determined*
-c     by the parameter IDIM. The number of particles NPART  *
-c     has to be less (or equal) to IDIM.                    *
-c  8) Before anything can be done with the code, the proper *
-c     units have to be defined (see UNIT). The number to    *
+c  4) The code typically assumes a perfect gas equation     *
+c     of state (see EOSPG). This can be complicated         *
+c     at will.                                              *
+c  5) The maximum number of particles that can be used      *
+c     by a single MPI process is determined by the          *
+c     IDIM (set in the 'idim' file. The number of particles *
+c     NPART has to be less (or equal) to IDIM.              *
+c  6) Before anything can be done with the code, the proper *
+c     units have to be defined ('unit.f'). The numbers to   *
 c     input are the total mass and a length scale. These    *
 c     numbers are actually inside the code and not options  *
 c     since for any particular choice of units, they should *
 c     not be changed anymore! Once both numbers have been   *
 c     coded in, the code determines all other units.        *
-c  9) The sum of the mass of all particles should be equal 1*
-c     unless, the total mass given in UNIT is not the one   *
-c     represented by the particles.                         *
 c                                                           *
 c                                                           *
 c-----------------------------------------------------------*
 c                                                           *
-c  job=evolution input deck (see OPTIONS)                   *
+c  job=evolution input deck (see options.F)                 *
 c  --------------------------------------                   *
 c                                                           *
 c  namerun  = name of the run                               *
 c  file1    = name of file containing starting dump and on  *
-c             which new dumps are added                     *
+c             which the file names of new dumps based       *
 c  varsta   = entropy : use entropy as variable of state    *
 c           = intener : use specific internal energy as     *
 c                       variable of state                   *
+c  varmhd   = Brho : magnetic field variable is B/rho       *
+c           = Bvol : magnetic field variable is B           *
+c  encal    = equation of state (i,a,p,v,r,c,x,m,t)         *
+c             when varsta = intener,  see: eospg.F          *
+c                                                           *
+c  --------------                                           *
+c                                                           *
+c  mpitype  = Type of MPI decomposition                     *
+c             (s)phere, (d)isc, (c)artesian, b(inary)       *
+c             May also use 4 numbers to define origin       *
+c             Default:  d 0.0 0.0 0.0 0.0                   *
+c                                                           *
+c  initialptm = if sink particles exist in binary file,     *
+c             what type they are (0 = not exist)            *
+c  iaccevol = Variable, Roche-Sep, or Fixed Accretion Radii *
+c             (v/s/f).  Default: f                          *
+c  iptmass  = if sink particles created dynamically, what   *
+c             type to create                                *
 c                                                           *
 c  --------------                                           *
 c  igrp     = 0       : no pressure gradients               *
@@ -191,7 +333,10 @@ c             1       : with pressure gradients             *
 c  igphi    = 0       : no self-gravity                     *
 c             1       : with self-gravity                   *
 c  ifsvi    = 0       : no artificial viscosity             *
-c             1       : with artificial viscosity           *
+c           >=1       : with artificial viscosity           *
+c                     : artificial resistivity also defined *
+c  ndivBsubcycles,overclean_fac,iresist,etamhd =            *
+c                     parameters for MHD                    *
 c  ifcor    = 0       : no coriolis forces                  *
 c             1       : with coriolis forces                *
 c  ichoc    = 0       : no heating due to artif. viscosity  *
@@ -201,6 +346,7 @@ c             1       : with total energy conservation      *
 c  damp     = value of general damping coefficient          *
 c  ibound   = 0       : no boundaries                       *
 c             1       : with reflective boundaries          *
+c                     : many other options                  *
 c  iexf     = 0       : no external forces                  *
 c             1       : allow for external forces           *
 c  iexpan   = 0       : no general expansion                *
@@ -212,29 +358,38 @@ c                                                           *
 c  --------------                                           *
 c  nstep    = frequency at which timesteps are written on   *
 c             disk                                          *
+c  nfullstep= frequency at which full dumps are written     *
+c  iptoutnum= frequency at which sink particles information *
+c             is written to disk (no. of times per large    *
+c             timestep)                                     *
 c  tdump    = time between dumps (alternative to number     *
 c             of steps between dumps)                       *
-c  tnext    = time of next dump                             *
-c  tol      = tolerance used by the Runge-Kutta integrator  *
+c  tol, tolptm, tolh = tolerance used by the Runge-Kutta    *
+c             for gas, sink particles (last not used)       *
+c  irec     = binary dump counter (value does not matter)   *
 c  tmax     = max time in minute allowed for the job        *
-c  tstop    = time (computer unit) at which the program     *
+c  tstop    = time (code unit) at which the program         *
 c             will stop.                                    *
-c                                                           *
-c  only if iexpan= 1                                        *
-c  -----------------                                        *
-c  vexpan    =  expansion velocity of the frame of ref. in  *
-c               cm/s.                                       *
+c  dtmax    = largest timestep & minimum time between dumps *
+c  dtini    = initial timestep when using t=0 dump file     *
 c                                                           *
 c  only if ifcor=1                                          *
 c  ---------------                                          *
 c  omeg0     =  angular velocity of the reference frame in  *
 c               1/s                                         *
 c                                                           *
-c  only if ibound=1                                         *
-c  ----------------                                         *
-c  (all boundaries are used, if only one type is desired    *
-c   it is necessary to set the other far away ... )         *
+c  only if iexpan= 1                                        *
+c  -----------------                                        *
+c  vexpan    =  expansion velocity of the frame of ref. in  *
+c               cm/s.                                       *
 c                                                           *
+c  various parameters required for different ibound values  *
+c  see options.F for further details                        *
+c  ----------------                                         *
+c                                                           *
+c  Minimum is:                                              *
+c                                                           *
+c  rmind     =  possible value for inner radial boundary    *
 c  rmax      =  max. radius for spherical boundary          *
 c  xmin,xmax =  min and max x coord. for boundary           *
 c  ymin,ymax =  min and max y coord. for boundary           *
@@ -243,8 +398,8 @@ c                                                           *
 c                                                           *
 c************************************************************
 c                                                           *
-c  alphabetical list of common variables                    *
-c  =====================================                    *
+c  Incomplete alphabetical list of common variables         *
+c  ================================================         *
 c                                                           *
 c  variable  common block   description                     *
 c- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*
@@ -265,7 +420,6 @@ c  cmz2         (out2 ) : z coord. of c.m. body 2           *
 c  cnormk       (kerne) : normalisation constant of kernel  *
 c  damp         (dissi) : general damping coefficient       *
 c  dq(idim)     (ener1) : heating due to shock dissipation  *
-c  dt           (time ) : current timestep                  *
 c  dvtable      (table) : spacing between table values      *
 c  encal        (cgas ) : eos/energy calculation method flag*
 c  escap        (fracg) : mass of escapors                  *
@@ -277,19 +431,14 @@ c  fmas1        (bodys) : fraction of total mass in body 1  *
 c  fmas2        (bodys) : fraction of total mass in body 2  *
 c  fnbtot       (units) : number of total mass              *
 c  fpoten(itable)(table): potential energy as a funct. of r *
-c  fx(idim)     (force) : x componant of total force        *
-c  fy(idim)     (force) : y componant of total force        *
-c  fz(idim)     (force) : z componant of total force        *
 c  gamma        (cgas ) : value of gamma                    *
 c  grwij(itable)(table) : gradient of kernel table          *
 c  gt           (gtime) : current global time in code units *
-c  h(idim)      (kerne) : smoothing length                  *
 c  hma1         (out1 ) : max h for body 1                  *
 c  hma2         (out2 ) : max h for body 2                  *
 c  hmi1         (out1 ) : min h for body 1                  *
 c  hmi2         (out2 ) : min h for body 2                  *
 c  ibound       (typef) : flag to allow boundaries          *
-c  icell(i,j,k) (nlist) : chaining mesh cells               *
 c  ichoc        (typef) : flag to allow shock heating       *
 c  idebug       (debug) : debug option                      *
 c  idisk1       (logun) : logical unit number for disk file *
@@ -320,27 +469,20 @@ c  np           (new  ) : number of particles at initial.   *
 c  npart        (part ) : total number of particles         *
 c  nstep        (tming) : number of  timestep between disk  *
 c                         dumps                             *
-c  tdump        (tming) : time between disk dumps           *
-c                         (alternative to number of steps)  *
 c  tnext        (tming) : time of next dump                 *
 c  omeg0        (rotat) : angular velocity of frame of ref. *
-c  partm        (new  ) : particles mass                    *
 c  pdv(idim)    (ener1) : pdv work on particle              *
-c  pmass(idim)  (carac) : mass of particles                 *
 c  poten(idim)  (ener1) : potential energy of particle      *
 c  pr(idim)     (eosq ) : pressure at particle locations    *
-c  qphys(idco)  (tcond) : physical thermal conductivity     *
 c  rho(idim)    (densi) : density at particle locations     *
 c  rmax         (rbnd ) : max radius of boundary            *
 c  romax1       (out1 ) : max density in body 1             *
 c  romax2       (out2 ) : max density in body 2             *
 c  romean1      (out1 ) : mean density body 1               *
 c  romean2      (out2 ) : mean density body 2               *
-c  v0           (space) : frac. of h of init. lattice cell  *
 c  tgrav        (ener2) : total gravitational energy        *
 c  thermal      (new  ) : either entropy or int. energy at  *
 c                         initialisation                    *
-c  thick        (new  ) : thickness ratio of initial plate  *
 c  tkin         (ener2) : total kinetic energy              *
 c  tmax         (tming) : maximum time allowed for the job  *
 c  totm         (new  ) : total mass represented by part.   *
@@ -349,7 +491,6 @@ c  tstep        (tming) : cpu time needed for one timestep  *
 c  tstop        (tming) : time at which simulation has to   *
 c                         stop (code units)                 *
 c  tterm        (ener2) : total thermal energy              *
-c  u(idim)      (part ) : total specific internal energy    *
 c  udens        (units) : unit of density                   *
 c  udist        (units) : unit of length                    *
 c  uergg        (units) : unit of energy per unit mass      *
@@ -363,7 +504,6 @@ c  vcmz1        (out1 ) : z comp. of velocity of cm body 1  *
 c  vcmx2        (out2 ) : x comp. of velocity of cm body 2  *
 c  vcmy2        (out2 ) : y comp. of velocity of cm body 2  *
 c  vcmz2        (out2 ) : z comp. of velocity of cm body 2  *
-c  version      (infor) : version of the code               *
 c  vexpan       (expan) : expansion velocity                *
 c  vsmax        (eosq ) : maximum sound speed               *
 c  vsound(idim) (eosq ) : sound speed at particle locations *
@@ -379,26 +519,23 @@ c  vvz1         (new  ) : z componant of velocity of center *
 c                         of mass body 1                    *
 c  vvz2         (new  ) : z componant of velocity of center *
 c                         of mass body 2                    *
-c  vx(idim)     (part ) : x componant of the part. velocity *
-c  vy(idim)     (part ) : y componant of the part. velocity *
-c  vz(idim)     (part ) : z componant of the part. velocity *
-c  what         (new  ) : gives type of initialisation      *
+c  vxyzu(4,idim)(part ) : x,y,z componants of the velocity  *
+c                         and internal energy of particle   *
 c  wij(itable)  (table) : table of kernel values            *
-c  x(idim)      (part ) : x coordinate of the particles     *
+c  xyzmh(5,idim)(part ) : x,y,z coordinates of the particles*
+c                         and mass and h of the particles   *
 c  xmax         (rbnd ) : position of upper reflec. bound.  *
 c  xmin         (rbnd ) : position of lower reflec. bound.  *
 c  xx1          (new  ) : x coordinate of center of mass    *
 c                         body 1                            *
 c  xx2          (new  ) : x coordinate of center of mass    *
 c                         body 2                            *
-c  y(idim)      (part ) : y coordinate of the particles     *
 c  ymax         (rbnd ) : position of upper reflec. bound.  *
 c  ymin         (rbnd ) : position of lower reflec. bound.  *
 c  yy1          (new  ) : y coordinate of center of mass    *
 c                         body 1                            *
 c  yy2          (new  ) : y coordinate of center of mass    *
 c                         body 2                            *
-c  z(idim)      (part ) : z coordinate of the particles     *
 c  zmax         (rbnd ) : position of upper reflec. bound.  *
 c  zmin         (rbnd ) : position of lower reflec. bound.  *
 c  zz1          (new  ) : z coordinate of center of mass    *
@@ -498,9 +635,10 @@ c************************************************************
 #endif
 #endif
 c
-c--Version - date is date last updated with other code version changes
+c--Version history for the code, prior to use of SVN / GIT repository
+c   Date is date last updated with other code version changes
 c
-      version = 'SPRMHD-MPI-1.0-MRB-DJP-16-05-06'
+c      version = 'SPRMHD-MPI-1.0-MRB-DJP-16-05-06'
 c
 c   Derived from version = 'SPRMHD-1.1-MRB-DJP-12-01-06'
 c     but with MPI/OpenMP hybrid capability.

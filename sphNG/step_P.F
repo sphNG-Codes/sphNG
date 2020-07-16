@@ -117,7 +117,7 @@ c      INCLUDE 'COMMONS/neighbor_P'
       REAL rmodall(15)
 
       LOGICAL ifirst
-      LOGICAL icenter, killme
+      LOGICAL icenter
       CHARACTER*7 where
       CHARACTER*5 ptdebug
       CHARACTER*2 itemchar
@@ -1870,7 +1870,7 @@ c
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst0,nlst1,llist,iscurrent,dumvxyzu,n1,n2,iunique)
 C$OMP& shared(dum2vxyz,it1,it2,imax,igphi,encal)
-C$OMP& shared(vxyzu,dgrav,dumxyzmh)
+C$OMP& shared(vxyzu,dumxyzmh)
 C$OMP& shared(f1vxyzu,f1ha,f2vxyzu,f2ha,Bxyz,iexf)
 C$OMP& shared(f1Bxyz,f2Bxyz,dumalpha)
 C$OMP& shared(tol,tolh,tolptm,dt,isteps,imaxstep,e1,small,divv,rho)
@@ -1879,14 +1879,12 @@ C$OMP& shared(gradpz,artvix,artviy,artviz,gravx1,gravy1,gradpx1,gradpy1)
 C$OMP& shared(artvix1,artviy1,it0,idtsyn,ibound,deadbound)
 C$OMP& shared(iprint,xyzmh,poten,nneigh,iphase,iener)
 C$OMP& shared(pmass,ikilled,nactive,nkill,time,iorig,nlstacc,listacc)
-C$OMP& shared(anglostx,anglosty,anglostz,istminold,listpm,coolingrate)
+C$OMP& shared(istminold,listpm,coolingrate)
 C$OMP& shared(ifsvi,alphaMM,dumekcle,ekcle,iresist,etamhd,nptmass)
-C$OMP& shared(phibound,nlistinactive,listinactive,variation,npart,rmind)
+C$OMP& shared(npart,rmind)
 C$OMP& shared(planetesimaltimestep,gasdrag,max_rplan,min_rplan)
-C$OMP& shared(pradfac,rplanet,px,py,irotpot,iplanetesimals)
 C$OMP& shared(rcyl,Bevolxyz,dumBevolxyz,planetesimalnorm)
 C$OMP& shared(pcolen,xmass,overclean_fac,hdivbbmax_max,divcurlB)
-C$OMP& shared(gasdist,nearestgas,planetmass,coremass)
 C$OMP& shared(dh2dt,icolumnsteps,icolumnnext)
 C$OMP& shared(dustvar,f1dust,f2dust,dHIIdt)
 C$OMP& shared(timestepcriterion)
@@ -1897,21 +1895,15 @@ C$OMP& shared(iproc)
 C$OMP& shared(eta_nimhd)
 C$OMP& private(dtohmi,dthalli,dtambii,eta_ohmi)
 #endif
-#ifdef DGRID
-C$OMP& shared(dragenergy)
-C$OMP& private(dragr,dragp,dragt,idragr,idragp,idragt)
-#endif
 C$OMP& private(rtemp,rtempm,k,keepk)
-C$OMP& private(ig,rp,pvel,theta,pvx,pvy,dvx,dvy,dvz,vmagnitude2)
-C$OMP& private(ipkill,rlim,eccentricity,smaxis,killme)
-C$OMP& private(phiparticle,rmodgd,rmodap,dtclean_coef)
 C$OMP& private(i,j,l,tolpart,errBx,errBy,errBz)
 C$OMP& private(errx,erry,errz,errvx,errvy,errvz,erru,errh,errm)
 C$OMP& private(errdivtol,rap,rmod1,divvi,aux1,aux2,aux3,denom,valfven2)
 C$OMP& private(crstepi,rmodcr,force21,force22,force2,rmodcr2,rmod)
 C$OMP& private(stepi,ibin,factor,istep2,irat,r2,pmassi,rmodsg1,rmodsg2)
 C$OMP& private(Bxi,Byi,Bzi,xi,yi,zi,dti,dteta,rmodeta,etai,rmodcool)
-C$OMP& private(rmod_du1,rmod_du2,dtdust,rmoddust,rmodall)
+C$OMP& private(rmod_du1,rmod_du2,dtdust,rmoddust,rmodall,rmodgd)
+C$OMP& private(dtclean_coef)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin,istepmingas)
 C$OMP& reduction(+:istepeta,etafac)
@@ -1931,9 +1923,9 @@ c
 C$OMP END DO
 
 c
-c--Update smoothing length and implicit radiative transfer quantities
-c     and kill particles
+c--Kill particles if they exceed boundaries specified by ibound
 c
+
 #ifdef MPICOPY
 C$OMP SINGLE
 #else
@@ -1941,343 +1933,17 @@ C$OMP DO SCHEDULE(runtime)
 #endif
       DO j = 1, nlst0
          i = llist(j)
-c
-c--Dead particle boundaries
-c
-         IF (ibound.EQ.8 .OR. ibound/10.EQ.9) THEN
-            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
-            IF (r2.GT.(1.05*deadbound)**2) THEN
-               ipkill = iphase(i)
-               iphase(i) = -1
-               pmassi = xyzmh(4,i)
-#ifndef MPICOPY
-C$OMP CRITICAL (killparticle)
-#endif
-
-               ikilled = 1
-
-               nlstacc = nlstacc + 1
-               IF (nlstacc.GT.nlstaccmax) THEN
-                  WRITE (iprint,*) 'ERROR step nlstacc'
-                  CALL quit(1)
-               ENDIF
-               listacc(nlstacc) = i
-
-               nlistinactive = nlistinactive + 1
-               IF (nlistinactive.GT.idim) THEN
-                  WRITE (iprint,*) 'ERROR step nlistinactive'
-                  CALL quit(1)
-               ENDIF
-               listinactive(nlistinactive) = i
-
-               nactive = nactive - 1
-               nkill = nkill + 1
-               WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
-     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
-     &              poten(i),dgrav(i),ipkill,0.0,0.0,0.0,0.0,0.0,0.0
-               CALL FLUSH (ikillpr)
-               anglostx = anglostx + pmassi*(xyzmh(2,i)*vxyzu(3,i) - 
-     &              vxyzu(2,i)*xyzmh(3,i))
-               anglosty = anglosty + pmassi*(vxyzu(1,i)*xyzmh(3,i) - 
-     &              xyzmh(1,i)*vxyzu(3,i))
-               anglostz = anglostz + pmassi*(xyzmh(1,i)*vxyzu(2,i) - 
-     &              vxyzu(1,i)*xyzmh(2,i))
-#ifndef MPICOPY
-C$OMP END CRITICAL (killparticle)
-#endif
-               GOTO 855
-            ENDIF
-         ENDIF
-
-c
-c--Dead particle boundaries - planet embedded in disc
-c
-         IF (ibound.EQ.100 .AND. iexf.EQ.7) THEN
-            phiparticle = ATAN2(xyzmh(2,i),xyzmh(1,i))
-            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
-            IF (r2.LT.(1.0-variation)**2 .OR. r2.GT.(1.0+variation)**2
-     &           .OR. ABS(phiparticle).GT.phibound) THEN
-               ipkill = iphase(i)
-               iphase(i) = -1
-#ifndef MPICOPY
-C$OMP CRITICAL (killparticle)
-#endif
-               ikilled = 1
-
-               nlstacc = nlstacc + 1
-               IF (nlstacc.GT.nlstaccmax) THEN
-                  WRITE (iprint,*) 'ERROR step nlstacc'
-                  CALL quit(1)
-               ENDIF
-               listacc(nlstacc) = i
-
-               nlistinactive = nlistinactive + 1
-               IF (nlistinactive.GT.idim) THEN
-                  WRITE (iprint,*) 'ERROR step nlistinactive'
-                  CALL quit(1)
-               ENDIF
-               listinactive(nlistinactive) = i
-
-               nactive = nactive - 1
-               nkill = nkill + 1
-               WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
-     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
-     &              poten(i),dgrav(i),ipkill,0.0,0.0,0.0,0.0,0.0,0.0
-               CALL FLUSH(ikillpr)
-#ifndef MPICOPY
-C$OMP END CRITICAL (killparticle)
-#endif
-               GOTO 855
-            ENDIF
-         ENDIF
-
-c
-c--Dead particle boundaries - disc section, no planet, periodic phi
-c
-         IF (ibound.EQ.104) THEN
-            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2
-            IF (r2.LT.(1.0-variation)**2 .OR. r2.GT.(1.0+variation)**2
-     &           ) THEN
-               ipkill = iphase(i)
-               iphase(i) = -1
-#ifndef MPICOPY
-C$OMP CRITICAL (killparticle)
-#endif
-               ikilled = 1
-
-               nlstacc = nlstacc + 1
-               IF (nlstacc.GT.nlstaccmax) THEN
-                  WRITE (iprint,*) 'ERROR step nlstacc'
-                  CALL quit(1)
-               ENDIF
-               listacc(nlstacc) = i
-
-               nlistinactive = nlistinactive + 1
-               IF (nlistinactive.GT.idim) THEN
-                  WRITE (iprint,*) 'ERROR step nlistinactive'
-                  CALL quit(1)
-               ENDIF
-               listinactive(nlistinactive) = i
-
-               nactive = nactive - 1
-               nkill = nkill + 1
-               WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
-     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
-     &              poten(i),dgrav(i),ipkill,0.0,0.0,0.0,0.0,0.0,0.0
-               CALL FLUSH(ikillpr)
-#ifndef MPICOPY
-C$OMP END CRITICAL (killparticle)
-#endif
-               GOTO 855
-            ENDIF
-         ENDIF
-
-c
-c--Dead particle boundaries - planet embedded in whole disc
-c
-         IF (ibound.EQ.102 .OR. ibound.EQ.103 .OR. ibound.EQ.105) THEN
-            killme = .false.
-c
-c--Note: Ben Ayliffe used spherical radius, whereas Pablo Loren-Aguilar
-c     uses cylindrical radius.  Ben also did not kill gas inside rmind,
-c     and he did not kill planetesimals at r>rcyl or r<min_rplan
-c
-            IF (ibound.EQ.102 .OR. ibound.EQ.105) THEN
-               r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
-            ELSE
-               r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2
-            ENDIF
-            IF (iphase(i).EQ.0) THEN
-               IF (ibound.EQ.102) THEN
-                  IF (r2.GT.rcyl**2) killme = .true.
-               ELSEIF (ibound.EQ.103) THEN
-                  IF (r2.GT.rcyl**2 .OR. r2.LT.rmind**2) killme = .true.
-               ELSE
-                  IF (r2.LT.rmind**2) killme = .true.
-               ENDIF
-            ELSEIF (iphase(i).GE.11) THEN
-               CALL semimajoraxis(i, eccentricity, smaxis)
-               IF (smaxis.LT.min_rplan .OR. smaxis.GT.max_rplan)
-     &              killme = .true.
-               IF (ibound.EQ.103) THEN
-                  IF (r2.GT.rcyl**2.OR.r2.LT.min_rplan**2)
-     &                 killme = .true.
-               ENDIF
-            ENDIF
-            IF (killme) THEN
-               ipkill = iphase(i)
-               iphase(i) = -1
-#ifndef MPICOPY
-C$OMP CRITICAL (killparticle)
-#endif
-               ikilled = 1
-
-               nlstacc = nlstacc + 1
-               IF (nlstacc.GT.nlstaccmax) THEN
-                  WRITE (iprint,*) 'ERROR step nlstacc'
-                  CALL quit(1)
-               ENDIF
-               listacc(nlstacc) = i
-
-               nlistinactive = nlistinactive + 1
-               IF (nlistinactive.GT.idim) THEN
-                  WRITE (iprint,*) 'ERROR step nlistinactive'
-                  CALL quit(1)
-               ENDIF
-               listinactive(nlistinactive) = i
-
-               nactive = nactive - 1
-               nkill = nkill + 1
-               WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
-     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
-     &              poten(i),dgrav(i),ipkill,0.0,0.0,0.0,0.0,0.0,0.0
-               CALL FLUSH(ikillpr)
-#ifndef MPICOPY
-C$OMP END CRITICAL (killparticle)
-#endif
-               GOTO 855
-            ENDIF
-         ENDIF
-c
-c--Kill planetesimals approaching planet modelled as potential.
-c
-         IF ((irotpot.EQ.1 .OR. iexf.EQ.7) .AND. iplanetesimals.GT.0
-     &        .AND. iphase(i).GE.11) THEN
-            IF (irotpot.EQ.1) r2 = (xyzmh(1,i)-px)**2 +
-     &           (xyzmh(2,i)-py)**2 + xyzmh(3,i)**2
-            IF (iexf.EQ.7) r2 = (xyzmh(1,i)-1.0)**2 +
-     &           xyzmh(2,i)**2 + xyzmh(3,i)**2
-
-            rlim = rplanet*pradfac(1)
-            IF (r2.LT.rlim**2) THEN
-               ipkill = iphase(i)
-               iphase(i) = -1
-#ifndef MPICOPY
-C$OMP CRITICAL (killparticle)
-#endif
-               ikilled = 1
-c
-c--Add solids mass into core as it is accreted.
-c
-               planetmass = planetmass + xyzmh(4,i)
-               coremass = planetmass
-
-               IF (encal.EQ.'r') THEN
-c               IF (1.EQ.2) THEN
-c
-c--Nearest gas particle to site of impact to which energy can be given
-c  is stored in nearestgas().
-                  
-                  ig = nearestgas(i)
-
-c               rtempm = 1.0E6
-c               do k = 1, npart
-c                  IF (iphase(k).EQ.0) THEN
-c                     rtemp = sqrt((xyzmh(1,i) - xyzmh(1,k))**2 +
-c     &                    (xyzmh(2,i) - xyzmh(2,k))**2 +
-c     &                    (xyzmh(3,i) - xyzmh(3,k))**2)
-c                     IF (rtemp.LT.rtempm) THEN
-c                        rtempm = rtemp
-c                        keepk = k
-c                     ENDIF
-c                  ENDIF
-c               enddo
-
-c               print *, i, rtempm, gasdist(i)
-c               print *, i, sqrt((xyzmh(1,i) - xyzmh(1,ig))**2 +
-c     &                    (xyzmh(2,i) - xyzmh(2,ig))**2 +
-c     &                    (xyzmh(3,i)-xyzmh(3,ig))**2),gasdist(i)
-c               print *, i, ig, keepk
-c               print *, i, iunique(iorig(ig)), iunique(iorig(keepk))
-c               print *, i, xyzmh(1,ig), xyzmh(1,keepk)
-c               print *, i, xyzmh(2,ig), xyzmh(2,keepk)
-c               print *, i, xyzmh(3,ig), xyzmh(3,keepk)
-c               print *, '-----------------------------------------'
-c
-c--Calculate planetesimal KE relative to planetary core
-c
-                  rp = sqrt(px*px + py*py)
-                  pvel = sqrt(xmass/rp)
-                  theta = ATAN2(py, px)
-                  pvx = -pvel*sin(theta)
-                  pvy = pvel*cos(theta)
-
-                  dvx = vxyzu(1,i) - pvx
-                  dvy = vxyzu(2,i) - pvy
-                  dvz = vxyzu(3,i)
-                  vmagnitude2 = dvx*dvx + dvy*dvy + dvz*dvz
-                  pcolen(ig) = 0.5*xyzmh(4,i)*vmagnitude2/xyzmh(4,ig)
-
-#ifdef DGRID
-                  IF (gasdrag) THEN
-                     CALL sphericalpos(xyzmh(1,i),xyzmh(2,i),xyzmh(3,i),
-     &                    dragr, dragp, dragt)
-                     CALL dragcoordinates(dragr, dragp, dragt, idragr,
-     &                    idragp, idragt)
-                     IF (idragr.GT.1 .AND.
-     &                    (pradfac(1)-1.0).LT.1.0E-8) THEN
-                        print *, 'Solids killed at surface not going in'
-                        print *, 'the innermost bin. Weird.'
-                        print *, 'idragr = ', idragr, dragr
-                        print *, 'pradfac = ', pradfac(1), sqrt(r2)
-                        print *, 'rplanet = ', rplanet, rplanet*
-     &                       pradfac(1)
-                        CALL quit(1) 
-                     ENDIF
-
-c---DragEnergyTest output. Checking coordinate transform and indexing.
-c                     write (44, 146) xyzmh(1,i), xyzmh(2,i), xyzmh(3,i),
-c     &                    px, py, pz, dragr, dragp, dragt, idragr,
-c     &                    idragp, idragt
-c 146                 FORMAT (9(1PE15.8,1X),3(I4,1X))
-
-c
-c--Actually always want the colision energy in inner most bin, even
-c  when the planet is shrinking, therefore:
-                     idragr = 1
-c--Makes MAX statements below redundant
-                     dragenergy(MAX(idragr,1), idragp, idragt) = 
-     &                    dragenergy(MAX(idragr,1), idragp, idragt) +
-     &                    pcolen(ig)
-                  ENDIF
-#endif
-               ENDIF
-
-               nlstacc = nlstacc + 1
-               IF (nlstacc.GT.nlstaccmax) THEN
-                  WRITE (iprint,*) 'ERROR step nlstacc'
-                  CALL quit(1)
-               ENDIF
-               listacc(nlstacc) = i
-
-               nlistinactive = nlistinactive + 1
-               IF (nlistinactive.GT.idim) THEN
-                  WRITE (iprint,*) 'ERROR step nlistinactive'
-                  CALL quit(1)
-               ENDIF
-               listinactive(nlistinactive) = i
-
-               nactive = nactive - 1
-               nkill = nkill + 1
-               WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
-     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
-     &              poten(i),dgrav(i),ipkill,px,py,pcolen(ig),
-     &              xyzmh(1,ig),xyzmh(2,ig),xyzmh(3,ig)
-               CALL FLUSH(ikillpr)
-#ifndef MPICOPY
-C$OMP END CRITICAL (killparticle)
-#endif
-               GOTO 855
-            ENDIF
-         ENDIF
-
- 855     CONTINUE
+         CALL kill_particles(i,xyzmh,vxyzu,time,ikilled)
       END DO
 #ifdef MPICOPY
 C$OMP END SINGLE
 #else
 C$OMP END DO
 #endif
+
+c
+c--Update smoothing length and implicit radiative transfer quantities
+c
 
 C$OMP DO SCHEDULE(runtime)
       DO j = 1, nlst0

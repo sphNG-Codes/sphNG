@@ -464,7 +464,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f \
 	gptfromgas.f gpti.f header.F hchem.F hillmass.f \
 	homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
 	inopts.f insulate_TREE_P.F integs.F $(KERNEL) \
-	labrun.F \
+	kill_particles.F labrun.F \
 	makedust.F makeplot.f mesop.f mhdparams_mhd.f \
 	modif.f mtree_P.f newrun.f options.f \
 	optimise_column_density.f phoenix.f phoenix2.f \

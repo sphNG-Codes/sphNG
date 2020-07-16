@@ -80,6 +80,8 @@ c************************************************************
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/xforce'
+      INCLUDE 'COMMONS/dustfluid'
+      INCLUDE 'COMMONS/dustfluidderiv'
 
 c      DIMENSION nsteplist(30)
 
@@ -211,7 +213,7 @@ cccc               ENDIF
 c
 c--Create ghost particles
 c
-         CALL ghostp(ntot,npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+         CALL ghostp(ntot,npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
 
          DO i = npart + 1, ntot
             DO k = 1, 5
@@ -238,8 +240,7 @@ c
 c
 c--Make the tree
 c
-         IF (igrape.EQ.0 .AND. (nactive.NE.nptmass .OR. 
-     &                                      iptintree.GT.0)) THEN
+         IF (nactive.NE.nptmass .OR. iptintree.GT.0) THEN
             CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
          ENDIF
 c
@@ -264,7 +265,8 @@ c      END DO
          IF (itiming) CALL getused(ts101)
 
          CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
-     &        npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
+     &        npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz,
+     &        dumdustvar,f1dust)
        
          IF (itiming) THEN
             CALL getused(ts102)
@@ -282,7 +284,7 @@ c
                   llist(nlst) = i
                   isteps(i) = imaxstep
                   IF (iphase(i).EQ.0) THEN
-                     CALL eospg(i,vxyzu,rho,pr,vsound,ekcle)
+                     CALL eospg(i,vxyzu,rho,pr,vsound,ekcle,dustvar)
 c
 c--if rho not defined it is a problem
 c
@@ -641,7 +643,7 @@ C$OMP& shared(it0,itime,imaxdens,cnormk,iener)
 C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,listrealpm)
 C$OMP& shared(ifsvi,alphaMM,alphamax,Bevolxyz,encal,gt)
-C$OMP& shared(pdvvisc)
+C$OMP& shared(pdvvisc,dumvxyzu)
 C$OMP& private(i,j,k,dtfull,dthalf,delvx,delvy,delvz)
 C$OMP& private(iii,pmasspt)
 C$OMP& reduction(+:ioutmax)
@@ -754,14 +756,14 @@ c
      &                                    .OR. idonebound.EQ.1) THEN
 c         IF (imakeghost.EQ.1 .OR. idonebound.EQ.1) THEN
 
-         CALL ghostp(ntot,npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+         CALL ghostp(ntot,npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
 
          ENDIF
       ENDIF
 c
 c--Get ready to make or update tree
 c
-      iwillupdatetree = igrape.EQ.0 .AND. (nlst.GT.nptmass .OR. 
+      iwillupdatetree = (nlst.GT.nptmass .OR. 
      &     nlstacc.GT.0 .OR. iptintree.GT.0 .OR. icreate.EQ.1)
       imaketree = iwillupdatetree .AND. (nlst.GT.ncrit .OR. 
      &     imakeghost.EQ.1 .OR. idonebound.EQ.1 .OR. icreate.EQ.1)
@@ -1142,7 +1144,8 @@ c
 
       IF (itiming) CALL getused(ts101)
       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
-     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
+     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz,
+     &     dumdustvar,f1dust)
 
 c      IF (nptmasstot.GE.1) THEN
 c      DO j = 1, nlst
@@ -1228,7 +1231,6 @@ c
 c
 c--Make point mass timesteps equal to the minimum time step used
 c
-c      PRINT *,'h(1)6: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
       IF (itiming) CALL getused(ts131)
 
       IF (individualtimesteps.EQ.0) THEN
@@ -1288,170 +1290,34 @@ c
          CALL getused(ts132)
          ts13 = ts13 + (ts132 - ts131)
       ENDIF
-c      PRINT *,'h(1)7: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
-
 c
 c--Tidy up - kill particles, set u(i)=dumu(i), set new it2()
 c
       IF (itiming) CALL getused(ts91)
 C$OMP PARALLEL default(none)
 C$OMP& shared(nlst,llist)
-C$OMP& shared(it2,isteps,igphi)
-C$OMP& shared(dgrav,dumvxyzu,vxyzu)
-C$OMP& shared(it0,ibound,deadbound)
-C$OMP& shared(iprint,xyzmh,dumxyzmh,poten,iphase,ikillpr)
-C$OMP& shared(ikilled,nactive,nkill,time,iorig,nlstacc,listacc)
-C$OMP& shared(anglostx,anglosty,anglostz)
+C$OMP& shared(it0,it2,isteps)
+C$OMP& shared(dumvxyzu,vxyzu)
+C$OMP& shared(xyzmh,dumxyzmh,iphase)
+C$OMP& shared(ikilled,time)
 C$OMP& shared(dumBevolxyz,Bevolxyz)
-C$OMP& shared(variation,phibound,nlistinactive,listinactive)
-C$OMP& shared(rcyl,rmind)
-C$OMP& shared(pradfac,rplanet,px,py,irotpot,iplanetesimals)
-C$OMP& private(i,j,k,ipkill,rlim)
-C$OMP& private(r2,pmassi,phiparticle)
+C$OMP& private(i,j,k)
 c
 c--Compute new time steps for particles which have been advanced
 c
 C$OMP DO SCHEDULE(runtime)
-      DO 855 j = 1, nlst
+      DO j = 1, nlst
          i = llist(j)
 c
-c--Dead particle boundaries
+c--Set new timestep values
 c
-         IF (ibound.EQ.8 .OR. ibound/10.EQ.9) THEN
-            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
-            IF (r2.GT.(1.05*deadbound)**2) THEN
-               ipkill = iphase(i)
-               iphase(i) = -1
-               pmassi = xyzmh(4,i)
-C$OMP CRITICAL (killparticle)
-               ikilled = 1
-
-               nlstacc = nlstacc + 1
-               IF (nlstacc.GT.nlstaccmax) THEN
-                  WRITE (iprint,*) 'ERROR step nlstacc'
-                  CALL quit(1)
-               ENDIF
-               listacc(nlstacc) = i
-
-               nactive = nactive - 1
-               nkill = nkill + 1
-               WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
-     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
-     &              poten(i),dgrav(i),ipkill
-               CALL FLUSH (ikillpr)
-               anglostx = anglostx + pmassi*(xyzmh(2,i)*vxyzu(3,i) - 
-     &              vxyzu(2,i)*xyzmh(3,i))
-               anglosty = anglosty + pmassi*(vxyzu(1,i)*xyzmh(3,i) - 
-     &              xyzmh(1,i)*vxyzu(3,i))
-               anglostz = anglostz + pmassi*(xyzmh(1,i)*vxyzu(2,i) - 
-     &              vxyzu(1,i)*xyzmh(2,i))
-C$OMP END CRITICAL (killparticle)
-               GOTO 855
-            ENDIF
-         ENDIF
+         it2(i) = it0(i) + isteps(i)
 c
-c--Dead particle boundaries - planet embedded in disc
+c--Kill particles if they exceed boundaries specified by ibound
 c
-         IF (ibound.EQ.100) THEN
-            phiparticle = ATAN2(xyzmh(2,i),xyzmh(1,i))
-            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
-            IF (r2.LT.(1.0-variation)**2 .OR. r2.GT.(1.0+variation)**2
-     &                         .OR. ABS(phiparticle).GT.phibound) THEN
-               ipkill = iphase(i)
-               iphase(i) = -1
-C$OMP CRITICAL (killparticle)
-               ikilled = 1
+         CALL kill_particles(i,xyzmh,vxyzu,time,ikilled)
 
-               nlstacc = nlstacc + 1
-               IF (nlstacc.GT.nlstaccmax) THEN
-                  WRITE (iprint,*) 'ERROR step nlstacc'
-                  CALL quit(1)
-               ENDIF
-               listacc(nlstacc) = i
-
-               nlistinactive = nlistinactive + 1
-               IF (nlistinactive.GT.idim) THEN
-                  WRITE (iprint,*) 'ERROR step nlistinactive'
-                  CALL quit(1)
-               ENDIF
-               listinactive(nlistinactive) = i
-
-               nactive = nactive - 1
-               nkill = nkill + 1
-               WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
-     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
-     &              poten(i),dgrav(i),ipkill
-               CALL FLUSH(ikillpr)
-C$OMP END CRITICAL (killparticle)
-               GOTO 855
-            ENDIF
-         ENDIF
-
-c
-c--Dead particle boundaries - planet embedded in whole disc
-c
-         IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
-            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
-            IF ((r2.GT.rcyl**2 .AND. iphase(i).EQ.0) .OR.
-     &           (r2.LE.rmind**2 .AND. iphase(i).GT.0) .OR.
-     &           (r2.GT.(2.*rcyl)**2 .AND. iphase(i).GT.0)) THEN
-               ipkill = iphase(i)
-               iphase(i) = -1
-C$OMP CRITICAL (killparticle)
-               ikilled = 1
-
-               nlstacc = nlstacc + 1
-               IF (nlstacc.GT.nlstaccmax) THEN
-                  WRITE (iprint,*) 'ERROR step nlstacc'
-                  CALL quit(1)
-               ENDIF
-               listacc(nlstacc) = i
-
-               nactive = nactive - 1
-               nkill = nkill + 1
-               WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
-     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
-     &              poten(i),dgrav(i),ipkill
-               CALL FLUSH(ikillpr)
-C$OMP END CRITICAL (killparticle)
-               GOTO 855
-            ENDIF
-         ENDIF
-c
-c--Kill planetesimals approaching planet modelled as potential.
-c
-         IF (irotpot.EQ.1 .AND. iplanetesimals.GT.0 .AND.
-     &        iphase(i).EQ.11) THEN
-            r2 = (xyzmh(1,i)-px)**2 + (xyzmh(2,i)-py)**2 +
-     &           xyzmh(3,i)**2
-            rlim = rplanet*pradfac(1)
-            IF (r2.LT.rlim**2) THEN
-               ipkill = iphase(i)
-               iphase(i) = -1
-#ifndef MPICOPY
-C$OMP CRITICAL (killparticle)
-#endif
-               ikilled = 1
-
-               nlstacc = nlstacc + 1
-               IF (nlstacc.GT.nlstaccmax) THEN
-                  WRITE (iprint,*) 'ERROR step nlstacc'
-                  CALL quit(1)
-               ENDIF
-               listacc(nlstacc) = i
-
-               nactive = nactive - 1
-               nkill = nkill + 1
-               WRITE (ikillpr) iorig(i),time,xyzmh(1,i),xyzmh(2,i),
-     &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
-     &              poten(i),dgrav(i),ipkill
-               CALL FLUSH(ikillpr)
-#ifndef MPICOPY
-C$OMP END CRITICAL (killparticle)
-#endif
-               GOTO 855
-            ENDIF
-         ENDIF
+         IF (iphase(i).EQ.0) THEN
 c
 c--Set u to it's new value from DERIVI 
 c     For polytropic equation of state, the du's are not used - u(i) 
@@ -1463,35 +1329,29 @@ c       updated at the full timestep above, then put into dumu(i)
 c       but the derivi call doesn't alter them, so putting them back
 c       into u(i) again changes nothing.
 c
-         vxyzu(4,i) = dumvxyzu(4,i)
+            vxyzu(4,i) = dumvxyzu(4,i)
 c
 c--also set Bevol to (possibly changed) value from derivi
 c  (can be changed by divergence cleaning, B smoothing)
 c
-         IF (imhd.EQ.idim) THEN
-            DO k=1,imhdevol
-               Bevolxyz(k,i) = dumBevolxyz(k,i)
-            ENDDO
-         ENDIF
+            IF (imhd.EQ.idim) THEN
+               DO k=1,imhdevol
+                  Bevolxyz(k,i) = dumBevolxyz(k,i)
+               END DO
+            ENDIF
 c
 c--nlmax=1 is the sign that code is running using 'grad-h' so that h is set
 c     inside derivi rather than being evolved.
 c
-         IF (nlmax.EQ.1) xyzmh(5,i) = dumxyzmh(5,i)
-c
-c--Set new timestep values
-c
-         it2(i) = it0(i) + isteps(i)
- 855  CONTINUE
+            IF (nlmax.EQ.1) xyzmh(5,i) = dumxyzmh(5,i)
+         ENDIF
+      END DO
 C$OMP END DO
 C$OMP END PARALLEL
       IF (itiming) THEN
          CALL getused(ts92)
          ts9 = ts9 + (ts92 - ts91)
       ENDIF
-
-c      PRINT *,'h(1)8: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
-
 c
 c--Allow for tracing flow
 c
@@ -1534,7 +1394,7 @@ c--Accrete particles near point mass, or create point mass
 c 
          IF (itiming) CALL getused(taccrete1)
 
-         CALL accrete(dt, realtime, isave, ntot)
+         CALL accrete(dt, realtime, isave, ntot, itime)
 
          IF (itiming) THEN
             CALL getused(taccrete2)
@@ -1640,7 +1500,7 @@ c
             END DO
 
             nghost = 0
-            CALL ghostp3(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+            CALL ghostp3(npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
             ntot = npart + nghost
 
             DO j = npart - nlst + 1, npart
@@ -1689,9 +1549,7 @@ c
             IF (iener.EQ.3) CALL coolcurve(dumvxyzu(4,j),rho(j),
      &      deltat)
 
-            IF (igrape.EQ.0) THEN
-               CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
-            ENDIF
+            CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
 
             neighmean = (neimax + neimin)/2
 
@@ -1703,15 +1561,8 @@ c
                ichkloop = 0
  2000          ichkloop = ichkloop + 1
 
-               IF (igrape.EQ.0) THEN
-                  CALL insulate(3,itime,ntot,npart,dumxyzmh,f1vxyzu)
-                  numneigh = nneigh(i)
-               ELSE
-                  nlist = 0
-                  CALL getneigh(i,ntot,xyzmh(5,i),dumxyzmh,mmax,nlist,
-     &                 iptneigh,nearl)
-                  numneigh = nlist
-               ENDIF
+               CALL insulate(3,itime,ntot,npart,dumxyzmh,f1vxyzu)
+               numneigh = nneigh(i)
 
                IF (numneigh.GT.1) THEN
                   xyzmh(5,i) = (xyzmh(5,i)/
@@ -1734,7 +1585,8 @@ c
 
             icall = 4
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
-     &           npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
+     &           npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz,
+     &           dumdustvar,f1dust)
 
             time = dt*itime/imaxstep + gt
             DO j = 1, nlst
@@ -1841,7 +1693,7 @@ c
                llist(i) = nnew
                isort(nnew) = nnew
                iorig(nnew) = nnew
-               CALL phoenix2(nnew, idtsyn, itime)
+               CALL phoenix2(nnew, idtsyn, itime, 0)
                nactive = nactive + 1
             END DO
             IF (icountaddnpart.NE.0 .AND.
@@ -1916,9 +1768,7 @@ c
 c
 c--Rebuild the tree
 c
-            IF (igrape.EQ.0) THEN
-               CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
-            ENDIF
+            CALL insulate(1,itime,ntot,npart,dumxyzmh,f1vxyzu)
 c
 c--Set smoothing lengths of new particles
 c
@@ -1932,15 +1782,8 @@ c
                ichkloop = 0
  2001          ichkloop = ichkloop + 1
 
-               IF (igrape.EQ.0) THEN
-                  CALL insulate(3,itime,ntot,npart,dumxyzmh,f1vxyzu)
-                  numneigh = nneigh(i)
-               ELSE
-                  nlist = 0
-                  CALL getneigh(i,ntot,xyzmh(5,i),dumxyzmh,mmax,nlist,
-     &                 iptneigh,nearl)
-                  numneigh = nlist
-               ENDIF
+               CALL insulate(3,itime,ntot,npart,dumxyzmh,f1vxyzu)
+               numneigh = nneigh(i)
 
                IF (numneigh.GT.1) THEN
                   xyzmh(5,i) = (xyzmh(5,i)/
@@ -1975,7 +1818,8 @@ c
             icall = 4
             PRINT *,"icall 4 triggered"
             CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
-     &         f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
+     &         f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz,
+     &         dumdustvar,f1dust)
 c
 c--Write new particles to file
 c
@@ -2302,13 +2146,11 @@ c
             ts16 = ts16 + (ts162 - ts161)
          ENDIF
 
-         IF (igrape.EQ.0) THEN
-            nneightot = 0
-            DO i = 1, nlstnneigh
-               ipart = llist(i)
-               nneightot = nneightot + nneigh(ipart)
-            END DO
-         ENDIF
+         nneightot = 0
+         DO i = 1, nlstnneigh
+            ipart = llist(i)
+            nneightot = nneightot + nneigh(ipart)
+         END DO
 
 #ifdef MPI
 c         CALL MPI_BARRIER(MPI_COMM_WORLD,ierr)

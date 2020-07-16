@@ -115,7 +115,7 @@ c                                                           *
 c  Other authors up until July 2020 include:                *
 c     S.C. Whitehouse, B.A. Ayliffe, C.L. Dobbs,            *
 c     D.M. Acreman, F, Meru, T.S. Tricco, A.K. Young,       *
-c     M.O. Jones                                            *
+c     M.O. Jones, S. Glover, M.D. Smith                     *
 c                                                           *
 c  See the git log for more recent authors.                 *
 c                                                           *

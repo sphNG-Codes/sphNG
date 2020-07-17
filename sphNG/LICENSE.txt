@@ -17,7 +17,7 @@
 !     using the code:
 !
 !     Benz W., Bowers R.L., Cameron A.G.W., Press W.H., 1990, ApJ, 348, 647
-!     Bate M.R., Bonnell I.A., 1995, MNRAS, 277, 362
+!     Bate M.R., Bonnell I.A., Price N.M., 1995, MNRAS, 277, 362
 !     Price D.J., Monaghan J.J, 2007, MNRAS, 374, 1347
 !
 !     The above papers, and those cited by the above papers, describe

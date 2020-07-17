@@ -37,9 +37,10 @@ c     publications using the code:                          *
 c                                                           *
 c     Benz W., Bowers R.L., Cameron A.G.W., Press W.H.,     *
 c          1990, ApJ, 348, 647                              *
-c     Bate M.R., Bonnell I.A., 1995, MNRAS, 277, 362        *
+c     Bate M.R., Bonnell I.A., Price, N.M., 1995,           *
+c          MNRAS, 277, 362                                  *
 c     Price D.J., Monaghan J.J, 2007, MNRAS, 374, 1347      *
-c
+c                                                           *
 c     The above papers, and those cited by the above papers,*
 c     describe the fundamental hydrodynamical and           *
 c     gravitational algorithms implemented in sphNG.        *

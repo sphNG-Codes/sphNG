@@ -21,7 +21,6 @@ c FM: produce array of the boundary height for radii from rmin to rcyl
       deltar = (rcyl-rmind)/(1.*nsteps)
 
       G = 1.0d0
-      Mstar_init = 1.0d0
       R_o = 1.0d0
       R_out = 25.0d0
       sigma_init = 0.
@@ -32,14 +31,14 @@ c FM: produce array of the boundary height for radii from rmin to rcyl
          cv = 1.5*Rg/(gmw*uergg)         
          rhocold = 1.0E-15*udist**3/umass  !convert cgs to code units
 
-         IF (ibound.EQ.101) boundtempl = (gmw/(Rg/uergg))
-     &        *hoverr**2*G*Mstar_init/R_o*(R_o/radius)**0.5
+         IF (ibound.EQ.101) boundtempl = (gmw/(Rg/uergg))*
+     &        centralmass*hoverr**2*G/R_o*(R_o/radius)**0.5
 
          IF ((ibound.EQ.102 .OR. ibound.EQ.103) .AND. use_tprof) THEN
-            boundtempl = gmw*hoverr**2*radius**
+            boundtempl = gmw*centralmass*hoverr**2*radius**
      &           (tprof+1)/((Rg/uergg)*radius)
          ELSEIF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
-            boundtempl = gmw*hoverr**2/((Rg/uergg)*
+            boundtempl = gmw*centralmass*hoverr**2/((Rg/uergg)*
      &           radius)
          ELSE
             print *, 'You should not be in discboundary.f'
@@ -51,7 +50,7 @@ c FM: produce array of the boundary height for radii from rmin to rcyl
 
          kappa = getkappa(ucold, cv, rhocold)
 
-         IF (ibound.EQ.101) sigma_init = hoverr/(2*pi)*Mstar_init/
+         IF (ibound.EQ.101) sigma_init = hoverr/(2*pi)*centralmass/
      &        (R_o*R_out**3)**0.25*(R_o/radius)
          IF (ibound.EQ.102.OR. ibound.EQ.103) 
      &        sigma_init = (75.0*udist**2/umass)*

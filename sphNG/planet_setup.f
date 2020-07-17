@@ -1025,12 +1025,12 @@ c
 
       DO i = 1, npart
          IF (igeom.EQ.10 .AND. use_tprof) THEN
-            radius = SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2)
+            radius = SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2+xyzmh(3,i)**2))
             vxyzu(4,i)=(hoverr**2*radius**tprof)/
      &           (gamma-1.0)
          ELSEIF (igeom.EQ.9 .OR. igeom.EQ.10) THEN
             vxyzu(4,i)=hoverr**2/
-     &           (SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2)*
+     &           (SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2+xyzmh(3,i)**2)*
      &           (gamma-1.0))
          ENDIF
       END DO
@@ -1125,6 +1125,13 @@ c
          WRITE (*,55504)
 55504    FORMAT (' Enter mass for external forces')
          READ (*,*) xmass
+         centralmass = xmass
+c
+c--Need to re-scale thermal energies if the central mass is not unity
+c
+         DO i = 1, npart
+            vxyzu(4,i) = centralmass*vxyzu(4,i)
+         END DO
 
          IF (inum2.NE.1) THEN
             DO i = 1, nptmass

@@ -251,7 +251,7 @@ c
       use_tprof = .FALSE.
       IF (ibound.EQ.100) THEN
          READ (iterm, *) variation,phibound,flowrate,signorm,
-     &        hoverr,partm
+     &        hoverr,partm,centralmass
       ENDIF
 c
 c--Boundaries for global disc with planet (e.g. Ayliffe & Bate 2011)
@@ -259,7 +259,7 @@ c
       IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
          READ (iterm, *) use_tprof
          IF (use_tprof) READ (iterm, *) tprof
-         READ (iterm, *) signorm,hoverr,partm
+         READ (iterm, *) signorm,hoverr,partm,centralmass
          READ (iterm, *) imigrate
          IF (imigrate.EQ.1) THEN
             READ (iterm, *) pmrate
@@ -281,7 +281,7 @@ c     Like a shearing box, but with without linearizing the shear.
 c
       IF (ibound.EQ.104 .OR. ibound.EQ.105) THEN
          READ (iterm, *) variation,phibound,signorm,
-     &        hoverr,partm
+     &        hoverr,partm,centralmass
       ENDIF
 c
 c--Values to do with external forces
@@ -290,6 +290,12 @@ c
       iandrea = 0
       IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7) THEN
          READ (iterm, *) xmass
+         IF (centralmass.NE.xmass) THEN
+            WRITE (iprint,*) 'ERROR - xmass must equal centralmass'
+            WRITE (iprint,*) 'xmass is for gravity external force'
+            WRITE (iprint,*) 'centralmass is for thermal energy profile'
+            CALL quit(0)
+         ENDIF
       ENDIF
       IF (iexf.EQ.7 .OR. ((ibound.EQ.102 .OR. ibound.EQ.103)
      &     .AND. initialptm.EQ.0)) THEN

@@ -1102,24 +1102,28 @@ c            WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
 c
 c--Added for Isothermal whole disc case with t-profile
 c
-            rho0 = 0.2
+c            rho0 = 0.2
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end,llist,xyzmh,gamma,iphase)
-C$OMP& shared(hoverr,tprof,uergg,vxyzu,rho0,rho,encal)
+C$OMP& shared(hoverr,centralmass,tprof,uergg,vxyzu,rho0,rho,encal)
 C$OMP& private(i,j,radius,boundtempl)
             DO j = nlst_in, nlst_end
                i = llist(j)
                IF (iphase(i).EQ.0) THEN
-                  radius = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+c
+c--Use spherical radius so that works with inclined disc
+c
+                  radius = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2 +
+     &                 xyzmh(3,i)**2)
                   IF (encal.EQ.'r') THEN
-                     boundtempl =  gmw*hoverr**2*radius**
+                     boundtempl =  gmw*centralmass*hoverr**2*radius**
      &                    (tprof+1)/((Rg/uergg)*radius)
                      vxyzu(4,i) = getu(rho(i), boundtempl)
-                     IF (rho(i).GT.rho0) THEN
-                        vxyzu(4,i) = vxyzu(4,i)*(rho(i)/rho0)**0.8
-                     ENDIF
+c                     IF (rho(i).GT.rho0) THEN
+c                        vxyzu(4,i) = vxyzu(4,i)*(rho(i)/rho0)**0.8
+c                     ENDIF
                   ELSE
-                     vxyzu(4,i) = hoverr**2*radius**tprof/
+                     vxyzu(4,i) = centralmass*hoverr**2*radius**tprof/
      &                    (gamma-1.0)
                   ENDIF
                ENDIF
@@ -1131,24 +1135,28 @@ C$OMP END PARALLEL DO
 c
 c--Added for Isothermal disc section case and whole disc with u profile
 c
-            rho0 = 0.2
+c            rho0 = 0.2
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_in,nlst_end,llist,xyzmh,gamma,iphase)
-C$OMP& shared(hoverr,vxyzu,rho0,rho)
+C$OMP& shared(hoverr,centralmass,vxyzu,rho0,rho)
 C$OMP& private(i,j)
             DO j = nlst_in, nlst_end
                i = llist(j)
                IF (iphase(i).EQ.0) THEN
-                  vxyzu(4,i)=hoverr**2/(SQRT(xyzmh(1,i)**2+
-     &                 xyzmh(2,i)**2)*(gamma-1.0))
+c
+c--Use spherical radius so that works with inclined disc
+c
+                  vxyzu(4,i)=centralmass*hoverr**2/
+     &                 (SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2 +
+     &                 xyzmh(3,i)**2)*(gamma-1.0))
 c
 c--Purely isothermal:
 c
-c                  vxyzu(4,i)=hoverr**2/(gamma-1.0)
+c                  vxyzu(4,i)=centralmass*hoverr**2/(gamma-1.0)
 
-                  IF (rho(i).GT.rho0) THEN
-                     vxyzu(4,i) = vxyzu(4,i)*(rho(i)/rho0)**0.8
-                  ENDIF
+c                  IF (rho(i).GT.rho0) THEN
+c                     vxyzu(4,i) = vxyzu(4,i)*(rho(i)/rho0)**0.8
+c                  ENDIF
                ENDIF
             END DO
 C$OMP END PARALLEL DO

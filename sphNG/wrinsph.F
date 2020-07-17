@@ -209,9 +209,10 @@ c
       ENDIF
       IF (ibound.EQ.100) THEN
          WRITE (iterm, 88039) variation,phibound,flowrate,signorm,
-     &        hoverr,partm
-88039    FORMAT(2X,6(1PE12.5,1X),
-     &        '  Rad variation, Phi, flowrate, sigma, HoverR, partmass')
+     &        hoverr,partm,centralmass
+88039    FORMAT(2X,7(1PE12.5,1X),
+     &        '  Rad variation, Phi, flowrate, sigma, HoverR, partmass,'
+     &        ,' centralmass (for u)')
       ENDIF
 
       IF (ibound.EQ.102 .OR. ibound.EQ.103 .OR. ibound.EQ.105) THEN
@@ -223,14 +224,16 @@ c
 
       IF (ibound.EQ.104 .OR. ibound.EQ.105) THEN
          WRITE (iterm, 88041) variation,phibound,signorm,
-     &        hoverr,partm
+     &        hoverr,partm,centralmass
 88041    FORMAT(2X,5(1PE12.5,1X),
-     &        '  Rad variation, Phi, sigma, HoverR, partmass')
+     &        '  Rad variation, Phi, sigma, HoverR, partmass,',
+     &        ' centralmass')
       ENDIF
 
       IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
-         WRITE (iterm, 88073) signorm, hoverr,partm
-88073    FORMAT(2X,3(1PE12.5,1X),'  sigma, HoverR, partmass')
+         WRITE (iterm, 88073) signorm,hoverr,partm,centralmass
+88073    FORMAT(2X,3(1PE12.5,1X),'  sigma, HoverR, partmass,',
+     &        'centralmass')
          WRITE (iterm, 11074) imigrate
 11074    FORMAT(2X, I2, ' prescribed migration')
          IF (imigrate.EQ.1) THEN

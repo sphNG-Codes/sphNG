@@ -144,9 +144,11 @@ c  shouldn't matter much.
                   rad = SQRT(xyzmh(1,k)**2 + xyzmh(2,k)**2 +
      &                 xyzmh(3,k)**2)
                   IF (use_tprof) THEN
-                     vxyzu(4,k) = (hoverr**2*rad**tprof)/(gamma-1.0)
+                     vxyzu(4,k) = centralmass*
+     &                    (hoverr**2*rad**tprof)/(gamma-1.0)
                   ELSE
-                     vxyzu(4,k) = hoverr**2/(rad*(gamma-1.0))
+                     vxyzu(4,k) = centralmass*
+     &                    hoverr**2/(rad*(gamma-1.0))
                   ENDIF
                ENDIF
                IF (imhd.EQ.idim) THEN

@@ -1846,7 +1846,6 @@ C$OMP END PARALLEL DO
          CALL getused(ts132)
          ts13 = ts13 + (ts132 - ts131)
       ENDIF
-
 c
 c--Synchronization time
 c
@@ -1857,11 +1856,8 @@ c
       istepmin = imax
       istepmingas = imax
       istepmax = 0
-      iptnum = 0
       time = dt*itime/imaxstep + gt
-c
-c--Keep velocities at half time step
-c
+
       IF (itiming) CALL getused(ts141)
       DO i = 1, nbinmax
          IF (it1bin(i).EQ.itime) it1bin(i) = imax
@@ -1884,7 +1880,7 @@ C$OMP& shared(ifsvi,alphaMM,dumekcle,ekcle,iresist,etamhd,nptmass)
 C$OMP& shared(npart,rmind)
 C$OMP& shared(planetesimaltimestep,gasdrag,max_rplan,min_rplan)
 C$OMP& shared(rcyl,Bevolxyz,dumBevolxyz,planetesimalnorm)
-C$OMP& shared(pcolen,xmass,overclean_fac,hdivbbmax_max,divcurlB)
+C$OMP& shared(xmass,overclean_fac,hdivbbmax_max,divcurlB)
 C$OMP& shared(dh2dt,icolumnsteps,icolumnnext)
 C$OMP& shared(dustvar,f1dust,f2dust,dHIIdt)
 C$OMP& shared(timestepcriterion)
@@ -1907,6 +1903,10 @@ C$OMP& private(dtclean_coef)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin,istepmingas)
 C$OMP& reduction(+:istepeta,etafac)
+
+c
+c--Keep velocities at half time step
+c
 
 C$OMP DO SCHEDULE(runtime)
       DO j = nlst0 + 1, nlst0 + nlst1

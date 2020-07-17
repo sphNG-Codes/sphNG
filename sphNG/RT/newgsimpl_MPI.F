@@ -1631,7 +1631,7 @@ C$OMP& shared(ncompactlocal,iscurrent)
 C$OMP& shared(iiimax,xxmaxerrU2,xorigEU,xdUcomb,xdti,xU1i)
 C$OMP& shared(xpres_numerator,xpres_denominator,xtfour)
 C$OMP& shared(pdvvisc)
-C$OMP& shared(hoverr,ibound)
+C$OMP& shared(ibound)
 C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)
 C$OMP& shared(e_planetesimal,pcolen)
 C$OMP& shared(iunique,iorig,n1,n2,ntot)
@@ -3362,7 +3362,7 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(ncompactlocal,ivar,vxyzu,EU0,iflag,vari)
 C$OMP& shared(uergg,boundtemp,uradconst,rho,ekcle)
 C$OMP& shared(iphase,bounddens)
-C$OMP& shared(hoverr,ibound,xyzmh)
+C$OMP& shared(hoverr,centralmass,ibound,xyzmh)
 C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)
 C$OMP& shared(gamma,dedxyz)
 C$OMP& shared(iunique,iorig,n1,n2,uzero_n2)
@@ -3400,13 +3400,15 @@ C$OMP& private(rhoi,dust_kappai,dust_cooling,heatingISRi,dust_gas)
                cvcold = 1.5*Rg/(gmw*uergg)
 
                IF (ibound/10.EQ.10) THEN
-                  radu = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+                  radu = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2 + 
+     &                 xyzmh(3,i)**2)
                   IF (use_tprof) THEN
-                     temp = gmw*hoverr**2*radu**
+                     temp = gmw*centralmass*hoverr**2*radu**
      &                    (tprof+1)/((Rg/uergg)*gamma*radu)
                      ucold = getu(rho(i), temp)
                   ELSE
-                     ucold = hoverr**2/(radu*gamma*(gamma-1.0))
+                     ucold = centralmass*hoverr**2/
+     &                    (radu*gamma*(gamma-1.0))
                   ENDIF
                   ecold = uradconst*(ucold/GETCV(rho(i),ucold))**4/
      &                 rho(i)

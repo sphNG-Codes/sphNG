@@ -20,8 +20,8 @@
 
       DO i=1, npart
          IF (iphase(i).EQ.0) THEN
-           radius = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
-            boundtempl = gmw*hoverr**2*radius**
+           radius = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2)
+            boundtempl = gmw*centralmass*hoverr**2*radius**
      &           (tprof+1)/((Rg/uergg)*gamma*radius)
             
             vxyzu(4,i) = getu(rho(i), boundtempl)

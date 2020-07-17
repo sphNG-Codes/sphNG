@@ -286,7 +286,7 @@ c
                   END DO
                   rad = SQRT(xyzmh(1,k)**2 + xyzmh(2,k)**2 +
      &                 xyzmh(3,k)**2)
-                  vxyzu(4,k) = hoverr**2/(rad*(gamma-1.0))
+                  vxyzu(4,k) = centralmass*hoverr**2/(rad*(gamma-1.0))
 c
 c--Assumes 75 g/cm^2 surface density at planet's radius, multiplied by signorm
 c

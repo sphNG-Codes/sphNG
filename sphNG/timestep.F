@@ -104,7 +104,7 @@ c  Courant factor.
 c
             IF (iplanetesimals.NE.1) THEN
                IF (iphase(i).GT.0 .AND. iphase(i).LT.10) rmod =
-     &              rmod/1000.0
+     &              rmod/10.0
                IF (iphase(i).EQ.11) rmod = rmod*Courant
             ELSEIF (iplanetesimals.EQ.1) THEN
                rmod = rmod*Courant

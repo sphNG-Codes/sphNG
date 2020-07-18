@@ -309,7 +309,7 @@ c
 c--Gravitational softening for ptmass-ptmass interactions
 c
       iptsoft = 1
-      ptsoft = 1.000E-06
+      ptsoft = 0.02*au/udist
 
 #ifdef MPIALL
       print *,iproc,': Preset Db '

@@ -1211,19 +1211,17 @@ C$OMP END PARALLEL DO
 c
 c--Synchronization time
 c
-c      PRINT *,'h(1)5: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
+      time = dt*itime/imaxstep + gt
       idtsyn = itnext - itime
       IF (idtsyn.EQ.0) idtsyn = imaxstep
       ikilled = 0
-      istepmin = imax
-      istepmax = 0
-      iptnum = 0
-      time = dt*itime/imaxstep + gt
 c
 c--Set new timesteps
 c
       IF (itiming) CALL getused(ts121)
+
       CALL timestep(dt,idtsyn,nlst,llist,f1vxyzu,Bevolxyz)
+
       IF (itiming) THEN
          CALL getused(ts122)
          ts12 = ts12 + (ts122 - ts121)

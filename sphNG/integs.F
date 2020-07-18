@@ -147,8 +147,10 @@ c  for planet including gas mass
 99201    FORMAT(' mean    no. neighbour finds    ',F8.4)
 99202    FORMAT(' mean    no. neighbour fixed pt ',1PE11.4)
       ENDIF
-      WRITE (iprint, 99018) REAL(nneightot)/REAL(nactive-nptmass)
-99018 FORMAT('Mean number of nneigh(i) = ',F8.4)
+      IF (nactive-nptmass.GT.0) THEN
+         WRITE (iprint, 99018) REAL(nneightot)/REAL(nactive-nptmass)
+99018    FORMAT('Mean number of nneigh(i) = ',F8.4)
+      ENDIF
 #ifdef MPIALL
       ENDIF
 #endif
@@ -180,8 +182,10 @@ c
             IF (timestepcriterion(j).GT.0) 
      &           nstepcriterion(timestepcriterion(j),ipostime) =
      &           nstepcriterion(timestepcriterion(j),ipostime) + 1
-            IF (timestepcriterion(j).LE.0) print *,'TS ',j,
-     &           timestepcriterion(j),iphase(j)
+            IF (integrator.EQ.0) THEN
+               IF (timestepcriterion(j).LE.0) print *,'TS ',j,
+     &              timestepcriterion(j),iphase(j)
+            ENDIF
 
             IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1 
      &           .AND. iphase(j).EQ.0) THEN

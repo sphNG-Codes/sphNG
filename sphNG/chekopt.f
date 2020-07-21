@@ -51,7 +51,7 @@ c
       IF ((encal.EQ.'p' .OR. encal.EQ.'v' .OR. encal.EQ.'x') .AND.  
      &     (iener.EQ.1 .OR. ichoc.EQ.1)) CALL error(where,5)
 
-      IF (igphi.EQ.0 .AND. iptintree.EQ.2 .AND. 
+      IF (igphi.LT.1 .AND. iptintree.EQ.2 .AND. 
      &     (iptmass .NE.0 .OR. initialptm.NE.0)) CALL error(where,6)
 
       IF (imhd.EQ.idim .AND. etamhd.LE.0. .AND.

@@ -114,7 +114,7 @@ c
             CALL treef(ipart,itime,npart,ntot,xyzmh,acc,igphi,
      &           fsx,fsy,fsz,epot)
 
-            IF (igphi.NE.0 .OR. (iphase(ipart).GE.1 .AND. 
+            IF (igphi.GT.0 .OR. (iphase(ipart).GE.1 .AND. 
      &               iphase(ipart).LT.10 .AND. iptintree.EQ.1)) THEN
                fxyzu(1,ipart) = fsx
                fxyzu(2,ipart) = fsy

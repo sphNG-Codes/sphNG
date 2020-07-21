@@ -333,6 +333,7 @@ c  igrp     = 0       : no pressure gradients               *
 c             1       : with pressure gradients             *
 c  igphi    = 0       : no self-gravity                     *
 c             1       : with self-gravity                   *
+c           = -1      : no back reaction on sink particles  *
 c  ifsvi    = 0       : no artificial viscosity             *
 c           >=1       : with artificial viscosity           *
 c                     : artificial resistivity also defined *

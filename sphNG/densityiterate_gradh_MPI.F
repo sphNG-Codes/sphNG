@@ -3309,8 +3309,6 @@ c
 c
 c--Add gravity from sink particles
 c
-c      IF (nptmass.GE.1) print *,iproc,': ',ipart,dvxyzu(1,ipart)
-
       IF (nptmass.GT.0) THEN
 c
 c--Add gravity on gas and sinks from sink particles
@@ -3327,7 +3325,7 @@ c
 c
 c--Add gravity on sink particles from gas
 c
-      IF (iptintree.EQ.0 .AND. 
+      IF (iptintree.EQ.0 .AND. igphi.NE.-1 .AND.
      &     iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
          CALL gptfromgas(ipart, npart, ntot, xyzmh, dvxyzu)
       ENDIF

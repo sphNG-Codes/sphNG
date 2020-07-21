@@ -130,7 +130,8 @@ c
       WRITE (iterm, 88000) igrp
 88000 FORMAT(2X,I2,'  Pressure')
       WRITE (iterm, 88001) igphi
-88001 FORMAT(2X,I2,'  Gravity')
+88001 FORMAT(2X,I2,'  Self-gravity (1=on, 0=off, -1=no back-reaction ',
+     &     'on sinks from gas,etc)')
       IF (imhd.EQ.idim) THEN
          WRITE (iterm, 87002) ifsvi,alpha,beta,alphamin(2),alphamax(2)
          WRITE (iterm, 87003) ndivBsubcycles, overclean_fac, iresist, 

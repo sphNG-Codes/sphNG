@@ -171,8 +171,8 @@ c
                   nstack(istack) = isibdaupar(1,j)
                ELSEIF (
 c     &         (icall.EQ.1 .OR. m.GT.ntot) .AND. 
-     &         (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iphase(m).LT.10
-     &                 .AND. iptintree.EQ.1))
+     &         (igrav.GT.0 .OR. (iphase(m).GE.1 .AND. iphase(m).LT.10
+     &                 .AND. iptintree.EQ.1 .AND. igrav.NE.-1))
      &                 .AND. accpar*rr.LT.qrr) THEN
                   j = isibdaupar(2,n)
                   istack = istack + 1
@@ -180,8 +180,8 @@ c     &         (icall.EQ.1 .OR. m.GT.ntot) .AND.
                   istack = istack + 1
                   nstack(istack) = isibdaupar(1,j)
 c               ELSEIF (icall.NE.1 .AND. (m.LE.ntot) .AND.
-c     &         (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iphase(m).LT.10
-c     &         .AND. iptintree.EQ.1))
+c     &         (igrav.GT.0 .OR. (iphase(m).GE.1 .AND. iphase(m).LT.10
+c     &         .AND. iptintree.EQ.1 .AND. igrav.NE.-1))
 c     &                 .AND. 
 cc--Quadrupole
 cc     &                 0.005*gravmag*rr**3.LT.
@@ -336,8 +336,8 @@ ccc                  hmean2 = rcut2
 c
 c--Calculate gravity forces if needed
 c
-      IF (igrav.NE.0 .OR. (iphase(m).GE.1 .AND. iphase(m).LT.10 .AND.
-     &     iptintree.EQ.1)) THEN
+      IF (igrav.GT.0 .OR. (iphase(m).GE.1 .AND. iphase(m).LT.10 .AND.
+     &     iptintree.EQ.1 .AND. igrav.NE.-1)) THEN
 c
 c--Get force from the atomic list
 c
@@ -355,13 +355,13 @@ c--Calculate column density to particle if needed (NOTE that the IF does
 c     not refer to encal='r' because this should be called during the
 c     set up of the initial conditions (i.e. from setpart.f)
 c
-c--NOTE: The test for igrav=0 is important because in densityiterate()
+c--NOTE: The test for igrav!=0 is important because in densityiterate()
 c     there is a 2nd call to treef after gravity, neighbours, density,
 c     etc, have been found to calculate contributions to divv, curlv,etc
 c     from remote nodes.  This call only calculates neighbours (igrav=0)
 c     and so doesn't do the full tree walk that the main call does.
 c
-      IF (idustRT.GT.0 .AND. iradtrans.EQ.idim .AND. igrav.NE.0
+      IF (idustRT.GT.0 .AND. iradtrans.EQ.idim .AND. igrav.GT.0
      &     .AND. iphase(m).EQ.0) THEN
          CALL column_density(m,itime,ntot,nlistga,listga,
      &        nlistgn,listgn,xyzmh)

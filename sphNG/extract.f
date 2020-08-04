@@ -80,32 +80,52 @@ c
          READ (*,1001) iaddmhd
       ENDIF
 
-      image = 0
       imo = 0
 
       DO 15 k = 1, nfile
 
          OPEN (UNIT = 8, FILE = ifile(k), FORM = 'unformatted')
          PRINT *, 'reading file ', ifile(k)
-
-         DO 10 image = 1, 1
-
-            PRINT *, 'reading image number ', image
 c
 c--Read dump file
 c
-            CALL options
+         CALL options
 
-            file1 = ofile
-            print *, 'Name0=', file1
+         file1 = ofile
+         print *, 'Name0=', file1
 
-            CALL rdump_wrapper(8,ichkl,1)
-            IF (ichkl.EQ.1) PRINT*, 'ERROR READING DUMP FILE'
+         CALL rdump_wrapper(8,ichkl,1)
+         IF (ichkl.EQ.1) PRINT*, 'ERROR READING DUMP FILE'
 c
 c--End reading of dump file
 c--------------------------
 c
-      IF (image.EQ.ireduct) THEN
+         PRINT *, ' do you want to reduce the number of particles? '
+         READ (*,1001) iok2
+         IF (iok2.EQ.'y') THEN
+            iseed = -6485
+            CALL ran1(iseed)
+            PRINT *, ' by how much (e.g. 0.1 means remove 90%) ?'
+            READ *, howmuch
+            nlistinactive = 0
+            icount = 0
+            DO ii = 1, npart
+               IF (iphase(ii).EQ.0) THEN
+                  IF (ran1(1).LT.howmuch ) THEN
+                     icount = icount + 1
+c
+c--Increase h to compensate for loss of particles, and increase mass
+c     to compensate for loss of particles
+c
+                     xyzmh(4,ii) = xyzmh(4,ii)/howmuch
+                     xyzmh(5,ii) = xyzmh(5,ii)*howmuch**(-1.0/3.0)
+                     IF (icount.NE.ii) CALL move_particle(ii,icount)
+                  ENDIF
+               ENDIF
+            END DO
+            npart = icount
+            n1 = npart
+         ENDIF
 
          IF (iokm.EQ.'m' .OR. iokm.EQ.'s') THEN
             IF (iokm.EQ.'m') THEN
@@ -305,9 +325,9 @@ c--disc struggling to adapt to the sudden addition.
 c Alison - added rotation matrix
                   posang = (-176d0)*pi/180d0
 c Rotation if LHS is nearest to us (assumed)
-c                  ang_inc = -142d0 * pi/ 180d0
+                  ang_inc = -142d0 * pi/ 180d0
 c Rotation if LHS is FATHEREST from us
-                  ang_inc = +142d0 * pi/ 180d0
+c                  ang_inc = +142d0 * pi/ 180d0
 c rotfac is -1 for clockwise rotation on the sky
                   rotfac = 1.0
                   vxyzu(1,i) = rotfac*(vxtmp*COS(posang) + 
@@ -368,8 +388,6 @@ c
 c--End writing of full dump file
 c-------------------------------
 c
-      ENDIF
-
  10   CONTINUE
 
       CLOSE (8)

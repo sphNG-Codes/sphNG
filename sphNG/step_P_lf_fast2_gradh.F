@@ -2,8 +2,12 @@
 c************************************************************
 c                                                           *
 c  This subroutine integrate the system of differential     *
-c     equations for one timestep using                      *
-c     a second-order Leap-Frog method.                      *
+c     equations for one timestep using a second-order       *
+c     Leap-Frog method.  As of July 2020, the basic method  *
+c     follows that described by Price et al. (2018) for the *
+c     Phantom code, in particular how to deal with velocity *
+c     dependent accelerations.  Velocity iterations are     *
+c     allowed for, but are turned off.                      *
 c                                                           *
 c************************************************************
 
@@ -22,6 +26,7 @@ c************************************************************
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/dum'
       INCLUDE 'COMMONS/f1'
+      INCLUDE 'COMMONS/f2'
       INCLUDE 'COMMONS/integ'
       INCLUDE 'COMMONS/typef'
       INCLUDE 'COMMONS/densi'
@@ -248,20 +253,6 @@ c--Compute forces on all particles
 c
          icall = 1
 
-c      DO i = 1, nlstbins(29)-1
-c         IF (listbins(i,29).NE.i+94296) THEN
-c            WRITE (*,*) 'listbins(i,29).NE.i+94296 , 1',
-c     &        itime0,itime1
-c            WRITE (iprint,*) 'listbins(i,29).NE.i+94296 , 1',
-c     &        itime0,itime1
-c            WRITE (*,*) i,nlstbins(29),listbins(i-1,29),
-c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
-c            WRITE (iprint,*) i,nlstbins(29),listbins(i-1,29),
-c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
-c            CALL quit(1)
-c         ENDIF
-c      END DO
-
          IF (itiming) CALL getused(ts101)
 
          CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
@@ -380,101 +371,14 @@ c
             ENDIF
          END DO
 
-c         write (*,*) f1vxyzu(1,1),f1vxyzu(1,2)
-
-c         print *,'dha(1,1): ',dumxyzmh(1,1),dumvxyzu(1,1),
-c     &        f1vxyzu(1,1),f1vxyzu(1,100),f1ha(1,1),f1ha(2,1)
-c         DO i = idim-10, idim
-c            print *,'f1ha(1,1): ',i,f1vxyzu(1,i),f1vxyzu(2,i),
-c     &           f1vxyzu(3,i),f1vxyzu(4,i)
-c         END DO
-c         DO i = 1, 10
-c            print *,'f1ha(1,1): ',f1ha(1,i),f1ha(2,i)
-c         END DO
-        
-c      DO i = 1, nlstbins(29)-1
-c         IF (listbins(i,29).NE.i+94296) THEN
-c            WRITE (*,*) 'listbins(i,29).NE.i+94296 , 1b',
-c     &        itime0,itime1
-c            WRITE (iprint,*) 'listbins(i,29).NE.i+94296 , 1b',
-c     &        itime0,itime1
-c            WRITE (*,*) i,nlstbins(29),listbins(i-1,29),
-c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
-c            WRITE (iprint,*) i,nlstbins(29),listbins(i-1,29),
-c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
-c            CALL quit(1)
-c         ENDIF
-c      END DO
-
          rhomaxsync = 0.
          DO i = 1, npart
             iscurrent(i) = .FALSE.
             rhomaxsync = MAX(rhomaxsync, rho(i))
          END DO
 
-c      DO i = 1, nlstbins(29)-1
-c         IF (listbins(i,29).NE.i+94296) THEN
-c            WRITE (*,*) 'listbins(i,29).NE.i+94296 , 1c',
-c     &        itime0,itime1
-c            WRITE (iprint,*) 'listbins(i,29).NE.i+94296 , 1c',
-c     &        itime0,itime1
-c            WRITE (*,*) i,nlstbins(29),listbins(i-1,29),
-c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
-c            WRITE (iprint,*) i,nlstbins(29),listbins(i-1,29),
-c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
-c            CALL quit(1)
-c         ENDIF
-c      END DO
-c
-c--DIVERGENCE CLEANING
-c
-c         IF (imhd.EQ.idim) THEN
-c            IF (varmhd.EQ.'Brho' .OR. varmhd.EQ.'Bvol') THEN
-c               divBmax = 0.
-c               DO i=1,npart
-c                  divBmax = max(divcurlB(1,i),divBmax)
-c               ENDDO
-c               WRITE(iprint,*) 'div B max = ',divBmax
-c               CALL divBclean(npart,ntot,xyzmh,rho,Bevolxyz)
-c
-c               DO i = 1, npart
-c                  IF (iphase(i).NE.-1) THEN
-c                     DO k = 1, 3
-c                        dumBevolxyz(k,i) = Bevolxyz(k,i)
-c                     END DO
-c                  ENDIF
-c               ENDDO
-c               CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
-c     &              npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz)
-c            ENDIF
-c         ENDIF
-c         RETURN
-
       ELSE
-         ntot = npart + nghost
-
-c
-c--DIVERGENCE CLEANING
-c
-c         IF (imhd.EQ.idim) THEN
-c            IF (varmhd.EQ.'Brho' .OR. varmhd.EQ.'Bvol') THEN
-c               divBmax = 0.
-c               DO i=1,npart
-c                  divBmax = max(divcurlB(1,i),divBmax)
-c               ENDDO
-c               WRITE(iprint,*) 'div B max = ',divBmax
-c               CALL divBclean(npart,ntot,xyzmh,rho,Bevolxyz)
-
-c               DO i = 1, npart
-c                  IF (iphase(i).NE.-1) THEN
-c                     DO k = 1, 3
-c                        dumBevolxyz(k,i) = Bevolxyz(k,i)
-c                     END DO
-c                  ENDIF
-c               ENDDO
-c            ENDIF
-c         ENDIF
-         
+         ntot = npart + nghost         
       END IF
 c
 c---------- END FIRST TIME AROUND ----------
@@ -490,7 +394,6 @@ c
       CALL MPI_ALLREDUCE(itimelocal,itime,1,MPI_INTEGER,MPI_MIN,
      &     MPI_COMM_WORLD,ierr)
 #ifdef MPIDEBUG
-c      IF (gt.GT.63.7) 
           print *,iproc,': TIMES ',itimelocal, itime
 #endif
 #else
@@ -501,56 +404,12 @@ c      IF (gt.GT.63.7)
          ts1 = ts1 + (ts1p2 - ts1p1)
       ENDIF
 
-c      IF (itime1.NE.itime1new .OR. itime0.NE.itime0new) THEN
-c         WRITE (*,*) 'ERROR - times'
-c         WRITE (iprint,*) 'ERROR - times'
-c         WRITE (*,*) 'Choose:',itime1,itime0,itime1new,itime0new
-c         WRITE (iprint,*) 'Choose:',itime1,itime0,itime1new,itime0new
-c
-c      DO j = 1, 30
-c         nsteplist(j) = 0
-c      END DO
-c
-c      DO j = 1, npart
-c         IF (iphase(j).GE.0) THEN
-c            ibin = INT(LOG10(REAL(isteps(j)))/xlog2+0.5)
-c            IF ((ibin.GE.1) .AND. (ibin.LE.29)) THEN
-c               nsteplist(ibin) = nsteplist(ibin) + 1
-c            ELSE
-c               nsteplist(30) = nsteplist(30) + 1
-c            ENDIF
-c         ENDIF
-c      END DO
-c         
-c        DO i = 1, nbinmax 
-c         WRITE (*,*) 2**i,it2bin(i),nlstbins(i),nsteplist(i)
-c         WRITE (iprint,*) 2**i,it2bin(i),nlstbins(i),
-c     &        nsteplist(i)
-c        END DO
-c        CALL quit(1)
-c      ENDIF
-
       ioutinf = 0
       ioutsup = 0
       ioutmin = 0
       ioutmax = 0
       inmax = -1
       inmin = 10000
-
-c      DO i = 1, nlstbins(29)-1
-c         IF (listbins(i,29).NE.i+94296) THEN
-c            WRITE (*,*) 'listbins(i,29).NE.i+94296 , 2',
-c     &        itime0,itime1
-c            WRITE (iprint,*) 'listbins(i,29).NE.i+94296 , 2',
-c     &        itime0,itime1
-c            WRITE (*,*) i,nlstbins(29),listbins(i-1,29),
-c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
-c            WRITE (iprint,*) i,nlstbins(29),listbins(i-1,29),
-c     &           listbins(i,29),listbins(i+1,29),listbins(i+2,29)
-c            CALL quit(1)
-c         ENDIF
-c      END DO
-
 c
 c--Allow for tracing flow
 c
@@ -658,30 +517,34 @@ c
          dtfull = dt*isteps(i)/imaxstep
          dthalf = 0.5*dtfull
 c
-c--Update velocities (kick 1/2)
+c--Update velocities (kick 1/2) using accelerations at t=n
 c
          delvx = dthalf*f1vxyzu(1,i)
          delvy = dthalf*f1vxyzu(2,i)
          delvz = dthalf*f1vxyzu(3,i)
-c         IF (iphase(i).GT.0 .AND. nptmass.GE.2) 
-c     &        print *,'f1 ',i,f1vxyzu(2,i),vxyzu(1,i),vxyzu(2,i)
          vxyzu(1,i) = vxyzu(1,i) + delvx
          vxyzu(2,i) = vxyzu(2,i) + delvy
          vxyzu(3,i) = vxyzu(3,i) + delvz
 c
-c--Update positions (drift full dt)
+c--Update positions (drift full dt) using the t=n+1/2 velocities
 c
          DO k = 1, 3
             xyzmh(k,i) = xyzmh(k,i) + dtfull*vxyzu(k,i)
          END DO
 c
-c--Update momentum of sink particles
+c--Update velocities further to "predict" velocities at t=n+1
+c
+         delvx = dthalf*f1vxyzu(1,i)
+         delvy = dthalf*f1vxyzu(2,i)
+         delvz = dthalf*f1vxyzu(3,i)
+         vxyzu(1,i) = vxyzu(1,i) + delvx
+         vxyzu(2,i) = vxyzu(2,i) + delvy
+         vxyzu(3,i) = vxyzu(3,i) + delvz
+c
+c--Update momentum of sink particles (not used in derivi, so only
+c     advance 1/2 step)
 c
          IF (iphase(i).GE.1 .AND. iphase(i).LT.10) THEN
-c            DO iii = 1, nptmass
-c               IF (listpm(iii).EQ.i) GOTO 444
-c            END DO
-c 444        CONTINUE
             iii = listrealpm(i)
             pmasspt = xyzmh(4,i)
             xmomsyn(iii) = xmomsyn(iii) + delvx*pmasspt
@@ -735,13 +598,11 @@ c
          ENDIF
       END DO
 C$OMP END PARALLEL DO
+
       IF (itiming) THEN
          CALL getused(ts72)
          ts7 = ts7 + (ts72 - ts71)
       ENDIF
-
-c      PRINT *,'h(1)2: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
-
 c
 c--Total check for particles that have moved outside boundary
 c
@@ -770,8 +631,6 @@ c
       irevise = iwillupdatetree .AND. (.NOT. imaketree) .AND.
      &     (.NOT.(iptintree.EQ.1 .AND. nlst.LE.nptmass .AND.
      &           nlstacc.EQ.0))
-c      print *,iproc,': TREE ',iwillupdatetree,imaketree,irevise,
-c     &     nlst,nptmass,nlstacc,iptintree
 c
 c--Predict variables at t=time
 c
@@ -787,49 +646,57 @@ C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(isibdaupar,iflagtree,imfac,numberparents,listparents)
 C$OMP& private(j,k,deltat,deltat2,iparent)
-      DO j = 1, npart
-         IF (iphase(j).GE.0) THEN
+         DO j = 1, npart
+            IF (iphase(j).GE.0) THEN
+               deltat = dt*(itime - it0(j))/imaxstep
+               deltat2 = 0.5*deltat
 c
-c--Load predicted quantities into dummy arrays
+c--Load predicted quantities into dummy arrays.  Mimic the Leap-Frog
+c     integrator (i.e. predict positions at time n+1 using velocities
+c     at time n+1/2, but make sure both positions and velocities are
+c     synchronised for the force evaluaton at time n+1.
 c
-            deltat = dt*(itime - it0(j))/imaxstep
-            deltat2 = 0.5*deltat
-            DO k = 1, 3
-               dumvxyzu(k,j) = vxyzu(k,j) + deltat2*f1vxyzu(k,j)
-            END DO
-            DO k = 1, 3
-               dumxyzmh(k,j) = xyzmh(k,j) + deltat*dumvxyzu(k,j)
-            END DO
-            dumxyzmh(4,j) = xyzmh(4,j)
-            IF (iphase(j).EQ.0) THEN
-               IF (encal.EQ.'r') THEN
-                  dumvxyzu(4,j) = vxyzu(4,j)
-               ELSEIF (encal.EQ.'m') THEN
-                  dumvxyzu(4,j) = vxyzu(4,j)
+               dumvxyzu(1:3,j) = vxyzu(1:3,j) + deltat2*f1vxyzu(1:3,j)
+               dumxyzmh(1:3,j) = xyzmh(1:3,j) + deltat*dumvxyzu(1:3,j)
+               dumvxyzu(1:3,j) = dumvxyzu(1:3,j) +deltat2*f1vxyzu(1:3,j)
+
+               dumxyzmh(4,j) = xyzmh(4,j)
+
+               IF (iphase(j).EQ.0) THEN
+                  dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
+
+                  IF (encal.EQ.'r') THEN
+                     dumvxyzu(4,j) = vxyzu(4,j)
+                  ELSEIF (encal.EQ.'m') THEN
+                     dumvxyzu(4,j) = vxyzu(4,j)
+                  ELSE
+                     dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
+                  ENDIF
+                  IF (iener.EQ.2 .AND. dumvxyzu(4,j).LT.0.0) THEN
+                     dumvxyzu(4,j) = 0.15
+                  ELSEIF (iener.EQ.3) THEN
+                     CALL coolcurve(dumvxyzu(4,j),rho(j),deltat)
+                  ENDIF
+
+                  IF (ifsvi.GE.6) THEN
+                     DO k = 1, isizealphaMM
+                        dumalpha(k,j) = MIN(alphamax(k),alphaMM(k,j)+
+     &                       deltat*f1ha(1+k,j))
+                     END DO
+                  ENDIF
+
+                  IF (imhd.EQ.idim) THEN
+                     DO k = 1, imhdevol
+                       dumBevolxyz(k,j)=Bevolxyz(k,j)+deltat*f1Bxyz(k,j)
+                     END DO
+                  ENDIF
+               ELSEIF (iphase(j).GE.1 .AND. iphase(j).LT.10) THEN
+                  dumxyzmh(5,j) = xyzmh(5,j)
                ELSE
-                  dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
+                  dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
                ENDIF
-              IF(iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
-               dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
-               IF (ifsvi.GE.6) THEN
-                  DO k=1,isizealphaMM
-                    dumalpha(k,j) = MIN(alphamax(k),alphaMM(k,j)+
-     &                 deltat*f1ha(1+k,j))
-                  ENDDO
-               ENDIF
-
-           IF (iener.EQ.3) CALL coolcurve(dumvxyzu(4,j),rho(j),deltat)
-
-               IF (imhd.EQ.idim) THEN
-                  DO k = 1, imhdevol
-                     dumBevolxyz(k,j) = Bevolxyz(k,j)+deltat*f1Bxyz(k,j)
-                  END DO
-               ENDIF
-            ELSEIF (iphase(j).GE.1 .AND. iphase(j).LT.10) THEN
-               dumxyzmh(5,j) = xyzmh(5,j)
             ENDIF
-         ENDIF
-      END DO
+         END DO
 C$OMP END PARALLEL DO
 
       ELSEIF (nlst-nptmass.GT.10000 .OR. ipartialrevtree.EQ.1) THEN
@@ -841,56 +708,56 @@ C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(isibdaupar,iflagtree,imfac,npart)
 C$OMP& shared(numberparents,listparents)
-C$OMP& private(j,k,ipart,deltat,deltat2,iparent)
-            DO j = 1, nlstbins(i)
-               ipart = listbins(j,i)
-               IF (iphase(ipart).GE.0) THEN
-c
-c--Load predicted quantities into dummy arrays
-c
-                  deltat = dt*(itime - it0(ipart))/imaxstep
+C$OMP& private(j,k,l,deltat,deltat2,iparent)
+            DO l = 1, nlstbins(i)
+               j = listbins(l,i)
+               IF (iphase(j).GE.0) THEN
+                  deltat = dt*(itime - it0(j))/imaxstep
                   deltat2 = 0.5*deltat
-                  DO k = 1, 3
-                     dumvxyzu(k,ipart) = vxyzu(k,ipart) + 
-     &                    deltat2*f1vxyzu(k,ipart)
-                  END DO
-                  DO k = 1, 3
-                     dumxyzmh(k,ipart) = xyzmh(k,ipart) + 
-     &                    deltat*dumvxyzu(k,ipart)
-                  END DO
-                  dumxyzmh(4,ipart) = xyzmh(4,ipart)
-                  IF (iphase(ipart).EQ.0) THEN
+c
+c--Load predicted quantities into dummy arrays (again, mimic Leap-Frog)
+c
+                  dumvxyzu(1:3,j) = vxyzu(1:3,j) +deltat2*f1vxyzu(1:3,j)
+                  dumxyzmh(1:3,j) = xyzmh(1:3,j) +deltat*dumvxyzu(1:3,j)
+                  dumvxyzu(1:3,j) = dumvxyzu(1:3,j) + 
+     &                 deltat2*f1vxyzu(1:3,j)
+
+                  dumxyzmh(4,j) = xyzmh(4,j)
+
+                  IF (iphase(j).EQ.0) THEN
+                     dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
+
                      IF (encal.EQ.'r') THEN
-                        dumvxyzu(4,ipart) = vxyzu(4,ipart)
+                        dumvxyzu(4,j) = vxyzu(4,j)
                      ELSEIF (encal.EQ.'m') THEN
-                        dumvxyzu(4,ipart) = vxyzu(4,ipart)
+                        dumvxyzu(4,j) = vxyzu(4,j)
                      ELSE
-                        dumvxyzu(4,ipart) = vxyzu(4,ipart) +
-     &                       deltat*f1vxyzu(4,ipart)
+                        dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
                      ENDIF
-                     IF (iener.EQ.2 .AND. dumvxyzu(4,ipart).LT.0.0) 
-     &                    dumvxyzu(4,ipart)=0.15
-                     dumxyzmh(5,ipart) = xyzmh(5,ipart) + 
-     &                    deltat*f1ha(1,ipart)
-                     IF (ifsvi.GE.6) THEN
-                        DO k=1,isizealphaMM
-                           dumalpha(k,ipart) = MIN(alphamax(k),
-     &                        alphaMM(k,ipart) + deltat*f1ha(1+k,ipart))
-                        ENDDO
+                     IF (iener.EQ.2 .AND. dumvxyzu(4,j).LT.0.0) THEN
+                        dumvxyzu(4,j) = 0.15
+                     ELSEIF (iener.EQ.3) THEN
+                        CALL coolcurve(dumvxyzu(4,j),rho(j),deltat)
                      ENDIF
 
-           IF (iener.EQ.3) CALL coolcurve(dumvxyzu(4,ipart),rho(ipart),
-     &      deltat)
+                     IF (ifsvi.GE.6) THEN
+                        DO k = 1, isizealphaMM
+                           dumalpha(k,j) = MIN(alphamax(k),
+     &                        alphaMM(k,j) + deltat*f1ha(1+k,j))
+                        END DO
+                     ENDIF
 
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, imhdevol
-                           dumBevolxyz(k,ipart) = 
-     &                         Bevolxyz(k,ipart)+deltat*f1Bxyz(k,ipart)
+                           dumBevolxyz(k,j) = 
+     &                         Bevolxyz(k,j)+deltat*f1Bxyz(k,j)
                         END DO
                      ENDIF
-                  ELSEIF (iphase(ipart).GE.1 .AND. 
-     &                    iphase(ipart).LT.10) THEN
-                     dumxyzmh(5,ipart) = xyzmh(5,ipart)
+                  ELSEIF (iphase(j).GE.1 .AND. 
+     &                    iphase(j).LT.10) THEN
+                     dumxyzmh(5,j) = xyzmh(5,j)
+                  ELSE
+                     dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
                   ENDIF
                ENDIF
             END DO
@@ -909,18 +776,18 @@ C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(isibdaupar,iflagtree,imfac,npart)
 C$OMP& shared(numberparents,listparents,irevise,iprint)
-C$OMP& private(j,k,ipart,deltat,deltat2,iparent)
-            DO j = 1, nlstbins(i)
-               ipart = listbins(j,i)
+C$OMP& private(j,k,l,deltat,deltat2,iparent)
+            DO l = 1, nlstbins(i)
+               j = listbins(l,i)
 
-               IF (iphase(ipart).GE.0) THEN
+               IF (iphase(j).GE.0) THEN
 c
 c--Set flag to state that parent node in tree needs to be recalculated
 c                  
                   IF (irevise .AND.
-     &                 (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10 .OR.
+     &                 (iphase(j).EQ.0 .OR. iphase(j).GE.10 .OR.
      &                 iptintree.GE.1)) THEN
-                     iparent = isibdaupar(3,ipart)
+                     iparent = isibdaupar(3,j)
 C$OMP CRITICAL (parentlist1)
                      IF (.NOT.iflagtree(iparent)) THEN
                         iflagtree(iparent) = .TRUE.
@@ -932,61 +799,60 @@ C$OMP CRITICAL (parentlist1)
                         listparents(numberparents) = iparent
                      ENDIF
 C$OMP END CRITICAL (parentlist1)
-                     IF (ipart.GT.npart .OR.
-     &                  (iphase(ipart).GE.1 .AND. 
-     &                  iphase(ipart).LT.10 .AND. iptintree.EQ.1)) THEN
-                        imfac(ipart) = 0
+                     IF (j.GT.npart .OR.
+     &                  (iphase(j).GE.1 .AND. iphase(j).LT.10
+     &                  .AND. iptintree.EQ.1)) THEN
+                        imfac(j) = 0
                      ELSE
-                        imfac(ipart) = 1
+                        imfac(j) = 1
                      ENDIF
                   ENDIF
 c
 c--Load predicted quantities into dummy arrays
 c
-                  deltat = dt*(itime - it0(ipart))/imaxstep
+                  deltat = dt*(itime - it0(j))/imaxstep
                   deltat2 = 0.5*deltat
-                  DO k = 1, 3
-                     dumvxyzu(k,ipart) = vxyzu(k,ipart) + 
-     &                    deltat2*f1vxyzu(k,ipart)
-                  END DO
-                  DO k = 1, 3
-                     dumxyzmh(k,ipart) = xyzmh(k,ipart) + 
-     &                    deltat*dumvxyzu(k,ipart)
-                  END DO
-                  dumxyzmh(4,ipart) = xyzmh(4,ipart)
-                  IF (iphase(ipart).EQ.0) THEN
+                  dumvxyzu(1:3,j) = vxyzu(1:3,j) +deltat2*f1vxyzu(1:3,j)
+                  dumxyzmh(1:3,j) = xyzmh(1:3,j) +deltat*dumvxyzu(1:3,j)
+                  dumvxyzu(1:3,j) = dumvxyzu(1:3,j) +
+     &                 deltat2*f1vxyzu(1:3,j)
+
+                  dumxyzmh(4,j) = xyzmh(4,j)
+
+                  IF (iphase(j).EQ.0) THEN
+                     dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
+
                      IF (encal.EQ.'r') THEN
-                        dumvxyzu(4,ipart) = vxyzu(4,ipart)
+                        dumvxyzu(4,j) = vxyzu(4,j)
                      ELSEIF (encal.EQ.'m') THEN
-                        dumvxyzu(4,ipart) = vxyzu(4,ipart)
+                        dumvxyzu(4,j) = vxyzu(4,j)
                      ELSE
-                        dumvxyzu(4,ipart) = vxyzu(4,ipart) +
-     &                       deltat*f1vxyzu(4,ipart)
+                        dumvxyzu(4,j) = vxyzu(4,j) +
+     &                       deltat*f1vxyzu(4,j)
                      ENDIF
-                     IF (iener.EQ.2 .AND. dumvxyzu(4,ipart).LT.0.0) 
-     &                    dumvxyzu(4,ipart)=0.15
-                     dumxyzmh(5,ipart) = xyzmh(5,ipart) + 
-     &                    deltat*f1ha(1,ipart)
+                     IF (iener.EQ.2 .AND. dumvxyzu(4,j).LT.0.0) THEN
+                        dumvxyzu(4,j) = 0.15
+                     ELSEIF (iener.EQ.3) THEN
+                        CALL coolcurve(dumvxyzu(4,j),rho(j),deltat)
+                     ENDIF
+
                      IF (ifsvi.GE.6) THEN
                         DO k=1,isizealphaMM
-                           dumalpha(k,ipart) = MIN(alphamax(k),
-     &                    alphaMM(k,ipart) + deltat*f1ha(k+1,ipart))
+                           dumalpha(k,j) = MIN(alphamax(k),
+     &                    alphaMM(k,j) + deltat*f1ha(k+1,j))
                         ENDDO
                      ENDIF
 
-
-           IF (iener.EQ.3) CALL coolcurve(dumvxyzu(4,ipart),rho(ipart),
-     &          deltat)
-
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, imhdevol
-                           dumBevolxyz(k,ipart) = 
-     &                        Bevolxyz(k,ipart)+deltat*f1Bxyz(k,ipart)
+                           dumBevolxyz(k,j) = 
+     &                        Bevolxyz(k,j)+deltat*f1Bxyz(k,j)
                         END DO
                      ENDIF
-                  ELSEIF (iphase(ipart).GE.1 .AND. 
-     &                                 iphase(ipart).LT.10) THEN
-                     dumxyzmh(5,ipart) = xyzmh(5,ipart)
+                  ELSEIF (iphase(j).GE.1 .AND. iphase(j).LT.10) THEN
+                     dumxyzmh(5,j) = xyzmh(5,j)
+                  ELSE
+                     dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,j)
                   ENDIF
                ENDIF
             END DO
@@ -995,17 +861,18 @@ C$OMP END PARALLEL DO
       ELSE
 c
 c--Only update ptmasses, since nothing else is evolved
-c     These should already be at the correct time, so don't need to extrapolate
+c     IF sink particles all take the same step size, these should
+c     already be at the correct time, so don't need to extrapolate
 c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nptmass,listpm,itime,it0)
 C$OMP& shared(xyzmh,vxyzu,dumxyzmh,dumvxyzu)
 C$OMP& shared(isibdaupar,iflagtree,imfac)
 C$OMP& shared(numberparents,listparents,irevise)
-C$OMP& private(i,k,ipart,iparent)
+C$OMP& private(i,j,k,iparent)
          DO i = 1, nptmass
-            ipart = listpm(i)
-            IF (itime.NE.it0(ipart)) THEN
+            j = listpm(i)
+            IF (itime.NE.it0(j)) THEN
                WRITE (*,*) 'ERROR - ptmass not updated'
                CALL quit(1)
             ENDIF
@@ -1014,7 +881,7 @@ c--Set flag to state that parent node in tree needs to be recalculated
 c     but only if point masses in the tree and all gravity done by tree
 c
             IF (irevise .AND. iptintree.EQ.2) THEN
-               iparent = isibdaupar(3,ipart)
+               iparent = isibdaupar(3,j)
 C$OMP CRITICAL (parentlist2)
                IF (.NOT.iflagtree(iparent)) THEN
                   iflagtree(iparent) = .TRUE.
@@ -1022,19 +889,15 @@ C$OMP CRITICAL (parentlist2)
                   listparents(numberparents) = iparent
                ENDIF
 C$OMP END CRITICAL (parentlist2)
-               imfac(ipart) = 1
+               imfac(j) = 1
             ELSE
-               imfac(ipart) = 0
+               imfac(j) = 0
             ENDIF
 c
 c--Load dummy arrays
 c
-            DO k = 1, 5
-               dumxyzmh(k,ipart) = xyzmh(k,ipart)
-            END DO
-            DO k = 1, 3
-               dumvxyzu(k,ipart) = vxyzu(k,ipart)
-            END DO
+            dumxyzmh(1:5,j) = xyzmh(1:5,j)
+            dumvxyzu(1:3,j) = vxyzu(1:3,j)
          END DO
 C$OMP END PARALLEL DO
       ENDIF
@@ -1065,32 +928,37 @@ C$OMP END CRITICAL (parentlist3)
                   imfac(j) = 0
                ENDIF
 c
-c--Load predicted quantities into dummy arrays
+c--Load predicted quantities into dummy arrays (note: does not use
+c     accelerations of real particles to update velocities or in
+c     extrapolating positions - would be complicated, depends on
+c     type of boundary (e.g. periodic, reflecting, etc).
 c
                k = ireal(j)
                deltat = dt*(itime - it0(k))/imaxstep
-               DO l = 1, 3
-                  dumvxyzu(l,j) = vxyzu(l,j)
-               END DO
+
+               dumxyzmh(1:3,j) = xyzmh(1:3,j) + deltat*dumvxyzu(1:3,j)
+               dumxyzmh(4,j) = xyzmh(4,j)
+               dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,k)
+
+               dumvxyzu(1:3,j) = vxyzu(1:3,j)
+
                IF (encal.NE.'r' .AND. encal.NE.'m') THEN
                   dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
                ELSE
                   dumvxyzu(4,j) = vxyzu(4,j)
                ENDIF
-            IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
-               DO l = 1, 3
-                  dumxyzmh(l,j) = xyzmh(l,j) + deltat*dumvxyzu(l,j)
-               END DO
-               dumxyzmh(4,j) = xyzmh(4,j)
-               dumxyzmh(5,j) = xyzmh(5,j) + deltat*f1ha(1,k)
-               IF (ifsvi.GE.6) THEN
-                  DO l=1,isizealphaMM
-                     dumalpha(l,j) = MIN(alphamax(l),alphaMM(l,k)
-     &              + deltat*f1ha(1+l,k))
-                  ENDDO
+               IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) THEN
+                  dumvxyzu(4,j)=0.15
+               ELSEIF (iener.EQ.3) THEN
+                  CALL coolcurve(dumvxyzu(4,j),rho(j),deltat)
                ENDIF
 
-           IF (iener.EQ.3) CALL coolcurve(dumvxyzu(4,j),rho(j),deltat)
+               IF (ifsvi.GE.6) THEN
+                  DO l = 1, isizealphaMM
+                     dumalpha(l,j) = MIN(alphamax(l),alphaMM(l,k)
+     &                    + deltat*f1ha(1+l,k))
+                  END DO
+               ENDIF
 
                IF (imhd.EQ.idim) THEN
                   DO l = 1, imhdevol
@@ -1105,8 +973,6 @@ C$OMP END PARALLEL DO
          CALL getused(ts82)
          ts8 = ts8 + (ts82 - ts81)
       ENDIF
-
-c      PRINT *,'h(1)3: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
 
       IF (hmaximum.GT.0.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -1138,72 +1004,102 @@ c
          nlstacc = 0
       ENDIF
 c
+c--Allow for velocity iterations (see Price et al. 2018)
+c
+      ivelocity_iterations = 0
+c
 c--Compute forces on list particles
 c
  200  icall = 3
 
       IF (itiming) CALL getused(ts101)
-      CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
-     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz,
-     &     dumdustvar,f1dust)
-
-c      IF (nptmasstot.GE.1) THEN
-c      DO j = 1, nlst
-c         i = llist(j)
-c         IF (dumxyzmh(1,i)**2 + dumxyzmh(2,i)**2 + dumxyzmh(3,i)**2
-c     &        .LT.2.0e-4) print *,iproc,': ',i,j,iunique(iorig(i)),
-c     &     SQRT(dumxyzmh(1,i)**2 + dumxyzmh(2,i)**2 + dumxyzmh(3,i)**2),
-c     &     f1vxyzu(1,i),poten(i)
-c      END DO
-c      ENDIF
+      CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f2vxyzu,f2ha,npart,
+     &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f2Bxyz,
+     &     dumdustvar,f2dust)
 
       IF (itiming) THEN
          CALL getused(ts102)
          ts10 = ts10 + (ts102 - ts101)
       ENDIF
-
-c      PRINT *,'h(1)4: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
-
 c
-c--Update velocities (kick 1/2)
+c--Correct velocities (kick 1/2)
 c
       IF (itiming) CALL getused(ts111)
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst,llist,dt,isteps,imaxstep)
-C$OMP& shared(vxyzu,f1vxyzu,itime)
+C$OMP& shared(vxyzu,f1vxyzu,f2vxyzu,itime)
 C$OMP& shared(iphase,nptmass,listpm,listrealpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,xyzmh,gt)
-C$OMP& private(i,j,dthalf,delvx,delvy,delvz,iii,pmasspt)
+C$OMP& shared(ivelocity_iterations,dumvxyzu)
+C$OMP& shared(encal,ifsvi,alphaMM,alphamax,f1ha,f2ha)
+C$OMP& shared(Bevolxyz,f1Bxyz,f2Bxyz)
+C$OMP& private(i,j,k,dthalf,delvx,delvy,delvz,delu,iii,pmasspt)
       DO j = 1, nlst
          i = llist(j)
          dthalf = 0.5*dt*isteps(i)/imaxstep
 c
-c--Update velocities (kick 1/2)
+c--Correct the velocities and other non-positional quantities to t=n+1
 c
-         delvx = dthalf*f1vxyzu(1,i)
-         delvy = dthalf*f1vxyzu(2,i)
-         delvz = dthalf*f1vxyzu(3,i)
+         delvx = dthalf*(f2vxyzu(1,i)-f1vxyzu(1,i))
+         delvy = dthalf*(f2vxyzu(2,i)-f1vxyzu(2,i))
+         delvz = dthalf*(f2vxyzu(3,i)-f1vxyzu(3,i))
+         delu = dthalf*(f2vxyzu(4,i)-f1vxyzu(4,i))
 
-c         IF (iphase(i).GT.0 .AND. nptmass.GE.2) 
-c    &        print *,'f2 ',i,f1vxyzu(2,i),vxyzu(1,i),vxyzu(2,i)
+         IF (ivelocity_iterations.EQ.0) THEN
 
-         vxyzu(1,i) = vxyzu(1,i) + delvx
-         vxyzu(2,i) = vxyzu(2,i) + delvy
-         vxyzu(3,i) = vxyzu(3,i) + delvz
+            vxyzu(1,i) = vxyzu(1,i) + delvx
+            vxyzu(2,i) = vxyzu(2,i) + delvy
+            vxyzu(3,i) = vxyzu(3,i) + delvz
 
-         IF (iphase(i).GE.1 .AND. iphase(i).LT.10) THEN
-c            DO iii = 1, nptmass
-c               IF (listpm(iii).EQ.i) GOTO 445
-c            END DO
-c 445        CONTINUE
-            iii = listrealpm(i)
-            pmasspt = xyzmh(4,i)
-            xmomsyn(iii) = xmomsyn(iii) + delvx*pmasspt
-            ymomsyn(iii) = ymomsyn(iii) + delvy*pmasspt
-            zmomsyn(iii) = zmomsyn(iii) + delvz*pmasspt
+            IF (iphase(i).GE.1 .AND. iphase(i).LT.10) THEN
+               iii = listrealpm(i)
+               pmasspt = xyzmh(4,i)
+
+               delvx = dthalf*f2vxyzu(1,i)
+               delvy = dthalf*f2vxyzu(2,i)
+               delvz = dthalf*f2vxyzu(3,i)
+
+               xmomsyn(iii) = xmomsyn(iii) + delvx*pmasspt
+               ymomsyn(iii) = ymomsyn(iii) + delvy*pmasspt
+               zmomsyn(iii) = zmomsyn(iii) + delvz*pmasspt
+            ENDIF
+
+            IF (encal.NE.'r' .AND. encal.NE.'m') THEN
+               vxyzu(4,i) =vxyzu(4,i)+dthalf*(f2vxyzu(4,i)-f1vxyzu(4,i))
+            ENDIF
+
+            IF (ifsvi.GE.6) THEN
+               DO k=1,isizealphaMM
+                  alphaMM(k,i) = MIN(alphamax(k), alphaMM(k,i) +
+     &                 dthalf*(f2ha(k+1,i)-f1ha(k+1,i)))
+               END DO
+            ENDIF
+
+            IF (imhd.EQ.idim) THEN
+               DO k = 1, imhdevol
+                  Bevolxyz(k,i) = Bevolxyz(k,i) + 
+     &                 dthalf*(f2Bxyz(k,i)-f1Bxyz(k,i))
+               END DO
+            ENDIF
+c
+c--Move accelerations at t=n+1 to be new t=n accelerations
+c
+            f1vxyzu(:,i) = f2vxyzu(:,i)
+            f1ha(:,i) = f2ha(:,i)
+            f1Bxyz(:,i) = f2Bxyz(:,i)
+         ELSE
+            dumvxyzu(1,i) = dumvxyzu(1,i) + delvx
+            dumvxyzu(2,i) = dumvxyzu(2,i) + delvy
+            dumvxyzu(3,i) = dumvxyzu(3,i) + delvz
          ENDIF
       END DO
 C$OMP END PARALLEL DO
+
+      IF (ivelocity_iterations.GE.1) THEN
+         ivelocity_iterations = ivelocity_iterations - 1
+         GOTO 200
+      ENDIF
+
       IF (itiming) THEN
          CALL getused(ts112)
          ts11 = ts11 + (ts112 - ts111)
@@ -1901,9 +1797,9 @@ c
             ptmsyn(ii) = ptmsyn(ii) + ptmadd(ii)
             ptmadd(ii) = 0.0
             pmasspt = ptmsyn(ii)
-            vxyzu(1,i) = (xmomsyn(ii) + xmomadd(ii))/pmasspt
-            vxyzu(2,i) = (ymomsyn(ii) + ymomadd(ii))/pmasspt
-            vxyzu(3,i) = (zmomsyn(ii) + zmomadd(ii))/pmasspt
+c            vxyzu(1,i) = (xmomsyn(ii) + xmomadd(ii))/pmasspt
+c            vxyzu(2,i) = (ymomsyn(ii) + ymomadd(ii))/pmasspt
+c            vxyzu(3,i) = (zmomsyn(ii) + zmomadd(ii))/pmasspt
          ENDIF
       END DO
       IF (itiming) THEN
@@ -2107,9 +2003,6 @@ c            zmin = -boundnew
 c            zmax = boundnew
 c         ENDIF
       ENDIF
-
-c      PRINT *,'h(1)9: ',xyzmh(5,1),itime,f1ha(1,1),dumxyzmh(5,1)
-
 c
 c--Return or loop again
 c

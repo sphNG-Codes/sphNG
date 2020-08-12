@@ -198,13 +198,15 @@ c
          vcmz1 = vcmz1 + pmassi*vxyzu(3,i)
       END DO
 
-      cmx1 = cmx1/fmas1
-      cmy1 = cmy1/fmas1
-      cmz1 = cmz1/fmas1
+      IF (fmas1.GT.0.) THEN
+         cmx1 = cmx1/fmas1
+         cmy1 = cmy1/fmas1
+         cmz1 = cmz1/fmas1
 
-      vcmx1 = vcmx1/fmas1
-      vcmy1 = vcmy1/fmas1
-      vcmz1 = vcmz1/fmas1
+         vcmx1 = vcmx1/fmas1
+         vcmy1 = vcmy1/fmas1
+         vcmz1 = vcmz1/fmas1
+      ENDIF
 
       IF (n1new.GT.0) THEN
          romean1 = romean1/n1new
@@ -296,13 +298,15 @@ c
             ENDIF
          END DO
 
-         cmx2 = cmx2/fmas2
-         cmy2 = cmy2/fmas2
-         cmz2 = cmz2/fmas2
+         IF (fmas2.GT.0.) THEN
+            cmx2 = cmx2/fmas2
+            cmy2 = cmy2/fmas2
+            cmz2 = cmz2/fmas2
 
-         vcmx2 = vcmx2/fmas2
-         vcmy2 = vcmy2/fmas2
-         vcmz2 = vcmz2/fmas2
+            vcmx2 = vcmx2/fmas2
+            vcmy2 = vcmy2/fmas2
+            vcmz2 = vcmz2/fmas2
+         ENDIF
 
          IF (n2new.GT.0) THEN
             romean2 = romean2/n2new

@@ -26,6 +26,8 @@ c***********************************************************
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/Bxyz'
       INCLUDE 'COMMONS/varmhd'
+      INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/astrcon'
 
       COMMON /unitsin/ umassi, udisti, utimei, umagfdi
 
@@ -94,8 +96,6 @@ C$OMP THREADPRIVATE(xyzm,vxyz)
 
       LOGICAL     time_evol,print_pts,use_mhd,fexist
       LOGICAL     append2file,start_appending
-
-      DATA pi/3.141592654/
 c
 c--set input parameters
 c
@@ -113,8 +113,6 @@ c
       ethresh   =  0.3       ! Will only include gas particles in the disc with eccentricity less than this [DEFAULT]
       varmhd    = 'Brho'
       encal     = 'r'
-
-
 c
 c--read options
 c
@@ -755,6 +753,12 @@ c              Determine which particles are in the 0.632M disc
                   endif
                enddo
 c              Calculate the magnetic field of the 0.632M disc
+               IF (print_pts) THEN
+                  WRITE (44+isink,'(11(1PE12.5,1X),2I12)')
+     &              xyzmh(1:3,iptcur)*udist/pc,0.,0.,0.,
+     &              vxyzu(1:3,iptcur)*udist/utime,
+     &              xyzmh(4,iptcur),hacc*udist/pc,-1,iunique(iptcur)
+               ENDIF
                ij = 0
                DO iii = 1,ndisc
                   jjj = abs(listdisc(isink,iii))
@@ -771,9 +775,11 @@ c              Calculate the magnetic field of the 0.632M disc
                      idisc_id = 0
                   endif
                   IF (print_pts) THEN
-                     WRITE (44+isink,'(7(1PE12.5,1X),I12)')
-     &                 xyzmh(1:3,jjj),Bxyz(1:3,jjj)*umagfdi,
-     &                 rho(i)*(umass/udist**3),idisc_id
+                     WRITE (44+isink,'(11(1PE12.5,1X),2I12)')
+     &                 xyzmh(1:3,jjj)*udist/pc,Bxyz(1:3,jjj)*umagfdi,
+     &                 vxyzu(1:3,jjj)*udist/utime,
+     &                 rho(jjj)*(umass/udist**3),
+     &                 xyzmh(5,jjj)*udist/pc,idisc_id,iunique(jjj)
                   ENDIF
                enddo
                IF (indisc(isink).gt.0 .and. use_mhd) THEN
@@ -1267,6 +1273,16 @@ c
                ENDIF
             END DO
 
+            IF (print_pts) THEN
+               DO j = 1, node_components(nnodes)
+                  icomp = ilocalsinkindx(node_comp_list(j,nnodes))
+                  WRITE (44+nnodes,'(11(1PE12.5,1X),2I12)')
+     &               xyzmh(1:3,listpm(icomp))*udist/pc,0.,0.,0.,
+     &               vxyzu(1:3,listpm(icomp))*udist/utime,
+     &               xyzmh(4,listpm(icomp)),hacc*udist/pc,-1,
+     &               iunique(listpm(icomp))
+               ENDDO
+            ENDIF
 c           calculate which particles are in the 0.632M disc
             DO iii = 1,ndisc
                jjj = listdisc(nnodes,iii)
@@ -1296,9 +1312,11 @@ c           Calculate the magnetic field of the 0.632M disc
                   idisc_id = 0
                endif
                IF (print_pts) THEN
-                  WRITE (44+nnodes,'(7(1PE12.5,1X),I12)')
-     &               xyzmh(1:3,jjj),Bxyz(1:3,jjj)*umagfdi,
-     &               rho(i)*(umass/udist**3),idisc_id
+                  WRITE (44+nnodes,'(11(1PE12.5,1X),2I12)')
+     &               xyzmh(1:3,jjj)*udist/pc,Bxyz(1:3,jjj)*umagfdi,
+     &               vxyzu(1:3,jjj)*udist/utime,
+     &               rho(jjj)*(umass/udist**3),
+     &               xyzmh(5,jjj)*udist/pc,idisc_id,iunique(jjj)
                ENDIF
             enddo
 

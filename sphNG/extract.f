@@ -104,7 +104,7 @@ c
          READ (*,1001) iok2
          IF (iok2.EQ.'y') THEN
             iseed = -6485
-            CALL ran1(iseed)
+            rnd = ran1(iseed)
             PRINT *, ' by how much (e.g. 0.1 means remove 90%) ?'
             READ *, howmuch
             nlistinactive = 0

@@ -1,3 +1,6 @@
+      LOGICAL iresisnoisy
+      PARAMETER (iresisnoisy = .TRUE.)
+
       INTEGER nelements_varinew
       PARAMETER (nelements_varinew=2+5*(imhd/idim))
 

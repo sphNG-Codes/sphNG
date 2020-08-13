@@ -1030,13 +1030,16 @@ c
 c--Output success
 c
  150  CONTINUE
+      IF (iresisnoisy) THEN
 #ifdef MPI
-      IF (iproc.EQ.0) THEN
+         IF (iproc.EQ.0) THEN
 #endif
-      PRINT *,"Succeeded with ",nosweep," iterations ",maxerrB,maxerrB2
+         PRINT *,"Succeeded with ",nosweep," iterations ",
+     &        maxerrB,maxerrB2
 #ifdef MPI
+         ENDIF
+#endif
       ENDIF
-#endif
 
  998  CONTINUE
 

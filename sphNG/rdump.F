@@ -98,6 +98,7 @@ c      INCLUDE 'COMMONS/torq'
       INTEGER iversion, maxversion
       LOGICAL tagged, isequential
       LOGICAL ireadblock
+      LOGICAL irebuild_inactive
 #ifdef NONIDEAL
       REAL*4  eta_nimhd_tmp(imhd2)
 #endif
@@ -608,7 +609,11 @@ c
                   listinactive(i) = listinactive(i) + icount
                END DO
             ENDIF
+#ifdef MPI
+            print *,iproc,': READ nlistinactive ',nlistinactive
+#else
             print *,'READ nlistinactive ',nlistinactive
+#endif
          ENDIF
 
 c--int*1
@@ -620,14 +625,27 @@ c--int*1
          print *,'iphases ',iphase(1),iphase(nhydro),nums1(5),icount
 
 #ifndef USEKROME
+         irebuild_inactive = .FALSE.
          DO i = icountinactive+1,icountinactive+nlistinactive
             IF (iphase(listinactive(i)).NE.-1) THEN
                print *,'ERROR - Read active particle as inactive ',
      &              i,icountinactive,listinactive(i),icount,nhydro,
      &              iphase(listinactive(i))
-               CALL quit(0)
+               irebuild_inactive = .TRUE.
+               print *,'Rebuilding inactive list'
             ENDIF
          END DO
+         IF (irebuild_inactive) THEN
+            irebuild_inactive = .FALSE.
+            nlistinactive = 0
+            DO i = icount+1, icount+nhydro
+               IF (iphase(i).LT.0) THEN
+                  nlistinactive = nlistinactive + 1
+                  listinactive(nlistinactive) = i
+               ENDIF
+            END DO
+            print *,'New nlistinactive: ',nlistinactive
+         ENDIF
 #endif
 
 c--int*2

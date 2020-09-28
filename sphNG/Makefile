@@ -699,6 +699,11 @@ e_col3DALL/origin.o unit.o
 disc: checksystem checkparams utils/disc_parameters.o rdump.o error.o indexx2.o
 	$(FC) $(FFLAGS) -o $@ utils/disc_parameters.o rdump.o error.o indexx2.o
 
+# Single disc parameter extraction
+
+disc1: checksystem checkparams utils/discmass.o rdump.o error.o indexx2.o $(ZZFILE:.f=.o)
+	$(FC) $(FFLAGS) -o $@ utils/discmass.o rdump.o error.o indexx2.o $(ZZFILE:.f=.o)
+
 # Ptmass evaluate properties of multiple systems
 
 multiples: checksystem checkparams utils/ptmass_multiples.o indexx.o

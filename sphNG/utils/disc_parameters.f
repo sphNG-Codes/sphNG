@@ -38,8 +38,8 @@ c***********************************************************
       COMMON /phase2/ sinksize, sinkrho, denshigh, ihigh
       COMMON /numfile/ nfile
 
-      PARAMETER (ndiscmax = 1000000)   ! max number of particles in a disc
-      PARAMETER (nsinkmax =     100)   ! max number of systems that can be analysed
+      PARAMETER (ndiscmax = 1000000) ! max no. of particles in a disc
+      PARAMETER (nsinkmax =  100)    ! max systems that can be analysed
       INTEGER*8 iunique_sink(nsinkmax),iunique_companion(3,nsinkmax)
       DIMENSION ilocalsink(nsinkmax),icompanion(3,nsinkmax)
       DIMENSION ilocalsinkindx(nsinkmax),ilocal2name(nsinkmax)
@@ -97,24 +97,41 @@ C$OMP THREADPRIVATE(xyzm,vxyz)
       LOGICAL     time_evol,print_pts,use_mhd,fexist
       LOGICAL     append2file,start_appending
 c
-c--set input parameters
+c--Set input parameters
 c
-      time_evol = .TRUE.     ! if true, must start from beginning of simulation or inlcude sink file
-      print_pts = .FALSE.    ! if true, will print all the particles belonging to a disc to file
-      append2file = .TRUE.   ! if true, will append to file, else will overwrite
-      use_mhd   = .FALSE.    ! Will perform loops to calculate magnetic properties
-      L_align_max = 0.866    ! Maximum allowed alignment of a particle's angular momentum vector with circumstellar disc [60deg]
-      L_align_max   = 1.0    ! Maximum allowed alignment of a particle's angular momentum vector with circumstellar disc [OFF]
-      rhothresh_cgs = 1.d-14 ! Will only include gas particles in the disc with density greater than this [CLUSTER]
-      rhothresh_cgs = 1.d-13 ! Will only include gas particles in the disc with density greater than this [ISOLATED STAR]
-      rhothresh_cgs = 0.0    ! Will only include gas particles in the disc with density greater than this [DEFAULT]
-      dthresh_au =  220.0    ! Will only include gas particles in the disc with distance less than this  [ISOLATED STAR]
-      dthresh_au = 2000.0    ! Will only include gas particles in the disc with distance less than this  [DEFAULT]
-      ethresh   =  0.3       ! Will only include gas particles in the disc with eccentricity less than this [DEFAULT]
+      time_evol = .TRUE.        ! if true, must start from beginning of
+                                !  simulation or include sink Names file
+      print_pts = .FALSE.       ! if true, will print all the particles
+                                !    belonging to a disc to file
+      append2file = .TRUE.      ! if true append to file, else overwrite
+      use_mhd   = .FALSE.       ! loops to calculate magnetic properties
+
+      L_align_max = 0.866       ! Maximum allowed alignment of particle
+                                !    angular momentum vector with
+                                !    circumstellar disc [60deg]
+      L_align_max   = 1.0       ! Maximum allowed alignment of particle
+                                !    angular momentum vector with
+                                !    circumstellar disc [OFF]
+
+      rhothresh_cgs = 1.d-14    ! Only include gas in disc with density
+                                !    greater than this [CLUSTER]
+      rhothresh_cgs = 1.d-13    ! Only include gas in disc with density
+                                !    greater than this [ISOLATED STAR]
+      rhothresh_cgs = 0.0       ! Only include gas in disc with density
+                                !    greater than this [DEFAULT]
+
+      dthresh_au =  220.0       ! Only include gas in disc with distance
+                                !    less than this  [ISOLATED STAR]
+      dthresh_au = 2000.0       ! Only include gas in disc with distance
+                                !    less than this  [DEFAULT]
+
+      ethresh   =  0.3          ! Only include gas in disc with
+                                !    eccentricity less than [DEFAULT]
+
       varmhd    = 'Brho'
       encal     = 'r'
 c
-c--read options
+c--Read options
 c
       DO i = 1, idim
          iorig(i) = i
@@ -165,8 +182,9 @@ c
             WRITE(filein(k),'(a,I4.4)') prefix,istart+k-1
          END DO
       ENDIF
-
-c     Resort the list to remove all nonexistent files
+c
+c--Resort the list to remove all nonexistent files
+c
       k = 1
       DO WHILE (k.LE.numberfiles)
          inquire(file=trim(filein(k)),exist=fexist)
@@ -202,7 +220,7 @@ c     Resort the list to remove all nonexistent files
 
          OPEN (UNIT = 11, FILE = filein(nfile), FORM = 'unformatted')
 c     
-c--process file dumps
+c--Process file dumps
 c
          IF (ifile.LE.9) THEN
             READ(contour1, 99108) conname
@@ -225,20 +243,22 @@ c
 99007    FORMAT(A10, I1, I2)
 99008    FORMAT(A10, I3)
 c
-c--skip files
+c--Skip files
 c
  10      CONTINUE
          CALL rdump(11, ichkl, 0)
          CLOSE (11)
 
          print *,'Units are ',umassi, udisti, nptmass
-
+c
+c--Force units to be units read from dump file
+c
          umass = umassi
          udist = udisti
          utime = utimei
          umagfd = umagfdi
          rhothresh = rhothresh_cgs/(umass/udist**3)
-         dthresh   = dthresh_au*1.496d13 / udisti
+         dthresh   = dthresh_au*1.496d13 / udist
 c
 c--Rotate if required
 c
@@ -433,10 +453,10 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nunique_sink,ilocalsink,xyzmh,vxyzu,Bxyz,node_components)
 C$OMP& shared(node_comp_list,cmtot,vtot,discmass,angmom,npart,indisc)
 C$OMP& shared(icompanion,iunique_companion,iphase,nsink_mult,iunique)
-C$OMP& shared(iunique_sink,radsearchmax,udisti,ipartindisc,ilocal2name)
+C$OMP& shared(iunique_sink,radsearchmax,ipartindisc,ilocal2name)
 C$OMP& shared(discmasstot,discradius,values,nptmass,listpm,use_mhd)
-C$OMP& shared(print_pts,Bmin,Bave,Bmax,Bup,Blo,Brpz_d,Brpz_bg,umagfdi)
-C$OMP& shared(rhothresh,dthresh,ethresh,rho,umass,udist)
+C$OMP& shared(print_pts,Bmin,Bave,Bmax,Bup,Blo,Brpz_d,Brpz_bg,umagfd)
+C$OMP& shared(rhothresh,dthresh,ethresh,rho,umass,udist,utime,hacc)
 C$OMP& private(isink,i,j,l,iii,jjj,iptcur,xsink,ysink,zsink,sinkmass)
 C$OMP& private(dx,dy,dz,ipart,xipart,yipart,zipart,dvx,dvy,dvz,Bi)
 C$OMP& private(Bdisc,Brpz_di,kn,kx,rmass)
@@ -446,7 +466,7 @@ C$OMP& private(ij,idisc_id,ns,n0,cmtoti)
 C$OMP& private(ndisc,nnotdisc,nsinks,distcomp2,jpart,r2,jjj_mindist)
 C$OMP& private(totalmass,dist,etot,semimajor,eccentricity)
 C$OMP& private(radapastron,ipos)
-C$OMP& private(jval,jjval)
+C$OMP& private(jval,jjval,rhomax)
          DO isink = 1, nptmass
             iptcur = listpm(isink)
             xsink = xyzmh(1,iptcur)
@@ -612,7 +632,7 @@ c
 c
 c--Make distance cut: dthresh = 2000 AU
 c
-c                  print *,'dist = ',dist*udisti/1.496E+13
+c                  print *,'dist = ',dist*udist/1.496E+13
                   IF (dist.GT.dthresh) THEN
                      print *,' exiting A ',isink
                      radsearchmax(isink) = SQRT(distance2(i))
@@ -660,12 +680,12 @@ c
 c--Add to disc if passes tests
 c
 c                     print *,i,dist,eccentricity,
-c    &                    radapastron*udisti/1.496E+13,
+c    &                    radapastron*udist/1.496E+13,
 c    &                    etot,semimajoraxis
 
                      IF (eccentricity.LT.ethresh     .AND. 
      &                    radapastron.LT.dthresh     .AND.
-     &                    rho(i).     GE.rhothresh   .AND.
+     &                    rho(i)     .GE.rhothresh   .AND.
      &                    L_good_alignment          ) THEN
                         IF (i.GT.idim) THEN
                            PRINT *,'i.GT.idim'
@@ -712,7 +732,7 @@ c    &                    etot,semimajoraxis
 
                         listdisc(isink,ndisc)  = i
 
-                     ELSE IF (radapastron*udisti.LT.1.496E+13*200.) THEN
+                     ELSE IF (radapastron*udist.LT.1.496E+13*200.) THEN
                         nnotdisc = nnotdisc + 1
                         IF (nnotdisc.GT.ndiscmax) THEN
                            WRITE (*,*) 'nnotdisc.GT.ndiscmax'
@@ -776,7 +796,7 @@ c              Calculate the magnetic field of the 0.632M disc
                   endif
                   IF (print_pts) THEN
                      WRITE (44+isink,'(11(1PE12.5,1X),2I12)')
-     &                 xyzmh(1:3,jjj)*udist/pc,Bxyz(1:3,jjj)*umagfdi,
+     &                 xyzmh(1:3,jjj)*udist/pc,Bxyz(1:3,jjj)*umagfd,
      &                 vxyzu(1:3,jjj)*udist/utime,
      &                 rho(jjj)*(umass/udist**3),
      &                 xyzmh(5,jjj)*udist/pc,idisc_id,iunique(jjj)
@@ -946,8 +966,8 @@ c
          IF (r2min.EQ.1.0E+30) GOTO 1600
 
          PRINT *,'Found multiple ',nkeep1, nkeep2,
-     &        SQRT(r2min)*udisti/(1.496E+13),
-     &        semimajorkeep*udisti/(1.496E+13), eccentricitykeep
+     &        SQRT(r2min)*udist/(1.496E+13),
+     &        semimajorkeep*udist/(1.496E+13), eccentricitykeep
 c
 c--Store information for multiple system
 c
@@ -1246,7 +1266,7 @@ c
                         STOP
                      ENDIF
                      listdisc(nnodes,ndisc)  = i
-                  ELSE IF (radapastron*udisti.LT.1.496E+13*200.) THEN
+                  ELSE IF (radapastron*udist.LT.1.496E+13*200.) THEN
                      nnotdisc = nnotdisc + 1
                      IF (nnotdisc.GT.ndiscmax) THEN
                         WRITE (*,*) 'nnotdisc.GT.ndiscmax'
@@ -1313,7 +1333,7 @@ c           Calculate the magnetic field of the 0.632M disc
                endif
                IF (print_pts) THEN
                   WRITE (44+nnodes,'(11(1PE12.5,1X),2I12)')
-     &               xyzmh(1:3,jjj)*udist/pc,Bxyz(1:3,jjj)*umagfdi,
+     &               xyzmh(1:3,jjj)*udist/pc,Bxyz(1:3,jjj)*umagfd,
      &               vxyzu(1:3,jjj)*udist/utime,
      &               rho(jjj)*(umass/udist**3),
      &               xyzmh(5,jjj)*udist/pc,idisc_id,iunique(jjj)
@@ -1450,12 +1470,12 @@ c
          WRITE (16,"(17(1PE12.5,1x),I4,1x,17(1PE12.5,1x),1x,2(I9,1x))") 
      &           gt,formtime(i),xyzmh(4,listpm(i)),
      &           discmass(i),
-     &           (discradius(j,i)*udisti/1.496E+13,j=1,13),
+     &           (discradius(j,i)*udist/1.496E+13,j=1,13),
      &           nsink_mult(i),
      &           (angmom(j,i),j=1,3),
      &           -spinx(i),-spiny(i),-spinz(i),
-     &           Bnax(1:3)*umagfdi,Blo(i)*umagfdi,Bup(i)*umagfdi,        !25-27,28,29
-     &           Brpz_d(1:3,i)*umagfdi,Brpz_bg(1:3,i)*umagfdi,           !30-32,33-35
+     &           Bnax(1:3)*umagfd,Blo(i)*umagfd,Bup(i)*umagfd, !25-29
+     &           Brpz_d(1:3,i)*umagfd,Brpz_bg(1:3,i)*umagfd,    !30-35
      &           (icompanion(j,i),j=1,1),
      &           (iunique_companion(j,i),j=1,1)
             CLOSE (16)
@@ -1628,10 +1648,10 @@ c                   Calculate the upper and lower percentiles
      &              primarymass,
      &              discmasstot(i),discmass(i),discmass(iprimary),
      &              discmass(isecondary),
-     &              (discradius(j,i)*udisti/1.496E+13,j=1,13),
-     &              (discradius(j,iprimary)*udisti/1.496E+13,j=1,13),
-     &              (discradius(j,isecondary)*udisti/1.496E+13,j=1,13),
-     &              (xnode_axis(i)*udisti/1.496E+13),
+     &              (discradius(j,i)*udist/1.496E+13,j=1,13),
+     &              (discradius(j,iprimary)*udist/1.496E+13,j=1,13),
+     &              (discradius(j,isecondary)*udist/1.496E+13,j=1,13),
+     &              (xnode_axis(i)*udist/1.496E+13),
      &              xnode_ecc(i), (xnode_plane(j,i),j=1,3),
      &              (angmom(j,i),j=1,3),
      &              (angmom(j,iprimary),j=1,3),
@@ -1643,7 +1663,7 @@ c                   Calculate the upper and lower percentiles
      &              -spinx(isecondary),
      &              -spiny(isecondary),
      &              -spinz(isecondary),
-     &              Bnax*umagfdi,Blo(i)*umagfdi,Bup(i)*umagfdi
+     &              Bnax*umagfd,Blo(i)*umagfd,Bup(i)*umagfd
                   CLOSE (16)
                END IF
 c--END OF PAIRS-----------------------
@@ -1794,27 +1814,29 @@ c                 Calculate the upper and lower percentiles
 
                WRITE (16,"(I2,1x,125(1PE12.5,1x),4(I4,1x))") 
      &              node_components(i),gt,formtime(i),
-     &              pmassnode(i),primarymass,   ! Total mass of all the stars, mass of the most massive star.
-     &              discmasstot(i),discmass(i), ! Summed mass of all 7 possible discs, the mass of only the gas surrounding the total system.
-     &              discmass(iclist(1)),        ! Masses of the individual discs followd by masses of the pairs;
-     &              discmass(iclist(2)),        ! arrays are filled from 1 to 6, so end values will always be zero.
-     &              discmass(iclist(3)),
-     &              discmass(iclist(4)),
-     &              discmass(iclist(5)),
-     &              discmass(iclist(6)),
-     &              (discradius(j,i)*udisti/1.496E+13,j=1,13),         ! disc radii of either the total or circumsystem disc
-     &              (discradius(j,iclist(1))*udisti/1.496E+13,j=1,13), ! disc radii in the same order as the masses
-     &              (discradius(j,iclist(2))*udisti/1.496E+13,j=1,13),
-     &              (discradius(j,iclist(3))*udisti/1.496E+13,j=1,13),
-     &              (discradius(j,iclist(4))*udisti/1.496E+13,j=1,13),
-     &              (discradius(j,iclist(5))*udisti/1.496E+13,j=1,13),
-     &              (discradius(j,iclist(6))*udisti/1.496E+13,j=1,13),
-     &              (xnode_axis(i)*udisti/1.496E+13),
+     &              pmassnode(i),   ! Total mass of all stars in system
+     &              primarymass,    ! Mass of the most massive star
+     &              discmasstot(i), !Summed mass of all 7 possible discs
+     &              discmass(i),    ! Mass of disc outside of system
+     &              discmass(iclist(1)), ! Masses of individual discs
+     &              discmass(iclist(2)),
+     &              discmass(iclist(3)), ! Followed by masses of discs
+     &              discmass(iclist(4)), !    in hierarchy
+     &              discmass(iclist(5)), ! Arrays filled from 1 to 6
+     &              discmass(iclist(6)), !    so end values may be zero.
+     &              (discradius(j,i)*udist/1.496E+13,j=1,13), ! Disc radii of either the total or circumsystem disc
+     &              (discradius(j,iclist(1))*udist/1.496E+13,j=1,13), ! Disc radii in the same order as the masses
+     &              (discradius(j,iclist(2))*udist/1.496E+13,j=1,13),
+     &              (discradius(j,iclist(3))*udist/1.496E+13,j=1,13),
+     &              (discradius(j,iclist(4))*udist/1.496E+13,j=1,13),
+     &              (discradius(j,iclist(5))*udist/1.496E+13,j=1,13),
+     &              (discradius(j,iclist(6))*udist/1.496E+13,j=1,13),
+     &              (xnode_axis(i)*udist/1.496E+13),
      &              xnode_ecc(i), (xnode_plane(j,i),j=1,3),
-     &              (angmom(j,i),j=1,3),      ! Angular momentum of the circumsystem disc
-     &              Bnax*umagfdi,             ! 1:3=Bfields of the circumsystem disc;4:6=Bfields of the total disc
-     &              Blo(i)*umagfdi,Bup(i)*umagfdi,
-     &              Brpz_di*umagfdi,Brpz_bg(1:3,i)*umagfdi,
+     &              (angmom(j,i),j=1,3), ! Angular momentum of circumsystem disc
+     &              Bnax*umagfd,  ! 1:3=Bfields of circumsystem disc;4:6=Bfields of the total disc
+     &              Blo(i)*umagfd,Bup(i)*umagfd,
+     &              Brpz_di*umagfd,Brpz_bg(1:3,i)*umagfd,
      &              (node_comp_list(j,i),j=1,4)
                CLOSE (16)
             ENDIF

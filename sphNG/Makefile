@@ -696,8 +696,8 @@ e_col3DALL/origin.o unit.o
 
 # Disc parameter extraction
 
-disc: checksystem checkparams utils/disc_parameters.o rdump.o error.o indexx2.o
-	$(FC) $(FFLAGS) -o $@ utils/disc_parameters.o rdump.o error.o indexx2.o
+disc: checksystem checkparams utils/disc_parameters.o rdump.o wdump.o error.o indexx2.o
+	$(FC) $(FFLAGS) -o $@ utils/disc_parameters.o rdump.o wdump.o error.o indexx2.o
 
 # Single disc parameter extraction
 

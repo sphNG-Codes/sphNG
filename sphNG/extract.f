@@ -170,8 +170,6 @@ c
             END DO
          END IF
 
-         PRINT *, 'writing image just read on output file'
-         imo = imo + 1
          IF (iok.EQ.'y') gt = 0.0
          
          PRINT *, ' do you want to add point masses ? '
@@ -303,11 +301,13 @@ c--disc struggling to adapt to the sudden addition.
             ENDIF
          ENDIF
 
-         PRINT *, ' do you want to rotate gas ?'
+         PRINT *, ' do you want to alter gas ?'
          READ (*,1001) iok2
          IF (iok2.EQ.'y') THEN
             PRINT *, ' set inner radius (>=0)?'
             READ (*,*)  rinnercut
+            PRINT *, ' do you want to rotate gas ?'
+            READ (*,1001) iok2
             DO i = 1, npart
                IF (iphase(i).EQ.0) THEN
                   xtmp = xyzmh(1,i)
@@ -318,7 +318,7 @@ c--disc struggling to adapt to the sudden addition.
                      iphase(i) = -1
                      nlistinactive = nlistinactive + 1
                      listinactive(nlistinactive) = i
-                  ELSE
+                  ELSEIF (iok2.EQ.'y') THEN
                   vxtmp = vxyzu(1,i)
                   vytmp = vxyzu(2,i)
                   vztmp = vxyzu(3,i)
@@ -371,8 +371,10 @@ c               CALL hcalc ! to get B/rho from B
             ENDIF
          ENDIF               
 
-         CALL wrinsph
+         PRINT *, 'writing image just read on output file'
+         imo = imo + 1
 
+         CALL wrinsph
 c
 c--Dump new file
 c

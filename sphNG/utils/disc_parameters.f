@@ -457,10 +457,11 @@ C$OMP& shared(iunique_sink,radsearchmax,ipartindisc,ilocal2name)
 C$OMP& shared(discmasstot,discradius,values,nptmass,listpm,use_mhd)
 C$OMP& shared(print_pts,Bmin,Bave,Bmax,Bup,Blo,Brpz_d,Brpz_bg,umagfd)
 C$OMP& shared(rhothresh,dthresh,ethresh,rho,umass,udist,utime,hacc)
+C$OMP& shared(L_align_max)
 C$OMP& private(isink,i,j,l,iii,jjj,iptcur,xsink,ysink,zsink,sinkmass)
 C$OMP& private(dx,dy,dz,ipart,xipart,yipart,zipart,dvx,dvy,dvz,Bi)
 C$OMP& private(Bdisc,Brpz_di,kn,kx,rmass)
-C$OMP& private(L_criteria,L_align_max,L_good_alignment)
+C$OMP& private(L_criteria,L_good_alignment)
 C$OMP& private(rLx,rLy,rLz,rLxt,rLyt,rLzt)
 C$OMP& private(ij,idisc_id,ns,n0,cmtoti)
 C$OMP& private(ndisc,nnotdisc,nsinks,distcomp2,jpart,r2,jjj_mindist)
@@ -687,6 +688,7 @@ c    &                    etot,semimajoraxis
      &                    radapastron.LT.dthresh     .AND.
      &                    rho(i)     .GE.rhothresh   .AND.
      &                    L_good_alignment          ) THEN
+
                         IF (i.GT.idim) THEN
                            PRINT *,'i.GT.idim'
                            STOP

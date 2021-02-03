@@ -87,6 +87,7 @@ c************************************************************
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/dustfluid'
       INCLUDE 'COMMONS/dustfluidderiv'
+      INCLUDE 'COMMONS/fullstep'
 
 c      DIMENSION nsteplist(30)
 
@@ -207,11 +208,11 @@ c
                   ENDDO
                ENDIF
 
-cccc               IF (ran1(1).LT.0.001) THEN
                nlst = nlst + 1
                llist(nlst) = i
-cccc               ENDIF
+
                iscurrent(i) = .TRUE.
+               ifullstep(i) = .TRUE.
             ENDIF
          END DO
          nlst0 = nlst
@@ -258,7 +259,7 @@ c
          CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
      &        npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz,
      &        dumdustvar,f1dust)
-       
+
          IF (itiming) THEN
             CALL getused(ts102)
             ts10 = ts10 + (ts102 - ts101)
@@ -562,9 +563,9 @@ c
             ELSE
                vxyzu(4,i) = vxyzu(4,i) + dtfull*f1vxyzu(4,i)
             ENDIF
-
-c correction of energy if using K & I cooling curve
-
+c
+c--Correction of energy if using K & I cooling curve
+c
             IF (iener.EQ.3) CALL coolcurve(vxyzu(4,i),rho(i),dtfull)
 
             IF (iener.EQ.2 .AND. vxyzu(4,i).LT.0.0) vxyzu(4,i)=0.15
@@ -988,9 +989,9 @@ c--Make or update the tree
 c
       IF (iwillupdatetree) THEN
          IF (imaketree) THEN
-            CALL insulate(1, itime, ntot, npart, dumxyzmh, f1vxyzu)
+            CALL insulate(1, itime, ntot, npart, dumxyzmh, f2vxyzu)
          ELSEIF (irevise) THEN
-            CALL insulate(2, itime, ntot, npart, dumxyzmh, f1vxyzu)
+            CALL insulate(2, itime, ntot, npart, dumxyzmh, f2vxyzu)
          ELSEIF (numberparents.NE.0) THEN
             WRITE (*,*) 'ERROR: Setting iflagtree to ZERO'
             WRITE (iprint,*) 'ERROR: Setting iflagtree to ZERO'

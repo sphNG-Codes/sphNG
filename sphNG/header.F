@@ -381,6 +381,11 @@ c
                ELSE
                   WRITE (iprint, 99651)
                ENDIF
+               IF (ioptimise_column.EQ.1) THEN
+                  WRITE (iprint, 99652)
+               ELSE
+                  WRITE (iprint, 99653)
+               ENDIF
 99620          FORMAT(' Diffuse ISM model used')
 99622          FORMAT('    Heating: Cosmic ray                   : ',L1)
 99624          FORMAT('             Photoelectric                : ',L1)
@@ -394,8 +399,10 @@ c
      &              1PE9.2)
 99640          FORMAT('                                 Redshift : ',
      &              1PE9.2)
-99650          FORMAT('    Initial conditions : Fully Atomic', //)
+99650          FORMAT('    Initial conditions : Fully Atomic', /)
 99651          FORMAT('    Initial conditions : Fully Molecular', /)
+99652          FORMAT('    Column density optimisation : ON', /)
+99653          FORMAT('    Column density optimisation : OFF', /)
             ELSE
                WRITE (iprint, 99699)
 99699          FORMAT(' Diffuse ISM model not used', /)

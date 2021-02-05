@@ -1631,7 +1631,7 @@ C$OMP& shared(ncompactlocal,iscurrent)
 C$OMP& shared(iiimax,xxmaxerrU2,xorigEU,xdUcomb,xdti,xU1i)
 C$OMP& shared(xpres_numerator,xpres_denominator,xtfour)
 C$OMP& shared(pdvvisc)
-C$OMP& shared(ibound)
+C$OMP& shared(ibound,iprint)
 C$OMP& shared(rmind,deltar,zoverh,tprof,use_tprof)
 C$OMP& shared(e_planetesimal,pcolen)
 C$OMP& shared(iunique,iorig,n1,n2,ntot)
@@ -2412,7 +2412,7 @@ c
      &           xnH2.LT.1.0E+11/metallicity)
      &           .OR. ieqtype.EQ.2)
      &           ) THEN
-               ieqtype= 3
+               ieqtype = ieqtype + 3
 
                betaval = 0.
                gammaval = 0.
@@ -2633,7 +2633,7 @@ c
                      ENDIF
                   END DO
 C$OMP CRITICAL(quart)
-                  print *,"N-R failed for ieqtype=3, try again"
+                  print *,"N-R failed for ieqtype = 3, try again"
             print *,"ngs ",u4term,u1term,u0term,betaval,chival,gammaval
             print *,"    ",ekcle(2,i),rhoi,dti
             print *,"    ",diffusion_denominator,diffusion_numerator
@@ -2665,7 +2665,7 @@ c     actually the gas-radiation term (i.e. uses kappa from opacity tables
 c     which is based on the gas temperature, and uses (u/cv) rather than T_d.)
 c
             ELSEIF (idustRT.GT.0) THEN
-               ieqtype = 2
+ 777           ieqtype = ieqtype + 2
 
                gas_temp = EU0(2,i)/ekcle(3,i)
                xnH2 = rhoi*udens/(gmw*mH)
@@ -2779,7 +2779,7 @@ C$OMP CRITICAL(quart)
             print *,"    ",dti*diffusion_numerator*betaval,
      &           stellarradiation*betaval,gas_dust_val
 C$OMP END CRITICAL(quart)
-               IF (ieqtype.NE.2) THEN
+               IF (ieqtype.EQ.0 .OR. ieqtype.GE.3) THEN
 C$OMP CRITICAL (moresweepset)
                   moresweep=.TRUE.
 C$OMP END CRITICAL (moresweepset)
@@ -2798,7 +2798,7 @@ C$OMP END CRITICAL (moresweepset)
      &           moresweep2,i)
 
             IF (moresweep2) THEN
-               IF (ieqtype.NE.2) THEN
+               IF (ieqtype.EQ.0 .OR. ieqtype.GE.3) THEN
 C$OMP CRITICAL (moresweepset)
                   moresweep=.TRUE.
                   PRINT *,"Info: ",EU0(2,I)/ekcle(3,i),xyzmh(1,i),
@@ -2849,14 +2849,19 @@ C$OMP END CRITICAL (moresweepset)
             ENDIF
 
             IF(E1i.LE.0.0) THEN
-               IF (ieqtype.NE.2) THEN
+               IF (ieqtype.EQ.0 .OR. ieqtype.GT.3) THEN
 C$OMP CRITICAL (moresweepset)
                   moresweep=.TRUE.
                   PRINT *,"GSIMPL: E has gone negative ",i,xyzmh(1,i),
      &                 xyzmh(2,i),xyzmh(3,i),dust_tempi,gas_temp,rhoi
 C$OMP END CRITICAL (moresweepset)
-               ELSE
+               ELSEIF (ieqtype.EQ.3) THEN
+                  GOTO 777
+               ELSEIF (ieqtype.EQ.2) THEN
                   GOTO 456
+               ELSE
+                  WRITE (iprint,*) 'ERROR - ieqtype = ',ieqtype
+                  CALL quit(1)
                ENDIF
             END IF
 c

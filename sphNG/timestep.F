@@ -45,6 +45,9 @@ c************************************************************
       INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/dissi'
       INCLUDE 'COMMONS/planetesimal'
+      INCLUDE 'COMMONS/timecrit'
+
+      REAL rmodall(15)
 
       xlog2 = 0.30103
       istepmin = imax
@@ -65,12 +68,14 @@ C$OMP& shared(iorig,nptmass,listpm,listrealpm,encal)
 C$OMP& shared(ifsvi,alphaMM,iptsoft,ptsoft,iresist,etamhd)
 C$OMP& shared(iptmass,hacc,haccall,ptmcrit,radcrit)
 C$OMP& shared(iplanetesimals,gasdrag,planetesimaltimestep)
+C$OMP& shared(timestepcriterion)
 C$OMP& private(rmodgd)
 C$OMP& private(i,j,l,ll,xmindist,iptcur,rad2)
 C$OMP& private(divvi,aux1,aux2,aux3,denom,valfven2,rmodcool)
 C$OMP& private(crstepi,rmodcr,rmodvel,force2,rmod,vel2,coolstepi)
 C$OMP& private(stepi,ibin,istep2,irat,softrad,rad,omega,omega1,tcool)
 C$OMP& private(Bxi,Byi,Bzi,xi,yi,zi,dti,dteta,rmodeta,etai)
+C$OMP& private(rmodall,rmod_du)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin)
 C$OMP& reduction(MIN:istepmingasnew)
@@ -81,7 +86,7 @@ c
 C$OMP DO SCHEDULE(runtime)
       DO j = 1, nlst
          i = llist(j)
-c         write (13,*) i, 'print1'
+         rmodall(:) = 1.0E+30
 c
 c--Compute timestep from force condition
 c
@@ -113,7 +118,7 @@ c
          ELSE
             rmod = 1.0E+30
          ENDIF
-c         write (13,*) rmod, 'print2',force2         
+         rmodall(5) = rmod
 c
 c--For sink particles, also use velocity criterion
 c
@@ -189,17 +194,28 @@ c     &                      + Bxyz(3,i)*Bxyz(3,i))/rho(i)
             crstepi = Courant*xyzmh(5,i)/denom
             rmodcr = crstepi/(dt*isteps(i)/imaxstep)
             rmod = MIN(rmod, rmodcr)
+            rmodall(6) = rmodcr
          ELSEIF (iphase(i).GE.10) THEN
             IF (iphase(i).EQ.11 .AND. gasdrag) THEN
                rmodgd = 0.1*planetesimaltimestep(i)/
      &              (dt*isteps(i)/imaxstep)
             ELSE
-               rmodgd = 1.0E10
+               rmodgd = 1.0E+30
             ENDIF
-c            IF (rmodgd.LT.rmod) print *, 'Use rmodgd ', rmod, rmodgd
             rmod = MIN(rmod, rmodgd)
+            rmodall(8) = rmodgd
          ENDIF
-c         write (13,*) rmod, 'print3'
+c
+c--Timestep from change in thermal energy
+c
+         IF (iradtrans.EQ.idim .AND. encal.EQ.'r') THEN
+            IF (fxyzu(4,i).GT.tiny) THEN
+               rmod_du = 0.1*ABS(vxyzu(4,i)/fxyzu(4,i))/
+     &              (dt*isteps(i)/imaxstep)
+               rmod = MIN(rmod,rmod_du)
+               rmodall(9) = rmod_du
+            ENDIF
+         ENDIF
 c
 c--New timestep for cooling equation of state
 c
@@ -211,8 +227,8 @@ c
              tcool = 5.0 * omega1
              coolstepi = 0.01 * tcool
              rmodcool = coolstepi/(dt*isteps(i)/imaxstep)
-c             PRINT *,rmod,rmodcool
              rmod = MIN(rmod,rmodcool)
+             rmodall(13) = rmodcool
          END IF
 c
 c--New timestep if particles cross boundaries
@@ -223,7 +239,7 @@ c
      &              xyzmh(3,i),vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),
      &              fxyzu(1,i),fxyzu(2,i),fxyzu(3,i),dti)/
      &              (dt*isteps(i)/imaxstep))   
-         END IF         
+         END IF
 c
 c--Check resistive diffusion time
 c
@@ -240,6 +256,7 @@ c           resistivity which is a function of density
                         etafac = etafac 
      &                       + rmod*(dt*isteps(i)/imaxstep)/dteta
                         rmod = MIN(rmod, rmodeta)
+                        rmodall(14) = rmodeta
                      ENDIF
                   ENDIF
                ELSEIF (iresist.EQ.1) THEN
@@ -252,11 +269,16 @@ c           constant resistivity
                         etafac = etafac 
      &                       + rmod*(dt*isteps(i)/imaxstep)/dteta
                         rmod = MIN(rmod, rmodeta)
+                        rmodall(14) = rmodeta
                      ENDIF
                   ENDIF
                ENDIF
             ENDIF
          ENDIF
+c
+c--Record limiting criterion for timestep
+c
+         timestepcriterion(i) = MINLOC(rmodall,DIM=1)
 c
 c--Reduce time step (no synchronization needed)
 c

@@ -88,8 +88,8 @@ c************************************************************
       INCLUDE 'COMMONS/dustfluid'
       INCLUDE 'COMMONS/dustfluidderiv'
       INCLUDE 'COMMONS/fullstep'
-
-c      DIMENSION nsteplist(30)
+      INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/stellarradiation'
 
       LOGICAL ifirst
       LOGICAL icenter
@@ -185,6 +185,25 @@ c--Set current integer time and integer time of next force evaluation
 c
                it0(i) = 0
                it2(i) = isteps(i)
+               IF (idustRT.GT.0) THEN
+                  IF (gt.EQ.0.0) THEN
+c
+c--Set gas initially to be entirely atomic or entirely molecular (=0.5)
+c     and unionised
+c
+                     IF (iphase(i).EQ.0) THEN
+                        IF (iatomic) THEN
+                           h2frac(i) = 0.0
+                        ELSE
+                           h2frac(i) = 0.5
+                        ENDIF
+                     ENDIF
+                     dh2dt(1,i) = 0.0
+                     dh2dt(2,i) = 0.0
+                     IF (idim_ionisation.EQ.idim) HIIion(i) = 0.
+                  ENDIF
+                  IF (ioptimise_column.EQ.1) icolumnnext(i) = 0
+               ENDIF
 c
 c--Set dummy variables at force evaluation time (need dummys in general
 c     because need to predict properties of particles that are on different
@@ -375,7 +394,16 @@ c
          rhomaxsync = 0.
          DO i = 1, npart
             iscurrent(i) = .FALSE.
-            rhomaxsync = MAX(rhomaxsync, rho(i))
+            IF (iphase(i).EQ.0) rhomaxsync = MAX(rhomaxsync, rho(i))
+
+            IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
+               IF (i.LE.npart) THEN
+                  IF (iphase(i).EQ.0) THEN
+                     CALL optimise_column_density(i,itime,ntot)
+                  ENDIF
+               ENDIF
+            ENDIF
+
          END DO
 
       ELSE
@@ -504,6 +532,7 @@ C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,listrealpm)
 C$OMP& shared(ifsvi,alphaMM,alphamax,Bevolxyz,encal,gt)
 C$OMP& shared(pdvvisc,dumvxyzu)
+C$OMP& shared(h2frac,dh2dt,HIIion,dHIIdt,deltaHII)
 C$OMP& private(i,j,k,dtfull,dthalf,delvx,delvy,delvz)
 C$OMP& private(iii,pmasspt)
 C$OMP& reduction(+:ioutmax)
@@ -552,12 +581,28 @@ c
             ymomsyn(iii) = ymomsyn(iii) + delvy*pmasspt
             zmomsyn(iii) = zmomsyn(iii) + delvz*pmasspt
          ELSE
+            IF (istellar_ionisation) THEN
+               deltaHII = dtfull*dHIIdt(1,i)
+               IF (deltaHII.LT.0.) THEN
+                  HIIion(i) = HIIion(i)/(1.0 - HIIion(i)*deltaHII)
+               ELSE
+                  HIIion(i) = MIN(1.0,MAX(0.0,HIIion(i) +
+     &                 dtfull*dHIIdt(1,i) ))
+               ENDIF
+            ENDIF
 c
 c--Update u(i) and h(i)
 c
             IF (encal.EQ.'r') THEN
                vxyzu(4,i) = dumvxyzu(4,i)
                pdvvisc(i) = dtfull*f1vxyzu(4,i)
+c
+c--Evolve molecular hydrogen fraction if encal='r' and idustRT=1
+c
+               IF (idustRT.GT.0) THEN
+                  h2frac(i) = MIN(0.5,MAX(0.0,h2frac(i) +
+     &                 dtfull*dh2dt(1,i) ))
+               ENDIF
             ELSEIF (encal.EQ.'m') THEN
                vxyzu(4,i) = dumvxyzu(4,i)
             ELSE
@@ -1034,6 +1079,7 @@ C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,xyzmh,gt)
 C$OMP& shared(ivelocity_iterations,dumvxyzu)
 C$OMP& shared(encal,ifsvi,alphaMM,alphamax,f1ha,f2ha)
 C$OMP& shared(Bevolxyz,f1Bxyz,f2Bxyz)
+C$OMP& shared(dh2dt,dHIIdt)
 C$OMP& private(i,j,k,dthalf,delvx,delvy,delvz,delu,iii,pmasspt)
       DO j = 1, nlst
          i = llist(j)
@@ -1081,13 +1127,23 @@ c
                   Bevolxyz(k,i) = Bevolxyz(k,i) + 
      &                 dthalf*(f2Bxyz(k,i)-f1Bxyz(k,i))
                END DO
+               f1Bxyz(:,i) = f2Bxyz(:,i)
             ENDIF
 c
 c--Move accelerations at t=n+1 to be new t=n accelerations
 c
             f1vxyzu(:,i) = f2vxyzu(:,i)
             f1ha(:,i) = f2ha(:,i)
-            f1Bxyz(:,i) = f2Bxyz(:,i)
+c
+c--These are the time derivatives of the H_2 and HII fractions
+c
+            IF (idustRT.GT.0) THEN
+               dh2dt(1,i) = dh2dt(2,i)
+            ENDIF
+            IF (istellar_ionisation) THEN
+               dHIIdt(1,i) = dHIIdt(2,i)
+            ENDIF
+
          ELSE
             dumvxyzu(1,i) = dumvxyzu(1,i) + delvx
             dumvxyzu(2,i) = dumvxyzu(2,i) + delvy
@@ -1197,9 +1253,6 @@ C$OMP& shared(xyzmh,dumxyzmh,iphase)
 C$OMP& shared(ikilled,time)
 C$OMP& shared(dumBevolxyz,Bevolxyz)
 C$OMP& private(i,j,k)
-c
-c--Compute new time steps for particles which have been advanced
-c
 C$OMP DO SCHEDULE(runtime)
       DO j = 1, nlst
          i = llist(j)
@@ -1246,6 +1299,52 @@ C$OMP END PARALLEL
       IF (itiming) THEN
          CALL getused(ts92)
          ts9 = ts9 + (ts92 - ts91)
+      ENDIF
+c
+c--Optimisation so that if column density doesn't change much from step to
+c     step, don't recalculate it every particle time step.  Next time
+c     to calculate column density needs to be set here after particle
+c     has converged on its smoothing length (i.e. it is not still being
+c     iterated over).
+c
+      IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst0,llist,iphase,itime,icolumnnext,icolumnsteps,ntot)
+C$OMP& shared(isteps,it1,it2,imaxstep)
+C$OMP& private(ipart,j)
+         DO j = 1, nlst0
+            ipart = llist(j)
+            IF (iphase(ipart).EQ.0) THEN
+               IF (itime.GE.icolumnnext(ipart)) THEN
+                  IF (itime.GT.icolumnnext(ipart)) THEN
+                     WRITE (*,*)
+     &                    'ERROR - itime.GT.icolumnnext(ipart)3 ',
+     &                    itime,icolumnnext(ipart), ipart
+                  ENDIF
+                  CALL optimise_column_density(ipart,itime,ntot)
+
+                  icolumnsteps(ipart) = MAX(icolumnsteps(ipart),
+     &                 isteps(ipart))
+                  icolumnnext(ipart) = itime + icolumnsteps(ipart)
+                  IF (icolumnnext(ipart).LT.it2(ipart))
+     &                 icolumnnext(ipart) = it2(ipart)
+                  icolumnnext(ipart) = MIN(icolumnnext(ipart), imaxstep)
+               ELSE
+c
+c--Check whether recent change of timestep may require alteration of
+c     icolumnnext(ipart)
+c
+                  IF (MOD(icolumnnext(ipart)-itime,
+     &                 isteps(ipart)).NE.0) THEN
+                     WRITE (*,*) 'NEEDED TO CHANGE icolumnnext ',
+     &                    ipart,icolumnnext(ipart),itime,isteps(ipart),
+     &                    it2(ipart)
+                     icolumnnext(ipart) = it2(ipart)
+                  ENDIF
+               ENDIF
+            ENDIF
+         END DO
+C$OMP END PARALLEL DO
       ENDIF
 c
 c--Allow for tracing flow
@@ -2018,6 +2117,12 @@ c
             IF (iphase(i).NE.-1) THEN
                it0(i) = 0
                it2(i) = isteps(i)
+
+               IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1 .AND.
+     &              iphase(i).EQ.0) THEN
+                  icolumnsteps(i) = MAX(icolumnsteps(i),isteps(i))
+                  icolumnnext(i) = icolumnsteps(i)
+               ENDIF
 
                ibin = INT(LOG10(REAL(isteps(i)))/xlog2+0.5)
                IF (ibin.GT.nbinmax) THEN

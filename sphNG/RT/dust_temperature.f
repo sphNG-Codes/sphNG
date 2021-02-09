@@ -909,7 +909,7 @@ c     Assume that OI abundance scales with x_CO abundance (not
 c     including depletion).
 c
          oxygen = 2.5E-27 * xnH**2 * (gas_temp/100.0)**0.4 * metallicity
-         oxygen = oxygen*(1.0-x_CO)
+         oxygen = oxygen*(1.0-0.99*x_CO)
 c         oxygen = oxygen*(1.0-2.0*h2frac)
          IF (gas_temp.GT.4.0) THEN
             oxygen = oxygen * EXP(-228.0/gas_temp)

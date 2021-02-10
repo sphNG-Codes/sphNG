@@ -1,0 +1,4 @@
+      PARAMETER (nhosokawa_max=250)
+      INTEGER nhosokawa
+      REAL*4 hosokawa
+      COMMON /hosokawaT/ hosokawa(4,nhosokawa_max),nhosokawa

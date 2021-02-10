@@ -1425,7 +1425,7 @@ C$OMP& private(cooling,gas_dust,cosmic_ray,func_gas,derivative)
 C$OMP& private(heatingISRi,Gphotoelectrici,ext,exp_Av,itemp)
 C$OMP& private(u_found,cv_val,gas_temp,ijk,frac_change,h2column)
 C$OMP& private(columnnumberdensity,expext,selfval,selffac,selfshield)
-C$OMP& private(exp_selfval)
+C$OMP& private(exp_selfval,Qabs550)
 C$OMP& private(iconvergence1,iconvergence2,iconvergence3)
 C$OMP& reduction(MAX:rhonext,imaxit)
 C$OMP& reduction(+:inumit,inumfixed,inumrecalc,nwarnup,nwarndown)
@@ -1644,7 +1644,7 @@ c
      &                                + bounddens
 
                                  ext = columnnumberdensity * 
-     &                                Qv(c/0.0000550)
+     &                                Qv(c/0.0000550,Qabs550)
 
                                  heatingISRi = heatingISRi + 
      &                                get_heatingISR(ext)

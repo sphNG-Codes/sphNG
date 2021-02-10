@@ -5,7 +5,7 @@ c     and the integral of B_v (i.e. without absorption), but both with
 c     extinction for the (gray) stellar radiation field from sink
 c     particles.  Builds a lookup table with extinction values
 c     from A_V = 10^-3 to A_V = ~1200 in log-space, and for stellar
-c     temperatures T=1000 to ~55000.
+c     temperatures T=1000 to ~55,000 K.
 c
 c--NOTE: The values are in cgs units, not code units.
 c
@@ -34,9 +34,11 @@ c
                v = v / 1.0E+10
                xJ = planck(v,T)
                IF (xJ.GT.1e-40 .AND. v.GT.0.1) THEN
-                  quantity = EXP(-A_V/1.086*Qv(v)/
-     &                 Qv(c/0.0000550) ) * xJ*v*dlogv
-                  x_integral = x_integral + quantity * Qv(v)
+                  Qtot = Qv(v,Qabs)
+                  Qtot550 = Qv(c/0.0000550,Qabs550)
+                  quantity = EXP(-A_V/1.086*Qtot/
+     &                 Qtot550 ) * xJ*v*dlogv
+                  x_integral = x_integral + quantity * Qabs
                   x_integral2 = x_integral2 + quantity
                ENDIF
             END DO
@@ -46,7 +48,7 @@ c     the star's luminosity = 4*pi*R^2 * sigma_B*T^4
 c     This can checked by commenting out the absorption terms in the 
 c     integral.
 c
-            stellar_AvT_table(1,j,k) = x_integral
+            stellar_AvT_table(1,j,k) = x_integral * pi
             stellar_AvT_table(2,j,k) = x_integral2 * pi
 
 c            WRITE (40,*) T,A_V,stellar_AvT_table(1,j,k)

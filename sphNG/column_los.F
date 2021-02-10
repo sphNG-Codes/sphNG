@@ -220,8 +220,10 @@ c
      &              pmassn**2/(hn)**5
      &              + quantity3 * pmassn**2/(hn)**3)
 
-               column_to_sinks(4,isink) = column_to_sinks(4,isink) +
+               IF (istellar_ionisation) THEN
+                  column_to_sinks(4,isink) = column_to_sinks(4,isink) +
      &              distance2(indx(j)) * contribution * (1.0-HIIion(n))
+               ENDIF
 
             ENDIF
 
@@ -239,7 +241,7 @@ c
          column_n2 = column_to_sinks(3,isink)* hfact**3 *
      &        (umass**2/udist**3) ! /(gmw*1.67E-24)**2
 
-         ext = columnnumberdensity * Qv(c/0.0000550)
+         ext = columnnumberdensity * Qv(c/0.0000550,Qabs550)
 c         ext = 0.
 c
 c--Compute the extinction of the ISR for the dust, the photoelectric

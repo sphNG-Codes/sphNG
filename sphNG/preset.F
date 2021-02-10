@@ -61,14 +61,15 @@ c************************************************************
       INCLUDE 'COMMONS/radtran3'
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/pxpy'
+      INCLUDE 'COMMONS/physcon'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/vargam'
-      INCLUDE 'COMMONS/physcon'
 #endif
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/lyonfiles'
+      INCLUDE 'COMMONS/hosokawa'
 
       CHARACTER*7 where
       CHARACTER*6 dummy
@@ -208,7 +209,7 @@ c
      &        alphaMM(1,i).EQ.0.0) THEN
             DO k = 1, isizealphaMM
                alphaMM(k,i) = alphamin(k)
-            ENDDO
+            END DO
 c
 c--always initialise resistivity (assumes constant value of alphamin
 c  if ifsvi.lt.6)
@@ -352,8 +353,7 @@ c
 c--Read in low temperature opacity model (used if last digit = 0)
 c
          imodop = MOD(iopmodel,10)
-         IF (imodop.EQ.0 .OR. imodop.EQ.1) THEN
-c         IF (imodop.EQ.0) THEN
+         IF (imodop.EQ.0 .OR. imodop.EQ.1 .OR. imodop.EQ.2) THEN
 c
 c--This is also the default opacity model (for both high and low temperature)
 c     The "opacitytbl" file here is to take the full opacity table
@@ -369,13 +369,44 @@ c            OPEN(UNIT=8,FILE='/home/mrbate/tables/opacitytbl')
             OPEN(itablerd,FILE=filetable,STATUS='old',ACTION='read')
             DO i=1, opmxtg
                READ(itablerd,*) (optable(i,j), j=1, opmxrh)
-            ENDDO
+            END DO
             CLOSE(itablerd)
-         ELSEIF (MOD(iopmodel,10).EQ.1) THEN
-            WRITE (*,*) 'WARNING - optable using gas opacities only'
          ELSE
             WRITE (*,*) 'ERROR - unknown low-T opacity model'
             CALL quit(0)
+         ENDIF
+c
+c--If using imodop.EQ.2, then also read in opacities from other tables
+c
+         IF (imodop.EQ.2) THEN
+            IF (idustRT.EQ.0) THEN
+               WRITE (*,*) 'ERROR - need idustRT.NE.0 for non-grey RT'
+               CALL quit(0)
+            ENDIF
+c            filetable = TRIM(homedir)//
+c     &           'tables/opacitytbl_DL1984_012mu_albedo.txt'
+            filetable = TRIM(homedir)//
+     &           'tables/opacitytbl_DL1984_1mu_albedo.dat'
+            OPEN(itablerd,FILE=filetable,STATUS='old',ACTION='read')
+            READ(itablerd,*)
+            READ(itablerd,*)
+            DO i = 1, nopacity_lambda
+               READ(itablerd,*) opacity_vs_lambda(1,i),
+     &              opacity_vs_lambda(2,i), opacity_vs_lambda(3,i)
+               opacity_vs_lambda(1,i) = LOG10(opacity_vs_lambda(1,i))
+               opacity_vs_lambda(2,i) = LOG10(opacity_vs_lambda(2,i))
+               opacity_vs_lambda(3,i) = LOG10(opacity_vs_lambda(3,i))
+            END DO
+            CLOSE(itablerd)
+c
+c--Test opacities
+c
+c            DO i = 1, 2000
+c               v = c/(1.0E-05*(1.01)**i)
+c               vv = Qv(v,Qabs)
+c               WRITE (200,*) 1.0E-05*(1.01)**i,vv,Qabs
+c            END DO
+c            CALL quit(0)
          ENDIF
 c
 c--Read in high temperature opacity models
@@ -489,7 +520,7 @@ c
             DO i=opmxtg_ferguson, 2, -1
                READ(itablerd,*) 
      &            (optable_ferguson(i,j,k), j=1, opmxR_ferguson)
-            ENDDO
+            END DO
             CLOSE(itablerd)
             Tmax_ferguson = optable_ferguson(opmxtg_ferguson,1,k)
             Tmin_ferguson = optable_ferguson(2,1,k)
@@ -513,7 +544,7 @@ c
          OPEN(itablerd,FILE=filetable,STATUS='old',ACTION='read')
          DO i=1, duslen
             READ(itablerd,*) (dusttable(i,j), j=1, duswid)
-         ENDDO
+         END DO
          CLOSE(itablerd)
 
       ENDIF
@@ -536,7 +567,7 @@ c         filetable = TRIM(homedir)//'tables/gasttbl'
      &        STATUS='old',ACTION='read')
          DO i=1, tgmxu
             READ(itablerd) (tgtable(i,j), j=1, tgmxrh)
-         ENDDO
+         END DO
          CLOSE(itablerd)
 
 #ifdef ENDIANBIG
@@ -549,7 +580,7 @@ c         filetable = TRIM(homedir)//'tables/utbl'
      &        STATUS='old',ACTION='read')
          DO i=1, umxrh
             READ(itablerd) (utable(j,i), j=1, umxt)
-         ENDDO
+         END DO
          CLOSE(itablerd)
  
 #ifdef ENDIANBIG
@@ -563,7 +594,7 @@ c         filetable = TRIM(homedir)//'tables/molmasstbl'
      &        STATUS='old',ACTION='read')
          DO i=1, mumxu
             READ(itablerd) (mutable(i,j), j=1, mumxrh)
-         ENDDO
+         END DO
          CLOSE(itablerd)
       ENDIF
 
@@ -572,7 +603,7 @@ c         filetable = TRIM(homedir)//'tables/molmasstbl'
          OPEN(itablerd,FILE=filetable,STATUS='old',ACTION='read')
          DO i=1, gaplen
             READ(itablerd,*) (gaptable(i,j), j=1, gapwid)
-         ENDDO
+         END DO
          CLOSE(itablerd)
       ENDIF
 c
@@ -666,7 +697,7 @@ c
          pminc = pminc*5.9742E27/umass
          DO i = 1, mbins
             READ (itablerd,*) (ptable(i,j), j = 1, rbins)
-         ENDDO
+         END DO
          CLOSE(itablerd)
          DO i = 1, mbins
             DO j = 1, rbins
@@ -675,8 +706,8 @@ c  stating units of erg/g, they are actually erg/(g.s) (see e-mail
 c  correspondence, 4th March 2011). They are also not logged as
 c  originally stated.
                ptable(i,j) = (ptable(i,j))*utime/uergg
-            ENDDO
-         ENDDO
+            END DO
+         END DO
       ENDIF
 
       IF ((ibound.EQ.101 .OR. ibound.EQ.102 .OR. ibound.EQ.103) 
@@ -739,6 +770,32 @@ c
          CALL build_kernel_n2
          CALL build_stellar_radiation_table
 c         CALL build_radpres_table
+c
+c--Initialise *arrays*
+c
+         stellarsum = 0.
+         istellar_location = 1
+c
+c--Read Hosokawa stellar evolution tables for accreting protostars
+c
+         filetable = TRIM(homedir)//
+     &        'tables/Hosokawa/md3.dat'
+         OPEN(itablerd,FILE=filetable,STATUS='old',ACTION='read')
+         READ(itablerd,*)
+         nhosokawa = 0
+         DO i = 1, nhosokawa_max
+c
+c--Read stellar mass, radius, luminosity & total luminosity (+accretion)
+c
+            READ(itablerd,*,END=240) dummy,hosokawa(1,i),
+     &           hosokawa(2,i),dummy,hosokawa(3,i),hosokawa(4,i)
+            nhosokawa = nhosokawa + 1
+         END DO
+ 240     CLOSE(itablerd)
+         IF (nhosokawa.EQ.0) THEN
+            WRITE (*,*) 'ERROR - nhosokawa.EQ.0'
+            CALL quit(0)
+         ENDIF
       ENDIF
 c
 c--Initialise non-ideal MHD

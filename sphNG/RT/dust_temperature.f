@@ -384,12 +384,14 @@ c
             v = v / 1.0E+10
             xJ = xJ_is(v)
             IF (xJ.GT.1e-40 .AND. v.GT.0.1) THEN
-               x_integral = x_integral + EXP(-A_V/1.086*Qv(v)/
-     &              Qv(c/0.0000550) )*Qv(v)*xJ*v*dlogv
+               Qtot = Qv(v,Qabs)
+               Qtot550 = Qv(c/0.0000550,Qabs550)
+               x_integral = x_integral + EXP(-A_V/1.086*Qtot/
+     &              Qtot550 )*Qabs*xJ*v*dlogv
             ENDIF
-c            WRITE (23,*) v, xJ, Qv(v)
-c            WRITE (24,*) v, exp(-10.0/1.086*Qv(v)/
-c     &           Qv(c/0.0000550) )*Qv(v)*xJ*v*dlogv
+c            WRITE (23,*) v, xJ, Qtot, Qabs
+c            WRITE (24,*) v, exp(-10.0/1.086*Qtot/
+c     &           Qtot550 )*Qabs*xJ*v*dlogv
          END DO
          ISR_table(j) = x_integral
 c         print *,'IS value ',j,x_integral
@@ -445,8 +447,10 @@ c
             IF (xJ.GT.1e-40 .AND. v.GT.6.0*eleccharge/planckconst 
      &          .AND.  v.LT.13.6*eleccharge/planckconst
      &           ) THEN
-               x_integral = x_integral + EXP(-A_V/1.086*Qv(v)/
-     &              Qv(c/0.0000550) )*xJ*v*dlogv
+               Qtot = Qv(v,Qabs)
+               Qtot550 = Qv(c/0.0000550,Qabs550)
+               x_integral = x_integral + EXP(-A_V/1.086*Qtot/
+     &              Qtot550 )*xJ*v*dlogv
                x_norm = x_norm + xJ*v*dlogv
             ENDIF
          END DO
@@ -492,7 +496,8 @@ c
             v = v / 1.0E+10
             xJ = planck(v,T)
             IF (xJ.GT.1e-40 .AND. v.GT.0.1) THEN
-               x_integral = x_integral + Qv(v)*xJ*v*dlogv
+               Qtot = Qv(v,Qabs)
+               x_integral = x_integral + Qabs*xJ*v*dlogv
             ENDIF
          END DO
          x_integral = x_integral*pi/(T**4*stefanboltz)/(gmw*mH)

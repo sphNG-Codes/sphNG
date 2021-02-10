@@ -294,7 +294,7 @@ c
          h2column = columndensity(k,2)*
      &        umass/udist**2 /(gmw*1.67E-24) + bounddens
 
-         ext = columnnumberdensity * Qv(c/0.0000550)
+         ext = columnnumberdensity * Qv(c/0.0000550,Qabs550)
 c         ext = 0.
 
 c
@@ -321,7 +321,7 @@ c
 c--Print out the progress (if required)
 c
 c      IF (MOD(m,100000).EQ.0) print *,m,heatingISRi,columndensitymean,
-c     &     Qv(c/0.0000550)/(gmw*1.67E-24)
+c     &     Qv(c/0.0000550,Qabs550)/(gmw*1.67E-24)
 #endif
 
  100  RETURN

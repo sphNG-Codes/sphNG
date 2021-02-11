@@ -775,6 +775,8 @@ c
          CALL build_kernel_column
          CALL build_kernel_n2
          CALL build_stellar_radiation_table
+         IF (istellar_ionisation)
+     &        CALL build_photoionisation_heating_rate_table
 c         CALL build_radpres_table
 c
 c--Initialise *arrays*

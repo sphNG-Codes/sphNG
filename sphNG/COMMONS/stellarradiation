@@ -54,6 +54,7 @@ c
       REAL*4 stellar_AvT_table, radpres_table
       REAL*8 stellar_radpres,stellarrad
       REAL*8 stellarflux_vec,divstellarflux,asymmetry,stellar_tau
+      REAL*4 photoionisation_heating_T_table
 
       COMMON /stellarrad_t/ stellar_AvT_table(2,nstellar_Av,nstellar_T),
      &       radpres_table(nstellar_radpres)
@@ -64,3 +65,4 @@ c
      &       divstellarflux(idim_stellarrad)
       COMMON /stellarasym/ asymmetry(3*idim_stellarrad),
      &       stellar_tau(idim_stellarrad)
+      COMMON /stellar_i/ photoionisation_heating_T_table(nstellar_T)

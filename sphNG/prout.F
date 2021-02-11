@@ -59,6 +59,7 @@ c************************************************************
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/accstat'
       INCLUDE 'COMMONS/rtstat'
+      INCLUDE 'COMMONS/stellarradiation'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
 
@@ -713,6 +714,19 @@ c
 66003       FORMAT (/,
      &   ' total magnetic flux  (int div B dV)   : ', 1PE14.5,/,
      &   ' total cross helicity (int v.B dV)     : ', 1PE14.5)
+         ENDIF
+c
+c--Stellar radiation
+c
+         IF (istellar_radiation .AND. nptmasstot.GT.0) THEN
+            WRITE (iprint, *, ERR=100)
+            WRITE (iprint, *, ERR=100) 'Stellar radiation :'
+            DO i = 1, nptmasstot
+               WRITE (iprint, 67000, ERR=100) i,stellar_xyzmhrti(4,i),
+     &              stellar_xyzmhrti(6:8,i)
+67000          FORMAT (' Star: ',I4,'   M*: ',1PE8.2,' R*: ',1PE8.2,
+     &              ' T*: ',1PE10.4,' Ionising flux: ',1PE8.2)
+            END DO
          ENDIF
 c
 c--Object no 1

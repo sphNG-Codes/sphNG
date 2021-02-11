@@ -317,19 +317,39 @@ c
          rho(i) = 0.
          dgrav(i) = 0.
       END DO
-      
-      WRITE (*,*) 'Number of point masses created: ',nptmass
 c
-c--If stellar ionisation, then set ionising photon rate from point masses
+c--If stellar radiative feedback, need to set parameters, but with MPI
+c     only process 0 needs to do anything with the data.
 c
-      IF (istellar_ionisation) THEN
-         WRITE (*,*) 'Enter ionising flux from each sink particle'
-         DO i = 1, nptmass
-            READ (*,*) flux
-            stellar_radtempion(1:2,i) = 0.
-            stellar_radtempion(3,i) = flux
-         END DO
+#ifdef MPI
+      IF (iproc.NE.0) THEN
+         nptmass = 0
+         nptmasstot = 1
+         READ (iread,*)
+         READ (iread,*)
+         READ (iread,*) junk
+      ELSE
+         nptmasstot = 1
+#endif MPI
+         WRITE (*,*) 'Number of point masses created: ',nptmass
+c
+c--Set stellar radius, temperature & ionising photon rate for ptmasses
+c
+         IF (istellar_radiation .AND. nptmass.GT.0) THEN
+            WRITE (*,*) 'Enter radius, effective temperature, and ',
+     &           'ionising flux from each sink particle'
+            DO i = 1, nptmass
+               READ (iread,*) stelrad
+               READ (iread,*) steltemp
+               stellar_radtempion(1,i) = stelrad
+               stellar_radtempion(2,i) = steltemp
+               READ (iread,*) flux
+               stellar_radtempion(3,i) = flux
+            END DO
+         ENDIF
+#ifdef MPI
       ENDIF
+#endif MPI
 c
 c--Allow dynamic point mass creation
 c
@@ -2280,7 +2300,12 @@ c
          ENDIF
       ENDIF
 
-      IF (igeom.EQ.10 .AND. use_tprof .AND. encal.EQ.'r') CALL uset
+      IF (igeom.EQ.10 .AND. use_tprof .AND. encal.EQ.'r') THEN
+         WRITE (*,*) 'Do you want to set equilibrium gas temperature',
+     &        'profile for the disc (y/n)?'
+         READ (*,99004) iok
+         IF (iok.EQ.'y' .OR. iok.EQ.'Y') CALL uset
+      ENDIF
 c
 c--To set the initial temperatures of a star
 c

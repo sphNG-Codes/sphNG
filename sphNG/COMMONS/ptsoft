@@ -1,4 +1,4 @@
-      REAL ptsoft
+      REAL ptsoft, pt_merger_radius2
       INTEGER iptsoft
 
-      COMMON /ptsoft/ ptsoft, iptsoft
+      COMMON /ptsoft/ ptsoft, pt_merger_radius2, iptsoft

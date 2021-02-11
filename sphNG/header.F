@@ -552,18 +552,14 @@ c
 99018       FORMAT ('  Inner accretion radius        : ', 1PE12.3)
 
             WRITE (iprint,99019) iptsoft
-            IF (iptsoft.NE.0) WRITE (iprint,99020) ptsoft
+            IF (iptsoft.NE.0) WRITE (iprint,99020) 
+     &           ptsoft*udist/solarr
+            WRITE (iprint,99021)
+     &           SQRT(pt_merger_radius2)*udist/solarr
 99019       FORMAT ('  Gravity ptmass softening      : ', 10X, I2)
-99020       FORMAT ('  Softening ptmass parameter    : ', 1PE12.3)
+99020       FORMAT ('  Ptmass softening radius (Rsun): ', 1PE12.3)
+99021       FORMAT ('  Ptmass merger radius (Rsun)   : ', 1PE12.3)
 
-c            IF (nptmass.NE.0) THEN
-c               DO i = 1, nptmass
-c                  WRITE (iprint,99021) i,iphase(listpm(i)),
-c     &                 xyzmh(5,listpm(i))
-c99021             FORMAT (' Point mass: ',I4, ' type: ',I1,
-c     &                 ' hacc: ',1PE12.3)
-c               END DO
-c            ENDIF
          ENDIF
 
       ENDIF

@@ -311,6 +311,12 @@ c--Gravitational softening for ptmass-ptmass interactions
 c
       iptsoft = 1
       ptsoft = 0.02*au/udist
+c
+c--Define the merger radius (squared) for the sink particles (may be 
+c     related to the gravitational softening radius defined above)
+c
+      merger_radius2 = (6.0*solarr/udist)**2
+
 
 #ifdef MPIALL
       print *,iproc,': Preset Db '

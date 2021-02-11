@@ -19,6 +19,7 @@ c************************************************************
       INCLUDE 'COMMONS/maspres'
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/bonnortbl'
+      INCLUDE 'COMMONS/phase'
 
       DIMENSION gauss(1001)
 
@@ -149,6 +150,39 @@ c
          fractot = fractot + disfrac(i)
          xyzmh(5,i) = xyzmh(5,i)*(rnew/r1)
       END DO
+c
+c--Leave hole?
+c
+      WRITE (*,*) 'Do you want a central hole (y/n)?'
+      READ (iread,88001) ians
+      IF (ians.EQ.'y' .OR. ians.EQ.'Y') THEN
+         WRITE (*,*) 'Enter radius of hole (code units)'
+         READ (iread,*) radhole
+         
+         DO i = nptmass + 1, npart
+            xi = xyzmh(1,i)
+            yi = xyzmh(2,i)
+            zi = xyzmh(3,i)
+            r2 = xi*xi + yi*yi + zi*zi
+            IF (r2.LT.radhole**2) iphase(i) = -1
+         END DO
+c
+c--Completely remove particles within the hole
+c
+         fractot = 0.
+         inew = nptmass + 1
+         DO i = nptmass + 1, npart
+            IF (iphase(i).EQ.0) THEN
+               IF (i.NE.inew) THEN
+                  xyzmh(:,inew) = xyzmh(:,i)
+                  disfrac(inew) = disfrac(i)
+               ENDIF
+               fractot = fractot + disfrac(inew)
+               inew = inew + 1
+            ENDIF
+         END DO
+         npart = inew - 1
+      ENDIF
 
       fractot = fractot / FLOAT(npart - nptmass)
       WRITE (*,*) 'fractot=',fractot

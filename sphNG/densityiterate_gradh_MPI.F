@@ -344,7 +344,7 @@ c            ENDIF
             sightcolumns(1:nsightlinesmax,1:2,ipart) = 0.
 #endif
          ENDIF
-         IF (istellarradiation) THEN
+         IF (istellar_radiation) THEN
             stellarrad(1:4,1:nptmasstot,ipart) = 0.
          ENDIF
          IF (iplanetesimals.GT.0) THEN
@@ -391,7 +391,7 @@ c      CALL MPI_TYPE_COMMIT(i12REAL8,ierr)
       nlstdo_tot = nlstdo
 #endif
 
-      IF (istellarfeedback.GT.0 .OR. istellarradiation) THEN
+      IF (istellarfeedback.GT.0 .OR. istellar_radiation) THEN
 c
 c--For stellar radiation from sink particles, need to know about all
 c     sink particles on all MPI processes.  For non-MPI, still keep
@@ -399,7 +399,7 @@ c     this in the same array for consistency.
 c      
          DO ipt = 1, nptmass
             stellar_xyzmhrti(1:5,ipt) = xyzmh(1:5,listpm(ipt))
-            IF (istellarradiation) THEN
+            IF (istellar_radiation) THEN
                stellar_xyzmhrti(6:8,ipt) = stellar_radtempion(1:3,ipt)
             ELSE
                stellar_xyzmhrti(6:8,ipt) = 0.
@@ -747,7 +747,7 @@ C$OMP& private(i,ipart,nneighlocal)
                CALL densitygradh(ipart,itime,npart,ntot,nlstdo_tot,
      &              xyzmh,nneighlocal,dvxyzu)
 
-               IF (istellarradiation) THEN
+               IF (istellar_radiation) THEN
                   IF (iphase(ipart).EQ.0)
      &                 CALL column_los(ipart,itime,ntot,xyzmh)
                ENDIF
@@ -1026,7 +1026,7 @@ C$OMP& private(l,k,ipos,jpos)
                   END DO
 C$OMP END PARALLEL DO
                ENDIF   ! idustRT>0
-               IF (istellarradiation) THEN
+               IF (istellar_radiation) THEN
 c
 c--Transfer stellarrad contributions from other MPI processes
 c     NOTE:  This transfers the data for iptdim sink particles all at
@@ -1066,7 +1066,7 @@ C$OMP DO SCHEDULE(runtime)
                   END DO
 C$OMP END DO
 C$OMP END PARALLEL
-               ENDIF   ! istellarradiation
+               ENDIF   ! istellar_radiation
 c
 c--End circular send/receive
 c

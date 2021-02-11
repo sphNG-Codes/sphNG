@@ -797,7 +797,7 @@ c
 c--Set initial parameters for stellar radius, temperature, and ionising
 c     photon rate (all in cgs units).
 c
-         IF (istellarradiation) THEN
+         IF (istellar_radiation) THEN
             stellar_radtempion(1,nptmass) = solarr
             stellar_radtempion(2,nptmass) = 0.0
             stellar_radtempion(3,nptmass) = 1.0E+49

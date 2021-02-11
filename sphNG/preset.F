@@ -760,7 +760,7 @@ c
 c
 c--Build tables for direct stellar radiation from sink particles
 c
-      IF (istellarradiation) THEN
+      IF (istellar_radiation) THEN
          IF (istellar_ionisation .AND. idim_ionisation.NE.idim) THEN
             WRITE (*,*) 'ERROR - stellar ionisation TRUE but ',
      &           'idim_ionisation.NE.idim'

@@ -795,7 +795,7 @@ c
 c--If direct radiation field from sink particles, calculate the column
 c     densities between particles and sinks here for local particles.
 c
-      IF (istellarradiation .AND. nptmasstot.GT.0) THEN
+      IF (istellar_radiation .AND. nptmasstot.GT.0) THEN
          CALL stellar_radiation(nlst_in,nlst_end,nlst_tot,
      &        npart,ntot,itime,xyzmh)
       ENDIF

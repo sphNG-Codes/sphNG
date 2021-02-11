@@ -20,8 +20,8 @@ c      PARAMETER (idim_ionisation = idim)
 c      PARAMETER (idim_stellarrad = idim)
       PARAMETER (idim_stellarrad = 1)
 
-      LOGICAL istellarradiation
-      PARAMETER (istellarradiation = istellar_heating.OR.
+      LOGICAL istellar_radiation
+      PARAMETER (istellar_radiation = istellar_heating.OR.
      &          istellar_ionisation.OR.istellar_radpres)
 c
 c--Arrays for storing sink particle properties (from all MPI processes)

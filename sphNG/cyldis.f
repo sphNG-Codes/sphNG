@@ -80,10 +80,48 @@ c
             phi = 2.0*(ran1(1)-0.5)*pi
             xyzmh(1,i) = radius*COS(phi)
             xyzmh(2,i) = radius*SIN(phi)
-            IF (use_tprof) THEN
-               xyzmh(3,i) = radius**(0.5*(tprof+1)+1)*hoverr*gasdev(1)
+c
+c--Note: Put some fraction of the particles in sphere (excluding disc)
+c
+            IF (ran1(1).LT.0.0) THEN
+c            IF (ran1(1).LT.0.01) THEN
+c
+c--Uniform density outside disc
+c
+ 102           xyzmh(1,i) = 2.0*(ran1(1)-0.5)*rcyl
+               xyzmh(2,i) = 2.0*(ran1(1)-0.5)*rcyl
+               xyzmh(3,i) = 2.0*(ran1(1)-0.5)*rcyl
+
+               radius2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
+               boundary2 = rcyl**2 + (3.0*rcyl*hoverr)**2
+               IF (radius2.GT.boundary2
+c     &           .OR. ABS(xyzmh(3,i)/SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2))
+c     &              .LT.hoverr*3.0
+     &             ) GOTO 102
+c
+c-Stretch
+c               
+c               scalefactor = SQRT(radius2/boundary2)
+               scalefactor = radius2/boundary2
+c               scalefactor = (radius2/boundary2)**1.5
+               xyzmh(1,i) = xyzmh(1,i)*scalefactor
+               xyzmh(2,i) = xyzmh(2,i)*scalefactor
+               xyzmh(3,i) = xyzmh(3,i)*scalefactor
+               IF (SQRT(radius2)*scalefactor.LT.0.05 .OR.
+     &              (SQRT(radius2)*scalefactor.GT.0.1 .AND.
+     &              ABS(xyzmh(3,i)/SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2))
+     &              .LT.hoverr*3.0)
+     &              ) GOTO 102
             ELSE
-               xyzmh(3,i) = radius*hoverr*gasdev(1)
+c
+c--Put particles in the disc
+c
+               IF (use_tprof) THEN
+                  xyzmh(3,i) =radius**(0.5*(tprof+1)+1)*hoverr*gasdev(1)
+               ELSE
+                  xyzmh(3,i) = radius*hoverr*gasdev(1)
+               ENDIF
+
             ENDIF
 
             IF (nptmass.GE.1) THEN

@@ -2221,7 +2221,7 @@ c
                ELSE
                   eta_ohmi = eta_nimhd(1,i)
                ENDIF
-               call nimhd_get_dt(dtohmi,dthalli,dtambii,xyzmh(5,i)
+               call nicil_get_dt_nimhd(dtohmi,dthalli,dtambii,xyzmh(5,i)
      &             ,eta_ohmi,eta_nimhd(2,i),eta_nimhd(3,i))
                dtohmi  = dtohmi / (dt*isteps(i)/imaxstep)
                dthalli = dthalli/ (dt*isteps(i)/imaxstep)

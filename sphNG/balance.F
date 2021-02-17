@@ -80,6 +80,7 @@ c
       CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(imhdevol, MPI_REAL8, imhdevolREAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(n_den, MPI_REAL8, inimhdREAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL8, i2REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL4, i3REAL4, ierr)
@@ -95,6 +96,7 @@ c
       CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
       CALL MPI_TYPE_COMMIT(imhdevolREAL8,ierr)
+      CALL MPI_TYPE_COMMIT(inimhdREAL8,ierr)
       CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i3REAL4,ierr)
@@ -263,6 +265,11 @@ c     &       lsendlist, i4REAL8, indexMPI4, ierr)
      &                       lblocklengths, lsendlist, imhdevolREAL8, 
      &                       indexMPIimhdevol, ierr)
                         CALL MPI_TYPE_COMMIT(indexMPIimhdevol,ierr)
+
+                        CALL MPI_TYPE_INDEXED(numlist(j+1), 
+     &                       lblocklengths, lsendlist, inimhdREAL8, 
+     &                       indexMPIinimhd, ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPIinimhd,ierr)
 
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
 c     &       lsendlist, i3REAL8, indexMPI3, ierr)
@@ -513,10 +520,8 @@ c     &                          MPI_COMM_WORLD, ierr)
 #ifdef NONIDEAL
                            CALL MPI_SEND(jcurrent,1,indexMPI3,j,172,
      &                          MPI_COMM_WORLD, ierr)
-                           CALL MPI_SEND(n_R,1,indexMPI4,j,173,
-     &                          MPI_COMM_WORLD, ierr)
-                           CALL MPI_SEND(n_electronT,1,indexMPIR,j,174,
-     &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(nden_nimhd,1,indexMPIinimhd
+     &                          ,j,173,MPI_COMM_WORLD, ierr)
                            CALL MPI_SEND(eta_nimhd,1,indexMPI4,j,179,
      &                          MPI_COMM_WORLD, ierr)
 #endif
@@ -1118,19 +1123,12 @@ c                  ENDIF
                      CALL quit(1)
                   ENDIF
 
-                  CALL MPI_RECV(n_R(1,npartnew+1), idim, i4REAL8,
+                  CALL MPI_RECV(nden_nimhd(1,npartnew+1), idim, 
+     &                 inimhdREAL8,
      &                 iprocrec, 173, MPI_COMM_WORLD, istatus, ierr)
-                  CALL MPI_GET_COUNT(istatus, i4REAL8, inumber, ierr)
+                  CALL MPI_GET_COUNT(istatus, inimhdREAL8, inumber,ierr)
                   IF (inumber.NE.igotnumber) THEN
-                     WRITE (*,*) 'ERROR - balance igotnumber: n_R'
-                     CALL quit(1)
-                  ENDIF
-
-                  CALL MPI_RECV(n_electronT(npartnew+1), idim,MPI_REAL8,
-     &                 iprocrec, 174, MPI_COMM_WORLD, istatus, ierr)
-                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
-                  IF (inumber.NE.igotnumber) THEN
-                     WRITE (*,*) 'ERROR - balance igotnumber: n_elecT'
+                     WRITE (*,*) 'ERROR - balance igotnumber:nden_nimhd'
                      CALL quit(1)
                   ENDIF
 
@@ -1708,6 +1706,7 @@ c
       CALL MPI_TYPE_FREE(i2REAL8,ierr)
       CALL MPI_TYPE_FREE(i3REAL8,ierr)
       CALL MPI_TYPE_FREE(imhdevolREAL8,ierr)
+      CALL MPI_TYPE_FREE(inimhdREAL8,ierr)
       CALL MPI_TYPE_FREE(i4REAL8,ierr)
       CALL MPI_TYPE_FREE(i5REAL8,ierr)
 c

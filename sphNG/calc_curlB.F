@@ -9,6 +9,9 @@ c*****************************************************************
 #include "mpi_sup.h"
 #endif
 
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
       INCLUDE 'idim'
 #ifdef MPIALL
       INCLUDE 'COMMONS/mpiall'

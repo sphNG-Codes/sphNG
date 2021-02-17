@@ -12,6 +12,10 @@ c************************************************************
 #ifdef USEKROME
       INCLUDE 'COMMONS/krome_mods'
 #endif
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
+
       INCLUDE 'idim'
       INCLUDE 'igrape'
 #ifdef USEKROME

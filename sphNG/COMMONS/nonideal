@@ -1,9 +1,9 @@
       INTEGER      np_nimhd
-      REAL*8       jcurrent,eta_nimhd,n_R,n_electronT
+      REAL*8       jcurrent,eta_nimhd,nden_nimhd
       REAL*8       et_nimhd,evdata
       CHARACTER*25 nimhdfile
       COMMON / NIrealA / jcurrent(3,imhd2),eta_nimhd(4,imhd2)
-      COMMON / NIrealB / n_R(4,imhd2),n_electronT(imhd2)
+      COMMON / NIrealB / nden_nimhd(n_nden,imhd2)
       COMMON / NIchar  / nimhdfile
       COMMON / NIinfoI / np_nimhd
       COMMON / NIinfoR / et_nimhd,evdata(0:99)

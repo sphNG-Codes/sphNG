@@ -69,8 +69,10 @@ c          444, 1104                                        *
 c     Wurster J., Price D.J., Bate M.R., 2016, MNRAS,       *
 c          457, 1037                                        *
 c                                                           *
-c     including: Wurster J., 2016, PASA, 33, 41             *
-c     if the NICIL library is used.                         *
+c     If the NICIL library is used for non-ideal MHD        *
+c          calculations, these papers should be cited:      *
+c          Wurster J., 2016, PASA, 33, 41                   *
+c          Wurster J., 2021, MNRAS, 501:5873-5891           *
 c                                                           *
 c  2) Any redistribution of substantial fractions of the    *
 c     code as a different project should preserve the name  *

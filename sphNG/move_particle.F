@@ -10,6 +10,9 @@ c     Does not alter tree.                                  *
 c                                                           *
 c************************************************************
 
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
@@ -131,10 +134,9 @@ c         h2mol(ito) = h2mol(ifrom)
          DO i = 1, 3
             jcurrent(i,ito) = jcurrent(i,ifrom)
          END DO
-         DO i = 1,4
-            n_R(i,ito) = n_R(i,ifrom)
+         DO i = 1,n_nden
+            nden_nimhd(i,ito) = nden_nimhd(i,ifrom)
          END DO
-         n_electronT(ito) = n_electronT(ifrom)
          DO i = 1,4
             eta_nimhd(i,ito) = eta_nimhd(i,ifrom)
          END DO

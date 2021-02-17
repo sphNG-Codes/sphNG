@@ -23,7 +23,7 @@ c
       COMMON /inactive/ listinactive(idim),nlistinactive
       COMMON /planet2/ variation,phibound,flowrate,signorm,hoverr,
      &       partm,centralmass,
-     &	     rplanet,pradfac(iptdim),gapfac,uniformtslim,
+     &       rplanet,pradfac(iptdim),gapfac,uniformtslim,
      &       uniformtslim2,tprof,sdprof,coremass_orig,
      &       coremass
       COMMON /planetl/ use_tprof

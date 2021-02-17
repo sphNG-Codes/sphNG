@@ -408,6 +408,11 @@ c     &                  1,llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
                 CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
      &                  llistsentback(1,j+1),MPI_REAL8,indexMPIR,ierr)
                               CALL MPI_TYPE_COMMIT(indexMPIR,ierr)
+
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),inimhdREAL8,indexMPIinimhd,
+     &                  ierr)
+                              CALL MPI_TYPE_COMMIT(indexMPIinimhd,ierr)
 #endif
 
                         ENDIF
@@ -468,21 +473,17 @@ c     &    iorig(llistsentback(1,j+1)+1),MPI_INTEGER8,indexMPI_I8,ierr)
 #endif
 
 #ifdef NONIDEAL
-                           CALL MPI_SEND(n_R,1,indexMPI4,j,233,
-     &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(nden_nimhd,1,indexMPIinimhd,
+     &                          j,233,MPI_COMM_WORLD, ierr)
 #ifdef MPIDEBUG
-                           print *,iproc,' sent n_R to ',j
-#endif
-                           CALL MPI_SEND(n_electronT,1,indexMPIR,j,234,
-     &                          MPI_COMM_WORLD, ierr)
-#ifdef MPIDEBUG
-                           print *,iproc,' sent n_electronT to ',j
+                           print *,iproc,' sent nden_nimhd to ',j
 #endif
                            CALL MPI_TYPE_FREE(indexMPI4,ierr)
                            CALL MPI_TYPE_FREE(indexMPIR,ierr)
 #endif
                            CALL MPI_TYPE_FREE(indexMPI3,ierr)
                            CALL MPI_TYPE_FREE(indexMPIimhdevol,ierr)
+                           CALL MPI_TYPE_FREE(indexMPIinimhd,ierr)
                         ENDIF
 
                         IF (ifsvi.GE.6 .OR. imhd.EQ.idim) THEN
@@ -639,29 +640,17 @@ c     &                 istart+inumber)
                      print *,iproc,': got Bxyz from ',iprocrec,icheck
 #endif
 #ifdef NONIDEAL
-                     CALL MPI_RECV(n_R(1,istart),inumber,i4REAL8,
-     &                    iprocrec,233, MPI_COMM_WORLD, istatus, ierr)
-                     CALL MPI_GET_COUNT(istatus, i4REAL8, icheck, ierr)
+                     CALL MPI_RECV(nden_nimhd(1,istart),inumber,
+     &                    inimhdREAL8,iprocrec,233, 
+     &                    MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,inimhdREAL8,icheck,ierr)
                      IF (icheck.NE.inumber) THEN
                         WRITE (*,*) 'ERROR - icheck.NE.inumber 12 ',
      &                       iproc
                         CALL quit(1)
                      ENDIF
 #ifdef MPIDEBUG
-                     print *,iproc,': got n_R from ',iprocrec,icheck
-#endif
-                     CALL MPI_RECV(n_electronT(istart),inumber,
-     &                    MPI_REAL8,iprocrec,234, MPI_COMM_WORLD, 
-     &                    istatus,ierr)
-                     CALL MPI_GET_COUNT(istatus, MPI_REAL8, icheck,ierr)
-                     IF (icheck.NE.inumber) THEN
-                        WRITE (*,*) 'ERROR - icheck.NE.inumber 13 ',
-     &                       iproc
-                        CALL quit(1)
-                     ENDIF
-#ifdef MPIDEBUG
-                     print *,iproc,': got n_electronT from ',iprocrec
-     &                      ,icheck
+                     print *,iproc,': got nden_ni from ',iprocrec,icheck
 #endif
 #endif
                   ENDIF
@@ -808,7 +797,7 @@ c
 #ifdef NONIDEAL
 c        Need to update eta_ohm, which is independent of B
          CALL nimhd_get_eta(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz
-     &                     ,dumrho,eta_nimhd,n_R,n_electronT
+     &                     ,dumrho,eta_nimhd,nden_nimhd
      &                     ,iphase,iunique,iorig,ivar,gamma,encal)
 
 #endif
@@ -1248,14 +1237,14 @@ C$OMP END PARALLEL DO
 
 c--Now calculate non-ideal MHD coefficients
 c     Need to do this after the final values of magnetic field (Bxyz)
-c     have been determined and n_R & n_electronT have been updated in eospg.
+c     have been determined and nden_nimhd have been updated in eospg.
 c     Splitting the loop since nimhd_get_eta needs to be called regardless
 c     of eos since B & rho have changed.
 c     
 c
       IF (imhd.EQ.idim) THEN
          CALL nimhd_get_eta(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz
-     &                     ,dumrho,eta_nimhd,n_R,n_electronT
+     &                     ,dumrho,eta_nimhd,nden_nimhd
      &                     ,iphase,iunique,iorig,ivar,gamma,encal)
       ENDIF
 
@@ -1271,7 +1260,7 @@ c
 c--Transfer new values of vxyzu, ekcle, pr, vsound
 c     to other MPI processes.
 c     Also, for NONIDEAL MHD, needs to transfer updated values of
-c     jcurrent, eta_nimhd,n_R,n_electronT
+c     jcurrent, eta_nimhd,nden_nimhd
 c
       inumbertotallocal = 0
       inumberreturned = 0
@@ -1379,20 +1368,17 @@ c
                         CALL MPI_SEND(eta_nimhd,1,indexMPI4,j,216,
      &                       MPI_COMM_WORLD, ierr)
 
-                        CALL MPI_SEND(n_R,1,indexMPI4,j,217,
-     &                       MPI_COMM_WORLD, ierr)
-
                         CALL MPI_TYPE_FREE(indexMPI4,ierr)
 
                         CALL MPI_TYPE_INDEXED(nneighsentback(j+1),
      &                       lblocklengths,llistsentback(1,j+1),
-     &                       MPI_REAL8,indexMPIR,ierr)
-                        CALL MPI_TYPE_COMMIT(indexMPIR,ierr)
+     &                       inimhdREAL8,indexMPIinimhd,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPIinimhd,ierr)
 
-                        CALL MPI_SEND(n_electronT,1,indexMPIR,j,218,
+                        CALL MPI_SEND(nden_nimhd,1,indexMPIinimhd,j,217,
      &                       MPI_COMM_WORLD, ierr)
 
-                        CALL MPI_TYPE_FREE(indexMPIR,ierr)
+                        CALL MPI_TYPE_FREE(indexMPIinimhd,ierr)
 #endif
                      ENDIF
                   ENDIF
@@ -1503,20 +1489,12 @@ c
                   CALL quit(1)
                ENDIF
 
-               CALL MPI_RECV(n_R(1,istart), idim, i4REAL8,
+               CALL MPI_RECV(nden_nimhd(1,istart), idim, inimhdREAL8,
      &              i, 217, MPI_COMM_WORLD, istatus, ierr)
-               CALL MPI_GET_COUNT(istatus, i4REAL8, inumber, ierr)
+               CALL MPI_GET_COUNT(istatus, inimhdREAL8, inumber, ierr)
                iprocrec = istatus(MPI_SOURCE)
                IF (icheck.NE.inumber) THEN
-                  WRITE (*,*) iproc,': ERROR - icheck.NE.inumber n_R'
-                  CALL quit(1)
-               ENDIF
-               CALL MPI_RECV(n_electronT(istart), idim, MPI_REAL8,
-     &              i, 218, MPI_COMM_WORLD, istatus, ierr)
-               CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
-               iprocrec = istatus(MPI_SOURCE)
-               IF (icheck.NE.inumber) THEN
-                  WRITE (*,*) iproc,': ERROR - icheck.NE.inumber Ne'
+                  WRITE(*,*)iproc,': ERROR-icheck.NE.inumber nden_nimhd'
                   CALL quit(1)
                ENDIF
 #endif

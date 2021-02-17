@@ -11,11 +11,9 @@
 !+
 !----------------------------------------------------------------------!
 module nicil_sup
- use nicil, only: nicil_get_eta,nimhd_get_dudt,nicil_translate_error, &
-                  nicil_get_halldrift,nicil_get_vion
- use nicil, only: use_ohm,use_hall,use_ambi,ion_rays,ion_thermal, &
-                  nelements,nelements_max,nlevels,meanmolmass, &
-                  zeta_of_rho,n_data_out
+ use nicil, only: nicil_update_nimhd,nicil_get_dudt_nimhd,nicil_translate_error, &
+                  nicil_get_halldrift,nicil_get_ambidrift
+ use nicil, only: use_ohm,use_hall,use_ambi,n_nden,meanmolmass,zeta_of_rho,n_data_out,n_warn
  implicit none
  !
  !--Indicies to determine which action to take
@@ -35,20 +33,21 @@ module nicil_sup
                                 ,iambiX,iambiA,iambiN,iambifX,iambifA,iambifN &
                                 ,ivelX,ivelA,ivelN,ivhallX,ivhallA,ivhallN &
                                 ,ivionX,ivionA,ivionN,ivdriftX,ivdriftA,ivdriftN &
-                                ,inenX,inenA,inenN,ininX,ininA,ininN,ineX,ineA,innX,innA &
-                                ,inihrX,inihrA,inimrX,inimrA,ingnX,ingnA,ingX,ingA,ingpX,ingpA &
-                                ,inistX,inistA,inidtX,inidtA,izetaA,izetaN
+                                ,inenX,inenA,inenN,ineX,ineA,innX,innA &
+                                ,ingnX,ingnA,ingX,ingA,ingpX,ingpA &
+                                ,izetaA,izetaN
   real,             private   :: rhocrit_nimhd,rhocrit2_nimhd,rhocrit3_nimhd
   real,             private   :: coef_gammaeq1,coef_gamma,coef_gam,coef_gamdh,coef_gamah
   character(len=19),private   :: ev_label(inumev)
   integer(kind=1),  private   :: ev_action(inumev)
+
   !--Subroutines
   public                      :: nimhd_init_gastemp,nimhd_gastemp,nimhd_get_eta,energ_nimhd
   public                      :: nimhd_write_evheader,nimhd_write_ev,nimhd_get_stats
   private                     :: get_coef_gamma,fill_one_label,fill_xan_label
 
  private
-!
+
 contains
 !
 !-----------------------------------------------------------------------
@@ -139,7 +138,7 @@ subroutine energ_nimhd(fxyzu4i,rhoi,eta_nimhd,jcurrenti,Bxyzi)
  real,             intent(in)    :: eta_nimhd(3),jcurrenti(3),Bxyzi(3)
  real                            :: dudtnonideal
  !
- call nimhd_get_dudt(dudtnonideal,eta_nimhd(1),eta_nimhd(3),rhoi,jcurrenti,Bxyzi)
+ call nicil_get_dudt_nimhd(dudtnonideal,eta_nimhd(1),eta_nimhd(3),rhoi,jcurrenti,Bxyzi)
  fxyzu4i = fxyzu4i + dudtnonideal
  !
 end subroutine energ_nimhd
@@ -149,24 +148,24 @@ end subroutine energ_nimhd
 !+
 !-----------------------------------------------------------------------
 subroutine nimhd_get_eta(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz,trho &
-                       ,eta_nimhd,n_R,n_electronT,iphase,iunique,iorig,ivar,gamma,encal)
+                       ,eta_nimhd,nden_nimhd,iphase,iunique,iorig,ivar,gamma,encal)
  integer,          intent(in)    :: n1,n2,nlst_in,nlst_tot
  real,             intent(in)    :: vxyzu(:,:),ekcle(:,:),Bxyz(:,:)
  real(kind=4),     intent(in)    :: trho(:)
- real,             intent(in)    :: n_R(:,:),n_electronT(:)
- real,             intent(inout) :: eta_nimhd(:,:)
+ real,             intent(inout) :: eta_nimhd(:,:),nden_nimhd(:,:)
  integer,          intent(in)    :: iorig(:),ivar(:,:)
  integer(kind=1),  intent(in)    :: iphase(:)
  integer(kind=8),  intent(in)    :: iunique(:)
  real,             intent(in)    :: gamma
  character(len=*), intent(in)    :: encal
- integer                         :: n,ipart,ierr
+ integer                         :: ierrlist(n_warn)
+ integer                         :: n,ipart
  real                            :: Bi,temperature,ekclei
 
 !$omp parallel default(none) &
 !$omp shared(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz,trho,iphase,iunique,iorig,ivar) &
-!$omp shared(eta_nimhd,n_R,n_electronT,gamma,encal) &
-!$omp private(n,ipart,Bi,ekclei,temperature,ierr)
+!$omp shared(eta_nimhd,nden_nimhd,gamma,encal) &
+!$omp private(n,ipart,Bi,ekclei,temperature,ierrlist)
 !$omp do
  do n = nlst_in, nlst_tot
     ipart = ivar(3,n)
@@ -180,11 +179,12 @@ subroutine nimhd_get_eta(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz,trho &
        endif
        temperature = nimhd_gastemp(encal,vxyzu(4,ipart),ekclei,real(trho(ipart)),gamma &
                                   ,n1,n2,iunique(iorig(ipart)))
-       call nicil_get_eta(eta_nimhd(1,ipart),eta_nimhd(2,ipart),eta_nimhd(3,ipart) &
-                         ,Bi,real(trho(ipart)),temperature,n_R(:,ipart),n_electronT(ipart),ierr)
-       if (ierr/=0) then
-          call nicil_translate_error(ierr)
-          if (ierr > 0) call quit(1)
+       ierrlist = 0
+       call nicil_update_nimhd(2,eta_nimhd(1,ipart),eta_nimhd(2,ipart),eta_nimhd(3,ipart), &
+                               Bi,real(trho(ipart)),temperature,nden_nimhd(:,ipart),ierrlist)
+       if ( any(ierrlist > 0) ) then
+         call nicil_translate_error(ierrlist,.true.)
+         call quit(1)
        endif
     endif
  enddo
@@ -233,24 +233,14 @@ subroutine nimhd_write_evheader(nimhdfile,iproc)
       call fill_xan_label(ev_fmt,'v_ion',    i,ivionX,  ivionA,  ivionN  )
       call fill_xan_label(ev_fmt,'v_drift',  i,ivdriftX,ivdriftA,ivdriftN)
     endif
-    call fill_xan_label(ev_fmt,'n_i/n',       i,ininX,   ininA,  ininN    )
     call fill_xan_label(ev_fmt,'n_e/n',       i,inenX,   inenA,  inenN    )
     call fill_xan_label(ev_fmt,'n_e',         i,ineX,    ineA             )
     call fill_xan_label(ev_fmt,'n_n',         i,innX,    innA             )
-    if (ion_rays) then
-       call fill_xan_label(ev_fmt,'n_ihR',    i,inihrX,  inihrA           )
-       call fill_xan_label(ev_fmt,'n_imR',    i,inimrX,  inimrA           )
-       call fill_xan_label(ev_fmt,'n_gR',     i,ingX,    ingA             )
-       call fill_xan_label(ev_fmt,'n_g(Z=-1)',i,ingnX,   ingnA            )
-       call fill_xan_label(ev_fmt,'n_g(Z= 0)',i,ingX,    ingA             )
-       call fill_xan_label(ev_fmt,'n_g(Z=+1)',i,ingpX,   ingpA            )
-       if (zeta_of_rho) then
-          call fill_xan_label(ev_fmt,'zeta',  i,iA=izetaA, iN=izetaN      )
-       endif
-    endif
-    if (ion_thermal) then
-       call fill_xan_label(ev_fmt,'n_isT',    i,inistX,  inistA           )
-       call fill_xan_label(ev_fmt,'n_idT',    i,inidtX,  inidtA           )
+    call fill_xan_label(ev_fmt,'n_g(Z=-1)',   i,ingnX,   ingnA            )
+    call fill_xan_label(ev_fmt,'n_g(Z= 0)',   i,ingX,    ingA             )
+    call fill_xan_label(ev_fmt,'n_g(Z=+1)',   i,ingpX,   ingpA            )
+    if (zeta_of_rho) then
+       call fill_xan_label(ev_fmt,'zeta',     i,iA=izetaA, iN=izetaN      )
     endif
     ielements = i - 1 ! The number of columns to be calculates
     !
@@ -270,26 +260,26 @@ end subroutine nimhd_write_evheader
 !+
 !-----------------------------------------------------------------------
 subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,jcurrent,rho,vsound,&
-                        alphaMM,alphamin,n_R,n_electronT,iphase,&
+                        alphaMM,alphamin,nden_nimhd,iphase,&
                         gamma,ifsvi,encal,np,et,ev_data,eta_nimhd,n1,n2,iunique,iorig)
- real,             intent(in)  :: gamma
- real,             intent(in)  :: xyzmh(:,:),vxyzu(:,:),ekcle(:,:),Bxyz(:,:),jcurrent(:,:), &
-                                  n_R(:,:),n_electronT(:),alphamin(:)
- real(kind=4),     intent(in)  :: rho(:),vsound(:),alphaMM(:,:)
- integer,          intent(in)  :: imhd2,npart,ifsvi,n1,n2
- integer,          intent(in)  :: iorig(:)
- integer(kind=8),  intent(in)  :: iunique(:)
- integer(kind=1),  intent(in)  :: iphase(:)
- character(len=*), intent(in)  :: encal
- integer,          intent(out) :: np
- real,             intent(out) :: et,ev_data(0:inumev)
- real,             intent(out) :: eta_nimhd(4,imhd2)
- integer                       :: i,ierr,c0,c1,crate,cmax,iekcle
- real                          :: rhoi,B2i,Bi,temperature,vsigi, &
-                                  etaart,etaart1,etaohm,etahall,etaambi,n_total,n_total1,n_ion, &
-                                  v2i,vhalli(3),vioni(3),vdrifti(3)
- real                          :: data_out(n_data_out),curlBi(3)
- real                          :: ev_data_thread(0:inumev)
+ real,             intent(in)    :: gamma
+ real,             intent(in)    :: xyzmh(:,:),vxyzu(:,:),ekcle(:,:),Bxyz(:,:),jcurrent(:,:),alphamin(:)
+ real(kind=4),     intent(in)    :: rho(:),vsound(:),alphaMM(:,:)
+ integer,          intent(in)    :: imhd2,npart,ifsvi,n1,n2
+ integer,          intent(in)    :: iorig(:)
+ integer(kind=8),  intent(in)    :: iunique(:)
+ integer(kind=1),  intent(in)    :: iphase(:)
+ character(len=*), intent(in)    :: encal
+ integer,          intent(out)   :: np
+ real,             intent(out)   :: et,ev_data(0:inumev)
+ real,             intent(out)   :: eta_nimhd(4,imhd2)
+ real,             intent(inout) :: nden_nimhd(:,:)
+ integer                         :: i,c0,c1,crate,cmax,iekcle
+ integer                         :: ierrlist(n_warn)
+ real                            :: rhoi,B2i,Bi,temperature,vsigi,v2i, &
+                                    etaart,etaart1,etaohm,etahall,etaambi,n_total,n_total1
+ real                            :: vhalli(3),vdrifti(3),curlBi(3),data_out(n_data_out)
+ real                            :: ev_data_thread(0:inumev)
  !
  ! To determine the runtime in this routine; not using sphNG's routine since
  ! this file is compiled first
@@ -300,19 +290,19 @@ subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,jcurrent,rho,vsoun
  iekcle = 1
 !$omp parallel default(none) &
 !$omp shared(xyzmh,vxyzu,ekcle,Bxyz,jcurrent,rho,vsound,iphase,npart,encal,n1,n2,iunique,iorig) &
-!$omp shared(n_R,n_electronT,alphaMM,alphamin,gamma,ifsvi) &
-!$omp shared(use_ohm,use_hall,use_ambi,ion_rays,ion_thermal,nelements) &
+!$omp shared(nden_nimhd,alphaMM,alphamin,gamma,ifsvi) &
+!$omp shared(use_ohm,use_hall,use_ambi) &
 !$omp shared(ielements,ev_data,ev_action,eta_nimhd) &
 !$omp shared(itX,itA,itN,ietaFX,ietaFA,iohmX,iohmA,iohmN,iohmfX,iohmfA,iohmfN) &
 !$omp shared(ihallX,ihallA,ihallN,iahallX,iahallA,iahallN) &
 !$omp shared(ihallfX,ihallfA,ihallfN,iahallfX,iahallfA,iahallfN) &
 !$omp shared(iambiX,iambiA,iambiN,iambifX,iambifA,iambifN) &
 !$omp shared(ivelX,ivelA,ivelN,ivhallX,ivhallA,ivhallN,ivionX,ivionA,ivionN,ivdriftX,ivdriftA,ivdriftN) &
-!$omp shared(inenX,inenA,inenN,ininX,ininA,ininN,ineX,ineA,innX,innA,inihrX,inihrA,inimrX,inimrA) &
-!$omp shared(ingnX,ingnA,ingX,ingA,ingpX,ingpA,inistX,inistA,inidtX,inidtA,izetaA,izetaN) &
-!$omp private(i,ierr,rhoi,B2i,Bi,temperature,vsigi,etaart,etaart1,etaohm,etahall,etaambi) &
-!$omp private(curlBi,vhalli,vioni,vdrifti,v2i) &
-!$omp private(data_out,n_total,n_total1,n_ion) &
+!$omp shared(inenX,inenA,inenN,ineX,ineA,innX,innA) &
+!$omp shared(ingnX,ingnA,ingX,ingA,ingpX,ingpA,izetaA,izetaN) &
+!$omp private(i,rhoi,B2i,Bi,temperature,vsigi,etaart,etaart1,etaohm,etahall,etaambi,ierrlist) &
+!$omp private(curlBi,vhalli,vdrifti,v2i) &
+!$omp private(data_out,n_total,n_total1) &
 !$omp firstprivate(iekcle) &
 !$omp private(ev_data_thread) &
 !$omp reduction(+:np) 
@@ -328,10 +318,10 @@ subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,jcurrent,rho,vsoun
        if (encal=='r') iekcle = i
        curlBi = jcurrent(1:3,i)
        temperature = nimhd_gastemp(encal,vxyzu(4,i),ekcle(3,iekcle),rhoi,gamma,n1,n2,iunique(iorig(i)))
-       call nicil_get_eta(etaohm,etahall,etaambi,Bi,rhoi,temperature, &
-                          n_R(:,i),n_electronT(i),ierr,data_out)
+       call nicil_update_nimhd(2,eta_nimhd(1,i),eta_nimhd(2,i),eta_nimhd(3,i), &
+                               Bi,rhoi,temperature,nden_nimhd(:,i),ierrlist,data_out)
        call nicil_get_halldrift(etahall,Bxyz(1,i),Bxyz(2,i),Bxyz(3,i),curlBi,vhalli)
-       call nicil_get_vion(etaambi,vxyzu(1,i),vxyzu(2,i),vxyzu(3,i),Bxyz(1,i),Bxyz(2,i),Bxyz(3,i),curlBi,vioni,ierr,vdrifti)
+       call nicil_get_ambidrift(etaambi,Bxyz(1,i),Bxyz(2,i),Bxyz(3,i),curlBi,vdrifti)
 
        vsigi = sqrt( dble(vsound(i))*dble(vsound(i)) + B2i/rhoi)
        if (ifsvi >= 6) then
@@ -363,32 +353,22 @@ subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,jcurrent,rho,vsoun
           call ev_update(ev_data_thread,etaambi,        iambiX, iambiA, iambiN )
           call ev_update(ev_data_thread,etaambi*etaart1,iambifX,iambifA,iambifN)
           call ev_update(ev_data_thread,sqrt(v2i),                         ivelX,   ivelA,   ivelN   )
-          call ev_update(ev_data_thread,sqrt(dot_product(vioni,  vioni  )),ivionX,  ivionA,  ivionN  )
           call ev_update(ev_data_thread,sqrt(dot_product(vdrifti,vdrifti)),ivdriftX,ivdriftA,ivdriftN)
        endif
-       n_ion   = data_out(8) + data_out(9) + data_out(10) + data_out(11)
-       n_total = n_ion + data_out(7)
+
+       n_total = data_out(8) + data_out(5)  ! n_electron + n_neutral
        if (n_total > 0.) then
           n_total1 = 1.0/n_total
        else
           n_total1 = 0.0         ! only possible if eta_constant = .true.
        endif
-       eta_nimhd(4,i) = n_ion*n_total1                                               ! Save ionisation fraction for the dump file
-       call ev_update(ev_data_thread,      n_ion*n_total1,       ininX,ininA,ininN)
-       call ev_update(ev_data_thread,      data_out( 6)*n_total1,inenX,inenA,inenN)
-       call ev_update(ev_data_thread,      data_out( 6), ineX,   ineA             )
-       call ev_update(ev_data_thread,      data_out( 7), innX,   innA             )
-       if (ion_rays) then
-          call ev_update(ev_data_thread,   data_out( 8),inihrX,   inihrA          )
-          call ev_update(ev_data_thread,   data_out( 9),inimrX,   inimrA          )
-          call ev_update(ev_data_thread,   data_out(12),ingnX,    ingpA           )
-          call ev_update(ev_data_thread,   data_out(13),ingX,     ingA            )
-          call ev_update(ev_data_thread,   data_out(14),ingpX,    ingpA           )
-       endif
-       if (ion_thermal) then
-          call ev_update(ev_data_thread,   data_out(10),inistX,   inistA          )
-          call ev_update(ev_data_thread,   data_out(11),inidtX,   inidtA          )
-       endif
+       eta_nimhd(4,i) = data_out(8)*n_total1    ! n_electron / (n_electron + n_neutral);  Save ionisation fraction for the dump file
+       call ev_update(ev_data_thread,data_out( 8)*n_total1,inenX,inenA,inenN)
+       call ev_update(ev_data_thread,data_out( 8),         ineX,   ineA     )
+       call ev_update(ev_data_thread,data_out( 5),         innX,   innA     )
+       call ev_update(ev_data_thread,data_out(20),         ingnX,  ingpA    )
+       call ev_update(ev_data_thread,data_out(21),         ingX,   ingA     )
+       call ev_update(ev_data_thread,data_out(22),         ingpX,  ingpA    )
     endif
  enddo
 !$omp enddo

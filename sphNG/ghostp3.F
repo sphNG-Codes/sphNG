@@ -9,7 +9,9 @@ c************************************************************
 #ifdef MPIALL
 #include "mpi_sup.h"
 #endif
-
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
       INCLUDE 'idim'
 
 #ifdef MPIALL
@@ -40,7 +42,7 @@ c************************************************************
       INCLUDE 'COMMONS/stellarradiation'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
-      REAL*8  jcurrenti(3),n_electronTi,n_Ri(4),eta_nimhdi(4)
+      REAL*8  jcurrenti(3),nden_nimhdi(n_nden),eta_nimhdi(4)
 #endif
 
       CHARACTER*7 where
@@ -98,10 +100,9 @@ c
          drmin2 = drmin*drmin
          drmax2 = rmax2 + delta2 - 2*rmax*delta
 #ifdef NONIDEAL
-         jcurrenti(1:3)  = jcurrent(1:3,i)
-         n_electronTi    = n_electronT(i)
-         n_Ri(1:4)       = n_R(1:4,i)
-         eta_nimhdi(1:4) = eta_nimhd(1:4,i)
+         jcurrenti(1:3)        = jcurrent(1:3,i)
+         nden_nimhdi(1:n_nden) = nden_nimhd(1:n_nden,i)
+         eta_nimhdi(1:4)       = eta_nimhd(1:4,i)
 #endif
 
          IF (r2.GT.rshell*rshell) inshell = inshell + 1
@@ -140,8 +141,7 @@ c            print *,i,r2,hi
             ENDIF
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
             eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
 #endif
          ENDIF

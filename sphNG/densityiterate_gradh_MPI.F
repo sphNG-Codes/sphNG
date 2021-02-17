@@ -21,6 +21,9 @@ c************************************************************
 #include "mpi_sup.h"
 #endif
 
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
@@ -2836,7 +2839,7 @@ c
 C$OMP PARALLEL DO SCHEDULE (runtime) default(none)
 C$OMP& shared(npart,ntot,ireal,rho,dumrho,xyzmh,gradhs)
 #ifdef NONIDEAL
-C$OMP& shared(eta_nimhd,n_R,n_electronT)
+C$OMP& shared(eta_nimhd,nden_nimhd)
 #endif
 C$OMP& private(i,j)
       DO i = npart + 1, ntot
@@ -2847,8 +2850,7 @@ C$OMP& private(i,j)
          gradhs(1,i) = gradhs(1,j)
 #ifdef NONIDEAL
          eta_nimhd(:,i) = eta_nimhd(:,j)
-         n_R(:,i) = n_R(:,j)
-         n_electronT(i) = n_electronT(j)
+         nden_nimhd(:,i) = nden_nimhd(:,j)
 #endif
       END DO
 C$OMP END PARALLEL DO

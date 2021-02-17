@@ -1487,6 +1487,10 @@ c            print*,'rho(medium) = ',rhozero/rhocontrast,rhozero
             rho(1) = rhozero
 #ifdef NONIDEAL
             CALL nicil_initialise(utime,udist,umass,umagfd,ierr)
+#ifdef MPI
+            WRITE (*, 99039)
+            CALL quit(0) 
+#endif
 #endif
             CALL eospg(1,vxyzu,rho,pr,vsound,ekcle,dustvar)
             rho(n1+1) = rhozero/rhocontrast
@@ -1511,6 +1515,7 @@ c            print*,'rho(medium) = ',rhozero/rhocontrast,rhozero
                ENDIF
             END DO
          ENDIF
+99039    FORMAT ('ERROR: Nivil v2.1 has not been tested with MPI')
 c
 c--check external pressure matches uniform pressure
 c  (or set so that it does so)
@@ -1522,6 +1527,10 @@ c
 c  only robust way is to actually call eospg to make sure pext=p
 #ifdef NONIDEAL
             CALL nicil_initialise(utime,udist,umass,umagfd,ierr)
+#ifdef MPI
+            WRITE (*, 99039)
+            CALL quit(0) 
+#endif
 #endif
             CALL eospg(1,vxyzu,rho,pr,vsound,ekcle,dustvar)
             IF (exttemp.LT.0.) THEN

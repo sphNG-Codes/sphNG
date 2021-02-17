@@ -28,10 +28,12 @@ c************************************************************
       INCLUDE 'COMMONS/bodys'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
+      INTEGER ierrlist(n_warn)
 #endif
 
       CHARACTER*7 where
       REAL*4 rho_gas_r4
+      REAL   rdummy(4)
 
       DATA where/'eospg'/
 
@@ -184,19 +186,14 @@ c        ekclei = ekcle(3,ipart)
       ELSE
          ekclei = 0.0
       ENDIF
-      temperature = nimhd_gastemp(encal,vxyzu(4,ipart),ekclei
-     &                           ,rho_gas,gamma
-     &                           ,n1,n2,iunique(iorig(ipart)))
-      CALL nicil_get_ion_n(rho_gas,temperature
-     &                     ,n_R(:,ipart),n_electronT(ipart),ierr)
-      IF (ierr/=0) THEN
-         CALL nicil_translate_error(ierr)
-         IF (ierr > 0) THEN
-            write(iprint,'(a)') 'aborting on the order of non-ideal MHD'
-            CALL quit(1)
-         ELSE
-            print*, 'nicil: eospg: T = 0 for i = ', ipart
-         ENDIF
+      temperature = nimhd_gastemp(encal,vxyzu(4,ipart),ekclei,rho_gas
+     &                           ,gamma,n1,n2,iunique(iorig(ipart)))
+      ierrlist = 0
+      CALL nicil_update_nimhd(1,rdummy(1),rdummy(2),rdummy(3),rdummy(4),
+     &         rho_gas,temperature,nden_nimhd(1:n_nden,ipart),ierrlist)
+      IF ( any(ierrlist > 0) ) THEN
+         CALL nicil_translate_error(ierrlist,.true.)
+         CALL quit(1)
       ENDIF
 #endif
 

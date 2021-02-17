@@ -6,6 +6,9 @@ c     treating the boundaries.                              *
 c                                                           *
 c************************************************************
 
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
       INCLUDE 'idim'
 
       DIMENSION xyzmh(5,idim)
@@ -31,7 +34,7 @@ c************************************************************
       INCLUDE 'COMMONS/eosq'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
-      REAL*8  jcurrenti(3),n_electronTi,n_Ri(4),eta_nimhdi(4)
+      REAL*8  jcurrenti(3),nden_nimhdi(n_nden),eta_nimhdi(4)
 #endif
 
       CHARACTER*7 where
@@ -82,10 +85,9 @@ c
          delta = 0.0
 
 #ifdef NONIDEAL
-         jcurrenti(1:3)  = jcurrent(1:3,i)
-         n_electronTi    = n_electronT(i)
-         n_Ri(1:4)       = n_R(1:4,i)
-         eta_nimhdi(1:4) = eta_nimhd(1:4,i)
+         jcurrenti(1:3)        = jcurrent(1:3,i)
+         nden_nimhdi(1:n_nden) = nden_nimhd(1:n_nden,i)
+         eta_nimhdi(1:4)       = eta_nimhd(1:4,i)
 #endif
 c
 c--X axis
@@ -113,10 +115,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
 
@@ -143,10 +144,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
 c
@@ -175,10 +175,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
 
@@ -205,10 +204,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
 c
@@ -237,10 +235,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
 
@@ -267,10 +264,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
 c
@@ -309,10 +305,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dxmin2 + dymax2
@@ -339,10 +334,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dxmax2 + dymin2
@@ -369,10 +363,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dxmax2 + dymax2
@@ -399,10 +392,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
 
@@ -430,10 +422,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dxmin2 + dzmax2
@@ -460,10 +451,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dxmax2 + dzmin2
@@ -490,10 +480,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dxmax2 + dzmax2
@@ -520,10 +509,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
  
@@ -551,10 +539,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dzmin2 + dymax2
@@ -581,10 +568,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dzmax2 + dymin2
@@ -611,10 +597,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dzmax2 + dymax2
@@ -641,10 +626,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
 c
@@ -675,10 +659,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dxmin2 + dymin2 + dzmax2
@@ -706,10 +689,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dxmin2 + dymax2 + dzmin2
@@ -737,10 +719,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dxmin2 + dymax2 + dzmax2
@@ -768,10 +749,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dxmax2 + dymin2 + dzmin2
@@ -799,10 +779,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dxmax2 + dymin2 + dzmax2
@@ -830,10 +809,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dxmax2 + dymax2 + dzmin2
@@ -861,10 +839,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
          radius2 = dxmax2 + dymax2 + dzmax2
@@ -892,10 +869,9 @@ c
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
             IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
 #ifdef NONIDEAL
-            jcurrent(1:3,nptot)  = jcurrenti(1:3)
-            n_electronT(nptot)   = n_electronTi
-            n_R(1:4,nptot)       = n_Ri(1:4)
-            eta_nimhd(1:4,nptot) = eta_nimhdi(1:4)
+            jcurrent(1:3,nptot)        = jcurrenti(1:3)
+            nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
+            eta_nimhd(1:4,nptot)       = eta_nimhdi(1:4)
 #endif
          ENDIF
 

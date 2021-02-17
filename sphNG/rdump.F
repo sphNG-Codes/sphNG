@@ -16,6 +16,9 @@ c************************************************************
 #ifdef USEKROME
       INCLUDE 'COMMONS/krome_mods'
 #endif
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nicil_subs'
+#endif
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
@@ -1445,7 +1448,7 @@ c--skip current & div B
 #else
 c--read current & div B (required for analysis only)
             IF (nums4(7).GT.4) THEN
-               tagexp(1:4) = (/'divB','curlBx','curlBy','curlBz'/)
+               tagexp(1:4) = (/'divB  ','curlBx','curlBy','curlBz'/)
                DO j = 1,4
                   iread = iread + 1
                   IF (tagged) THEN 

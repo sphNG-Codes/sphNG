@@ -472,7 +472,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f \
 	coolcurve.f coolinmo.F cool_func.F \
 	coriol.f cyldis.f cylmas.f discboundary.f \
 	divBclean_subcycle.F divBsubcycle.F \
-	dust_implicit.F dust_drag.F dust_norm_rhoG.F \
+	dust_implicit.F dust_drag.F dust_growth.F dust_norm_rhoG.F \
 	dragtable.F endrun.f energ.f energ_cooling.f eospg.F error.f \
 	evol.f externf.f externBfield.f \
 	extract.f file.f gapfactor.f getneigh.f \
@@ -490,12 +490,14 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f \
 	planetpotential.f planet_setup.f planetesimals.f planck.f \
 	potential.f preset.F prout.F polytrope.F Qv.f \
 	ran1.f rdump.F rdump_wrapper.F read_dragtable.f reduce.f \
+	rho_grain.f \
 	maketables/specificheat.f resistivity.f resistivity_implicit.F save.f \
 	scaling.f \
 	semimajoraxis.f setBfield_mhd.f setpart.F setup_torus.f \
 	smoothd_P.f sphericalposition.f \
 	sphdis.f sphmas.f spline.F stellar_radiation.f stoppingtime.f \
-	thermeq.f toten.f treef_P.F unifdis.F unit.f uset.f \
+	thermal_velocity.f thermeq.f toten.f treef_P.F \
+	unifdis.F unit.f uset.f \
 	wdump.F wdump_wrapper.F wrinsph.F write_dragtable.f zeusread.f
 
 # these are the sources required for the gradh code to compile

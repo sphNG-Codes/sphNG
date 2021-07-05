@@ -1,5 +1,5 @@
       SUBROUTINE dust_drag(nlst_in,nlst_end,npart,ntot,
-     &     xyzmh,ilenx,vxyzu,ilenv,itime,dt)
+     &     xyzmh,ilenx,vxyzu,ilenv,rgrain,ilenr,dt)
 c***********************************************************************
 c                                                                      *
 c     This subroutine calculates the drag forces between gas and dust  *
@@ -53,8 +53,12 @@ c#define debug_drag
 c
 c--I/O variables
 c
-      INTEGER   nlst_in, nlst_end, npart, ntot, ilenx, ilenv, itime
-      REAL      xyzmh(5,ilenx), vxyzu(4,ilenv), dt
+      INTEGER   nlst_in, nlst_end, npart, ntot, ilenx, ilenv
+      REAL      xyzmh(5,ilenx), vxyzu(4,ilenv), rgrain(ilenr), dt
+c
+c--Functions
+c
+      REAL thermal_velocity
 c
 c--Local variables
 c
@@ -62,7 +66,7 @@ c
       REAL      m_ipart, m_j, scalar, ddvx, ddvy, ddvz, dr, 
      &          dr2, drx, dry, drz, chi, h_g, h2_g, h3_g, u2_g,
      &          wk_sym, nu, lambda,
-     &          mD_Ks, dwdx, dxx, vthermal, ts, vthermal_coef
+     &          mD_Ks, dwdx, dxx, vthermal, ts
       PARAMETER (nu=3.0)
 #ifdef debug_drag
       REAL      px1, py1, pz1, px0, py0, pz0
@@ -70,18 +74,6 @@ c
 #endif
 
 c      print *,'Entered dust_drag ',nlst,nlst0
-c
-c--For Epstein drag, need to know vthermal = SQRT(8*k_B*T/(pi*mu*m_H))
-c     This is very similar to vsound(), but needs to be modified 
-c     by the factor below.
-c     NOTE: It won't quite be right for encal.EQ.'v' or 'x' because 
-c     the gamma value varies rather than being a constant.
-c
-      IF (encal.EQ.'i' .OR. encal.EQ.'t') THEN
-         vthermal_coef = SQRT(8.0/pi)
-      ELSE
-         vthermal_coef = SQRT(8.0/pi/gamma)
-      ENDIF
 c
 c--Want to calculate the change in velocity due to drag between dust and
 c     gas particles that are within the *gas* smoothing length of dust.
@@ -105,10 +97,11 @@ C$OMP& shared(nlst_in,nlst_end,ivar,iphase,ijvar,xyzmh,vxyzu)
 C$OMP& shared(dumrho,dt,radkernel,ddvtable,dvtable,nlst0)
 C$OMP& shared(wij,dustnorm,r_planetesimals,rho_planetesimals)
 C$OMP& shared(utime,udist,cnormk)
-C$OMP& shared(doublehumpnormk,npart,ntot,itime,imaxstep,isteps)
+C$OMP& shared(doublehumpnormk,npart,ntot,imaxstep,isteps)
 C$OMP& shared(n_planetesimal_types,vxyzu_change)
-C$OMP& shared(vthermal_coef,vsound,ifullstep,iscurrent)
+C$OMP& shared(vsound,ifullstep,iscurrent)
 C$OMP& shared(f1vxyzu,f2vxyzu)
+C$OMP& shared(rgrain)
 C$OMP& private(j,k,n,ipart,ioffset,drx,dry,drz,dr,ddvx,ddvy,ddvz)
 C$OMP& private(m_ipart,m_j,dr2,igas,idust)
 C$OMP& private(h_g,h2_g,h3_g,chi,u2_g,lambda)
@@ -200,17 +193,31 @@ c
                deltat = dt*isteps(idust)/imaxstep
 c
 c--Drag coefficient -- in code units (Epstein regime)
+c     NOTE: r_planetesimal & rho_planetesimal specified in code units
+c     Example: 1km is r_planetesimal = 1.0E5/udist
 c
-               IF (iphase(idust)-10.LE.n_planetesimal_types) THEN
-                  r_planetesimal = r_planetesimals(iphase(idust)-10)
-                  rho_planetesimal = rho_planetesimals(iphase(idust)-10)
+               CALL rho_grain(rho_planetesimal)
+               IF (idim_grow.EQ.idim) THEN
+                  r_planetesimal   = rgrain(idust)
+                  IF (rgrain(idust).EQ.0.0) THEN
+                     WRITE(*,*)'ERROR - rgrain is zero in dust drag'
+                     CALL quit(0)
+                  ENDIF
                ELSE
-                  WRITE (*,*)'ERROR - iphase-10.GT.n_planetesimal_types'
-                  CALL quit(0)
+                  IF (n_planetesimal_types.EQ.0) THEN
+                     WRITE(*,*) 'ERROR - you are using fixed-size ',        
+     &                    'implicit dust-drag but have not defined ',
+     &                    'any dust grain size in your ASCII file'
+                     CALL quit(0)
+                  ENDIF
+  
+                  IF (iphase(idust)-10.LE.n_planetesimal_types) THEN
+                     r_planetesimal = r_planetesimals(iphase(idust)-10)
+                  ELSE
+                     WRITE(*,*)'ERROR - Not enough n_planetesimal_types'
+                     CALL quit(0)
+                  ENDIF
                ENDIF
-c            r_planetesimal =  1.0E-6
-c            r_planetesimal = r_planetesimal*1.E5/udist
-c            rho_planetesimal = 3.0
 c
 c--Calculate unit vectors
 c
@@ -296,10 +303,8 @@ c
 c
 c--Calculate drag coefficient
 c
-c         vthermal = 1.0E5*utime/udist   ! Fixed value in code units
-                  vthermal = vthermal_coef*vsound(igas)
-c                  IF (MOD(j,10000).EQ.0)
-c     &                 print *,j,vthermal,1.0E5*utime/udist
+c               vthermal = 1.0E5*utime/udist ! Fixed value in code units
+                  vthermal = thermal_velocity(igas)
                   mD_Ks = r_planetesimal*rho_planetesimal/vthermal
 c
 c--Constant drag

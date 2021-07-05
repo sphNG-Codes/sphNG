@@ -110,6 +110,8 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/dustfluid'
       INCLUDE 'COMMONS/dustfluidderiv'
       INCLUDE 'COMMONS/timecrit'
+      INCLUDE 'COMMONS/grain'
+      INCLUDE 'COMMONS/compact'
 
       DIMENSION nsteplist(30)
       INTEGER*8 nneightotsave
@@ -271,6 +273,9 @@ c
                      dumekcle(k,i) = ekcle(k,i)
                   END DO
                ENDIF
+               IF (idim_grow.EQ.idim .AND. iphase(i).GE.11) THEN
+                  dumrgrain(i) = rgrain(i)
+               ENDIF
                IF (idustFluid.EQ.1) dumdustvar(i) = dustvar(i)
                IF (imhd.EQ.idim) THEN
                   DO k = 1, imhdevol
@@ -352,7 +357,8 @@ c      END DO
 c      WRITE (*,*) 'passed 2'
 
 c432    CONTINUE
-       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,
+       CALL derivi (dt,itime,dumxyzmh,dumvxyzu,dumrgrain,
+     &        f1vxyzu,f1rgrain,f1ha,npart,
      &        ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz,
      &        dumdustvar,f1dust)
 
@@ -668,6 +674,7 @@ c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle,vsmooth)
+C$OMP& shared(rgrain,f1rgrain,dumrgrain,rgrain_min)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
@@ -712,6 +719,10 @@ c                  dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
      &           deltat*f1ha(k+1,j)),alphamin(k))
                ENDDO
             ENDIF
+            IF (idim_grow.EQ.idim .AND. iphase(j).EQ.11) THEN
+               dumrgrain(j) = rgrain(j) + deltat*f1rgrain(j)
+               dumrgrain(j) = MAX(dumrgrain(j),rgrain_min)
+            ENDIF
             IF (idustFluid.EQ.1) dumdustvar(j) = dustvar(j) +
      &           deltat*f1dust(j)
             IF (imhd.EQ.idim) THEN
@@ -734,6 +745,7 @@ C$OMP END PARALLEL DO
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,ekcle,vsmooth)
+C$OMP& shared(rgrain,f1rgrain,dumrgrain,rgrain_min)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
@@ -779,6 +791,10 @@ c            dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
      &                       alphaMM(k,ipart)+deltat*f1ha(k+1,ipart)),
      &                         alphamin(k))
                        ENDDO
+                    ENDIF
+                    IF (idim_grow.EQ.idim .AND.iphase(ipart).EQ.11) THEN
+            dumrgrain(ipart) = rgrain(ipart) + deltat*f1rgrain(ipart)
+            dumrgrain(ipart) = MAX(dumrgrain(ipart),rgrain_min)
                     ENDIF
                     IF (idustFluid.EQ.1) dumdustvar(ipart) = 
      &                   dustvar(ipart) + deltat*f1dust(ipart)
@@ -937,21 +953,17 @@ c
 c--Compute forces on list particles
 c
       icall = 2
-      CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f2vxyzu,f2ha,npart,
+      CALL derivi (dt,itime,dumxyzmh,dumvxyzu,dumrgrain,
+     &     f2vxyzu,f2rgrain,f2ha,npart,
      &     ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f2Bxyz,
      &     dumdustvar,f2dust)
-
-c      print *,'icall=2 ',dumvxyzu(4,llist(1))-vxyzu(4,llist(1)),
-c     &     f2vxyzu(4,llist(1)),dt*(itime - it0(llist(1)))/imaxstep,
-c     &     (dumvxyzu(4,llist(1))-vxyzu(4,llist(1)))/
-c     &     (dt*(itime - it0(llist(1)))/imaxstep)
 c
 c--Save velocities at half time step
 c
       IF (itiming) CALL getused(ts61)
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
-C$OMP& shared(nlst,llist,iscurrent,dumvxyzu)
-C$OMP& shared(dum2vxyz,it1,imax)
+C$OMP& shared(nlst,llist,iscurrent,dumvxyzu,dumrgrain)
+C$OMP& shared(dum2vxyz,it1,imax,iphase)
 C$OMP& private(i,j)
       DO j = 1, nlst
          i = llist(j)
@@ -1066,6 +1078,7 @@ c      ENDIF
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst0,llist,iscurrent,dt,isteps,imaxstep,f21,f22)
 C$OMP& shared(xyzmh,vxyzu,dum2vxyz,dumvxyzu,iproc)
+C$OMP& shared(rgrain,dumrgrain,f1rgrain,f2rgrain)
 C$OMP& shared(f1vxyzu,f1ha,f2vxyzu,f2ha,f1Bxyz,f2Bxyz)
 C$OMP& shared(gravx,gravy,gradpx,gradpy,artvix,artviy,gravx1,gravy1)
 C$OMP& shared(gradpx1,gradpy1,artvix1,artviy1,torqt,torqg,torqp)
@@ -1075,7 +1088,7 @@ C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,vsmooth,ifullstep)
 C$OMP& shared(ifsvi,alphaMM,alphamax,encal,dumBevolxyz,Bevolxyz)
 C$OMP& shared(pdvvisc,alphamin,utime,h2frac,dh2dt,udens,rho)
 C$OMP& shared(HIIion,dHIIdt,stellarrad)
-C$OMP& shared(dustvar,f1dust,f2dust,deltaHII)
+C$OMP& shared(dustvar,f1dust,f2dust,deltaHII,rgrain_min,iorig,iunique)
 C$OMP& private(i,j,k,dtfull,dtf21,dtf22,xold,yold,delvx,delvy,delvz)
 C$OMP& private(vxstore,vystore,dx,dy,delgx,delgy,delpx,delpy)
 C$OMP& private(delax,delay,extraxt,extrayt,extraxg,extrayg)
@@ -1274,6 +1287,14 @@ c
                ENDDO
             ENDIF
 c
+c--Dust growth
+c
+            IF (idim_grow.EQ.idim .AND. iphase(i).EQ.11) THEN
+               rgrain(i) = rgrain(i) + 
+     &              dtf21*f1rgrain(i) + dtf22*f2rgrain(i)
+               rgrain(i) = MAX(rgrain(i),rgrain_min)
+            ENDIF
+c
 c--One-fluid dust
 c
             IF (idustFluid.EQ.1) THEN
@@ -1469,6 +1490,7 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,it1,imaxstep,ireal)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
+C$OMP& shared(rgrain,f1rgrain,dumrgrain,rgrain_min)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
 C$OMP& shared(dustvar,dumdustvar,f1dust)
@@ -1511,6 +1533,10 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
      &              deltat*f1ha(k+1,j)),alphamin(k))
                ENDDO
             ENDIF
+            IF (idim_grow.EQ.idim .AND. iphase(j).EQ.11) THEN
+               dumrgrain(j) = rgrain(j) + deltat*f1rgrain(j)
+               dumrgrain(j) = MAX(dumrgrain(j),rgrain_min)
+            ENDIF
             IF (idustFluid.EQ.1) dumdustvar(j) = dustvar(j) +
      &           deltat*f1dust(j)
             IF (imhd.EQ.idim) THEN
@@ -1533,6 +1559,7 @@ C$OMP END PARALLEL DO
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,it1,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,dumekcle,ekcle,f1Bxyz)
+C$OMP& shared(rgrain,f1rgrain,dumrgrain,rgrain_min)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
@@ -1578,6 +1605,11 @@ c           dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
      &                       alphaMM(k,ipart) + deltat*f1ha(k+1,ipart)),
      &                          alphamin(k))
                         ENDDO
+                     ENDIF
+                     IF (idim_grow.EQ.idim.AND.iphase(ipart).EQ.11) THEN
+                        dumrgrain(ipart) = rgrain(ipart) +
+     &                       deltat*f1rgrain(ipart)
+                     dumrgrain(ipart) = MAX(dumrgrain(ipart),rgrain_min)
                      ENDIF
                      IF (idustFluid.EQ.1) dumdustvar(ipart) = 
      &                    dustvar(ipart) + deltat*f1dust(ipart)
@@ -1738,20 +1770,10 @@ c--Compute forces on list particles - Note: May be full AND half time step
 c     evaluations!!
 c
       icall = 3
-      CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f2vxyzu,f2ha,npart,
+      CALL derivi (dt,itime,dumxyzmh,dumvxyzu,dumrgrain,
+     &     f2vxyzu,f2rgrain,f2ha,npart,
      &     ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f2Bxyz,
      &     dumdustvar,f2dust)
-
-c      print *,'icall=3 ',dumvxyzu(4,llist(nlst))-vxyzu(4,llist(nlst)),
-c     &    f2vxyzu(4,llist(nlst)),dt*(isteps(llist(nlst)))/imaxstep,
-c     &     (dumvxyzu(4,llist(nlst))-vxyzu(4,llist(nlst)))/
-c     &     (dt*(isteps(llist(nlst)))/imaxstep),nlst,nlst0
-c      print *,'icall=3 ',dumvxyzu(4,llist(1))-vxyzu(4,llist(1)),
-c     &     f2vxyzu(4,llist(1)),dt*(isteps(llist(1)))/imaxstep,
-c     &     (dumvxyzu(4,llist(1))-vxyzu(4,llist(1)))/
-c     &     (dt*(isteps(llist(1)))/imaxstep)
-c      print *,' '
-
 
       IF (itiming) CALL getused(ts131)
 #ifdef MPICOPY
@@ -1867,6 +1889,7 @@ C$OMP PARALLEL default(none)
 C$OMP& shared(nlst0,nlst1,llist,iscurrent,dumvxyzu,n1,n2,iunique)
 C$OMP& shared(dum2vxyz,it1,it2,imax,igphi,encal)
 C$OMP& shared(vxyzu,dumxyzmh)
+C$OMP& shared(rgrain,f1rgrain,f2rgrain)
 C$OMP& shared(f1vxyzu,f1ha,f2vxyzu,f2ha,Bxyz,iexf)
 C$OMP& shared(f1Bxyz,f2Bxyz,dumalpha)
 C$OMP& shared(tol,tolh,tolptm,dt,isteps,imaxstep,e1,small,divv,rho)
@@ -1894,6 +1917,7 @@ C$OMP& private(dtohmi,dthalli,dtambii,eta_ohmi)
 C$OMP& private(rtemp,rtempm,k,keepk)
 C$OMP& private(i,j,l,tolpart,errBx,errBy,errBz)
 C$OMP& private(errx,erry,errz,errvx,errvy,errvz,erru,errh,errm)
+C$OMP& private(rmodgr)
 C$OMP& private(errdivtol,rap,rmod1,divvi,aux1,aux2,aux3,denom,valfven2)
 C$OMP& private(crstepi,rmodcr,force21,force22,force2,rmodcr2,rmod)
 C$OMP& private(stepi,ibin,factor,istep2,irat,r2,pmassi,rmodsg1,rmodsg2)
@@ -2262,7 +2286,17 @@ c
             rmod = MIN(rmod1, rmodcr2, rmodgd)
             rmodall(8) = rmodgd
 c            IF (rmod.EQ.rmodgd) print *, 'Use rmodgd D ', rmod, rmodcr2
-         ELSE
+c
+c--Dust growth timestep
+c
+            IF (iphase(i).EQ.11 .AND. idim_grow.EQ.idim) THEN
+               IF (ABS(f2rgrain(i)).GT.0.0) THEN
+                  rmodgr = 0.1*ABS(rgrain(i)/f2rgrain(i))/
+     &                 (dt*isteps(i)/imaxstep)
+                  rmod = MIN(rmod, rmodgr)
+               ENDIF
+            ENDIF
+         ELSE   ! Not gas or dust
             rmod = rmod1
          ENDIF
 c
@@ -2326,6 +2360,7 @@ c
             IF (ibin.LT.0 .OR. ibin.GT.30) THEN
                print *,'ERROR - ibin.LT.0 .OR. ibin.GT.30 ',ibin,stepi,
      &              dt,isteps(i),i,rmod,rmod1,rmodcr,rmodcr2,rmodgd,
+     &              rmodgr,rgrain(i),f2rgrain(i),
      &              xyzmh(5,i),
      &              vsound(i),alphaMM(1,i),denom,crstepi,iphase(i),
      &              force21, force22, force2
@@ -2420,6 +2455,10 @@ C$OMP CRITICAL (writeiprint)
             IF (imhd.EQ.idim) THEN
                WRITE (iprint,*)errBx,errBy,errBz
             ENDIF
+            IF (idim_grow.EQ.idim) THEN
+               WRITE (iprint,*) rgrain(i),f1rgrain(i),f2rgrain(i)
+               WRITE (iprint,*) rmodgr
+            ENDIF
 c            WRITE (iprint,*)gravx(i),gravy(i),gravz(i)
 c            WRITE (iprint,*)gradpx(i),gradpy(i),gradpz(i)
 c            WRITE (iprint,*)artvix(i),artviy(i),artviz(i)
@@ -2464,6 +2503,9 @@ c
                DO k = 1, imhdevol
                   f1Bxyz(k,i) = f2Bxyz(k,i)
                END DO
+            ENDIF
+            IF (idim_grow.EQ.idim .AND. iphase(i).EQ.11) THEN
+               f1rgrain(i) = f2rgrain(i)
             ENDIF
             IF (idustFluid.EQ.1) f1dust(i) = f2dust(i)
             IF (istellar_ionisation) THEN
@@ -2694,6 +2736,20 @@ C$OMP& private(i,iptcur)
             ENDIF
          END DO
 C$OMP END PARALLEL DO
+!c
+!c--Dust particles ALL on smaller timestep
+!c
+!C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+!C$OMP& shared(npart,isteps,it0,it1,it2,istepmin,iphase)
+!C$OMP& private(i)
+!         DO i = 1, npart
+!            IF (iphase(i).GE.11) THEN
+!               isteps(i) = istepmin
+!               it1(i) = it0(i) + isteps(i)/2
+!               it2(i) = it0(i) + isteps(i)
+!            ENDIF
+!         END DO
+!C$OMP END PARALLEL DO
 c
 c--Additional constraint for planet with surface for migration
 c
@@ -3128,7 +3184,8 @@ c
             END DO
 
             icall = 4
-            CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
+            CALL derivi (dt,itime,dumxyzmh,dumvxyzu,dumrgrain,
+     &      f1vxyzu,f1rgrain,
      &      f1ha,npart,ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz,
      &      dumdustvar,f1dust)
 
@@ -3414,7 +3471,8 @@ c
  678        icall = 4
             PRINT *,"icall 4 triggered"
 
-            CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
+            CALL derivi (dt,itime,dumxyzmh,dumvxyzu,dumrgrain,
+     &      f1vxyzu,f1rgrain,
      &      f1ha,npart,ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz,
      &      dumdustvar,f1dust)
 #ifdef MPI

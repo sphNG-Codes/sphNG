@@ -1,6 +1,6 @@
-      SUBROUTINE derivi (dt,itime,xyzmh,vxyzu,
-     &     dvxyzu,dha,npart,ntot,ireal,alphaMM,ekcle,Bevolxyz,dBevolxyz,
-     &     dustvar,ddust)
+      SUBROUTINE derivi (dt,itime,xyzmh,vxyzu,rgrain,
+     &     dvxyzu,drgrain,dha,npart,ntot,ireal,alphaMM,ekcle,
+     &     Bevolxyz,dBevolxyz,dustvar,ddust)
 c************************************************************
 c                                                           *
 c  This subroutine drives the computation of the forces on  *
@@ -72,6 +72,7 @@ c************************************************************
       DIMENSION ekcle(5,iradtrans2)
       DIMENSION Bevolxyz(imhdevol,imhd2),dBevolxyz(imhdevol,imhd3)
       DIMENSION dustvar(idim_dustFluid2),ddust(idim_dustFluid2)
+      DIMENSION rgrain(idim_grow2),drgrain(idim_grow2)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/astrcon'
@@ -183,7 +184,7 @@ c
 
       CALL densityiterate_gradh(dt,npart,ntot,xyzmh,vxyzu,dvxyzu,
      &     nlst_in,nlst_end,llist,itime,ekcle,Bevolxyz,Bxyz,
-     &     dBevolxyz,dustvar,ddust)
+     &     dBevolxyz,dustvar,ddust,rgrain)
 
 #ifdef MPIDEBUG
       print *,iproc,' DERIVI: called densityiterate_gradh'
@@ -199,12 +200,15 @@ c     (2015), need to call the routine here because it directly changes
 c     particle velocities, and this needs to be done before other 
 c     quantities that use the velocities are needed.
 c
-c     This does not need to be done on restart (icall=1) and does not
-c     need to be done for particle additions (icall=4)
+c     This only strictly needs to be done on restart (icall=1) if grain 
+c     growth is included (because it computes the rate of change of
+c     dust size).
+c     It does not need to be done for particle additions (icall=4)
 c
-      IF (idustIMPL.GT.0 .AND. (icall.EQ.2 .OR. icall.EQ.3)) THEN
-         CALL dust_implicit (dt,npart,ntot,xyzmh,vxyzu,
-     &            nlst_in,nlst_end,itime)
+      IF (idustIMPL.GT.0 .AND. ((icall.EQ.1 .AND. idim_grow.EQ.idim)
+     &     .OR. icall.EQ.2 .OR. icall.EQ.3)) THEN
+         CALL dust_implicit (dt,npart,ntot,xyzmh,vxyzu,rgrain,drgrain,
+     &            nlst_in,nlst_end,itime,icall)
       ENDIF
 c
 c--Now calculate other quantities that are needed to calculate the forces 

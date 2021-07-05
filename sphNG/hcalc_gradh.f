@@ -37,7 +37,8 @@ c************************************************************
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/dustfluid'
       INCLUDE 'COMMONS/dustfluidderiv'
-      
+      INCLUDE 'COMMONS/grain'
+
       CHARACTER*4 varmhdtemp
 c
 c--Allow for tracing flow
@@ -158,9 +159,9 @@ c
          END DO
       ENDIF
 
-      CALL derivi(dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,npart,ntot,
-     &            ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz,
-     &            dustvar,f1dust)
+      CALL derivi(dt,itime,dumxyzmh,dumvxyzu,rgrain,f1vxyzu,f1rgrain,
+     &     f1ha,npart,ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz,
+     &     dustvar,f1dust)
 c
 c--Copy dumekcle values back into ekcle and dumvxyzu(4) into vxyzu
 c

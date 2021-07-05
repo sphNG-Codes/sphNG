@@ -1,6 +1,6 @@
       SUBROUTINE densityiterate_gradh (dt,npart,ntot,xyzmh,vxyzu,dvxyzu,
      &            nlst_in,nlst_end,listp,itime,ekcle,Bevol,Bxyz,dBxyz,
-     &            dustvar,ddust)
+     &            dustvar,ddust,rgrain)
 c************************************************************
 c                                                           *
 c  Subroutine to compute the density and smoothing lengths  *
@@ -43,6 +43,7 @@ c************************************************************
       DIMENSION Bevol(imhdevol,imhd3),Bxyz(3,imhd2),
      &     dBxyz(imhdevol,imhd2),dustvar(idim_dustFluid2),
      &     ddust(idim_dustFluid2)
+      DIMENSION rgrain(idim_grow2)
 
       PARAMETER (htol = 1.e-3)
       PARAMETER (hstretch = 1.01)
@@ -2633,6 +2634,20 @@ c     &                  1,llistsentback(1,j+1),imhdevolREAL8,indexMPI3,ierr)
 #endif
                               CALL MPI_TYPE_FREE(indexMPI3,ierr)
                            ENDIF
+
+                           IF (idim_grow.EQ.idim) THEN
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),MPI_REAL8,indexMPI,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),MPI_REAL8,indexMPI,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI,ierr)
+
+                              CALL MPI_SEND(rgrain,1,indexMPI,j,45,
+     &                             MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                              print *,iproc,' sent rgrain'
+#endif
+                           ENDIF
                         ENDIF
 
 #ifdef MPIDEBUG
@@ -2725,6 +2740,23 @@ c      ENDIF
                      print *,iproc,': got Bevol from ',iprocrec,icheck,
      &                    radkernel,xyzmh(1,1)
 #endif
+                  ENDIF
+
+                  IF (idim_grow.EQ.idim) THEN
+                     CALL MPI_RECV(rgrain(istart),inumber,
+     &                    MPI_REAL8, iprocrec, 45, MPI_COMM_WORLD,
+     &                    istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus, MPI_REAL8,
+     &                    icheck, ierr)
+                     IF (icheck.NE.inumber) THEN
+                        WRITE (*,*) 'ERROR - icheck.NE.inumber 5 ',
+     &                       iproc
+                        CALL quit(1)
+                     ENDIF
+#ifdef MPIDEBUG
+                     print *,iproc,': got rgrain from ',iprocrec,
+     &                    icheck,istart
+#endif                     
                   ENDIF
                ENDIF
                inumbertotal = inumbertotal + inumber

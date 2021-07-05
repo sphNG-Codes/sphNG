@@ -1,4 +1,5 @@
-      SUBROUTINE dust_norm_rhoG(nlst_in,nlst_end,npart,ntot,xyzmh,ilenx)
+      SUBROUTINE dust_norm_rhoG(nlst_in,nlst_end,npart,ntot,
+     &     xyzmh,ilenx,vxyzu,ilenv,rgrain,ilenr)
 c***********************************************************************
 c                                                                      *
 c     This subroutine calculates the dustnorm() which essentially      *
@@ -35,6 +36,9 @@ c
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/dustimplicit'
       INCLUDE 'COMMONS/current'
+      INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/eosq'
 c 
 c--MPI headers
 c
@@ -48,15 +52,26 @@ c
 c
 c--I/O variables
 c
-      INTEGER   nlst_in, nlst_end, npart, ntot, ilenx
-      REAL      xyzmh(5,ilenx)
+      INTEGER   nlst_in, nlst_end, npart, ntot, ilenx, ilenv, ilenr
+      REAL      xyzmh(5,ilenx), vxyzu(4,ilenv),rgrain(ilenr)
+c
+c--Functions
+c
+      REAL thermal_velocity
+
+c--Local parameters
+c
+      REAL alpha_turb
+      PARAMETER (alpha_turb=1.0E-02)
 c
 c--Local variables
 c
       INTEGER   ipart, j, k, n, ioffset, index, index1, iparttot2
       REAL      m_g,
      &          dr2, drx, dry, drz, h_g, h2_g, h3_g,
-     &          wk_sym, wk_sym2, dwdx, dxx, u2_g
+     &          wk_sym, wk_sym2, dwdx, dxx, u2_g, vthermal, 
+     &          r_planetesimal, rho_planetesimal, mD_Ks, ts, St, vt, Sc,
+     &          turb, r, Omega, ddvx, ddvy, ddvz, scalar
 
 c      print *,'Entered dust_norm_rhoG ',nlst_end
 
@@ -77,15 +92,19 @@ c     regardless of whether h_d < h_g or not.
 c
 
 C$OMP PARALLEL default(none)
-C$OMP& shared(nlst_in,nlst_end,ivar,iphase,ijvar,xyzmh)
+C$OMP& shared(nlst_in,nlst_end,ivar,iphase,ijvar,xyzmh,vxyzu)
 C$OMP& shared(dumrho,radkernel,ddvtable,dvtable)
 C$OMP& shared(wij,dustnorm,cnormk,rhoG)
 C$OMP& shared(doublehumpnormk,npart,ntot,iscurrent)
+C$OMP& shared(vturb,rgrain)
 C$OMP& private(j,k,n,ipart,ioffset,drx,dry,drz,dr2)
+C$OMP& private(ddvx,ddvy,ddvz,scalar)
 C$OMP& private(m_g,h_g,h2_g,h3_g,u2_g)
 C$OMP& private(wk_sym,wk_sym2)
 C$OMP& private(dwdx,dxx,index,index1)
-C$OMP& private(iparttot2)
+C$OMP& private(iparttot2,vthermal)
+C$OMP& private(r_planetesimal,rho_planetesimal)
+C$OMP& private(mD_Ks,ts,St,vt,Sc,turb,r,Omega)
 c
 c--Normalization calculation from looping over dust particles
 c     (and zeroes the values initially too)
@@ -99,6 +118,7 @@ c
          iparttot2 = ipart
          dustnorm(ipart) = 0.0
          rhoG(ipart) = 0.0
+         IF (idim_grow.EQ.idim) vturb(ipart) = 0.0
 c
 c--Check for non-MPI code that the particle number makes sense.
 c     For MPI code, need to define correct index to the xyzmh() array,
@@ -143,6 +163,19 @@ c
                drz = xyzmh(3,iparttot2) - xyzmh(3,j)
                dr2  = drx*drx + dry*dry + drz*drz
 c
+c--Relative velocities needed for dust growth
+c
+               IF (idim_grow.EQ.idim) THEN
+                  IF (dr2.NE.0.0) THEN
+                     ddvx = vxyzu(1,ipart) - vxyzu(1,j)
+                     ddvy = vxyzu(2,ipart) - vxyzu(2,j)
+                     ddvz = vxyzu(3,ipart) - vxyzu(3,j)
+                     scalar = (ddvx*drx + ddvy*dry + ddvz*drz)/SQRT(dr2)
+                  ELSE
+                     scalar = 0.
+                  ENDIF
+               ENDIF
+c
 c--Mass coefficients
 c
                m_g     = xyzmh(4,j)
@@ -171,8 +204,38 @@ c
 c--Gas density at dust particle location
 c
                   rhoG(ipart) = rhoG(ipart) + m_g*wk_sym2
-               ENDIF
-            ENDIF
+c
+c--Gas turbulent velocity at dust particle location.
+c     Only needed in grain growth simulations.
+c
+                  IF (idim_grow.EQ.idim) THEN
+                    r =SQRT(xyzmh(1,iparttot2)**2+xyzmh(2,iparttot2)**2)
+                    Omega = SQRT(1./r**3)
+
+                    r_planetesimal = rgrain(ipart)
+                    CALL rho_grain(rho_planetesimal)
+                    IF (rgrain(ipart).EQ.0.0) THEN
+                      WRITE(*,*)'ERROR - rgrain is zero in dust_norm'
+                      CALL quit(0)
+                    ENDIF
+
+                    vthermal = thermal_velocity(j)
+                    mD_Ks    = r_planetesimal*rho_planetesimal/vthermal
+                    ts       = mD_Ks/(dumrho(ipart)+dumrho(j))
+                    St       = Omega*ts
+                    !turb    = sqrt(4.5*alpha_turb/(St+1./St))*vthermal
+c--------------------------------SV970----------------------------
+                    vt       = SQRT(2.0**0.5*3.0*alpha_turb)*vthermal
+                    Sc       = (1.0+St)*SQRT(1.0+(scalar/vt)**2)
+                    turb     = 2.0**0.5*vt*(SQRT(Sc-1.0)/Sc)
+c--------------------------------SV970----------------------------
+
+                    vturb(ipart) = vturb(ipart) +
+     &                     (m_g/dumrho(j))*turb*wk_sym
+                  ENDIF
+
+               ENDIF   ! EndIf kernel
+            ENDIF   ! EndIf iphase = gas
          END DO   ! End neighbour loop
 
         IF (dustnorm(ipart).GT.1.5) THEN
@@ -181,7 +244,7 @@ c
            CALL quit(1)
         ENDIF
 
-20    END DO
+ 20   END DO
 C$OMP END DO
 c
 c--Now, add contributions from looping over gas particles
@@ -230,6 +293,19 @@ c
             drz = xyzmh(3,iparttot2) - xyzmh(3,j)
             dr2  = drx*drx + dry*dry + drz*drz
 c
+c--Relative velocities needed for dust growth
+c
+            IF (idim_grow.EQ.idim) THEN
+               IF (dr2.NE.0.0) THEN
+                  ddvx = vxyzu(1,ipart) - vxyzu(1,j)
+                  ddvy = vxyzu(2,ipart) - vxyzu(2,j)
+                  ddvz = vxyzu(3,ipart) - vxyzu(3,j)
+                  scalar = (ddvx*drx + ddvy*dry + ddvz*drz)/SQRT(dr2)
+               ELSE
+                  scalar = 0.
+               ENDIF
+            ENDIF
+c
 c--If the dust particle is active, only include dust particles for 
 c     which h_gas > h_dust (otherwise their contribution has already 
 c     been accounted for).  Alternately, if the dust particle is 
@@ -269,10 +345,40 @@ c--Gas density at dust particle location
 c
 C$OMP ATOMIC
                   rhoG(j) = rhoG(j) + m_g*wk_sym2
+c
+c--Gas turbulent velocity at dust particle location.
+c     Only needed in grain growth simulations.
+c
+                  IF (idim_grow.EQ.idim) THEN
+                    r = SQRT(xyzmh(1,j)**2+xyzmh(2,j)**2)
+                    Omega = SQRT(1./r**3)
+
+                    r_planetesimal = rgrain(j)
+                    CALL rho_grain(rho_planetesimal)
+                    IF (rgrain(j).EQ.0.0) THEN
+                      WRITE(*,*)'ERROR - rgrain is zero in dust_norm'
+                      CALL quit(0)
+                    ENDIF
+
+                    vthermal = thermal_velocity(ipart)
+                    mD_Ks    = r_planetesimal*rho_planetesimal/vthermal
+                    ts       = mD_Ks/(dumrho(ipart)+dumrho(j))
+                    St       = Omega*ts
+                    !turb    = sqrt(4.5*alpha_turb/(St+1./St))*vthermal
+c--------------------------------SV970----------------------------
+                    vt       = SQRT(2.0**0.5*3.0*alpha_turb)*vthermal
+                    Sc       = (1.0+St)*SQRT(1.0+(scalar/vt)**2)
+                    turb     = 2.0**0.5*vt*(SQRT(Sc-1.0)/Sc)
+c--------------------------------SV970----------------------------
+C$OMP ATOMIC
+                    vturb(j) = vturb(j) +
+     &                   (m_g/dumrho(ipart))*turb*wk_sym
+                  ENDIF
+
                ENDIF
             ENDIF
          END DO   ! End neighbour loop
-30    END DO
+ 30   END DO
 C$OMP END DO
 C$OMP END PARALLEL
 

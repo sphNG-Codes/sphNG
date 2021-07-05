@@ -1,0 +1,5 @@
+      INTEGER igrowthmodel
+      REAL  rgrain, vfrag, rgrain_min
+
+      COMMON /grain/ rgrain(idim_grow), vfrag, 
+     &               rgrain_min, igrowthmodel

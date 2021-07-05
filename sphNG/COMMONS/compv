@@ -1,0 +1,3 @@
+      REAL vcomp
+
+      COMMON /compv/ vcomp(idim_grow)

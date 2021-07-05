@@ -57,6 +57,8 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/perform'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/grain'
+      INCLUDE 'COMMONS/dustimplicit'
 
       DIMENSION itempsort(idim)
 c
@@ -259,6 +261,24 @@ c
          rho(i) = tempsort(i)
       END DO
 c
+c--grain evolution
+c
+      IF (idim_grow.EQ.idim) THEN
+         DO i = 1, npart
+            tempsort(i) = rgrain(llist(i))
+         END DO
+         DO i = 1, npart
+            rgrain(i) = tempsort(i)
+         END DO
+
+         DO i = 1, npart
+            tempsort(i) = rhoG(llist(i))
+         END DO
+         DO i = 1, npart
+            rhoG(i) = tempsort(i)
+         END DO
+      ENDIF
+c
 c--divv
 c
       DO i = 1, npart
@@ -442,6 +462,24 @@ c
       DO i = 1, npart
          f2vxyzu(4,i) = tempsort(i)
       END DO
+c
+c--grain evolution
+c
+      IF (idim_grow.EQ.idim) THEN
+         DO i = 1, npart
+            tempsort(i) = f1rgrain(llist(i))
+         END DO
+         DO i = 1, npart
+            f1rgrain(i) = tempsort(i)
+         END DO
+
+         DO i = 1, npart
+            tempsort(i) = f2rgrain(llist(i))
+         END DO
+         DO i = 1, npart
+            f2rgrain(i) = tempsort(i)
+         END DO
+      ENDIF
 c
 c--f1ha
 c

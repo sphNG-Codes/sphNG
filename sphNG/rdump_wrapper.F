@@ -60,6 +60,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/dustfluid'
       INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/grain'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -176,6 +177,14 @@ c
             vxyzu(k,i) = tempsort(i)
          END DO
       ENDDO
+      IF (idim_grow.EQ.idim) THEN
+         DO i = 1, npart
+            tempsort(i) = rgrain(iorig(i))
+         END DO
+         DO i = 1, npart
+            rgrain(i) = tempsort(i)
+         END DO
+      ENDIF
       DO i = 1, npart
          tempsort(i) = rho(iorig(i))
       END DO
@@ -360,7 +369,7 @@ c
 c--Check units in file the same as in the code!
 c
       IF (udisti.LT.0.99999*udist .OR. udisti.GT.1.00001*udist) THEN
-         print *,udisti,udist
+         print *,'ERROR - dump file distance units:',udisti,udist
          CALL error(where,1)
       ELSEIF (umassi.LT.0.99999*umass .OR.umassi.GT.1.00001*umass) THEN
          CALL error(where,2)

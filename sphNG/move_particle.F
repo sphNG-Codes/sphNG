@@ -50,6 +50,8 @@ c************************************************************
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/dustimplicit'
+      INCLUDE 'COMMONS/grain'
+      INCLUDE 'COMMONS/compv'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
 #endif
@@ -65,6 +67,16 @@ c************************************************************
          f1vxyzu(i,ito) = f1vxyzu(i,ifrom)
          f2vxyzu(i,ito) = f2vxyzu(i,ifrom)         
       END DO
+      IF (idim_grow.EQ.idim) THEN
+        rgrain(ito) = rgrain(ifrom)
+        dumrgrain(ito) = dumrgrain(ifrom)
+        f1rgrain(ito) = f1rgrain(ifrom)
+        f2rgrain(ito) = f2rgrain(ifrom)
+        vturb(ito) = vturb(ifrom)
+        vcomp(ito) = vcomp(ifrom)
+        rhoG(ito) =  rhoG(ifrom)
+      ENDIF
+        
       isteps(ito) = isteps(ifrom)
       IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) THEN
          icolumnsteps(ito) = icolumnsteps(ifrom)

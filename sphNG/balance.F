@@ -62,6 +62,8 @@ c************************************************************
       INCLUDE 'COMMONS/recor'
       INCLUDE 'COMMONS/lyonfiles'
       INCLUDE 'COMMONS/gtime'
+      INCLUDE 'COMMONS/grain'
+      INCLUDE 'COMMONS/compv'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -482,6 +484,21 @@ c     &                          MPI_COMM_WORLD, ierr)
 
                         IF (idustIMPL.GT.0) THEN
                            CALL MPI_SEND(dustnorm,1,indexMPIR,j,171,
+     &                          MPI_COMM_WORLD, ierr)
+                        ENDIF
+
+                        IF (idim_grow.EQ.idim) THEN
+                           CALL MPI_SEND(rgrain,1,indexMPIR,j,191,
+     &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(f1rgrain,1,indexMPIR,j,192,
+     &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(f2rgrain,1,indexMPIR,j,193,
+     &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(vturb,1,indexMPIR,j,194,
+     &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(rhoG,1,indexMPIR,j,195,
+     &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(vcomp,1,indexMPIR,j,196,
      &                          MPI_COMM_WORLD, ierr)
                         ENDIF
 
@@ -1020,6 +1037,56 @@ c                  ENDIF
                   CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
                   IF (inumber.NE.igotnumber) THEN
                      WRITE (*,*) 'ERROR - balance igotnumber dustnorm'
+                     CALL quit(1)
+                  ENDIF
+               ENDIF
+
+               IF (idim_grow.EQ.idim) THEN
+                  CALL MPI_RECV(rgrain(npartnew+1), idim, MPI_REAL8,
+     &                 iprocrec, 191, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber rgrain'
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_RECV(f1rgrain(npartnew+1), idim, MPI_REAL8,
+     &                 iprocrec, 192, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber f1rgrain'
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_RECV(f2rgrain(npartnew+1), idim, MPI_REAL8,
+     &                 iprocrec, 193, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber f2rgrain'
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_RECV(vturb(npartnew+1), idim, MPI_REAL8,
+     &                 iprocrec, 194, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber vturb'
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_RECV(rhoG(npartnew+1), idim, MPI_REAL8,
+     &                 iprocrec, 195, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber rhoG'
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_RECV(vcomp(npartnew+1), idim, MPI_REAL8,
+     &                 iprocrec, 196, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, MPI_REAL8, inumber, ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igotnumber vcomp'
                      CALL quit(1)
                   ENDIF
                ENDIF
@@ -1722,6 +1789,7 @@ c
          DO k = 1, 4
             dumvxyzu(k,i) = vxyzu(k,i)
          END DO
+         IF (idim_grow.EQ.idim) dumrgrain(i) = rgrain(i)
          DO k = 1, isizealphaMM
             dumalpha(k,i) = alphaMM(k,i)
          END DO
@@ -1951,6 +2019,7 @@ c
             DO k = 1, 4
                dumvxyzu(k,i) = vxyzu(k,i)
             END DO
+            IF (idim_grow.EQ.idim) dumrgrain(i) = rgrain(i)
             DO k = 1, isizealphaMM
                dumalpha(k,i) = alphaMM(k,i)
             END DO

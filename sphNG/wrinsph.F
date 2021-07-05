@@ -52,6 +52,7 @@ c************************************************************
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/grain'
 c
 c--Allow for tracing flow
 c
@@ -210,10 +211,9 @@ c
       ENDIF
       IF (ibound.EQ.100) THEN
          WRITE (iterm, 88039) variation,phibound,flowrate,signorm,
-     &        hoverr,partm,centralmass
+     &        hoverr,partm
 88039    FORMAT(2X,7(1PE11.5,1X),
-     &        '  Rad variation, Phi, flowrate, sigma, HoverR, partmass,'
-     &        ,' centralmass (for u)')
+     &        '  Rad variation, Phi, flowrate, sigma, HoverR, partmass')
       ENDIF
 
       IF (ibound.EQ.102 .OR. ibound.EQ.103 .OR. ibound.EQ.105) THEN
@@ -225,16 +225,14 @@ c
 
       IF (ibound.EQ.104 .OR. ibound.EQ.105) THEN
          WRITE (iterm, 88041) variation,phibound,signorm,
-     &        hoverr,partm,centralmass
+     &        hoverr,partm
 88041    FORMAT(2X,6(1PE12.5,1X),
-     &        '  Rad variation, Phi, sigma, HoverR, partmass,',
-     &        ' centralmass (for u)')
+     &        '  Rad variation, Phi, sigma, HoverR, partmass')
       ENDIF
 
       IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
-         WRITE (iterm, 88073) signorm,hoverr,partm,centralmass
-88073    FORMAT(2X,4(1PE12.5,1X),'  sigma, HoverR, partmass,',
-     &        'centralmass (for u)')
+         WRITE (iterm, 88073) signorm,hoverr,partm
+88073    FORMAT(2X,4(1PE12.5,1X),'  sigma, HoverR, partmass')
          WRITE (iterm, 11074) imigrate
 11074    FORMAT(2X, I2, ' prescribed migration')
          IF (imigrate.EQ.1) THEN
@@ -314,25 +312,41 @@ c
 c
 c--Parameters for planetesimals and dust
 c
-      IF (iplanetesimal_info.EQ.'p') THEN
+      IF (iplanetesimal_info.EQ.'p' .OR. iplanetesimal_info.EQ.'g') THEN
          WRITE (iterm, 99006) iplanetesimal_info
-         WRITE (iterm, 11060) n_planetesimal_types
-11060    FORMAT(2X, I2, ' Number of planetesimal types')
+11000    FORMAT (A1,'     Planetesimal or dust grain info (p/g)')
+         WRITE (iterm, 11100) gasdrag
+11100    FORMAT(2X,L1, '   Explicit planetesimal-gas drag (T/F)')
+         IF (gasdrag) WRITE (iterm, 11110) idragscheme 
+11110    FORMAT(2X,I2, '  Drag scheme (0,1,2)')
+         WRITE (iterm, 11120) prswitch
+11120    FORMAT(2X, L1, '   PR-drag & rad. pres. switch')
+         IF (prswitch) WRITE (iterm, 11130) pbeta
+11130    FORMAT(2X,1PE12.5, ' Grain beta (Burns et al. 1979)')
+      ENDIF
+
+      IF (iplanetesimal_info.EQ.'p') THEN
+         WRITE (iterm, 11140) n_planetesimal_types
+11140    FORMAT(2X, I2, '  Number of planetesimal types')
          DO i = 1, n_planetesimal_types
             r_planetesimal = r_planetesimals(i)*udist
             rho_planetesimal = rho_planetesimals(i)*udens
-            WRITE (iterm, 11064) r_planetesimal,rho_planetesimal
-11064       FORMAT (4X,2(1X,1PE12.5),
+            WRITE (iterm, 11150) r_planetesimal,rho_planetesimal
+11150       FORMAT (4X,2(1X,1PE12.5),
      &           ' planetesimal radius (cm), density (g/cm^3)')
          END DO
-         WRITE (iterm, 11070) gasdrag
-11070    FORMAT(2X,L1, ' Explicit planetesimal-gas drag')
-         IF (gasdrag) WRITE (iterm, 11071) idragscheme 
-11071    FORMAT(2X,I2, ' Drag scheme (0,1,2)')
-         WRITE (iterm, 11072) prswitch
-11072    FORMAT(2X, L1, ' PR-drag & rad. pres. switch')
-         IF (prswitch) WRITE (iterm, 11073) pbeta
-11073    FORMAT(2X,1PE12.5, ' grain beta (Burns et al. 1979)')
+      ENDIF
+
+      IF (iplanetesimal_info.EQ.'g') THEN
+         WRITE (iterm, 11160) igrowthmodel
+11160    FORMAT(2X, I1, '   Growth model ',
+     &        '(1:monodisperse 2:polydisperse)')
+         WRITE (iterm, 11170) vfrag*udist/utime
+11170    FORMAT(2X, 1PE12.5, ' Dust fragmentation velocity (cm/s)',
+     &        '(negative value to switch frag off)')
+         WRITE (iterm, 11180) rgrain_min*udist
+11180    FORMAT(2X, 1PE12.5, ' Minimum grain size (cm)',
+     &        '(negative value to remove minimum size)')
       ENDIF
 c
 c--Check for consistency

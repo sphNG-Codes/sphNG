@@ -53,6 +53,7 @@ c************************************************************
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/interstellar'
+      INCLUDE 'COMMONS/grain'
 
       CHARACTER*1 iatomic_molecular
 c
@@ -133,6 +134,7 @@ c
          ENDIF
          READ (iterm, *) tolerance_rt, boundtemp, bounddens, opdenom, 
      &        iopmodel, metallicity
+         print *,'Opacity model ',iopmodel
          IF (idustRT.GT.0 .AND. boundtemp.NE.1.0) THEN
             WRITE (iprint,*) 'ERROR - boundtemp should be 1 K for ',
      &           'RT with diffuse ISM physics'
@@ -144,8 +146,6 @@ c
          READ (iterm, 99006) iatomic_molecular
          IF (iatomic_molecular.EQ.'a') iatomic = .TRUE.
       ENDIF
-
-      print *,'Opacity model ',iopmodel
 
 #ifdef MPI
       READ (iterm, *) mpitype, xlocationmpi, ylocationmpi, 
@@ -178,7 +178,8 @@ c
          ndivBsubcycles = 0
          overclean_fac = 1.0
       ENDIF
-      hdivbbmax_max = 1.0    ! max factor to decrease cleaning timestep; dtclean propto max(B/(h|divB|),1/hdivbbmax_max)
+      hdivbbmax_max = 1.0 ! max factor to decrease cleaning timestep
+                          ! dtclean propto max(B/(h|divB|),1/hdivbbmax_max)
       IF (overclean_fac.LT.1.0) overclean_fac = 1.0
       IF (hdivbbmax_max.LT.overclean_fac) hdivbbmax_max = overclean_fac
       IF ((imhd.NE.idim .OR. imhdevol.NE.4) 
@@ -251,7 +252,7 @@ c
       use_tprof = .FALSE.
       IF (ibound.EQ.100) THEN
          READ (iterm, *) variation,phibound,flowrate,signorm,
-     &        hoverr,partm,centralmass
+     &        hoverr,partm
       ENDIF
 c
 c--Boundaries for global disc with planet (e.g. Ayliffe & Bate 2011)
@@ -259,7 +260,7 @@ c
       IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
          READ (iterm, *) use_tprof
          IF (use_tprof) READ (iterm, *) tprof
-         READ (iterm, *) signorm,hoverr,partm,centralmass
+         READ (iterm, *) signorm,hoverr,partm
          READ (iterm, *) imigrate
          IF (imigrate.EQ.1) THEN
             READ (iterm, *) pmrate
@@ -279,23 +280,26 @@ c
 c--Boundaries for disc section, but without a planet (periodic in phi)
 c     Like a shearing box, but with without linearizing the shear.
 c
+      xmass = 0.
       IF (ibound.EQ.104 .OR. ibound.EQ.105) THEN
          READ (iterm, *) variation,phibound,signorm,
-     &        hoverr,partm,centralmass
+     &        hoverr,partm
       ENDIF
 c
 c--Values to do with external forces
 c
-      xmass = 0.
       iandrea = 0
-      IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7) THEN
+      IF (iexf.GE.5 .AND. iexf.LE.7) THEN
+c
+c--Define central gravitating mass
+c
          READ (iterm, *) xmass
-         IF (centralmass.NE.xmass) THEN
-            WRITE (iprint,*) 'ERROR - xmass must equal centralmass'
-            WRITE (iprint,*) 'xmass is for gravity external force'
-            WRITE (iprint,*) 'centralmass is for thermal energy profile'
-            CALL quit(0)
-         ENDIF
+c
+c--centralmass must equal xmass:
+c     xmass is for gravity external force
+c     centralmass is for disc thermal energy profile
+c
+         centralmass = xmass
       ENDIF
       IF (iexf.EQ.7 .OR. ((ibound.EQ.102 .OR. ibound.EQ.103)
      &     .AND. initialptm.EQ.0)) THEN
@@ -356,45 +360,83 @@ c
 c
 c--Parameters for planetesimals and dust
 c
+      IF (idim_grow.EQ.idim .AND. idustIMPL.EQ.0) THEN
+         WRITE(*,*) 'ERROR - trying to use grain growth without ',
+     &        'semi-implicit drag activated.'
+         WRITE(*,*) 'This may give unphysical results - do not do it.'
+         CALL quit(0)
+      ENDIF
+c
+c--Default planetesimal and dust values
+c
       n_planetesimal_types = 0
       r_planetesimals(1:10) = 0.0
       rho_planetesimals(1:10) = 0.0
-      READ (iterm, 99006, END=200) iplanetesimal_info
+      gasdrag = .FALSE.
+      idragscheme = 0
+      prswitch = .FALSE.
+
+      READ (iterm, 99006, END=260) iplanetesimal_info
+
+      print *,'p value ',iplanetesimal_info
+      IF (iplanetesimal_info.EQ.'p' .OR. iplanetesimal_info.EQ.'g') THEN
+         READ (iterm, *, END=300) gasdrag
+         IF (gasdrag) THEN
+            READ (iterm, *, END=250) idragscheme
+            WRITE (*,*) 'Drag scheme is ',idragscheme
+         ENDIF         
+         READ (iterm, *, END=400) prswitch
+         IF (prswitch) READ (iterm, *) pbeta
+      ENDIF
+
       IF (iplanetesimal_info.EQ.'p') THEN
          READ (iterm, *) n_planetesimal_types
          IF (n_planetesimal_types.GT.nplanetesimal_maxtype) THEN
-            WRITE (*,*) 
+            WRITE (*,*)
      &           'ERROR - n_planetesimal_types.GT.nplanetesimal_maxtype'
             CALL quit(0)
          ELSEIF (n_planetesimal_types.LT.1) THEN
             WRITE (*,*) 'ERROR - n_planetesimal_types.LT.1'
             CALL quit(0)
          ENDIF
+c
+c--Convert radius and density to code units
+c
          DO i = 1, n_planetesimal_types
             READ (iterm, *) r_planetesimals(i), rho_planetesimals(i)
             r_planetesimals(i) = r_planetesimals(i)/udist
             rho_planetesimals(i) = rho_planetesimals(i)/udens
          END DO
-
-         gasdrag = .FALSE.
-         idragscheme = 0
-         prswitch = .FALSE.
-         READ (iterm, *, END=300) gasdrag
-         IF (gasdrag) THEN
-            READ (iterm, *, END=150) idragscheme
-            WRITE (*,*) 'Drag scheme is ',idragscheme
-         ENDIF         
-         READ (iterm, *, END=400) prswitch
-         IF (prswitch) READ (iterm, *) pbeta
       ENDIF
+
+      IF (iplanetesimal_info.EQ.'g') THEN
+         READ (iterm, *) igrowthmodel
+         IF (igrowthmodel.NE.1 .AND. igrowthmodel.NE.2) THEN
+            WRITE (*,*) 'ERROR - igrowthmodel should be 1 or 2'
+            CALL quit(0)
+         ENDIF
+         READ (iterm,*, END=200) vfrag
+         vfrag = vfrag*utime/udist
+         READ (iterm,*) rgrain_min
+         rgrain_min = rgrain_min/udist
+      ELSEIF (idustGROW.EQ.1) THEN
+         WRITE (*,*) 'ERROR - idustGROW.EQ.1, but no info given'
+         CALL quit(0)
+      ENDIF
+
       GOTO 1000
 c
 c--Note missing planetesimal and dust data
 c
- 150  WRITE (*,*) 'ERROR: Explicit drag, need to define idragscheme'
+ 200  WRITE (*,*) 'ERROR: grain growth must specify vfrag & rgrain_min'
       CALL quit(0)
+ 250  WRITE (*,*) 'ERROR: Explicit drag, need to define idragscheme'
+      CALL quit(0)
+ 260  IF (idustGROW.EQ.1) THEN
+         WRITE (*,*) 'ERROR - idustGROW.EQ.1, but no info given'
+         CALL quit(0)
+      ENDIF
 
- 200  WRITE (*,*) 'NOTE: No planetesimal information has been given'
  300  WRITE (*,*) 'NOTE: Explicit gasdrag is assumed to be FALSE'
  400  WRITE (*,*) 'NOTE: Poynting-Robertson is assumed to be OFF'
 c

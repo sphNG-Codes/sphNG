@@ -1,3 +1,4 @@
-      REAL dustnorm, rhoG, vxyzu_change
+      REAL dustnorm, rhoG, vxyzu_change, vturb
       COMMON /dustimplicit/ dustnorm(idustIMPL*idim2),
-     &      rhoG(idustIMPL*idim2),vxyzu_change(4,idustIMPL*idim2)
+     &      rhoG(idustIMPL*idim2),vxyzu_change(4,idustIMPL*idim2),
+     &      vturb(idim_grow2)

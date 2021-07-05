@@ -6,6 +6,7 @@
       INTEGER idim_h2, idim_h2_2, idim_MPI
       INTEGER ioptimise_column
       INTEGER idustFluid, idim_dustfluid, idim_dustfluid2
+      INTEGER idustGROW, idim_grow, idim_grow2
       REAL tiny
 
       PARAMETER (idim=2001000)
@@ -77,6 +78,12 @@ c
 c      PARAMETER (idustIMPL = 1)
       PARAMETER (idustIMPL = 0)
 c
+c--Allow dust grains to grow. At this moment dust growth only works with
+c  the semi-implicit dust drag scheme. It shouldn't be used without it.
+c
+c      PARAMETER (idustGROW = 1)
+      PARAMETER (idustGROW = 0)
+c
 c--One-fluid dust
 c
 c      PARAMETER (idustFluid = 1)
@@ -106,3 +113,5 @@ c
 
       PARAMETER (idim_dustFluid = idustFluid*idim)
       PARAMETER (idim_dustFluid2 = idustFluid*idim2)
+      PARAMETER (idim_grow = idustGROW*idim)
+      PARAMETER (idim_grow2 = idustGROW*idim2)

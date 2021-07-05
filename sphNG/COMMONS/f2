@@ -1,5 +1,6 @@
       REAL*4 f2ha
-      REAL f2vxyzu, dum2vxyz, f2Bxyz
+      REAL f2vxyzu, f2rgrain, dum2vxyz, f2Bxyz
 
       COMMON /f2   / f2vxyzu(4,idim3),dum2vxyz(3,idim),
+     &        f2rgrain(idim_grow2),
      &        f2Bxyz(imhdevol,imhd3),f2ha(1+isizealphaMM,idim2)

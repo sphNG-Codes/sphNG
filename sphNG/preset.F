@@ -156,7 +156,8 @@ c
 c         CALL appendiproc(21,killfile,iproc)
 c         CALL appendiproc(21,reassfile,iproc)
 #endif
-         IF (ibound.EQ.8 .OR. ibound/10.EQ.9 .OR. ibound.EQ.100) THEN
+         IF (ibound.EQ.8 .OR. ibound/10.EQ.9 .OR. 
+     &        ibound.GE.100 .AND. ibound.LT.109) THEN
             OPEN (ikillpr, FILE=killfile, STATUS='replace',
      &           ACTION='write', FORM='unformatted')
             OPEN (ireasspr, FILE=reassfile, STATUS='replace',

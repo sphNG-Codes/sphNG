@@ -77,10 +77,13 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/dustfluid'
       INCLUDE 'COMMONS/dustfluidvelu'
       INCLUDE 'COMMONS/radsink'
+      INCLUDE 'COMMONS/dustimplicit'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
       INCLUDE 'COMMONS/divcurlB'
 #endif
+      INCLUDE 'COMMONS/grain'
+      INCLUDE 'COMMONS/compv'
 
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
@@ -663,6 +666,12 @@ c--int*8
             ENDIF
             READ (idisk1, END=100) (iunique(i), i=icount+1,
      &           icount+nhydro)
+c
+c--If iunique is not set, attempt to repair
+c
+            DO i = icount+1, icount+nhydro
+               IF (iunique(i).EQ.0) iunique(i) = i
+            END DO
             IF (iunique_offset.GT.0) THEN
                DO i=icount+1, icount+nhydro
                   iunique(i) = iunique(i) + iunique_offset
@@ -811,8 +820,33 @@ c
                 CALL quit(0)
              ENDIF
           ENDIF
+c
+c--Pablo: Change to include dust grain evol
+c
+          IF (idim_grow.EQ.idim) THEN
+             iwanted = iwanted + 3
 
+             IF (nums1(6).LT.iwanted) THEN
+                WRITE (*,*) 'ERROR - nums1(6).LT.iwanted - idim_grow',
+     &               nums1(6),iwanted
+                CALL quit(0)
+             ENDIF
+
+             IF (tagged) READ (idisk1, END=100) tagi
+             CALL checktag('rgrain', tagi, ierr)
+             READ (idisk1, END=100) rgrain(icount+1:icount+nhydro)
+
+             IF (tagged) READ (idisk1, END=100) tagi
+             CALL checktag('rhoG', tagi, ierr)
+             READ (idisk1, END=100) rhoG(icount+1:icount+nhydro)
+
+             IF (tagged) READ (idisk1, END=100) tagi
+             CALL checktag('vcomp', tagi, ierr)
+             READ (idisk1, END=100) vcomp(icount+1:icount+nhydro)
+          ENDIF
+c
 c--skip unnecessary reals
+c
          IF (nums1(6).GT.iwanted) THEN
             DO j=1,nums1(6)-iwanted
                IF (tagged) READ (idisk1, END=100)
@@ -1560,7 +1594,7 @@ c
      &              xyzmh,vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,
      &              iunique,ekcle,listpm,spinx,spiny,spinz,angaddx,
      &              angaddy,angaddz,spinadx,spinady,spinadz,
-     &              listinactive)
+     &              rgrain,listinactive)
             ELSEIF (mpitype.EQ.'b' .AND. numproc.EQ.nblocks/2) THEN
                IF (nblocks.NE.1) THEN
                   DO i = icountsink+1, icountsink+nptmass
@@ -1764,7 +1798,7 @@ c============================================================
      &     isteps,iphase,
      &     xyzmh,vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,iunique,
      &     ekcle,listpm,spinx,spiny,spinz,angaddx,angaddy,angaddz,
-     &     spinadx,spinady,spinadz,listinactive)
+     &     spinadx,spinady,spinadz,rgrain,listinactive)
 c************************************************************
 c                                                           *
 c--Splits based on spatial coordinates (x, y, z) for 2, 4   *
@@ -1789,6 +1823,7 @@ c************************************************************
      &     alphaMM(isizealphaMM,idim)
       DIMENSION isteps(idim), xyzmh(5,idim), vxyzu(4,idim), 
      &     Bevolxyz(imhdevol,imhd), Bxyz(3,imhd), ekcle(5,iradtrans)
+      DIMENSION rgrain(idim_grow)
       DIMENSION listpm(iptdim),spinx(iptdim),spiny(iptdim),
      &     spinz(iptdim),angaddx(iptdim),angaddy(iptdim),
      &     angaddz(iptdim),spinadx(iptdim),spinady(iptdim),
@@ -1827,6 +1862,7 @@ c
                   vxyzu(j,icountnew) = vxyzu(j,i)
                END DO
                rho(icountnew) = rho(i)
+               IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                dgrav(icountnew) = dgrav(i)
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
@@ -1871,6 +1907,7 @@ c
                      vxyzu(j,icountnew) = vxyzu(j,i)
                   END DO
                   rho(icountnew) = rho(i)
+                  IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                   dgrav(icountnew) = dgrav(i)
                   IF (nlmax.EQ.1) THEN
                      DO j = 1, 2
@@ -1908,6 +1945,7 @@ c
                      vxyzu(j,icountnew) = vxyzu(j,i)
                   END DO
                   rho(icountnew) = rho(i)
+                  IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                   dgrav(icountnew) = dgrav(i)
                   IF (nlmax.EQ.1) THEN
                      DO j = 1, 2
@@ -1949,6 +1987,7 @@ c
                      vxyzu(j,icountnew) = vxyzu(j,i)
                   END DO
                   rho(icountnew) = rho(i)
+                  IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                   dgrav(icountnew) = dgrav(i)
                   IF (nlmax.EQ.1) THEN
                      DO j = 1, 2
@@ -1986,6 +2025,7 @@ c
                      vxyzu(j,icountnew) = vxyzu(j,i)
                   END DO
                   rho(icountnew) = rho(i)
+                  IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                   dgrav(icountnew) = dgrav(i)
                   IF (nlmax.EQ.1) THEN
                      DO j = 1, 2
@@ -2023,6 +2063,7 @@ c
                   vxyzu(j,icountnew) = vxyzu(j,i)
                END DO
                rho(icountnew) = rho(i)
+               IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                dgrav(icountnew) = dgrav(i)
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
@@ -2060,6 +2101,7 @@ c
                   vxyzu(j,icountnew) = vxyzu(j,i)
                END DO
                rho(icountnew) = rho(i)
+               IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                dgrav(icountnew) = dgrav(i)
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
@@ -2101,6 +2143,7 @@ c
                   vxyzu(j,icountnew) = vxyzu(j,i)
                END DO
                rho(icountnew) = rho(i)
+               IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                dgrav(icountnew) = dgrav(i)
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
@@ -2138,6 +2181,7 @@ c
                   vxyzu(j,icountnew) = vxyzu(j,i)
                END DO
                rho(icountnew) = rho(i)
+               IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                dgrav(icountnew) = dgrav(i)
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
@@ -2175,6 +2219,7 @@ c
                   vxyzu(j,icountnew) = vxyzu(j,i)
                END DO
                rho(icountnew) = rho(i)
+               IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                dgrav(icountnew) = dgrav(i)
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
@@ -2212,6 +2257,7 @@ c
                   vxyzu(j,icountnew) = vxyzu(j,i)
                END DO
                rho(icountnew) = rho(i)
+               IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                dgrav(icountnew) = dgrav(i)
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
@@ -2249,6 +2295,7 @@ c
                   vxyzu(j,icountnew) = vxyzu(j,i)
                END DO
                rho(icountnew) = rho(i)
+               IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                dgrav(icountnew) = dgrav(i)
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
@@ -2286,6 +2333,7 @@ c
                   vxyzu(j,icountnew) = vxyzu(j,i)
                END DO
                rho(icountnew) = rho(i)
+               IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                dgrav(icountnew) = dgrav(i)
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
@@ -2323,6 +2371,7 @@ c
                   vxyzu(j,icountnew) = vxyzu(j,i)
                END DO
                rho(icountnew) = rho(i)
+               IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                dgrav(icountnew) = dgrav(i)
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
@@ -2360,6 +2409,7 @@ c
                   vxyzu(j,icountnew) = vxyzu(j,i)
                END DO
                rho(icountnew) = rho(i)
+               IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                dgrav(icountnew) = dgrav(i)
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2
@@ -2498,6 +2548,7 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
                   vxyzu(j,icountnew) = vxyzu(j,i)
                END DO
                rho(icountnew) = rho(i)
+               IF (idim_grow.EQ.idim) rgrain(icountnew) = rgrain(i)
                dgrav(icountnew) = dgrav(i)
                IF (nlmax.EQ.1) THEN
                   DO j = 1, 2

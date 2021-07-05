@@ -81,6 +81,9 @@ c#endif
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/dustfluid'
       INCLUDE 'COMMONS/dustfluidvelu'
+      INCLUDE 'COMMONS/dustimplicit'
+      INCLUDE 'COMMONS/grain'
+      INCLUDE 'COMMONS/compv'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -417,6 +420,10 @@ c
       IF (istellar_ionisation) nums(6) = nums(6) + 6
 
       IF (idustFluid.EQ.1) nums(6) = nums(6) + 4
+c
+c--Pablo: Change to include dust grain evol
+c
+      IF (idim_grow.EQ.idim) nums(6) = nums(6) + 3
 
       IF (nlmax.EQ.1) THEN
          nums(7) = 4
@@ -594,6 +601,19 @@ c
             WRITE (idisk1, ERR=100) (dustfluidvxyz(j,isort(i)),
      &           i=1,nprint)
          END DO
+      ENDIF
+c
+c--Pablo: Change to include dust grain evol
+c
+      IF (idim_grow.EQ.idim) THEN
+         WRITE (idisk1, ERR=100) tag('rgrain')
+         WRITE (idisk1, ERR=100) (rgrain(isort(i)),i=1,nprint)
+
+         WRITE (idisk1, ERR=100) tag('rhoG')
+         WRITE (idisk1, ERR=100) (rhoG(isort(i)),i=1,nprint)
+
+         WRITE (idisk1, ERR=100) tag('vcomp')
+         WRITE (idisk1, ERR=100) (vcomp(isort(i)),i=1,nprint)
       ENDIF
 
       IF (iplotdump.EQ.1) THEN
@@ -914,7 +934,14 @@ c
       nums(3) = 0
       nums(4) = 1
       nums(5) = 0
-      nums(6) = jlen
+c
+c--Pablo: Change to include dust grain evol
+c
+      IF (idim_grow.EQ.idim) THEN
+        nums(6) = jlen+3
+      ELSE
+        nums(6) = jlen
+      ENDIF
       nums(7) = 3
       nums(8) = 0
       WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
@@ -1001,6 +1028,20 @@ c      DO j = 1, 4
 c         WRITE (idisk1, ERR=100) tag(tagarr(j))
 c         WRITE (idisk1, ERR=100) (vxyzu(j,isort(i)), i=1, npart)
 c      END DO
+c
+c--Pablo: Change to include dust grain evol
+c
+      IF (idim_grow.EQ.idim) THEN
+         WRITE (idisk1, ERR=100) tag('rgrain')
+         WRITE (idisk1, ERR=100) (rgrain(isort(i)), i=1, npart)
+
+         WRITE (idisk1, ERR=100) tag('rhoG')
+         WRITE (idisk1, ERR=100) (rhoG(isort(i)), i=1, npart)
+
+         WRITE (idisk1, ERR=100) tag('vcomp')
+         WRITE (idisk1, ERR=100) (vcomp(isort(i)),i=1,npart)
+      ENDIF
+
 c--real*4
       WRITE (idisk1, ERR=100) tag('rho')
       WRITE (idisk1, ERR=100) (rho(isort(i)), i=1, npart)

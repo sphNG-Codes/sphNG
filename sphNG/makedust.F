@@ -49,6 +49,7 @@ c************************************************************
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/logun'
+      INCLUDE 'COMMONS/grain'
 
       CHARACTER*11 ifile, ofile
       CHARACTER*1 igeom, iok
@@ -134,9 +135,11 @@ c
      &     ' (e.g. ',min_rplan,max_rplan,' )'
       READ (iread,*) min_rplan, max_rplan
 
-      PRINT *,'Do you want cylindrical or spherical radius?'
+      PRINT *,'Do you want cylindrical or spherical radius (c/s)?'
       READ (iread,1001) igeom
-
+c
+c--Select gas particles within radial limits for the dust distribution
+c
       gas_mass_inside = 0.
       ngas_inside = 0.
       DO i = 1, npart
@@ -159,73 +162,176 @@ c
       PRINT *,''
       PRINT *,'There are ',nactive,' active particles ',
      &     'out of ',npart,' total'
- 50   PRINT *,'How many dust particles do you want?'
-      READ (iread,*) ndustpart
-#ifdef MPI
-      ndustpart = ndustpart/numproc
-#endif
-      IF (nactive+ndustpart.GT.idim) THEN
-         PRINT *,'ERROR - number must be <= to ',idim-nactive
-         GOTO 50
-      ENDIF
-
-      PRINT *,'Enter desired dust to gas ratio (normally < 1)'
-      READ (iread,*) dust_gas_ratio
-      dust_particle_mass = dust_gas_ratio*gas_mass_inside/ndustpart
-      PRINT *,'Gas particle mass, Dust particle mass ',
-     &     gas_mass_inside/ngas_inside,dust_particle_mass
-
-      ndust = 0
-      DO j = 1, idim
-         IF (iphase(j).EQ.-1 .OR. j.GT.npart) THEN
 c
-c--Disk distribution
+c--Now create dust particles
 c
- 1237       i = MIN(INT(ran1(1)*npart)+1,npart)
-            IF (iphase(i).NE.0) GOTO 1237
-
-            IF (igeom.EQ.'s') THEN
-               r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
-            ELSE
-               r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2
-            ENDIF
-            IF (SQRT(r2).LT.min_rplan.OR.SQRT(r2).GT.max_rplan)
-     &           GOTO 1237
-
-            ndust = ndust + 1
-
-            xi = xyzmh(1,i) + 0.01*(2.*ran1(1)-1.)*xyzmh(5,i)
-            yi = xyzmh(2,i) + 0.01*(2.*ran1(1)-1.)*xyzmh(5,i)
-            zi = xyzmh(3,i) + 0.01*(2.*ran1(1)-1.)*xyzmh(5,i)
-
-            xyzmh(1,j) = xi
-            xyzmh(2,j) = yi
-            xyzmh(3,j) = zi
-            xyzmh(4,j) = dust_particle_mass
-            xyzmh(5,j) = xyzmh(5,i)*
-     &           (REAL(ngas_inside)/ndustpart)**(1./3.)
-
-            vxyzu(1,j) = vxyzu(1,i)
-            vxyzu(2,j) = vxyzu(2,i)
-            vxyzu(3,j) = vxyzu(3,i)
-            vxyzu(4,j) = vxyzu(4,i)
-
-            rho(j)     = dust_gas_ratio*rho(i)
-            iphase(j)  = 11
-            isteps(j)  = isteps(i)
-
-            IF (ndust.EQ.ndustpart) THEN
-               npart = j
-               GOTO 100
-            ENDIF
+c
+c--If dust growth is to be used with implicit dust drag algorithm, set:
+c
+      IF (idim_grow.EQ.idim) THEN
+ 30      PRINT *,'What type of growth model do you want?'
+         PRINT*, '1: Monodisperse, 2: Polydisperse'
+         READ (iread,*) igrowthmodel
+         IF (igrowthmodel.LT.1 .OR. igrowthmodel.GT.2) THEN
+            PRINT *,'ERROR - maximum of 2 dust types for dust growth'
+            GOTO 30
          ENDIF
-      ENDDO
 
-      PRINT *,'FAILED -- only managed to create ',ndust,' particles ',
-     &     'before running out of space'
-      CALL quit(0) 
+         PRINT *,'Enter fragmentation velocity threshold (cm/s)',
+     &        '(set to -1 to switch fragmentation off)'
+         READ (iread,*) vfrag
+         vfrag = vfrag*utime/udist
 
- 100  nlstacc = 0
+         PRINT *,'Enter minimum grain size with fragmentation (cm)?',
+     &        '(set to -1 to avoid iminimum size)'
+         READ (iread,*) rgrain_min
+         rgrain_min = rgrain_min/udist
+      ENDIF
+c
+c--This section creates standard dust particles (not background grains).
+c     The dust particles have fixed sizes if growth is not active.
+c     Or they grow if growth is active.
+c
+      IF (idim_grow.EQ.idim) THEN
+c
+c--The variable n_planetesimal_types is not used when running the
+c     monodisperse or polydisperse dust growth models, it is just
+c     set here to set up the 1 or 2 dust populations.
+c
+         n_planetesimal_types = igrowthmodel
+         IF (n_planetesimal_types.GT.nplanetesimal_maxtype) THEN
+            PRINT *,'ERROR - nplanetesimal_maxtype not large enough:',
+     &           nplanetesimal_maxtype
+            CALL quit(0)
+         ENDIF
+      ELSE
+ 40      PRINT *,'How many fixed-size dust species you want to create?'
+         READ(iread,*) n_planetesimal_types
+         IF (n_planetesimal_types.GT.nplanetesimal_maxtype) THEN
+            PRINT *,'Max types is: ',nplanetesimal_maxtype
+            GOTO 40
+         ENDIF
+      ENDIF
+c
+c--Create standard dust particles -- npart_gas sets part of array to
+c     search for gas particles
+c
+      npart_gas = npart
+      DO k = 1, n_planetesimal_types
+ 50      CONTINUE
+         IF (idim_grow.EQ.idim) THEN
+            IF (k.EQ.1) THEN
+               PRINT *,'How many growing dust grains?'
+            ELSEIF (k.EQ.2) THEN
+               PRINT *,'How many fixed-size background dust grains ',
+     &              'do you want?'
+            ELSE
+               PRINT *,'ERROR - max of 2 dust types for dust growth'
+               CALL quit(0)
+            ENDIF
+         ELSE
+            PRINT *,'How many particles for population',k,'?'
+         ENDIF
+         READ (iread,*) ndustpart
+c
+c--For MPI, split dust between processes -- ASSUMES that equal amounts
+c     of dust are assigned to each MPI domain !
+c
+#ifdef MPI
+         ndustpart = ndustpart/numproc
+#endif
+         IF (nactive + ndustpart.GT.idim) THEN
+            PRINT *,'ERROR - number must be <= to ',idim-nactive
+            GOTO 50
+         ENDIF
+
+         PRINT *,'Enter desired dust to gas ratio (normally < 1)'
+         READ (iread,*) dust_gas_ratio
+         dust_particle_mass=dust_gas_ratio*gas_mass_inside/ndustpart
+
+         PRINT *,'Gas particle mass, Dust particle mass ',
+     &        gas_mass_inside/ngas_inside,dust_particle_mass
+
+         IF (idim_grow.EQ.idim) THEN
+            IF (k.EQ.1) THEN
+               PRINT *,'Enter initial size (in cm) of growing grains'
+            ELSEIF (k.EQ.2) THEN
+               PRINT *,' Enter size (in cm) of the background grains'
+            ENDIF
+         ELSE
+            PRINT *,' Enter size (in cm) of dust population',k
+         ENDIF
+         READ (iread,*) r_planetesimals(k)
+         r_planetesimals(k) = r_planetesimals(k)/udist
+
+         ndust = 0
+         DO j = 1, idim
+c
+c--Re-use any dead particles for new dust particles, otherwise add to
+c     the end of the current particle list
+c
+            IF (iphase(j).EQ.-1 .OR. j.GT.npart) THEN
+c
+c--Distribute dust particles based on random sampling of gas 
+c     particle distribution
+c
+ 1237          i = MIN(INT(ran1(1)*npart_gas)+1,npart_gas)
+               IF (iphase(i).NE.0) GOTO 1237
+
+               IF (igeom.EQ.'s') THEN
+                  r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
+               ELSE
+                  r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2
+               ENDIF
+               IF (SQRT(r2).LT.min_rplan.OR.SQRT(r2).GT.max_rplan)
+     &              GOTO 1237
+
+               ndust = ndust + 1
+
+               xi = xyzmh(1,i) + 0.01*(2.*ran1(1)-1.)*xyzmh(5,i)
+               yi = xyzmh(2,i) + 0.01*(2.*ran1(1)-1.)*xyzmh(5,i)
+               zi = xyzmh(3,i) + 0.01*(2.*ran1(1)-1.)*xyzmh(5,i)
+
+               xyzmh(1,j) = xi
+               xyzmh(2,j) = yi
+               xyzmh(3,j) = zi
+               xyzmh(4,j) = dust_particle_mass
+               xyzmh(5,j) = xyzmh(5,i)*
+     &              (REAL(ngas_inside)/ndustpart)**(1./3.)
+
+               vxyzu(1,j) = vxyzu(1,i)
+               vxyzu(2,j) = vxyzu(2,i)
+               vxyzu(3,j) = vxyzu(3,i)
+               vxyzu(4,j) = vxyzu(4,i)
+
+               iphase(j)  = 10 + k
+               rho(j)     = dust_gas_ratio*rho(i)
+               isteps(j)  = isteps(i)
+c
+c--If growth is active, the grain size is stored in the rgrain array.
+c     Otherwise, grain sizes and densities are read from ifile.
+c
+               IF (idim_grow.EQ.idim) rgrain(j) = r_planetesimals(k)
+
+               IF (ndust.EQ.ndustpart) THEN
+                  npart = j
+                  GOTO 100
+               ENDIF
+            ENDIF
+         END DO
+
+         PRINT *,'FAILED - only managed to create ',ndust,' particles ',
+     &        'before running out of space'
+         CALL quit(0)
+
+ 100     CONTINUE
+
+         nactive = nactive + ndustpart
+      END DO
+c
+c--Update nactive and the list of any remaining inactive particles
+c
+      nlstacc = 0
       nlistinactive = 0
       nkill = 0
       n1 = 0

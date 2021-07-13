@@ -833,7 +833,7 @@ c     &                  1,llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
      &                  llistsentback(1,j+1),i4REAL8,indexMPI4,ierr)
                        CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
 
-                       CALL MPI_SEND(vxyzu,1,indexMPI4,j,81,
+                       CALL MPI_SEND(vxyzu,1,indexMPI4,j,83,
      &                      MPI_COMM_WORLD, ierr)
 #ifdef MPIDEBUG
                        print *,iproc,' sent vxyzu'
@@ -856,7 +856,7 @@ c
 #endif
                istart = ntot + inumbertotal_2 + 1
                CALL MPI_RECV(vxyzu(1,istart),idim,i4REAL8,
-     &              i, 81, MPI_COMM_WORLD, istatus, ierr)
+     &              i, 83, MPI_COMM_WORLD, istatus, ierr)
                CALL MPI_GET_COUNT(istatus, i4REAL8, inumber, ierr)
                IF (istart+inumber.GT.idim2) THEN
                   WRITE (*,*) 'ERROR - istart+inumber.GT.idim2 ',

@@ -2647,6 +2647,21 @@ c     &                  1,llistsentback(1,j+1),MPI_REAL8,indexMPI,ierr)
 #ifdef MPIDEBUG
                               print *,iproc,' sent rgrain'
 #endif
+                              CALL MPI_TYPE_FREE(indexMPI,ierr)
+
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),MPI_REAL4,indexMPI1,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),MPI_REAL4,indexMPI1,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI1,ierr)
+
+                           CALL MPI_SEND(vsound,1,indexMPI1,j,46,
+     &                          MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                           print *,iproc,' sent vsound'
+#endif
+                           CALL MPI_TYPE_FREE(indexMPI1,ierr)
+
                            ENDIF
                         ENDIF
 
@@ -2757,6 +2772,16 @@ c      ENDIF
                      print *,iproc,': got rgrain from ',iprocrec,
      &                    icheck,istart
 #endif                     
+
+                     CALL MPI_RECV(vsound(istart),inumber,MPI_REAL4,
+     &                 iprocrec, 46, MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus, MPI_REAL4, icheck,ierr)
+                     IF (icheck.NE.inumber) THEN
+                        WRITE (*,*) 'ERROR - icheck.NE.inumber 6 ',
+     &                       iproc
+                        CALL quit(1)
+                     ENDIF
+
                   ENDIF
                ENDIF
                inumbertotal = inumbertotal + inumber

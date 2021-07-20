@@ -789,9 +789,6 @@ C$OMP& private(n,ipart,j)
          DO j = 1, 4
             vxyzu(j,ipart) = vxyzu(j,ipart) + vxyzu_change(j,ipart)
          END DO
-!         IF (idim_grow.EQ.idim) THEN
-!            drgrain(ipart) = rgrain_change(ipart)
-!         ENDIF
       END DO
 C$OMP END PARALLEL DO
 

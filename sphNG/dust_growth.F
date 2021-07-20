@@ -58,7 +58,7 @@ c
      &          background
       REAL      dr2, drx, dry, drz, m_b, h_b, h2_b, h3_b, u2_b,
      &          wk_sym, wk_sym2, dwdx, dxx, rho_planetesimal, 
-     &          ddvx, ddvy, ddvz, scalar, term, vterm, ratio
+     &          ddvx, ddvy, ddvz, scalar, term, vterm
 c
 c--If we use a polydisperse model, we want to calculate dust growth 
 c     using background type 12 particles that are within the background
@@ -88,7 +88,7 @@ C$OMP& shared(nlst_in,nlst_end,ivar,iphase,ijvar,xyzmh,vxyzu)
 C$OMP& shared(dumrho,radkernel,ddvtable,dvtable)
 C$OMP& shared(wij,cnormk,drgrain,vfrag)
 C$OMP& shared(doublehumpnormk,npart,ntot,iscurrent)
-C$OMP& shared(udens,vturb,term,igrowthmodel,background)
+C$OMP& shared(udens,vturb,igrowthmodel,background)
 C$OMP& shared(vcomp,iunique,iorig)
 C$OMP& private(j,k,n,ipart,ioffset,drx,dry,drz,dr2)
 C$OMP& private(ddvx,ddvy,ddvz,scalar)
@@ -96,7 +96,7 @@ C$OMP& private(m_b,h_b,h2_b,h3_b,u2_b)
 C$OMP& private(wk_sym,wk_sym2)
 C$OMP& private(dwdx,dxx,index,index1)
 C$OMP& private(iparttot2,rho_planetesimal)
-C$OMP& private(vterm,ratio)
+C$OMP& private(term,vterm)
 c
 c--Normalization calculation from looping over dust particles
 c     (and zeroes the values initially too)
@@ -276,11 +276,11 @@ c
             drz = xyzmh(3,iparttot2) - xyzmh(3,j)
             dr2  = drx*drx + dry*dry + drz*drz
 c
-c--If the growing dust particle is active, only include dust particles for 
-c     which h_background > h_growing (otherwise their contribution has already 
-c     been accounted for).  Alternately, if the growing dust particle is 
-c     inactive, need to add the contribution here regardless of how
-c     h_growing and h_background compare.
+c--If the growing dust particle is active, only include dust particles 
+c     for which h_background > h_growing (otherwise their contribution
+c     has already been accounted for).  Alternately, if the growing 
+c     dust particle is inactive, need to add the contribution here 
+c     regardless of how h_growing and h_background compare.
 c
             IF (iphase(j).EQ.11 .AND. 
      &           (dr2.GT.(radkernel*xyzmh(5,j))**2 .OR. 
@@ -315,8 +315,9 @@ c
      &                 u2_b/h3_b
                   ENDIF  
 c
-c--Grain growth term (driven by turbulent velocity by default). If fragmentation
-c  is on, growth is reversed when the fragmentation threshold is crossed
+c--Grain growth term (driven by turbulent velocity by default). 
+c     If fragmentation is on, growth is reversed when the 
+c     fragmentation threshold is crossed.
 c
                   CALL rho_grain(rho_planetesimal)
                   term = vturb(ipart)/rho_planetesimal
@@ -324,9 +325,10 @@ c
                      term = -term
                   ENDIF
 c
-c--If we are in a polydisperse model, we additionally choose between the turbulent velocity and the
-c  ballistic velocity as a function of who is larger. If fragmentation
-c  is on, growth is reversed when the fragmentation threshold is crossed as well
+c--If we are in a polydisperse model, we additionally choose between 
+c     the turbulent velocity and the ballistic velocity as a function 
+c     of who is larger. If fragmentation is on, growth is reversed 
+c     when the fragmentation threshold is crossed as well.
 c
                   IF (igrowthmodel.EQ.2) THEN
                      IF (scalar.LT.0.0 .AND.

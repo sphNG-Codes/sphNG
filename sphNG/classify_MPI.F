@@ -2,9 +2,9 @@
 
 #ifdef MPIALL
 #include "mpi_sup.h"
-#endif
-
+#else
       IMPLICIT NONE
+#endif
 
       INCLUDE 'idim'
 
@@ -101,7 +101,7 @@ c************************************************************
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/rbnd'
 
-      DIMENSION xyzmh(5,1)
+      REAL xyzmh(5,1)
 
       INTEGER classify_disc
 
@@ -166,7 +166,7 @@ c************************************************************
 #endif
       INCLUDE 'COMMONS/physcon'
 
-      DIMENSION xyzmh(5,1)
+      REAL xyzmh(5,1)
 
       INTEGER classify_sphere
 
@@ -204,7 +204,7 @@ c************************************************************
 #endif
       INCLUDE 'COMMONS/physcon'
 
-      DIMENSION xyzmh(5,1)
+      REAL xyzmh(5,1)
 
       INTEGER classify_cartesian
 
@@ -261,7 +261,7 @@ c************************************************************
 #endif
       INCLUDE 'COMMONS/physcon'
 
-      DIMENSION xyzmh(5,1)
+      REAL xyzmh(5,1)
 
       INTEGER classify_binary
 

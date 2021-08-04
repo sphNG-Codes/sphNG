@@ -8,9 +8,9 @@ c************************************************************
 
 #ifdef MPIALL
 #include "mpi_sup.h"
-#endif
-
+#else
       IMPLICIT NONE
+#endif
 
       INCLUDE 'idim'
       INCLUDE 'igrape'

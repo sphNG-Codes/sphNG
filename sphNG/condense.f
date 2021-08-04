@@ -65,7 +65,7 @@ c
          CALL polytrope(poly_index,xi)
       ELSE
          WRITE (*,*) 'ERROR - Invalid choice'
-         CALL quit
+         CALL quit(0)
       ENDIF
 
  100  fractot = 0.

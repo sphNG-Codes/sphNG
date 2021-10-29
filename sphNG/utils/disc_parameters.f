@@ -69,10 +69,11 @@ c***********************************************************
 
       DIMENSION values(13),Bnax(6)
 
-      DIMENSION listdisc(nsinkmax,ndiscmax),listnotdisc(ndiscmax)
+      DIMENSION listdisc(nsinkmax,ndiscmax)
       DIMENSION Bdisc(ndiscmax)
-      SAVE listdisc,listnotdisc
-C$OMP THREADPRIVATE(listdisc,listnotdisc)
+      DIMENSION listnotdisc(ndiscmax)
+      SAVE listnotdisc
+C$OMP THREADPRIVATE(listnotdisc)
 
       DIMENSION distance2(idim),indx(idim)
       SAVE distance2,indx
@@ -343,7 +344,7 @@ c
                      PRINT *,'Found sink ',iunique(listpm(i))
                   END DO
                ENDIF
-               
+
                OPEN (19,FILE='Names')
                READ (19,*,END=677) nptmass_in,nunique_sink
                READ (19,*,END=677) (iunique_sink(iii),
@@ -457,7 +458,7 @@ C$OMP& shared(iunique_sink,radsearchmax,ipartindisc,ilocal2name)
 C$OMP& shared(discmasstot,discradius,values,nptmass,listpm,use_mhd)
 C$OMP& shared(print_pts,Bmin,Bave,Bmax,Bup,Blo,Brpz_d,Brpz_bg,umagfd)
 C$OMP& shared(rhothresh,dthresh,ethresh,rho,umass,udist,utime,hacc)
-C$OMP& shared(L_align_max)
+C$OMP& shared(L_align_max,listdisc)
 C$OMP& private(isink,i,j,l,iii,jjj,iptcur,xsink,ysink,zsink,sinkmass)
 C$OMP& private(dx,dy,dz,ipart,xipart,yipart,zipart,dvx,dvy,dvz,Bi)
 C$OMP& private(Bdisc,Brpz_di,kn,kx,rmass)

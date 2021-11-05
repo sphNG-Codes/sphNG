@@ -408,6 +408,7 @@ C$OMP& private(ioffset,etai,etaj,ui,uj,dqj)
 C$OMP& private(ddusti,ts_rhoi,ts_rhoj,termdust,termdustpmi,termdustpmj)
 C$OMP& private(dudusti,termdudustj,one_over_rho_1minus_epsilon,dustvari)
 C$OMP& private(gradpj_ts_over_1minus_epsilon,ts_over_1minus_epsilon)
+C$OMP& private(one_over_1minus_epsilon_i)
 #ifdef MPICOPY
 C$OMP& private(i,ierr)
 #endif
@@ -617,6 +618,8 @@ c
             gradvdustyi = 0.
             gradvdustzi = 0.
             ts_rhoi = stoppingtime(ipart)*rho1i
+            one_over_1minus_epsilon_i = 
+     &           rhoi/(rhoi-dustvar(ipart)**2)
          ENDIF
 c
 c--Note that pressure term includes isotropic magnetic pressure.
@@ -2172,7 +2175,8 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D6 ',n
             forcexi = forcexi + artxi
             forceyi = forceyi + artyi
             forcezi = forcezi + artzi
-         ENDIF
+         ENDIF            
+         IF (idustFluid.EQ.1) pdvi=one_over_1minus_epsilon_i*pdvi
          fxyzu(4,ipart) = pdvi
 c
 c--Morris & Monaghan switch source and decay terms for both artificial viscosity

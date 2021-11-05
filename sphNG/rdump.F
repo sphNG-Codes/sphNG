@@ -806,9 +806,6 @@ c
                 CALL quit(0)
              ENDIF
              READ (idisk1, END=100) dustvar(icount+1:icount+nhydro)
-             dustvar(icount+1:icount+nhydro) = 
-     &            SQRT(dustvar(icount+1:icount+nhydro)*
-     &            rho(icount+1:icount+nhydro))
 
              DO j = 1, 3
                 IF (tagged) READ (idisk1, END=100) tagi
@@ -859,6 +856,16 @@ c--real*4
            CALL checktag('rho', tagi, ierr)
          ENDIF
          READ (idisk1, END=100) rho(icount+1:icount+nhydro)
+c
+c--If one-fluid dust, need to set the dust variable which is evolved
+c     using the dust fraction AFTER the density, rho, is read in.
+c
+         IF (idustFluid.EQ.1) THEN
+            dustvar(icount+1:icount+nhydro) = 
+     &           SQRT(dustvar(icount+1:icount+nhydro)*
+     &           rho(icount+1:icount+nhydro))
+         ENDIF
+
          iread = 1
          IF (nlmax.EQ.1) THEN
             IF (nums1(7).GE.2) THEN

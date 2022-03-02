@@ -82,7 +82,9 @@ c
       CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(imhdevol, MPI_REAL8, imhdevolREAL8, ierr)
+#ifdef NONIDEAL
       CALL MPI_TYPE_CONTIGUOUS(n_den, MPI_REAL8, inimhdREAL8, ierr)
+#endif
       CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL8, i2REAL8, ierr)
       CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL4, i3REAL4, ierr)
@@ -98,7 +100,9 @@ c
       CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
       CALL MPI_TYPE_COMMIT(imhdevolREAL8,ierr)
+#ifdef NONIDEAL
       CALL MPI_TYPE_COMMIT(inimhdREAL8,ierr)
+#endif
       CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i2REAL8,ierr)
       CALL MPI_TYPE_COMMIT(i3REAL4,ierr)
@@ -268,10 +272,12 @@ c     &       lsendlist, i4REAL8, indexMPI4, ierr)
      &                       indexMPIimhdevol, ierr)
                         CALL MPI_TYPE_COMMIT(indexMPIimhdevol,ierr)
 
+#ifdef NONIDEAL
                         CALL MPI_TYPE_INDEXED(numlist(j+1), 
      &                       lblocklengths, lsendlist, inimhdREAL8, 
      &                       indexMPIinimhd, ierr)
                         CALL MPI_TYPE_COMMIT(indexMPIinimhd,ierr)
+#endif
 
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
 c     &       lsendlist, i3REAL8, indexMPI3, ierr)
@@ -1773,7 +1779,9 @@ c
       CALL MPI_TYPE_FREE(i2REAL8,ierr)
       CALL MPI_TYPE_FREE(i3REAL8,ierr)
       CALL MPI_TYPE_FREE(imhdevolREAL8,ierr)
+#ifdef NONIDEAL
       CALL MPI_TYPE_FREE(inimhdREAL8,ierr)
+#endif
       CALL MPI_TYPE_FREE(i4REAL8,ierr)
       CALL MPI_TYPE_FREE(i5REAL8,ierr)
 c

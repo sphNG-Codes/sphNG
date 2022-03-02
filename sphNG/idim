@@ -7,6 +7,7 @@
       INTEGER ioptimise_column
       INTEGER idustFluid, idim_dustfluid, idim_dustfluid2
       INTEGER idustGROW, idim_grow, idim_grow2
+      INTEGER idimHY09
       REAL tiny
 
       PARAMETER (idim=2001000)
@@ -88,6 +89,11 @@ c--One-fluid dust
 c
 c      PARAMETER (idustFluid = 1)
       PARAMETER (idustFluid = 0)
+c
+c--Hirashita & Yan (2009) type dust evolution (see Bate 2022)
+c
+c      PARAMETER (idimHY09 = idim)
+      PARAMETER (idimHY09 = 1)
 c
 c--For chemistry need to use idim_h2 = idim
 c

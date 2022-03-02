@@ -1,0 +1,19 @@
+c
+c--For Hirashita & Yan 2009 type dust coagulation:
+c      Quantities required to define the dust grain bins used to store
+c      the dust size/mass distribution.
+c
+      INTEGER, PARAMETER :: HY09_ndust_bins = 53
+
+      REAL HY09_size_min, HY09_size_max, HY09_cutoff, HY09_slope
+      REAL HY09_dust_density, HY09_dustgas_ratio, HY09_vcoag_coeff
+      REAL HY09binmass,HY09binsize_bounds,HY09binsizes,HY09binmass_max
+
+      COMMON /HY09dustprops/ HY09_size_min, HY09_size_max, HY09_cutoff,
+     &	     HY09_slope, HY09_dust_density, HY09_dustgas_ratio,
+     &	     HY09_vcoag_coeff
+
+      COMMON /HY09binprops/ HY09binmass(HY09_ndust_bins),
+     &     HY09binsize_bounds(0:HY09_ndust_bins),
+     &	   HY09binsizes(HY09_ndust_bins),
+     &     HY09binmass_max(0:HY09_ndust_bins)

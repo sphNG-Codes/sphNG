@@ -1,0 +1,13 @@
+c
+c--For Hirashita & Yan 2009 type dust coagulation:
+c      Accelerations due to gas pressure and gravity that are required
+c      for determining relative grain velocities
+c      Flag for whether a particle is considered to be a disc particle
+c      or not (i.e. in the envelope of a molecular cloud core).  This
+c      determines whether or not disc sources of relative grain
+c      grain velocities are used, or purely terminal infall velocities.
+c
+      REAL*8 gas_accel, grav_accel
+      COMMON /HY09accel/gas_accel(3,2*idimHY09),grav_accel(3,2*idimHY09)
+      REAL*4 HY09discflag
+      COMMON /HY09disc/ HY09discflag(idimHY09)

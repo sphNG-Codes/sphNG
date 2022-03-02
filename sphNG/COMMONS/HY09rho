@@ -1,0 +1,17 @@
+c
+c--For Hirashita & Yan 2009 type dust coagulation:
+c      HY09bin_rho stores the dust grain mass distribution for each
+c      SPH particle (must be multiplied by rho() to get the actual
+c      grain mass density for that SPH particle).  See Bate (2022).
+c      HY09cen: stores the dust grain mass distribution at the centre
+c      of the SPH domain, and HY09cen_totaldens gives the total
+c      mass fraction of the dust compared to the gas mass for that
+c      central particle (e.g. 0.01 for a dust-to-gas ratio of 1:100).
+c      These central values form part of the ASCII output.
+c
+      REAL*8 HY09bin_rho, HY09cen
+      COMMON /HY09rho/ HY09bin_rho(HY09_ndust_bins,idimHY09),
+     &	     HY09cen(HY09_ndust_bins)
+
+      REAL*8 HY09cen_totaldens
+      COMMON /HY09diag/ HY09cen_totaldens

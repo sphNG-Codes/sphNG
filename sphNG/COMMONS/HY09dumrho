@@ -1,0 +1,7 @@
+c
+c--For Hirashita & Yan 2009 type dust coagulation:
+c      Dummy grain mass distribution used during integration (holds
+c      extrpolated values when using individual timesteps).
+c
+      REAL*8 HY09bin_dumrho
+      COMMON /HY09dumrho/ HY09bin_dumrho(HY09_ndust_bins,idimHY09)

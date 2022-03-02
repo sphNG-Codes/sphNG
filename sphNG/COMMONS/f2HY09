@@ -1,0 +1,6 @@
+c
+c--For Hirashita & Yan 2009 type dust coagulation:
+c      Rates of change of the dust grain populations
+c
+      REAL*8 f2HY09drhodt
+      COMMON /f2HY09/ f2HY09drhodt(HY09_ndust_bins,idimHY09)

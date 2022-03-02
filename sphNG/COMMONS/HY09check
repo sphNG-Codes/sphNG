@@ -1,0 +1,13 @@
+c
+c--For Hirashita & Yan 2009 type dust coagulation:
+c      Store an estimate of how far a grain at the peak of the grain
+c      mass distribution may have drifted in terms of the fraction of
+c      the local smoothing length.
+c      HY09peak stores the grain size that corresponds to the peak of
+c      the grain mass distribution for each SPH particle.
+c
+      REAL*8 HY09frac_h_moved,f1HY09vrel_h,f2HY09vrel_h
+      COMMON /HY09check/ HY09frac_h_moved(idimHY09),
+     &	     f1HY09vrel_h(idimHY09),f2HY09vrel_h(idimHY09)
+      REAL*4 HY09peak
+      COMMON /HY09other/ HY09peak(idimHY09)

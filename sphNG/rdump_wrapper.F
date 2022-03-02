@@ -61,6 +61,10 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/dustfluid'
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/grain'
+      INCLUDE 'COMMONS/HY09dustprops'
+      INCLUDE 'COMMONS/HY09rho'
+      INCLUDE 'COMMONS/f2HY09'
+      INCLUDE 'COMMONS/HY09check'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -305,6 +309,20 @@ c
          DO i = 1, npart
             dustvar(i) = tempsort(i)
          END DO
+      ENDIF
+      IF (idimHY09.EQ.idim) THEN
+         DO i = 1, npart
+            f2HY09drhodt(:,i) = HY09bin_rho(:,iorig(i))
+         END DO
+         DO i = 1, npart
+            HY09bin_rho(:,i) = f2HY09drhodt(:,i)
+         END DO
+         DO i = 1, npart
+            tempsort(i) = HY09frac_h_moved(iorig(i))
+         END DO
+         DO i = 1, npart
+            HY09frac_h_moved(i) = tempsort(i)
+         END DO         
       ENDIF
       IF (istellar_ionisation) THEN
          DO i = 1, npart

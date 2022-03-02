@@ -56,6 +56,13 @@ c************************************************************
       INCLUDE 'COMMONS/nonideal'
 #endif
       INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/HY09dustprops'
+      INCLUDE 'COMMONS/HY09rho'
+      INCLUDE 'COMMONS/HY09dumrho'
+      INCLUDE 'COMMONS/f1HY09'
+      INCLUDE 'COMMONS/f2HY09'
+      INCLUDE 'COMMONS/HY09check'
+      INCLUDE 'COMMONS/HY09accel'
 
       DO i = 1, 5
          xyzmh(i,ito) = xyzmh(i,ifrom)
@@ -116,6 +123,17 @@ c         h2mol(ito) = h2mol(ifrom)
          h2ratio(ito) = h2ratio(ifrom)
       ENDIF
       IF (idustIMPL.GT.0) dustnorm(ito) = dustnorm(ifrom)
+      IF (idimHY09.EQ.idim) THEN
+         HY09bin_rho(:,ito) = HY09bin_rho(:,ifrom)
+         HY09bin_dumrho(:,ito) = HY09bin_dumrho(:,ifrom)
+         f1HY09drhodt(:,ito) = f1HY09drhodt(:,ifrom)
+         f2HY09drhodt(:,ito) = f2HY09drhodt(:,ifrom)
+         HY09frac_h_moved(ito) = HY09frac_h_moved(ifrom)
+         f1HY09vrel_h(ito) = f1HY09vrel_h(ifrom)
+         gas_accel(:,ito) = gas_accel(:,ifrom)
+         grav_accel(:,ito) = grav_accel(:,ifrom)
+         HY09discflag(ito) = HY09discflag(ifrom)
+      ENDIF
       iscurrent(ito) = iscurrent(ifrom)
       notacc(ito) = notacc(ifrom)
       DO i = 1, 2

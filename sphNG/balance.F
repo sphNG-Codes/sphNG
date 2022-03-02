@@ -64,6 +64,12 @@ c************************************************************
       INCLUDE 'COMMONS/gtime'
       INCLUDE 'COMMONS/grain'
       INCLUDE 'COMMONS/compv'
+      INCLUDE 'COMMONS/HY09dustprops'
+      INCLUDE 'COMMONS/HY09rho'
+      INCLUDE 'COMMONS/f1HY09'
+      INCLUDE 'COMMONS/f2HY09'
+      INCLUDE 'COMMONS/HY09check'
+      INCLUDE 'COMMONS/HY09accel'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -121,6 +127,12 @@ c
       IF (istellar_ionisation) THEN
          CALL MPI_TYPE_CONTIGUOUS(4*iptdim,MPI_REAL8,istellarREAL8,ierr)
          CALL MPI_TYPE_COMMIT(istellarREAL8,ierr)
+      ENDIF
+
+      IF (idimHY09.EQ.idim) THEN
+         inumreal = HY09_ndust_bins 
+         CALL MPI_TYPE_CONTIGUOUS(inumreal,MPI_REAL8,iHY09REAL8,ierr)
+         CALL MPI_TYPE_COMMIT(iHY09REAL8,ierr)
       ENDIF
 c
 c--Find particles that need to be transferred to each MPI process.
@@ -380,10 +392,19 @@ c     &       lsendlist, ialphaREAL41, indexMPIalpha1, ierr)
                         IF (istellar_ionisation) THEN
 c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1, 
 c     &       lsendlist, istellarREAL8, indexMPIstellar, ierr)
-                        CALL MPI_TYPE_INDEXED(numlist(j+1), 
-     &                       lblocklengths, lsendlist, istellarREAL8, 
-     &                       indexMPIstellar, ierr)
-                        CALL MPI_TYPE_COMMIT(indexMPIstellar,ierr)
+                           CALL MPI_TYPE_INDEXED(numlist(j+1), 
+     &                          lblocklengths, lsendlist, istellarREAL8, 
+     &                          indexMPIstellar, ierr)
+                           CALL MPI_TYPE_COMMIT(indexMPIstellar,ierr)
+                        ENDIF
+
+                        IF (idimHY09.EQ.idim) THEN
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1,
+c     &       lsendlist, iHY09REAL8, indexMPIHY09, ierr)
+                           CALL MPI_TYPE_INDEXED(numlist(j+1),
+     &                          lblocklengths, lsendlist, iHY09REAL8,
+     &                          indexMPIHY09, ierr)
+                           CALL MPI_TYPE_COMMIT(indexMPIHY09,ierr)
                         ENDIF
 c
 c--NOTE: itempsort is used to send iunique indexes of particles which 
@@ -582,9 +603,31 @@ c     &                          MPI_COMM_WORLD, ierr)
                            CALL MPI_SEND(stellarrad,1,indexMPIstellar,
      &                          j,177,MPI_COMM_WORLD, ierr)
                         ENDIF
+
+                        IF (idimHY09.EQ.idim) THEN
+                           CALL MPI_SEND(HY09bin_rho,1,indexMPIHY09,
+     &                          j,200,MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(f1HY09drhodt,1,indexMPIHY09,
+     &                          j,201,MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(f2HY09drhodt,1,indexMPIHY09,
+     &                          j,202,MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(gas_accel,1,indexMPI3,j,203,
+     &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(grav_accel,1,indexMPI3,j,204,
+     &                          MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(HY09frac_h_moved,1,indexMPIR,j,
+     &                          205,MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(f1HY09vrel_h,1,indexMPIR,j,
+     &                          206,MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(HY09discflag,1,indexMPI1,j,
+     &                          207,MPI_COMM_WORLD, ierr)
+                        ENDIF
 c
 c--Deallocate types
 c
+                        IF (idimHY09.EQ.idim) THEN
+                           CALL MPI_TYPE_FREE(indexMPIHY09,ierr)
+                        ENDIF
                         IF (istellar_ionisation) THEN
                            CALL MPI_TYPE_FREE(indexMPIstellar,ierr)
                         ENDIF
@@ -1311,6 +1354,72 @@ c                  ENDIF
                   ENDIF
                ENDIF
 
+               IF (idimHY09.EQ.idim) THEN
+                  CALL MPI_RECV(HY09bin_rho(1,npartnew+1), idim, 
+     &                 iHY09REAL8,
+     &                 iprocrec, 200, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,iHY09REAL8,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igot HY09bin_rho'
+                     CALL quit(1)
+                  ENDIF
+                  CALL MPI_RECV(f1HY09drhodt(1,npartnew+1), idim, 
+     &                 iHY09REAL8,
+     &                 iprocrec, 201, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,iHY09REAL8,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igot f1HY09drhodt'
+                     CALL quit(1)
+                  ENDIF
+                  CALL MPI_RECV(f2HY09drhodt(1,npartnew+1), idim, 
+     &                 iHY09REAL8,
+     &                 iprocrec, 202, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,iHY09REAL8,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igot f2HY09drhodt'
+                     CALL quit(1)
+                  ENDIF
+                  CALL MPI_RECV(gas_accel(1,npartnew+1), idim, 
+     &                 i3REAL8,
+     &                 iprocrec, 203, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,i3REAL8,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igot gas_accel'
+                     CALL quit(1)
+                  ENDIF
+                  CALL MPI_RECV(grav_accel(1,npartnew+1), idim, 
+     &                 i3REAL8,
+     &                 iprocrec, 204, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,i3REAL8,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igot grav_accel'
+                     CALL quit(1)
+                  ENDIF
+                  CALL MPI_RECV(HY09frac_h_moved(npartnew+1), idim, 
+     &                 MPI_REAL8,
+     &                 iprocrec, 205, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igot HY09frac_h_moved'
+                     CALL quit(1)
+                  ENDIF
+                  CALL MPI_RECV(f1HY09vrel_h(npartnew+1), idim, 
+     &                 MPI_REAL8,
+     &                 iprocrec, 206, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_REAL8,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igot f1HY09vrel_h'
+                     CALL quit(1)
+                  ENDIF
+                  CALL MPI_RECV(HY09discflag(npartnew+1), idim, 
+     &                 MPI_REAL4,
+     &                 iprocrec, 207, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_REAL4,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igot HY09discflag'
+                     CALL quit(1)
+                  ENDIF
+               ENDIF
 #ifdef MPIDEBUGT
                print *,iproc,': Received transfer of ',inumber,' from ',
      &              iprocrec
@@ -1760,6 +1869,10 @@ c
 
       print *,iproc,': New value of npart, nptmass = ',npartnew, npart, 
      &     nptmassnew, nptmass
+
+      IF (idimHY09.EQ.idim) THEN
+         CALL MPI_TYPE_FREE(iHY09REAL8,ierr)
+      ENDIF
 
       IF (istellar_ionisation) THEN
          CALL MPI_TYPE_FREE(istellarREAL8,ierr)

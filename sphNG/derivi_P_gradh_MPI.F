@@ -123,6 +123,7 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
       INCLUDE 'COMMONS/nonideal'
 #endif
       INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/HY09accel'
 
       DIMENSION dedxyz(3,iradtrans2)
 #ifdef MPI
@@ -751,6 +752,7 @@ c
          END DO
          poten(jpart) = 0.0
          dq(jpart) = 0.0
+         IF (idimHY09.EQ.idim) gas_accel(:,jpart) = 0.
          IF (imhd.EQ.idim) THEN
             DO k = 1, imhdevol
                dBevolxyz(k,jpart) = 0.
@@ -1709,6 +1711,33 @@ c               print *,iproc,': got poten from ',iprocrec
                      END DO
                   END DO
 
+               ENDIF  ! end imhd
+
+               IF (idimHY09.EQ.idim) THEN
+                  CALL MPI_RECV(gas_accel(1,istartrec),
+     &                 3*maxnneighsentback,
+     &                 MPI_REAL8,iprocrec,35,MPI_COMM_WORLD,istatus,
+     &                 ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_REAL8,ireturned,ierr)
+                  IF (ireturned.NE.3*nneighsentback(iprocrec+1))
+     &                 THEN
+                     WRITE (*,*) 'ERROR - ireturned.NE.3*nnsentback',
+     &                    ' gas_accel ',
+     &                    nneighsentback(iprocrec+1),ireturned
+                     CALL quit(1)
+                  ENDIF
+#ifdef MPIDEBUG
+                  print *,iproc,': got gas_accel from ',iprocrec,
+     &                 ' put into ',llistsentback(1,iprocrec+1)+1
+#endif
+                  DO l = 1, nneighsentback(iprocrec+1)
+                     ipos = llistsentback(l,iprocrec+1)+1
+                     jpos = istartrec + l - 1
+                     DO k = 1, 3
+                        gas_accel(k,ipos) = gas_accel(k,ipos) + 
+     &                       gas_accel(k,jpos)
+                     END DO
+                  END DO
                ENDIF
 
 #ifdef MPIDEBUG
@@ -1747,6 +1776,11 @@ c
      &                 MPI_REAL4,iprocsend,33,MPI_COMM_WORLD, ierr)
                      CALL MPI_SEND(gradB(1,istart),9*inumber,
      &                 MPI_REAL4,iprocsend,34,MPI_COMM_WORLD, ierr)
+                  ENDIF
+
+                  IF (idimHY09.EQ.idim) THEN
+                     CALL MPI_SEND(gas_accel(1,istart),3*inumber,
+     &                    MPI_REAL8,iprocsend,35,MPI_COMM_WORLD, ierr)
                   ENDIF
 #ifdef MPIDEBUG
                   print *,iproc,': sent forces and poten to ',iprocsend

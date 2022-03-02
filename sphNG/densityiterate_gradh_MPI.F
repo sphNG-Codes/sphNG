@@ -100,6 +100,7 @@ c     that are neighbours of active particles for updating their densities etc
       INCLUDE 'COMMONS/sightlines'
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/dustfluidvelu'
+      INCLUDE 'COMMONS/HY09accel'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
 #endif
@@ -264,6 +265,7 @@ C$OMP& shared(iphase,dBxyz,divcurlB,gradB,it0,itime,hfact)
 C$OMP& shared(curlv,gradhs,sightcolumns,hi_2back)
 C$OMP& shared(planetesimaltimestep,planetesimalnorm,iplanetesimals)
 C$OMP& shared(stellarrad,nptmasstot,ddust,dustfluiddu,dustfluidvxyz)
+C$OMP& shared(gas_accel)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend)
 #endif
@@ -342,6 +344,9 @@ c            ENDIF
             ddust(ipart) = 0.
             dustfluiddu(ipart) = 0.
             dustfluidvxyz(1:3,ipart) = 0.
+         ENDIF
+         IF (idimHY09.EQ.idim) THEN
+            gas_accel(:,ipart) = 0.
          ENDIF
          IF (idustRT.GT.0) THEN
 #ifdef MPI
@@ -2918,6 +2923,7 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst_end,listp,iphase,rho,divv,curlv,gradhs,xyzmh,cnormk)
 C$OMP& shared(nptmass,iptmass,listpm,varmhd,Bxyz,rhomin)
 C$OMP& shared(Bextx,Bexty,Bextz,radcrit2)
+C$OMP& shared(grav_accel,dvxyzu)
 C$OMP& private(j,l,ipart,rhoi,dhdrhoi,iptcur)
 C$OMP& private(rxxi,rxyi,rxzi,ryyi,ryzi,rzzi)
 C$OMP& private(dalphaxi,dalphayi,dalphazi,dbetaxi,dbetayi,dbetazi)
@@ -2945,6 +2951,10 @@ c
             ENDIF
  50         CONTINUE
          ENDIF
+c
+c--Also store gravitational acceleration for dust growth
+c
+         IF (idimHY09.EQ.idim) grav_accel(1:3,ipart) = dvxyzu(1:3,ipart)
       END DO
 C$OMP END PARALLEL DO
 c

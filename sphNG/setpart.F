@@ -2351,7 +2351,7 @@ c
 c
 c--Set dust distribution for HY09 dust
 c
-      IF (idimHY09.EQ.idim) CALL hy09dustset(npart,rho)
+      IF (idimHY09.EQ.idim) CALL hy09dustset(npart)
 c
 c--Zero external magnetic field for non-MHD
 c

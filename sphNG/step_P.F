@@ -112,6 +112,12 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/timecrit'
       INCLUDE 'COMMONS/grain'
       INCLUDE 'COMMONS/compact'
+      INCLUDE 'COMMONS/HY09dustprops'
+      INCLUDE 'COMMONS/HY09rho'
+      INCLUDE 'COMMONS/HY09dumrho'
+      INCLUDE 'COMMONS/HY09check'
+      INCLUDE 'COMMONS/f1HY09'
+      INCLUDE 'COMMONS/f2HY09'
 
       DIMENSION nsteplist(30)
       INTEGER*8 nneightotsave
@@ -277,6 +283,9 @@ c
                   dumrgrain(i) = rgrain(i)
                ENDIF
                IF (idustFluid.EQ.1) dumdustvar(i) = dustvar(i)
+               IF (idimHY09.EQ.idim) THEN
+                  HY09bin_dumrho(:,i) = HY09bin_rho(:,i)
+               ENDIF
                IF (imhd.EQ.idim) THEN
                   DO k = 1, imhdevol
                      dumBevolxyz(k,i) = Bevolxyz(k,i)
@@ -361,6 +370,12 @@ c432    CONTINUE
      &        f1vxyzu,f1rgrain,f1ha,npart,
      &        ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f1Bxyz,
      &        dumdustvar,f1dust)
+
+c      CALL test_vrel
+
+       IF (idimHY09.EQ.idim) CALL hy09dustevol(nlst,llist,npart,ntot,
+     &         dumxyzmh,dumvxyzu,dumekcle,HY09bin_dumrho,rho,
+     &         f1HY09drhodt,f1HY09vrel_h)
 
 c         WRITE (*,*) 'passed 3'
 
@@ -679,6 +694,7 @@ C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
 C$OMP& shared(dustvar,dumdustvar,f1dust)
+C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt)
 C$OMP& private(j,k,deltat)
       DO j = 1, npart
          IF (iphase(j).GE.0) THEN
@@ -725,6 +741,9 @@ c                  dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
             ENDIF
             IF (idustFluid.EQ.1) dumdustvar(j) = dustvar(j) +
      &           deltat*f1dust(j)
+            IF (idimHY09.EQ.idim)
+     &           HY09bin_dumrho(:,j)= MAX(HY09bin_rho(:,j)+
+     &           deltat*f1HY09drhodt(:,j), 0.0)
             IF (imhd.EQ.idim) THEN
                DO k = 1, imhdevol
                   dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
@@ -750,6 +769,7 @@ C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
 C$OMP& shared(dustvar,dumdustvar,f1dust)
+C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt)
 C$OMP& private(j,k,ipart,deltat)
                DO j = 1, nlstbins(i)
                   ipart = listbins(j,i)
@@ -785,19 +805,24 @@ c            dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                      ENDIF
             IF (iener.EQ.2 .AND. dumvxyzu(4,ipart).LT.0.0) 
      &           dumvxyzu(4,ipart)=0.15
-                    IF (ifsvi.GE.6) THEN
-                       DO k = 1, isizealphaMM
-                          dumalpha(k,ipart) = MAX(MIN(alphamax(k),
-     &                       alphaMM(k,ipart)+deltat*f1ha(k+1,ipart)),
-     &                         alphamin(k))
-                       ENDDO
-                    ENDIF
-                    IF (idim_grow.EQ.idim .AND.iphase(ipart).EQ.11) THEN
+                     IF (ifsvi.GE.6) THEN
+                        DO k = 1, isizealphaMM
+                           dumalpha(k,ipart) = MAX(MIN(alphamax(k),
+     &                        alphaMM(k,ipart)+deltat*f1ha(k+1,ipart)),
+     &                        alphamin(k))
+                        END DO
+                     ENDIF
+                     IF (idim_grow.EQ.idim.AND.iphase(ipart).EQ.11) THEN
             dumrgrain(ipart) = rgrain(ipart) + deltat*f1rgrain(ipart)
             dumrgrain(ipart) = MAX(dumrgrain(ipart),rgrain_min)
-                    ENDIF
-                    IF (idustFluid.EQ.1) dumdustvar(ipart) = 
-     &                   dustvar(ipart) + deltat*f1dust(ipart)
+                     ENDIF
+                     IF (idustFluid.EQ.1) dumdustvar(ipart) = 
+     &                    dustvar(ipart) + deltat*f1dust(ipart)
+                     IF (idimHY09.EQ.idim)
+     &                    HY09bin_dumrho(:,ipart) = MAX(
+     &                    HY09bin_rho(:,ipart) +
+     &                    deltat*f1HY09drhodt(:,ipart), 0.0)
+
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, imhdevol
                            dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) 
@@ -957,6 +982,10 @@ c
      &     f2vxyzu,f2rgrain,f2ha,npart,
      &     ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f2Bxyz,
      &     dumdustvar,f2dust)
+
+      IF (idimHY09.EQ.idim) CALL hy09dustevol(nlst,llist,npart,ntot,
+     &     dumxyzmh,dumvxyzu,dumekcle,HY09bin_dumrho,rho,f2HY09drhodt,
+     &     f2HY09vrel_h)
 c
 c--Save velocities at half time step
 c
@@ -1089,6 +1118,8 @@ C$OMP& shared(ifsvi,alphaMM,alphamax,encal,dumBevolxyz,Bevolxyz)
 C$OMP& shared(pdvvisc,alphamin,utime,h2frac,dh2dt,udens,rho)
 C$OMP& shared(HIIion,dHIIdt,stellarrad)
 C$OMP& shared(dustvar,f1dust,f2dust,deltaHII,rgrain_min,iorig,iunique)
+C$OMP& shared(HY09bin_rho,f1HY09drhodt,f2HY09drhodt,HY09frac_h_moved)
+C$OMP& shared(f1HY09vrel_h,f2HY09vrel_h)
 C$OMP& private(i,j,k,dtfull,dtf21,dtf22,xold,yold,delvx,delvy,delvz)
 C$OMP& private(vxstore,vystore,dx,dy,delgx,delgy,delpx,delpy)
 C$OMP& private(delax,delay,extraxt,extrayt,extraxg,extrayg)
@@ -1302,6 +1333,15 @@ c
      &              dtf21*f1dust(i) + dtf22*f2dust(i)
             ENDIF
 c
+c--HY09 dust coagulation
+c
+            IF (idimHY09.EQ.idim) THEN
+               HY09bin_rho(:,i) = MAX(HY09bin_rho(:,i) +
+     &           dtf21*f1HY09drhodt(:,i) + dtf22*f2HY09drhodt(:,i),0.0)
+               HY09frac_h_moved(i) = HY09frac_h_moved(i) +
+     &              dtf21*f1HY09vrel_h(i) + dtf22*f2HY09vrel_h(i)
+            ENDIF
+c
 c-MHD
 c
             IF (imhd.EQ.idim) THEN
@@ -1494,6 +1534,7 @@ C$OMP& shared(rgrain,f1rgrain,dumrgrain,rgrain_min)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
 C$OMP& shared(dustvar,dumdustvar,f1dust)
+C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt)
 C$OMP& private(j,k,deltat)
       DO j = 1, npart
          IF (iphase(j).GE.0) THEN
@@ -1539,6 +1580,9 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
             ENDIF
             IF (idustFluid.EQ.1) dumdustvar(j) = dustvar(j) +
      &           deltat*f1dust(j)
+            IF (idimHY09.EQ.idim)
+     &           HY09bin_dumrho(:,j) = MAX(HY09bin_rho(:,j) +
+     &           deltat*f1HY09drhodt(:,j), 0.0)
             IF (imhd.EQ.idim) THEN
                DO k = 1, imhdevol
                   dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
@@ -1564,6 +1608,7 @@ C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
 C$OMP& shared(dustvar,dumdustvar,f1dust)
+C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt)
 C$OMP& private(j,k,ipart,deltat)
                DO j = 1, nlstbins(i)
                   ipart = listbins(j,i)
@@ -1613,6 +1658,10 @@ c           dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                      ENDIF
                      IF (idustFluid.EQ.1) dumdustvar(ipart) = 
      &                    dustvar(ipart) + deltat*f1dust(ipart)
+                     IF (idimHY09.EQ.idim)
+     &                    HY09bin_dumrho(:,ipart) = MAX(
+     &                    HY09bin_rho(:,ipart) +
+     &                    deltat*f1HY09drhodt(:,ipart), 0.0)
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, imhdevol
                            dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) 
@@ -1775,6 +1824,10 @@ c
      &     ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f2Bxyz,
      &     dumdustvar,f2dust)
 
+      IF (idimHY09.EQ.idim) CALL hy09dustevol(nlst,llist,npart,ntot,
+     &     dumxyzmh,dumvxyzu,dumekcle,HY09bin_dumrho,rho,f2HY09drhodt,
+     &     f2HY09vrel_h)
+
       IF (itiming) CALL getused(ts131)
 #ifdef MPICOPY
 #ifdef MPIDEBUG
@@ -1907,6 +1960,8 @@ C$OMP& shared(xmass,overclean_fac,hdivbbmax_max,divcurlB)
 C$OMP& shared(dh2dt,icolumnsteps,icolumnnext)
 C$OMP& shared(dustvar,f1dust,f2dust,dHIIdt)
 C$OMP& shared(timestepcriterion)
+C$OMP& shared(f1HY09drhodt,f2HY09drhodt,HY09bin_rho)
+C$OMP& shared(f1HY09vrel_h,f2HY09vrel_h)
 #ifdef MPICOPY
 C$OMP& shared(iproc)
 #endif
@@ -2347,6 +2402,23 @@ c
             ENDIF
          ENDIF
 c
+c--Timestep criterion for HY09 dust growth
+c
+         IF (idimHY09.EQ.idim) THEN
+            IF (iphase(i).EQ.0) THEN
+               dtdust = 1.0E+30
+               DO k = 1, HY09_ndust_bins
+                  IF (f2HY09drhodt(k,i).LT.0. .AND.
+     &                 HY09bin_rho(k,i).GT.1.0E-20)
+     &                 dtdust = MIN(dtdust,ABS(
+     &                 0.3*HY09bin_rho(k,i)/f2HY09drhodt(k,i)))
+               END DO
+               rmoddust = dtdust/(dt*isteps(i)/imaxstep)
+               rmod = MIN(rmod, rmoddust)
+               rmodall(15) = rmoddust
+            ENDIF
+         ENDIF
+c
 c--Record limiting criterion for timestep
 c
          timestepcriterion(i) = MINLOC(rmodall,DIM=1)
@@ -2508,6 +2580,10 @@ c
                f1rgrain(i) = f2rgrain(i)
             ENDIF
             IF (idustFluid.EQ.1) f1dust(i) = f2dust(i)
+            IF (idimHY09.EQ.idim) THEN
+               f1HY09drhodt(:,i) = f2HY09drhodt(:,i)
+               f1HY09vrel_h(i) = f2HY09vrel_h(i)
+            ENDIF
             IF (istellar_ionisation) THEN
                dHIIdt(1,i) = dHIIdt(2,i)
             ENDIF

@@ -1109,7 +1109,7 @@ c
 #endif
 #ifdef USEKROME
           READ(fileout5, 99006) name, ifile
-         ifle = ifile + 1
+         ifile = ifile + 1
          IF (ifile.LE.9) THEN
             WRITE(fileout5, 99002) name, izero, ifile
          ELSE

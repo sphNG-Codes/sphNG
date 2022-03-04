@@ -481,7 +481,8 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f \
 	ghostp.f ghostp1.f ghostp2.f ghostp3.F ghostp11.f ghostp100.f \
 	ghostp102.f ghostp104.f \
 	gptfromgas.f gpti.f header.F hchem.F hillmass.f \
-	homexp.f indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
+	homexp.f hy09dustset.f \
+	indexx.f indexx2.f indexx3.f indexxi2.f inform.f \
 	inopts.f insulate_TREE_P.F integs.F $(KERNEL) \
 	kill_particles.F labrun.F \
 	makedust.F makeplot.f mesop.f mhdparams_mhd.f \

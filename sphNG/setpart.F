@@ -2308,7 +2308,9 @@ c
             END DO
          ENDIF
       ENDIF
-
+c
+c--Set equilibrium gas temperature profile for a disc
+c
       IF (igeom.EQ.10 .AND. use_tprof .AND. encal.EQ.'r') THEN
          WRITE (*,*) 'Do you want to set equilibrium gas temperature',
      &        'profile for the disc (y/n)?'
@@ -2346,7 +2348,13 @@ c
             ENDIF
          ENDIF
       ENDIF
-
+c
+c--Set dust distribution for HY09 dust
+c
+      IF (idimHY09.EQ.idim) CALL hy09dustset(npart,rho)
+c
+c--Zero external magnetic field for non-MHD
+c
       IF (imhd.NE.idim) THEN
          Bextx = 0.
          Bexty = 0.

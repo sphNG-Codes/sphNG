@@ -129,6 +129,7 @@ c
       INCLUDE 'COMMONS/radtran3'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/dustfluidvelu'
+      INCLUDE 'COMMONS/HY09accel'
 c
 c--Used for listparents list to keep a list of iupdated
 c
@@ -342,6 +343,7 @@ C$OMP& shared(gasdrag,iregime)
 C$OMP& shared(planetesimaltimestep,planetesimalnorm)
 C$OMP& shared(gasdist,nearestgas,idragscheme)
 C$OMP& shared(itot,dustvar,ddust,dustfluidvxyz,dustfluiddu)
+C$OMP& shared(gas_accel,grav_accel)
 #ifdef DGRID
 C$OMP& shared(dragenergy,dragqchange,px,py,pz)
 #endif
@@ -408,6 +410,10 @@ C$OMP& private(ioffset,etai,etaj,ui,uj,dqj)
 C$OMP& private(ddusti,ts_rhoi,ts_rhoj,termdust,termdustpmi,termdustpmj)
 C$OMP& private(dudusti,termdudustj,one_over_rho_1minus_epsilon,dustvari)
 C$OMP& private(gradpj_ts_over_1minus_epsilon,ts_over_1minus_epsilon)
+C$OMP& private(gas_accelxi,gas_accelyi,gas_accelzi)
+C$OMP& private(gas_accelxj,gas_accelyj,gas_accelzj)
+C$OMP& private(grav_accelxi,grav_accelyi,grav_accelzi)
+C$OMP& private(grav_accelxj,grav_accelyj,grav_accelzj)
 #ifdef MPICOPY
 C$OMP& private(i,ierr)
 #endif
@@ -1452,6 +1458,14 @@ c
      &                       one_over_rho_1minus_epsilon
                      ENDIF
 c
+c--Store gas accelerations not experienced by dust
+c
+                     IF (idimHY09.EQ.idim) THEN
+                        gas_accelxj = forcex
+                        gas_accelyj = forcey
+                        gas_accelzj = forcez
+                     ENDIF
+c
 c--This is the end of gas-gas interactions (i.e. iphase(i) and iphase(j) both 0)
 c
                   ENDIF
@@ -1488,7 +1502,14 @@ c
                      fxyzu(3,j) = fxyzu(3,j) + forcez
 
                      dq(j) = dq(j) + dqj
-
+c
+c--Store gas accelerations not experienced by dust
+c
+                     IF (idimHY09.EQ.idim) THEN
+                        gas_accel(1,j) = gas_accel(1,j) + gas_accelxj
+                        gas_accel(2,j) = gas_accel(2,j) + gas_accelyj
+                        gas_accel(3,j) = gas_accel(3,j) + gas_accelzj
+                     ENDIF
 #ifdef DGRID
                      IF (gasdrag) THEN
 C$OMP CRITICAL
@@ -1612,6 +1633,10 @@ c
                   ENDIF
 
                   dsofttermi = dsoftterm*pmassi
+
+                  grav_accelxj = xmasi*dx + dsofttermi*runix
+                  grav_accelyj = xmasi*dy + dsofttermi*runiy
+                  grav_accelzj = xmasi*dz + dsofttermi*runiz
 c
 c--Note: C$OMP ATOMIC would be the best way to do these IF the compiler was
 c     written properly, but ifort isn't
@@ -1619,9 +1644,17 @@ c
 #ifdef _OPENMP
                   CALL OMP_SET_LOCK(forcei_lock(j/10+1))
 #endif
-                  fxyzu(1,j) = fxyzu(1,j) + xmasi*dx + dsofttermi*runix
-                  fxyzu(2,j) = fxyzu(2,j) + xmasi*dy + dsofttermi*runiy
-                  fxyzu(3,j) = fxyzu(3,j) + xmasi*dz + dsofttermi*runiz
+                  fxyzu(1,j) = fxyzu(1,j) + grav_accelxj
+                  fxyzu(2,j) = fxyzu(2,j) + grav_accelyj
+                  fxyzu(3,j) = fxyzu(3,j) + grav_accelzj
+c
+c--Store gravitational accelerations
+c
+                  IF (idimHY09.EQ.idim) THEN
+                     grav_accel(1,j) = grav_accel(1,j) + grav_accelxj
+                     grav_accel(2,j) = grav_accel(2,j) + grav_accelyj
+                     grav_accel(3,j) = grav_accel(3,j) + grav_accelzj
+                  ENDIF
 
                   poten(j) = poten(j) + phi*pmassi
 #ifdef _OPENMP
@@ -1941,10 +1974,6 @@ c                        t12j = alphamean*grkern*f*(2.0*f - vsbar)*robar1
                         artyi = artyi - t12jpmassj*runiy
                         artzi = artzi - t12jpmassj*runiz
 
-c                     IF (ipart.EQ.0418) THEN
-c                        print *,' P0418dqi ',j,t12jpmassj,projv
-c                     ENDIF
-
                         dqi = dqi + t12jpmassj*projv
                      ENDIF
 c
@@ -2044,31 +2073,6 @@ c
 c
 c--Store quantities
 c
-c         IF (ipart.GT.ntot) print *,iprocdebug,': D5 ',n
-
-         IF (igphi.GT.0) THEN
-            forcexi = forcexi + gravxi + dsoftxi
-            forceyi = forceyi + gravyi + dsoftyi
-            forcezi = forcezi + gravzi + dsoftzi
-ccc            forcexi = gravxi
-ccc            forceyi = gravyi
-ccc            forcezi = gravzi
-c
-c--Add self contribution to potential
-c
-            IF (ipart.LE.npart) THEN
-               poteni = poteni+xyzmh(4,ipart)*fpoten(0)*hi1
-               dgrav(ipart) = 0.
-            ENDIF
-         ENDIF
-c
-c--Add gas-dust drag interaction force
-c
-         IF (gasdrag) THEN
-            forcexi = forcexi + gasdragxi
-            forceyi = forceyi + gasdragyi
-            forcezi = forcezi + gasdragzi
-         ENDIF
 c
 c--The force contributions below only apply to gas particles
 c
@@ -2166,14 +2170,20 @@ c
 c
 c--Artificial viscosity
 c
-c         IF (ipart.GT.ntot) print *,iprocdebug,': D6 ',n
-
          IF (ifsvi.NE.0) THEN
             forcexi = forcexi + artxi
             forceyi = forceyi + artyi
             forcezi = forcezi + artzi
-         ENDIF            
+         ENDIF
          fxyzu(4,ipart) = pdvi
+c
+c--Store gas accelerations not experienced by dust
+c
+         IF (idimHY09.EQ.idim) THEN
+            gas_accelxi = forcexi
+            gas_accelyi = forceyi
+            gas_accelzi = forcezi
+         ENDIF
 c
 c--Morris & Monaghan switch source and decay terms for both artificial viscosity
 c  and artificial resistivity (see Price & Monaghan 2005)
@@ -2215,8 +2225,6 @@ c
                forceyi = forceyi - damp*vxyzu(2,ipart)
                forcezi = forcezi - damp*vxyzu(3,ipart)
             ENDIF
-c         IF (ipart.GT.ntot) print *,iprocdebug,': D7 ',n
-
 c
 c--Radiation pressure force
 c
@@ -2239,7 +2247,34 @@ c
 c--END for: force contributions that only apply to gas particles
 c
          ENDIF
-
+c
+c--Store gravitational forces from neighbours
+c
+         IF (igphi.GT.0) THEN
+            forcexi = forcexi + gravxi + dsoftxi
+            forceyi = forceyi + gravyi + dsoftyi
+            forcezi = forcezi + gravzi + dsoftzi
+            IF (idimHY09.EQ.idim) THEN
+               grav_accelxi = gravxi + dsoftxi
+               grav_accelyi = gravyi + dsoftyi
+               grav_accelzi = gravzi + dsoftzi               
+            ENDIF
+c
+c--Add self contribution to potential
+c
+            IF (ipart.LE.npart) THEN
+               poteni = poteni+xyzmh(4,ipart)*fpoten(0)*hi1
+               dgrav(ipart) = 0.
+            ENDIF
+         ENDIF
+c
+c--Add gas-dust drag interaction force
+c
+         IF (gasdrag) THEN
+            forcexi = forcexi + gasdragxi
+            forceyi = forceyi + gasdragyi
+            forcezi = forcezi + gasdragzi
+         ENDIF
 c
 c--Forces that operate on both sink particles and gas from here on:
 c
@@ -2284,6 +2319,17 @@ c         IF (ipart.GT.idim) print *,iproc,': Fx ',ipart
          fxyzu(3,ipart) = fxyzu(3,ipart) + forcezi
 
          poten(ipart) = poten(ipart) + poteni 
+c
+c--Store gas accelerations not experienced by dust
+c
+         IF (idimHY09.EQ.idim) THEN
+            gas_accel(1,ipart) = gas_accel(1,ipart) + gas_accelxi
+            gas_accel(2,ipart) = gas_accel(2,ipart) + gas_accelyi
+            gas_accel(3,ipart) = gas_accel(3,ipart) + gas_accelzi
+            grav_accel(1,ipart) = grav_accel(1,ipart) + grav_accelxi
+            grav_accel(2,ipart) = grav_accel(2,ipart) + grav_accelyi
+            grav_accel(3,ipart) = grav_accel(3,ipart) + grav_accelzi
+         ENDIF
 
          IF (gasdrag) THEN
             planetesimaltimestep(ipart) =

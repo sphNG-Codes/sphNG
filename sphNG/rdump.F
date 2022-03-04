@@ -84,6 +84,9 @@ c      INCLUDE 'COMMONS/torq'
 #endif
       INCLUDE 'COMMONS/grain'
       INCLUDE 'COMMONS/compv'
+      INCLUDE 'COMMONS/HY09dustprops'
+      INCLUDE 'COMMONS/HY09rho'
+      INCLUDE 'COMMONS/HY09check'
 
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
@@ -99,7 +102,7 @@ c      INCLUDE 'COMMONS/torq'
       CHARACTER*16 tagsreal(128)
 #endif
       DIMENSION nums1(8),nums2(8),nums3(8),nums4(8)
-      PARAMETER (idimhead = 30)
+      PARAMETER (idimhead = 128)
       DIMENSION rheader(idimhead)
       INTEGER iversion, maxversion
       LOGICAL tagged, isequential
@@ -223,6 +226,7 @@ c--Default int
          CALL quit(0)
       ENDIF
       IF (tagged) READ (idisk1, END=100) ! skip tags
+      in_HY09ndustbins = 1
       IF (number.EQ.9+NTAB) THEN
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks,iyr,idum,(iv(i), i=1,NTAB)
@@ -241,6 +245,10 @@ c--Default int
      &        nblocks,iyr,idum,(iv(i), i=1,NTAB), iplanetesimals,
      &        irotpot, idragscheme_in
          print *,'USING 12+NTAB', irotpot, idragscheme
+      ELSEIF (number.EQ.13+NTAB) THEN
+         READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
+     &        nblocks,iyr,idum,(iv(i), i=1,NTAB), iplanetesimals,
+     &        irotpot, idragscheme_in, in_HY09ndustbins
       ELSEIF (number.EQ.7) THEN
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks
@@ -285,7 +293,7 @@ c--read the actual tags from tagged dump files
          READ (idisk1, END=100) tagsreal(1:number)
       ELSE
 c--fake the tags for older formats
-         tagsreal(1:30) = 
+         tagsreal(1:46) = 
      &  (/'gt              ','dtmax           ','gamma           ',
      &    'rhozero         ','RK2             ','escap           ',
      &    'tkin            ','tgrav           ','tterm           ',
@@ -295,7 +303,13 @@ c--fake the tags for older formats
      &    'hzero           ','uzero_n2        ','hmass           ',
      &    'gapfac          ','                ','sdprof          ',
      &    'rorbit_orig     ','min_rplan       ','max_rplan       ',
-     &    'planetesimalmass','coremass_orig   ','coremass        '/)
+     &    'planetesimalmass','coremass_orig   ','coremass        ',
+     &    'hfact           ','xmin            ','xmax            ',
+     &    'ymin            ','ymax            ','zmin            ',
+     &    'zmax            ','rmax            ','rcyl            ',
+     &    'HY09_size_min   ',
+     &    'HY09_size_max   ','HY09_slope      ','HY09_cutoff     ',
+     &    'HY09_dustdensity','HY09dustgasratio','HY09_vcoag_coeff'/)
       ENDIF
       READ (idisk1, END=100) (rheader(i),i=1,min(number,idimhead))
 c
@@ -368,7 +382,62 @@ c
       print *, 'Core mass orig ', coremass_orig
       CALL extract('coremass',coremass,rheader,tagsreal,number,ierr)
       print *, 'Core mass running record ', coremass
+c
+c--Check HY09 dust model matches that from the dump file
+c
+      IF (idimHY09.EQ.idim) THEN
+         IF (in_HY09ndustbins.NE.HY09_ndust_bins) THEN
+            print *,'ERROR - in_HY09dustbins.NE.HY09dustbins',
+     &           in_HY09ndustbins,HY09_ndust_bins
+            CALL quit(0)
+         ENDIF
 
+         CALL extract('HY09_size_min',HY09_size_min_in,
+     &        rheader,tagsreal,number,ierr)
+         CALL extract('HY09_size_max',HY09_size_max_in,
+     &        rheader,tagsreal,number,ierr)
+         CALL extract('HY09_cutoff',HY09_cutoff_in,
+     &        rheader,tagsreal,number,ierr)
+         CALL extract('HY09_slope',HY09_slope_in,
+     &        rheader,tagsreal,number,ierr)
+         CALL extract('HY09_dustdensity',HY09_dustdensity_in,
+     &        rheader,tagsreal,number,ierr)
+         CALL extract('HY09dustgasratio',HY09_dustgas_ratio_in,
+     &        rheader,tagsreal,number,ierr)
+         CALL extract('HY09_vcoag_coeff',HY09_vcoag_coeff_in,
+     &        rheader,tagsreal,number,ierr)
+
+         CALL hy09dustsetbins
+
+         IF (HY09_size_min.NE.HY09_size_min_in) THEN
+            print *,'ERROR - HY09_size_min_in'
+            CALL quit(0)
+         ENDIF
+         IF (HY09_size_max.NE.HY09_size_max_in) THEN
+            print *,'ERROR - HY09_size_max_in'
+            CALL quit(0)
+         ENDIF
+         IF (HY09_cutoff.NE.HY09_cutoff_in) THEN
+            print *,'ERROR - HY09_cutoff_in'
+            CALL quit(0)
+         ENDIF
+         IF (HY09_slope.NE.HY09_slope_in) THEN
+            print *,'ERROR - HY09_slope_in'
+            CALL quit(0)
+         ENDIF
+         IF (HY09_dustdensity.NE.HY09_dustdensity_in) THEN
+            print *,'ERROR - HY09_dustdensity_in'
+            CALL quit(0)
+         ENDIF
+         IF (HY09_dustgas_ratio.NE.HY09_dustgas_ratio_in) THEN
+            print *,'ERROR - HY09_dustgas_ratio_in'
+            CALL quit(0)
+         ENDIF
+         IF (HY09_vcoag_coeff.NE.HY09_vcoag_coeff_in) THEN
+            print *,'ERROR - HY09_vcoag_coeff_in'
+            CALL quit(0)
+         ENDIF
+      ENDIF
 c--real*4
       READ (idisk1, END=100) number
 c--real*8
@@ -842,6 +911,26 @@ c
              READ (idisk1, END=100) vcomp(icount+1:icount+nhydro)
           ENDIF
 c
+c--Read in dust grain distribution for HY09 model
+c
+          IF (idimHY09.EQ.idim .AND. nums1(6).GT.iwanted) THEN
+             DO j = 1, HY09_ndust_bins
+                iwanted = iwanted + 1
+                IF (tagged) THEN
+                   READ (idisk1, END=100) tagi
+                   CALL checktag('Dust:', tagi(1:5), ierr)
+                ENDIF
+                READ (idisk1, END=100) 
+     &               HY09bin_rho(j,icount+1:icount+nhydro)
+             END DO
+
+             iwanted = iwanted + 1
+             IF (tagged) READ (idisk1, END=100) tagi
+             CALL checktag('hfrac', tagi, ierr)
+             READ (idisk1, END=100)
+     &            HY09frac_h_moved(icount+1:icount+nhydro)
+          ENDIF
+c
 c--skip unnecessary reals
 c
          IF (nums1(6).GT.iwanted) THEN
@@ -918,6 +1007,20 @@ c                     CALL quit(0)
                   ENDIF
                END DO
             ENDIF
+         ENDIF
+
+         IF (idimHY09.EQ.idim) THEN
+            iread = iread + 2
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('dustmax', tagi, ierr)
+            ENDIF
+            READ (idisk1, ERR=100) HY09peak(icount+1:icount+nhydro)
+            IF (tagged) THEN
+               READ (idisk1, END=100) tagi
+               CALL checktag('discflag', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100)
          ENDIF
 c--skip unnecessary real*4's
          IF (nums1(7).GT.iread) THEN

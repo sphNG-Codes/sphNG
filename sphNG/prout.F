@@ -60,6 +60,8 @@ c************************************************************
       INCLUDE 'COMMONS/accstat'
       INCLUDE 'COMMONS/rtstat'
       INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/HY09dustprops'
+      INCLUDE 'COMMONS/HY09rho'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
 
@@ -771,6 +773,36 @@ c         WRITE (96,*) gt, rmin1tot
 99108          FORMAT (' H_2 total mass    :', 1PE14.5)
             ENDIF
          ENDIF
+c
+c--Output mass distribution of dust in bins for central particle
+c     Need to divide by the logarithmic bin spacing because without
+c     this the dust mass fraction per bin changes as the number of bins
+c     being used or as the max/min dust size range changes.
+c     Note that this still includes the dust to gas ratio (i.e. this
+c     gives the dust mass distribution as a fraction of the total (gas
+c     plus dust) mass so the numbers will be smaller if the dust-to-gas 
+c     ratio is smaller).
+c
+         IF (idimHY09.EQ.idim) THEN
+            WRITE (iprint,99120, ERR=100) HY09_ndust_bins
+            dlog_binsize = LOG(HY09_size_max/HY09_size_min)/
+     &           HY09_ndust_bins
+            DO i = 1, HY09_ndust_bins
+               WRITE (iprint,99121, ERR=100) HY09binsizes(i)*1.0E+04,
+     &              HY09cen(i)/dlog_binsize
+#ifndef MPI
+               WRITE (100+irec,*) HY09binsizes(i)*1.0E+04,
+     &              HY09cen(i)/dlog_binsize
+#endif
+            END DO
+
+99120       FORMAT (' Central dust properties (',I3,' bins):')
+99121       FORMAT ('   Dust size: ',F9.4,' micron:',1PE14.5)
+            WRITE (iprint,99122, ERR=100) HY09cen_totaldens,
+     &           HY09_dustgas_ratio
+99122       FORMAT ('   Total dust density: ',1PE14.5,' should be:',
+     &           1PE14.5)
+         ENDIF
 c        Write energies for object 1; this is the same as total energies
 c        above if only one object present.
 c        Using short-hand notation to not confuse grepping with total
@@ -786,11 +818,11 @@ c        values
                betl = 0.
                betr = 0.
             ENDIF
-            WRITE (iprint, 99109, ERR=100)tkintot_o1,
+            WRITE (iprint, 99300, ERR=100)tkintot_o1,
      &                                    trotztot_o1,trotxtot_o1,
      &                                    tgravtot_o1,ttermtot_o1,
      &                                    tmagtot_o1,alph,betl,betr,betm
-99109       FORMAT (' E_kinetic              : ', 1PE14.5, /,
+99300       FORMAT (' E_kinetic              : ', 1PE14.5, /,
      &              ' E_rotational_about_z   : ', 1PE14.5, /,
      &              ' E_rotational_about_x   : ', 1PE14.5, /,
      &              ' E_potential            : ', 1PE14.5, /,

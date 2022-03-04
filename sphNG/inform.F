@@ -54,6 +54,8 @@ c************************************************************
 #endif
       INCLUDE 'COMMONS/files'
       INCLUDE 'COMMONS/lyonfiles'
+      INCLUDE 'COMMONS/HY09dustprops'
+      INCLUDE 'COMMONS/HY09rho'
 
       CHARACTER*7 where, where2
 c
@@ -86,6 +88,7 @@ c
       romean2 = 0.
       romax2 = 0.
       rocen2 = 0.
+      IF (idimHY09.EQ.idim) HY09cen(:) = 0.
 
       tgmean1 = 0.
       tgmax1 = 0.
@@ -356,6 +359,10 @@ c
             trcen1 = (ekcle(1,imin)*rocen1/uradconst)**0.25
          ELSEIF (encal.EQ.'m') THEN
             tgcen1 = vxyzu(4,imin)/getcv(rho(imin),vxyzu(4,imin))
+         ENDIF
+         IF (idimHY09.EQ.idim) THEN
+            HY09cen(:) = HY09bin_rho(:,imin)
+            HY09cen_totaldens = SUM(HY09cen(:))
          ENDIF
       ENDIF
 

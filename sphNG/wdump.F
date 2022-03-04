@@ -84,13 +84,18 @@ c#endif
       INCLUDE 'COMMONS/dustimplicit'
       INCLUDE 'COMMONS/grain'
       INCLUDE 'COMMONS/compv'
+      INCLUDE 'COMMONS/HY09dustprops'
+      INCLUDE 'COMMONS/HY09rho'
+      INCLUDE 'COMMONS/f2HY09'
+      INCLUDE 'COMMONS/HY09check'
+      INCLUDE 'COMMONS/HY09accel'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
 
       CHARACTER*7 where
       CHARACTER*100 fileident
-      CHARACTER*16 tagarr(10)
+      CHARACTER*16 tagarr(10), tagwrite
       INTEGER*4 int1, int2, int1o
       INTEGER*8 number8
       DIMENSION nums(8)
@@ -239,18 +244,23 @@ c  end of the subroutine.
 #endif
 c
 c--Default int
-      number = 12 + NTAB
+      number = 13 + NTAB
       WRITE (idisk1, ERR=100) number
 
       WRITE (idisk1, ERR=100) tag('nparttot'),tag('n1'),tag('n2'),
      &      tag('nreassigntot'),tag('naccretetot'),tag('nkilltot'),
      &      tag('nblocks'),tag('iyr'),tag('idum'),(tag('iv'),i=1,NTAB),
-     &      tag('iplanetesimals'),tag('irotpot'),tag('idragscheme')
+     &      tag('iplanetesimals'),tag('irotpot'),tag('idragscheme'),
+     &      tag('HY09_dust_bins')
 
+      iplanetesimals = 13
+      irotpot = 14
+      idragscheme = 15
       WRITE (idisk1, ERR=100) nparttot,n1,n2,nreassigntot,
      &     naccretetot,nkilltot,nblocks,iyr,idum,
      &     (iv(i),i=1,NTAB), iplanetesimals, irotpot,
-     &     idragscheme
+     &     idragscheme, HY09_ndust_bins
+      print *,'Wrote to dump file ',HY09_ndust_bins
 c--int*1, int*2, int*4
       number = 0
       DO i = 1, 3
@@ -266,7 +276,7 @@ c--Default real
 c
 c--Full dump
 c
-      number = 37
+      number = 46
 
       pmassinitial = 0.
       IF (ifulldump.NE.0) THEN
@@ -322,7 +332,10 @@ c      print *,'stuff ',gt, dtmax, gamma, rhozero, RK2
      &  tag('planetesimalmass'),
      &  tag('coremass_orig'),tag('coremass'),
      &  tag('hfact'),tag('xmin'),tag('xmax'),tag('ymin'),
-     &  tag('ymax'),tag('zmin'),tag('zmax')
+     &  tag('ymax'),tag('zmin'),tag('zmax'),tag('rmax'),tag('rcyl'),
+     &  tag('HY09_size_min'),tag('HY09_size_max'),tag('HY09_cutoff'),
+     &  tag('HY09_slope'),tag('HY09_dustdensity'),
+     &  tag('HY09dustgasratio'),tag('HY09_vcoag_coeff')
 
       WRITE (idisk1, ERR=100) gt, dtmax, gamma, rhozero, RK2,
      &     escaptot, tkintot, tgravtot, ttermtot, 
@@ -331,7 +344,9 @@ c      print *,'stuff ',gt, dtmax, gamma, rhozero, RK2
      &     hzero, uzero_n2, hmass, gapfac, pmassinitial, sdprof,
      &     rorbit_orig, min_rplan, max_rplan, planetesimalmass,
      &     coremass_orig, coremass, hfact, xmin, xmax, ymin, ymax,
-     &     zmin, zmax
+     &     zmin, zmax, rmax, rcyl,
+     &     HY09_size_min, HY09_size_max, HY09_cutoff, HY09_slope, 
+     &     HY09_dust_density, HY09_dustgas_ratio, HY09_vcoag_coeff
 
 c--real*4
       number = 0
@@ -430,6 +445,10 @@ c
       ELSE
          nums(7) = 3
       ENDIF
+      IF (idimHY09.EQ.idim) THEN
+         nums(6) = nums(6) + HY09_ndust_bins + 5
+         nums(7) = nums(7) + 2
+      ENDIF
       nums(8) = 0
       WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
 c
@@ -482,9 +501,6 @@ c         nums(4) = nums(4) + 1
 #endif
          WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
       ENDIF
-
-
-
 c
 c--Array length 4 header
 c
@@ -623,6 +639,42 @@ c
             WRITE (idisk1, ERR=100) (xtype(j,isort(i)), i=1, nprint)
          END DO     
       ENDIF
+
+      IF (idimHY09.EQ.idim) THEN
+         DO j = 1, HY09_ndust_bins
+c
+c--Name dust bin sizes in microns
+c
+            WRITE (tagwrite,99001) HY09binsizes(j)*1.0E+04
+99001       FORMAT ('Dust:',F9.4)
+            WRITE (idisk1, ERR=100) tag(tagwrite)
+            WRITE (idisk1, ERR=100) (HY09bin_rho(j,isort(i)),i=1,nprint)
+         END DO
+
+         WRITE (idisk1, ERR=100) tag('hfrac')
+         WRITE (idisk1, ERR=100) (HY09frac_h_moved(isort(i)),i=1,nprint)
+c
+c--Output the gravitational acceleration in code units.  Only required
+c     for diagnostic/testing purposes.
+c
+         tagarr(1:3) = (/'gravaccelx','gravaccely','gravaccelz'/)
+         DO j = 1, 3
+            WRITE (idisk1, ERR=100) tag(tagarr(j))
+            WRITE (idisk1, ERR=100) (grav_accel(j,isort(i)),
+     &           i=1,nprint)
+         END DO
+c
+c--Output the estimate of the relative grain speed relative to the gas
+c     for dust grains at the peak of the mass distribution.
+c     This is stored in f1HY09vrel_h as the speed/h in code units
+c     so to get the speed in cgs units need to multiply by h and
+c     convert to cgs units.
+c
+         WRITE (idisk1, ERR=100) tag('dustvrel')
+         WRITE (idisk1, ERR=100) (f1HY09vrel_h(isort(i))*
+     &        xyzmh(5,isort(i))*udist/utime,i=1,nprint)
+      ENDIF
+
 c--real*4
       WRITE (idisk1, ERR=100) tag('rho')
       WRITE (idisk1, ERR=100) (rho(isort(i)), i=1, nprint)
@@ -637,6 +689,24 @@ c--real*4
       ENDIF
       WRITE (idisk1, ERR=100) tag('alpha')
       WRITE (idisk1, ERR=100) (alphaMM(1,isort(i)), i=1, nprint)
+
+      IF (idimHY09.EQ.idim) THEN
+c
+c--Determine the grain size associated with the peak of the grain mass
+c     distribution (in microns)
+c
+         DO i = 1, nprint
+            ilocation = MAXLOC(HY09bin_rho(:,isort(i)), DIM=1 )
+            HY09peak(i) = HY09binsizes(ilocation)*1.0E+04
+         END DO
+         WRITE (idisk1, ERR=100) tag('dustmax')
+         WRITE (idisk1, ERR=100) (HY09peak(i), i=1, nprint)
+c
+c--Output flag for whether particle is disc (1) or envelope (0)
+c
+         WRITE (idisk1, ERR=100) tag('discflag')
+         WRITE (idisk1, ERR=100) (HY09discflag(isort(i)), i=1, nprint)
+      ENDIF
 c--real*8
 
 #ifdef MPIDEBUG

@@ -464,31 +464,31 @@ c
 #endif
 
             IF (imhdevol.EQ.4) THEN
-               WRITE (iprint,99218)
-               WRITE (iprint,99219) ndivBsubcycles, overclean_fac,
-     &                              hdivbbmax_max
-99218          FORMAT(' Magnetic field has hyperbolic cleaning ON')
-99219          FORMAT(' Cleaning done using ',I2,
-     &              ' subcycles, overcleaning factor ',1F6.3,
-     &              ' and max decrease of dtclean by ',1F8.3,//)
+               WRITE (iprint,99225)
+               WRITE (iprint,99230) ndivBsubcycles, overclean_fac
+               WRITE (iprint,99235) hdivbbmax_max
+99225          FORMAT(' Magnetic field has hyperbolic cleaning ON')
+99230          FORMAT('    Cleaning using ',I3,
+     &              ' subcycles, overcleaning factor ',1F6.1)
+99235          FORMAT('      and max decrease of dtclean by ',1F8.2,//)
             ENDIF
 
             IF (ABS(iresist).EQ.1) THEN
-               WRITE(iprint,99221) etamhd
+               WRITE(iprint,99240) etamhd
             ELSEIF (ABS(iresist).GE.2) THEN
-               WRITE(iprint,99222) ABS(iresist)
+               WRITE(iprint,99245) ABS(iresist)
             ENDIF
-99221       FORMAT(' Physical resistivity ON, using constant eta =',
+99240       FORMAT(' Physical resistivity ON, using constant eta =',
      &             1PE12.3,//)
-99222       FORMAT(' Physical resistivity type ',I1,' ON',
+99245       FORMAT(' Physical resistivity type ',I1,' ON',
      &           ' function of density and temperature',//)
             IF (iresist.LT.0) THEN
-               WRITE(iprint,99223)
+               WRITE(iprint,99250)
             ELSEIF (iresist.GT.0) THEN
-               WRITE(iprint,99224)
+               WRITE(iprint,99255)
             ENDIF
-99223       FORMAT(' Physical resistivity evolved implicitly',//)
-99224       FORMAT(' Physical resistivity evolved explicitly',//)
+99250       FORMAT(' Physical resistivity evolved implicitly',//)
+99255       FORMAT(' Physical resistivity evolved explicitly',//)
 
          ENDIF
 c

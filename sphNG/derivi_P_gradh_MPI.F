@@ -485,10 +485,10 @@ c     &    iorig(llistsentback(1,j+1)+1),MPI_INTEGER8,indexMPI_I8,ierr)
 #endif
                            CALL MPI_TYPE_FREE(indexMPI4,ierr)
                            CALL MPI_TYPE_FREE(indexMPIR,ierr)
+                           CALL MPI_TYPE_FREE(indexMPIinimhd,ierr)
 #endif
                            CALL MPI_TYPE_FREE(indexMPI3,ierr)
                            CALL MPI_TYPE_FREE(indexMPIimhdevol,ierr)
-                           CALL MPI_TYPE_FREE(indexMPIinimhd,ierr)
                         ENDIF
 
                         IF (ifsvi.GE.6 .OR. imhd.EQ.idim) THEN

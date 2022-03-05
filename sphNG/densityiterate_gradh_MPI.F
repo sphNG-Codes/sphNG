@@ -536,7 +536,7 @@ c
                CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
                IF (2*ntot+3+inumber.GE.mmax2) THEN
                   WRITE (*,*) iproc,': ERROR - 2*ntot+3+inumber',
-     &                 '.GE.mmax2'
+     &                 '.GE.mmax2',ntot,inumber
                   CALL quit(1)
                ENDIF
 
@@ -640,7 +640,8 @@ c
      &                 0,MPI_COMM_WORLD, istatus, ierr)
                   CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)
                   IF (2*ntot+3+inumber.GE.mmax2) THEN
-                 WRITE (*,*) iproc,': ERROR - 2*ntot+3+inumber.GE.mmax2'
+                WRITE (*,*) iproc,': ERROR - 2*ntot+3+inumber.GE.mmax2',
+     &                    ntot,inumber,mmax2
                      CALL quit(1)
                   ENDIF
 

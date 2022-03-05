@@ -285,6 +285,20 @@ c
          IF (rmod.LT.0.97) THEN
             stepi = dt*isteps(i)/imaxstep*rmod
             ibin = INT(LOG10(dt/stepi)/xlog2) + 1
+
+            IF (ibin.LT.0 .OR. ibin.GT.30) THEN
+               print *,'ERROR - ibin.LT.0 .OR. ibin.GT.30 ',ibin,stepi,
+     &              dt,isteps(i),i,rmod,rmodcr,rmodgd,xyzmh(5,i),
+     &              vsound(i),alphaMM(1,i),denom,crstepi,iphase(i),
+     &              force2
+               IF (ibin.LT.0) THEN
+                  CALL quit(1)
+               ELSE
+                  ibin = 30
+               ENDIF
+c               CALL quit(1)
+            ENDIF
+
             isteps(i) = imaxstep/(2**ibin)
 c
 c--Increase time step, if synchronization allows
@@ -341,7 +355,8 @@ C$OMP CRITICAL (writeiprint)
                   WRITE (iprint,*) 'B=',Bxyz(1,i),Bxyz(2,i),Bxyz(3,i)
                   WRITE (iprint,*) 'valfven=',valfven2,aux1
                ENDIF
-               WRITE (iprint,*)rmod,rmodcr
+               WRITE (iprint,*)rmod,rmodcr,timestepcriterion(i)
+               WRITE (iprint,*)(rmodall(l),l=1,15)
                WRITE (iprint,*)nneigh(i),rho(i),nlst
 
                xmindist = 1.0e+30
@@ -363,7 +378,12 @@ C$OMP CRITICAL (writeiprint)
                END DO
                WRITE (iprint,*)'rmin ',xmindist
 
-               CALL quit(1)
+               IF (timestepcriterion(i).EQ.9) THEN
+c--Limit due to criterion for dudt ignored
+                  isteps(i) = 2
+               ELSE
+                  CALL quit(1)
+               ENDIF
 C$OMP END CRITICAL (writeiprint)
             ENDIF
          ENDIF

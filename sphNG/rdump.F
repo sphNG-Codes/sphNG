@@ -392,51 +392,26 @@ c
             CALL quit(0)
          ENDIF
 
-         CALL extract('HY09_size_min',HY09_size_min_in,
+         CALL extract('HY09_size_min',HY09_size_min,
      &        rheader,tagsreal,number,ierr)
-         CALL extract('HY09_size_max',HY09_size_max_in,
+         CALL extract('HY09_size_max',HY09_size_max,
      &        rheader,tagsreal,number,ierr)
-         CALL extract('HY09_cutoff',HY09_cutoff_in,
+         CALL extract('HY09_cutoff',HY09_cutoff,
      &        rheader,tagsreal,number,ierr)
-         CALL extract('HY09_slope',HY09_slope_in,
+         CALL extract('HY09_slope',HY09_slope,
      &        rheader,tagsreal,number,ierr)
-         CALL extract('HY09_dustdensity',HY09_dustdensity_in,
+         CALL extract('HY09_dustdensity',HY09_dust_density,
      &        rheader,tagsreal,number,ierr)
-         CALL extract('HY09dustgasratio',HY09_dustgas_ratio_in,
+         CALL extract('HY09dustgasratio',HY09_dustgas_ratio,
      &        rheader,tagsreal,number,ierr)
-         CALL extract('HY09_vcoag_coeff',HY09_vcoag_coeff_in,
+         CALL extract('HY09_vcoag_coeff',HY09_vcoag_coeff,
      &        rheader,tagsreal,number,ierr)
+
+         print *,'HY09 parameters ',HY09_size_min,HY09_size_max,
+     &        HY09_cutoff,HY09_slope,HY09_dust_density,
+     &        HY09_dustgas_ratio,HY09_vcoag_coeff
 
          CALL hy09dustsetbins
-
-         IF (HY09_size_min.NE.HY09_size_min_in) THEN
-            print *,'ERROR - HY09_size_min_in'
-            CALL quit(0)
-         ENDIF
-         IF (HY09_size_max.NE.HY09_size_max_in) THEN
-            print *,'ERROR - HY09_size_max_in'
-            CALL quit(0)
-         ENDIF
-         IF (HY09_cutoff.NE.HY09_cutoff_in) THEN
-            print *,'ERROR - HY09_cutoff_in'
-            CALL quit(0)
-         ENDIF
-         IF (HY09_slope.NE.HY09_slope_in) THEN
-            print *,'ERROR - HY09_slope_in'
-            CALL quit(0)
-         ENDIF
-         IF (HY09_dustdensity.NE.HY09_dustdensity_in) THEN
-            print *,'ERROR - HY09_dustdensity_in'
-            CALL quit(0)
-         ENDIF
-         IF (HY09_dustgas_ratio.NE.HY09_dustgas_ratio_in) THEN
-            print *,'ERROR - HY09_dustgas_ratio_in'
-            CALL quit(0)
-         ENDIF
-         IF (HY09_vcoag_coeff.NE.HY09_vcoag_coeff_in) THEN
-            print *,'ERROR - HY09_vcoag_coeff_in'
-            CALL quit(0)
-         ENDIF
       ENDIF
 c--real*4
       READ (idisk1, END=100) number

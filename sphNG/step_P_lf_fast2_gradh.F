@@ -90,6 +90,7 @@ c************************************************************
       INCLUDE 'COMMONS/fullstep'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/grain'
 
       LOGICAL ifirst
       LOGICAL icenter
@@ -126,7 +127,7 @@ c
       naddedplanet = 0
       itreeupdate = .FALSE.
 #ifdef MPI
-      print *,iproc,': ENTERED STEP ',nptmasstot
+      print *,iproc,': ENTERED STEP ',npart,nparttot,nptmasstot
 #endif
 c
 c--Integration
@@ -275,7 +276,8 @@ c
 
          IF (itiming) CALL getused(ts101)
 
-         CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
+         CALL derivi (dt,itime,dumxyzmh,dumvxyzu,dumrgrain,
+     &        f1vxyzu,f1rgrain,f1ha,
      &        npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz,
      &        dumdustvar,f1dust)
 
@@ -530,7 +532,7 @@ C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,rho)
 C$OMP& shared(it0,itime,imaxdens,cnormk,iener)
 C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,listrealpm)
-C$OMP& shared(ifsvi,alphaMM,alphamax,Bevolxyz,encal,gt)
+C$OMP& shared(ifsvi,alphaMM,alphamax,alphamin,Bevolxyz,encal,gt)
 C$OMP& shared(pdvvisc,dumvxyzu)
 C$OMP& shared(h2frac,dh2dt,HIIion,dHIIdt,deltaHII)
 C$OMP& private(i,j,k,dtfull,dthalf,delvx,delvy,delvz)
@@ -629,8 +631,8 @@ c--Update viscosity switch
 c
             IF (ifsvi.GE.6) THEN
                DO k=1,isizealphaMM
-                  alphaMM(k,i) = MIN(alphamax(k), alphaMM(k,i) +
-     &               dtfull*f1ha(k+1,i))
+                  alphaMM(k,i) = MAX(MIN(alphamax(k), alphaMM(k,i) +
+     &               dtfull*f1ha(k+1,i)),alphamin(k))
                ENDDO
             ENDIF
 c
@@ -689,7 +691,8 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,rho)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
-C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
+C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,alphamin)
+C$OMP& shared(encal,Bevolxyz)
 C$OMP& shared(isibdaupar,iflagtree,imfac,numberparents,listparents)
 C$OMP& private(j,k,deltat,deltat2,iparent)
          DO j = 1, npart
@@ -726,8 +729,8 @@ c
 
                   IF (ifsvi.GE.6) THEN
                      DO k = 1, isizealphaMM
-                        dumalpha(k,j) = MIN(alphamax(k),alphaMM(k,j)+
-     &                       deltat*f1ha(1+k,j))
+                     dumalpha(k,j) = MAX(MIN(alphamax(k),alphaMM(k,j)+
+     &                       deltat*f1ha(1+k,j)),alphamin(k))
                      END DO
                   ENDIF
 
@@ -751,7 +754,8 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,rho)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
-C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
+C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,alphamin)
+C$OMP& shared(encal,Bevolxyz)
 C$OMP& shared(isibdaupar,iflagtree,imfac,npart)
 C$OMP& shared(numberparents,listparents)
 C$OMP& private(j,k,l,deltat,deltat2,iparent)
@@ -788,8 +792,9 @@ c
 
                      IF (ifsvi.GE.6) THEN
                         DO k = 1, isizealphaMM
-                           dumalpha(k,j) = MIN(alphamax(k),
-     &                        alphaMM(k,j) + deltat*f1ha(1+k,j))
+                           dumalpha(k,j) = MAX(MIN(alphamax(k),
+     &                          alphaMM(k,j) + deltat*f1ha(1+k,j)),
+     &                          alphamin(k))
                         END DO
                      ENDIF
 
@@ -819,7 +824,8 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,rho)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
-C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
+C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,alphamin)
+C$OMP& shared(encal,Bevolxyz)
 C$OMP& shared(isibdaupar,iflagtree,imfac,npart)
 C$OMP& shared(numberparents,listparents,irevise,iprint)
 C$OMP& private(j,k,l,deltat,deltat2,iparent)
@@ -884,8 +890,8 @@ c
 
                      IF (ifsvi.GE.6) THEN
                         DO k=1,isizealphaMM
-                           dumalpha(k,j) = MIN(alphamax(k),
-     &                    alphaMM(k,j) + deltat*f1ha(k+1,j))
+                           dumalpha(k,j) = MAX(MIN(alphamax(k),
+     &                  alphaMM(k,j) + deltat*f1ha(k+1,j)),alphamin(k))
                         ENDDO
                      ENDIF
 
@@ -952,7 +958,7 @@ C$OMP END PARALLEL DO
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,ireal,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,dumxyzmh,dumvxyzu,encal)
-C$OMP& shared(iphase,iener,ifsvi,dumalpha,alphaMM,alphamax)
+C$OMP& shared(iphase,iener,ifsvi,dumalpha,alphaMM,alphamax,alphamin)
 C$OMP& shared(Bevolxyz,dumBevolxyz,rho)
 C$OMP& shared(isibdaupar,iflagtree,imfac,irevise)
 C$OMP& shared(numberparents,listparents)
@@ -1001,8 +1007,8 @@ c
 
                IF (ifsvi.GE.6) THEN
                   DO l = 1, isizealphaMM
-                     dumalpha(l,j) = MIN(alphamax(l),alphaMM(l,k)
-     &                    + deltat*f1ha(1+l,k))
+                     dumalpha(l,j) = MAX(MIN(alphamax(l),alphaMM(l,k)
+     &                    + deltat*f1ha(1+l,k)),alphamin(l))
                   END DO
                ENDIF
 
@@ -1059,7 +1065,8 @@ c
  200  icall = 3
 
       IF (itiming) CALL getused(ts101)
-      CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f2vxyzu,f2ha,npart,
+      CALL derivi (dt,itime,dumxyzmh,dumvxyzu,dumrgrain,
+     &     f2vxyzu,f2rgrain,f2ha,npart,
      &     ntot,ireal,dumalpha,ekcle,dumBevolxyz,f2Bxyz,
      &     dumdustvar,f2dust)
 
@@ -1077,7 +1084,7 @@ C$OMP& shared(vxyzu,f1vxyzu,f2vxyzu,itime)
 C$OMP& shared(iphase,nptmass,listpm,listrealpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,xyzmh,gt)
 C$OMP& shared(ivelocity_iterations,dumvxyzu)
-C$OMP& shared(encal,ifsvi,alphaMM,alphamax,f1ha,f2ha)
+C$OMP& shared(encal,ifsvi,alphaMM,alphamax,alphamin,f1ha,f2ha)
 C$OMP& shared(Bevolxyz,f1Bxyz,f2Bxyz)
 C$OMP& shared(dh2dt,dHIIdt)
 C$OMP& private(i,j,k,dthalf,delvx,delvy,delvz,delu,iii,pmasspt)
@@ -1117,8 +1124,8 @@ c
 
             IF (ifsvi.GE.6) THEN
                DO k=1,isizealphaMM
-                  alphaMM(k,i) = MIN(alphamax(k), alphaMM(k,i) +
-     &                 dthalf*(f2ha(k+1,i)-f1ha(k+1,i)))
+                  alphaMM(k,i) = MAX(MIN(alphamax(k), alphaMM(k,i) +
+     &                 dthalf*(f2ha(k+1,i)-f1ha(k+1,i))),alphamin(k))
                END DO
             ENDIF
 
@@ -1533,8 +1540,8 @@ c
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                   IF (ifsvi.GE.6) THEN
                      DO l=1,isizealphaMM
-                       dumalpha(l,j) = MIN(alphamax(l),
-     &                               alphaMM(l,k) + deltat*f1ha(1+l,k))
+                       dumalpha(l,j) = MAX(MIN(alphamax(l),
+     &                   alphaMM(l,k) + deltat*f1ha(1+l,k)),alphamin(l))
                      ENDDO
                    ENDIF
                ENDIF
@@ -1578,7 +1585,8 @@ c
             END DO
 
             icall = 4
-            CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,f1ha,
+            CALL derivi (dt,itime,dumxyzmh,dumvxyzu,dumrgrain,
+     &           f1vxyzu,f1rgrain,f1ha,
      &           npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz,
      &           dumdustvar,f1dust)
 
@@ -1753,8 +1761,8 @@ c
             IF (iener.EQ.2.AND.dumvxyzu(4,j).LT.0.0) dumvxyzu(4,j)=0.15
                   IF (ifsvi.GE.6) THEN
                      DO l=1,isizealphaMM
-                        dumalpha(l,j) = MIN(alphamax(l),
-     &                     alphaMM(l,k) + deltat*f1ha(1+l,k))
+                        dumalpha(l,j) = MAX(MIN(alphamax(l),
+     &                   alphaMM(l,k) + deltat*f1ha(1+l,k)),alphamin(l))
                      ENDDO
                   ENDIF
                ENDIF
@@ -1811,7 +1819,8 @@ c--Set accelerations on new particles using call to derivi
 c
             icall = 4
             PRINT *,"icall 4 triggered"
-            CALL derivi (dt,itime,dumxyzmh,dumvxyzu,f1vxyzu,
+            CALL derivi (dt,itime,dumxyzmh,dumvxyzu,dumrgrain,
+     &           f1vxyzu,f1rgrain,
      &         f1ha,npart,ntot,ireal,dumalpha,ekcle,dumBevolxyz,f1Bxyz,
      &         dumdustvar,f1dust)
 c

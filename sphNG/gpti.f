@@ -111,7 +111,7 @@ c
      &                    3.0*v4+1.2*v4*v1-0.5*third*v4*v2-0.2*third)
                      potn = -(pmassipt/hptmass*(4.0*third*v2-v2*v1+
      &                    0.3*v4-0.1*third*v4*v1-1.6) +
-     &                    0.2*third*pmassi/rr05)
+     &                    0.2*third*pmassipt/rr05)
                   ENDIF
                ELSE
                   rr05 = SQRT(rr)

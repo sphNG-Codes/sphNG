@@ -28,11 +28,12 @@
         REAL,PARAMETER :: spy=31536000d0 
         INTEGER :: iindump,ichkl,i,nbin,lower,ibin,sinkno
         INTEGER :: isink,ipart,nselect,iout,dead,sink,other
-        INTEGER :: gas,inp
+        INTEGER :: gas,inp,ind1,ind2
         CHARACTER(len=15) :: charsinkno
         CHARACTER(len=25) :: infile
-        CHARACTER(len=45) :: outfile
+        CHARACTER(len=45) :: outfile,idlistfile
         INTEGER,DIMENSION(MAXWANT) :: wantedparts
+        LOGICAL :: fromsink
         iindump = 1
         iout  = 2
         gas = 0;dead=0;sink=0;other=0
@@ -42,39 +43,59 @@
         PRINT *, "Enter name of input dump file"
         READ  (*,*) infile
         PRINT *, "Find particles 1) near sink or 2) from iunique?"
-        PRINT *, "Enter number of desired sink"
-        READ  (*,*) sinkno
+        READ (*,*) inp
+        IF (inp .EQ. 1) THEN
+           fromsink = .TRUE.
+           PRINT *, "Enter number of desired sink"
+           READ  (*,*) sinkno
+        ELSE IF (inp .EQ. 2) THEN
+           fromsink = .FALSE.
+           PRINT *, "Enter name of iunique list file"
+           READ (*,*) idlistfile
+        ELSE
+           PRINT *, "Error invalid option"
+           CALL quit(1)
+        END IF
         
+! ---- Read dumpfile               
         WRITE(*,*) "Reading", infile
-! ---- Read dumpfile       
-      OPEN (UNIT=iindump,FILE=infile,FORM ='unformatted',
+        OPEN (UNIT=iindump,FILE=infile,FORM ='unformatted',
      & ACTION='READ')
-      CALL rdump(iindump, ichkl, 0)
-      CLOSE(iindump)
-      nfullstep = 1
-      WRITE(*,284) "sphNG time= ",
+        CALL rdump(iindump, ichkl, 0)
+        CLOSE(iindump)
+        nfullstep = 1
+        WRITE(*,284) "sphNG time= ",
      &       gt*utime/spy," years. Read", npart,"particles."
         WRITE(*,*) "(utime=",utime," gt=", gt,"udist=",udist
  284    FORMAT(A,X,E9.2,A,I0,A)
 
-        ipart = listpm(sinkno)
-        WRITE (*,*) "looking for particle", ipart,iphase(ipart)
+        IF (fromsink) THEN 
+           ipart = listpm(sinkno)
+           WRITE (*,*) "looking for particle", ipart,iphase(ipart)
 ! ----- Check sink exists
-        IF (listpm(sinkno) .LT. 1) THEN
-           WRITE (*,*) "Sink particle doesn't exist"
-           CALL quit(1)
+           IF (listpm(sinkno) .LT. 1) THEN
+              WRITE (*,*) "Sink particle doesn't exist"
+              CALL quit(1)
+           END IF
+           CALL selectfromregion(ipart,wantedparts,maxwant,nselect)
+           CALL extract_wanted(wantedparts,maxwant,nselect)
+           WRITE (*,*) "Extracted particle data"
+!           WRITE (*,*) xyzmh(4,wantedparts(12)),rho(wantedparts(12)),
+!     &    iphase(wantedparts(12))
+           WRITE (charsinkno,'(I3)') sinkno
+           PRINT *, charsinkno, sinkno
+           charsinkno = adjustl(charsinkno)
+           outfile = trim(infile) // "_sink" // charsinkno
         END IF
-        CALL selectfromregion(ipart,wantedparts,maxwant,nselect)
-        WRITE (*,*) wantedparts(300)
-        CALL extract_wanted(wantedparts,maxwant,nselect)
-        WRITE (*,*) "Extracted particle data"
 
-        WRITE (*,*) xyzmh(4,wantedparts(12)),rho(wantedparts(12)),
-     &    iphase(wantedparts(12))
-        WRITE (charsinkno,'(I3)') sinkno
-        PRINT *, charsinkno, sinkno
-        charsinkno = adjustl(charsinkno)
-        outfile = trim(infile) // "_sink" // charsinkno
+        IF (.NOT. fromsink) THEN
+           CALL get_particles_fromID(idlistfile,maxwant,nselect)
+           ind1 = INDEX(idlistfile,"_")
+           ind2 = INDEX(idlistfile,".dat")
+           outfile = trim(infile) // idlistfile(ind1:ind2-1) //"parts"
+        END IF
+        
+! ----- Write to new dump file           
         PRINT *, "writing to:", outfile
         print *, "npart=", npart
         npart = nselect
@@ -103,7 +124,7 @@
        PRINT *, "Dead =", dead, " sink=", sink, "nptmass=", nptmass, 
      &  "other =", other, "gas=", gas
        
-       CALL write_IDfile(outfile)
+       
        DO i=1,npart
           isort(i) = i
        END DO
@@ -112,7 +133,7 @@
         
        CALL wdump(iout)
        CLOSE(iout)
-
+       IF (fromsink) CALL write_IDfile(outfile)
        WRITE (*,*) "done"
       END PROGRAM extract_sinkreg
       
@@ -168,6 +189,56 @@
          WRITE (*,*) "Selected", nselect, "of",npart, "particles."
          
        END SUBROUTINE selectfromregion
+
+       SUBROUTINE get_particles_fromID(idlistfile,maxwant,nselect)
+         IMPLICIT NONE
+         INCLUDE 'idim' 
+         INCLUDE 'COMMONS/part'
+         INCLUDE 'COMMONS/phase'
+         INCLUDE 'COMMONS/ptmass'
+         INCLUDE 'COMMONS/densi'
+         INCLUDE 'COMMONS/sort'
+         INCLUDE 'COMMONS/units'
+         CHARACTER(len=45) :: idlistfile
+         INTEGER ::  maxwant,iostatus
+         INTEGER :: i,nselect,ipart,iunit=19,j
+         INTEGER,dimension(maxwant) :: wantedparts
+         INTEGER*8, dimension(maxwant) :: wantIDs
+
+         iostatus = 0
+         wantIDs(:) = 0
+         wantedparts(:) = 0
+         WRITE (*,*) "Reading ID file:", idlistfile
+         OPEN(UNIT=iunit,FILE=trim(idlistfile),FORM='formatted',
+     &        STATUS='old')
+         DO i=1, maxwant
+            READ (iunit,*,iostat=iostatus) wantIDs(i)
+            IF (iostatus .GT. 0) THEN
+               WRITE (*,*) "Error in read:", iostatus, wantIDs(i)
+               CALL quit(1)
+            ELSE IF (iostatus .LT. 0) THEN
+               WRITE (*,*) "End of file read"
+               EXIT
+            END IF
+         END DO
+         CLOSE(iunit)
+         PRINT *, "iunique", i-1, "is", wantIDs(i-1)
+         nselect = i-1
+         WRITE (*,*) "Found", nselect, "wanted particles"
+! -----  Make list of indices of wanted particles
+         ipart = 0
+         DO i=1, npart
+            DO j=1, nselect
+               IF (iunique(i) .EQ. wantIDs(j)) THEN
+                  ipart = ipart + 1  
+                  wantedparts(ipart) = i
+                  CYCLE
+               END IF
+            END DO
+         END DO
+         CALL extract_wanted(wantedparts,maxwant,nselect)
+         
+       END SUBROUTINE get_particles_fromID
 
 ! -------------------------------------------------------------
        SUBROUTINE extract_wanted(wantedparts,maxwant,nselect)
@@ -456,8 +527,9 @@
            END IF
         END DO
         IF (npmwant .LT. 1) THEN
-           WRITE(*,*) "Error, no sinks!"
-           CALL quit(1)
+           WRITE(*,*) "No sinks!"
+           nptmass = 0
+           return
         END IF
         nptmass = npmwant
         WRITE (*,*) "nptmass want", npmwant, nptmass

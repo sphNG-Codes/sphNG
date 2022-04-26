@@ -28,7 +28,7 @@
         REAL,PARAMETER :: spy=31536000d0 
         INTEGER :: iindump,ichkl,i,nbin,lower,ibin,sinkno
         INTEGER :: isink,ipart,nselect,iout,dead,sink,other
-        INTEGER :: gas
+        INTEGER :: gas,inp
         CHARACTER(len=15) :: charsinkno
         CHARACTER(len=25) :: infile
         CHARACTER(len=45) :: outfile
@@ -41,6 +41,7 @@
         
         PRINT *, "Enter name of input dump file"
         READ  (*,*) infile
+        PRINT *, "Find particles 1) near sink or 2) from iunique?"
         PRINT *, "Enter number of desired sink"
         READ  (*,*) sinkno
         
@@ -101,13 +102,11 @@
        END DO
        PRINT *, "Dead =", dead, " sink=", sink, "nptmass=", nptmass, 
      &  "other =", other, "gas=", gas
-
-       PRINT *, iphase(listpm(1)), iphase(listpm(2))
        
+       CALL write_IDfile(outfile)
        DO i=1,npart
           isort(i) = i
        END DO
-       PRINT *, "mass before print:", xyzmh(4,400:410)
        OPEN(UNIT=iout,FILE=trim(outfile),FORM='unformatted',
      &        STATUS='replace')
         
@@ -463,11 +462,8 @@
         nptmass = npmwant
         WRITE (*,*) "nptmass want", npmwant, nptmass
         print *, "listpm=",listpm(1:nptmass)
-        print *, "wanted in sink ext", wanted(1:10)
         call extract_RDsink(spinx,iptdim,tmplist,npmwant)
-        print *, "wanted in sink extA", wanted(1:10)
         call extract_RDsink(spiny,iptdim,tmplist,npmwant)
-        print *, "wanted in sink extB", wanted(1:10)
         call extract_RDsink(spinz,iptdim,tmplist,npmwant)
         call extract_RDsink(angaddx,iptdim,tmplist,npmwant)
         call extract_RDsink(angaddy,iptdim,tmplist,npmwant)
@@ -476,5 +472,26 @@
         call extract_RDsink(spinady,iptdim,tmplist,npmwant)
         call extract_RDsink(spinadz,iptdim,tmplist,npmwant)
         print *, "extracted sink data"
-        print *, "wanted in sink extC", wanted(1:10)
       end subroutine extract_sinks
+
+! -------------------------------------------------
+      SUBROUTINE write_IDfile(outfilename)
+        INCLUDE 'idim'
+        INCLUDE 'COMMONS/part'
+        INCLUDE 'COMMONS/sort'
+        CHARACTER(len=45),INTENT(IN) :: outfilename
+        INTEGER :: i,iunit=11
+        CHARACTER(len=45) :: filename
+
+        filename = trim(outfilename) // "_IDs.dat"
+        OPEN(UNIT=iunit,FILE=trim(filename),FORM='formatted',
+     &        STATUS='replace')
+        DO i=i, npart
+           WRITE(iunit,'(I8)') iunique(i)
+        END DO
+        CLOSE(iunit)
+        WRITE (*,*) "written iuniques to file:", filename
+      END SUBROUTINE
+
+        
+        

@@ -29,9 +29,9 @@
         INTEGER :: iindump,ichkl,i,nbin,lower,ibin,sinkno
         INTEGER :: isink,ipart,nselect,iout,dead,sink,other
         INTEGER :: gas
-        CHARACTER(len=5) :: charsinkno
+        CHARACTER(len=15) :: charsinkno
         CHARACTER(len=25) :: infile
-        CHARACTER(len=30) :: outfile
+        CHARACTER(len=45) :: outfile
         INTEGER,DIMENSION(MAXWANT) :: wantedparts
         iindump = 1
         iout  = 2
@@ -70,9 +70,10 @@
 
         WRITE (*,*) xyzmh(4,wantedparts(12)),rho(wantedparts(12)),
      &    iphase(wantedparts(12))
-        WRITE (charsinkno,*) sinkno
+        WRITE (charsinkno,'(I3)') sinkno
         PRINT *, charsinkno, sinkno
-        outfile = trim(infile) // "_sink" // adjustl(charsinkno)
+        charsinkno = adjustl(charsinkno)
+        outfile = trim(infile) // "_sink" // charsinkno
         PRINT *, "writing to:", outfile
         print *, "npart=", npart
         npart = nselect

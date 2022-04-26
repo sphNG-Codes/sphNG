@@ -29,6 +29,7 @@
         INTEGER :: iindump,ichkl,i,nbin,lower,ibin,sinkno
         INTEGER :: isink,ipart,nselect,iout,dead,sink,other
         INTEGER :: gas
+        CHARACTER(len=5) :: charsinkno
         CHARACTER(len=25) :: infile
         CHARACTER(len=30) :: outfile
         INTEGER,DIMENSION(MAXWANT) :: wantedparts
@@ -49,6 +50,7 @@
      & ACTION='READ')
       CALL rdump(iindump, ichkl, 0)
       CLOSE(iindump)
+      nfullstep = 1
       WRITE(*,284) "sphNG time= ",
      &       gt*utime/spy," years. Read", npart,"particles."
         WRITE(*,*) "(utime=",utime," gt=", gt,"udist=",udist
@@ -68,7 +70,10 @@
 
         WRITE (*,*) xyzmh(4,wantedparts(12)),rho(wantedparts(12)),
      &    iphase(wantedparts(12))
-        outfile = trim(infile) // "extr"
+        WRITE (charsinkno,*) sinkno
+        PRINT *, charsinkno, sinkno
+        outfile = trim(infile) // "_sink" // adjustl(charsinkno)
+        PRINT *, "writing to:", outfile
         print *, "npart=", npart
         npart = nselect
         print *, "npart=", npart
@@ -106,9 +111,9 @@
      &        STATUS='replace')
         
        CALL wdump(iout)
-        CLOSE(iout)
+       CLOSE(iout)
 
-        PRINT *, "done"
+       WRITE (*,*) "done"
       END PROGRAM extract_sinkreg
       
 !------------------------------------------------------
@@ -214,25 +219,27 @@
          INCLUDE 'COMMONS/radsink'
          
          INTEGER,intent(in) :: maxwant,nselect
-         INTEGER,DIMENSION(maxwant),intent(inout) :: wantedparts
-         INTEGER :: j
+         INTEGER,DIMENSION(maxwant),intent(in) :: wantedparts
+         INTEGER :: j,nonzero=0,i
          
 !       extract sinks first!!
          PRINT *, "Wanted parts1", wantedparts(1:10)
-         print *, "old rho", rho(1:10)
          CALL extract_sinks(maxwant,wantedparts,nselect)
+         PRINT *, "Wanted parts, after sinks:", wantedparts(1:10) 
+         DO i=1, maxwant
+            if (wantedparts(i) .GT. 0.0) then
+               nonzero=nonzero + 1
+            end if
+         END DO
+         WRITE (*,*) nonzero, "nonzero values"
          CALL extract_I8(iunique,maxwant,wantedparts,nselect)
          CALL extract_ID(isteps,maxwant,wantedparts,nselect)
          CALL extract_I1(iphase,maxwant,wantedparts,nselect)
          write (*,*) "listpm", listpm(1:2)
          write (*,*) "iphase", iphase(listpm(1)),iphase(listpm(2))
-         write(*,*) "oldm", xyzmh(4,1:10)
          DO j=1,5
             CALL extract_RD(xyzmh(j,:),maxwant,wantedparts,nselect)
          END DO
-         write(*,*) "newm", xyzmh(4,1:10)
-!         PRINT *, "DONE xyzmh", xyzmh(4,1:10), 
-!     &   xyzmh(4,nselect-10: nselect+10),iphase(nselect-10:nselect+10)
          PRINT *, "mass", xyzmh(4,listpm(1)), xyzmh(4,listpm(2))
          DO j=1,4
             CALL extract_RD(vxyzu(j,:),maxwant,wantedparts,nselect)
@@ -275,18 +282,18 @@
        END SUBROUTINE extract_wanted
 
        !----------------------------------
-       SUBROUTINE extract_I1(array,maxwant,wantedparts,nselect)
+       SUBROUTINE extract_I1(array,maxwant,wanted,nselect)
          implicit none
          INCLUDE 'idim'
          integer*1,dimension(:) :: array(idim)
          integer,intent(IN) :: maxwant,nselect
-         integer,intent(IN) :: wantedparts(maxwant)
+         integer,intent(IN) :: wanted(maxwant)
          integer*1,dimension(:) :: tmp_arr(maxwant)
          integer :: i
          print *, "extracting I1 array"
          tmp_arr(:) = -2
          do i=1, nselect
-            tmp_arr(i) = array(wantedparts(i))
+            tmp_arr(i) = array(wanted(i))
          end do
          array(:) = -2
          do i=1, nselect
@@ -295,18 +302,18 @@
        end SUBROUTINE extract_I1
 
 !----------------------------------
-       SUBROUTINE extract_I4(array,maxwant,wantedparts,nselect)
+       SUBROUTINE extract_I4(array,maxwant,wanted,nselect)
          implicit none
          INCLUDE 'idim'
          integer*4,dimension(:) :: array(idim)
          integer,intent(IN) :: maxwant,nselect
-         integer,intent(IN) :: wantedparts(maxwant)
+         integer,intent(IN) :: wanted(maxwant)
          integer*4,dimension(:) :: tmp_arr(maxwant)
          integer :: i
          print *, "extracting I4 array"
          tmp_arr(:) = 0
          do i=1, nselect
-            tmp_arr(i) = array(wantedparts(i))
+            tmp_arr(i) = array(wanted(i))
          end do
          array(:) = 0
          do i=1, nselect
@@ -356,13 +363,13 @@
 
          
 !       extract batch of default REALs
-      subroutine extract_RD(array,maxwant,tmpwanted,nselect)
+      subroutine extract_RD(array,nmax,tmpwanted,nselect)
         implicit none
         INCLUDE 'idim'
         real,dimension(:) :: array(idim)
-        integer,intent(IN) :: maxwant,nselect
-        integer,intent(IN) :: tmpwanted(maxwant)
-        real,dimension(:) :: tmp_arr(maxwant)
+        integer,intent(IN) :: nmax,nselect
+        integer,intent(IN) :: tmpwanted(nmax)
+        real,dimension(:) :: tmp_arr(nmax)
         integer :: i
         print *, "extracting Default Real array"
 
@@ -403,27 +410,48 @@
 !       print *, "array reset"
       end subroutine extract_R4
 
+!       extract batch of default REALs
+      subroutine extract_RDsink(array,nmax,tmpwanted,nselect)
+        implicit none
+        INCLUDE 'idim'
+        real,dimension(:) :: array(iptdim)
+        integer,intent(IN) :: nmax,nselect
+        integer,intent(IN) :: tmpwanted(nmax)
+        real,dimension(:) :: tmp_arr(nmax)
+        integer :: i
+        print *, "extracting Default Real array"
+
+        tmp_arr(:) = 0
+        do i=1, nselect
+           tmp_arr(i) = array(tmpwanted(i))
+        end do
+        array(:) = 0
+        do i=1, nselect
+           array(i) = tmp_arr(i)
+        end do
+      end subroutine extract_RDsink
 
 !-----------------------------------------------------------------
 ! handles all the sink variables
-      subroutine extract_sinks(maxwant,wantedparts,nselect)
+      subroutine extract_sinks(nmax,wanted,nselect)
         implicit none
         INCLUDE 'idim'
         INCLUDE 'COMMONS/phase'
         INCLUDE 'COMMONS/ptmass'
-        integer,intent(IN) :: maxwant
-        integer,dimension(maxwant),intent(IN) :: wantedparts
+        integer,intent(IN) :: nmax
+        integer,dimension(nmax),intent(IN) :: wanted
+        INTEGER,INTENT(IN) :: nselect
         integer,dimension(:) :: tmplist(nptmass)
-        integer :: i,j,npmwant,nselect 
+        integer :: i,j,npmwant
 
         tmplist(:) = 0
         npmwant = 0
         listpm(:) = 0
         !       Loop over wantedparts
         DO i=1,nselect
-           IF (iphase(wantedparts(i)) .EQ. 2 ) then
+           IF (iphase(wanted(i)) .EQ. 2 ) then
               npmwant = npmwant + 1
-              tmplist(npmwant) = wantedparts(i)
+              tmplist(npmwant) = wanted(i)
               listpm(npmwant) = i
            END IF
         END DO
@@ -434,18 +462,18 @@
         nptmass = npmwant
         WRITE (*,*) "nptmass want", npmwant, nptmass
         print *, "listpm=",listpm(1:nptmass)
-        print *, "wanted in sink ext", wantedparts(1:10)
-        call extract_RD(spinx,iptdim,tmplist,npmwant)
-        print *, "wanted in sink extA", wantedparts(1:10)
-        call extract_RD(spiny,iptdim,tmplist,npmwant)
-        print *, "wanted in sink extB", wantedparts(1:10)
-        call extract_RD(spinz,iptdim,tmplist,npmwant)
-        call extract_RD(angaddx,iptdim,tmplist,npmwant)
-        call extract_RD(angaddy,iptdim,tmplist,npmwant)
-        call extract_RD(angaddz,iptdim,tmplist,npmwant)
-        call extract_RD(spinadx,iptdim,tmplist,npmwant)
-        call extract_RD(spinady,iptdim,tmplist,npmwant)
-        call extract_RD(spinadz,iptdim,tmplist,npmwant)
+        print *, "wanted in sink ext", wanted(1:10)
+        call extract_RDsink(spinx,iptdim,tmplist,npmwant)
+        print *, "wanted in sink extA", wanted(1:10)
+        call extract_RDsink(spiny,iptdim,tmplist,npmwant)
+        print *, "wanted in sink extB", wanted(1:10)
+        call extract_RDsink(spinz,iptdim,tmplist,npmwant)
+        call extract_RDsink(angaddx,iptdim,tmplist,npmwant)
+        call extract_RDsink(angaddy,iptdim,tmplist,npmwant)
+        call extract_RDsink(angaddz,iptdim,tmplist,npmwant)
+        call extract_RDsink(spinadx,iptdim,tmplist,npmwant)
+        call extract_RDsink(spinady,iptdim,tmplist,npmwant)
+        call extract_RDsink(spinadz,iptdim,tmplist,npmwant)
         print *, "extracted sink data"
-        print *, "wanted in sink extC", wantedparts(1:10)
+        print *, "wanted in sink extC", wanted(1:10)
       end subroutine extract_sinks

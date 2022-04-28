@@ -26,8 +26,8 @@
 
         INTEGER,PARAMETER :: maxwant = 800000
         REAL,PARAMETER :: spy=31536000d0 
-        INTEGER :: iindump,ichkl,i,nbin,lower,ibin,sinkno
-        INTEGER :: isink,ipart,nselect,iout,dead,sink,other
+        INTEGER :: iindump,ichkl,i,nbin,lower,ibin
+        INTEGER :: sink_ID,nselect,iout,dead,sink,other
         INTEGER :: gas,inp,ind1,ind2
         CHARACTER(len=15) :: charsinkno
         CHARACTER(len=25) :: infile
@@ -46,8 +46,8 @@
         READ (*,*) inp
         IF (inp .EQ. 1) THEN
            fromsink = .TRUE.
-           PRINT *, "Enter number of desired sink"
-           READ  (*,*) sinkno
+           PRINT *, "Enter iunique of desired sink"
+           READ  (*,*) sink_ID
         ELSE IF (inp .EQ. 2) THEN
            fromsink = .FALSE.
            PRINT *, "Enter name of iunique list file"
@@ -70,20 +70,13 @@
  284    FORMAT(A,X,E9.2,A,I0,A)
 
         IF (fromsink) THEN 
-           ipart = listpm(sinkno)
-           WRITE (*,*) "looking for particle", ipart,iphase(ipart)
-! ----- Check sink exists
-           IF (listpm(sinkno) .LT. 1) THEN
-              WRITE (*,*) "Sink particle doesn't exist"
-              CALL quit(1)
-           END IF
-           CALL selectfromregion(ipart,wantedparts,maxwant,nselect)
+           CALL selectfromregion(sink_ID,wantedparts,maxwant,nselect)
            CALL extract_wanted(wantedparts,maxwant,nselect)
            WRITE (*,*) "Extracted particle data"
 !           WRITE (*,*) xyzmh(4,wantedparts(12)),rho(wantedparts(12)),
 !     &    iphase(wantedparts(12))
-           WRITE (charsinkno,'(I3)') sinkno
-           PRINT *, charsinkno, sinkno
+           WRITE (charsinkno,'(I8)') sink_ID
+           PRINT *, charsinkno, sink_ID
            charsinkno = adjustl(charsinkno)
            outfile = trim(infile) // "_sink" // charsinkno
         END IF
@@ -145,7 +138,7 @@
 
 !------------------------------------------------------
        
-       SUBROUTINE selectfromregion(ipart,wantedparts,maxwant,nselect)
+       SUBROUTINE selectfromregion(sink_ID,wantedparts,maxwant,nselect)
          implicit none
          INCLUDE 'idim'
          INCLUDE 'COMMONS/astrcon'
@@ -155,17 +148,37 @@
          INCLUDE 'COMMONS/densi'
          INCLUDE 'COMMONS/sort'
          INCLUDE 'COMMONS/units'
-         INTEGER ::  maxwant
+         INTEGER ::  sink_ID,maxwant
          REAL :: rwant,sinkx,sinky,sinkz,rwant2,r2
          INTEGER :: i,nselect,ipart
          INTEGER,dimension(maxwant) :: wantedparts
+         LOGICAL :: stoploop
          
          WRITE(*,*) "Enter radius from sink in AU"
          READ (*,*) rwant
-         WRITE(*,*) "Finding particles within", rwant, "au of sink"
+         WRITE(*,*) "Finding particles r <",rwant,"au of sink",sink_ID
          rwant = rwant * au / udist
          rwant2 = rwant * rwant
          WRITE(*,*) "==", rwant,"code units."
+! ----- Find index of sink
+         stoploop = .FALSE.
+!$OMP PARALLEL DO SCHEDULE(static,100) SHARED(npart,stoploop,sinkID)
+!$OMP  SHARED(iunique,ipart) PRIVATE(i)
+         DO i=1,npart
+            IF (stoploop) EXIT
+            IF (iunique(i) .EQ. sink_ID) THEN
+               ipart = i
+               stoploop = .TRUE.
+            END IF
+         END DO
+!$OMP END PARALLEL DO
+         IF (.NOT. stoploop) THEN
+            WRITE (*,*) "Sink ID not found in list", sink_ID
+            CALL quit(0)
+         ELSE IF (iphase(ipart) .NE. 2) THEN
+            WRITE (*,*) sink_ID, "is not a sink. iphase=",iphase(ipart)
+            CALL quit(0)
+         END IF
          sinkx = xyzmh(1,ipart)
          sinky = xyzmh(2,ipart)
          sinkz = xyzmh(3,ipart)

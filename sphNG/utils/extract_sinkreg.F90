@@ -9,6 +9,8 @@
         INCLUDE 'idim'
         INCLUDE 'igrape'
         INCLUDE 'COMMONS/actio'
+        INCLUDE 'COMMONS/binary'
+        INCLUDE 'COMMONS/bodys'
         INCLUDE 'COMMONS/densi'
         INCLUDE 'COMMONS/gtime'
         INCLUDE 'COMMONS/part'
@@ -16,7 +18,9 @@
         INCLUDE 'COMMONS/ptmass'
         INCLUDE 'COMMONS/raddust'
         INCLUDE 'COMMONS/radtrans'
+        INCLUDE 'COMMONS/rbnd'
         INCLUDE 'COMMONS/recor'
+        INCLUDE 'COMMONS/savernd'
         INCLUDE 'COMMONS/timei'
         INCLUDE 'COMMONS/tming'
         INCLUDE 'COMMONS/varmhd'
@@ -67,8 +71,11 @@
         WRITE(*,284) "sphNG time= ",
      &       gt*utime/spy," years. Read", npart,"particles."
         WRITE(*,*) "(utime=",utime," gt=", gt,"udist=",udist
- 284    FORMAT(A,X,E9.2,A,I0,A)
+284    FORMAT(A,X,E9.2,A,I0,A)
 
+        WRITE (*,285) n1,n2,nreassign,naccrete,nkill,iyr,idum
+285     FORMAT("n1=",I0,/,"n2=",I0,/,"nreassign=",I0,/,"naccrete=",I0,
+     &        /,"nkill=",I0,/, "iyr=",I0,/,"idum=",I0)
         IF (fromsink) THEN 
            CALL selectfromregion(sink_ID,wantedparts,maxwant,nselect)
            CALL extract_wanted(wantedparts,maxwant,nselect)
@@ -117,7 +124,13 @@
        PRINT *, "Dead =", dead, " sink=", sink, "nptmass=", nptmass, 
      &  "other =", other, "gas=", gas
        
-       
+!----- test listinactive
+       DO i=1,nlistinactive
+          IF (iphase(listinactive(i)) .NE. -1) THEN
+             PRINT *, "Error:iphase of",i,"is",iphase(listinactive(i))
+          END IF
+       END DO
+ 
        DO i=1,npart
           isort(i) = i
        END DO
@@ -162,16 +175,14 @@
          WRITE(*,*) "==", rwant,"code units."
 ! ----- Find index of sink
          stoploop = .FALSE.
-!$OMP PARALLEL DO SCHEDULE(static,100) SHARED(npart,stoploop,sinkID)
-!$OMP  SHARED(iunique,ipart) PRIVATE(i)
          DO i=1,npart
-            IF (stoploop) EXIT
             IF (iunique(i) .EQ. sink_ID) THEN
                ipart = i
                stoploop = .TRUE.
+               EXIT
             END IF
          END DO
-!$OMP END PARALLEL DO
+
          IF (.NOT. stoploop) THEN
             WRITE (*,*) "Sink ID not found in list", sink_ID
             CALL quit(0)
@@ -183,7 +194,6 @@
          sinky = xyzmh(2,ipart)
          sinkz = xyzmh(3,ipart)
 !        loop over all particles to find particles within r<rwant
-!        OMP this!
 
          nselect = 0
          DO i=1,npart
@@ -206,17 +216,19 @@
        SUBROUTINE get_particles_fromID(idlistfile,maxwant,nselect)
          IMPLICIT NONE
          INCLUDE 'idim' 
+         INCLUDE 'omp_lib.h'
          INCLUDE 'COMMONS/part'
          INCLUDE 'COMMONS/phase'
          INCLUDE 'COMMONS/ptmass'
          INCLUDE 'COMMONS/densi'
          INCLUDE 'COMMONS/sort'
          INCLUDE 'COMMONS/units'
-         CHARACTER(len=45) :: idlistfile
+         CHARACTER(len=45) :: idlistfile,junk
          INTEGER ::  maxwant,iostatus
          INTEGER :: i,nselect,ipart,iunit=19,j
          INTEGER,dimension(maxwant) :: wantedparts
          INTEGER*8, dimension(maxwant) :: wantIDs
+         REAL :: t_start, t_end
 
          iostatus = 0
          wantIDs(:) = 0
@@ -240,15 +252,27 @@
          WRITE (*,*) "Found", nselect, "wanted particles"
 ! -----  Make list of indices of wanted particles
          ipart = 0
+!$OMP PARALLEL
+         WRITE(*,*) OMP_GET_NUM_THREADS(), "OMP threads"
+!$OMP END PARALLEL
+         CALL CPU_TIME(t_start)
+!$OMP PARALLEL DO PRIVATE(j) SHARED(npart,nselect,wantIDs,
+!$OMP&   iunique,wantedparts,ipart) SCHEDULE(static,100)
          DO i=1, npart
             DO j=1, nselect
                IF (iunique(i) .EQ. wantIDs(j)) THEN
+!$OMP ATOMIC UPDATE
                   ipart = ipart + 1  
                   wantedparts(ipart) = i
                   CYCLE
                END IF
             END DO
          END DO
+!$OMP END PARALLEL DO
+         CALL CPU_TIME(t_end)
+         PRINT *, "loop time = ", t_end - t_start
+         WRITE (*,*) "Continue?"
+         READ (*,*) junk
          CALL extract_wanted(wantedparts,maxwant,nselect)
          
        END SUBROUTINE get_particles_fromID
@@ -319,8 +343,10 @@
          CALL extract_I8(iunique,maxwant,wantedparts,nselect)
          CALL extract_ID(isteps,maxwant,wantedparts,nselect)
          CALL extract_I1(iphase,maxwant,wantedparts,nselect)
+         CALL rebuild_inactive(nselect)
          write (*,*) "listpm", listpm(1:2)
          write (*,*) "iphase", iphase(listpm(1)),iphase(listpm(2))
+
          DO j=1,5
             CALL extract_RD(xyzmh(j,:),maxwant,wantedparts,nselect)
          END DO
@@ -361,6 +387,9 @@
 
          END IF
 
+         n1 = nselect
+         n2 = 0
+         naccrete = nlistinactive
          print *, "Done extraction"
 
        END SUBROUTINE extract_wanted
@@ -578,5 +607,27 @@
         WRITE (*,*) "written iuniques to file:", filename
       END SUBROUTINE
 
+! ------------
+      
+      SUBROUTINE rebuild_inactive(nselect)
+        implicit none
+        INCLUDE 'idim'
+        INCLUDE 'COMMONS/rbnd'
+        INCLUDE 'COMMONS/phase'
+
+        INTEGER,INTENT(IN) :: nselect
+        INTEGER :: i
         
+        WRITE (*,*) "Rebuilding listinactive"
         
+        listinactive(:) = 0
+        nlistinactive = 0
+        DO i=1,nselect
+           IF (iphase(i) .LT. 0) THEN
+              nlistinactive = nlistinactive + 1
+              listinactive(nlistinactive) = i
+           END IF
+        END DO
+        WRITE (*,*) "(extract) New nlistinactive=", nlistinactive
+           
+      END SUBROUTINE rebuild_inactive

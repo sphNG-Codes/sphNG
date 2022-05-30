@@ -21,6 +21,7 @@
         INCLUDE 'COMMONS/rbnd'
         INCLUDE 'COMMONS/recor'
         INCLUDE 'COMMONS/savernd'
+        INCLUDE 'COMMONS/stepopt'
         INCLUDE 'COMMONS/timei'
         INCLUDE 'COMMONS/tming'
         INCLUDE 'COMMONS/varmhd'
@@ -38,6 +39,8 @@
         CHARACTER(len=45) :: outfile,idlistfile
         INTEGER,DIMENSION(MAXWANT) :: wantedparts
         LOGICAL :: fromsink
+        REAL*8 ::dtmaxdp
+        COMMON /dtmaxin/ dtmaxdp
         iindump = 1
         iout  = 2
         gas = 0;dead=0;sink=0;other=0
@@ -67,11 +70,13 @@
      & ACTION='READ')
         CALL rdump(iindump, ichkl, 0)
         CLOSE(iindump)
+        dtmax = dtmaxdp
         nfullstep = 1
         WRITE(*,284) "sphNG time= ",
      &       gt*utime/spy," years. Read", npart,"particles."
-        WRITE(*,*) "(utime=",utime," gt=", gt,"udist=",udist
-284    FORMAT(A,X,E9.2,A,I0,A)
+        WRITE(*,*) "(utime=",utime," gt=", gt,"udist=",udist,
+     &       "dtmax=", dtmax
+284     FORMAT(A,X,E9.2,A,I0,A)
 
         WRITE (*,285) n1,n2,nreassign,naccrete,nkill,iyr,idum
 285     FORMAT("n1=",I0,/,"n2=",I0,/,"nreassign=",I0,/,"naccrete=",I0,
@@ -102,7 +107,9 @@
         print *, "npart=", npart
 
         DO i=1, npart
-         IF (iphase(i) .EQ. -1) THEN
+         IF (iphase(i) .EQ. 0) THEN
+            gas = gas + 1
+         ELSEIF (iphase(i) .EQ. -1) THEN
             dead = dead + 1
          ELSE IF (iphase(i) .EQ. 1) THEN
             sink = sink + 1
@@ -114,11 +121,9 @@
          ELSE IF (iphase(i) .GT. 2 .AND. iphase(i) .LE.6) THEN
             sink = sink + 1
             print *, "other sink"
-         ELSE IF (iphase(i) .NE. 0) THEN
+         ELSE
             other = other+1
             print *, "weird type", iphase(i)
-         ELSE IF (iphase(i) .EQ. 0) THEN
-            gas = gas + 1
          END IF
        END DO
        PRINT *, "Dead =", dead, " sink=", sink, "nptmass=", nptmass, 
@@ -130,9 +135,22 @@
              PRINT *, "Error:iphase of",i,"is",iphase(listinactive(i))
           END IF
        END DO
- 
+
+!----- recentre coords and velocities on heaviest sink
+       CALL recentre()
+       PRINT *, "resetting time to zero"
+       gt = 0.              
        DO i=1,npart
           isort(i) = i
+          iorig(i) = i
+       END DO
+       PRINT *, "checking listpm..."
+       PRINT *, (listpm(i),i=1,nptmass)
+       PRINT *, "checking density array"
+       DO i=1,npart
+          IF (rho(i) .EQ. 0.0) THEN
+             WRITE (*,*) "rho=0", i,iunique(i),iphase(i),rho(i)
+          END IF
        END DO
        OPEN(UNIT=iout,FILE=trim(outfile),FORM='unformatted',
      &        STATUS='replace')
@@ -253,23 +271,34 @@
 ! -----  Make list of indices of wanted particles
          ipart = 0
 !$OMP PARALLEL
+#ifdef _OPENMP
          WRITE(*,*) OMP_GET_NUM_THREADS(), "OMP threads"
+#else
+         WRITE(*,*) "Running with single thread"
+#endif
 !$OMP END PARALLEL
          CALL CPU_TIME(t_start)
 !$OMP PARALLEL DO PRIVATE(j) SHARED(npart,nselect,wantIDs,
-!$OMP&   iunique,wantedparts,ipart) SCHEDULE(static,100)
+!$OMP&   iunique,wantedparts,ipart,rho) SCHEDULE(static,100)
          DO i=1, npart
+            IF (iunique(i) .EQ. 0 ) CYCLE
             DO j=1, nselect
-               IF (iunique(i) .EQ. wantIDs(j)) THEN
+               IF (wantIDs(j) .EQ. 0) CYCLE
+               IF (iunique(i) .EQ. wantIDs(j)  .AND.
+     &            rho(i) .GT. 0.0  ) THEN
 !$OMP ATOMIC UPDATE
                   ipart = ipart + 1  
                   wantedparts(ipart) = i
-                  CYCLE
+! wipe wantIDs(j)
+                  wantIDs(j) = 0
+                  EXIT
                END IF
             END DO
          END DO
 !$OMP END PARALLEL DO
          CALL CPU_TIME(t_end)
+         PRINT *, "nfound =",ipart, "nselect=",nselect
+         nselect = ipart
          PRINT *, "loop time = ", t_end - t_start
          WRITE (*,*) "Continue?"
          READ (*,*) junk
@@ -330,16 +359,14 @@
          INTEGER,DIMENSION(maxwant),intent(in) :: wantedparts
          INTEGER :: j,nonzero=0,i
          
-!       extract sinks first!!
-         PRINT *, "Wanted parts1", wantedparts(1:10)
+!       extract sinks first
          CALL extract_sinks(maxwant,wantedparts,nselect)
-         PRINT *, "Wanted parts, after sinks:", wantedparts(1:10) 
          DO i=1, maxwant
             if (wantedparts(i) .GT. 0.0) then
                nonzero=nonzero + 1
             end if
          END DO
-         WRITE (*,*) nonzero, "nonzero values"
+         WRITE (*,*) nonzero, "nonzero values",nselect
          CALL extract_I8(iunique,maxwant,wantedparts,nselect)
          CALL extract_ID(isteps,maxwant,wantedparts,nselect)
          CALL extract_I1(iphase,maxwant,wantedparts,nselect)
@@ -549,23 +576,28 @@
       subroutine extract_sinks(nmax,wanted,nselect)
         implicit none
         INCLUDE 'idim'
+        INCLUDE 'COMMONS/part'
         INCLUDE 'COMMONS/phase'
         INCLUDE 'COMMONS/ptmass'
         integer,intent(IN) :: nmax
         integer,dimension(nmax),intent(IN) :: wanted
         INTEGER,INTENT(IN) :: nselect
-        integer,dimension(:) :: tmplist(nptmass)
-        integer :: i,j,npmwant
+        integer,dimension(:) :: tmplist(nptmass),tmp(nptmass)
+        integer :: i,j,npmwant,imassive,iwantmassive,n
+        INTEGER :: iwant(nptmass)
+        REAL :: mtmp
 
+        tmp(:) = 0
         tmplist(:) = 0
         npmwant = 0
         listpm(:) = 0
-        !       Loop over wantedparts
+        iwant(:) = 0
+! ----- Loop over wantedparts
         DO i=1,nselect
            IF (iphase(wanted(i)) .EQ. 2 ) then
               npmwant = npmwant + 1
-              tmplist(npmwant) = wanted(i)
-              listpm(npmwant) = i
+              tmp(npmwant) = wanted(i)
+              iwant(npmwant) = i
            END IF
         END DO
         IF (npmwant .LT. 1) THEN
@@ -573,6 +605,34 @@
            nptmass = 0
            return
         END IF
+
+! ----- Find most massive sink and put first in list
+! ----- so it can be centered.
+        mtmp = 0.
+        DO i=1, npmwant
+           IF (xyzmh(4,tmp(i)).GT. mtmp) THEN
+              mtmp = xyzmh(4,tmp(i))
+              imassive = i
+              iwantmassive = tmp(i)
+           END IF
+        END DO
+
+        listpm(1) = iwant(imassive)
+        tmplist(1) = iwantmassive
+        n=1
+        DO i=1, npmwant
+           IF (i .EQ. imassive) CYCLE
+           n = n + 1
+           listpm(n) = iwant(i)
+           tmplist(n) = tmp(i)
+        END DO
+        IF (n .NE. npmwant) THEN
+           WRITE(*,*) "Error: something wrong with ptm lists"
+           CALL quit(0)
+        END IF
+        WRITE (*,*) "Sink masses:"
+        WRITE (*,*) (xyzmh(4,tmplist(i)),i=1,npmwant)
+        
         nptmass = npmwant
         WRITE (*,*) "nptmass want", npmwant, nptmass
         print *, "listpm=",listpm(1:nptmass)
@@ -631,3 +691,35 @@
         WRITE (*,*) "(extract) New nlistinactive=", nlistinactive
            
       END SUBROUTINE rebuild_inactive
+
+! -----
+! ----- recentre coords and vels relative to heaviest sink
+! ----- (this is the first in listpm)
+       SUBROUTINE recentre()
+        IMPLICIT NONE
+        INCLUDE 'idim'
+        INCLUDE 'omp_lib.h'
+        INCLUDE 'COMMONS/part'
+        INCLUDE 'COMMONS/ptmass'
+
+        INTEGER :: i,j
+        REAL,DIMENSION(3) :: sink_xyz,sink_vxyz
+        sink_xyz(:) = xyzmh(1:3,listpm(1))
+        sink_vxyz(:) = vxyzu(1:3, listpm(1))
+        PRINT *, "Sink loc:", sink_xyz
+        PRINT *, sink_vxyz
+!$OMP PARALLEL DO SCHEDULE(static,100) SHARED(npart,xyzmh,
+!$OMP& listpm,vxyzu,sink_xyz,sink_vxyz) PRIVATE(i,j)
+        DO i=1,npart
+           DO j=1,3
+              xyzmh(j,i) = xyzmh(j,i) - sink_xyz(j) 
+              vxyzu(j,i) = vxyzu(j,i) - sink_vxyz(j)
+           END DO
+        END DO
+!$OMP END PARALLEL DO
+
+        PRINT *, "Sink loc 2:", xyzmh(:,listpm(1))
+        PRINT *, vxyzu(:,listpm(1))
+        WRITE(*,*) "Recentered particles"
+
+      END SUBROUTINE recentre

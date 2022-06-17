@@ -284,11 +284,14 @@
             IF (iunique(i) .EQ. 0 ) CYCLE
             DO j=1, nselect
                IF (wantIDs(j) .EQ. 0) CYCLE
-               IF (iunique(i) .EQ. wantIDs(j)  .AND.
-     &            rho(i) .GT. 0.0  ) THEN
+               IF (iunique(i) .EQ. wantIDs(j) ) THEN
+                  IF (iphase(i) .GE. 0   .AND.
+     &            rho(i) .GT. 0.0) THEN
+!                 get rid of dead particles                  
 !$OMP ATOMIC UPDATE
-                  ipart = ipart + 1  
-                  wantedparts(ipart) = i
+                     ipart = ipart + 1  
+                     wantedparts(ipart) = i
+                  END IF
 ! wipe wantIDs(j)
                   wantIDs(j) = 0
                   EXIT
@@ -551,23 +554,25 @@
       end subroutine extract_R4
 
 !       extract batch of default REALs
-      subroutine extract_RDsink(array,nmax,tmpwanted,nselect)
+      subroutine extract_RDsink(array,nmax,inewlist,nselect,iptwant)
         implicit none
         INCLUDE 'idim'
         real,dimension(:) :: array(iptdim)
         integer,intent(IN) :: nmax,nselect
-        integer,intent(IN) :: tmpwanted(nmax)
+        integer,intent(IN) :: inewlist(nmax),iptwant(nmax)
         real,dimension(:) :: tmp_arr(nmax)
         integer :: i
-        print *, "extracting Default Real array"
+        print *, "extracting Default Real Sink array"
 
         tmp_arr(:) = 0
         do i=1, nselect
-           tmp_arr(i) = array(tmpwanted(i))
+           tmp_arr(i) = array(iptwant(i))
+           print *, tmp_arr(i),iptwant(i),i
         end do
         array(:) = 0
         do i=1, nselect
-           array(i) = tmp_arr(i)
+           array(i) = tmp_arr(inewlist(i))
+           print *, array(i),inewlist(i),i
         end do
       end subroutine extract_RDsink
 
@@ -579,31 +584,46 @@
         INCLUDE 'COMMONS/part'
         INCLUDE 'COMMONS/phase'
         INCLUDE 'COMMONS/ptmass'
+        INCLUDE 'COMMONS/sort'
         integer,intent(IN) :: nmax
         integer,dimension(nmax),intent(IN) :: wanted
         INTEGER,INTENT(IN) :: nselect
-        integer,dimension(:) :: tmplist(nptmass),tmp(nptmass)
+        integer,dimension(:) ::inewlist(nptmass),tmp(nptmass)
         integer :: i,j,npmwant,imassive,iwantmassive,n
-        INTEGER :: iwant(nptmass)
+        INTEGER :: iwant(nptmass),iptwant(nptmass)
         REAL :: mtmp
 
+! tmp(nptmass)= index of sink in wanted old arrays
+! iwant(nptmass)= index of sink in wanted list
+! inewlist(nptmass)= index of sink in new ptmass arrays
+! iptwant(nptmass)= index of sink in old ptmass arrays
         tmp(:) = 0
-        tmplist(:) = 0
+        inewlist(:) = 0
         npmwant = 0
-        listpm(:) = 0
+
         iwant(:) = 0
+        iptwant(:) = 0
 ! ----- Loop over wantedparts
         DO i=1,nselect
            IF (iphase(wanted(i)) .EQ. 2 ) then
               npmwant = npmwant + 1
               tmp(npmwant) = wanted(i)
               iwant(npmwant) = i
+! find corresponding index in old ptmass arrays
+              DO j=1,nptmass
+                 IF (iunique(wanted(i)) .EQ. iunique(listpm(j))) THEN
+                    iptwant(npmwant) = j
+                    EXIT
+                 END IF
+              END DO
            END IF
         END DO
         IF (npmwant .LT. 1) THEN
            WRITE(*,*) "No sinks!"
            nptmass = 0
            return
+        ELSE
+           PRINT *, "listpms wanted:", (iptwant(j),j=1,npmwant)
         END IF
 
 ! ----- Find most massive sink and put first in list
@@ -616,35 +636,44 @@
               iwantmassive = tmp(i)
            END IF
         END DO
-
+        listpm(:) = 0
+! making new listpm
         listpm(1) = iwant(imassive)
-        tmplist(1) = iwantmassive
         n=1
         DO i=1, npmwant
-           IF (i .EQ. imassive) CYCLE
+           IF (i .EQ. imassive) THEN
+              inewlist(1) = i
+              CYCLE              
+           END IF
            n = n + 1
+           inewlist(n) = i
            listpm(n) = iwant(i)
-           tmplist(n) = tmp(i)
         END DO
         IF (n .NE. npmwant) THEN
            WRITE(*,*) "Error: something wrong with ptm lists"
            CALL quit(0)
         END IF
         WRITE (*,*) "Sink masses:"
-        WRITE (*,*) (xyzmh(4,tmplist(i)),i=1,npmwant)
+        WRITE (*,*) (tmp(i),xyzmh(4,tmp(i)),i=1,npmwant)
+        WRITE (*,*) "biggest is ", wanted(imassive),mtmp,
+     & xyzmh(4,wanted(imassive))
         
         nptmass = npmwant
         WRITE (*,*) "nptmass want", npmwant, nptmass
         print *, "listpm=",listpm(1:nptmass)
-        call extract_RDsink(spinx,iptdim,tmplist,npmwant)
-        call extract_RDsink(spiny,iptdim,tmplist,npmwant)
-        call extract_RDsink(spinz,iptdim,tmplist,npmwant)
-        call extract_RDsink(angaddx,iptdim,tmplist,npmwant)
-        call extract_RDsink(angaddy,iptdim,tmplist,npmwant)
-        call extract_RDsink(angaddz,iptdim,tmplist,npmwant)
-        call extract_RDsink(spinadx,iptdim,tmplist,npmwant)
-        call extract_RDsink(spinady,iptdim,tmplist,npmwant)
-        call extract_RDsink(spinadz,iptdim,tmplist,npmwant)
+        print *, "inewlist=", inewlist(1:nptmass)
+        call extract_RDsink(spinx,iptdim,inewlist,npmwant,iptwant)
+        call extract_RDsink(spiny,iptdim,inewlist,npmwant,iptwant)
+        call extract_RDsink(spinz,iptdim,inewlist,npmwant,iptwant)
+        call extract_RDsink(angaddx,iptdim,inewlist,npmwant,iptwant)
+        call extract_RDsink(angaddy,iptdim,inewlist,npmwant,iptwant)
+        call extract_RDsink(angaddz,iptdim,inewlist,npmwant,iptwant)
+        call extract_RDsink(spinadx,iptdim,inewlist,npmwant,iptwant)
+        call extract_RDsink(spinady,iptdim,inewlist,npmwant,iptwant)
+        call extract_RDsink(spinadz,iptdim,inewlist,npmwant,iptwant)
+        DO i=1,npmwant
+           print *, "spins", spinx(i),spiny(i),spinz(i)
+        END DO
         print *, "extracted sink data"
       end subroutine extract_sinks
 

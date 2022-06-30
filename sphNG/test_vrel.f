@@ -57,13 +57,16 @@ c
 c--Pre-compute quantities for turbulence relative velocities
 c
          omega = SQRT(rgrav_accel/(radius*udist+solarr))
-         vg2 = 1.0E-03*pi/8.0*vthermal**2
+c         vg2 = 1.0E-03*pi/8.0*vthermal**2
+         vg2 = pi/8.0*vthermal**2
+c         vg2 = 1.5*vthermal**2
+         freqJeanssoundcrossing = 2.0*SQRT(gg*rhoi*udens/pi)
 
             vrel = HY09_vreldust(ipart,i,j,temperature,radius,rhoi,
      &           vthermal,
      &        vrel_press_coeff,vrel_rad_drift_coeff,omega,vg2,
-     &        vrel_settling_coeff,
-     &        Stokes_k,Stokes_j,size_k,.TRUE.,.TRUE.)
+     &        vrel_settling_coeff,freqJeanssoundcrossing,
+     &        Stokes_k,Stokes_j,size_k,.TRUE.,.FALSE.)
             WRITE (99,100) HY09binsizes(i),vrel,Stokes_k,Stokes_j,size_k
  100        FORMAT(5(1PE12.5,1X))
          END DO

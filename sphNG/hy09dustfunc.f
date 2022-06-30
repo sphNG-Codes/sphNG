@@ -8,7 +8,7 @@ c-----------------------------------------------------------
 
       FUNCTION HY09_alpha(ipart,k,j,temperature,radius,rhoi,vthermal,
      &     vrel_press_coeff,vrel_rad_drift_coeff,omega,vg2,
-     &     vrel_settling_coeff,iDisc)
+     &     vrel_settling_coeff,freqJeanssoundcrossing,iDisc)
 c
 c--Growth function, alpha
 c
@@ -23,7 +23,7 @@ c
       INTEGER ipart,k,j
       REAL HY09_alpha,temperature,radius,rhoi,vthermal
       REAL vrel_press_coeff,vrel_rad_drift_coeff,omega,vg2
-      REAL vrel_settling_coeff
+      REAL vrel_settling_coeff,freqJeanssoundcrossing
       LOGICAL iDisc
 
       REAL vrel
@@ -32,7 +32,7 @@ c
 
       vrel = HY09_vreldust(ipart,k,j,temperature,radius,rhoi,vthermal,
      &     vrel_press_coeff,vrel_rad_drift_coeff,omega,vg2,
-     &     vrel_settling_coeff,
+     &     vrel_settling_coeff,freqJeanssoundcrossing,
      &     Stokes_k,Stokes_j,size_k,.TRUE.,iDisc)
       IF (vrel.LT.HY09_vcoag(k,j)) THEN
          HY09_alpha = HY09_cross_sec(k,j)*vrel/
@@ -48,7 +48,7 @@ c-----------------------------------------------------------
 
       FUNCTION HY09_vreldust(ipart,k,j,temperature,radius,rhoi,vthermal,
      &     vrel_press_coeff,vrel_rad_drift_coeff,omega,vg2,
-     &     vrel_settling_coeff,
+     &     vrel_settling_coeff,freqJeanssoundcrossing,
      &     Stokes_k,Stokes_j,size_k,iBrownian,iDisc)
 c
 c--Relative dust velocity function.  Computed in cgs units.
@@ -72,9 +72,9 @@ c
       REAL stoppingtime_k, stoppingtime_j, Stokes_k, Stokes_j
       REAL sqrt_inv_Re, omega, size_k
       REAL vrel_press_coeff, vrel_rad_drift_coeff, vg2
-      REAL vrel_settling_coeff
+      REAL vrel_settling_coeff, freqJeanssoundcrossing
       REAL HY09discflag_i
-      REAL epsilon
+      REAL epsilon, vg2_coeff_disc_or_env
 c
 c--Brownian motion (vrel^2 to avoid lots of square roots)
 c
@@ -157,7 +157,8 @@ c
 c--From Adriens literature review -- equal mass particles
          vrel_turb2 = 3.0*1.0E-03/(Stokes_max+1.0/Stokes_max)*
      &        pi/8.0*vthermal**2
-      ELSEIF (.TRUE. .AND. iDisc) THEN
+      ELSEIF (.TRUE.) THEN
+c      ELSEIF (.TRUE. .AND. iDisc) THEN
 c      ELSEIF (.TRUE. .AND. .NOT.iDisc) THEN
 c      ELSEIF (.FALSE.) THEN
 c
@@ -165,6 +166,22 @@ c--Inverse square root of Reynolds numnber (assumed constant)
 c
          sqrt_inv_Re = 1.0E-4
 
+         IF (iDisc) THEN
+            vg2_coeff_disc_or_env = 0.001
+c            vg2_coeff_disc_or_env = 1.5
+         ELSE
+c
+c--For envelope turbulence, redefine Vg2 and Stokes numbers from
+c     those used for disc turbulence.  Means that from this point on
+c     in this subroutine, the Stokes numbers will be either disc
+c     or envelope values (prior to this point all numbers are for
+c     disc turbulence).
+c
+            vg2_coeff_disc_or_env = 1.5
+            Stokes_max = Stokes_max*freqJeanssoundcrossing/omega
+            Stokes_j = Stokes_j*freqJeanssoundcrossing/omega
+            Stokes_k = Stokes_k*freqJeanssoundcrossing/omega
+         ENDIF
 c         vg2 = 1.0E-03*pi/8.0*vthermal**2
 c
 c--Ormel & Cuzzi, equation 28 (fully intermediate regime, needed for
@@ -173,7 +190,7 @@ c
          epsilon = Stokes_j/Stokes_k
          IF (epsilon.GT.1.) epsilon = 1./epsilon
          IF (1.6*Stokes_max.GT.sqrt_inv_Re) THEN
-            vrel_turb2 = vrel_turb2 + vg2*
+            vrel_turb2 = vrel_turb2 + vg2*vg2_coeff_disc_or_env*
      &           ( 2.2 - epsilon + 2.0/(1.0+epsilon)*
      &           (1.0/2.6 + epsilon**3/(1.6+ epsilon)))*Stokes_max
          ENDIF
@@ -191,7 +208,7 @@ c     &   Stokes_j**2/(Stokes_j+sqrt_inv_Re))/
 c     &        (Stokes_k+Stokes_j) )
 c--Ormel & Cuzzi, equation 26 (tightly coupled particles)
          Stokes_min = MIN(0.9,epsilon)*Stokes_max
-         vrel_turb2 = vg2*
+         vrel_turb2 = vg2*vg2_coeff_disc_or_env*
      &        ABS( (Stokes_max-Stokes_min)*
      &        (Stokes_max**2*(1.0/(Stokes_max+sqrt_inv_Re) - 
      &        1.0/(1.0+Stokes_max))-

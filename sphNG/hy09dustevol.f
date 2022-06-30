@@ -17,6 +17,7 @@ c
       INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/cgas'
+      INCLUDE 'COMMONS/eosq'
       INCLUDE 'COMMONS/HY09accel'
 
       INTEGER nlst,npart,ntot
@@ -36,11 +37,12 @@ c
       INTEGER n, ipart, i, k, j, istart, iend, ilocation
       REAL sum, sum_mass, rhoi, radius, temperature, vthermal
       REAL vrel_press_coeff, vrel_rad_drift_coeff, omega, vg2
-      REAL vrel_settling_coeff
+      REAL vrel_settling_coeff, freqJeanssoundcrossing
       REAL Stokes_k, Stokes_j, size_k
       REAL rgrav_accel_code_units, rgrav_accel_cgs, dlnPdlnr, eta
       REAL vel_dot_grav_accel, vel2, vel_tangential
       REAL ratio_vtan_to_circular_orbit, ratio_vrad_to_vtan
+      REAL ratio_vrad_to_cs
       LOGICAL istartset,iDisc
 c
 c--Loop over active gas particles
@@ -49,14 +51,14 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst,llist,iphase,rho,encal,xyzmh,vxyzu,ekcle)
 C$OMP& shared(HY09_bin_rho,HY09_drhodt,HY09binmass,HY09binmass_max)
 C$OMP& shared(udens,utime,udist,HY09vrel_h,HY09_dust_density)
-C$OMP& shared(gas_accel,grav_accel,HY09discflag)
+C$OMP& shared(gas_accel,grav_accel,HY09discflag,vsound)
 C$OMP& private(n,ipart,rhoi,radius,temperature,vthermal)
 C$OMP& private(vrel_press_coeff,vrel_rad_drift_coeff,omega,vg2)
-C$OMP& private(vrel_settling_coeff)
+C$OMP& private(vrel_settling_coeff,freqJeanssoundcrossing)
 C$OMP& private(rgrav_accel_code_units,rgrav_accel_cgs,dlnPdlnr,eta)
 C$OMP& private(i,j,k,sum,sum_mass,istart,iend,istartset)
 C$OMP& private(ilocation,Stokes_k,Stokes_j,size_k)
-C$OMP& private(vel_dot_grav_accel,vel2,vel_tangential)
+C$OMP& private(vel_dot_grav_accel,vel2,vel_tangential,ratio_vrad_to_cs)
 C$OMP& private(ratio_vtan_to_circular_orbit,ratio_vrad_to_vtan)
 C$OMP& private(iDisc)
 
@@ -126,7 +128,8 @@ c
 c--Pre-compute quantities for turbulence relative velocities
 c
          omega = SQRT(rgrav_accel_cgs/(radius*udist+solarr))
-         vg2 = 1.0E-03*pi/8.0*vthermal**2
+         vg2 = pi/8.0*vthermal**2
+         freqJeanssoundcrossing = 2.0*SQRT(gg*rhoi*udens/pi)
 c
 c--Pre-compute coefficient for vertical settling
 c
@@ -150,6 +153,7 @@ c
          vel2 = vxyzu(1,ipart)**2 +vxyzu(2,ipart)**2 +vxyzu(3,ipart)**2
          vel_tangential = SQRT( vel2 - vel_dot_grav_accel**2 )
          ratio_vrad_to_vtan = vel_dot_grav_accel/vel_tangential
+         ratio_vrad_to_cs = vel_dot_grav_accel/vsound(ipart)
 c         ratio_vtan_to_circular_orbit = vel_tangential/
 c     &        SQRT(rgrav_accel_code_units*(radius+solarr/udist))
 c         HY09discflag(ipart) = ratio_vtan_to_circular_orbit
@@ -165,6 +169,19 @@ c
 c         IF (ratio_vtan_to_circular_orbit.GT.0.6) THEN
          IF (ABS(ratio_vrad_to_vtan).LT.0.5) THEN
             HY09discflag(ipart) = ratio_vrad_to_vtan
+            iDisc = .TRUE.
+c
+c     As pointed out in Bate (2022), when including envelope turbulence
+c     in non-rotating cloud calculations it is unreasonable to have the 
+c     first hydrostatic core have envelope-type turbulence rather than
+c     more quiescent disc-type turbulence, so the additional criteria
+c     below was added to use disc-type turbulence if the radial
+c     velocity is smaller than 10% of the sound speed.  This selects
+c     the first hydrostatic core in non-rotating calculations as being
+c     disc-type turbulence.
+c
+         ELSEIF (ABS(ratio_vrad_to_cs).LT.0.1) THEN
+            HY09discflag(ipart) = ratio_vrad_to_cs
             iDisc = .TRUE.
          ELSE
             HY09discflag(ipart) = 1.0
@@ -216,7 +233,7 @@ c
                sum = sum + 
      &            HY09_alpha(ipart,k,i,temperature,radius,rhoi,vthermal,
      &              vrel_press_coeff,vrel_rad_drift_coeff,omega,vg2,
-     &              vrel_settling_coeff,iDisc)*
+     &              vrel_settling_coeff,freqJeanssoundcrossing,iDisc)*
      &              HY09_bin_rho(k,ipart)
             END DO
             HY09_drhodt(i,ipart) = - HY09binmass(i)*
@@ -234,7 +251,7 @@ c
                      sum = sum + 
      &         (HY09_alpha(ipart,k,j,temperature,radius,rhoi,vthermal,
      &          vrel_press_coeff,vrel_rad_drift_coeff,omega,vg2,
-     &          vrel_settling_coeff,iDisc)*
+     &          vrel_settling_coeff,freqJeanssoundcrossing,iDisc)*
      &                    HY09_bin_rho(k,ipart))*
      &                    HY09_bin_rho(j,ipart)*sum_mass
 c
@@ -278,7 +295,7 @@ c
          HY09vrel_h(ipart) = HY09_vreldust(ipart,ilocation,1,
      &        temperature,radius,rhoi,vthermal,
      &        vrel_press_coeff,vrel_rad_drift_coeff,omega,vg2,
-     &        vrel_settling_coeff,
+     &        vrel_settling_coeff,freqJeanssoundcrossing,
      &        Stokes_k,Stokes_j,size_k,.FALSE.,iDisc)*utime/udist / 
      &        xyzmh(5,ipart)
 

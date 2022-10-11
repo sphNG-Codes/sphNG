@@ -290,13 +290,16 @@ c
                print *,'ERROR - ibin.LT.0 .OR. ibin.GT.30 ',ibin,stepi,
      &              dt,isteps(i),i,rmod,rmodcr,rmodgd,xyzmh(5,i),
      &              vsound(i),alphaMM(1,i),denom,crstepi,iphase(i),
-     &              force2
+     &              force2,timestepcriterion(i)
                IF (ibin.LT.0) THEN
                   CALL quit(1)
                ELSE
                   ibin = 30
                ENDIF
-c               CALL quit(1)
+c
+c--Allow to break time step criterion based on change of thermal energy
+c
+               IF (timestepcriterion(i).NE.9) CALL quit(1)
             ENDIF
 
             isteps(i) = imaxstep/(2**ibin)

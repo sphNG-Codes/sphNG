@@ -1719,10 +1719,12 @@ c
       print *,'Totals at this point npart, nptmass ',icount,icountsink
       IF (nblocks.NE.1) THEN
          IF (iblock.EQ.nblocks) THEN
-            IF (icount.NE.npart) THEN
+            IF (icount.NE.npart .AND. iskip.LE.1) THEN
                WRITE (*,*) 'ERROR - rdump: icount.NE.npart ',
      &              icount,npart,nblocks,iblock
                CALL quit(0)
+            ELSEIF (iskip.GT.1) THEN
+               npart = icount
             ENDIF
             nptmass = icountsink
             nlistinactive = icountinactive

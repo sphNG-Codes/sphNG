@@ -5,6 +5,11 @@ c  This subroutine reads in an existing dump file and       *
 c     brings dead particles to life as dust particles.      *
 c     Originally used to add dust to a settled disc.        *
 c                                                           *
+c     Also allows two dump files, one containing gas and    *
+c     the other containing dust particles to be combined.   *
+c     The was used for Bate & Loren-Aguilar (2017), but     *
+c     not added to the repository until 19 Oct 2022.        *
+c                                                           *
 c************************************************************
 
 #ifdef MPIALL
@@ -51,8 +56,8 @@ c************************************************************
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/grain'
 
-      CHARACTER*11 ifile, ofile
-      CHARACTER*1 igeom, iok
+      CHARACTER*11 ifile, ifile_dust, ofile
+      CHARACTER*1 igeom, icombine, iref, ireset_time
       
 1000  FORMAT (A7)
 1001  FORMAT (A1)
@@ -71,6 +76,143 @@ c
       IF (imhd.EQ.idim) THEN
          varmhd = 'Bvol'
       ENDIF
+
+      imax = 1073741824
+      imaxstep = imax/2
+
+      nactive = 0
+      DO i = 1, idim
+         isort(i) = i
+         iorig(i) = i
+      END DO
+c
+c============================
+c--Determine how to make dust
+c============================
+c
+      PRINT *, 'Do you want to combine separate gas and dust files',
+     &     ' or add dust to a gas file (c/a) ?'
+      READ (iread, 1001) icombine
+
+      IF (icombine.EQ.'c' .OR. icombine.EQ.'C') THEN
+c
+c=====================================================================
+c--Combine two existing dump files -- one for the gas and one for dust
+c=====================================================================
+c
+      PRINT *, 'Name of binary dump file containing gas?'
+      READ (iread, 1000) ifile
+
+      PRINT *, 'Name of binary dump file containing dust?'
+      READ (iread, 1000) ifile_dust
+
+      PRINT *, 'Name of output binary dump file ?'
+      READ (iread, 1000) ofile
+
+      print *,iread, ifile, ifile_dust, ofile
+
+      file1 = ofile
+      print *, 'Output file=', file1
+
+      PRINT *, 'Name of corresponding ASCII ifile ?'
+      READ (iread, 1002) inname
+
+      print *,iread,inname
+
+      PRINT *, 'About to open ',ifile
+
+      OPEN (idisk1, FILE = ifile, FORM = 'unformatted')
+      PRINT *, 'reading file ', ifile
+c
+c--Read dump file
+c
+      CALL options
+
+      CALL rdump(idisk1,ichkl,1)
+      CLOSE (idisk1)
+      IF (ichkl.EQ.1) THEN
+         PRINT*, 'ERROR READING DUMP FILE'
+         CALL quit(0)
+      ENDIF
+
+      npart_gas = npart
+      rhozero_tot = rhozero
+
+      PRINT *, 'Got ',npart_gas,' gas particles'
+
+      PRINT *, 'About to open ',ifile_dust
+
+      OPEN (idisk1, FILE = ifile_dust, FORM = 'unformatted')
+      PRINT *, 'reading file ', ifile_dust
+
+      CALL rdump(idisk1,ichkl,npart)
+      CLOSE (idisk1)
+      IF (ichkl.EQ.1) THEN
+         PRINT*, 'ERROR READING DUMP FILE'
+         CALL quit(0)
+      ENDIF
+
+      rhozero_tot = rhozero_tot + rhozero
+      rhozero = rhozero_tot
+
+      PRINT *,'Got ',npart-npart_gas,' dust particles'
+      PRINT *,'Total particles = ',npart
+c
+c--End reading of dump files
+c---------------------------
+c
+c--Turn particles from second file to dust
+c
+      DO i = npart_gas + 1, npart
+         iphase(i) = 11
+      END DO
+
+      min_rplan = 1.0
+      max_rplan = 3.0
+
+      PRINT *,'Enter the minimum and maximum radii for the dust',
+     &     ' (e.g. ',min_rplan,max_rplan,' )'
+      READ (iread,*) min_rplan, max_rplan
+
+      PRINT *,'Do you want cylindrical or spherical radius?'
+      READ (iread,1001) igeom
+
+      gas_mass_inside = 0.
+      dust_mas_inside = 0.
+      ngas_inside = 0
+      ndust_inside = 0
+      DO i = 1, npart
+         IF (igeom.EQ.'s') THEN
+            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2 + xyzmh(3,i)**2
+         ELSE
+            r2 = xyzmh(1,i)**2 + xyzmh(2,i)**2
+         ENDIF
+         IF (iphase(i).EQ.0) THEN
+            IF (SQRT(r2).GT.min_rplan.AND.SQRT(r2).LT.max_rplan) THEN
+               gas_mass_inside = gas_mass_inside + xyzmh(4,i)
+               ngas_inside = ngas_inside + 1
+            ENDIF
+         ELSEIF (iphase(i).EQ.11) THEN
+            IF (SQRT(r2).GT.min_rplan.AND.SQRT(r2).LT.max_rplan) THEN
+               dust_mass_inside = dust_mass_inside + xyzmh(4,i)
+               ndust_inside = ndust_inside + 1
+            ELSE
+               iphase(i) = -1
+            ENDIF
+         ENDIF
+      END DO
+      PRINT *,''
+      PRINT *,'Total gas mass inside dust radii ',gas_mass_inside
+      PRINT *,'Total gas particles inside dust radii ',ngas_inside
+      PRINT *,'Total dust mass inside dust radii ',dust_mass_inside
+      PRINT *,'Total dust particles inside dust radii ',ndust_inside
+c
+c=======================================
+c--Add dust particles to a gas-only file
+c=======================================
+c
+      ELSE
+
       PRINT *, 'Name of binary dump file to add dust to ?'
       READ (iread, 1000) ifile
 
@@ -87,20 +229,9 @@ c      OPEN (UNIT = 7, FILE = ofile, FORM = 'unformatted')
       READ (iread, 1002) inname
 
       PRINT *, 'Do you want to reset time to (almost) zero ?'
-      READ (iread, 1001) iok
+      READ (iread, 1001) ireset_time
 
       print *,iread,inname
-
-
-
-      imax = 1073741824
-      imaxstep = imax/2
-
-      nactive = 0
-      DO i = 1, idim
-         isort(i) = i
-         iorig(i) = i
-      END DO
 
       PRINT *, 'About to open ',ifile
 
@@ -112,7 +243,7 @@ c
       CALL options
 
       file1 = ofile
-      print *, 'Name0=', file1
+      print *, 'Output file=', file1
 
       CALL rdump_wrapper(idisk1,ichkl,1)
       CLOSE (idisk1)
@@ -329,6 +460,10 @@ c
          nactive = nactive + ndustpart
       END DO
 c
+c==END CHOICE
+c
+      ENDIF
+c
 c--Update nactive and the list of any remaining inactive particles
 c
       nlstacc = 0
@@ -358,24 +493,28 @@ c
 c--Zero time (but not quite, so that the timesteps are still used when
 c     starting the code).
 c
-      IF (gt.NE.0. .AND. iok.EQ.'y') gt = 1.0E-20
+      IF (gt.NE.0. .AND. ireset_time.EQ.'y') gt = 1.0E-20
 
       CALL wrinsph
 
       ifulldump = 0
       nfullstep = 1
       PRINT *,'writing dump file'
-
 c
 c--Transform into original frame of reference
 c
-      CALL chanref(1)
+      PRINT *,'Do you want to change back to original reference frame?'
+      READ (iread,1001) iref
+
+      IF (iref.EQ.'y' .OR. iref.EQ.'Y') CALL chanref(1)
 c
 c--Write dump file
 c
 #ifdef MPI
       IF (iproc.EQ.0) THEN
+#endif
          CALL file
+#ifdef MPI
       ENDIF
 #endif
 

@@ -1973,7 +1973,7 @@ c
       IF (iteration.NE.maxiterations) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstdo,ldolist,rho,dumrho,divv,curlv,gradhs,nneigh)
-C$OMP& shared(dvxyzu,poten,dust_tk)
+C$OMP& shared(dvxyzu,poten,dust_tk,stellarrad)
 #ifdef MPI
 C$OMP& shared(sightcolumns)
 #endif
@@ -2007,6 +2007,9 @@ C$OMP& private(n,ipart,k)
                   sightcolumns(k,2,ipart) = 0.
                END DO
 #endif
+            ENDIF
+            IF (istellar_radiation) THEN
+               stellarrad(1:4,1:nptmasstot,ipart) = 0.
             ENDIF
             poten(ipart) = 0.
          END DO

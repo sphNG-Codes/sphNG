@@ -136,7 +136,7 @@ ifeq ($(SYSTEM), DIAL3_Intel)
 # -check_mpi
     OMPFLAG= -qopenmp
     DBLFLAG= -r8
-    DEBUGFLAG= -check all -traceback -g -fpe0 -fp-stack-check -heap-arrays -O0
+    DEBUGFLAG= -check all -WB -traceback -g -fpe0 -fp-stack-check -heap-arrays -O0
     KNOWN_SYSTEM=yes
     ENDIANFLAGBIG= -convert big_endian
     ENDIANFLAGLITTLE= -convert little_endian
@@ -556,6 +556,10 @@ ifeq ($(mpiall), yes)
 SRCMPI=balance.F classify_MPI.F
 endif
 
+ifeq ($(mpi), yes)
+SRCMPINOTCOPY=domain_MPI.F
+endif
+
 # these are the extra routines required for the radiative transfer code to compile
 
 SRCRT= ass.f RT/newgsimpl_MPI.f RT/boundaryparticle.f quartic_gs1t.f \
@@ -600,7 +604,7 @@ RTBARFPPFLAGS=${RTFPPFLAGS} ${FPP_SEP}-DRTBAR
 
 # construct object files
 
-TOBJECTS = $(SRCMPI:.F=.o)  $(SRCNI:.F90=.o) $(SRCNS:.F90=.o) $(SOURCES:.f=.o) $(ZZFILE:.f=.o) $(SRCNONIDEAL:.F=.o)
+TOBJECTS = $(SRCMPI:.F=.o) $(SRCMPINOTCOPY:.F=.o)  $(SRCNI:.F90=.o) $(SRCNS:.F90=.o) $(SOURCES:.f=.o) $(ZZFILE:.f=.o) $(SRCNONIDEAL:.F=.o)
 TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
 TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
 TOBJGRADHLFRT = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCRT:.f=.o) $(ZEN_PIN)

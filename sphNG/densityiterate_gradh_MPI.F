@@ -343,6 +343,8 @@ c            ENDIF
          IF (idustFluid.EQ.1) THEN
             ddust(ipart) = 0.
             dustfluiddu(ipart) = 0.
+         ENDIF
+         IF (idustFluid.EQ.1 .OR. imakedust) THEN
             dustfluidvxyz(1:3,ipart) = 0.
          ENDIF
          IF (idimHY09.EQ.idim) THEN
@@ -1973,7 +1975,7 @@ c
       IF (iteration.NE.maxiterations) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstdo,ldolist,rho,dumrho,divv,curlv,gradhs,nneigh)
-C$OMP& shared(dvxyzu,poten,dust_tk,stellarrad)
+C$OMP& shared(dvxyzu,poten,dust_tk,stellarrad,nptmasstot)
 #ifdef MPI
 C$OMP& shared(sightcolumns)
 #endif

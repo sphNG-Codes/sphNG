@@ -89,6 +89,7 @@ c#endif
       INCLUDE 'COMMONS/f2HY09'
       INCLUDE 'COMMONS/HY09check'
       INCLUDE 'COMMONS/HY09accel'
+      INCLUDE 'COMMONS/eosq'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -449,6 +450,10 @@ c
          nums(6) = nums(6) + HY09_ndust_bins + 5
          nums(7) = nums(7) + 2
       ENDIF
+      IF (idustIMPL.EQ.1 .AND. imakedust) THEN
+         nums(6) = nums(6) + 3
+         nums(7) = nums(7) + 1
+      ENDIF
       nums(8) = 0
       WRITE (idisk1, ERR=100) number8, (nums(i), i=1,8)
 c
@@ -603,7 +608,7 @@ c--Default real
 
       IF (idustFluid.EQ.1) THEN
 c
-c--Note dustfrac (=epsilon) is dumped, but dustvar (=SQRT(epsilon*rho)
+c--Note dustfrac (epsilon) is dumped, but dustvar(eg. SQRT(epsilon*rho))
 c     is the variable that is integrated.  Also note that dustfluidvxyz 
 c     is dumped to allow the dust and gas velocities to be computed, 
 c     but it is not used in the integration at all.
@@ -617,6 +622,17 @@ c
             WRITE (idisk1, ERR=100) (dustfluidvxyz(j,isort(i)),
      &           i=1,nprint)
          END DO
+      ENDIF
+c
+c
+c
+      IF (idustIMPL.EQ.1 .AND. imakedust) THEN
+         tagarr(1:3) = (/'pgradx','pgrady','pgradz'/)
+         DO j = 1, 3
+            WRITE (idisk1, ERR=100) tag(tagarr(j))
+            WRITE (idisk1, ERR=100) (dustfluidvxyz(j,isort(i)),
+     &           i=1,nprint)
+         END DO         
       ENDIF
 c
 c--Pablo: Change to include dust grain evol
@@ -689,6 +705,11 @@ c--real*4
       ENDIF
       WRITE (idisk1, ERR=100) tag('alpha')
       WRITE (idisk1, ERR=100) (alphaMM(1,isort(i)), i=1, nprint)
+
+      IF (idustIMPL.EQ.1 .AND. imakedust) THEN
+         WRITE (idisk1, ERR=100) tag('vsound')
+         WRITE (idisk1, ERR=100) (vsound(isort(i)), i=1, nprint)
+      ENDIF
 
       IF (idimHY09.EQ.idim) THEN
 c

@@ -87,6 +87,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/HY09dustprops'
       INCLUDE 'COMMONS/HY09rho'
       INCLUDE 'COMMONS/HY09check'
+      INCLUDE 'COMMONS/eosq'
 
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
@@ -122,6 +123,8 @@ c--Read
 c
       IF (itrace.EQ.'all') WRITE (*, 99001)
 99001 FORMAT (' entry subroutine rdump')
+
+      print *,'entry to rdump ',npart,iskip
 
       ichkl = 0
       IF (npart.GT.0 .AND. iskip.EQ.npart) THEN
@@ -862,6 +865,26 @@ c
              ENDIF
           ENDIF
 c
+c--For imakedust when setting up dust at terminal velocity
+c
+          IF (idustIMPL.EQ.1 .AND. imakedust) THEN
+             iwanted = iwanted + 3
+             IF (nums1(6).LT.iwanted) THEN
+                WRITE (*,*) 'ERROR - nums1(6).LT.iwanted ',
+     &               nums1(6),iwanted
+                CALL quit(0)
+             ENDIF
+             tagexp(1:3) = (/'pgradx','pgrady','pgradz'/)
+             DO j = 1, 3
+                IF (tagged) THEN
+                   READ (idisk1, END=100) tagi
+                   CALL checktag(tagexp(j), tagi, ierr)
+                ENDIF
+                READ (idisk1, END=100)
+     &               dustfluidvxyz(j,icount+1:icount+nhydro)
+             END DO
+          ENDIF
+c
 c--Pablo: Change to include dust grain evol
 c
           IF (idim_grow.EQ.idim) THEN
@@ -982,6 +1005,15 @@ c                     CALL quit(0)
                   ENDIF
                END DO
             ENDIF
+         ENDIF
+
+         IF (nums1(7).GT.iread) THEN
+            iread = iread + 1
+            IF (tagged) THEN
+              READ (idisk1, END=100) tagi
+              CALL checktag('vsound', tagi, ierr)
+            ENDIF
+            READ (idisk1, END=100) vsound(icount+1:icount+nhydro)
          ENDIF
 
          IF (idimHY09.EQ.idim) THEN
@@ -1729,6 +1761,10 @@ c
             nptmass = icountsink
             nlistinactive = icountinactive
          ENDIF
+      ELSEIF (iskip.GT.1) THEN
+         npart = icount
+         nptmass = icountsink
+         nlistinactive = icountinactive
       ENDIF
 #endif
 c

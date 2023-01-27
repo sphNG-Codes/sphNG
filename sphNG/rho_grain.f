@@ -1,10 +1,8 @@
-      SUBROUTINE rho_grain(rho_planetesimal)
+      FUNCTION rho_grain(iphase)
 c************************************************************
 c                                                           *
-c     This subroutine returns the dust grain intrinsic      *
+c     This function returns the dust grain intrinsic        *
 c     density.                                              *
-c     As it is now, it is just a fixed constant but         *
-c     in the future we could make this a dynamic quantity.  *
 c                                                           *
 c     NOTE: rho_planetesimal specified in code units        *
 c     Example:                                              *
@@ -14,10 +12,15 @@ c************************************************************
 
       IMPLICIT NONE
 
+      INCLUDE 'idim'
+
       INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/planetesimal'
 
-      REAL rho_planetesimal
+      REAL rho_grain
+      INTEGER*1 iphase
 
-      rho_planetesimal = 1.0/udens
+c      rho_grain = 1.0/udens
+      rho_grain = rho_planetesimals(iphase - 10)
 
-      END SUBROUTINE rho_grain
+      END FUNCTION rho_grain

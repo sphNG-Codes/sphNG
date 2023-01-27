@@ -24,6 +24,10 @@ c
 #endif
 
 c
+c--Functions
+c
+      REAL rho_grain
+c
 c--Common variables
 c
       INCLUDE 'idim'
@@ -213,7 +217,7 @@ c
                     Omega = SQRT(1./r**3)
 
                     r_planetesimal = rgrain(ipart)
-                    CALL rho_grain(rho_planetesimal)
+                    rho_planetesimal = rho_grain(iphase(ipart))
                     IF (rgrain(ipart).EQ.0.0) THEN
                       WRITE(*,*)'ERROR - rgrain is zero in dust_norm'
                       CALL quit(0)
@@ -354,7 +358,7 @@ c
                     Omega = SQRT(1./r**3)
 
                     r_planetesimal = rgrain(j)
-                    CALL rho_grain(rho_planetesimal)
+                    rho_planetesimal = rho_grain(iphase(j))
                     IF (rgrain(j).EQ.0.0) THEN
                       WRITE(*,*)'ERROR - rgrain is zero in dust_norm'
                       CALL quit(0)

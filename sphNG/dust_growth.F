@@ -33,6 +33,10 @@ c
       INTEGER   nlst_in, nlst_end, npart, ntot, ilenx, ilenv, ilendr
       REAL      xyzmh(5,ilenx), vxyzu(4,ilenv), drgrain(ilendr)
 c
+c--Functions
+c
+      REAL rho_grain
+c
 c--Common variables
 c
       INCLUDE 'COMMONS/table'
@@ -192,7 +196,7 @@ c--Grain growth term (driven by turbulent velocity by default).
 c     If fragmentation is on, growth is reversed when the fragmentation
 c     threshold is crossed
 c
-                  CALL rho_grain(rho_planetesimal)
+                  rho_planetesimal = rho_grain(iphase(j))
                   term = vturb(j)/rho_planetesimal
                   IF (vfrag.GT.0.0 .AND. vturb(j).GT.vfrag) THEN
                      term = -term
@@ -319,7 +323,7 @@ c--Grain growth term (driven by turbulent velocity by default).
 c     If fragmentation is on, growth is reversed when the 
 c     fragmentation threshold is crossed.
 c
-                  CALL rho_grain(rho_planetesimal)
+                  rho_planetesimal = rho_grain(iphase(j))
                   term = vturb(ipart)/rho_planetesimal
                   IF (vfrag.GT.0.0 .AND. vturb(ipart).GT.vfrag) THEN
                      term = -term

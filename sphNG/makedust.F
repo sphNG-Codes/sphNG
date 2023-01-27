@@ -55,9 +55,11 @@ c************************************************************
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/grain'
+      INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/dustfluidvelu'
 
       CHARACTER*11 ifile, ifile_dust, ofile
-      CHARACTER*1 igeom, icombine, iref, ireset_time
+      CHARACTER*1 igeom, icombine, iref, ireset_time, iterminal
       
 1000  FORMAT (A7)
 1001  FORMAT (A1)
@@ -101,10 +103,18 @@ c--Combine two existing dump files -- one for the gas and one for dust
 c=====================================================================
 c
       PRINT *, 'Name of binary dump file containing gas?'
+      PRINT *, 'NOTE: Should contain total (gas+dust) mass'
       READ (iread, 1000) ifile
 
       PRINT *, 'Name of binary dump file containing dust?'
+      PRINT *, 'NOTE: Should contain total (gas+dust) mass'
+      PRINT *, '      (i.e. may be different number of SPH'
+      PRINT *, '      particles than the gas file, but should'
+      PRINT *, '      be identical otherwise'
       READ (iread, 1000) ifile_dust
+
+      PRINT *,'Enter dust-to-gas ratio (usually <1)'
+      READ (iread,*) dust_to_gas_ratio
 
       PRINT *, 'Name of output binary dump file ?'
       READ (iread, 1000) ofile
@@ -161,11 +171,17 @@ c
 c--End reading of dump files
 c---------------------------
 c
+c--Modify masses of gas to allow for dust mass
+c
+      rho_gas_fac = 1.0/(1.0+dust_to_gas_ratio)
+      xyzmh(4,1:npart_gas) =xyzmh(4,1:npart_gas)*rho_gas_fac
+c
 c--Turn particles from second file to dust
 c
-      DO i = npart_gas + 1, npart
-         iphase(i) = 11
-      END DO
+      iphase(npart_gas+1:npart) = 11
+      rho_dust_fac = (1.0-1.0/(1.0+dust_to_gas_ratio))
+      xyzmh(4,npart_gas+1:npart) = xyzmh(4,npart_gas+1:npart)*
+     &     rho_dust_fac
 
       min_rplan = 1.0
       max_rplan = 3.0
@@ -174,7 +190,7 @@ c
      &     ' (e.g. ',min_rplan,max_rplan,' )'
       READ (iread,*) min_rplan, max_rplan
 
-      PRINT *,'Do you want cylindrical or spherical radius?'
+      PRINT *,'Do you want cylindrical or spherical radius (c/s)?'
       READ (iread,1001) igeom
 
       gas_mass_inside = 0.
@@ -206,6 +222,74 @@ c
       PRINT *,'Total gas particles inside dust radii ',ngas_inside
       PRINT *,'Total dust mass inside dust radii ',dust_mass_inside
       PRINT *,'Total dust particles inside dust radii ',ndust_inside
+      PRINT *,''
+c
+c--Set terminal velocities if required
+c
+      PRINT *, 'Do you want to set dust to initial terminal velocity?'
+      READ (iread, 1001) iterminal
+      print *,'iterminal = ',iterminal
+      IF (iterminal.EQ.'Y' .OR. iterminal.EQ.'y') THEN
+         IF (encal.EQ.'i' .OR. encal.EQ.'t') THEN
+            vthermal_coef = SQRT(8.0/pi)
+         ELSE
+            vthermal_coef = SQRT(8.0/pi/gamma)
+         ENDIF
+         print *,'terminal ',vthermal_coef
+c
+c--Store prgrad/rho (acceleration due to pressure gradient) values from
+c     dust dump file and thermal velocities
+c
+c         DO i=1, npart
+c            IF (iphase(i).GT.10) THEN
+c               dustfluidvxyz_store(1:3,i) = dustfluidvxyz(1:3,i)
+c            ENDIF
+c         END DO
+c
+c--Need to call hcalc to get thermal velocities for stopping time
+c
+c         CALL hcalc
+c
+c
+c
+         IF (n_planetesimal_types.EQ.0) THEN
+            WRITE(*,*) 'ERROR - you are using fixed-size ',        
+     &           'implicit dust-drag but have not defined ',
+     &           'any dust grain size in your ASCII file'
+            CALL quit(0)
+         ENDIF
+c
+c--Set dust terminal velocities (ASSUMES dist and gas have zero relative
+c     velocity prior to this)
+c
+         DO i = 1, npart
+            IF (iphase(i).GT.10) THEN
+               IF (iphase(i)-10.LE.n_planetesimal_types) THEN
+                  print *,'planet ',i,iphase(i)
+                  rho_planetesimal = rho_grain(iphase(i))
+                  print *,'planet rho ',rho_planetesimal
+                  r_planetesimal = r_planetesimals(iphase(i)-10)
+                  print *,'planet rad ',r_planetesimal
+               ELSE
+                  WRITE(*,*)'ERROR - Not enough n_planetesimal_types'
+                  CALL quit(0)
+               ENDIF
+c
+c--Stopping time -- ASSUMES that the DUST particle input file is gas
+c     to start with so that dustfluidvxyz() holds the acceleration due
+c     to the pressure gradient, and vsound() is defined so that it gives
+c     the gas temperature at the dust particle's location
+c
+               stopt = r_planetesimal*rho_planetesimal/
+     &              (thermal_velocity(i)*rho(i))
+         print *,'terminal ',stopt,r_planetesimal,rho_planetesimal
+               vxyzu(1:3,i) = vxyzu(1:3,i) + dustfluidvxyz(1:3,i)*stopt 
+               rho(i) = rho(i)*rho_dust_fac
+            ELSEIF (iphase(i).EQ.0) THEN
+               rho(i) = rho(i)*rho_gas_fac
+            ENDIF
+         END DO
+      ENDIF
 c
 c=======================================
 c--Add dust particles to a gas-only file

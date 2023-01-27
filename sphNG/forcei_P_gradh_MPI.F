@@ -619,10 +619,12 @@ c
          IF (idustFluid.EQ.1) THEN
             dustvari = dustvar(ipart)
             ddusti = 0.
+            ts_rhoi = stoppingtime(ipart)*rho1i
+         ENDIF
+         IF (idustFluid.EQ.1 .OR. imakedust) THEN
             gradvdustxi = 0.
             gradvdustyi = 0.
             gradvdustzi = 0.
-            ts_rhoi = stoppingtime(ipart)*rho1i
          ENDIF
 c
 c--Note that pressure term includes isotropic magnetic pressure.
@@ -1268,7 +1270,8 @@ c
 
                      dudusti = dudusti - termdustpmj*dustvari*
      &                    (ui-uj)/(rhoi-dustvari**2)
-
+                  ENDIF
+                  IF (idustFluid.EQ.1 .OR. imakedust) THEN
                      gradpi = gradpr*pmassj
                      gradvdustxi = gradvdustxi + gradpi*runix
                      gradvdustyi = gradvdustyi + gradpi*runiy
@@ -1457,6 +1460,9 @@ c
      &                       stoppingtime(j)*rhoj*
      &                       one_over_rho_1minus_epsilon
                      ENDIF
+                     IF (imakedust) THEN
+                        gradpj_ts_over_1minus_epsilon = gradpr*pmassi
+                     ENDIF
 c
 c--Store gas accelerations not experienced by dust
 c
@@ -1549,6 +1555,8 @@ c
                         IF (idustFluid.EQ.1) THEN
                            ddust(j) = ddust(j) + termdustpmi
                            dustfluiddu(j) = dustfluiddu(j) + termdudustj
+                        ENDIF
+                        IF (idustFluid.EQ.1 .OR. imakedust) THEN
 c
 c--This is the for computing the velocity difference between gas & dust.
 c     It is not required for evolution, but is dumped to allow the 
@@ -1989,7 +1997,8 @@ c
 
                         dudusti = dudusti - termdustpmj*dustvari*
      &                    (ui-uj)/(rhoi-dustvari**2)
-
+                     ENDIF
+                     IF (idustFluid.EQ.1 .OR. imakedust) THEN
                         gradpj = gradpr*pmassj
                         gradvdustxi = gradvdustxi + gradpj*runix
                         gradvdustyi = gradvdustyi + gradpj*runiy
@@ -2351,6 +2360,8 @@ c
             IF (idustFluid.EQ.1) THEN
                ddust(ipart) = ddust(ipart) + ddusti
                dustfluiddu(ipart) = dustfluiddu(ipart) + dudusti
+            ENDIF
+            IF (idustFluid.EQ.1 .OR. imakedust) THEN
 c
 c--This is the for computing the velocity difference between gas & dust.
 c     It is not required for evolution, but is dumped to allow the 

@@ -710,6 +710,10 @@ c
          WRITE (*,*) 'ERROR - ioptimise_column ',ioptimise_column
          CALL quit(0)
       ENDIF
+      IF (imakedust .AND. idustIMPL.NE.1) THEN
+         WRITE (*,*) 'ERROR - if imakedust, then need idustIMPL=1'
+         CALL quit(0)
+      ENDIF
 
 #ifdef _OPENMP
       DO i = 1, idim2/10+1
@@ -770,7 +774,13 @@ c      IF (job(1:8).EQ.'transfer') CALL transfd
 c
 c  3) integrate the system
 c
-      IF (job(1:9).EQ.'evolution') CALL evol
+      IF (job(1:9).EQ.'evolution') THEN
+         IF (imakedust) THEN
+            WRITE (*,*) 'ERROR - cannot evolve with imakedust'
+            CALL quit(0)
+         ENDIF
+         CALL evol
+      ENDIF
 c
 c  4) reduce output files
 c

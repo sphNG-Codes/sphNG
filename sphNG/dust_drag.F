@@ -13,6 +13,10 @@ c***********************************************************************
 #endif
 
 c
+c--Functions
+c
+      REAL rho_grain
+c
 c--Common variables
 c
       INCLUDE 'idim'
@@ -196,7 +200,6 @@ c--Drag coefficient -- in code units (Epstein regime)
 c     NOTE: r_planetesimal & rho_planetesimal specified in code units
 c     Example: 1km is r_planetesimal = 1.0E5/udist
 c
-               CALL rho_grain(rho_planetesimal)
                IF (idim_grow.EQ.idim) THEN
                   r_planetesimal   = rgrain(idust)
                   IF (rgrain(idust).EQ.0.0) THEN
@@ -213,6 +216,7 @@ c
   
                   IF (iphase(idust)-10.LE.n_planetesimal_types) THEN
                      r_planetesimal = r_planetesimals(iphase(idust)-10)
+                     rho_planetesimal = rho_grain(iphase(idust))
                   ELSE
                      WRITE(*,*)'ERROR - Not enough n_planetesimal_types'
                      CALL quit(0)

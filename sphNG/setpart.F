@@ -1141,6 +1141,7 @@ c
             totmas = rhozero*totvol
             partm = totmas/(nparttot - nptmass)
          ELSE
+            WRITE (*,*) 'ichmass=',ichmass
             GOTO 500
          ENDIF
       ELSE IF (igeom.EQ.10) THEN

@@ -610,29 +610,31 @@ c
                IF (ii.EQ.isendproc+1) THEN
                   DO jjj = 1, nprocsend
                      jj = ipsend(jjj)
-                     IF (iproc.NE.jj) THEN
+                     IF (iproc.EQ.jj) THEN
+                        PRINT*,iproc,": ERROR - rank sending to itself"
+                        CALL quit(0)
+                     ENDIF
 #ifdef MPIDEBUG
-                        print *,iproc,': Sending ',nlstsend,
-     &                       ' xyzmh to ',jj,xyzmh(1,lsendlist(1)+1),
-     &                       iphase(lsendlist(1)+1)
+                     print *,iproc,': Sending ',nlstsend,
+     &                    ' xyzmh to ',jj,xyzmh(1,lsendlist(1)+1),
+     &                    iphase(lsendlist(1)+1)
 #endif
 
-                        CALL MPI_SEND(xyzmh,1,indexMPI5,jj,0,
-     &                       MPI_COMM_WORLD, ierr)
+                     CALL MPI_SEND(xyzmh,1,indexMPI5,jj,0,
+     &                    MPI_COMM_WORLD, ierr)
 
-                        CALL MPI_SEND(iphase,1,indexMPI_INT1,jj,1,
-     &                       MPI_COMM_WORLD, ierr)
+                     CALL MPI_SEND(iphase,1,indexMPI_INT1,jj,1,
+     &                    MPI_COMM_WORLD, ierr)
 
-                        IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) 
-     &                       THEN
-                           CALL MPI_SEND(icolumnnext,1,indexMPI_INT,
-     &                          jj,103,MPI_COMM_WORLD, ierr)
-                        ENDIF
+                     IF (idustRT.GT.0 .AND. ioptimise_column.EQ.1) 
+     &                    THEN
+                        CALL MPI_SEND(icolumnnext,1,indexMPI_INT,
+     &                       jj,103,MPI_COMM_WORLD, ierr)
+                     ENDIF
 
-                        IF (iteration.EQ.1) THEN
-                           CALL MPI_SEND(iuniquesend,nptmasssend,
-     &                          MPI_INTEGER8,jj,9,MPI_COMM_WORLD, ierr)
-                        ENDIF
+                     IF (iteration.EQ.1) THEN
+                        CALL MPI_SEND(iuniquesend,nptmasssend,
+     &                       MPI_INTEGER8,jj,9,MPI_COMM_WORLD, ierr)
                      ENDIF
                   END DO
                   inumber = 0
@@ -1096,86 +1098,85 @@ c
                IF (ii.EQ.isendproc+1) THEN
                   DO jjj = 1, nprocsend
                      jj = ipsend(jjj)
-                     IF (iproc.NE.jj) THEN
-                        CALL MPI_RECV(llistrec, nlstsend, 
-     &                       MPI_INTEGER, MPI_ANY_SOURCE, 10, 
-     &                       MPI_COMM_WORLD, istatus, ierr)
-                        CALL MPI_GET_COUNT(istatus,MPI_INTEGER,
-     &                       inumberneigh,ierr)
-                        iahead = istatus(MPI_SOURCE)
-                        IF (inumberneigh.GT.ineighproc) THEN
-                           WRITE (*,*) 'ERROR - ',
-     &                          'inumberneigh.GT.ineighp'
-                           CALL quit(1)
-                        ENDIF
+                     CALL MPI_RECV(llistrec, nlstsend, 
+     &                    MPI_INTEGER, MPI_ANY_SOURCE, 10, 
+     &                    MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_INTEGER,
+     &                    inumberneigh,ierr)
+                     iahead = istatus(MPI_SOURCE)
+                     IF (inumberneigh.GT.ineighproc) THEN
+                        WRITE (*,*) 'ERROR - ',
+     &                       'inumberneigh.GT.ineighp'
+                        CALL quit(1)
+                     ENDIF
 #ifdef MPIDEBUG
-                        print *,iproc,': got indices ',inumberneigh,
-     &                       ' from ',iahead,numproc
+                     print *,iproc,': got indices ',inumberneigh,
+     &                    ' from ',iahead,numproc
 #endif
-                        CALL MPI_RECV(rhorec,inumberneigh,MPI_REAL4,
-     &                       iahead,11,MPI_COMM_WORLD, istatus, ierr)
-                        CALL MPI_GET_COUNT(istatus,MPI_REAL4,
-     &                       icheck,ierr)
-                        IF (icheck.GT.ineighproc) THEN
-                           WRITE (*,*) 'ERROR - icheck.GT.',
-     &                          'ineighproc 1 ',icheck
-                           CALL quit(1)
-                        ENDIF
-                        IF (icheck.NE.inumberneigh) THEN
-                           WRITE (*,*) 'ERROR - icheck.NE.',
-     &                          'inumberneigh 1 ',iproc
-                           CALL quit(1)
-                        ENDIF
+                     CALL MPI_RECV(rhorec,inumberneigh,MPI_REAL4,
+     &                    iahead,11,MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_REAL4,
+     &                    icheck,ierr)
+                     IF (icheck.GT.ineighproc) THEN
+                        WRITE (*,*) 'ERROR - icheck.GT.',
+     &                       'ineighproc 1 ',icheck
+                        CALL quit(1)
+                     ENDIF
+                     IF (icheck.NE.inumberneigh) THEN
+                        WRITE (*,*) 'ERROR - icheck.NE.',
+     &                       'inumberneigh 1 ',iproc
+                        CALL quit(1)
+                     ENDIF
 #ifdef MPIDEBUG
-                        print *,iproc,': got rho ',icheck
-#endif
-
-                        CALL MPI_RECV(dumrhorec,inumberneigh,MPI_REAL4,
-     &                       iahead,12,MPI_COMM_WORLD,istatus,ierr)
-                        CALL MPI_GET_COUNT(istatus,MPI_REAL4,
-     &                       icheck,ierr)
-                        IF (icheck.NE.inumberneigh) THEN
-                           WRITE (*,*) 'ERROR - icheck.NE.',
-     &                          'inumberneigh 1 ',iproc
-                           CALL quit(1)
-                        ENDIF
-#ifdef MPIDEBUG
-                        print *,iproc,': got gradh ',icheck
+                     print *,iproc,': got rho ',icheck
 #endif
 
-                        CALL MPI_RECV(nneighrec,inumberneigh, 
-     &                       MPI_INTEGER,iahead,13,
-     &                       MPI_COMM_WORLD,istatus,ierr)
+                     CALL MPI_RECV(dumrhorec,inumberneigh,MPI_REAL4,
+     &                    iahead,12,MPI_COMM_WORLD,istatus,ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_REAL4,
+     &                    icheck,ierr)
+                     IF (icheck.NE.inumberneigh) THEN
+                        WRITE (*,*) 'ERROR - icheck.NE.',
+     &                       'inumberneigh 1 ',iproc
+                        CALL quit(1)
+                     ENDIF
 #ifdef MPIDEBUG
-                        print *,iproc,': rec '
+                     print *,iproc,': got gradh ',icheck
 #endif
-                        CALL MPI_GET_COUNT(istatus,MPI_INTEGER,
-     &                       icheck,ierr)
+
+                     CALL MPI_RECV(nneighrec,inumberneigh, 
+     &                    MPI_INTEGER,iahead,13,
+     &                    MPI_COMM_WORLD,istatus,ierr)
 #ifdef MPIDEBUG
-                        print *,iproc,': count '
+                     print *,iproc,': rec '
 #endif
-                        IF (icheck.NE.inumberneigh) THEN
-                           WRITE (*,*) 'ERROR - icheck.NE.',
-     &                          'inumberneigh 1 ',iproc
-                           CALL quit(1)
+                     CALL MPI_GET_COUNT(istatus,MPI_INTEGER,
+     &                    icheck,ierr)
+#ifdef MPIDEBUG
+                     print *,iproc,': count '
+#endif
+                     IF (icheck.NE.inumberneigh) THEN
+                        WRITE (*,*) 'ERROR - icheck.NE.',
+     &                       'inumberneigh 1 ',iproc
+                        CALL quit(1)
+                     ENDIF
+#ifdef MPIDEBUG
+                     print *,iproc,': sent nneigh'
+#endif
+                     IF (iteration.EQ.1) THEN
+                        IF (inumberneigh.GT.0) THEN
+                           inumofsends = inumofsends + 1
+                           nneighsentany(iahead+1) = .TRUE.
                         ENDIF
-#ifdef MPIDEBUG
-                        print *,iproc,': sent nneigh'
-#endif
-                        IF (iteration.EQ.1) THEN
-                           IF (inumberneigh.GT.0) THEN
-                              inumofsends = inumofsends + 1
-                              nneighsentany(iahead+1) = .TRUE.
-                           ENDIF
-                        ELSE
-                           IF (inumberneigh.GT.0 .AND. 
-     &                          .NOT.nneighsentany(iahead+1)) THEN
-                              inumofsends = inumofsends + 1
-                              nneighsentany(iahead+1) = .TRUE.
-                           ENDIF
+                     ELSE
+                        IF (inumberneigh.GT.0 .AND. 
+     &                       .NOT.nneighsentany(iahead+1)) THEN
+                           inumofsends = inumofsends + 1
+                           nneighsentany(iahead+1) = .TRUE.
                         ENDIF
+                     ENDIF
 #ifdef MPIDEBUG
-                        print *,iproc,': all received'
+                     print *,iproc,': all received'
 #endif
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -1183,88 +1184,88 @@ C$OMP& shared(inumberneigh,lsendlist,llistrec)
 C$OMP& shared(rho,rhorec,dumrho,dumrhorec,nneigh,nneighrec)
 C$OMP& shared(iteration,llistsentback,iahead,nneighsentback)
 C$OMP& private(k,ipos)
-                        DO k = 1, inumberneigh
-                           ipos = lsendlist(llistrec(k))+1
+                     DO k = 1, inumberneigh
+                        ipos = lsendlist(llistrec(k))+1
 
-                           rho(ipos) = rho(ipos) + rhorec(k)
-                           dumrho(ipos) = dumrho(ipos) + dumrhorec(k)
-                           nneigh(ipos) = nneigh(ipos) + nneighrec(k)
-                           IF (iteration.EQ.1) THEN
-                              llistsentback(k,iahead+1) = ipos - 1
-                           ELSE
-                              llistsentback(k+nneighsentback(iahead+1),
-     &                             iahead+1) = ipos - 1
-                           ENDIF
-                        END DO
+                        rho(ipos) = rho(ipos) + rhorec(k)
+                        dumrho(ipos) = dumrho(ipos) + dumrhorec(k)
+                        nneigh(ipos) = nneigh(ipos) + nneighrec(k)
+                        IF (iteration.EQ.1) THEN
+                           llistsentback(k,iahead+1) = ipos - 1
+                        ELSE
+                           llistsentback(k+nneighsentback(iahead+1),
+     &                          iahead+1) = ipos - 1
+                        ENDIF
+                     END DO
 C$OMP END PARALLEL DO
 
 #ifdef MPIDEBUG
-                        print *,iproc,': received neighbour data'
+                     print *,iproc,': received neighbour data'
 #endif
-                        IF (iteration.EQ.1) THEN
+                     IF (iteration.EQ.1) THEN
 #ifdef MPIDEBUG
-                           print *,iproc,': reports ',inumberneigh,
-     &                          ' foreign neighbours on process ',
-     &                          iahead
+                        print *,iproc,': reports ',inumberneigh,
+     &                       ' foreign neighbours on process ',
+     &                       iahead
 #endif
-                           nneighsentbackold(iahead+1) = 0
-                           nneighsentback(iahead+1) = inumberneigh
-                        ELSE
-                           nneighsentbackold(iahead+1) = 
-     &                          nneighsentback(iahead+1)
-                           nneighsentback(iahead+1) = 
-     &                          nneighsentback(iahead+1) +
-     &                          inumberneigh
-                        ENDIF
-                        maxnneighsentback = MAX(maxnneighsentback,
-     &                       nneighsentback(iahead+1))
+                        nneighsentbackold(iahead+1) = 0
+                        nneighsentback(iahead+1) = inumberneigh
+                     ELSE
+                        nneighsentbackold(iahead+1) = 
+     &                       nneighsentback(iahead+1)
+                        nneighsentback(iahead+1) = 
+     &                       nneighsentback(iahead+1) +
+     &                       inumberneigh
+                     ENDIF
+                     maxnneighsentback = MAX(maxnneighsentback,
+     &                    nneighsentback(iahead+1))
 c
 c--Receive gravity forces back (includes forces from gas
 c      particles on sinks if iptintree=1 and also sink particles if
 c       iptintree=2).
 c
-                        IF (ntotplusinumber+nlstsend.GE.idim3) THEN
-                           WRITE (*,*) iproc,
+                     IF (ntotplusinumber+nlstsend.GE.idim3) THEN
+                        WRITE (*,*) iproc,
      &                  ': ERROR - ntotplusinumber+nlstsend.GE.idim ',
      &                  ntotplusinumber,nlstsend,idim,npart,ntot
-                           CALL quit(1)
-                        ENDIF
-                        CALL MPI_RECV(dvxyzu(1,ntotplusinumber+1),
-     &                       4*nlstsend, MPI_REAL8, iahead, 15, 
-     &                       MPI_COMM_WORLD, istatus, ierr)
-                        CALL MPI_GET_COUNT(istatus, MPI_REAL8,
-     &                       ireturned, ierr)
-                        IF (ireturned.NE.4*nlstsend) THEN
-                           WRITE (*,*) 'ERROR - ireturned.NE.',
-     &                          '4*nlstsend dvxyz'
-                           CALL quit(1)
-                        ENDIF
+                        CALL quit(1)
+                     ENDIF
+                     CALL MPI_RECV(dvxyzu(1,ntotplusinumber+1),
+     &                    4*nlstsend, MPI_REAL8, iahead, 15, 
+     &                    MPI_COMM_WORLD, istatus, ierr)
+                     CALL MPI_GET_COUNT(istatus, MPI_REAL8,
+     &                    ireturned, ierr)
+                     IF (ireturned.NE.4*nlstsend) THEN
+                        WRITE (*,*) 'ERROR - ireturned.NE.',
+     &                       '4*nlstsend dvxyz'
+                        CALL quit(1)
+                     ENDIF
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstsend,lsendlist,ntotplusinumber,dvxyzu)
 C$OMP& private(l,ipos,jpos)
-                        DO l = 1, nlstsend
-                           ipos = lsendlist(l) + 1
-                           jpos = ntotplusinumber + l
-
-                           DO k = 1, 4
-                              dvxyzu(k,ipos) = dvxyzu(k,ipos) + 
-     &                             dvxyzu(k,jpos)
-                           END DO
+                     DO l = 1, nlstsend
+                        ipos = lsendlist(l) + 1
+                        jpos = ntotplusinumber + l
+                        
+                        DO k = 1, 4
+                           dvxyzu(k,ipos) = dvxyzu(k,ipos) + 
+     &                          dvxyzu(k,jpos)
                         END DO
+                     END DO
 C$OMP END PARALLEL DO
 
 c
 c--Receive back quantities for column densities on sightlines (if req)
 c
-                        IF (idustRT.GT.0) THEN
+                     IF (idustRT.GT.0) THEN
 
                         CALL MPI_RECV(sightcolumns(1,1,
      &                     ntotplusinumber+1),
      &                     nsightlinesmax*2*nlstsend, MPI_REAL4, iahead, 
      &                     16, MPI_COMM_WORLD,istatus,ierr)
                         CALL MPI_GET_COUNT(istatus,MPI_REAL4,
-     &                       ireturned,ierr)
+     &                     ireturned,ierr)
                         IF (ireturned.NE.nsightlinesmax*2*nlstsend) THEN
                            WRITE (*,*) 'ERROR - ireturned.NE.',
      &                          'nsightlinesmax*2*nlstsend'
@@ -1293,7 +1294,6 @@ C$OMP& private(l,ipos,jpos)
 C$OMP END PARALLEL DO
                         ENDIF
 
-                     ENDIF
                   END DO
                ELSE
 c

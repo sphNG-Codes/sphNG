@@ -33,6 +33,7 @@ c************************************************************
 #endif
 #ifdef MPI
       INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpidomains'
 #endif
 
       INCLUDE 'COMMONS/accstat'
@@ -717,16 +718,18 @@ c--There are two implementations, one for balanced jobs, one for unbalanced
 c
          nptmasslocal = nptmass
          nptmasslocal2 = nptmass
-         DO ii = 1, numproc
+         DO ii = 1, nloopmpi
             IF (ideniteratebal) THEN
-               IF (ii.EQ.numproc) GOTO 444
+c               IF (ii.EQ.numproc) GOTO 444
 c
 c--IMPLEMENTATION USING CIRCULAR SEND_RECV
 c
 c              IF (nptmasstot.GE.1) print *,iproc,' CIRCULAR ',ii
-               iahead = MOD(iproc+ii,numproc)
-               ibehind = MOD(numproc+iproc-ii,numproc)
-c
+c               iahead = MOD(iproc+ii,numproc)
+c               ibehind = MOD(numproc+iproc-ii,numproc)
+               iahead = ipsend(ii)
+               ibehind = iprec(ii)
+c     
 c--Send to node ahead, receive from node behind
 c
 #ifdef MPIDEBUG
@@ -806,8 +809,9 @@ c
 c
 c--IMPLEMENTATION USING SEND
 c
-               IF (ii.EQ.iproc+1) THEN
-                  DO jj = 0, numproc - 1
+               IF (ii.EQ.isendproc+1) THEN
+                  DO jjj = 1, nprocsend
+                     jj = ipsend(jjj)
                      IF (iproc.NE.jj) THEN
 #ifdef MPIDEBUG
                         print *,iproc,': Sending ',nlstsend,
@@ -834,9 +838,9 @@ c
                      ENDIF
                   END DO
                   inumber = 0
-                  ibehind = ii-1
+                  ibehind = isendproc
                ELSE
-                  ibehind = ii-1
+                  ibehind = iprec(ii)
 c
 c--Receive data
 c
@@ -1291,8 +1295,9 @@ c
 c
 c--Receive data
 c
-               IF (ii.EQ.iproc+1) THEN
-                  DO jj = 0 , numproc - 1
+               IF (ii.EQ.isendproc+1) THEN
+                  DO jjj = 1, nprocsend
+                     jj = ipsend(jjj)
                      IF (iproc.NE.jj) THEN
                         CALL MPI_RECV(llistrec, nlstsend, 
      &                       MPI_INTEGER, MPI_ANY_SOURCE, 10, 
@@ -1496,7 +1501,7 @@ C$OMP END PARALLEL DO
 c
 c--Send data
 c
-                  ibehind = ii - 1
+                  ibehind = iprec(ii)
 
                   CALL MPI_SEND(llistrec,inumreturn,MPI_INTEGER,ibehind,
      &                 10, MPI_COMM_WORLD, ierr)

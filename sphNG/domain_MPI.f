@@ -37,4 +37,3 @@ C$OMP& private(i,k,l,rcs,xyzki,iphasei)
 C$OMP END PARALLEL DO
       
       END SUBROUTINE reset_domain_extent
-

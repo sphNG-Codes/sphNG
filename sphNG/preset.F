@@ -18,6 +18,9 @@ c************************************************************
 #ifdef MPIALL
       INCLUDE 'COMMONS/mpiall'
 #endif
+#ifdef MPI
+      INCLUDE 'COMMONS/mpidomains'
+#endif
 
       INCLUDE 'COMMONS/part'
       INCLUDE 'COMMONS/densi'
@@ -809,6 +812,12 @@ c
             CALL quit(0)
          ENDIF
       ENDIF
+c
+c--Initialise MPI loop arrays
+c      
+#ifdef MPI
+      CALL init_mpi_loops
+#endif
 c
 c--Initialise non-ideal MHD
 c

@@ -557,7 +557,7 @@ SRCMPI=balance.F classify_MPI.F
 endif
 
 ifeq ($(mpi), yes)
-SRCMPINOTCOPY=domain_MPI.F
+SRCMPINOTCOPY=domain_MPI.f order_comms_MPI.F
 endif
 
 # these are the extra routines required for the radiative transfer code to compile

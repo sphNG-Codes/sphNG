@@ -88,11 +88,13 @@ c************************************************************
       INCLUDE 'COMMONS/dustfluidvelu'
 
       CHARACTER*11 ifile, ifile_dust, ofile
+      CHARACTER*20 name_in
       CHARACTER*1 igeom, icombine, iref, ireset_time, iterminal
       
 1000  FORMAT (A7)
 1001  FORMAT (A1)
 1002  FORMAT (A11)
+1020  FORMAT (A20)
 
 #ifdef MPI
 c
@@ -131,6 +133,9 @@ c=====================================================================
 c--Combine two existing dump files -- one for the gas and one for dust
 c=====================================================================
 c
+      PRINT *,' Enter name of ASCII log file for running code'
+      READ (iread, 1020) name_in
+
       PRINT *, 'Name of binary dump file containing gas?'
       PRINT *, 'NOTE: Should contain total (gas+dust) mass'
       READ (iread, 1000) ifile
@@ -148,10 +153,7 @@ c
       PRINT *, 'Name of output binary dump file ?'
       READ (iread, 1000) ofile
 
-      print *,iread, ifile, ifile_dust, ofile
-
-      file1 = ofile
-      print *, 'Output file=', file1
+      print *,iread, ifile, ifile_dust, ofile, name_in
 
       PRINT *, 'Name of corresponding ASCII ifile ?'
       READ (iread, 1002) inname
@@ -166,6 +168,10 @@ c
 c--Read dump file
 c
       CALL options
+
+      file1 = ofile
+      namenextrun = name_in
+      print *, 'Output files =', file1, namenextrun
 
       CALL rdump(idisk1,ichkl,1)
       CLOSE (idisk1)

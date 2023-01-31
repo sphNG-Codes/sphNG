@@ -5,10 +5,39 @@ c  This subroutine reads in an existing dump file and       *
 c     brings dead particles to life as dust particles.      *
 c     Originally used to add dust to a settled disc.        *
 c                                                           *
+c     Alternately:                                          * 
 c     Also allows two dump files, one containing gas and    *
 c     the other containing dust particles to be combined.   *
 c     The was used for Bate & Loren-Aguilar (2017), but     *
 c     not added to the repository until 19 Oct 2022.        *
+c                                                           *
+c     Following Bate & Loren-Aguilar (2017), in 2023 the    *
+c     routine was also enhanced to allow dust particles     *
+c     to be set up at their terminal velocity initially     *
+c     (instead of with zero velocity relative to the gas).  *
+c     This requires two 'gas' particle dump files to be     *
+c     created with idustIMPL = 1 and imakedust=.TRUE.       *
+c     in 'idim'.  This is so that the dump file that will   *
+c     be converted into dust particles has the pressure     *
+c     gradients for all gas particles computed and written  *
+c     to the dump file.  These are then used when the two   *
+c     dump files are combined (this routine) to set the     *
+c     the dust at its terminal velocity relative to the     *
+c     gas.  The 'gas' and 'dust' dump files should be       *
+c     identical, except that the numbers of particles can   *
+c     differ (would usually expect Ngas >> Ndust to avoid   *
+c     artificial dust particle clumping).  In particular,
+c     the total masses of the two clouds should be the      *
+c     same -- the dust-to-gas ratio is set in this makedust *
+c     routine when the two dump files are combined.         *
+c     Although using the standard M4 kernel works, the      *
+c     pressure gradients are best calculated using the      *
+c     Quintic SPH kernel rather than the standard M4 kernel.*
+c     It's also best to run two-fluid dust with the         *
+c     Quintic kernel anyway, so this is consistent.         *
+c     Note that imakedust=.TRUE. should be set back to      *
+c     .FALSE. for the executable that is used to actually   *
+c     run the calculation (there is a check for this).      *
 c                                                           *
 c************************************************************
 
@@ -615,5 +644,6 @@ c
       PRINT 2000, file1
  2000 FORMAT ('file ', A10, 'has been created')
  
-      RETURN
+      CALL endrun
+
       END

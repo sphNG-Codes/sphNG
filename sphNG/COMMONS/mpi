@@ -17,8 +17,8 @@
       REAL splitcoords, binarysplits, xyzmax, xyzmin, searchxyzmax,
      &        searchxyzmin
 
-      INTEGER ipsend,ipsendlast,iprec
-      INTEGER nloopmpi,isendproc,nprocsend
+      INTEGER ipsend,ipsendlast,iprec,nprocsendall
+      INTEGER nloopmpi,isendproc,nprocsend,nprocsendlast
 
       COMMON /mpiint/ nparttot, nactivetot, n1tot, n2tot, iproccreate,
      &           maxnneighsentback,inumofreturns, inumbertotal, 
@@ -51,8 +51,8 @@
 c--These arrays are added to allow looping over fewer processors
 c	 in densityierate with the domain_checking flag
       COMMON /densit_loop/ ipsend(nummaxproc),ipsendlast(nummaxproc),
-     &	   iprec(nummaxproc),
-     &	   nloopmpi,isendproc,nprocsend
+     &	   iprec(nummaxproc),nprocsendall(nummaxproc),
+     &	   nloopmpi,isendproc,nprocsend,nprocsendlast
 c
 c--Notes:
 c      maxnneighsentback is the maximum number of neighbours that were 

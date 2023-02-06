@@ -459,7 +459,6 @@ c--build array of which ranks are sending to which
       ENDIF
 #endif
 
->>>>>>> da3df6b... Removed infrastructure for treating domain gas and star/dust domain extents separately.
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none) 
 C$OMP& shared(nlstdo,ldolist,isucceed,xyzmh,hi_old,it1,isteps,imaxstep)
 C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)
@@ -569,15 +568,25 @@ c            ENDIF
 C$OMP END PARALLEL DO
 
 #ifdef MPI
+      
       inumofreturns = 0
       inumofsends = 0
       maxnneighsentback = 0
       nneighsentanyatall = .FALSE.
 C$OMP PARALLEL DO SCHEDULE(static) default(none)
 C$OMP& shared(numproc,nneighsentany)
+C$OMP& shared(nneightogetback,nneighsentback,nneighsentbackold)
 C$OMP& private(i)
       DO i = 1, numproc
          nneighsentany(i) = .FALSE.
+         IF (domain_checking) THEN
+c--previously these were zeroed when iteration=1 in the mpi loop,
+c     with domain_checking not all processes are touched in
+c     those loops so needs to be done sooner
+            nneightogetback(i) = 0
+            nneighsentback(i) = 0
+            nneighsentbackold(i) = 0
+         ENDIF
       END DO
 C$OMP END PARALLEL DO
 
@@ -723,7 +732,8 @@ c
 c               IF (ii.EQ.numproc) GOTO 444
 c
 c--IMPLEMENTATION USING CIRCULAR SEND_RECV
-c
+c--NOTE: if domain_checking = .TRUE. this is now a pairwise SENDRECV
+c               
 c              IF (nptmasstot.GE.1) print *,iproc,' CIRCULAR ',ii
 c               iahead = MOD(iproc+ii,numproc)
 c               ibehind = MOD(numproc+iproc-ii,numproc)
@@ -840,7 +850,7 @@ c
                      ENDIF
                   END DO
                   inumber = 0
-                  ibehind = isendproc
+                  ibehind = iproc
                ELSE
                   ibehind = iprec(ii)
 c

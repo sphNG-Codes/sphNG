@@ -18,7 +18,8 @@ c     do not need to be initialised.
       INTEGER ii,jj
 
       IF (domain_checking) THEN
-         CONTINUE
+c--domain checking must find comms order in first call to densityiterate
+         nprocsendlast = 0
       ELSE
          IF (ideniteratebal) THEN
             nloopmpi = numproc - 1

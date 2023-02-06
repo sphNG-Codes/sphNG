@@ -128,7 +128,6 @@ c     that are neighbours of active particles for updating their densities etc
       REAL csbuff(numproc),dvxyzuinit(4,idim)
       INTEGER idispranks(numproc),ipsendbuf(numproc*numproc)
       INTEGER ipsendall(numproc,numproc),ipsendindx(numproc)
-      INTEGER listdistantgn(ngrav_nodes),listsendgn(ngrav_nodes)
       LOGICAL order_comms
 #endif
 

@@ -123,6 +123,11 @@ c     that are neighbours of active particles for updating their densities etc
       REAL*4 rhorec(ineighproc), dumrhorec(ineighproc), rhonextmax
       LOGICAL*1 isend(idim)
       INTEGER*8 iuniquesend(iptdim)
+
+      REAL de_all(6,numproc),csgas_all(6,numproc),csstar_all(6,numproc)
+      REAL csbuff(numproc)
+      INTEGER idispranks(numproc),ipsendbuf(numproc*numproc)
+      INTEGER ipsendall(numproc,numproc),ipsendindx(numproc)
 #endif
 
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
@@ -259,6 +264,87 @@ C$OMP END PARALLEL DO
 
       nlstsend = nlstdo
 
+#ifdef MPI
+c--domain checking optimisations
+c     before iteration begins need to establish which
+c     MPI ranks this rank will send particles to
+      IF (domain_checking) THEN
+c--need to reverse the sign of the second half of domain extent arrays
+c     they are stored this way so that C$OMP& reduction(MIN:
+c     applies to the entirety of each array in step.
+         DO k=4,6
+            domain_extent(k) = -domain_extent(k)
+            de_cs_gas(k) = -de_cs_gas(k)
+            de_cs_star(k) = -de_cs_star(k)
+         ENDDO
+         
+         CALL MPI_ALLGATHER(pcsdiff,1,MPI_REAL8,
+     &        csbuff,1,MPI_REAL8,MPI_COMM_WORLD,ierr)
+         CALL MPI_ALLGATHER(domain_extent,6,MPI_REAL8,
+     &        de_all,6,MPI_REAL8,MPI_COMM_WORLD,ierr)
+         CALL MPI_ALLGATHER(de_cs_gas,6,MPI_REAL8,
+     &        csgas_all,6,MPI_REAL8,MPI_COMM_WORLD,ierr)
+c--future commit will deal with stars/dust
+         IF (.FALSE.) THEN
+            CALL MPI_ALLGATHER(de_cs_star,6,MPI_REAL8,
+     &           csstar_all,6,MPI_REAL8,MPI_COMM_WORLD,ierr)
+         ENDIF
+         nprocsend = 0
+         ipsendindx = 0
+         DO i=1,numproc
+            IF (i .NE. iproc+1) THEN
+               cdist2 = MIN(cuboid_dist2(de_cs_gas,de_all(1:6,i)),
+     &              cuboid_dist2(domain_extent,csgas_all(1:6,i)))
+               IF (cdist2 .LT. tiny) THEN
+                  nprocsend = nprocsend + 1
+                  ipsendindx(nprocsend) = i
+               ENDIF
+            ENDIF
+         ENDDO
+c--reverse second half of domain extent arrays again         
+         DO k=4,6
+            domain_extent(k) = -domain_extent(k)
+            de_cs_gas(k) = -de_cs_gas(k)
+            de_cs_star(k) = -de_cs_star(k)
+         ENDDO
+
+         CALL MPI_ALLGATHER(nprocsend,1,MPI_INTEGER,
+     &        nprocsendall,1,MPI_INTEGER,MPI_COMM_WORLD,ierr)
+         idispranks(1) = 0
+         DO i=1,numproc-1
+            idispranks(i+1) = idispranks(i) + nprocsendall(i)
+         ENDDO
+         CALL MPI_ALLGATHERV(ipsendindx,nprocsend,MPI_INTEGER,
+     &        ipsendbuf,nprocsendall,idispranks,
+     &        MPI_INTEGER,MPI_COMM_WORLD,ierr)
+
+c--build array of which ranks are sending to which
+         ipscount = 0
+         nprocrec = 0
+         iprec = 0
+         DO j=1,numproc
+            DO i=1,numproc
+               IF (i .LE. nprocsendall(j)) THEN
+                  ipscount = ipscount + 1
+                  ipstemp = ipsendbuf(ipscount)
+                  ipsendall(i,j) = ipstemp
+                  IF (ipstemp .EQ. iproc+1) THEN
+                     nprocrec = nprocrec + 1
+                     iprec(nprocrec) = j
+                  ENDIF
+               ELSE
+                  ipsendall(i,j) = 0
+               ENDIF
+            ENDDO
+         ENDDO
+         IF (ideniteratebal) THEN
+            CALL order_mpi_comms_bal(ipsendall)
+         ELSE
+            CALL order_mpi_comms_else(ipsendall,ipsendindx)
+         ENDIF
+      ENDIF
+#endif
+
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none) 
 C$OMP& shared(nlstdo,ldolist,isucceed,xyzmh,hi_old,it1,isteps,imaxstep)
 C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)
@@ -367,15 +453,25 @@ c            ENDIF
 C$OMP END PARALLEL DO
 
 #ifdef MPI
+      
       inumofreturns = 0
       inumofsends = 0
       maxnneighsentback = 0
       nneighsentanyatall = .FALSE.
 C$OMP PARALLEL DO SCHEDULE(static) default(none)
 C$OMP& shared(numproc,nneighsentany)
+C$OMP& shared(nneightogetback,nneighsentback,nneighsentbackold)
 C$OMP& private(i)
       DO i = 1, numproc
          nneighsentany(i) = .FALSE.
+         IF (domain_checking) THEN
+c--previously these were zeroed when iteration=1 in the mpi loop,
+c     with domain_checking not all processes are touched in
+c     those loops so needs to be done sooner
+            nneightogetback(i) = 0
+            nneighsentback(i) = 0
+            nneighsentbackold(i) = 0
+         ENDIF
       END DO
 C$OMP END PARALLEL DO
 
@@ -521,7 +617,8 @@ c
 c               IF (ii.EQ.numproc) GOTO 444
 c
 c--IMPLEMENTATION USING CIRCULAR SEND_RECV
-c
+c--NOTE: if domain_checking = .TRUE. this is now a pairwise SENDRECV
+c               
 c              IF (nptmasstot.GE.1) print *,iproc,' CIRCULAR ',ii
 c               iahead = MOD(iproc+ii,numproc)
 c               ibehind = MOD(numproc+iproc-ii,numproc)
@@ -638,7 +735,7 @@ c
                      ENDIF
                   END DO
                   inumber = 0
-                  ibehind = isendproc
+                  ibehind = iproc
                ELSE
                   ibehind = iprec(ii)
 c

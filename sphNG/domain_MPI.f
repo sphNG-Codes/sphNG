@@ -41,3 +41,44 @@ C$OMP& private(i,k,l,rcs,xyzki,iphasei)
 C$OMP END PARALLEL DO
       
       END SUBROUTINE reset_domain_extent
+
+
+c--sorting routine for sorting by index high to low
+c     O(N^2) with very low overhead,
+c     fine for short arrays < 150 values
+c     very slow for long arrays
+      SUBROUTINE insert_sort_index(N,ARR,indx)
+      INTEGER ARR(N)
+      INTEGER indx(N),N
+
+      indx(1) = 1
+      DO j=2, N
+         l = ARR(j)
+         indx(j) = j
+         DO i=j-1,1,-1
+            IF (ARR(indx(i)) .GE. l) goto 10
+            indx(i+1) = indx(i)
+         ENDDO
+         i = 0
+ 10      indx(i+1) = j
+      ENDDO
+      RETURN
+      END
+
+      
+c--find minimum distance squared between two axis aligned cuboids a & b
+c     ext_a/b(1:3): minimum xyz coords of cuboid
+c     ext_a/b(4:6): maximum xyz coords of cuboid
+      PURE FUNCTION cuboid_dist2(ext_a,ext_b)
+
+      IMPLICIT NONE
+
+      REAL, INTENT(IN) :: ext_a(6),ext_b(6)
+      REAL :: xdiff,ydiff,zdiff,cuboid_dist2
+
+      xdiff = MAX(ext_a(1)-ext_b(4), 0.0, ext_b(1)-ext_a(4))
+      ydiff = MAX(ext_a(2)-ext_b(5), 0.0, ext_b(2)-ext_a(5))
+      zdiff = MAX(ext_a(3)-ext_b(6), 0.0, ext_b(3)-ext_a(6))
+      cuboid_dist2 = xdiff**2 + ydiff**2 + zdiff**2
+
+      END FUNCTION cuboid_dist2

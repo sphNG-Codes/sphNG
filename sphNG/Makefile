@@ -464,6 +464,10 @@ ifeq ($(mpidebugrt), yes)
     FPPFLAGS+=${FPP_SEP}-DMPIDEBUGRT
 endif
 
+ifeq ($(mpidebugdc), yes)
+    FPPFLAGS+=${FPP_SEP}-DMPIDEBUGDC
+endif
+
 ifeq ($(dgrid), yes)
     FPPFLAGS+=${FPP_SEP}-DDGRID
 endif

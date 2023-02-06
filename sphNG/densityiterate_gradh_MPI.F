@@ -128,6 +128,7 @@ c     that are neighbours of active particles for updating their densities etc
       REAL csbuff(numproc)
       INTEGER idispranks(numproc),ipsendbuf(numproc*numproc)
       INTEGER ipsendall(numproc,numproc),ipsendindx(numproc)
+      LOGICAL order_comms
 #endif
 
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
@@ -308,39 +309,60 @@ c--reverse second half of domain extent arrays again
             de_cs_star(k) = -de_cs_star(k)
          ENDDO
 
-         CALL MPI_ALLGATHER(nprocsend,1,MPI_INTEGER,
-     &        nprocsendall,1,MPI_INTEGER,MPI_COMM_WORLD,ierr)
-         idispranks(1) = 0
-         DO i=1,numproc-1
-            idispranks(i+1) = idispranks(i) + nprocsendall(i)
-         ENDDO
-         CALL MPI_ALLGATHERV(ipsendindx,nprocsend,MPI_INTEGER,
-     &        ipsendbuf,nprocsendall,idispranks,
-     &        MPI_INTEGER,MPI_COMM_WORLD,ierr)
-
-c--build array of which ranks are sending to which
-         ipscount = 0
-         nprocrec = 0
-         iprec = 0
-         DO j=1,numproc
-            DO i=1,numproc
-               IF (i .LE. nprocsendall(j)) THEN
-                  ipscount = ipscount + 1
-                  ipstemp = ipsendbuf(ipscount)
-                  ipsendall(i,j) = ipstemp
-                  IF (ipstemp .EQ. iproc+1) THEN
-                     nprocrec = nprocrec + 1
-                     iprec(nprocrec) = j
-                  ENDIF
-               ELSE
-                  ipsendall(i,j) = 0
+c--have to re-order MPI comms if any rank has changed its send list         
+         order_comms = .TRUE.
+         IF (nprocsend .EQ. nprocsendlast) THEN
+            order_comms = .FALSE.
+            DO i=1,nprocsend
+               IF (ipsendindx(i) .NE. ipsendlast(i)) THEN
+                  order_comms = .TRUE.
+                  EXIT
                ENDIF
             ENDDO
+         ENDIF
+         DO i=1,nprocsend
+            ipsendlast(i) = ipsendindx(i)
          ENDDO
-         IF (ideniteratebal) THEN
-            CALL order_mpi_comms_bal(ipsendall)
-         ELSE
-            CALL order_mpi_comms_else(ipsendall,ipsendindx)
+         nprocsendlast = nprocsend
+            
+         CALL MPI_ALLREDUCE(MPI_IN_PLACE,order_comms,1,
+     &        MPI_INTEGER,MPI_LOR,MPI_COMM_WORLD,ierr)
+
+         IF (order_comms) THEN
+            CALL MPI_ALLGATHER(nprocsend,1,MPI_INTEGER,
+     &        nprocsendall,1,MPI_INTEGER,MPI_COMM_WORLD,ierr)
+            idispranks(1) = 0
+            DO i=1,numproc-1
+               idispranks(i+1) = idispranks(i) + nprocsendall(i)
+            ENDDO
+            CALL MPI_ALLGATHERV(ipsendindx,nprocsend,MPI_INTEGER,
+     &           ipsendbuf,nprocsendall,idispranks,
+     &           MPI_INTEGER,MPI_COMM_WORLD,ierr)
+
+c--build array of which ranks are sending to which
+            ipscount = 0
+            nprocrec = 0
+            iprec = 0
+            DO j=1,numproc
+               DO i=1,numproc
+                  IF (i .LE. nprocsendall(j)) THEN
+                     ipscount = ipscount + 1
+                     ipstemp = ipsendbuf(ipscount)
+                     ipsendall(i,j) = ipstemp
+                     IF (ipstemp .EQ. iproc+1) THEN
+                        nprocrec = nprocrec + 1
+                        iprec(nprocrec) = j
+                     ENDIF
+                  ELSE
+                     ipsendall(i,j) = 0
+                  ENDIF
+               ENDDO
+            ENDDO
+            IF (ideniteratebal) THEN
+               CALL order_mpi_comms_bal(ipsendall)
+            ELSE
+               CALL order_mpi_comms_else(ipsendall,ipsendindx)
+            ENDIF
          ENDIF
       ENDIF
 #endif

@@ -2305,6 +2305,7 @@ c************************************************************
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/astrcon'
+      INCLUDE 'COMMONS/mpidomains'
 
       DIMENSION listtrans(idim), numlist(nummaxproc), xyzmh(5,idim)
       INTEGER classify
@@ -2660,7 +2661,7 @@ c
 c
 c--Find direction (x,y,z) of split
 c
-               idimension_now = MOD(i-1,3)+1
+               idimension_now = MOD(i-1,ndim_binary_mpi)+1
 c
 c--Set search space
 c
@@ -2670,7 +2671,7 @@ c
                END DO
 
                DO i2 = 1, i-1
-                  idimension = MOD(i2-1,3)+1
+                  idimension = MOD(i2-1,ndim_binary_mpi)+1
 
                   ipos = MOD( (nsplitbeingdone - 2**i2), 2**(i2-1)) + 
      &                 2**(i2-1)

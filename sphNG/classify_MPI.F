@@ -260,6 +260,7 @@ c************************************************************
       INCLUDE 'COMMONS/mpidebug'
 #endif
       INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/mpidomains'
 
       REAL xyzmh(5,1)
 
@@ -270,7 +271,7 @@ c************************************************************
 #ifdef MPI
       nsplits = INT(LOG(REAL(numproc)+0.1)/LOG(2.0))
       DO i = 1, nsplits
-         idimension = MOD(i-1,3)+1
+         idimension = MOD(i-1,ndim_binary_mpi)+1
 
          IF (i.EQ.1) THEN
             ipos = 1

@@ -5,7 +5,13 @@ c--factor that smoothing length can grow by over domain boundaries
 c
       REAL csgrowthlim
       PARAMETER (csgrowthlim = 2.0)
-
+c
+c--Set the number of dimensions to split with a binary decomposition.
+c      2 -> x and y only
+c      3 -> x, y and z
+c
+      INTEGER ndim_binary_mpi
+      PARAMETER (ndim_binary_mpi = 3)
 c
 c--The domain arrays contain min and max x,y,z coords of the
 c      extent of cartesian aligned cuboids for each MPI domain.

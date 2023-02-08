@@ -128,6 +128,7 @@ c     that are neighbours of active particles for updating their densities etc
       REAL csbuff(numproc),dvxyzuinit(4,idim)
       INTEGER idispranks(numproc),ipsendbuf(numproc*numproc)
       INTEGER ipsendall(numproc,numproc),ipsendindx(numproc)
+      INTEGER listdistantgn(2*numproc)
       LOGICAL order_comms
 #endif
 
@@ -455,6 +456,40 @@ c--build array of which ranks are sending to which
                CALL order_mpi_comms_else(ipsendall,ipsendindx)
             ENDIF
          ENDIF
+
+c--send gravity node data to all other MPI ranks
+c     store data beyond the root node
+c     currently only implemented for iptintree = 2
+c     i.e. all mass from distant ranks is in the tree (including sinks)
+         IF (nroot+numproc .GE. mmax) THEN
+            PRINT*,iproc,"ERROR: mmax exceeded domain_checking",
+     &           nroot,mmax
+            CALL quit(0)
+         ENDIF
+#ifdef MPIDEBUGDC
+c         WRITE(iprint,*) "gravity node data sent"
+c         WRITE(iprint,*) qrad(1:7,nroot)
+c         WRITE(iprint,*) xyzmh(1:5,nroot)
+#endif
+         irootdleft = isibdaupar(2,nroot)
+         irootdright = isibdaupar(1,irootdleft)
+c--gather all left daughters of root nodes after this rank's root node
+         CALL MPI_ALLGATHER(qrad(2,irootdleft),6,MPI_REAL4,
+     &        qrad(2,2*ntot+3),7,MPI_REAL4,MPI_COMM_WORLD,ierr)
+         CALL MPI_ALLGATHER(xyzmh(1,irootdleft),4,MPI_REAL8,
+     &        xyzmh(1,2*ntot+3),5,MPI_REAL8,MPI_COMM_WORLD,ierr)
+c--gather all right daughters of root nodes after left daughters
+         CALL MPI_ALLGATHER(qrad(2,irootdright),6,MPI_REAL4,
+     &        qrad(2,2*ntot+3+numproc),7,MPI_REAL4,MPI_COMM_WORLD,ierr)
+         CALL MPI_ALLGATHER(xyzmh(1,irootdright),4,MPI_REAL8,
+     &        xyzmh(1,2*ntot+3+numproc),5,MPI_REAL8,MPI_COMM_WORLD,ierr)
+#ifdef MPIDEBUGDC
+c         WRITE(iprint,*) "gravity node data received"
+c         DO i=1,numproc
+c            WRITE(iprint,*) qrad(1:7,2*ntot+2+i)
+c            WRITE(iprint,*) xyzmh(1:5,2*ntot+2+i)
+c         ENDDO
+#endif
       ENDIF
 #endif
 
@@ -465,9 +500,9 @@ C$OMP& shared(iphase,dBxyz,divcurlB,gradB,it0,itime,hfact)
 C$OMP& shared(curlv,gradhs,sightcolumns,hi_2back)
 C$OMP& shared(planetesimaltimestep,planetesimalnorm,iplanetesimals)
 C$OMP& shared(stellarrad,nptmasstot,ddust,dustfluiddu,dustfluidvxyz)
-C$OMP& shared(stoppingtime,gas_accel)
+C$OMP& shared(stoppingtime,gas_accel,ntot,igphi)
 #ifdef MPI
-C$OMP& shared(lsendlist,isend)
+C$OMP& shared(lsendlist,isend,nldistantgn,listdistantgn,dvxyzuinit)
 #endif
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend)
@@ -485,6 +520,16 @@ c
 #ifdef MPI
          lsendlist(n) = ipart - 1
          isend(n) = .TRUE.
+         IF (domain_checking .AND. igphi .GT. 0) THEN
+c--add foreign contributions for non-neighbouring MPI ranks
+c     these need only be calculated once and are reused at the end
+c     of each iteration if smoothing length is not set
+            dvxyzuinit(1:4,ipart) = 0.
+            CALL gforsn(ipart,ntot,nldistantgn,listdistantgn,xyzmh,
+     &           dvxyzuinit(1,ipart),dvxyzuinit(2,ipart),
+     &           dvxyzuinit(3,ipart),dvxyzuinit(4,ipart))
+            dvxyzuinit(4,ipart) = -dvxyzuinit(4,ipart)
+         ENDIF
 #endif
          IF (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10) THEN
             pmassi = xyzmh(4,ipart)
@@ -525,8 +570,16 @@ c            ENDIF
          ENDIF
          nneigh(ipart) = 0
          DO k = 1, 4
-            dvxyzu(k,ipart) = 0.
-         END DO
+#ifdef MPI
+            IF (domain_checking .AND. igphi .GT. 0) THEN
+               dvxyzu(k,ipart) = dvxyzuinit(k,ipart)
+            ELSE
+#endif
+               dvxyzu(k,ipart) = 0.
+#ifdef MPI
+            ENDIF
+#endif
+         ENDDO
          poten(ipart) = 0.
          dq(ipart) = 0.
          IF (imhd.EQ.idim) THEN
@@ -2193,9 +2246,9 @@ c
       IF (iteration.NE.maxiterations) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstdo,ldolist,rho,dumrho,divv,curlv,gradhs,nneigh)
-C$OMP& shared(dvxyzu,poten,dust_tk,stellarrad,nptmasstot)
+C$OMP& shared(dvxyzu,poten,dust_tk,stellarrad,nptmasstot,igphi)
 #ifdef MPI
-C$OMP& shared(sightcolumns)
+C$OMP& shared(sightcolumns,dvxyzuinit)
 #endif
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend)
@@ -2215,7 +2268,15 @@ C$OMP& private(n,ipart,k)
             gradhs(2,ipart) = 0.
             nneigh(ipart) = 0
             DO k = 1, 4
-               dvxyzu(k,ipart) = 0.
+#ifdef MPI
+               IF (domain_checking .AND. igphi .GT. 0) THEN
+                  dvxyzu(k,ipart) = dvxyzuinit(k,ipart)
+               ELSE
+#endif
+                  dvxyzu(k,ipart) = 0.
+#ifdef MPI
+               ENDIF
+#endif
             END DO
             IF (idustRT.GT.0) THEN
                DO k = 1, 2

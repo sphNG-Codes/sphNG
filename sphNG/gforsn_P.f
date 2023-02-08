@@ -16,7 +16,7 @@ c************************************************************
       INCLUDE 'COMMONS/ptsoft'
       INCLUDE 'COMMONS/phase'
 
-      DIMENSION listgn(idim), xyzmh(5,mmax2)
+      DIMENSION listgn(nlistgn), xyzmh(5,mmax2)
 
 c
 c--Need for MPI code

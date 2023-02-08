@@ -814,6 +814,14 @@ c--Initialise MPI loop arrays
 c      
 #ifdef MPI
       CALL init_mpi_loops
+      IF (domain_checking) THEN
+         IF (iptintree .NE. 2 .AND.
+     &        (initialptm .NE. 0 .OR. iptmass .NE. 0)) THEN
+            WRITE(*,*) iproc,
+     &        "ERROR: domain_checking with sinks only with iptintree=2",
+     &        iptintree,initialptm,iptmass
+         ENDIF
+      ENDIF
 #endif
 c
 c--Initialise non-ideal MHD

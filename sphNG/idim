@@ -12,7 +12,7 @@
       REAL tiny
       LOGICAL imakedust
 
-      PARAMETER (idim=2001000)
+      PARAMETER (idim=510000)
 
       PARAMETER (iptdim=10)
       PARAMETER (iptneigh=100000)
@@ -20,8 +20,8 @@
 c
 c--For MPI need to set these
 c
-c      PARAMETER (idim_MPI=idim)
-      PARAMETER (idim_MPI=1)
+      PARAMETER (idim_MPI=idim)
+c      PARAMETER (idim_MPI=1)
 c
 c--Flag for using grad-h version of code is nlmax=1
 c      PARAMETER (nlmax = 90)
@@ -64,8 +64,8 @@ c      PARAMETER (istellarfeedback=6)
 c
 c--For MHD need to use imhd = idim
 c
-      PARAMETER (imhd = idim)
-c      PARAMETER (imhd = 1)
+c      PARAMETER (imhd = idim)
+      PARAMETER (imhd = 1)
 c
 c--Sets the number of variables in the magnetic field array
 c	Use 3 if only need Bxyz, use 4 if need psi as well for
@@ -130,3 +130,9 @@ c  in terminal velocity initially
       PARAMETER (idim_dustFluid3 = MAX(idustFluid,idustIMPL)*idim2)
       PARAMETER (idim_grow = idustGROW*idim)
       PARAMETER (idim_grow2 = idustGROW*idim2)
+
+c
+c--Parameter used to extend iphase and qrad1 for domain checking
+c
+      INTEGER ngrav_node
+      PARAMETER (ngrav_nodes = 10000)

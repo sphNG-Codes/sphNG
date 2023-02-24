@@ -18,7 +18,7 @@ c
 
       COMMON /parms / natom, nlevel, nactatom, nroot
      &               ,numberparents, nlistupdated
-      COMMON /datums/ qrad(7,mmax+128),isibdaupar(3,mmax),
+      COMMON /datums/ qrad(7,mmax+ngrav_nodes),isibdaupar(3,mmax),
      &                next1(idim),next2(idim),next3(idim),
      &                key(idim), ihash(mmax), 
      &                list(mmax), nay(mmax), 

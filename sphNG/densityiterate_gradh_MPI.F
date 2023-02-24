@@ -128,7 +128,7 @@ c     that are neighbours of active particles for updating their densities etc
       REAL csbuff(numproc),dvxyzuinit(4,idim)
       INTEGER idispranks(numproc),ipsendbuf(numproc*numproc)
       INTEGER ipsendall(numproc,numproc),ipsendindx(numproc)
-      INTEGER listdistantgn(2*numproc)
+      INTEGER listdistantgn(ngrav_nodes),listsendgn(ngrav_nodes)
       LOGICAL order_comms
 #endif
 
@@ -267,9 +267,30 @@ C$OMP END PARALLEL DO
       nlstsend = nlstdo
 
 #ifdef MPI
+      CALL MPI_TYPE_CONTIGUOUS(15, MPI_REAL8, i15REAL8, ierr)
+c      CALL MPI_TYPE_CONTIGUOUS(12, MPI_REAL8, i12REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(8, MPI_REAL8, i8REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(imhdevol, MPI_REAL8, imhdevolREAL8,ierr)
+      CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(7, MPI_REAL4, i7REAL4, ierr)
+
+      CALL MPI_TYPE_COMMIT(i15REAL8,ierr)
+c      CALL MPI_TYPE_COMMIT(i12REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i8REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(imhdevolREAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
+      CALL MPI_TYPE_COMMIT(i7REAL4,ierr)
+
 c--domain checking optimisations
 c     before iteration begins need to establish which
 c     MPI ranks this rank will send particles to
+c     others will receive gravity nodes instead (if igphi.EQ.1)
       IF (domain_checking) THEN
 c--need to reverse the sign of the second half of domain extent arrays
 c     they are stored this way so that C$OMP& reduction(MIN:
@@ -280,8 +301,6 @@ c     applies to the entirety of each array in step.
             de_cs_star(k) = -de_cs_star(k)
          ENDDO
          
-         CALL MPI_ALLGATHER(pcsdiff,1,MPI_REAL8,
-     &        csbuff,1,MPI_REAL8,MPI_COMM_WORLD,ierr)
          CALL MPI_ALLGATHER(domain_extent,6,MPI_REAL8,
      &        de_all,6,MPI_REAL8,MPI_COMM_WORLD,ierr)
          CALL MPI_ALLGATHER(de_cs_gas,6,MPI_REAL8,
@@ -291,25 +310,97 @@ c--future commit will deal with stars/dust
             CALL MPI_ALLGATHER(de_cs_star,6,MPI_REAL8,
      &           csstar_all,6,MPI_REAL8,MPI_COMM_WORLD,ierr)
          ENDIF
+
          nprocsend = 0
          ipsendindx = 0
          nldistantgn = 0
-         DO i=1,numproc
-            IF (i .NE. iproc+1) THEN
-               cdist2 = MIN(cuboid_dist2(de_cs_gas,de_all(1:6,i)),
-     &              cuboid_dist2(domain_extent,csgas_all(1:6,i)))
-               IF (cdist2 .LT. tiny) THEN
+         instart = 2*ntot+3
+c--pairwise sendrecv
+         DO ii=1,numproc-1
+            ipair = ipairwiseall(ii)
+            i = ipair + 1
+            cdist2 = MIN(cuboid_dist2(de_cs_gas,de_all(1:6,i)),
+     &           cuboid_dist2(domain_extent,csgas_all(1:6,i)))
+            IF (cdist2 .LT. tiny) THEN
 c--neighbouring rank so add it to list to send particles to
+               nprocsend = nprocsend + 1
+               ipsendindx(nprocsend) = i
+               CYCLE
+            ELSEIF (igphi .EQ. 1) THEN
+               idatsend = 0
+c--otherwise send gravity nodes in other direction
+               CALL grav_only_treef(de_all(1:6,i),xyzmh,acc,
+     &              npartsend,nbothsend,listsendgn(:),0.0)
+               IF (npartsend .GT. 0) THEN
+c--cannot send particle data so send all particless on rank
+c     this case probably arise with diagonally adjacent domains
+                  idatsend = 1
+#ifdef MPIDEBUGDC
+                  PRINT*,iproc,": WARNING - sending extra rank",i
+     &                 npartsend,nbothsend
+#endif
+               ELSEIF (nbothsend .LE. 0) THEN
+                  PRINT*,iproc,": ERROR - must send at least one node",
+     &                 npartsend,nbothsend
+                  CALL quit(1)
+               ELSEIF (instart+nbothsend.GE.mmax+ngrav_nodes) THEN
+                  PRINT*,': ERROR - ngrav_nodes too small',
+     &                 ntot,nbothrec
+                  CALL quit(1)
+               ELSEIF (nbothsend.GE.30) THEN
+                  WRITE(iprint,*)"sending 30+gnodes",nbothsend
+               ENDIF
+
+               CALL MPI_SENDRECV(idatsend,1,MPI_INTEGER,ipair,29,
+     &              idatrec, MPI_INTEGER, i5REAL8,
+     &              ipair, 29, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus,i5REAL8,nbothrec,ierr)
+
+               IF (idatsend .EQ. 1 .OR. idatrec .EQ. 1) THEN
                   nprocsend = nprocsend + 1
                   ipsendindx(nprocsend) = i
+                  CYCLE
                ELSE
-c--otherwise add it to list of distant foreign root node daughters
-                  nldistantgn = nldistantgn + 2
-                  listdistantgn(nldistantgn-1) = 2*ntot+2 + i
-                  listdistantgn(nldistantgn)   = 2*ntot+2 + i + numproc
+                  CALL insert_sort(nbothsend,listsendgn(1:nbothsend))
+
+                  CALL MPI_TYPE_INDEXED(nbothsend,
+     &                 lblocklengths,listsendgn,
+     &                 i5REAL8,indexMPI5gn,ierr)
+                  CALL MPI_TYPE_COMMIT(indexMPI5gn,ierr)
+
+                  CALL MPI_TYPE_INDEXED(nbothsend,
+     &                 lblocklengths,listsendgn,
+     &                 i7REAL4,indexMPI_qrad,ierr)
+                  CALL MPI_TYPE_COMMIT(indexMPI_qrad,ierr)
+
+                  CALL MPI_SENDRECV(xyzmh,1,indexMPI5gn,ipair,28,
+     &                 xyzmh(1,instart), ngrav_nodes, i5REAL8,
+     &                 ipair, 28, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,i5REAL8,nbothrec,ierr)
+
+                  CALL MPI_SENDRECV(qrad,1,indexMPI_qrad,ipair,27,
+     &                 qrad(1,instart), ngrav_nodes, i7REAL4,
+     &                 ipair, 27, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,i7REAL4,nreccheck,ierr)
+                  IF (nbothrec.NE.nreccheck) THEN
+                     PRINT*,iproc,': ERROR - nbothrec.NE.nreccheck',
+     &                    nbothrec,nreccheck
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_TYPE_FREE(indexMPI5gn,ierr)
+                  CALL MPI_TYPE_FREE(indexMPI_qrad,ierr)
+
+                  DO nld=nldistantgn+1,nldistantgn+nbothrec
+                     listdistantgn(nld) = instart
+                     instart = instart + 1
+                  ENDDO
+                  nldistantgn = nldistantgn + nbothrec
                ENDIF
             ENDIF
          ENDDO
+         CALL insert_sort(nprocsend,ipsendindx(1:nprocsend))
+
 c--reverse second half of domain extent arrays again         
          DO k=4,6
             domain_extent(k) = -domain_extent(k)
@@ -372,40 +463,6 @@ c--build array of which ranks are sending to which
                CALL order_mpi_comms_else(ipsendall,ipsendindx)
             ENDIF
          ENDIF
-
-c--send gravity node data to all other MPI ranks
-c     store data beyond the root node
-c     currently only implemented for iptintree = 2
-c     i.e. all mass from distant ranks is in the tree (including sinks)
-         IF (nroot+numproc .GE. mmax) THEN
-            PRINT*,iproc,"ERROR: mmax exceeded domain_checking",
-     &           nroot,mmax
-            CALL quit(0)
-         ENDIF
-#ifdef MPIDEBUGDC
-c         WRITE(iprint,*) "gravity node data sent"
-c         WRITE(iprint,*) qrad(1:7,nroot)
-c         WRITE(iprint,*) xyzmh(1:5,nroot)
-#endif
-         irootdleft = isibdaupar(2,nroot)
-         irootdright = isibdaupar(1,irootdleft)
-c--gather all left daughters of root nodes after this rank's root node
-         CALL MPI_ALLGATHER(qrad(2,irootdleft),6,MPI_REAL4,
-     &        qrad(2,2*ntot+3),7,MPI_REAL4,MPI_COMM_WORLD,ierr)
-         CALL MPI_ALLGATHER(xyzmh(1,irootdleft),4,MPI_REAL8,
-     &        xyzmh(1,2*ntot+3),5,MPI_REAL8,MPI_COMM_WORLD,ierr)
-c--gather all right daughters of root nodes after left daughters
-         CALL MPI_ALLGATHER(qrad(2,irootdright),6,MPI_REAL4,
-     &        qrad(2,2*ntot+3+numproc),7,MPI_REAL4,MPI_COMM_WORLD,ierr)
-         CALL MPI_ALLGATHER(xyzmh(1,irootdright),4,MPI_REAL8,
-     &        xyzmh(1,2*ntot+3+numproc),5,MPI_REAL8,MPI_COMM_WORLD,ierr)
-#ifdef MPIDEBUGDC
-c         WRITE(iprint,*) "gravity node data received"
-c         DO i=1,numproc
-c            WRITE(iprint,*) qrad(1:7,2*ntot+2+i)
-c            WRITE(iprint,*) xyzmh(1:5,2*ntot+2+i)
-c         ENDDO
-#endif
       ENDIF
 #endif
 
@@ -556,24 +613,6 @@ c     those loops so needs to be done sooner
          ENDIF
       END DO
 C$OMP END PARALLEL DO
-
-      CALL MPI_TYPE_CONTIGUOUS(15, MPI_REAL8, i15REAL8, ierr)
-c      CALL MPI_TYPE_CONTIGUOUS(12, MPI_REAL8, i12REAL8, ierr)
-      CALL MPI_TYPE_CONTIGUOUS(8, MPI_REAL8, i8REAL8, ierr)
-      CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
-      CALL MPI_TYPE_CONTIGUOUS(imhdevol, MPI_REAL8, imhdevolREAL8,ierr)
-      CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
-      CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
-      CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
-
-      CALL MPI_TYPE_COMMIT(i15REAL8,ierr)
-c      CALL MPI_TYPE_COMMIT(i12REAL8,ierr)
-      CALL MPI_TYPE_COMMIT(i8REAL8,ierr)
-      CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
-      CALL MPI_TYPE_COMMIT(imhdevolREAL8,ierr)
-      CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
-      CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
-      CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
 
       CALL MPI_ALLREDUCE(nlstdo,nlstdo_tot,1,MPI_INTEGER,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
@@ -3088,6 +3127,7 @@ C$OMP END PARALLEL DO
       CALL MPI_TYPE_FREE(i8REAL8,ierr)
 c      CALL MPI_TYPE_FREE(i12REAL8,ierr)
       CALL MPI_TYPE_FREE(i15REAL8,ierr)
+      CALL MPI_TYPE_FREE(i7REAL4,ierr)
 
 #endif
 c

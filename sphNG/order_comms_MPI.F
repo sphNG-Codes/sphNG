@@ -15,9 +15,26 @@ c     do not need to be initialised.
       INCLUDE 'COMMONS/mpidomains'
       INCLUDE 'COMMONS/logun'
 
-      INTEGER ii,jj
+      INTEGER ii,jj,i,ipsendsetup(numproc)
+      INTEGER ipsendall(numproc,numproc)
 
       IF (domain_checking) THEN
+c--build pairwise list so that all procs can pair communicate in loop
+         i = 0
+         DO ii=1,numproc
+            IF (ii .NE. iproc+1) THEN
+               i = i + 1
+               ipsendsetup(i) = ii
+            ENDIF
+         ENDDO
+         ipsendsetup(numproc) = 0
+         CALL MPI_ALLGATHER(ipsendsetup,numproc,MPI_INTEGER,
+     &        ipsendall,numproc,MPI_INTEGER,MPI_COMM_WORLD,ierr)
+         nprocsend = numproc-1
+         nprocsendall(1:numproc) = numproc-1
+         CALL order_mpi_comms_bal(ipsendall)
+         ipairwiseall(1:numproc) = ipsend(1:numproc)
+c         WRITE(iprint,*) ipairwiseall
 c--domain checking must find comms order in first call to densityiterate
          nprocsendlast = 0
       ELSE
@@ -212,10 +229,10 @@ c--set pair of current row directly
 
 #ifdef MPIDEBUGDC      
 c      IF (iproc .EQ. 0) THEN
-c         WRITE(iprint,*) " "
-c         DO i=1,numproc
-c            WRITE(iprint,99004) i,ipsendall(1:numproc,i)
-c         ENDDO
+         WRITE(iprint,*) " "
+         DO i=1,numproc
+            WRITE(iprint,99004) i,ipsendall(1:numproc,i)
+         ENDDO
 c     ENDIF
 #endif      
 

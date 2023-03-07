@@ -181,7 +181,6 @@ c
       ENDIF
 
       npart_gas = npart
-      rhozero_tot = rhozero
 
       PRINT *, 'Got ',npart_gas,' gas particles'
 
@@ -196,9 +195,6 @@ c
          PRINT*, 'ERROR READING DUMP FILE'
          CALL quit(0)
       ENDIF
-
-      rhozero_tot = rhozero_tot + rhozero
-      rhozero = rhozero_tot
 
       PRINT *,'Got ',npart-npart_gas,' dust particles'
       PRINT *,'Total particles = ',npart

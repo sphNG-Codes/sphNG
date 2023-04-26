@@ -162,10 +162,10 @@ c         CALL appendiproc(21,reassfile,iproc)
      &           ACTION='write', FORM='unformatted')
             OPEN (ireasspr, FILE=reassfile, STATUS='replace',
      &           ACTION='write', FORM='unformatted')
-         ENDIF
-         IF (irotpot.EQ.1)
+         ELSEIF (irotpot.EQ.1)
      &        OPEN (ikillpr, FILE=killfile, STATUS='replace',
      &        ACTION='write', FORM='unformatted')
+         ENDIF
 c
 c--Open notify file
 c

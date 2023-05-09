@@ -79,27 +79,20 @@ c     no iteration in nloopmpi contains a rank more than once
       INCLUDE 'COMMONS/logun'
 #endif
       
-      INTEGER ipsendall(numproc,numproc)
+      INTEGER ipsendall(numproc,numproc),ipsendinit(numproc,numproc)
       INTEGER indnrs(numproc),iplist(numproc),iflist(numproc)
       INTEGER iplocstart,iplocend
       INTEGER i,ii,j,jj,k
       INTEGER icompcount,npresent,imark,nfilled,iswap,ipst
       INTEGER iholder,ipsij
       LOGICAL rswb
-      
+
+      ipsendinit = ipsendall
       CALL insert_sort_index(numproc,nprocsendall,indnrs)
 
-#ifdef MPIDEBUGDC      
-99004 FORMAT (1X,1(I3),"  ",1X,32(I3))
-99002 FORMAT (1X, 32(I3))
-      WRITE (iprint,*) "indnrs"
-      WRITE (iprint,99002) indnrs
-      WRITE (iprint,*) "nprocsendall"
-      WRITE (iprint,99002) nprocsendall(1:numproc)
-      WRITE(iprint,*) " "
-      DO i=1,numproc
-         WRITE(iprint,99004) i,ipsendall(1:numproc,i)
-      ENDDO
+#ifdef MPIDEBUGDC
+      WRITE (iprint,*) "START order_mpi_comms_bal"
+      CALL debug_order_comms(ipsendall,indnrs)
 #endif
 
 c--This loop sorts the 2D array of rank send lists such that all      
@@ -172,8 +165,10 @@ c--if ij was set to zero move to next column
             IF (ipsij .EQ. 0)THEN 
                CYCLE
             ELSEIF (ipsendall(i,ipsij) .EQ. 0) THEN
-               if (iproc.eq.0) PRINT*,"RANK SORT Warning A",
+               if (iproc.eq.0) PRINT*,"RANK SORT Warning A1",
      &              ipsij,ipsendall(i,ipsij)
+               CALL debug_order_comms(ipsendinit,indnrs)
+               CALL debug_order_comms(ipsendall,indnrs)
                CALL quit(0)
             ENDIF
 
@@ -183,10 +178,12 @@ c--add to list of ranks present in column
             npresent = npresent + 1
             iplist(npresent) = ipsij
             IF (ipsij .LE. 0) THEN
-               PRINT*,iproc,"RANK SORT Warning A",ipsij,npresent,
+               PRINT*,iproc,"RANK SORT Warning A2",ipsij,npresent,
      &              i,j,nprocsendall(j)
                PRINT *,"rowjb",i,j,nfilled,npresent
 c               PRINT 99002,ipsendall(1:numproc,j)
+               CALL debug_order_comms(ipsendinit,indnrs)
+               CALL debug_order_comms(ipsendall,indnrs)
                CALL quit(0)
             ENDIF
 c--set pair of current row directly
@@ -203,6 +200,8 @@ c--set pair of current row directly
                IF (rswb) THEN
                   PRINT*,"RANK SORT Warning B",
      &                 k,j,ipsij,nprocsendall(ipsij)
+                  CALL debug_order_comms(ipsendinit,indnrs)
+                  CALL debug_order_comms(ipsendall,indnrs)
                   CALL quit(0)
                ENDIF
             ENDIF
@@ -213,6 +212,8 @@ c--set pair of current row directly
                IF (iflist(k) .EQ. ipsij) THEN
                   PRINT*,iproc,"RANK SORT Warning C",
      &                 k,ipsij,iflist(k)
+                  CALL debug_order_comms(ipsendinit,indnrs)
+                  CALL debug_order_comms(ipsendall,indnrs)
                   CALL quit(0)
                ENDIF
             ENDDO
@@ -221,20 +222,13 @@ c--set pair of current row directly
             if (npresent .eq. numproc+1) THEN
                PRINT*,iproc,"RANK SORT Warning D",
      &              npresent,nfilled
+               CALL debug_order_comms(ipsendinit,indnrs)
+               CALL debug_order_comms(ipsendall,indnrs)
                CALL quit(0)
             ENDIF
          ENDDO
       ENDDO
       CONTINUE
-
-#ifdef MPIDEBUGDC      
-c      IF (iproc .EQ. 0) THEN
-         WRITE(iprint,*) " "
-         DO i=1,numproc
-            WRITE(iprint,99004) i,ipsendall(1:numproc,i)
-         ENDDO
-c     ENDIF
-#endif      
 
 c--build send list and check it's identical to recieve list
 c     in general there is no need for them to be identical but this
@@ -263,8 +257,18 @@ c     implementation currently requires it
 
 #ifdef MPIDEBUGDC
       WRITE(iprint,*) " "
-      WRITE(iprint,99002) ipsend(1:nprocsend)
-      WRITE(iprint,99002) iprec(1:nprocsend)
+      WRITE (iprint,*) "END order_mpi_comms_bal"
+      CALL debug_order_comms(ipsendall,indnrs)
+      WRITE(iprint,*) " "
+99002 FORMAT (I4)
+      DO j=1,nprocsend
+         WRITE(iprint,99002,advance="no") ipsend(j)
+      ENDDO
+      WRITE(iprint,*) " "
+      DO j=1,nprocsend
+         WRITE(iprint,99002,advance="no") iprec(j)
+      ENDDO
+      WRITE(iprint,*) " "
 #endif
       DO i=1,numproc
          IF (iprec(i) .NE. ipsend(i)) THEN
@@ -430,3 +434,45 @@ c--convert from fortran indexes to MPI ranks
 #endif
 
       END SUBROUTINE order_mpi_comms_else
+
+
+
+      SUBROUTINE debug_order_comms(ipsendall,indnrs)
+
+#include "mpi_sup.h"
+      
+      IMPLICIT NONE
+
+      INCLUDE 'idim'
+      INCLUDE 'COMMONS/mpiall'
+      INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpidomains'
+      INCLUDE 'COMMONS/logun'
+      
+      INTEGER ipsendall(numproc,numproc)
+      INTEGER indnrs(numproc)
+      INTEGER i,j
+      
+99004 FORMAT (1X,1(I4),"  ")
+99002 FORMAT (I4)
+      WRITE (iprint,*)"nprocsendall - number of comms for each MPI rank"
+      DO j=1,numproc
+         WRITE (iprint,99002,advance="no") nprocsendall(j)
+      ENDDO
+      WRITE(iprint,*) " "
+      WRITE (iprint,*)"indnrs - ranks sorted by nprocsendall,",
+     &     "most comms to least"
+      DO j=1,numproc
+         WRITE (iprint,99002,advance="no") indnrs(j)
+      ENDDO
+      WRITE(iprint,*) " "
+      WRITE(iprint,*) " "
+      DO i=1,numproc
+         WRITE(iprint,99004,advance="no") i
+         DO j=1,numproc
+            WRITE(iprint,99002,advance="no") ipsendall(j,i)
+         ENDDO
+         WRITE(iprint,*) " "
+      ENDDO
+
+      END SUBROUTINE debug_order_comms

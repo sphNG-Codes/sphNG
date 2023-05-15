@@ -121,6 +121,8 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
       INCLUDE 'COMMONS/interstellar'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
+      INCLUDE 'COMMONS/HY09dustprops'
+      INCLUDE 'COMMONS/HY09rho'
 #endif
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/HY09accel'
@@ -804,8 +806,9 @@ c
 c        Need to update eta_ohm, which is independent of B
          CALL nimhd_get_eta(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz
      &                     ,dumrho,eta_nimhd,nden_nimhd
-     &                     ,iphase,iunique,iorig,ivar,gamma,encal)
-
+     &                     ,iphase,iunique,iorig,ivar,gamma,encal,gt
+     &                     ,itry_array,nicil_FatalOnly
+     &                     ,nicil_passdust,HY09bin_rho)
 #endif
          CALL resistivity_implicit(nlst_in,nlst_end,llist,dt,itime,
      &        npart,ntot,Bxyz,xyzmh,vxyzu,dumrho,vsound,alphaMM,ekcle,
@@ -1241,17 +1244,14 @@ C$OMP END PARALLEL DO
 #ifdef NONIDEAL
       ENDIF
 
-c--Now calculate non-ideal MHD coefficients
-c     Need to do this after the final values of magnetic field (Bxyz)
-c     have been determined and nden_nimhd have been updated in eospg.
-c     Splitting the loop since nimhd_get_eta needs to be called regardless
-c     of eos since B & rho have changed.
-c     
+c--Calculate non-ideal MHD coefficients
 c
       IF (imhd.EQ.idim) THEN
          CALL nimhd_get_eta(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz
      &                     ,dumrho,eta_nimhd,nden_nimhd
-     &                     ,iphase,iunique,iorig,ivar,gamma,encal)
+     &                     ,iphase,iunique,iorig,ivar,gamma,encal,gt
+     &                     ,itry_array,nicil_FatalOnly
+     &                     ,nicil_passdust,HY09bin_rho)
       ENDIF
 
       IF(encal.EQ.'r' .OR. (encal.EQ.'i' .AND. 

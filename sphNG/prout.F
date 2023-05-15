@@ -867,8 +867,12 @@ c
 c
 c--non-ideal MHD
 c
-          CALL nimhd_write_ev(gt,nptot,iprint,et,nimhdfile
+         CALL nimhd_write_ev(gt,nptot,iprint,et,nimhdfile
      &                       ,evdatamintot,evdatamaxtot,evdatasumtot)
+
+         WRITE(iprint, 98010) itry_array
+98010 FORMAT(/, ' Non-ideal MHD iterations of ion densities:', 263I10)
+         itry_array = 0
 #endif
 
 #ifdef MPI

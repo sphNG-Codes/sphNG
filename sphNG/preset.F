@@ -163,8 +163,8 @@ c         CALL appendiproc(21,reassfile,iproc)
      &           ACTION='write', FORM='unformatted')
             OPEN (ireasspr, FILE=reassfile, STATUS='replace',
      &           ACTION='write', FORM='unformatted')
-         ELSEIF (irotpot.EQ.1)
-     &        OPEN (ikillpr, FILE=killfile, STATUS='replace',
+         ELSEIF (irotpot.EQ.1) THEN
+              OPEN (ikillpr, FILE=killfile, STATUS='replace',
      &        ACTION='write', FORM='unformatted')
          ENDIF
 c

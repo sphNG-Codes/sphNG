@@ -284,7 +284,7 @@ c
 c--Load balance MPI processes
 c
 c      IF (iresort.EQ.0) THEN
-      CALL balance
+      CALL balance(1)
 c      ENDIF
 #endif
 c

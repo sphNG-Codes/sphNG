@@ -14,6 +14,7 @@ module nicil_sup
  use nicil, only: nicil_update_nimhd,nicil_get_dudt_nimhd,nicil_translate_error, &
                   nicil_get_halldrift,nicil_get_ambidrift
  use nicil, only: use_ohm,use_hall,use_ambi,n_nden,meanmolmass,zeta_of_rho,n_data_out,n_warn
+ use nicil, only: nicil_initialise
  implicit none
  !
  !--Indicies to determine which action to take
@@ -44,6 +45,7 @@ module nicil_sup
   !--Subroutines
   public                      :: nimhd_init_gastemp,nimhd_gastemp,nimhd_get_eta,energ_nimhd
   public                      :: nimhd_write_evheader,nimhd_write_ev,nimhd_get_stats
+  public                      :: nicil_initialise_dust,nicil_update_nimhd_dust
   private                     :: get_coef_gamma,fill_one_label,fill_xan_label
 
  private
@@ -148,7 +150,8 @@ end subroutine energ_nimhd
 !+
 !-----------------------------------------------------------------------
 subroutine nimhd_get_eta(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz,trho &
-                       ,eta_nimhd,nden_nimhd,iphase,iunique,iorig,ivar,gamma,encal)
+                       ,eta_nimhd,nden_nimhd,iphase,iunique,iorig,ivar,gamma,encal,gtime &
+                       ,itry_array,nicil_FatalOnly,pass_dust,HY09bin_rho)
  integer,          intent(in)    :: n1,n2,nlst_in,nlst_tot
  real,             intent(in)    :: vxyzu(:,:),ekcle(:,:),Bxyz(:,:)
  real(kind=4),     intent(in)    :: trho(:)
@@ -156,23 +159,28 @@ subroutine nimhd_get_eta(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz,trho &
  integer,          intent(in)    :: iorig(:),ivar(:,:)
  integer(kind=1),  intent(in)    :: iphase(:)
  integer(kind=8),  intent(in)    :: iunique(:)
- real,             intent(in)    :: gamma
+ integer,          intent(inout) :: itry_array(-1:261)
+ real,             intent(in)    :: gamma,gtime
+ real(kind=8),     intent(in)    :: HY09bin_rho(:,:)
  character(len=*), intent(in)    :: encal
- integer                         :: ierrlist(n_warn)
- integer                         :: n,ipart
+ logical,          intent(in)    :: nicil_FatalOnly,pass_dust
+ integer                         :: ierrlist(n_warn),itry_array0(-1:261)
+ integer                         :: n,ipart,itry
  real                            :: Bi,temperature,ekclei
 
+ itry_array0 = 0
 !$omp parallel default(none) &
-!$omp shared(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz,trho,iphase,iunique,iorig,ivar) &
-!$omp shared(eta_nimhd,nden_nimhd,gamma,encal) &
-!$omp private(n,ipart,Bi,ekclei,temperature,ierrlist)
+!$omp shared(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz,trho,iphase,iunique,iorig,ivar,gtime) &
+!$omp shared(eta_nimhd,nden_nimhd,gamma,encal,nicil_FatalOnly,pass_dust,HY09bin_rho) &
+!$omp private(n,ipart,Bi,ekclei,temperature,itry,ierrlist) &
+!$omp reduction(+:itry_array0)
 !$omp do
  do n = nlst_in, nlst_tot
     ipart = ivar(3,n)
     if (iphase(ipart)==0) then
        Bi = dot_product(Bxyz(1:3,ipart),Bxyz(1:3,ipart))
        Bi = sqrt(Bi)
-       if (encal.EQ.'r') then
+       if (encal=='r') then
           ekclei = ekcle(3,ipart)
        else
           ekclei = 0.0
@@ -180,16 +188,36 @@ subroutine nimhd_get_eta(n1,n2,nlst_in,nlst_tot,vxyzu,ekcle,Bxyz,trho &
        temperature = nimhd_gastemp(encal,vxyzu(4,ipart),ekclei,real(trho(ipart)),gamma &
                                   ,n1,n2,iunique(iorig(ipart)))
        ierrlist = 0
-       call nicil_update_nimhd(2,eta_nimhd(1,ipart),eta_nimhd(2,ipart),eta_nimhd(3,ipart), &
-                               Bi,real(trho(ipart)),temperature,nden_nimhd(:,ipart),ierrlist)
-       if ( any(ierrlist > 0) ) then
-         call nicil_translate_error(ierrlist,.true.)
-         call quit(1)
+       if (pass_dust) then
+          call nicil_update_nimhd(0,eta_nimhd(1,ipart),eta_nimhd(2,ipart),eta_nimhd(3,ipart), &
+                                  Bi,real(trho(ipart)),temperature,nden_nimhd(:,ipart),ierrlist, &
+                                  itry=itry,fdg_in=real(HY09bin_rho(:,ipart)))
+       else
+          call nicil_update_nimhd(0,eta_nimhd(1,ipart),eta_nimhd(2,ipart),eta_nimhd(3,ipart), &
+                                  Bi,real(trho(ipart)),temperature,nden_nimhd(:,ipart),ierrlist,itry=itry)
+       endif
+
+       itry_array0(itry) = itry_array0(itry) + 1
+       if (nicil_FatalOnly) then
+          ! print only fatal messages and kill
+          if ( any(ierrlist > 0) .and. gtime > 0.) then
+            call nicil_translate_error(ierrlist,nicil_FatalOnly)
+            call quit(1)
+          endif
+       else
+          ! print all messages and kill if necessary
+          if ( any(ierrlist /= 0)  .and. gtime > 0.) then
+             call nicil_translate_error(ierrlist,nicil_FatalOnly,real(trho(ipart)),Bi,temperature, &
+                                        eta_nimhd(1,ipart),eta_nimhd(2,ipart),eta_nimhd(3,ipart), &
+                                        nden_nimhd(:,ipart),real(HY09bin_rho(:,ipart)))
+             if ( any(ierrlist >  0) ) call quit(1)
+          endif
        endif
     endif
  enddo
 !$omp enddo
 !$omp end parallel
+itry_array = itry_array + itry_array0
 
 end subroutine nimhd_get_eta
 !-----------------------------------------------------------------------
@@ -271,13 +299,12 @@ subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,jcurrent,rho,vsoun
  integer(kind=1),  intent(in)    :: iphase(:)
  character(len=*), intent(in)    :: encal
  integer,          intent(out)   :: np
+ real,             intent(in)    :: eta_nimhd(4,imhd2),nden_nimhd(:,:)
  real,             intent(out)   :: et,ev_data(0:inumev)
- real,             intent(out)   :: eta_nimhd(4,imhd2)
- real,             intent(inout) :: nden_nimhd(:,:)
  integer                         :: i,c0,c1,crate,cmax,iekcle
  integer                         :: ierrlist(n_warn)
  real                            :: rhoi,B2i,Bi,temperature,vsigi,v2i, &
-                                    etaart,etaart1,etaohm,etahall,etaambi,n_total,n_total1
+                                    etaart,etaart1,n_total,n_total1
  real                            :: vhalli(3),vdrifti(3),curlBi(3),data_out(n_data_out)
  real                            :: ev_data_thread(0:inumev)
  !
@@ -300,7 +327,7 @@ subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,jcurrent,rho,vsoun
 !$omp shared(ivelX,ivelA,ivelN,ivhallX,ivhallA,ivhallN,ivionX,ivionA,ivionN,ivdriftX,ivdriftA,ivdriftN) &
 !$omp shared(inenX,inenA,inenN,ineX,ineA,innX,innA) &
 !$omp shared(ingnX,ingnA,ingX,ingA,ingpX,ingpA,izetaA,izetaN) &
-!$omp private(i,rhoi,B2i,Bi,temperature,vsigi,etaart,etaart1,etaohm,etahall,etaambi,ierrlist) &
+!$omp private(i,rhoi,B2i,Bi,temperature,vsigi,etaart,etaart1,ierrlist) &
 !$omp private(curlBi,vhalli,vdrifti,v2i) &
 !$omp private(data_out,n_total,n_total1) &
 !$omp firstprivate(iekcle) &
@@ -318,10 +345,8 @@ subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,jcurrent,rho,vsoun
        if (encal=='r') iekcle = i
        curlBi = jcurrent(1:3,i)
        temperature = nimhd_gastemp(encal,vxyzu(4,i),ekcle(3,iekcle),rhoi,gamma,n1,n2,iunique(iorig(i)))
-       call nicil_update_nimhd(2,eta_nimhd(1,i),eta_nimhd(2,i),eta_nimhd(3,i), &
-                               Bi,rhoi,temperature,nden_nimhd(:,i),ierrlist,data_out)
-       call nicil_get_halldrift(etahall,Bxyz(1,i),Bxyz(2,i),Bxyz(3,i),curlBi,vhalli)
-       call nicil_get_ambidrift(etaambi,Bxyz(1,i),Bxyz(2,i),Bxyz(3,i),curlBi,vdrifti)
+       call nicil_get_halldrift(eta_nimhd(2,i),Bxyz(1,i),Bxyz(2,i),Bxyz(3,i),curlBi,vhalli)
+       call nicil_get_ambidrift(eta_nimhd(3,i),Bxyz(1,i),Bxyz(2,i),Bxyz(3,i),curlBi,vdrifti)
 
        vsigi = sqrt( dble(vsound(i))*dble(vsound(i)) + B2i/rhoi)
        if (ifsvi >= 6) then
@@ -338,37 +363,38 @@ subroutine nimhd_get_stats(imhd2,npart,xyzmh,vxyzu,ekcle,Bxyz,jcurrent,rho,vsoun
        call ev_update(ev_data_thread,temperature,      itX,   itA   ,itN   )
        call ev_update(ev_data_thread,etaart,           ietaFX,ietaFA)
        if (use_ohm) then
-          call ev_update(ev_data_thread,etaohm,        iohmX, iohmA, iohmN )
-          call ev_update(ev_data_thread,etaohm*etaart1,iohmfX,iohmfA,iohmfN)
+          call ev_update(ev_data_thread,eta_nimhd(1,i),        iohmX, iohmA, iohmN )
+          call ev_update(ev_data_thread,eta_nimhd(1,i)*etaart1,iohmfX,iohmfA,iohmfN)
        endif
        if (use_hall) then
-          call ev_update(ev_data_thread,    etahall,         ihallX,  ihallA,  ihallN  )
-          call ev_update(ev_data_thread,abs(etahall),        iahallX, iahallA, iahallN )
-          call ev_update(ev_data_thread,    etahall*etaart1, ihallfX, ihallfA, ihallfN )
-          call ev_update(ev_data_thread,abs(etahall)*etaart1,iahallfX,iahallfA,iahallfN)
-          call ev_update(ev_data_thread,sqrt(dot_product(vhalli,vhalli)),ivhallX,ivhallA,ivhallN)
+          call ev_update(ev_data_thread,    eta_nimhd(2,i),              ihallX,  ihallA,  ihallN  )
+          call ev_update(ev_data_thread,abs(eta_nimhd(2,i)),             iahallX, iahallA, iahallN )
+          call ev_update(ev_data_thread,    eta_nimhd(2,i)*etaart1,      ihallfX, ihallfA, ihallfN )
+          call ev_update(ev_data_thread,abs(eta_nimhd(2,i))*etaart1,     iahallfX,iahallfA,iahallfN)
+          call ev_update(ev_data_thread,sqrt(dot_product(vhalli,vhalli)),ivhallX, ivhallA, ivhallN )
 
        endif
        if (use_ambi) then
-          call ev_update(ev_data_thread,etaambi,        iambiX, iambiA, iambiN )
-          call ev_update(ev_data_thread,etaambi*etaart1,iambifX,iambifA,iambifN)
+          call ev_update(ev_data_thread,eta_nimhd(3,i),                    iambiX,  iambiA,  iambiN  )
+          call ev_update(ev_data_thread,eta_nimhd(3,i)*etaart1,            iambifX, iambifA, iambifN )
           call ev_update(ev_data_thread,sqrt(v2i),                         ivelX,   ivelA,   ivelN   )
           call ev_update(ev_data_thread,sqrt(dot_product(vdrifti,vdrifti)),ivdriftX,ivdriftA,ivdriftN)
        endif
 
-       n_total = data_out(8) + data_out(5)  ! n_electron + n_neutral
-       if (n_total > 0.) then
-          n_total1 = 1.0/n_total
-       else
-          n_total1 = 0.0         ! only possible if eta_constant = .true.
-       endif
-       eta_nimhd(4,i) = data_out(8)*n_total1    ! n_electron / (n_electron + n_neutral);  Save ionisation fraction for the dump file
-       call ev_update(ev_data_thread,data_out( 8)*n_total1,inenX,inenA,inenN)
-       call ev_update(ev_data_thread,data_out( 8),         ineX,   ineA     )
-       call ev_update(ev_data_thread,data_out( 5),         innX,   innA     )
-       call ev_update(ev_data_thread,data_out(20),         ingnX,  ingpA    )
-       call ev_update(ev_data_thread,data_out(21),         ingX,   ingA     )
-       call ev_update(ev_data_thread,data_out(22),         ingpX,  ingpA    )
+       !--data_out is no longer calculated here; this is left here in case we want to rea-dd it at a later date
+       !n_total = data_out(8) + data_out(5)  ! n_electron + n_neutral
+       !if (n_total > 0.) then
+       !   n_total1 = 1.0/n_total
+       !else
+       !   n_total1 = 0.0         ! only possible if eta_constant = .true.
+       !endif
+       !eta_nimhd(4,i) = data_out(8)*n_total1    ! n_electron / (n_electron + n_neutral);  Save ionisation fraction for the dump file
+       !call ev_update(ev_data_thread,data_out( 8)*n_total1,inenX,inenA,inenN)
+       !call ev_update(ev_data_thread,data_out( 8),         ineX,   ineA     )
+       !call ev_update(ev_data_thread,data_out( 5),         innX,   innA     )
+       !call ev_update(ev_data_thread,data_out(20),         ingnX,  ingpA    )
+       !call ev_update(ev_data_thread,data_out(21),         ingX,   ingA     )
+       !call ev_update(ev_data_thread,data_out(22),         ingpX,  ingpA    )
     endif
  enddo
 !$omp enddo
@@ -549,5 +575,71 @@ subroutine ev_update(evdata,val,iX,iA,iN)
  if (present(iN)) evdata(iN) = min(evdata(iN),val)
  !
 end subroutine ev_update
-!----------------------------------------------------------------------!
+!----------------------------------------------------------------
+!+
+!  wrapper initialisation routine since Fortran77 does not include optional arguments
+!+
+!----------------------------------------------------------------
+subroutine nicil_initialise_dust(utime,udist,umass,umagfd,HY09binsizes,HY09_ndust_bins,nicil_passdust,ierr)
+ use nicil, only: na,use_fdg_in
+ real,    intent(in)  :: utime,umass,udist,umagfd
+ integer, intent(in)  :: HY09_ndust_bins
+ integer, intent(out) :: ierr
+ real,    intent(in)  :: HY09binsizes(HY09_ndust_bins)
+ logical, intent(out) :: nicil_passdust
+ integer              :: i
+
+ if (HY09_ndust_bins /= na) then
+    print*, "NICIL & sphNG are using a different number of grains: ",na,HY09_ndust_bins
+    print*, "NICIL will use it's internal dust properties"
+    call nicil_initialise(utime,udist,umass,umagfd,ierr)
+ else
+    nicil_passdust = .true.
+    use_fdg_in     = .true.
+    call nicil_initialise(utime,udist,umass,umagfd,ierr,a_grain_cgs_in=HY09binsizes)
+    print*, "NICIL: Passing in dust properties from sphNG."
+    open(unit=74205,file='nicil_input_dust_sizes.dat')
+    do i = 1,HY09_ndust_bins
+       write(74205,*) i,HY09binsizes(i)
+    enddo
+    close(74205)
+ endif
+
+end subroutine nicil_initialise_dust
+!----------------------------------------------------------------
+!+
+!  wrapper routine for main call since Fortran77 does not include optional arguments
+!+
+!----------------------------------------------------------------
+subroutine nicil_update_nimhd_dust(icall,eta_ohm,eta_hall,eta_ambi, &
+                                   Bfield,rho,temperature,gtime,nden_save,fdg_in,nicil_FatalOnly,call_quit,ierrlist)
+ integer, intent(in)    :: icall
+ integer, intent(inout) :: ierrlist(n_warn)
+ real,    intent(out)   :: eta_ohm,eta_hall,eta_ambi
+ real,    intent(in)    :: Bfield,rho,temperature,gtime,fdg_in(:)
+ real,    intent(inout) :: nden_save(:)
+ logical, intent(in)    :: nicil_FatalOnly
+ logical, intent(out)   :: call_quit
+
+ call nicil_update_nimhd(icall,eta_ohm,eta_hall,eta_ambi,Bfield,rho,temperature,nden_save,ierrlist,fdg_in=fdg_in)
+ if (nicil_FatalOnly) then
+    ! print only fatal messages and kill
+    if ( any(ierrlist > 0) .and. gtime > 0.) then
+       call nicil_translate_error(ierrlist,nicil_FatalOnly,rho=rho,T=temperature,fdg_in=fdg_in)
+       print*, 'nicilsup',fdg_in
+       call_quit = .true.
+    endif
+ else
+    ! print all messages and kill if necessary
+    if ( any(ierrlist /= 0)  .and. gtime > 0.) then
+       call nicil_translate_error(ierrlist,nicil_FatalOnly,rho=rho,T=temperature,fdg_in=fdg_in)
+       if ( any(ierrlist >  0) ) call_quit = .true.
+       print*, 'nicilsup',fdg_in
+       call_quit = .true.
+    endif
+ endif
+
+end subroutine nicil_update_nimhd_dust
+!----------------------------------------------------------------
+
 end module nicil_sup

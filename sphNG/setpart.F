@@ -69,6 +69,10 @@ c************************************************************
       INCLUDE 'COMMONS/potent'
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/dustfluid'
+      INCLUDE 'COMMONS/HY09dustprops'
+#ifdef NONIDEAL
+      INCLUDE 'COMMONS/nonideal'
+#endif
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
@@ -1516,7 +1520,7 @@ c            print*,'rho(medium) = ',rhozero/rhocontrast,rhozero
                ENDIF
             END DO
          ENDIF
-99039    FORMAT ('ERROR: Nivil v2.1 has not been tested with MPI')
+99039    FORMAT ('ERROR: Nicil v2.1 has not been tested with MPI')
 c
 c--check external pressure matches uniform pressure
 c  (or set so that it does so)
@@ -2352,7 +2356,25 @@ c
 c
 c--Set dust distribution for HY09 dust
 c
-      IF (idimHY09.EQ.idim) CALL hy09dustset(npart)
+      IF (idimHY09.EQ.idim) THEN
+         CALL hy09dustset(npart)
+#ifdef NONIDEAL
+c        HY09binsizes is already in cm
+         nicil_passdust = .FALSE.
+         CALL nicil_initialise_dust(utime,udist,umass,umagfd,
+     &                              HY09binsizes,HY09_ndust_bins,
+     &                              nicil_passdust,ierr)
+         IF (ierr.NE.0) THEN
+            WRITE (*, 99037)
+            CALL quit(0)
+         ENDIF
+#ifdef MPI
+         WRITE (*, 99039)
+         CALL quit(0)
+#endif
+#endif
+      ENDIF
+99037  FORMAT ('ERROR: Nicil error in setup')
 c
 c--Zero external magnetic field for non-MHD
 c

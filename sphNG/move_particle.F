@@ -64,6 +64,8 @@ c************************************************************
       INCLUDE 'COMMONS/HY09check'
       INCLUDE 'COMMONS/HY09accel'
 
+      IF (ito.EQ.ifrom) RETURN
+
       DO i = 1, 5
          xyzmh(i,ito) = xyzmh(i,ifrom)
          dumxyzmh(i,ito) = dumxyzmh(i,ifrom)

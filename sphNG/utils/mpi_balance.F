@@ -146,7 +146,7 @@ c--Need to define nactive for balance 'b' to work properly.
 c     
       nactive = npart
 
-      CALL balance
+      CALL balance(0)
 c
 c--Write out new dump file
 c

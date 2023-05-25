@@ -1,4 +1,4 @@
-      SUBROUTINE balance
+      SUBROUTINE balance(imaketree)
 c************************************************************
 c                                                           *
 c  Subroutine to load balance job across MPI processes      *
@@ -142,6 +142,8 @@ c     to each process.
 c
       CALL maketransferlist(npart,numlist,listtrans,xyzmh,iphase)
 
+      print *,iproc,': FIN maketransferlist ',npart,numlist
+
       numlistmax = 0
       DO ii = 1, numproc
          IF (ii.NE.iproc) numlistmax = MAX(numlistmax,numlist(ii))
@@ -195,7 +197,7 @@ c
 #endif
 
       IF (npartnew + numrecvtotal.GT.idim) THEN
-         WRITE (*,*) 'ERROR - npartnew + numrecvtotal.GT.idim ',
+         WRITE (*,*) iproc,': ERROR - npartnew + numrecvtotal.GT.idim ',
      &        npartnew, numrecvtotal, idim
          CALL quit(1)
       ENDIF
@@ -2087,7 +2089,7 @@ c     an equivalent program that is modifying a starting dump file.
 c     In this case, the timesteps are not set and there is no need to
 c     make ghosts or the tree, so balance.F simply returns.
 c
-      IF (gt.EQ.0.) RETURN
+      IF (gt.EQ.0. .OR. imaketree.EQ.0) RETURN
 
       DO i = 1, nbinmax
          nlstbins(i) = 0
@@ -2631,8 +2633,9 @@ c
  750              CONTINUE
                END DO
 
-               print *,iproc,' BAL found ',nfound,' for ',number,
-     &              idimension
+               WRITE (*,88001) iproc, nfound, number,
+     &              idimension_now, nactive
+88001       FORMAT(I3,' BAL found ',I7,' for ',I4,1X,I2,' of nact=',I7)
 c
 c--Find total actual number of particles in this zone
 c
@@ -2641,6 +2644,11 @@ c
                      CALL MPI_RECV(nfoundremote, 1, MPI_INTEGER,
      &                    MPI_ANY_SOURCE, 161, MPI_COMM_WORLD, 
      &                    istatus, ierr)
+c                     IF (idone.EQ.1) THEN
+c                        print *,'Remote: ',nfoundremote,
+c     &                       ' from ',istatus(MPI_SOURCE),
+c     &                       ' while doing ',i,number
+c                     ENDIF
                      nfound = nfound + nfoundremote
                   END DO
 
@@ -2650,23 +2658,34 @@ c
      &                 MPI_COMM_WORLD,ierr)
                ENDIF
 c
+c--Final double check
+c             
+               IF (idone.EQ.1) THEN
+                  WRITE (*,88001) iproc, nfound, number,
+     &                 idimension_now, nactive
+                  GOTO 800
+               ENDIF
+c
 c--Modify region to try and get closer to target
 c
                IF (iproc.EQ.0) THEN
-                  IF (nfound.GT.ntarget) THEN
-                     searchxyzmin(idimension_now) = 
-     &                    searchxyzmin(idimension_now) + dx
+                  IF (nfound.EQ.ntarget .OR. dx.LT.1.0E-10) THEN
+                     idone = 1
                   ELSE
-                     searchxyzmin(idimension_now) = 
-     &                    searchxyzmin(idimension_now) - dx
+                     IF (nfound.GT.ntarget) THEN
+                        searchxyzmin(idimension_now) = 
+     &                       searchxyzmin(idimension_now) + dx
+                     ELSE
+                        searchxyzmin(idimension_now) = 
+     &                       searchxyzmin(idimension_now) - dx
+                     ENDIF
+                     dx = dx/2.0
+
+                     nfoundlast = nfound
+
+                     print *,iproc,' BAL new',
+     &                    searchxyzmin(idimension_now),idimension_now
                   ENDIF
-                  dx = dx/2.0
-
-                  IF (nfound.EQ.ntarget .OR. dx.LT.1.0E-10) idone = 1
-                  nfoundlast = nfound
-
-                  print *,iproc,' BAL new',
-     &                 searchxyzmin(idimension_now),idimension_now
                ENDIF
 
                CALL MPI_BCAST(idone,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)

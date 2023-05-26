@@ -69,6 +69,7 @@ c************************************************************
       INCLUDE 'COMMONS/nonideal'
       INCLUDE 'COMMONS/varmhd'
       INCLUDE 'COMMONS/vargam'
+      INCLUDE 'COMMONS/HY09dustprops'
 #endif
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/lyonfiles'
@@ -165,10 +166,10 @@ c         CALL appendiproc(21,reassfile,iproc)
      &           ACTION='write', FORM='unformatted')
             OPEN (ireasspr, FILE=reassfile, STATUS='replace',
      &           ACTION='write', FORM='unformatted')
-         ENDIF
-         IF (irotpot.EQ.1)
-     &        OPEN (ikillpr, FILE=killfile, STATUS='replace',
+         ELSEIF (irotpot.EQ.1) THEN
+              OPEN (ikillpr, FILE=killfile, STATUS='replace',
      &        ACTION='write', FORM='unformatted')
+         ENDIF
 c
 c--Open notify file
 c
@@ -827,16 +828,33 @@ c
 c--Initialise non-ideal MHD
 c
 #ifdef NONIDEAL
-      CALL nicil_initialise(utime,udist,umass,umagfd,ierr)
+      nicil_passdust = .FALSE.
+      IF (idimHY09.EQ.idim) THEN
+         CALL nicil_initialise_dust(utime,udist,umass,umagfd,
+     &                              HY09binsizes,HY09_ndust_bins,
+     &                              nicil_passdust,ierr)
+
+      ELSE
+         CALL nicil_initialise(utime,udist,umass,umagfd,ierr)
+      ENDIF
       IF (ierr/=0) CALL quit(0)
       CALL nimhd_init_gastemp(Rg,gamma,gam,gamdh,gamah,uergg
      &                       ,rhocrit,rhocrit2,rhocrit3)
       eta_nimhd  = 0.0
       nden_nimhd = 0.0
+      itry_array = 0
       WRITE (nimhdfile,99994) namerun
 99994 FORMAT ('N', A20)
 #ifdef MPI
       iproc_in = iproc
+      print*, 'preset.F:'
+      print*, 'Since upgrading to permit coupled dust coagulation'
+      print*, 'with nicil, this has not been tested with MPI'
+      print*, 'During this upgrade, all the non-ideal terms have'
+      print*, 'been reverted from real*8 to real.  I am unsure why'
+      print*, 'they were real*8 to begin with.... .'
+      print*, 'Aborting until properly tested.'
+      CALL quit(0)
 #else
       iproc_in = 0
 #endif

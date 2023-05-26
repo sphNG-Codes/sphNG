@@ -42,7 +42,7 @@ c************************************************************
       INCLUDE 'COMMONS/stellarradiation'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
-      REAL*8  jcurrenti(3),nden_nimhdi(n_nden),eta_nimhdi(4)
+      REAL    jcurrenti(3),nden_nimhdi(n_nden),eta_nimhdi(4)
 #endif
 
       CHARACTER*7 where

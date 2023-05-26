@@ -2,8 +2,9 @@
       use nicil, only: nicil_update_nimhd
       use nicil, only: nimhd_get_jcbcb,nimhd_get_dBdt
       use nicil, only: nicil_get_dudt_nimhd, nicil_get_dt_nimhd
-      use nicil, only: n_nden,n_warn
+      use nicil, only: na,n_data_out,n_nden,n_warn
       use nicil_sup, only: nimhd_init_gastemp,nimhd_gastemp
       use nicil_sup, only: nimhd_get_eta,energ_nimhd
       use nicil_sup, only: nimhd_write_evheader,nimhd_write_ev
       use nicil_sup, only: inumev,nimhd_get_stats
+      use nicil_sup, only: nicil_initialise_dust,nicil_update_nimhd_dust

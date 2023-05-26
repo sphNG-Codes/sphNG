@@ -803,6 +803,25 @@ masswithtime: checksystem checkparams utils/masswithtime.o utils/readdump_sphNG.
 printkernel: checksystem checkparams $(OBJKERNEL) utils/printkernel.o
 	$(FC) $(FFLAGS) -o $@ $(OBJKERNEL) utils/printkernel.o
 
+# Additional analysis routines by JHW; see header of each file for description & insrictions
+jhw_print_sinkorigin: checksystem checkparams utils/jhw_print_sinkorigin.o error.o rdump.o
+	$(FC) $(FFLAGS) -o $@ utils/jhw_print_sinkorigin.o error.o rdump.o
+
+jhw_moddump_CoM: checksystem checkparams utils/jhw_moddump_CoM.o utils/jhw_commons.F indexx.o wdump.o rdump.o error.o file.o options.o chekopt.o
+	$(FC) $(FFLAGS) -o $@ utils/jhw_moddump_CoM.o utils/jhw_commons.F indexx.o wdump.o rdump.o error.o file.o options.o chekopt.o
+
+jhw_calc_Mach: checksystem checkparams utils/jhw_calc_Mach.o utils/jhw_commons.o indexx.o error.o rdump.o
+	$(FC) $(FFLAGS) -o $@ utils/jhw_calc_Mach.o utils/jhw_commons.o indexx.o error.o rdump.o
+
+jhw_calc_etaNden: checksystem checkparams utils/jhw_calc_etaNden.o utils/jhw_commons.o indexx.o hy09dustset.o rdump.o error.o options.o chekopt.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o)
+	$(FC) $(FFLAGS) -o $@ utils/jhw_calc_etaNden.o utils/jhw_commons.o indexx.o hy09dustset.o rdump.o error.o options.o chekopt.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o)
+
+jhw_create_stellarICs: checksystem checkparams utils/jhw_create_stellarICs.o utils/jhw_commons.o getcv.o ran1.o getkappa.o indexx.o wdump.o rdump.o error.o file.o options.o chekopt.o
+	$(FC) $(FFLAGS) -o $@ utils/jhw_create_stellarICs.o utils/jhw_commons.o getcv.o ran1.o getkappa.o indexx.o wdump.o rdump.o error.o file.o options.o chekopt.o
+
+jhw_calc_stellarICs: checksystem checkparams utils/jhw_calc_stellarICs.o utils/jhw_commons.o indexx.o error.o rdump.o
+	$(FC) $(FFLAGS) -o $@ utils/jhw_calc_stellarICs.o utils/jhw_commons.o indexx.o error.o rdump.o
+
 # set up particle distribution without using entire SPH executable
 
 setup_alone: checksystem checkparams utils/setup_alone.o wdump.o error.o file.o chekopt.o setpart.o $(OBJKERNEL) unifdis.o condense.o cartmas.o cylmas.o sphmas.o cartdis.o cyldis.o sphdis.o cartpres.o cylpres.o sphpres.o eospg.o setBfield_mhd.o inopts.o cartvel.o cylvel.o sphvel.o gapfactor.o uset.o wrinsph.o ran1.o unit.o $(ZZFILE:.f=.o)

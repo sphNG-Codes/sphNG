@@ -302,6 +302,7 @@ c
      &     .AND. initialptm.EQ.0)) THEN
          READ (iterm, *) planetmass
          READ (iterm, *) rplanet
+         READ (iterm, *) rorbit_orig
          IF (iexf.EQ.7) THEN
             READ (iterm, *) iandrea
             READ (iterm, *) eccentricity_p

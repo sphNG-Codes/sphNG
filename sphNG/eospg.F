@@ -6,9 +6,6 @@ c     according to a perfect gas equation of state          *
 c                                                           *
 c************************************************************
 
-#ifdef NONIDEAL
-      INCLUDE 'COMMONS/nicil_subs'
-#endif
       INCLUDE 'idim'
 
       REAL*4 rho,pr,vsound
@@ -26,15 +23,9 @@ c************************************************************
       INCLUDE 'COMMONS/physeos'
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/bodys'
-#ifdef NONIDEAL
-      INCLUDE 'COMMONS/nonideal'
-      INTEGER ierrlist(n_warn)
-#endif
 
       CHARACTER*7 where
       REAL*4 rho_gas_r4
-      REAL   rdummy(4)
-
       DATA where/'eospg'/
 
       gama1 = gamma - 1.
@@ -174,28 +165,6 @@ c
 99500    FORMAT ('encal = ',A1)
          CALL error(where,1)
       ENDIF
-#ifdef NONIDEAL
-c
-c--Calculate number densities for non-ideal MHD 
-c  (must be updated every time temperature or density is modified)
-c  (use getvc rather than ekcle since that is the method used above)
-c
-      IF (encal.EQ.'r') THEN
-c        ekclei = ekcle(3,ipart)
-         ekclei = getcv(rho_gas_r4,vxyzu(4,ipart))
-      ELSE
-         ekclei = 0.0
-      ENDIF
-      temperature = nimhd_gastemp(encal,vxyzu(4,ipart),ekclei,rho_gas
-     &                           ,gamma,n1,n2,iunique(iorig(ipart)))
-      ierrlist = 0
-      CALL nicil_update_nimhd(1,rdummy(1),rdummy(2),rdummy(3),rdummy(4),
-     &         rho_gas,temperature,nden_nimhd(1:n_nden,ipart),ierrlist)
-      IF ( any(ierrlist > 0) ) THEN
-         CALL nicil_translate_error(ierrlist,.true.)
-         CALL quit(1)
-      ENDIF
-#endif
 
       RETURN
       END

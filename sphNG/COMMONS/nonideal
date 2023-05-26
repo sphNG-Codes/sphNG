@@ -1,11 +1,20 @@
-      INTEGER      np_nimhd
-      REAL*8       jcurrent,eta_nimhd,nden_nimhd
-      REAL*8       et_nimhd,evdata
+      INTEGER      np_nimhd,itry_array
+      REAL         jcurrent,eta_nimhd,nden_nimhd
+      REAL         et_nimhd,evdata
       CHARACTER*25 nimhdfile
-      COMMON / NIrealA / jcurrent(3,imhd2),eta_nimhd(4,imhd2)
-      COMMON / NIrealB / nden_nimhd(n_nden,imhd2)
+      LOGICAL      nicil_FatalOnly,nicil_passdust
+
+      PARAMETER (nicil_FatalOnly = .TRUE.)
+
+      COMMON / NIreal  / jcurrent(3,imhd2),nden_nimhd(n_nden,imhd2)
+     &                  ,eta_nimhd(4,imhd2)
       COMMON / NIchar  / nimhdfile
-      COMMON / NIinfoI / np_nimhd
+      COMMON / NIlog   / nicil_passdust
+      COMMON / NIinfoI / np_nimhd,itry_array(-1:261)
       COMMON / NIinfoR / et_nimhd,evdata(0:99)
+
 c NOTE: evdata(0:inumev), thus ensure that the second number matches inumev
 c NOTE: eta_nimhd==(ohmic,hall,ambi,n_i/(n_n+n_i))
+c NOTE: if the nden_nimhd array is too large, manually replace n_nden with 1 and modify
+c       nimhd_get_eta such that we are passing a array of zeros into nicil_update_nimhd
+c       rather than the correct element of this array

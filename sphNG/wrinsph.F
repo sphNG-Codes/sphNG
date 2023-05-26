@@ -258,6 +258,8 @@ c
 88043    FORMAT(2X,1PE15.8,'  Planet Mass')
          WRITE (iterm, 88045) rplanet
 88045    FORMAT(2X,1PE12.5,'  Planet Radius')
+         WRITE (iterm, 88047) rorbit_orig
+88047    FORMAT(2X,1PE12.5,'  Planet Orbital Radius')
          IF (iexf.EQ.7) THEN
             WRITE (iterm, 88145) iandrea
 88145       FORMAT(2X,I2,'  Include planetesimal heating')
@@ -269,8 +271,8 @@ c
       ENDIF
 
       IF ((ibound.EQ.102 .OR. ibound.EQ.103) .AND. initialptm.EQ.5) THEN
-88047       FORMAT(2X,1PE12.5,'  Uniform Timestep radius')
-            WRITE (iterm, 88047) uniformtslim
+88247       FORMAT(2X,1PE12.5,'  Uniform Timestep radius')
+            WRITE (iterm, 88247) uniformtslim
       ENDIF
 
       IF (iptmass.NE.0 .OR. nptmasstot.NE.0) THEN

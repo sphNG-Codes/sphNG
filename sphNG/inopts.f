@@ -70,6 +70,7 @@ c  (and should contain this line)
       omeg0 = 0.
       IF (ifcor.NE.0) THEN
          READ (iterm, *) omeg0
+         omeg0 = omeg0*utime
       ENDIF
       vexpan = 0.
       IF (iexpan.NE.0) THEN

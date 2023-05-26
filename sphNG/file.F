@@ -50,7 +50,7 @@ c      CLOSE (idisk1)
 
 c  Do not increment the name on initialization. Needed for MPI set ups to match
 c     non-MPI.
-      IF (job(1:7).NE.'initial') THEN
+      IF (job(1:7).NE.'initial' .AND. job(1:8).NE.'makedust') THEN
          CALL increment_dump_filename(file1)
       ENDIF
 

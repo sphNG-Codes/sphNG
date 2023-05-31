@@ -699,7 +699,6 @@ c
          IF (domain_checking) THEN
             domain_extent =  1E30
             de_cs_gas     =  1E30
-            de_cs_star    =  1E30
          ENDIF
 #endif
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -712,7 +711,7 @@ C$OMP& shared(pdvvisc,iflagtree,alphamin,radkernel)
 C$OMP& shared(dustvar,dumdustvar,f1dust)
 C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt)
 #ifdef MPI
-C$OMP& reduction(MIN:domain_extent,de_cs_gas,de_cs_star)
+C$OMP& reduction(MIN:domain_extent,de_cs_gas)
 #endif
 C$OMP& private(j,k,l,deltat,rcs,xyzkj)
       DO j = 1, npart
@@ -737,12 +736,9 @@ C$OMP& private(j,k,l,deltat,rcs,xyzkj)
                   xyzkj = dumxyzmh(k,j)
                   domain_extent(k) = MIN(domain_extent(k),xyzkj)
                   domain_extent(l) = MIN(domain_extent(l),-xyzkj)
-                  IF (iphase(j) .EQ. 0) THEN
+                  IF (iphase(j) .EQ. 0 .OR. iphase(j) .GT. 10) THEN
                      de_cs_gas(k) = MIN(de_cs_gas(k),xyzkj-rcs)
                      de_cs_gas(l) = MIN(de_cs_gas(l),rcs-xyzkj)
-                  ELSEIF (iphase(j) .GE. 10) THEN
-                     de_cs_star(k) = MIN(de_cs_star(k),xyzkj-rcs)
-                     de_cs_star(l) = MIN(de_cs_star(l),rcs-xyzkj)
                   ENDIF
                ENDIF
 #endif
@@ -809,7 +805,7 @@ C$OMP& shared(pdvvisc,iflagtree,alphamin,radkernel)
 C$OMP& shared(dustvar,dumdustvar,f1dust)
 C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt)
 #ifdef MPI
-C$OMP& reduction(MIN:domain_extent,de_cs_gas,de_cs_star)
+C$OMP& reduction(MIN:domain_extent,de_cs_gas)
 #endif
 C$OMP& private(j,k,l,ipart,deltat,rcs,xyzkj)
                DO j = 1, nlstbins(i)
@@ -835,12 +831,10 @@ C$OMP& private(j,k,l,ipart,deltat,rcs,xyzkj)
                          xyzkj = dumxyzmh(k,ipart)
                          domain_extent(k) = MIN(domain_extent(k),xyzkj)
                          domain_extent(l) = MAX(domain_extent(l),-xyzkj)
-                         IF (iphase(ipart) .EQ. 0) THEN
+                         IF (iphase(ipart) .EQ. 0 .OR.
+     &                        iphase(ipart) .GE. 10) THEN
                             de_cs_gas(k) = MIN(de_cs_gas(k),xyzkj-rcs)
                             de_cs_gas(l) = MAX(de_cs_gas(l),rcs-xyzkj)
-                         ELSEIF (iphase(ipart) .GE. 10) THEN
-                            de_cs_star(k) = MIN(de_cs_star(k),xyzkj-rcs)
-                            de_cs_star(l) = MAX(de_cs_star(l),rcs-xyzkj)
                          ENDIF
                         ENDIF
 #endif
@@ -1186,7 +1180,7 @@ C$OMP& private(delax,delay,extraxt,extrayt,extraxg,extrayg)
 C$OMP& private(extraxp,extrayp,extraxv,extrayv,dtf22dtfull)
 C$OMP& private(iii,pmasspt,l,rcs,xyzki)
 #ifdef MPI
-C$OMP& reduction(MIN:domain_extent,de_cs_gas,de_cs_star)
+C$OMP& reduction(MIN:domain_extent,de_cs_gas)
 #endif
 C$OMP& reduction(+:ioutmax)
       DO j = 1, nlst0
@@ -1374,12 +1368,9 @@ c
                   xyzki = xyzmh(k,i)
                   domain_extent(k) = MIN(domain_extent(k),xyzki)
                   domain_extent(l) = MAX(domain_extent(l),-xyzki)
-                  IF (iphase(i) .EQ. 0) THEN
+                  IF (iphase(i) .EQ. 0 .OR. iphase(i) .GE. 10) THEN
                      de_cs_gas(k) = MIN(de_cs_gas(k),xyzki-rcs)
                      de_cs_gas(l) = MAX(de_cs_gas(l),rcs-xyzki)
-                  ELSEIF (iphase(i) .GE. 10) THEN
-                     de_cs_star(k) = MIN(de_cs_star(k),xyzki-rcs)
-                     de_cs_star(l) = MAX(de_cs_star(l),rcs-xyzki)
                   ENDIF
                ENDDO
             ENDIF
@@ -1617,7 +1608,6 @@ c
          IF (domain_checking) THEN
             domain_extent(1:3) =  1E30
             de_cs_gas(1:3)     =  1E30
-            de_cs_star(1:3)    =  1E30
          ENDIF
 #endif
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -1630,7 +1620,7 @@ C$OMP& shared(pdvvisc,iflagtree,alphamin,radkernel)
 C$OMP& shared(dustvar,dumdustvar,f1dust)
 C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt)
 #ifdef MPI
-C$OMP& reduction(MIN:domain_extent,de_cs_gas,de_cs_star)
+C$OMP& reduction(MIN:domain_extent,de_cs_gas)
 #endif
 C$OMP& private(j,k,l,deltat,rcs,xyzkj)
       DO j = 1, npart
@@ -1655,12 +1645,9 @@ C$OMP& private(j,k,l,deltat,rcs,xyzkj)
                   xyzkj = dumxyzmh(k,j)
                   domain_extent(k) = MIN(domain_extent(k),xyzkj)
                   domain_extent(l) = MAX(domain_extent(l),-xyzkj)
-                  IF (iphase(j) .EQ. 0) THEN
+                  IF (iphase(j) .EQ. 0 .OR. iphase(j) .GE. 10) THEN
                      de_cs_gas(k) = MIN(de_cs_gas(k),xyzkj-rcs)
                      de_cs_gas(l) = MAX(de_cs_gas(l),rcs-xyzkj)
-                  ELSEIF (iphase(j) .GE. 10) THEN
-                     de_cs_star(k) = MIN(de_cs_star(k),xyzkj-rcs)
-                     de_cs_star(l) = MAX(de_cs_star(l),rcs-xyzkj)
                   ENDIF
                ENDIF
 #endif
@@ -1726,7 +1713,7 @@ C$OMP& shared(pdvvisc,iflagtree,alphamin,radkernel)
 C$OMP& shared(dustvar,dumdustvar,f1dust)
 C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt)
 #ifdef MPI
-C$OMP& reduction(MIN:domain_extent,de_cs_gas,de_cs_star)
+C$OMP& reduction(MIN:domain_extent,de_cs_gas)
 #endif
 C$OMP& private(j,k,l,ipart,deltat,rcs,xyzkj)
                DO j = 1, nlstbins(i)
@@ -1752,12 +1739,10 @@ C$OMP& private(j,k,l,ipart,deltat,rcs,xyzkj)
                          xyzkj = dumxyzmh(k,ipart)
                          domain_extent(k) = MIN(domain_extent(k),xyzkj)
                          domain_extent(l) = MAX(domain_extent(l),-xyzkj)
-                         IF (iphase(ipart) .EQ. 0) THEN
+                         IF (iphase(ipart) .EQ. 0 .OR.
+     &                        iphase(ipart) .GE. 10) THEN
                             de_cs_gas(k) = MIN(de_cs_gas(k),xyzkj-rcs)
                             de_cs_gas(l) = MAX(de_cs_gas(l),rcs-xyzkj)
-                         ELSEIF (iphase(ipart) .GE. 10) THEN
-                            de_cs_star(k) = MIN(de_cs_star(k),xyzkj-rcs)
-                            de_cs_star(l) = MAX(de_cs_star(l),rcs-xyzkj)
                          ENDIF
                         ENDIF
 #endif

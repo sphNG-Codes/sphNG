@@ -124,7 +124,7 @@ c     that are neighbours of active particles for updating their densities etc
       LOGICAL*1 isend(idim)
       INTEGER*8 iuniquesend(iptdim)
 
-      REAL de_all(6,numproc),csgas_all(6,numproc),csstar_all(6,numproc)
+      REAL de_all(6,numproc),csgas_all(6,numproc)
       REAL csbuff(numproc),dvxyzuinit(4,idim)
       INTEGER idispranks(numproc),ipsendbuf(numproc*numproc)
       INTEGER ipsendall(numproc,numproc),ipsendindx(numproc)
@@ -298,18 +298,12 @@ c     applies to the entirety of each array in step.
          DO k=4,6
             domain_extent(k) = -domain_extent(k)
             de_cs_gas(k) = -de_cs_gas(k)
-            de_cs_star(k) = -de_cs_star(k)
          ENDDO
          
          CALL MPI_ALLGATHER(domain_extent,6,MPI_REAL8,
      &        de_all,6,MPI_REAL8,MPI_COMM_WORLD,ierr)
          CALL MPI_ALLGATHER(de_cs_gas,6,MPI_REAL8,
      &        csgas_all,6,MPI_REAL8,MPI_COMM_WORLD,ierr)
-c--future commit will deal with stars/dust
-         IF (.FALSE.) THEN
-            CALL MPI_ALLGATHER(de_cs_star,6,MPI_REAL8,
-     &           csstar_all,6,MPI_REAL8,MPI_COMM_WORLD,ierr)
-         ENDIF
 
          nprocsend = 0
          ipsendindx = 0
@@ -405,7 +399,6 @@ c--reverse second half of domain extent arrays again
          DO k=4,6
             domain_extent(k) = -domain_extent(k)
             de_cs_gas(k) = -de_cs_gas(k)
-            de_cs_star(k) = -de_cs_star(k)
          ENDDO
 
 c--have to re-order MPI comms if any rank has changed its send list         

@@ -13,11 +13,10 @@ c--set domain extent coordinates
       
       domain_extent =  1E30
       de_cs_gas     =  1E30
-      de_cs_star    =  1E30
 
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,iphase,xyzmh,radkernel)
-C$OMP& reduction(MIN:domain_extent,de_cs_gas,de_cs_star)
+C$OMP& reduction(MIN:domain_extent,de_cs_gas)
 C$OMP& private(i,k,l,rcs,xyzki,iphasei)
       DO i=1,npart
          iphasei = iphase(i)
@@ -28,12 +27,9 @@ C$OMP& private(i,k,l,rcs,xyzki,iphasei)
                xyzki = xyzmh(k,i)
                domain_extent(k) = MIN(domain_extent(k),xyzki)
                domain_extent(l) = MIN(domain_extent(l),-xyzki)
-               IF (iphasei .EQ. 0) THEN
+               IF (iphasei .EQ. 0 .OR. iphasei .GE. 10) THEN
                   de_cs_gas(k) = MIN(de_cs_gas(k),xyzki-rcs)
                   de_cs_gas(l) = MIN(de_cs_gas(l),rcs-xyzki)
-               ELSEIF (iphasei .GE. 10) THEN
-                  de_cs_star(k) = MIN(de_cs_star(k),xyzki-rcs)
-                  de_cs_star(l) = MIN(de_cs_star(l),rcs-xyzki)
                ENDIF
             ENDDO
          ENDIF

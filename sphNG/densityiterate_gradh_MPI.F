@@ -125,11 +125,13 @@ c     that are neighbours of active particles for updating their densities etc
       INTEGER*8 iuniquesend(iptdim)
 
       REAL de_all(6,numproc),csgas_all(6,numproc)
+      REAL de_act(6),csgas_act(6),deact_all(6,numproc)
       REAL csbuff(numproc),dvxyzuinit(4,idim)
       INTEGER idispranks(numproc),ipsendbuf(numproc*numproc)
       INTEGER ipsendall(numproc,numproc),ipsendindx(numproc)
       INTEGER listdistantgn(ngrav_nodes),listsendgn(ngrav_nodes)
-      LOGICAL order_comms
+      INTEGER nlstdoall(numproc)
+      LOGICAL order_comms,igravreverse,igravrevrec
 #endif
 
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
@@ -186,6 +188,10 @@ c     their correct smoothing length and density set.
 c
       nlstdo = 0
       nptmasssend = 0
+      IF (domain_checking) THEN
+         de_act = 1E30
+         csgas_act = 1E30
+      ENDIF
       DO n = nlst_in, nlst_end
          ipart = listp(n)
          IF (iphase(ipart).GE.0) THEN
@@ -195,6 +201,20 @@ c
             IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
                nptmasssend = nptmasssend + 1
                iuniquesend(nptmasssend) = iunique(iorig(ipart))
+            ENDIF
+            IF (domain_checking) THEN
+               rcs = csgrowthlim * radkernel * xyzmh(5,ipart)
+               DO k = 1, 3
+                  l = k + 3
+                  xyzki = xyzmh(k,ipart)
+                  de_act(k) = MIN(de_act(k),xyzki)
+                  de_act(l) = MIN(de_act(l),-xyzki)
+                  IF (iphase(ipart) .EQ. 0 .OR.
+     &                 iphase(ipart) .GT. 10) THEN
+                     csgas_act(k) = MIN(csgas_act(k),xyzki-rcs)
+                     csgas_act(l) = MIN(csgas_act(l),rcs-xyzki)
+                  ENDIF
+               ENDDO
             ENDIF
 #endif
          ENDIF
@@ -296,7 +316,12 @@ c     others will receive gravity nodes instead (if igphi.EQ.1)
      &        de_all,6,MPI_REAL8,MPI_COMM_WORLD,ierr)
          CALL MPI_ALLGATHER(de_cs_gas,6,MPI_REAL8,
      &        csgas_all,6,MPI_REAL8,MPI_COMM_WORLD,ierr)
+         CALL MPI_ALLGATHER(de_act,6,MPI_REAL8,
+     &        deact_all,6,MPI_REAL8,MPI_COMM_WORLD,ierr)
 
+         CALL MPI_ALLGATHER(nlstdo,1,MPI_INTEGER,
+     &        nlstdoall,1,MPI_INTEGER,MPI_COMM_WORLD,ierr)
+         
          nprocsend = 0
          ipsendindx = 0
          nldistantgn = 0
@@ -305,27 +330,69 @@ c--pairwise sendrecv
          DO ii=1,numproc-1
             ipair = ipairwiseall(ii)
             i = ipair + 1
-            cdist2 = MIN(cuboid_dist2(de_cs_gas,de_all(1:6,i)),
-     &           cuboid_dist2(domain_extent,csgas_all(1:6,i)))
+                        nlstdopair = nlstdoall(i)
+c--if > 0 active particles, does target rank have potential neighbours?
+            IF (nlstdo .GT. 0) THEN
+               cdist2 = MIN(cuboid_dist2(de_act,csgas_all(1:6,i)),
+     &              cuboid_dist2(csgas_act,de_all(1:6,i)))
+c--will need to send gravity nodes if not recieving particles
+            ELSEIF (nlstdopair .GT. 0) THEN
+               cdist2 = 1E30
+            ELSE
+c--no particles active locally or on target rank so nothing to do
+               CYCLE
+            ENDIF
             IF (cdist2 .LT. tiny) THEN
-c--neighbouring rank so add it to list to send particles to
+c--potential neighbours so add rank to list to send particles to
                nprocsend = nprocsend + 1
                ipsendindx(nprocsend) = i
-               CYCLE
-            ELSEIF (igphi .EQ. 1) THEN
-               idatsend = 0
-c--otherwise send gravity nodes in other direction
-               CALL grav_only_treef(de_all(1:6,i),xyzmh,acc,
-     &              npartsend,nbothsend,listsendgn(:),0.0)
-               IF (npartsend .GT. 0) THEN
-c--cannot send particle data so send all particless on rank
-c     this case probably arise with diagonally adjacent domains
-                  idatsend = 1
+               igravreverse = .FALSE.
+            ELSE
+c--no potential neighbours so flag for possible reverse gravity
+               igravreverse = .TRUE.
+            ENDIF
+
+            IF (igphi .EQ. 1) THEN
+               isendparts = 0
+               CALL MPI_SENDRECV(igravreverse,1,MPI_LOGICAL,ipair,29,
+     &              igravrevrec,1,MPI_LOGICAL,ipair,29,
+     &              MPI_COMM_WORLD,istatus,ierr)          
+
+c--if > 0 active particles on target rank and not receiving particles,
+c     find gravity nodes that need to be sent
+               IF (nlstdopair .GT. 0 .AND. igravrevrec) THEN
+                  CALL grav_only_treef(deact_all(1:6,i),xyzmh,acc,
+     &                 npartsend,nbothsend,listsendgn(:),0.0)
+c--if gravity nodes to be sent include a tree leaf (particle)
+                  IF(npartsend.GT.0) THEN
+c--set flag to receive all particles from rank i instead
+                     nlstdopair = -1
+                     nbothsend = 0
+c elseif # of gravity nodes is large compared to # of particles
+c                  ELSEIF(nlstdopair .LT. ifacpart*nbothsend) THEN
+c                     nlstdopair = -1
+c                     nbothsend = 0
+                  ENDIF
+               ELSE
+c--if no foreign active particles, no gravity nodes need be sent
+                  nbothsend = 0
+               ENDIF
+
+               CALL MPI_SENDRECV(nlstdopair,1,MPI_INTEGER,ipair,30,
+     &              nlstdopairrec,1,MPI_INTEGER,ipair,30,
+     &              MPI_COMM_WORLD,istatus,ierr)
+
+c--not receiving gravity nodes therefore send all particles
+               IF (nlstdopairrec .EQ. -1) THEN
+                  nprocsend = nprocsend + 1
+                  ipsendindx(nprocsend) = i
 #ifdef MPIDEBUGDC
                   PRINT*,iproc,": WARNING - sending extra rank",i
      &                 npartsend,nbothsend
 #endif
-               ELSEIF (nbothsend .LE. 0) THEN
+               ENDIF
+               
+               IF (nbothsend .LT. 0) THEN
                   PRINT*,iproc,": ERROR - must send at least one node",
      &                 npartsend,nbothsend
                   CALL quit(1)
@@ -333,18 +400,13 @@ c     this case probably arise with diagonally adjacent domains
                   PRINT*,': ERROR - ngrav_nodes too small',
      &                 ntot,nbothrec
                   CALL quit(1)
-               ELSEIF (nbothsend.GE.30) THEN
-                  WRITE(iprint,*)"sending 30+gnodes",nbothsend
+c               ELSEIF (nbothsend.GE.30) THEN
+c                  WRITE(iprint,*)"sending 30+gnodes",nbothsend
                ENDIF
 
-               CALL MPI_SENDRECV(idatsend,1,MPI_INTEGER,ipair,29,
-     &              idatrec, MPI_INTEGER, i5REAL8,
-     &              ipair, 29, MPI_COMM_WORLD, istatus, ierr)
-               CALL MPI_GET_COUNT(istatus,i5REAL8,nbothrec,ierr)
-
-               IF (idatsend .EQ. 1 .OR. idatrec .EQ. 1) THEN
-                  nprocsend = nprocsend + 1
-                  ipsendindx(nprocsend) = i
+c--don't send gravity if no active paticles at target or                
+c     particles being sent
+               IF (nlstdopair .LE. 0 .AND. nlstdopairrec .LE. 0) THEN
                   CYCLE
                ELSE
                   CALL insert_sort(nbothsend,listsendgn(1:nbothsend))

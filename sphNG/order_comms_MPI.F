@@ -416,9 +416,9 @@ c--if k communicates with this rank add to receive list
       IF (isendorder .GT. numproc) THEN
          PRINT*,iproc,"ERROR: isendorder",isendorder,numproc
          CALL quit(0)
-      ELSEIF (nloopmpi .NE. nprocsend + 1) THEN
-         PRINT*,iproc,"ERROR: nloopmpi",nloopmpi,nprocsend
-         CALL quit(0)
+c      ELSEIF (nloopmpi .NE. nprocsend + 1) THEN
+c         PRINT*,iproc,"ERROR: nloopmpi",nloopmpi,nprocsend
+c         CALL quit(0)
       ENDIF
 
 c--convert from fortran indexes to MPI ranks      

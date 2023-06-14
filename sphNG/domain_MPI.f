@@ -84,7 +84,7 @@ c--as above but sorts array itself (not by index,) low to high
       
 c--find minimum distance squared between two axis aligned cuboids a & b
 c     ext_a/b(1:3): minimum xyz coords of cuboid
-c     ext_a/b(4:6): maximum xyz coords of cuboid
+c     ext_a/b(4:6): maximum xyz coords of cuboid (inverted signs)
       PURE FUNCTION cuboid_dist2(ext_a,ext_b)
 
       IMPLICIT NONE
@@ -92,9 +92,9 @@ c     ext_a/b(4:6): maximum xyz coords of cuboid
       REAL, INTENT(IN) :: ext_a(6),ext_b(6)
       REAL :: xdiff,ydiff,zdiff,cuboid_dist2
 
-      xdiff = MAX(ext_a(1)-ext_b(4), 0.0, ext_b(1)-ext_a(4))
-      ydiff = MAX(ext_a(2)-ext_b(5), 0.0, ext_b(2)-ext_a(5))
-      zdiff = MAX(ext_a(3)-ext_b(6), 0.0, ext_b(3)-ext_a(6))
+      xdiff = MAX(ext_a(1)+ext_b(4), 0.0, ext_b(1)+ext_a(4))
+      ydiff = MAX(ext_a(2)+ext_b(5), 0.0, ext_b(2)+ext_a(5))
+      zdiff = MAX(ext_a(3)+ext_b(6), 0.0, ext_b(3)+ext_a(6))
       cuboid_dist2 = xdiff**2 + ydiff**2 + zdiff**2
 
       END FUNCTION cuboid_dist2
@@ -108,9 +108,9 @@ c--as cuboid_dist2 but one cuboid has 0 extent i.e. particle
       REAL, INTENT(IN) :: xyzp(3),ext(6)
       REAL :: xdiff,ydiff,zdiff,point_cuboid_d2
 
-      xdiff = MAX(xyzp(1)-ext(4), 0.0, ext(1)-xyzp(1))
-      ydiff = MAX(xyzp(2)-ext(5), 0.0, ext(2)-xyzp(2))
-      zdiff = MAX(xyzp(3)-ext(6), 0.0, ext(3)-xyzp(3))
+      xdiff = MAX(xyzp(1)+ext(4), 0.0, ext(1)-xyzp(1))
+      ydiff = MAX(xyzp(2)+ext(5), 0.0, ext(2)-xyzp(2))
+      zdiff = MAX(xyzp(3)+ext(6), 0.0, ext(3)-xyzp(3))
       point_cuboid_d2 = xdiff**2 + ydiff**2 + zdiff**2
 
       END FUNCTION point_cuboid_d2

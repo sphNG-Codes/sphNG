@@ -292,14 +292,6 @@ c     before iteration begins need to establish which
 c     MPI ranks this rank will send particles to
 c     others will receive gravity nodes instead (if igphi.EQ.1)
       IF (domain_checking) THEN
-c--need to reverse the sign of the second half of domain extent arrays
-c     they are stored this way so that C$OMP& reduction(MIN:
-c     applies to the entirety of each array in step.
-         DO k=4,6
-            domain_extent(k) = -domain_extent(k)
-            de_cs_gas(k) = -de_cs_gas(k)
-         ENDDO
-         
          CALL MPI_ALLGATHER(domain_extent,6,MPI_REAL8,
      &        de_all,6,MPI_REAL8,MPI_COMM_WORLD,ierr)
          CALL MPI_ALLGATHER(de_cs_gas,6,MPI_REAL8,
@@ -394,12 +386,6 @@ c     this case probably arise with diagonally adjacent domains
             ENDIF
          ENDDO
          CALL insert_sort(nprocsend,ipsendindx(1:nprocsend))
-
-c--reverse second half of domain extent arrays again         
-         DO k=4,6
-            domain_extent(k) = -domain_extent(k)
-            de_cs_gas(k) = -de_cs_gas(k)
-         ENDDO
 
 c--have to re-order MPI comms if any rank has changed its send list         
          order_comms = .TRUE.

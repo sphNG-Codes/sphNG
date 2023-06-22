@@ -42,6 +42,9 @@ c***********************************************************
       INCLUDE 'COMMONS/kromevar'
 #endif
       INCLUDE 'COMMONS/stellarradiation'
+      INCLUDE 'COMMONS/HY09dustprops'
+      INCLUDE 'COMMONS/HY09check'
+      INCLUDE 'COMMONS/HY09rho'
 
       COMMON /unitsin/ umassi, udisti, utimei, umagfdi
 
@@ -72,6 +75,7 @@ c***********************************************************
 
       CHARACTER*11 inname, imageout
       CHARACTER*11 fileout, fileout2, fileout3, fileout4, fileout5
+      CHARACTER*11 fileout6
       CHARACTER*9  name
       CHARACTER*1  ien, icont, icor, icent, isink, itorq, itype
       CHARACTER*1  ivarbnd, inewdump, itstep
@@ -90,6 +94,7 @@ c***********************************************************
 #else
       CHARACTER*7 filein
 #endif
+      REAL*4 HY09sizemean(HY09_ndust_bins)
 
       varmhd = 'Brho'
 c
@@ -157,7 +162,6 @@ c
       READ (*,*) mfrac2abund
 #endif
 
-
       OPEN(19,file='interest')
 
 c
@@ -170,6 +174,7 @@ c
          fileout3 = 'QA' // filein(k)
          fileout4 = 'QN' // filein(k)
          fileout5 = 'QC' // filein(k)
+         fileout6 = 'QH' // filein(k)
          imageout = 'IP' // filein(k)
          maxrec = 100*idim
          OPEN(15,file=imageout)
@@ -217,6 +222,7 @@ c
          WRITE(fileout3, 99002) fileout3, iadd, ifile
          WRITE(fileout4, 99002) fileout4, iadd, ifile
          WRITE(fileout5, 99002) fileout5, iadd, ifile
+         WRITE(fileout6, 99002) fileout6, iadd, ifile
 99002    FORMAT(A9, I1, I1)
 
    10    OPEN(21,file=fileout)
@@ -241,6 +247,13 @@ c
          END IF
          CALL writekey(31,nwrite,maxmols,molinds)
 #endif
+         IF (idimHY09.EQ.idim) THEN
+            OPEN(26,file=fileout6)
+            WRITE (26,90000) udist, uvel, udens, 1.0,
+     &           (HY09binsizes(j),j=1,HY09_ndust_bins)
+            dlog_binsize = LOG(HY09_size_max/HY09_size_min)/
+     &           HY09_ndust_bins
+         ENDIF
 
          WRITE(*,*) npart, rhozero, nptmass,xyzmh(4,1),rho(3),iphase(1)
          WRITE(*,*) 'RK2=',RK2,' gamma=',gamma,' rhozero=',rhozero
@@ -467,6 +480,9 @@ c            WRITE (42,*) radius(i)*udist,entropy_per_baryon(i)
          xmass_dust = 0.
          shellmass = 0.
          shellmass_dust = 0.
+         HY09peaksize_mean = 0.
+         HY09peaksize_vert = 0.
+         HY09sizemean(:) = 0.
 #ifdef NONIDEAL
          nebynmean = 0.
          nzminusmean = 0.
@@ -569,6 +585,12 @@ c               WRITE (42,*) radiuswant,JcrossB(ipos),lorentzmean
                      Emean = Emean + ekcle(1,ipos)*rho(ipos)
                      fluxmean = fluxmean + 
      &                    ekcle(4,ipos)*3.0E+10/ekcle(2,ipos)/rho(ipos)
+                     IF (idimHY09.EQ.idim) THEN
+                        HY09peaksize_mean = HY09peaksize_mean +
+     &                       HY09peak(ipos)
+                        HY09sizemean(:) = HY09sizemean(:) + 
+     &                       HY09bin_rho(:,ipos)
+                     ENDIF
 #ifdef NONIDEAL
                       IF (encal.EQ.'r') THEN
                          ekclei = getcv(rho(ipos),vxyzu(4,ipos))
@@ -673,6 +695,10 @@ c     &              JcrossB_dot_rhat(ipos))
                      Emeanvert = Emeanvert + ekcle(1,ipos)*rho(ipos)
                      fluxmeanvert = fluxmeanvert + 
      &                    ekcle(4,ipos)*3.0E+10/ekcle(2,ipos)/rho(ipos)
+                     IF (idimHY09.EQ.idim) THEN
+                        HY09peaksize_vert = HY09peaksize_vert +
+     &                       HY09peak(ipos)
+                     ENDIF
                      IF (istellarradiation) THEN
                         fracion_meanvert = fracion_meanvert+HIIion(ipos)
                      ENDIF
@@ -782,6 +808,8 @@ c
      &                 (dradius*udist))
                   pressureold = pressuremean
                   fluxmean = fluxmean/number
+                  HY09peaksize_mean = HY09peaksize_mean/number
+                  HY09sizemean(:) = HY09sizemean(:)/number
 
                   Emean = Emean/number
                   Egradient = (Emean - Eold)/(dradius*udist)
@@ -817,6 +845,7 @@ c                  lorentzmeanvertout = lorentzmeanvert
                      pressureoldvert = pressuremeanvertout
 
                      fluxmeanvertout = fluxmeanvert/numbervert
+                     HY09peaksize_vert = HY09peaksize_vert/numbervert
 
                      Emeanvertout = Emeanvert/numbervert
                      Egradientvertout = (Emeanvertout-Emeanvertold)/
@@ -841,6 +870,7 @@ c                  lorentzmeanvertout = lorentzmeanvert
                      Emeanvertout = 0.
                      Egradientvertout = 0.
                      fluxmeanvertout = 0.
+                     HY09peaksize_vert = 0.
                      densityvertout = 0.
                      IF (istellarradiation) THEN
                         fracion_meanvert = 0.
@@ -907,7 +937,8 @@ c
      &                 0.5*densitymean*velmean**3,
      &                 0.5*densityvertout*vertvelmeanout**3,
      &                 gravity/densitymean,
-     &                 fracion_mean, fracion_meanvert
+     &                 fracion_mean, fracion_meanvert,
+     &                 HY09peaksize_mean, HY09peaksize_vert
 
                   WRITE (22,88515) radmean_dust*udist,velmean_dust*uvel, 
      &                 veltmean_dust*uvel, 
@@ -944,6 +975,13 @@ c                  print *, (abundsmean(molinds(j)),j=1,nwrite)
      &                    (abundsmeanvert(j),j=1,krome_nmols)
                   END IF
 #endif
+                  IF (idimHY09.EQ.idim) THEN
+                     WRITE (26,90000) radmean*udist, velmean*uvel,
+     &                    densitymean*udens, tempmean,
+     &                (HY09sizemean(j)/dlog_binsize/HY09_dustgas_ratio,
+     &                    j=1,HY09_ndust_bins)
+90000                FORMAT(4(1PE12.5,1X),<HY09_ndust_bins>(1PE12.5,1X))
+                  ENDIF
 
                   WRITE (*,*) radmean,omega
                   number = 0.
@@ -961,6 +999,8 @@ c                  print *, (abundsmean(molinds(j)),j=1,nwrite)
                   Emean = 0.
                   Egradient = 0.
                   fluxmean = 0.
+                  HY09peaksize_mean = 0.
+                  HY09sizemean(:) = 0.
 #ifdef NONIDEAL
                   nebynmean = 0.
                   nzminusmean = 0.
@@ -1001,6 +1041,7 @@ c                  print *, (abundsmean(molinds(j)),j=1,nwrite)
                      Emeanvert = 0.
                      Egradientvert = 0.
                      fluxmeanvert = 0.
+                     HY09peaksize_vert = 0.
                      IF (istellarradiation) THEN
                         fracion_meanvert = 0.
                      ENDIF
@@ -1029,7 +1070,7 @@ c
 88445    FORMAT(4(1PE12.5,1X),I6)
 88515    FORMAT(5(1PE12.5,1X),I7,1X,5(1PE12.5,1X))
 88555    FORMAT(5(1PE12.5,1X))
-88551    FORMAT(5(1PE12.5,1X),I7,1X,39(1PE12.5,1X))
+88551    FORMAT(5(1PE12.5,1X),I7,1X,41(1PE12.5,1X))
 88556    FORMAT(5(1PE12.5,1X),I6)
 88166    FORMAT(I6, 1X, 5(1PE12.5,1X))
 88666    FORMAT(6(1PE12.5,1X))
@@ -1116,6 +1157,15 @@ c
             WRITE(fileout5, 99006) name, ifile
          ENDIF
 #endif
+         IF (idimHY09.EQ.idim) THEN
+            READ(fileout6, 99006) name, ifile
+            ifile = ifile + 1
+            IF (ifile.LE.9) THEN
+               WRITE(fileout6, 99002) name, izero, ifile
+            ELSE
+               WRITE(fileout6, 99006) name, ifile
+            ENDIF
+         ENDIF
 
    20    CONTINUE
 

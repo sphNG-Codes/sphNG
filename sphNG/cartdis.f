@@ -1,4 +1,4 @@
-      SUBROUTINE cartdis(igeom,idist,np,h1)
+      SUBROUTINE cartdis(igeom,idist,np,h1,isettletest)
 c************************************************************
 c                                                           *
 c     This subroutine positions particles in cartesian      *
@@ -18,6 +18,9 @@ c************************************************************
       INCLUDE 'COMMONS/maspres'
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/regionslocal'
+      INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/typef'
+      INCLUDE 'COMMONS/astrcon'
 
       CHARACTER*1 iok, idirect
 c
@@ -31,61 +34,143 @@ c
 c--Set Condensed Areas In Cartesian Coordinates
 c
       IF (idist.EQ.1 .OR. idist.EQ.2) THEN
-         WRITE (*,*) 'Enter amplitude of sine wave '
-         READ (*,*) ampl
-         WRITE (*,*) 'Enter direction of sine wave (x,y,z) '
-         READ (*,99004) idirect
+         WRITE (*, 99002)
+99002    FORMAT (' Do you want to stretch the particles? (y/n)')
+         READ (iread, 99004) iok
+         IF (iok.EQ.'y') THEN
+            WRITE (*, 99003)
+99003       FORMAT (' Choose how you want to stretch the particles: ',/,
+     &           '            horizontal sine wave (wave test) : (1)',/,
+     &           '           vertical gaussian (settling test) : (2)')
+            READ (iread,*) istretch
 c
 c--Shift particles to sinusoidal density profile (from Daniel Price)
 c
-         itsmax = 100
-         tol = 1.0e-5
-         IF (idirect.EQ.'x') THEN
-            distmax = xmax - xmin
-            index = 1
-            coordmin = xmin
-         ELSEIF (idirect.EQ.'y') THEN
-            distmax = ymax - ymin
-            index = 2
-            coordmin = ymin
-         ELSEIF (idirect.EQ.'z') THEN
-            distmax = zmax - zmin
-            index = 3
-            coordmin = zmin
-         ELSE
-            WRITE (*,*) 'Invalid wave direction'
-            CALL quit(0)
-         ENDIF
-         wk = 2.0*pi/(distmax/1.)
-         denom = distmax + ampl/wk*(COS(wk*distmax)-1.0)
+            IF (istretch.EQ.1) THEN
+               WRITE (*,*) 'Enter amplitude of sine wave '
+               READ (*,*) ampl
+               WRITE (*,*) 'Enter direction of sine wave (x,y,z) '
+               READ (*,99004) idirect
+               itsmax = 100
+               tol = 1.0e-5
+               IF (idirect.EQ.'x') THEN
+                  distmax = xmax - xmin
+                  index = 1
+                  coordmin = xmin
+               ELSEIF (idirect.EQ.'y') THEN
+                  distmax = ymax - ymin
+                  index = 2
+                  coordmin = ymin
+               ELSEIF (idirect.EQ.'z') THEN
+                  distmax = zmax - zmin
+                  index = 3
+                  coordmin = zmin
+               ELSE
+                  WRITE (*,*) 'Invalid wave direction'
+                  CALL quit(0)
+               ENDIF
+               wk = 2.0*pi/(distmax/1.)
+               denom = distmax + ampl/wk*(COS(wk*distmax)-1.0)
 
-         DO i = 1,npart
-            disti = xyzmh(index,i)-coordmin
-            dprev = distmax*2.
-            xmassfrac = disti/distmax ! current mass fraction
-                                      ! (for uniform density)
+               DO i = 1, npart
+                  disti = xyzmh(index,i)-coordmin
+                  dprev = distmax*2.
+                  xmassfrac = disti/distmax ! current mass fraction
+                                            ! (for uniform density)
 c
 c--Use rootfinder on the integrated density perturbation
 c  to find the new position of the particle
 c    
-            its = 0
+                  its = 0
 
-            DO WHILE ((abs(disti-dprev).GT.tol).AND.(its.LT.itsmax))
-               dprev = disti
-               func = xmassfrac*denom - (disti + 
-     &              ampl/wk*(COS(wk*disti)-1.0))
-               fderiv = -1.0 + ampl*SIN(wk*disti)
-               disti = disti - func/fderiv ! Newton-Raphson iteration
-               its = its + 1 
-            END DO
+                  DO WHILE ((ABS(disti-dprev).GT.tol)
+     &                 .AND. (its.LT.itsmax))
+                     dprev = disti
+                     func = xmassfrac*denom - (disti + 
+     &                    ampl/wk*(COS(wk*disti)-1.0))
+                     fderiv = -1.0 + ampl*SIN(wk*disti)
+                     disti =disti-func/fderiv ! Newton-Raphson iteration
+                     its = its + 1 
+                  END DO
 
-            IF (its.GE.itsmax) THEN
-               WRITE (*,*) 'Error: soundwave - too many iterations'
-               CALL quit(0)
+                  IF (its.GE.itsmax) THEN
+                     WRITE (*,*)'Error: soundwave - too many iterations'
+                     CALL quit(0)
+                  ENDIF
+
+                  xyzmh(index,i) = coordmin + disti
+               END DO
+            ELSEIF (istretch.EQ.2) THEN
+               isettletest = 1
+c                                                                
+c--Get total mass from integration of density profile             
+c
+               itsmax = 100
+               tol    = 1.e-5
+               dxmax  = xmax - xmin
+               dymax  = ymax - ymin
+               dzmax  = zmax - zmin
+
+               WRITE (*,*) 'Warning! This test makes some hard-coded',
+     &                     'assumptions about the disc params...:'
+
+               WRITE (*,*) '...Turning on vertical gravity from a ',
+     &                     'centrally-located, solars-mass star'
+               iexf = 11 ! i.e. xmass = 1. (set in setpart.f)
+               WRITE (*,*) '...Assuming zmax = 4*H where H is the gas ',
+     &                     'scale-height of the disc'
+               H0 = zmax/4.
+               WRITE (*,*) '...Assuming a H/R = 0.05'
+               honr  = 0.05
+               Rdisc = (H0/honr)
+               WRITE (*,*) '...which puts the simulated disc cross ',
+     &                     'section at radius (au) = ',
+     &                     Rdisc*udist/au
+               IF (ABS(Rdisc*udist/au-50.).GT.0.01) THEN
+                  zmax_suggested = (50.*au/udist)*(4.*honr)
+                  WRITE (*,*) 'Oops...externf.f requires a radius of ',
+     &                        '50 au for this test. Try again with ',
+     &                        'a zmax =',zmax_suggested
+                  CALL quit(0)
+               ENDIF
+
+               ampl = 10.
+               tot_mass = dzmax + ampl*2.*SQRT(0.5*pi)*H0*
+     &                            ERF(zmax/(SQRT(2.)*H0))
+               DO i = 1,npart
+                  dzi = xyzmh(3,i)
+                  dzprev = 2.*dzmax
+                  zmassfrac = (dzi-zmin)/dzmax ! current mass fraction
+                                               ! (for uniform density)
+c
+c--Use rootfinder on the integrated density perturbation
+c  to find the new position of the particle
+c
+                  its = 0
+                  DO WHILE ((ABS(dzi-dzprev).GT.tol)
+     &                         .AND.(its.LT.itsmax))
+                     dzprev = dzi
+                     func = zmassfrac*tot_mass - (dzi - zmin +
+     &                      ampl*H0*SQRT(pi/2.)*(ERF(dzi/(SQRT(2.)*H0))
+     &                      + ERF(-zmin/(SQRT(2.)*H0))))
+
+                     fderiv = -(1.0 + ampl*EXP(-0.5*(dzi/H0)**2))
+                     ! Newton-Raphson iteration
+                     dzi = dzi - func/fderiv
+                     its = its + 1
+                  END DO
+
+                  IF (its.GE.itsmax) THEN
+                     WRITE (*,*) 'Error: too many iterations'
+                     CALL quit(0)
+                  ENDIF
+                  xyzmh(3,i) = dzi
+               ENDDO
+               !--expand the z boundaries to avoid ghost particles
+               zmin = 2.*zmin
+               zmax = 2.*zmax
             ENDIF
-
-            xyzmh(index,i) = coordmin + disti
-         END DO
+         ENDIF
       ELSE
          npart = np + nptmass
          rcyl2 = rcyl * rcyl 

@@ -330,7 +330,7 @@ c--pairwise sendrecv
          DO ii=1,numproc-1
             ipair = ipairwiseall(ii)
             i = ipair + 1
-                        nlstdopair = nlstdoall(i)
+            nlstdopair = nlstdoall(i)
 c--if > 0 active particles, does target rank have potential neighbours?
             IF (nlstdo .GT. 0) THEN
                cdist2 = MIN(cuboid_dist2(de_act,csgas_all(1:6,i)),
@@ -369,7 +369,7 @@ c--set flag to receive all particles from rank i instead
                      nlstdopair = -1
                      nbothsend = 0
 c elseif # of gravity nodes is large compared to # of particles
-c                  ELSEIF(nlstdopair .LT. ifacpart*nbothsend) THEN
+c                  ELSEIF(nlstdopair .LT. 10*nbothsend) THEN
 c                     nlstdopair = -1
 c                     nbothsend = 0
                   ENDIF

@@ -22,11 +22,18 @@ c
 c--Set min, max sizes and slope (in cm, or XX*1E-04 for microns)
 c
       HY09_size_min = 0.005 * 1.0E-04
+c      HY09_size_min = 0.0599 * 1.0E-04
+
+c      HY09_size_max = 1670.0 * 1.0E-04
       HY09_size_max = 1000.0 * 1.0E-04
 c      HY09_size_max = 100.0 * 1.0E-04
+
       HY09_cutoff   = 0.25 * 1.0E-04
+c      HY09_cutoff   = 1670.0 * 1.0E-04
+
       HY09_slope    = -3.5
       HY09_dust_density = 2.26
+c      HY09_dust_density = 3.0
       HY09_dustgas_ratio = 0.01
       HY09_vcoag_coeff = 21.4 * (12.0)**(5./6.)/(3.4E+10)**(1./3.)/
      &     SQRT(HY09_dust_density)
@@ -52,7 +59,7 @@ c
          ELSE
             bin_rho(i) = 0.
          ENDIF
-c         WRITE (70,*) HY09binsizes(i)*1.0E+04,HY09bin_rho(i)
+         WRITE (70,*) HY09binsizes(i)*1.0E+04,bin_rho(i)
       END DO
 c
 c--Normalise.  Following Hirashita & Omukai (2009) = HO09.
@@ -68,7 +75,7 @@ c     a mixture of 2.26 and 3.3 g/cm^3 dust.
 c
       gasdensity = 1.0
 c      gasdensity = 1.67E-24*(1.0+4*0.083)*num_dens_H
-      xnorm = HY09_dustgas_ratio*gasdensity
+      xnorm = HY09_dustgas_ratio/(1.0+HY09_dustgas_ratio)*gasdensity
       xintegral = (HY09_cutoff**(4.0+HY09_slope) - 
      &     HY09_size_min**(4.0+HY09_slope)) / (4.0+HY09_slope)
       print *,'xnorm, xint ',xnorm, xintegral
@@ -83,7 +90,7 @@ c
       END DO
       PRINT *,'Total mass of grains (per cm^3): ',sum
       PRINT *,'Should be                      : ',
-     &     HY09_dustgas_ratio*gasdensity
+     &     HY09_dustgas_ratio/(1.0+HY09_dustgas_ratio)*gasdensity
 c
 c--Set all gas particles to have the same dust to mass ratio
 c     NOTE: Units of HY09bin_rho are cgs/(gas density), in other words

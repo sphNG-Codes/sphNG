@@ -738,7 +738,7 @@ C$OMP& private(j,k,l,deltat,rcs,xyzkj)
                   domain_extent(l) = MIN(domain_extent(l),-xyzkj)
                   IF (iphase(j) .EQ. 0 .OR. iphase(j) .GT. 10) THEN
                      de_cs_gas(k) = MIN(de_cs_gas(k),xyzkj-rcs)
-                     de_cs_gas(l) = MIN(de_cs_gas(l),rcs-xyzkj)
+                     de_cs_gas(l) = MIN(de_cs_gas(l),-xyzkj-rcs)
                   ENDIF
                ENDIF
 #endif
@@ -830,11 +830,11 @@ C$OMP& private(j,k,l,ipart,deltat,rcs,xyzkj)
                          l = k + 3
                          xyzkj = dumxyzmh(k,ipart)
                          domain_extent(k) = MIN(domain_extent(k),xyzkj)
-                         domain_extent(l) = MAX(domain_extent(l),-xyzkj)
+                         domain_extent(l) = MIN(domain_extent(l),-xyzkj)
                          IF (iphase(ipart) .EQ. 0 .OR.
      &                        iphase(ipart) .GE. 10) THEN
                             de_cs_gas(k) = MIN(de_cs_gas(k),xyzkj-rcs)
-                            de_cs_gas(l) = MAX(de_cs_gas(l),rcs-xyzkj)
+                            de_cs_gas(l) = MIN(de_cs_gas(l),-xyzkj-rcs)
                          ENDIF
                         ENDIF
 #endif
@@ -1367,10 +1367,10 @@ c
                   l = k + 3
                   xyzki = xyzmh(k,i)
                   domain_extent(k) = MIN(domain_extent(k),xyzki)
-                  domain_extent(l) = MAX(domain_extent(l),-xyzki)
+                  domain_extent(l) = MIN(domain_extent(l),-xyzki)
                   IF (iphase(i) .EQ. 0 .OR. iphase(i) .GE. 10) THEN
                      de_cs_gas(k) = MIN(de_cs_gas(k),xyzki-rcs)
-                     de_cs_gas(l) = MAX(de_cs_gas(l),rcs-xyzki)
+                     de_cs_gas(l) = MIN(de_cs_gas(l),-xyzki-rcs)
                   ENDIF
                ENDDO
             ENDIF
@@ -1606,8 +1606,8 @@ c
 c--reset domain extents since looping over all particles
 c
          IF (domain_checking) THEN
-            domain_extent(1:3) =  1E30
-            de_cs_gas(1:3)     =  1E30
+            domain_extent =  1E30
+            de_cs_gas     =  1E30
          ENDIF
 #endif
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
@@ -1644,10 +1644,10 @@ C$OMP& private(j,k,l,deltat,rcs,xyzkj)
                   l = k + 3
                   xyzkj = dumxyzmh(k,j)
                   domain_extent(k) = MIN(domain_extent(k),xyzkj)
-                  domain_extent(l) = MAX(domain_extent(l),-xyzkj)
+                  domain_extent(l) = MIN(domain_extent(l),-xyzkj)
                   IF (iphase(j) .EQ. 0 .OR. iphase(j) .GE. 10) THEN
                      de_cs_gas(k) = MIN(de_cs_gas(k),xyzkj-rcs)
-                     de_cs_gas(l) = MAX(de_cs_gas(l),rcs-xyzkj)
+                     de_cs_gas(l) = MIN(de_cs_gas(l),-xyzkj-rcs)
                   ENDIF
                ENDIF
 #endif
@@ -1738,11 +1738,11 @@ C$OMP& private(j,k,l,ipart,deltat,rcs,xyzkj)
                          l = k + 3
                          xyzkj = dumxyzmh(k,ipart)
                          domain_extent(k) = MIN(domain_extent(k),xyzkj)
-                         domain_extent(l) = MAX(domain_extent(l),-xyzkj)
+                         domain_extent(l) = MIN(domain_extent(l),-xyzkj)
                          IF (iphase(ipart) .EQ. 0 .OR.
      &                        iphase(ipart) .GE. 10) THEN
                             de_cs_gas(k) = MIN(de_cs_gas(k),xyzkj-rcs)
-                            de_cs_gas(l) = MAX(de_cs_gas(l),rcs-xyzkj)
+                            de_cs_gas(l) = MIN(de_cs_gas(l),-xyzkj-rcs)
                          ENDIF
                         ENDIF
 #endif

@@ -29,7 +29,7 @@ C$OMP& private(i,k,l,rcs,xyzki,iphasei)
                domain_extent(l) = MIN(domain_extent(l),-xyzki)
                IF (iphasei .EQ. 0 .OR. iphasei .GE. 10) THEN
                   de_cs_gas(k) = MIN(de_cs_gas(k),xyzki-rcs)
-                  de_cs_gas(l) = MIN(de_cs_gas(l),rcs-xyzki)
+                  de_cs_gas(l) = MIN(de_cs_gas(l),-xyzki-rcs)
                ENDIF
             ENDDO
          ENDIF

@@ -21,6 +21,7 @@ c************************************************************
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/typef'
       INCLUDE 'COMMONS/astrcon'
+      INCLUDE 'COMMONS/xforce'
 
       CHARACTER*1 iok, idirect
 c
@@ -116,7 +117,8 @@ c
 
                WRITE (*,*) '...Turning on vertical gravity from a ',
      &                     'centrally-located, solars-mass star'
-               iexf = 11 ! i.e. xmass = 1. (set in setpart.f)
+               iexf = 11
+               xmass = 1.0
                WRITE (*,*) '...Assuming zmax = 4*H where H is the gas ',
      &                     'scale-height of the disc'
                H0 = zmax/4.
@@ -130,7 +132,8 @@ c
                   zmax_suggested = (50.*au/udist)*(4.*honr)
                   WRITE (*,*) 'Oops...externf.f requires a radius of ',
      &                        '50 au for this test. Try again with ',
-     &                        'a zmax =',zmax_suggested
+     &                        'a zmax =',zmax_suggested,', currently ',
+     &                        zmax
                   CALL quit(0)
                ENDIF
 

@@ -381,7 +381,9 @@ c--Note: x,y components don't matter for this test, and grav_accel
 c     in the x and y directions only matters for dust relative velocities
 c     for dust growth anyway (doesn't affect setting test).
 c
-         grav_accel(3,ipart) = grav_accel(3,ipart) - xmass*runiz/d2
+         IF (idimHY09.EQ.idim) THEN
+            grav_accel(3,ipart) = grav_accel(3,ipart) - xmass*runiz/d2
+         ENDIF
 
          poten(ipart) = poten(ipart) - xmass/d
       ENDIF

@@ -90,6 +90,8 @@ c--Initialise time & other variables
 c
       gt = 0.0
       poly_const = 0.
+      xmass = 0.
+      planetmass = 0.
 
       DO i = 1, idim
          iorig(i) = i
@@ -1772,9 +1774,6 @@ c            hmass = 0.0001
             irotref = 'n'
             planetmass = 0.
          ENDIF
-      ELSE
-         xmass = 0.
-         planetmass = 0.
       ENDIF 
 
       IF (iok.EQ.'s') THEN

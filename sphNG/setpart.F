@@ -74,6 +74,8 @@ c************************************************************
       INCLUDE 'COMMONS/nonideal'
 #endif
 
+      INTEGER :: isettletest = 0
+
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
       CHARACTER*1 ien, irotref, uort, ipreseq
@@ -88,6 +90,8 @@ c--Initialise time & other variables
 c
       gt = 0.0
       poly_const = 0.
+      xmass = 0.
+      planetmass = 0.
 
       DO i = 1, idim
          iorig(i) = i
@@ -946,7 +950,7 @@ c
                CALL unifdis(igeom, idist, np, h1, facx, facy, facz,
      &              delx, dely, nx, ny, nz, ibound)
 
-               CALL cartdis(igeom, idist, np, h1)
+               CALL cartdis(igeom, idist, np, h1, isettletest)
             ELSE IF (icoord.EQ.2) THEN
                CALL cyldis(igeom,np)
             ELSE
@@ -1657,6 +1661,12 @@ c     non-sensical.
          iener = 1
       ENDIF
 c
+c--If doing the settling test...
+c
+      IF (isettletest.EQ.1.AND.iexf.NE.11) THEN
+         WRITE (*,*) ('ERROR: You need iexf = 11 for the settling test')
+         CALL quit(0)
+      ENDIF
 c
 c--Check for consistency
 c
@@ -1764,9 +1774,6 @@ c            hmass = 0.0001
             irotref = 'n'
             planetmass = 0.
          ENDIF
-      ELSE
-         xmass = 0.
-         planetmass = 0.
       ENDIF 
 
       IF (iok.EQ.'s') THEN

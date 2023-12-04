@@ -289,9 +289,11 @@ c--Values to do with external forces
 c
       xmass = 0.
       iandrea = 0
-      IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7) THEN
+      IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7 .OR. iexf.EQ.11) THEN
          READ (iterm, *) xmass
-         IF (centralmass.NE.xmass) THEN
+         IF (iexf.EQ.11) THEN
+            centralmass = xmass
+         ELSEIF (centralmass.NE.xmass) THEN
             WRITE (iprint,*) 'ERROR - xmass must equal centralmass'
             WRITE (iprint,*) 'xmass is for gravity external force'
             WRITE (iprint,*) 'centralmass is for thermal energy profile'

@@ -17,6 +17,7 @@ c************************************************************
 #endif
 #ifdef MPI
       INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpidomains'
 #endif
 
       INCLUDE 'COMMONS/part'
@@ -90,6 +91,11 @@ c
       dt = dtmax
 
       IF (itiming) CALL getused(tsteponly1)
+
+      IF (domain_checking) THEN
+         nprocsendmax=0
+         nprocsendmin=0
+      ENDIF
 
       CALL step(dt)
 
@@ -280,6 +286,13 @@ c
 #endif
 
 #ifdef MPI
+c
+c--write out the number of MPI ranks each that this
+c     rank is sending all particles to.
+c
+      IF (domain_checking) THEN
+         WRITE(iprint,*)"nprocsendmin/max",nprocsendmin,nprocsendmax
+      ENDIF
 c
 c--Load balance MPI processes
 c

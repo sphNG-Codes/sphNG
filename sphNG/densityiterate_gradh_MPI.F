@@ -448,6 +448,8 @@ c     particles being sent
             ENDIF
          ENDDO
          CALL insert_sort(nprocsend,ipsendindx(1:nprocsend))
+         nprocsendmax = MAX(nprocsendmax,nprocsend)
+         nprocsendmin = MIN(nprocsendmin,nprocsend)
 
 c--have to re-order MPI comms if any rank has changed its send list         
          order_comms = .TRUE.
@@ -878,13 +880,6 @@ c
      &                    ' xyzmh to ',jj,xyzmh(1,lsendlist(1)+1),
      &                    iphase(lsendlist(1)+1)
 #endif
-                     CALL MPI_RECV(nullmessagerec,0,MPI_INTEGER,
-     &                    MPI_ANY_SOURCE,
-     &                    987,MPI_COMM_WORLD,istatus,ierr)
-                     CALL MPI_GET_COUNT(istatus,MPI_INTEGER,
-     &                    numbernull,ierr)
-                     jj = istatus(MPI_SOURCE)
-
                      CALL MPI_SEND(xyzmh,1,indexMPI5,jj,0,
      &                    MPI_COMM_WORLD, ierr)
 
@@ -909,9 +904,6 @@ c
 c
 c--Receive data
 c
-                  CALL MPI_SEND(nullmessage,0,MPI_INTEGER,ibehind,
-     &                 987,MPI_COMM_WORLD,ierr)
-
                   CALL MPI_RECV(xyzmh(1,2*ntot+3),idim,i5REAL8,ibehind,
      &                 0,MPI_COMM_WORLD, istatus, ierr)
                   CALL MPI_GET_COUNT(istatus, i5REAL8, inumber, ierr)

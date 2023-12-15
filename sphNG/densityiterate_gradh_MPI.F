@@ -448,6 +448,8 @@ c     particles being sent
             ENDIF
          ENDDO
          CALL insert_sort(nprocsend,ipsendindx(1:nprocsend))
+         nprocsendmax = MAX(nprocsendmax,nprocsend)
+         nprocsendmin = MIN(nprocsendmin,nprocsend)
 
 c--have to re-order MPI comms if any rank has changed its send list         
          order_comms = .TRUE.

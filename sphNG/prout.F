@@ -798,9 +798,10 @@ c
 
 99120       FORMAT (' Central dust properties (',I3,' bins):')
 99121       FORMAT ('   Dust size: ',F9.4,' micron:',1PE14.5)
-            WRITE (iprint,99122, ERR=100) HY09cen_totaldens,
+            WRITE (iprint,99122, ERR=100) 
+     &           HY09cen_totaldens/(1.0-HY09cen_totaldens),
      &           HY09_dustgas_ratio
-99122       FORMAT ('   Total dust density: ',1PE14.5,' should be:',
+99122       FORMAT ('   Total dust/gas ratio: ',1PE14.5,' should be:',
      &           1PE14.5)
          ENDIF
 c        Write energies for object 1; this is the same as total energies

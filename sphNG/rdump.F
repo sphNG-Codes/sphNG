@@ -1007,13 +1007,15 @@ c                     CALL quit(0)
             ENDIF
          ENDIF
 
-         IF (nums1(7).GT.iread) THEN
-            iread = iread + 1
-            IF (tagged) THEN
-              READ (idisk1, END=100) tagi
-              CALL checktag('vsound', tagi, ierr)
+         IF (idustIMPL.EQ.1 .AND. imakedust) THEN
+            IF (nums1(7).GT.iread) THEN
+               iread = iread + 1
+               IF (tagged) THEN
+                  READ (idisk1, END=100) tagi
+                  CALL checktag('vsound', tagi, ierr)
+               ENDIF
+               READ (idisk1, END=100) vsound(icount+1:icount+nhydro)
             ENDIF
-            READ (idisk1, END=100) vsound(icount+1:icount+nhydro)
          ENDIF
 
          IF (idimHY09.EQ.idim) THEN

@@ -788,8 +788,8 @@ join: checksystem checkparams utils/ptmass_join_Pfiles.o
 
 # Take radial cross sections through dump files
 
-profile: checksystem checkparams $(KROMEOBJ) utils/profile.o rdump.o error.o indexx.o utils/movie3DRG/origin.o getcv.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o)
-	$(FC) $(FFLAGS) $(CPPFLAGS) -o $@ $(KROMEOBJ) utils/profile.o rdump.o error.o indexx.o utils/movie3DRG/origin.o getcv.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o)
+profile: checksystem checkparams $(KROMEOBJ) utils/profile.o rdump.o error.o indexx.o utils/movie3DRG/origin.o getcv.o hy09dustset.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o)
+	$(FC) $(FFLAGS) $(CPPFLAGS) -o $@ $(KROMEOBJ) utils/profile.o rdump.o error.o indexx.o utils/movie3DRG/origin.o getcv.o hy09dustset.o $(SRCNI:.F90=.o) $(SRCNS:.F90=.o)
 
 ptmass: utils/ptmassmerge.o
 	$(FC) $(FFLAGS) -o $@ utils/ptmassmerge.o

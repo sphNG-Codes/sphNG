@@ -78,12 +78,17 @@ c
 c--Is velocity constant or sin wave?
 c
          cvf = "a"
-         DO WHILE (cvf.NE.'c' .and. cvf.NE.'w')
-            WRITE (*,*) '   Constant velocity in region', icount, '(c)'
-            WRITE (*,*) '   Sin-wave velocity in region', icount, '(w)'
+         DO WHILE (cvf.NE.'c' .AND. cvf.NE.'w' .AND. cvf.NE.'b')
+            WRITE (*,*) '   Constant velocity in region   ',icount,'(c)'
+            WRITE (*,*) '   Sin-wave velocity in region   ',icount,'(w)'
+            WRITE (*,*) '   Sin-wave in velocity & energy ',icount,'(b)'
             READ (iread,*) cvf
          END DO
-         IF (cvf.eq.'c') THEN
+         IF (cvf.EQ.'b' .AND. encal.NE.'a') THEN
+            WRITE (*,*) 'ERROR - cartvel: need encal=a for both'
+            CALL quit(0)
+         ENDIF
+         IF (cvf.EQ.'c') THEN
 c
 c--Constant velocity
 c
@@ -159,10 +164,15 @@ c
       WRITE (*,*) 'Average sound speed is ',vsound
 
       DO i = 1, npart
-         vxyzu(1,i) = 1.0E10
+         vxyzu(1,i) = 1.0E+10
       END DO
 
-      IF (imhd.NE.idim) valfven = vsound
+      IF (imhd.NE.idim) THEN
+         valfven = vsound
+      ELSE
+         WRITE (*,*) 'ERROR - cartvel: not implemented for MHD'
+         CALL quit(0)
+      ENDIF
 
       DO 240 i = 1, npart
          DO 220 j = 1, ireg
@@ -176,7 +186,7 @@ c
 c
 c--Constant speed
 c
-                  IF (vxyzu(1,i).EQ.1.0E10) THEN
+                  IF (vxyzu(1,i).EQ.1.0E+10) THEN
                      vxyzu(1,i) = xvel(j)*vsound
                      vxyzu(2,i) = yvel(j)*vsound
                      vxyzu(3,i) = zvel(j)*vsound
@@ -193,30 +203,39 @@ c
                   kpiLy = 2.0*pi/ABS(rymax(j)-rymin(j))*ky(j)
                   kpiLz = 2.0*pi/ABS(rzmax(j)-rzmin(j))*kz(j)
                   
-                  IF (vxyzu(1,i).EQ.1.0E10) THEN
-                     vxyzu(1,i) = vampx(j)*valfven*SIN( kpiLx*xyzmh(1,i)
+                  IF (vxyzu(1,i).EQ.1.0E+10) THEN
+                     vxyzu(1,i) = vampx(j)*SIN( kpiLx*xyzmh(1,i)
      1                    + kpiLy*xyzmh(2,i)
      2                    + kpiLz*xyzmh(3,i) )
-                     vxyzu(2,i) = vampy(j)*valfven*SIN( kpiLx*xyzmh(1,i)
+                     vxyzu(2,i) = vampy(j)*SIN( kpiLx*xyzmh(1,i)
      1                    + kpiLy*xyzmh(2,i)
      2                    + kpiLz*xyzmh(3,i) )
-                     vxyzu(3,i) = vampz(j)*valfven*SIN( kpiLx*xyzmh(1,i)
+                     vxyzu(3,i) = vampz(j)*SIN( kpiLx*xyzmh(1,i)
      1                    + kpiLy*xyzmh(2,i)
      2                    + kpiLz*xyzmh(3,i) )
                   ELSE
                      print*, 'This is called.  Find out what this is'
                      vxyzu(1,i) = 0.5*(vxyzu(1,i)
-     1                    + vampx(j)*valfven*SIN(kpiLx*xyzmh(1,i)
+     1                    + vampx(j)*SIN(kpiLx*xyzmh(1,i)
      2                    + kpiLy*xyzmh(2,i)
      3                    + kpiLz*xyzmh(3,i) ))
                      vxyzu(2,i) = 0.5*(vxyzu(2,i)
-     1                    + vampy(j)*valfven*SIN(kpiLx*xyzmh(1,i)
+     1                    + vampy(j)*SIN(kpiLx*xyzmh(1,i)
      2                    + kpiLy*xyzmh(2,i)
      3                    + kpiLz*xyzmh(3,i) ))
                      vxyzu(3,i) = 0.5*(vxyzu(3,i)
-     1                    + vampz(j)*valfven*sin(kpiLx*xyzmh(1,i)
+     1                    + vampz(j)*SIN(kpiLx*xyzmh(1,i)
      2                    + kpiLy*xyzmh(2,i)
      3                    + kpiLz*xyzmh(3,i) ))
+                  ENDIF
+c
+c--Add a corresponding sine wave to the internal energy
+c
+                  IF (cvf .EQ. 'b' .AND. encal.EQ.'a') THEN
+                     vxyzu(4,i) = vxyzu(4,i) + vsound**2/gamma*
+     1                    vampx(j)*SIN( kpiLx*xyzmh(1,i)
+     2                    + kpiLy*xyzmh(2,i)
+     3                    + kpiLz*xyzmh(3,i) )
                   ENDIF
                ENDIF
             ENDIF

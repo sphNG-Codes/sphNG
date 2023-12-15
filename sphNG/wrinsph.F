@@ -247,7 +247,7 @@ c
          ENDIF
       ENDIF
 
-      IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7) THEN
+      IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7 .OR. iexf.EQ.11) THEN
          WRITE (iterm, 88040) xmass
 88040    FORMAT(2X,1PE12.5,'  External Forces Mass')
       ENDIF

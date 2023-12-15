@@ -40,6 +40,8 @@ c      INCLUDE 'COMMONS/tokamak'
       INCLUDE 'COMMONS/prdrag'
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/pxpy'
+      INCLUDE 'COMMONS/astrcon'
+      INCLUDE 'COMMONS/HY09accel'
 c
 c--Change the degree of softening used for a central point mass
 c
@@ -148,9 +150,11 @@ c
 c
 c--Inner disc edge boundary which acts only on gas
 c
+c         IF ((ibound.EQ.102 .OR. ibound.EQ.103 .OR. ibound.EQ.105)
          IF ((ibound.EQ.102 .OR. ibound.EQ.103)
      &        .AND. iphase(ipart).EQ.0) THEN
             range = 0.005
+c            range = 0.05
             rlmin = rmind - (2.*range)
             
             IF (d-rlmin.LE.2.*range) THEN
@@ -358,7 +362,30 @@ c         if (rxyplane.ge.0.9) print *, frcyl
 c         if (abs(frcyl).gt.0.) print *,frcyl/fru,frcyl,radius-rxyplane
          fx = fx+frcyl*xi*drxyplane
          fy = fy+frcyl*yi*drxyplane  
-         
+c
+c--External force for settling test (vertical gravity from central star
+c  located at a distance Rdisc from a non-rotating disc section)
+c
+      ELSEIF (iexf.EQ.11) THEN
+         Rdisc = 50.*au/udist ! i.e. 50 au for vertical settling test
+         zi = xyzmh(3,ipart)
+
+         d2 = (Rdisc**2 + zi**2)
+         d = SQRT(d2)
+
+         runiz = zi/d
+
+         fz = fz - xmass*runiz/d2
+c
+c--Note: x,y components don't matter for this test, and grav_accel
+c     in the x and y directions only matters for dust relative velocities
+c     for dust growth anyway (doesn't affect setting test).
+c
+         IF (idimHY09.EQ.idim) THEN
+            grav_accel(3,ipart) = grav_accel(3,ipart) - xmass*runiz/d2
+         ENDIF
+
+         poten(ipart) = poten(ipart) - xmass/d
       ENDIF
 
       RETURN

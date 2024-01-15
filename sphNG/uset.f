@@ -116,13 +116,17 @@ c
       IF (ABS(u_got-u_last).GT.1.E-5) THEN
          iteration = iteration + 1
          IF (iteration.GT.100) THEN
-            WRITE (*,*) 'ERROR - getu failed ',u_got,temp_in,rho
+            WRITE (*,*) 'ERROR - getu failed ',u_got,u_last,temp_in,rho
+            IF (ABS(u_got-u_last)/u_last.LT.1.E-5) THEN
+               WRITE (*,*) 'ERROR - getu continuing (frac tol 1.e-5)'
+               GOTO 200
+            ENDIF
             CALL quit(1)
          ENDIF
          GOTO 100
       ENDIF
 
-      getu = u_got
+ 200  getu = u_got
 
       RETURN
 

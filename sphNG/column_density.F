@@ -123,9 +123,17 @@ c
             n = listgn(j-nlistga)
 c
 c--From empirical testing, 0.5*qrad(1,n) seems to work best for nodes.
-c
+c     When developed, also tried:
 c            sizenode = qrad(1,n) + 2.0*xyzmh(5,n)
-            sizenode = 0.5*qrad(1,n)
+c
+c     If two particles are exactly on top of each other, this gives
+c     sizenode=0.  In that case, use twice the smoothing length of node.
+c
+            IF (qrad(1,n).EQ.0.) THEN
+               sizenode = 2.0*xyzmh(5,n)
+            ELSE
+               sizenode = 0.5*qrad(1,n)
+            ENDIF
          ELSE
 c
 c--For particles, use twice the smoothing length
@@ -239,7 +247,18 @@ c
                   fraction = MAX(0.0, fraction)
                ENDIF
 
-               contribution = pmassn/(pi*sizenode**2)*fraction
+               IF (sizenode.LE.0.) THEN
+c
+c--Should not happen (used to if two particles on top of each other)
+c     Results in divide by zero and segfault for contribution if zero.
+c
+                  contribution = 0.
+                  WRITE (*,99001) sizenode,pmassn,j,n,nlistga,natom
+99001    FORMAT ('ERROR - column_density: sizenode ',1PE12.5,4(1X,I8))
+                  CALL quit(1)
+               ELSE
+                  contribution = pmassn/(pi*sizenode**2)*fraction
+               ENDIF
                columndensity(k,1) = columndensity(k,1) + contribution
                columndensity(k,2) = columndensity(k,2) + 
      &              contribution*2.0*h2frac(n)

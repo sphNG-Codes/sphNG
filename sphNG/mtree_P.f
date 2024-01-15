@@ -424,6 +424,11 @@ c--Find radius and maximum h
 c
                rr = SQRT(difx**2 + dify**2 + difz**2)
                qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr + qrad(1,ll))
+               IF (qrad(1,new).EQ.0.) THEN
+                  print *,'ERROR - mtree node has zero size: ',new,l,ll,
+     &                 natom,pmassl,pmassll,fl,fll,rr,
+     &                 qrad(1,l),qrad(1,ll),xyzmh(:,l),xyzmh(:,ll)
+               ENDIF
                xyzmh(5,new) = MAX(xyzmh(5,l), xyzmh(5,ll))
 c
 c--Find quadrupole moments

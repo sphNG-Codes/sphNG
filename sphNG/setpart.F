@@ -92,6 +92,7 @@ c
       poly_const = 0.
       xmass = 0.
       planetmass = 0.
+      hzero = 0.
 
       DO i = 1, idim
          iorig(i) = i
@@ -559,7 +560,6 @@ c
 89002    FORMAT('Enter radius for planet')
          READ (iread,*) rplanet
 
-         hzero = rplanet/5.
          nlistinactive = 0
          IF (rplanet.NE.0.0) THEN
          pradfac = (rplanet + (0.01*exp(-4.*gt/pi)))/rplanet
@@ -616,7 +616,6 @@ c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
             xyzmh(5,listpm(1)) = hacc
          ENDIF
 
-         hzero = rplanet/5.
          nlistinactive = 0
          IF (rplanet.NE.0.0) THEN
             pradfac = (rplanet + (0.01*exp(-4.*gt/pi)))/rplanet

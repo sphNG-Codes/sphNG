@@ -168,6 +168,7 @@ c---------------------------------------------------------------
       CHARACTER*1 ien, irotref, uort, iplans
       INTEGER inum, inum2, nplanetesimals
 
+      hzero = 0.
       sdprof = 0
       iplanetesimals = 0
       imigrate = 0
@@ -265,7 +266,6 @@ c--Route one: Single planet modelled using a potential.
 11102    FORMAT('Enter radius for planet')
          READ (*,*) rplanet
 
-         hzero = rplanet/5.
          nlistinactive = 0
 
          pradfac(1) = (rplanet + (0.01*exp(-4.*gt/pi)))/rplanet
@@ -487,7 +487,6 @@ c--Specify density profile of disc.
          ymin = - ymax
          rmax = SQRT(rcyl*rcyl + zmax*zmax)
 
-         hzero = 0.0
          nlistinactive = 0
 
 c--Set planetesimal choice

@@ -254,9 +254,6 @@ c--Default int
      &      tag('iplanetesimals'),tag('irotpot'),tag('idragscheme'),
      &      tag('HY09_dust_bins')
 
-      iplanetesimals = 13
-      irotpot = 14
-      idragscheme = 15
       WRITE (idisk1, ERR=100) nparttot,n1,n2,nreassigntot,
      &     naccretetot,nkilltot,nblocks,iyr,idum,
      &     (iv(i),i=1,NTAB), iplanetesimals, irotpot,

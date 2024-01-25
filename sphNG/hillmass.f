@@ -37,7 +37,7 @@ c      EQUIVALENCE (ilist, next1)
             ysub = 0.0
             zsub = 0.0
          ELSE
-            rorbit = sqrt(px**2 + py**2 + pz**2)
+            rorbit = SQRT(px**2 + py**2 + pz**2)
             xsub = px
             ysub = py
             zsub = pz
@@ -47,7 +47,7 @@ c      EQUIVALENCE (ilist, next1)
             print *, 'ERROR: hillmass, isink = 0'
             STOP
          ENDIF
-         rorbit = sqrt(xyzmh(1,listpm(isink))**2 +
+         rorbit = SQRT(xyzmh(1,listpm(isink))**2 +
      &        xyzmh(2,listpm(isink))**2 +
      &        xyzmh(3,listpm(isink))**2)
          xsub = xyzmh(1,listpm(isink))
@@ -69,7 +69,7 @@ c      EQUIVALENCE (ilist, next1)
          i = ilist(j)
          IF (iphase(i).EQ.0) THEN
             IF(rr(i).LE.hillr) hillm = hillm + xyzmh(4,i)
-            hillr = (hillm/(3.*xmass))**(1.0/3.0)
+            hillr = rorbit*(hillm/(3.*xmass))**(1.0/3.0)
          ENDIF
       END DO
 

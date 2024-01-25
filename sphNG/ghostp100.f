@@ -219,38 +219,8 @@ c         ekcle(2,i) = getkappa(vxyzu(4,i),ekcle(3,i),rhoreal4)
          ENDIF
          
  300  CONTINUE
-c
-c--Add boundary for planet's surface -closest particle to planet is icentre
-c
-c--But might be better to do it with repulsive boundary condition otherwise
-c     particles may drift inside planet
-c
-      GOTO 400
-      rplanet = 2.4E-05
-      IF (xyzmh(5,icentre).GT.rplanet) THEN
-         nghost = nghost + 1
-         nptot = MIN0(npart + nghost, idim)
-         ireal(nptot) = icentre
-         xyzmh(1,nptot) = 1.0
-         xyzmh(2,nptot) = 0.0
-         xyzmh(3,nptot) = 0.0
-         xyzmh(4,nptot) = xyzmh(4,icentre)
-         xyzmh(5,nptot) = rplanet/2.0
-         vxyzu(1,nptot) = 0.0
-         vxyzu(2,nptot) = 0.0
-         vxyzu(3,nptot) = 0.0
-         vxyzu(4,nptot) = vxyzu(4,icentre)
-         rho(nptot) = rho(icentre)
-         iphase(nptot) = 0
 
-         IF (encal.EQ.'r') THEN
-            DO j=1,5
-               ekcle(j,nptot) = ekcle(j,icentre)
-            END DO
-         ENDIF
-      ENDIF
-
- 400  WRITE (iprint, *) 'npart, nghost', npart, nghost
+      WRITE (iprint, *) 'npart, nghost', npart, nghost
       ntot = npart + nghost
       IF (iinner.NE.0) WRITE (iprint,99090) iinner
 99090 FORMAT(' adding ',I6,' inner ghosts')

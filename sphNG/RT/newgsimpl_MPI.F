@@ -1124,7 +1124,7 @@ c
       ihasghost = 0
 
       IF (ibound.EQ.100 .AND. iandrea.EQ.1)
-     &     hmass_e = hillmass(planetmass, 0, xmass, 0) - planetmass
+     &     hmass_e = hillmass(planetmass(1), 0, xmass, 0) -planetmass(1)
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(EU0,uergg,ekcle)

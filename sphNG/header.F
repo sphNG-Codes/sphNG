@@ -244,15 +244,13 @@ c
      &           '  frac. radial    : ',1PE12.4,/)
          ELSEIF (ibound.EQ.100) THEN 
             WRITE (iprint,99533) variation,phibound,flowrate,
-     &           signorm,hoverr,planetmass,rplanet
+     &           signorm,hoverr
 99533       FORMAT (/,' Boundary type: planet/disc section ',/,
      &           '  radius variation: ',1PE12.4,/,
      &           '  phi boundary    : ',1PE12.4,/,
      &           '  flowrate        : ',1PE12.4,/,
      &           '  sigma normal.   : ',1PE12.4,/,
-     &           '  disc H/R        : ',1PE12.4,/,
-     &           '  planet mass     : ',1PE12.4,/,
-     &           '  planet radius   : ',1PE12.4,/)
+     &           '  disc H/R        : ',1PE12.4,/)
          ELSEIF (ibound.EQ.104) THEN 
             WRITE (iprint,99536) variation,phibound,
      &           signorm,hoverr
@@ -265,13 +263,6 @@ c
             IF (nptmass.GT.0) THEN
                WRITE (iprint,99535) rcyl,rmind,
      &              signorm,sdprof,tprof,hoverr
-
-               DO i = 1, nptmass
-                  WRITE (iprint, 99537) i, xyzmh(4,listpm(i)), i,
-     &                 xyzmh(5,listpm(i))
-               ENDDO
-               IF (initialptm.EQ.5) WRITE (iprint, 99538) uniformtslim
-            
 99535          FORMAT (/,' Boundary type: whole disc  ',/,
      &              '  outer radius           : ',1PE12.4,/,
      &              '  inner radius           : ',1PE12.4,/,
@@ -279,40 +270,67 @@ c
      &              '  disc density profile   : ',1PE12.4,/,
      &              '  disc temp profile      : ',1PE12.4,/,
      &              '  disc H/R               : ',1PE12.4,/)
-99537          FORMAT (/,'  planet (',I2,') mass     : ',1PE12.4,/,
-     &              '  planet (',I2,') radius   : ',1PE12.4,/)
-99538          FORMAT (/,' uniform ts rad  : ',1PE12.4,/)
+
+               WRITE (iprint, 11102)
+11102          FORMAT (' Planets modelled using sink particles ')
+               DO i = 1, nptmass
+                  WRITE (iprint, 11104) i, SQRT(xyzmh(1,listpm(i))**2 +
+     &                 xyzmh(2,listpm(i))**2 + xyzmh(3,listpm(i))**2),
+     &                 xyzmh(4,listpm(i)), xyzmh(5,listpm(i))
+               END DO            
+11104          FORMAT ('  Planet ', I2,' data :'/,
+     &              '   Planet orbital distance        : ', 1PE12.4,/,
+     &              '   Planet mass                    : ', 1PE12.4,/,
+     &              '   Planet radius                  : ', 1PE12.4,/)
+
+               IF (initialptm.EQ.5) WRITE (iprint, 99538) uniformtslim
+99538          FORMAT (' uniform ts rad  : ',1PE12.4,/)
 
             ELSEIF (initialptm.EQ.0) THEN
                WRITE (iprint,99534) rcyl,rmind,
-     &              signorm,sdprof,tprof,hoverr,planetmass,rplanet
+     &              signorm,sdprof,tprof,hoverr
 99534          FORMAT (/,' Boundary type: whole disc  ',/,
      &           '  outer radius           : ',1PE12.4,/,
      &           '  inner radius           : ',1PE12.4,/,
      &           '  sigma normal.          : ',1PE12.4,/,
      &           '  disc density profile   : ',1PE12.4,/,
      &           '  disc temp profile      : ',1PE12.4,/,
-     &           '  disc H/R               : ',1PE12.4,/,
-     &           '  planet mass            : ',1PE12.4,/,
-     &           '  planet radius          : ',1PE12.4,/)
+     &           '  disc H/R               : ',1PE12.4,/)
             ENDIF
-
+c
+c--Planet migration
+c
             IF (imigrate.EQ.1) THEN
                WRITE (iprint, 11001) pmrate/(1.49598E13/3.1536E13)/
      &              (utime/udist), pmrate*rorbitmax/(1.49598E13/
      &              3.1536E13)/(utime/udist)*(utime/3.1536E13)
-11001          FORMAT ('Imposed migration rate (AU/Myr)  :', 1PE12.4,/,
-     &                 'Total migration distance (AU)    :', 1PE12.4,/)
+11001          FORMAT (' Imposed migration rate (AU/Myr) :', 1PE12.4,/,
+     &                 ' Total migration distance (AU)   :', 1PE12.4,/)
             ENDIF
+         ENDIF
+c
+c--Planets modelled as potentials
+c
+         IF (numplanet.GT.0) THEN
+            WRITE (iprint, 11100)
+11100       FORMAT (' Planets modelled using potentials ')
+            DO i = 1, numplanet
+               WRITE (iprint, 11110) i,planetsemiaxis(i),
+     &              planetmass(i),planetradius(i)
+11110          FORMAT ('  Planet ', I2,' data :'/,
+     &              '   Planet orbital semi-major axis : ', 1PE12.4,/,
+     &              '   Planet mass                    : ', 1PE12.4,/,
+     &              '   Planet radius                  : ', 1PE12.4,/)
+            END DO
          ENDIF
 c
 c--Planetesimal output for Ben Ayliffe's explicit single-size 
 c     implementation
 c
          IF (iplanetesimals.GT.0) THEN
-            WRITE (iprint, 11002) r_planetesimals(1)*udist/1.0E5,
+            WRITE (iprint, 11200) r_planetesimals(1)*udist/1.0E+05,
      &           rho_planetesimals(1)*udens
-11002       FORMAT (' Planetesimal radius (km) : ', 1PE12.4,/,
+11200      FORMAT (' Planetesimal radius (km) : ', 1PE12.4,/,
      &           ' Planetesimal density (g/cm^3) : ', 1PE12.4,/)
          ENDIF
 c

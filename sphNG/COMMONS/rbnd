@@ -3,7 +3,7 @@
       REAL rmax, xmin, xmax, ymin, ymax, zmin, zmax, rcyl
       REAL boundtemp, bounddens, dxbound,dybound,dzbound
       REAL variation,phibound,flowrate,signorm,hoverr,partm,centralmass
-      REAL rplanet,opdenom,hmass,pradfac,gapfac
+      REAL opdenom,hmass,gapfac
       REAL uniformtslim,uniformtslim2,tprof,sdprof
       REAL coremass_orig, coremass
       REAL metallicity
@@ -22,8 +22,7 @@ c--Note: flowrate is the number of particles (floating point) per code time
 c
       COMMON /inactive/ listinactive(idim),nlistinactive
       COMMON /planet2/ variation,phibound,flowrate,signorm,hoverr,
-     &       partm,centralmass,
-     &       rplanet,pradfac(iptdim),gapfac,uniformtslim,
+     &       partm,centralmass,gapfac,uniformtslim,
      &       uniformtslim2,tprof,sdprof,coremass_orig,
      &       coremass
       COMMON /planetl/ use_tprof

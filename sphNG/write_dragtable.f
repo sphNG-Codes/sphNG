@@ -1,4 +1,4 @@
-      subroutine write_dragtable(idragfile)
+      SUBROUTINE write_dragtable(idragfile)
 
       IMPLICIT NONE
 
@@ -11,27 +11,27 @@
       INTEGER idragfile
       REAL hmass, hillmass
 
-      hmass = hillmass(planetmass, 0, xmass, 0)
+      hmass = hillmass(planetmass(1), 0, xmass, 0)
 
       WRITE (idragfile, ERR=100) idragresr, idragresp, idragrest
       WRITE (idragfile, ERR=100) dragtrmin, dragtrmax, dragtdr, 
      &     dragtpmin, dragtpmax, dragtdp, dragttmin, dragttmax, dragtdt
-      WRITE (idragfile, ERR=100) planetmass, hmass
+      WRITE (idragfile, ERR=100) planetmass(1), hmass
 
-      do i = 1, idragresr
-         do j = 1, idragresp
-            do k = 1, idragrest
+      DO i = 1, idragresr
+         DO j = 1, idragresp
+            DO k = 1, idragrest
                WRITE (idragfile, ERR=100) dragenergy(i,j,k)
-            enddo
-         enddo
-      enddo
+            END DO
+         END DO
+      END DO
 
       CLOSE (idragfile)
 
       RETURN
       
- 100  print *, 'An error has occurred writing drag file'
-      call quit(0) 
+ 100  PRINT *, 'An error has occurred writing drag file'
+      CALL quit(0) 
 
-      end subroutine write_dragtable
+      END SUBROUTINE write_dragtable
 

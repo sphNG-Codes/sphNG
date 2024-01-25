@@ -1,5 +1,5 @@
-      SUBROUTINE externf(ipart,ntot,ti,xyzmh,vxyzu,fx,fy,fz,rho,iexf,
-     &     ibound, irotpot)
+      SUBROUTINE externf(ipart,ntot,time,xyzmh,vxyzu,fx,fy,fz,rho,
+     &     iexf,ibound,irotpot)
 c************************************************************
 c                                                           *
 c  This subroutine computes the effect of an external       *
@@ -167,13 +167,13 @@ c            range = 0.05
             fy = fy + fsurface*xmass*runiy/d2
             fz = fz + fsurface*xmass*runiz/d2
          ENDIF
-
 c
 c--Wyatt style migration, now useable for sinks and potentials.
+c  Sink particles are done here.
 c  Odd use of runiy, runix due to force acting in phi direction.
 c
          IF (imigrate.EQ.1 .AND. iphase(ipart).GE.1 .AND.
-     &        iphase(ipart).LT.10 .AND. ti.LT.rorbitmax) THEN
+     &        iphase(ipart).LT.10 .AND. time.LT.rorbitmax) THEN
             fwyatt = 0.5*pmrate*sqrt(xmass/d**3)
             fx = fx - fwyatt*runiy
             fy = fy + fwyatt*runix
@@ -182,36 +182,37 @@ c
 c--Orbiting potential case, where gravity and surface forces are
 c  applied here.
 c
-         IF (irotpot.EQ.1) THEN
-            CALL planetpotential (px, py, pz, imigrate, rorbitmax,
-     &           pmrate, rorbit_orig, ti)
+         IF (irotpot.GT.0 .AND. numplanet.GT.0) THEN
+            DO i = 1, numplanet
+               CALL planetpotential (i, px, py, pz, imigrate, 
+     &              rorbitmax, pmrate, time)
 
-            xi = xi - px
-            yi = yi - py
+               xi_p = xi - px
+               yi_p = yi - py
+               zi_p = zi - pz
+               d2 = (xi_p*xi_p + yi_p*yi_p + zi_p*zi_p + tiny)
+               d = SQRT(d2)
+               runix = xi_p/d
+               runiy = yi_p/d
+               runiz = zi_p/d
 
-            d2 = (xi*xi + yi*yi + zi*zi + tiny)
-            d = SQRT(d2)
-
-            runix = xi/d
-            runiy = yi/d
-            runiz = zi/d
-
-            IF (d.LE.(2.*rplanet*pradfac(1)) .AND.
-     &           iphase(ipart).EQ.0) THEN
-               fsurface = (((2.*rplanet*pradfac(1))-d)/
-     &              (rplanet*pradfac(1)))**4
-            ELSE
-               fsurface = 0.0
-            ENDIF
+               planetradius_effective = planetradius(i)*pradfac(i,time)
+               IF (d.LE.(2.*planetradius_effective) .AND.
+     &              iphase(ipart).EQ.0) THEN
+                  fsurface = (((2.*planetradius_effective)-d)/
+     &                 (planetradius_effective))**4
+               ELSE
+                  fsurface = 0.0
+               ENDIF
             
-            ftotal = planetmass/d2*(1.0 - fsurface)
+               ftotal = planetmass(i)/d2*(1.0 - fsurface)
 
-            fx = fx - ftotal*runix
-            fy = fy - ftotal*runiy
-            fz = fz - ftotal*runiz
-            poten(ipart) = poten(ipart) - planetmass/d
+               fx = fx - ftotal*runix
+               fy = fy - ftotal*runiy
+               fz = fz - ftotal*runiz
+               poten(ipart) = poten(ipart) - planetmass(i)/d
+            END DO
          ENDIF
-
 c
 c--Distant point mass
 c
@@ -231,7 +232,7 @@ c
          fz = fz - xmass*runiz/d2
          poten(ipart) = poten(ipart) - xmass/d
 c
-c--Central point mass and planet
+c--Central point mass and a single planet at x=1 (needs rotating frame)
 c
       ELSEIF (iexf.EQ.7) THEN
          xi = xyzmh(1,ipart)
@@ -251,38 +252,35 @@ c
 c--Assumes planet at location (1,0,0) in code units
 c
          xi = xi - 1.0
-c
-c--Radius of earth is 8.2e-6 in 5.2au code units
-c--Radius of 30 M_e solid core would be 2.5e-5 in 5.2 au code units
-c
-c         rplanet = 2.5E-05
-c         rplanet = 1.0E-03
-c         d2 = (xi*xi + yi*yi + zi*zi + (rplanet)**2)
-c         d = SQRT(d2)
 
          d2 = (xi*xi + yi*yi + zi*zi + tiny)
          d = SQRT(d2)
-         rp = d - (rplanet*pradfac(1))
-
          runix = xi/d
          runiy = yi/d
          runiz = zi/d
 c
 c--Forces relating to planet's surface
 c
-         IF (d.LE.(2.*rplanet*pradfac(1))) THEN
-            fsurface = (((2.*rplanet*pradfac(1))-d)/
-     &           (rplanet*pradfac(1)))**4
+c--Radius of earth is 8.2e-6 in 5.2au code units
+c--Radius of 30 M_e solid core would be 2.5e-5 in 5.2 au code units
+c
+c         rplanet = 2.5E-05
+c         rplanet = 1.0E-03
+
+         planetradius_effective = planetradius(1)*pradfac(1,time)
+         IF (d.LE.(2.*planetradius_effective)) THEN
+            fsurface = (((2.*planetradius_effective)-d)/
+     &           (planetradius_effective))**4
          ELSE
             fsurface = 0.0
          ENDIF
 
-         ftotal = planetmass/d2*(1.0 - fsurface)
+         ftotal = planetmass(1)/d2*(1.0 - fsurface)
 
          fx = fx - ftotal*runix
          fy = fy - ftotal*runiy
          fz = fz - ftotal*runiz
-         poten(ipart) = poten(ipart) - planetmass/d
+         poten(ipart) = poten(ipart) - planetmass(1)/d
 
       ELSEIF (iexf.EQ.8) THEN
          xi = xyzmh(1,ipart)
@@ -306,15 +304,15 @@ c contribution of logarithmic potential and halo
 
 c spiral perturbation
 
-         call potential(xi,yi,zi,ti,potent1)
+         call potential(xi,yi,zi,time,potent1)
 
-         call potential(xi+dhi,yi,zi,ti,potent2)
+         call potential(xi+dhi,yi,zi,time,potent2)
          fx = fx - (potent2-potent1)/dhi
 
-         call potential(xi,yi+dhi,zi,ti,potent2)
+         call potential(xi,yi+dhi,zi,time,potent2)
          fy = fy - (potent2-potent1)/dhi
 
-         call potential(xi,yi,zi+dhi,ti,potent2)
+         call potential(xi,yi,zi+dhi,time,potent2)
          fz = fz - (potent2-potent1)/dhi
       ELSEIF (iexf.EQ.9) THEN
 c

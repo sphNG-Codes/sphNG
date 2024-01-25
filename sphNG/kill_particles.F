@@ -51,6 +51,10 @@ c************************************************************
 
       LOGICAL killme
       CHARACTER*7 where
+c
+c--Define type of external function: pradfac
+c
+      REAL pradfac
 
       DATA where/'killp'/
 c
@@ -260,7 +264,7 @@ c
          IF (iexf.EQ.7) r2 = (xyzmh(1,i)-1.0)**2 +
      &        xyzmh(2,i)**2 + xyzmh(3,i)**2
 
-         rlim = rplanet*pradfac(1)
+         rlim = planetradius(1)*pradfac(1,time)
          IF (r2.LT.rlim**2) THEN
             ipkill = iphase(i)
             iphase(i) = -1
@@ -271,8 +275,8 @@ C$OMP CRITICAL (killparticle)
 c
 c--Add solids mass into core as it is accreted.
 c
-            planetmass = planetmass + xyzmh(4,i)
-            coremass = planetmass
+            planetmass(1) = planetmass(1) + xyzmh(4,i)
+            coremass = planetmass(1)
 
             IF (encal.EQ.'r') THEN
 c
@@ -302,13 +306,13 @@ c
                   CALL dragcoordinates(dragr, dragp, dragt, idragr,
      &                 idragp, idragt)
                   IF (idragr.GT.1 .AND.
-     &                 (pradfac(1)-1.0).LT.1.0E-8) THEN
+     &                 (pradfac(1,time)-1.0).LT.1.0E-8) THEN
                      print *, 'Solids killed at surface not going in'
                      print *, 'the innermost bin. Weird.'
                      print *, 'idragr = ', idragr, dragr
-                     print *, 'pradfac = ', pradfac(1), SQRT(r2)
-                     print *, 'rplanet = ', rplanet, rplanet*
-     &                    pradfac(1)
+                     print *, 'pradfac = ', pradfac(1,time), SQRT(r2)
+                     print *, 'rplanet = ', planetradius(1), 
+     &                    planetradius(1)*pradfac(1,time)
                      CALL quit(1) 
                   ENDIF
 

@@ -94,7 +94,6 @@ c     that are neighbours of active particles for updating their densities etc
       INCLUDE 'COMMONS/gravi'
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/divcurlB'
-      INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/raddust'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/sightlines'
@@ -2078,12 +2077,6 @@ c
 c--Added to give more information about failed particle. (fort.65)
 c
       itemp = ldolist(nlstdo)
-      IF (irotpot.EQ.1) THEN
-         WRITE (65,11002) px, py, pradfac(1)*rplanet,
-     &        sqrt((px-xyzmh(1,itemp))**2 + (py-xyzmh(2,itemp))**2 +
-     &        xyzmh(3,itemp)**2)
-11002    FORMAT ('#Planet :', 4(X,1PE15.8))
-      ENDIF
 
 11001 FORMAT (I8,X,I4,X,I8,6(X,1PE15.8),X,L1)
       WRITE (65,11001) itemp, iphase(itemp), nneigh(itemp), rho(itemp),

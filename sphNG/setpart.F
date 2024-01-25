@@ -91,7 +91,7 @@ c
       gt = 0.0
       poly_const = 0.
       xmass = 0.
-      planetmass = 0.
+      planetmass(:) = 0.
       hzero = 0.
 
       DO i = 1, idim
@@ -558,16 +558,10 @@ c
 
          WRITE (*,89002)
 89002    FORMAT('Enter radius for planet')
-         READ (iread,*) rplanet
+         READ (iread,*) planetradius(1)
+         print *, 'RPLANET = ', planetradius(1)*pradfac(1,0.)
 
          nlistinactive = 0
-         IF (rplanet.NE.0.0) THEN
-         pradfac = (rplanet + (0.01*exp(-4.*gt/pi)))/rplanet
-c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
-         ELSE
-            pradfac = 0.0
-         ENDIF
-         print *, 'RPLANET = ', rplanet*pradfac
          iexf = 7
       ELSE IF (igeom.EQ.10) THEN
          WRITE (*, 89003) udist
@@ -602,27 +596,21 @@ c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
          rmax = SQRT(rcyl*rcyl + zmax*zmax)
 
          WRITE (*,89002)
-         READ (iread,*) rplanet
+         READ (iread,*) planetradius(1)
 
          IF (nptmass.EQ.1) THEN
             IF (iphase(listpm(1)).EQ.5) THEN
                hacc = 1.0E-8
                haccall = 1.0E-8
             ELSE
-               hacc = rplanet
-               haccall = rplanet
-               rplanet = 0.0
+               hacc = planetradius(1)
+               haccall = planetradius(1)
             ENDIF
             xyzmh(5,listpm(1)) = hacc
          ENDIF
+         print *, 'RPLANET = ', planetradius(1)*pradfac(1,0.)
 
          nlistinactive = 0
-         IF (rplanet.NE.0.0) THEN
-            pradfac = (rplanet + (0.01*exp(-4.*gt/pi)))/rplanet
-         ELSE
-            pradfac = 0.0
-         ENDIF
-         print *, 'RPLANET = ', rplanet*pradfac
          iexf = 5
       ENDIF
 
@@ -1673,11 +1661,13 @@ c
 c
 c--Check planet hasn't been made incorrectly
 c      
-      IF (iexf.EQ.5 .AND. ibound.EQ.102 .AND. nptmass.EQ.0) THEN
+      IF (iexf.EQ.5 .AND. ibound.EQ.102 .AND. (nptmass.EQ.0 .OR.
+     &     irotpot.EQ.0)) THEN
          WRITE (*, 77234)
 77234    FORMAT ('ERROR: You cannot represent a planet with iexf = 5',/
-     &        ' without a sink particle. Either change to a',/
-     &        ' a potential (iexf = 7) or add a sink.')
+     &        ' without either a sink particle or a planet potential.',/
+     &        ' Either change to a single-planet potential (iexf = 7)',/
+     &        ' or add a sink.')
          CALL quit(0) 
       ENDIF
 c
@@ -1762,16 +1752,17 @@ c
          END DO
          IF (iexf.EQ.7) THEN
             WRITE (*,55505)
-55505       FORMAT (' Is the calculation in rotating reference frame?')
+55505       FORMAT(' Is calculation in rotating reference frame (y/n)?')
             READ (iread,99004) irotref
+
+            numplanet = 1
             WRITE (*,55533)
-55533              FORMAT (' Enter planet mass for external forces')
-            READ (iread,*) planetmass
-            hmass = planetmass
-c            hmass = 0.0001
+55533       FORMAT (' Enter planet mass for external forces')
+            READ (iread,*) planetmass(1)
+            hmass = planetmass(1)
          ELSE
             irotref = 'n'
-            planetmass = 0.
+            planetmass(:) = 0.
          ENDIF
       ENDIF 
 

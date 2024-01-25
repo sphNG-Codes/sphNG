@@ -201,7 +201,7 @@ c
 c--Added to ensure node opening near planet surface.
 c
                ELSEIF (iphase(m).EQ.5) THEN
-                  IF ((rr.LE.((2.*xyzmh(5,m)*pradfac(listrealpm(m))) +
+                  IF ((rr.LE.((2.*xyzmh(5,m)*pradfac(0,1.0)) +
      &                 qrad(1,n))**2) .AND. iptintree.EQ.1) THEN
                      j = isibdaupar(2,n)
                      istack = istack + 1

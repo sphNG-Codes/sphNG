@@ -1,4 +1,19 @@
-      REAL    xmass, planetmass, hzero
-      COMMON /xforce/ xmass, planetmass, hzero
+c
+c--For modelling central point mass and planets using potentials
+c
+      INTEGER nplanetmax
+      PARAMETER (nplanetmax = 10)
 
-      
+      REAL, PARAMETER :: pradfac_sinks_init = 10.0
+
+      INTEGER numplanet
+      REAL    xmass, planetmass, planetsemiaxis, planetradius
+      REAL    pradfac_sinks, hzero
+      COMMON /nforce/ numplanet
+      COMMON /xforce/ xmass, planetmass(nplanetmax),
+     &	     planetsemiaxis(nplanetmax),planetradius(nplanetmax)
+      COMMON /pradfs/ pradfac_sinks
+c
+c--For modelling a torus
+c
+      COMMON /xtorus/ hzero

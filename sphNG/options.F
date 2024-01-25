@@ -300,11 +300,21 @@ c
             CALL quit(0)
          ENDIF
       ENDIF
-      IF (iexf.EQ.7 .OR. ((ibound.EQ.102 .OR. ibound.EQ.103)
-     &     .AND. initialptm.EQ.0)) THEN
-         READ (iterm, *) planetmass
-         READ (iterm, *) rplanet
-         READ (iterm, *) rorbit_orig
+      IF (iexf.EQ.7 .OR. (iexf.EQ.5 .AND. irotpot.EQ.1)) THEN
+         READ (iterm, *) numplanet
+         IF (numplanet.GT.nplanetmax) THEN
+            WRITE (iprint,*) 'ERROR - numplanet.GT.nplanetmax'
+            CALL quit(0)
+         ENDIF
+         DO i = 1, numplanet
+            READ (iterm, *) planetmass(i)
+         END DO
+         DO i = 1, numplanet
+            READ (iterm, *) planetsemiaxis(i)
+         END DO
+         DO i = 1, numplanet
+            READ (iterm, *) planetradius(i)
+         END DO
          IF (iexf.EQ.7) THEN
             READ (iterm, *) iandrea
             READ (iterm, *) eccentricity_p

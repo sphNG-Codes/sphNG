@@ -75,7 +75,7 @@ c--Point mass with surface.
 c
             IF (iphase(jpt).EQ.5) THEN
                rr05 = SQRT(rr)
-               rsurface = xyzmh(5,jpt)*pradfac(jptn)
+               rsurface = xyzmh(5,jpt)*pradfac(0,1.)
                IF (rr05.LE.(2.*rsurface)) THEN
                   fsurface = (((2.*rsurface)-rr05)/
      &                 (rsurface))**4

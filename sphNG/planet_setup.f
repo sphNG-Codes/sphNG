@@ -165,10 +165,13 @@ c---------------------------------------------------------------
 
       REAL*8 inclination
       CHARACTER*1 iok, iwhat, idens
-      CHARACTER*1 ien, irotref, uort, iplans
+      CHARACTER*1 ien, irotref, uort, iplans, ians_rot
       INTEGER inum, inum2, nplanetesimals
 
       hzero = 0.
+      irotpot = 0
+      nlistinactive = 0
+
       sdprof = 0
       iplanetesimals = 0
       imigrate = 0
@@ -229,7 +232,6 @@ c--True for all but section case, in which case changed below.
 
       npart = 0
       iaccevol = 'f'
-      pradfac(:) = 0.0
 
       inum2 = 0
       IF (inum.EQ.1) THEN
@@ -237,9 +239,11 @@ c--True for all but section case, in which case changed below.
  2       WRITE (*,11002)
          READ (*,11111) inum2
          IF (inum2.LT.1 .OR. inum2.GT.2) GOTO 2
+         IF (inum2.EQ.1) irotpot = 1
       ENDIF
-
+c
 c--For a potential model choose between section and whole disc.
+c
       IF (inum2.EQ.1 .OR. inum.EQ.2) THEN
  3       WRITE (*, 11003)
 11003    FORMAT (//, ' INITIAL CLOUD GEOMETRY ', //,
@@ -248,29 +252,52 @@ c--For a potential model choose between section and whole disc.
          READ (*, *) igeom
          IF (igeom.LT.9 .OR. igeom.GT.10) GOTO 3
       ENDIF
-
-c--Route one: Single planet modelled using a potential.
-
+c
+c--Route one: Planets modelled using potentials.
+c
       irotref = 'n'
-      planetmass = 0.
-      rplanet = 0.
+      planetmass(:) = 0.
+      planetsemiaxis(:) = 0.
+      planetradius(:) = 0.
       IF (inum2.EQ.1) THEN
-         WRITE (*,11101)
-11101    FORMAT (' Enter planet mass')
-         READ (*,*) planetmass
-         hmass = planetmass
-         coremass_orig = planetmass
-         coremass = planetmass
+         WRITE (*, 11201)
+         READ (*,*) numplanet
+         IF (numplanet.GT.nplanetmax) THEN
+            WRITE (*,*) 'ERROR - numplanet.GT.nplanetmax'
+            STOP
+         ENDIF
+         IF (numplanet.LT.1) THEN
+            WRITE (*,*) 'ERROR - numplanet must be at least 1'
+            STOP
+         ENDIF
 
-         WRITE (*,11102)
-11102    FORMAT('Enter radius for planet')
-         READ (*,*) rplanet
+         DO i = 1, numplanet
+            WRITE (*, 11203) i
+            READ (*,*) planetsemiaxis(i)
+            
+c            WRITE (*, 11204)
+c            READ (*,*) eccent
+            
+c            WRITE (*, 11205)
+c            READ (*,*) inclination
+c            inclination = inclination*pi/180.
 
-         nlistinactive = 0
+            WRITE (*,11206)
+            READ (*,*) planetmass(i)
 
-         pradfac(1) = (rplanet + (0.01*exp(-4.*gt/pi)))/rplanet
-c         pradfac = (rplanet + (0.01*exp(-2.*gt)))/rplanet
-         print *, 'R planet = ', rplanet*pradfac(1)
+            WRITE (*,11207) i
+            READ (*,*) planetradius(i)
+
+            print *,'R_planet ',i,' initial inflated = ',
+     &           planetradius(i)*pradfac(i,0.)
+         END DO
+c
+c--Currently only usable for 1 planet
+c
+         hmass = planetmass(1)
+         coremass_orig = planetmass(1)
+         coremass = planetmass(1)
+
       ENDIF
 
 c--Route two: Planet(s) modelled using a sink particle.
@@ -364,12 +391,8 @@ c     haccall = radius at which all particles are accreted without test
          IF (initialptm.EQ.5) THEN
 11208       FORMAT (' Radius of planet ', I2, ' is ', 1PE12.5)
             DO i = 1, nptmass
-               pradfac(i) = (xyzmh(5,i) + (0.01*exp(-4.*gt/pi)))
-     &              /xyzmh(5,i)
-               WRITE (*,11208) i, xyzmh(5,i)*pradfac(i)
-            ENDDO
-         ELSE
-            pradfac(:) = 0.0
+               WRITE (*,11208) i, xyzmh(5,i)*pradfac(0,0.)
+            END DO
          ENDIF
       ENDIF
 
@@ -392,7 +415,6 @@ c
       rcyl = 0.
       rmin = 0.
       rmind = 0.
-      irotpot = 0
       ichang = 1
       igeomorig = igeom
       iplans = 'n'
@@ -436,14 +458,6 @@ c         iplans = 'g'
          ENDIF
 
       ELSE IF (igeom.EQ.10) THEN
-         IF (inum2.EQ.1) THEN
-            irotpot = 1
-
-            WRITE (*,11103)
-11103       FORMAT ('Enter orbital radius for planet (code units)')
-            READ (*,*) rorbit_orig
-         ENDIF
-
          iexf = 5
          ibound = 102
 
@@ -486,8 +500,6 @@ c--Specify density profile of disc.
          xmin = - xmax
          ymin = - ymax
          rmax = SQRT(rcyl*rcyl + zmax*zmax)
-
-         nlistinactive = 0
 
 c--Set planetesimal choice
          WRITE (*,11401)
@@ -809,7 +821,7 @@ c     &                 (2.-sdprof)
 
             ENDIF
 
-            IF (inum.EQ.1) THEN
+            IF (inum.EQ.1 .AND. inum2.EQ.1 .AND. numplanet.EQ.1) THEN
                WRITE (*,11095)
 11095          FORMAT ('Do you want the planet to migrate to',/
      &              ' capture planetesimals in resonance?')
@@ -836,7 +848,7 @@ c     &                 (2.-sdprof)
                      WRITE (*,11105)
 11105     FORMAT ('Enter radius at which to stop (code units)')
                      READ (*,*) rorbitmax
-                     rorbitmax = (rorbitmax - rorbit_orig)/pmrate
+                     rorbitmax = (rorbitmax - planetsemiaxis(1))/pmrate
 c--rorbitmax is stored as a time, at which point migration should stop.
                   ENDIF
                ENDIF

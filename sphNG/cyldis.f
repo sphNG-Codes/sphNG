@@ -18,7 +18,7 @@ c************************************************************
       INCLUDE 'COMMONS/maspres'
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/typef'
-      INCLUDE 'COMMONS/pxpy'
+      INCLUDE 'COMMONS/xforce'
 
       npart = np + nptmass
       IF (igeom.EQ.9) THEN
@@ -48,16 +48,17 @@ c
 
             IF (iexf.EQ.7 .AND. (ibound.EQ.100 .OR. ibound.EQ.104)) THEN
                IF (ibound.EQ.104) THEN
-                  rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+                  rtemp = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2)
                ELSE
-                  rtemp = sqrt(xyzmh(1,i)**2 + xyzmh(2,i)**2 +
+                  rtemp = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2 +
      &                 xyzmh(3,i)**2)
                ENDIF
                IF ((rtemp.GT.(1.0+variation)) .OR. 
      &              ((rtemp.LT.(1.0-variation)))) GOTO 100
                IF (ibound.EQ.100) THEN
-                  IF (sqrt((xyzmh(1,i)-1.0)**2 + xyzmh(2,i)**2
-     &                 + xyzmh(3,i)**2) .LE. (rplanet*pradfac(1)*2.1))
+                  IF (SQRT((xyzmh(1,i)-1.0)**2 + xyzmh(2,i)**2
+     &                 + xyzmh(3,i)**2) .LE.
+     &                 (planetradius(1)*pradfac(1,0.)*2.1))
      &                 GOTO 100
                ENDIF
             ENDIF
@@ -126,18 +127,21 @@ c
 
             IF (nptmass.GE.1) THEN
                DO j = 1, nptmass
-                  IF (sqrt((xyzmh(1,i)-xyzmh(1,listpm(j)))**2 +
+                  IF (SQRT((xyzmh(1,i)-xyzmh(1,listpm(j)))**2 +
      &                 (xyzmh(2,i)-xyzmh(2,listpm(j)))**2
      &                 + (xyzmh(3,i)-xyzmh(3,listpm(j)))**2) .LE.
-     &                 (xyzmh(5,listpm(j))*pradfac(j)*2.1))
+     &                 (xyzmh(5,listpm(j))*pradfac(0,0.)*2.1))
      &                 GOTO 101
-               ENDDO
+               END DO
 
             ELSEIF ((ibound.EQ.102 .OR. ibound.EQ.103)
-     &              .AND. irotpot.EQ.1) THEN
-               rtemp = sqrt((xyzmh(1,i)-rorbit_orig)**2 +
-     &              xyzmh(2,i)**2 + xyzmh(3,i)**2)
-               IF (rtemp.LE.(rplanet*pradfac(1)*2.1)) GOTO 101
+     &              .AND. numplanet.GE.1) THEN
+               DO ip = 1, numplanet
+                  rtemp = SQRT((xyzmh(1,i)-planetsemiaxis(ip))**2 +
+     &                 xyzmh(2,i)**2 + xyzmh(3,i)**2)
+                  IF (rtemp.LE.(planetradius(ip)*pradfac(ip,0.)*2.1))
+     &                 GOTO 101
+               END DO
             ENDIF
             xyzmh(5,i) = 0.1
          END DO

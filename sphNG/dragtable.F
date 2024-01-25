@@ -32,7 +32,7 @@ c
 c--Setup r coordinate
 c      
       dragtrmax = log10(5.*(coremass_orig/(3.*xmass))**(1./3.))
-      dragtrmin = log10(rplanet)
+      dragtrmin = log10(planetradius(1))
       dragtdr = (dragtrmax-dragtrmin)/(1.*idragresr)
 c
 c--Setup phi coordinate

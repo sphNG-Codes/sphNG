@@ -173,21 +173,23 @@ c
             rtemp = sqrt((xyzmh(1,i)-xyzmh(1,listpm(j)))**2
      &           + (xyzmh(2,i)-xyzmh(2,listpm(j)))**2
      &           + (xyzmh(3,i)-xyzmh(3,listpm(j)))**2)
-            IF (rtemp.LE.(xyzmh(5,listpm(j))*pradfac(j)*2.1))
+            IF (rtemp.LE.xyzmh(5,listpm(j))*pradfac(0,gt)*2.1)
      &           GOTO 100
-         ENDDO
+         END DO
       ELSEIF ((ibound.EQ.102 .OR. ibound.EQ.103) 
      &        .AND. irotpot.EQ.1) THEN
-         rtemp = sqrt((xyzmh(1,i)-rorbit_orig)**2 +
-     &        xyzmh(2,i)**2 + xyzmh(3,i)**2)
-         IF (rtemp.LE.(rplanet*pradfac(1)*2.1)) GOTO 100
+         DO ip = 1, numplanet
+            rtemp = sqrt((xyzmh(1,i)-planetsemiaxis(ip))**2 +
+     &           xyzmh(2,i)**2 + xyzmh(3,i)**2)
+            IF (rtemp.LE.planetradius(ip)*pradfac(ip,gt)*2.1) GOTO 100
+         END DO
       ELSEIF (ibound.EQ.100 .AND. gt.EQ.0.0) THEN
          IF ((radius.GT.(1.0+variation)) .OR. 
      &        ((radius.LT.(1.0-variation)))) GOTO 100
          IF (abs(atan2(xyzmh(2,i),xyzmh(1,i))).GT.phibound) goto 100
          rtemp = sqrt((xyzmh(1,i) - 1.0)**2 + xyzmh(2,i)**2 +
      &        xyzmh(3,i)**2)
-         IF (rtemp.LE.(rplanet*pradfac(1)*2.1)) GOTO 100
+         IF (rtemp.LE.planetradius(1)*pradfac(1,gt)*2.1) GOTO 100
       ELSEIF (ibound.EQ.100) THEN
          IF ((radius.GT.(1.0+variation)) .OR.
      &        ((radius.LT.(1.0-variation)))) GOTO 100         

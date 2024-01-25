@@ -613,7 +613,7 @@ c
          IF (iexf.EQ.7) THEN
             WRITE (iprint, 99407, ERR=100) hmass
 99407       FORMAT (' mass for zeus table           : ', 1PE14.5)
-            WRITE (iprint, 99408, ERR=100) rplanet*pradfac(1)
+            WRITE (iprint, 99408, ERR=100) planetradius(1)*pradfac(1,gt)
 99408       FORMAT (' radius of planet surface      : ', 1PE14.5)
             WRITE (iprint, 99409, ERR=100) gapfac
 99409       FORMAT (' injection adjustment factor   : ', 1PE14.5)
@@ -621,29 +621,38 @@ c
          
          IF (ibound.EQ.102 .OR. ibound.EQ.103) THEN
             IF (initialptm.EQ.5) THEN
-11408          FORMAT(' radius of planet (',I2, ') surface : ', 1PE14.5)
+               WRITE (iprint, 11407, ERR=100) nptmass
+11407          FORMAT(/,' Number of planets :',I2)
                DO i = 1, nptmass
                   WRITE (iprint, 11408, ERR=100) i, xyzmh(5,listpm(i))*
-     &                 pradfac(i)
-               ENDDO
+     &                 pradfac(0,gt)
+               END DO
+11408          FORMAT('  radius of planet ',I2,' surface       : ',
+     &              1PE14.5)
                DO i = 1, nptmass
                   WRITE (iprint, 99410, ERR=100) i,
      &                 hillmass(xyzmh(4,listpm(i)), 1, xmass, i)
-               ENDDO
+               END DO
             ELSEIF (irotpot.EQ.1) THEN
-               WRITE (iprint, 11409) rplanet*pradfac(1)
-11409          FORMAT (' radius of planet ', 1PE14.5)
+               WRITE (iprint, 11407, ERR=100) numplanet
+               DO i = 1, numplanet
+                  WRITE (iprint, 11408) i,planetradius(i)*pradfac(i,gt)
+               END DO
+               DO i = 1, numplanet
+                  WRITE (iprint, 99410) i,
+     &                 hillmass(planetmass(i), 0, xmass, 0)
+               END DO
             ENDIF
          ELSEIF (ibound.EQ.100 .AND. iexf.EQ.7) THEN
-            WRITE (iprint, 99410, ERR=100) 1, hillmass(planetmass, 0,
+            WRITE (iprint, 99410, ERR=100) 1, hillmass(planetmass(1), 0,
      &           xmass, 0)
+99410    FORMAT ('  mass within planet ',I2,' Hill radius : ', 1PE14.5)
          ENDIF
-99410    FORMAT (' mass within planet(',I2,') hill radius : ', 1PE14.5)
 
          IF (imigrate.EQ.1) THEN
             IF (irotpot.EQ.1) THEN
                WRITE (iprint, 11001) sqrt(px**2 + py**2),
-     &              rorbit_orig
+     &              planetradius(1)
 11001          FORMAT (' migrated to ', 1PE14.5, ' from ', 1PE14.5)
             ENDIF
             IF (nptmass.GE.1) THEN
@@ -670,7 +679,7 @@ c
      &              (rmass1+rmass2)**2))
                a = angmom2/((rmass1+rmass2)*(1.-e**2))
 
-               WRITE (iprint, 11001) rcradius, rorbit_orig
+               WRITE (iprint, 11001) rcradius, planetradius(1)
             ENDIF
          ENDIF
 
@@ -901,9 +910,9 @@ c
            nintegtot  = 0
          ENDIF
 98001 FORMAT(/, ' Implicit R-T (GSIMPL) :', /,
-     &    ' Succeeded - ', I8, ' Failed - ', I8, ' Av. iter. - ',F8.4,/,
-     &    ' Failures:',8X,'Almost N-C - ', I8, ' N-C 1     - ', I8, /, 
-     &    18X,'N-C 1-2    - ', I8, ' Max iter. - ', I8)
+     &    ' Succeeded - ',I8,' Failed     - ',I8,' Av. iter. - ',F8.4,/,
+     &    ' Failures:',12X,'Almost N-C - ', I8, ' N-C 1     - ', I8, /, 
+     &    22X,'N-C 1-2    - ', I8, ' Max iter. - ', I8)
 #endif
 c
 c--ptmass stats
@@ -960,8 +969,6 @@ c
 c--Write output for initialisation
 c
       ELSEIF (where(1:6).EQ.'newrun') THEN
-         IF (varsta.EQ.'entropy') sentenc = 'specific entropy'
-         IF (varsta.EQ.'intener') sentenc = 'specific internal energy' 
 
          IF (what.EQ.'scratch' .OR. what.EQ.'s') THEN
             WRITE (iprint, 99012)
@@ -970,8 +977,6 @@ c
 99013       FORMAT (
      &           ' Particles distributed according to distribution no :'
      &           , I2)
-            WRITE (iprint, 99014) sentenc, thermal
-99014       FORMAT (' Value of ', A24, ' : ', 1PE12.5)
 
             IF (encal.EQ.'i') WRITE (iprint, 99100)
 99100       FORMAT (' Isothermal equation of state')

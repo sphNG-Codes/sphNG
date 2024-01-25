@@ -254,25 +254,33 @@ c
       IF (iexf.EQ.7 .OR. (
      &     (ibound.EQ.102 .OR. ibound.EQ.103)
      &     .AND. initialptm.EQ.0)) THEN
-         WRITE (iterm, 88043) planetmass
-88043    FORMAT(2X,1PE15.8,'  Planet Mass')
-         WRITE (iterm, 88045) rplanet
-88045    FORMAT(2X,1PE12.5,'  Planet Radius')
-         WRITE (iterm, 88047) rorbit_orig
-88047    FORMAT(2X,1PE12.5,'  Planet Orbital Radius')
+         WRITE (iterm, 88100) numplanet
+88100    FORMAT(2X,I2,'  Number of planet potentials')
+         DO i = 1, numplanet
+            WRITE (iterm, 88105) planetmass(i), i
+         END DO
+88105    FORMAT(2X,1PE15.8,'  Planet Mass ',I2)
+         DO i = 1, numplanet
+            WRITE (iterm, 88110) planetsemiaxis(i), i
+         END DO
+88110    FORMAT(2X,1PE15.8,'  Planet Semi-Major Axis ',I2)
+         DO i = 1, numplanet
+            WRITE (iterm, 88115) planetradius(i), i
+         END DO
+88115    FORMAT(2X,1PE12.5,'  Planet Radius ',I2)
          IF (iexf.EQ.7) THEN
-            WRITE (iterm, 88145) iandrea
-88145       FORMAT(2X,I2,'  Include planetesimal heating')
-            WRITE (iterm, 88146) eccentricity_p
-88146       FORMAT(2X,1PE12.5,'  Planetesimal eccentricity max')
-            WRITE (iterm, 88147) inclination_p
-88147       FORMAT(2X,1PE12.5,'  Planetesimal inclination max')
+            WRITE (iterm, 88200) iandrea
+88200       FORMAT(2X,I2,'  Include planetesimal heating')
+            WRITE (iterm, 88205) eccentricity_p
+88205       FORMAT(2X,1PE12.5,'  Planetesimal eccentricity max')
+            WRITE (iterm, 88210) inclination_p
+88210       FORMAT(2X,1PE12.5,'  Planetesimal inclination max')
          ENDIF
       ENDIF
 
       IF ((ibound.EQ.102 .OR. ibound.EQ.103) .AND. initialptm.EQ.5) THEN
-88247       FORMAT(2X,1PE12.5,'  Uniform Timestep radius')
-            WRITE (iterm, 88247) uniformtslim
+88300    FORMAT(2X,1PE12.5,'  Uniform Timestep radius')
+         WRITE (iterm, 88300) uniformtslim
       ENDIF
 
       IF (iptmass.NE.0 .OR. nptmasstot.NE.0) THEN

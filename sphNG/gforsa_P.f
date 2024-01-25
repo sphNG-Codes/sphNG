@@ -58,9 +58,9 @@ c
             IF (iphase(m).EQ.5 .OR. iphase(n).EQ.5) THEN
                rr05 = SQRT(rr)
                IF (iphase(m).EQ.5) THEN
-                  rsurface = xyzmh(5,m)*pradfac(listrealpm(m))
+                  rsurface = xyzmh(5,m)*pradfac(0,1.)
                ELSE
-                  rsurface = xyzmh(5,n)*pradfac(listrealpm(n))
+                  rsurface = xyzmh(5,n)*pradfac(0,1.)
                ENDIF
 
                IF (rr05.LE.(2.*rsurface)) THEN

@@ -71,6 +71,7 @@ c************************************************************
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/lyonfiles'
       INCLUDE 'COMMONS/hosokawa'
+      INCLUDE 'COMMONS/xforce'
 
       CHARACTER*7 where
       CHARACTER*6 dummy
@@ -617,13 +618,13 @@ c         filetable = TRIM(homedir)//'tables/molmasstbl'
 c
 c--Make sure planet position is set from the beginning
 c
-      IF (irotpot.EQ.1) THEN
-         CALL planetpotential (px, py, pz, imigrate, rorbitmax,
-     &        pmrate, rorbit_orig, gt)
+      IF (irotpot.EQ.1 .AND. numplanet.EQ.1) THEN
+         CALL planetpotential(1, px, py, pz, imigrate, rorbitmax,
+     &        pmrate, gt)
          print *, 'PX PY PZ'
          print *, px, py, pz
          print *, imigrate, rorbitmax
-         print *, pmrate, rorbit_orig
+         print *, pmrate
          print *, gt
       ENDIF
 c
@@ -670,7 +671,7 @@ c
 c--Setup table for recording planetesimal energy deposition
 c
       print *, 'IPLANETESIMALS = ', iplanetesimals
-      IF (gasdrag.AND.iplanetesimals.GT.0) THEN
+      IF (gasdrag .AND. iplanetesimals.GT.0 .AND. numplanet.EQ.1) THEN
          CALL dragtable
 
          READ (file1, 99303) dfilename, dfilenum

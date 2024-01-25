@@ -20,6 +20,11 @@
 c
 c--Read in the resolution and check it matches current code
 c
+      IF (numplanet.NE.1) THEN
+         WRITE (*,*) 'ERROR - numplanet must be 1 for dragtable'
+         CALL quit(0)
+      ENDIF
+      
       READ (idragfile, ERR=100) ires_r, ires_p, ires_t
 
       IF (ires_r.NE.idragresr .OR. ires_p.NE.idragresp .OR.
@@ -33,7 +38,6 @@ c
          WRITE (iprint,112) 'it', idragrest, ires_t
          CALL quit(0) 
       ENDIF
-         
 c
 c--Read in spatial scales and check they match the current code
 c
@@ -56,21 +60,21 @@ c--Read in planet mass, and check it matches current state
 c
       READ (idragfile, ERR=100) dragpmass, draghmass
 
-      IF (abs(dragpmass-planetmass).GT.tiny) THEN
-         IF (abs(dragpmass-planetmass).LT.1.0E-6) THEN
+      IF (abs(dragpmass-planetmass(1)).GT.tiny) THEN
+         IF (abs(dragpmass-planetmass(1)).LT.1.0E-6) THEN
  116        FORMAT ('Planet mass does not match in dragfile')
  117        FORMAT ('(read in here   ) mass ', 1PE15.8)
  118        FORMAT ('(read in options) mass ', 1PE15.8)
             WRITE (iprint, 116)
             WRITE (iprint,117) dragpmass
-            WRITE (iprint,118) planetmass
+            WRITE (iprint,118) planetmass(1)
             WRITE (iprint, *) 'Drag file mass overwrites ifile'
-            planetmass = dragpmass
+            planetmass(1) = dragpmass
          ELSE
  119        FORMAT ('ERROR : Mass difference too large.')
             WRITE (iprint, 116)
             WRITE (iprint,117) dragpmass
-            WRITE (iprint,118) planetmass
+            WRITE (iprint,118) planetmass(1)
             WRITE (iprint, 119)
             CALL quit(0) 
          ENDIF

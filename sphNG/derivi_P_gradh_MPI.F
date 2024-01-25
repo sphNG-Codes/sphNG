@@ -126,6 +126,7 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
 #endif
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/HY09accel'
+      INCLUDE 'COMMONS/xforce'
 
       DIMENSION dedxyz(3,iradtrans2)
 #ifdef MPI
@@ -152,25 +153,16 @@ c
       uradconst = radconst/uergcc
       nlst_in = 1
       nlst_end = nlst
+      realtime = dt*itime/imaxstep+gt
 
-      IF (iexf.EQ.7 .OR. ibound.EQ.102 .OR. ibound.EQ.103) THEN
-         realtime = dt*itime/imaxstep+gt
-         IF (rplanet.GT.1.0E-10) THEN
-            pradfac(1) = (rplanet + (0.01*exp(-4.*realtime/pi)))/rplanet
-c--Double shrink time.
-c            pradfac(1) = (rplanet + (0.01*exp(-2.*realtime/pi)))/rplanet
-            IF (pradfac(1).LT.1.001) pradfac(1) = 1.0
-         ELSEIF (initialptm.EQ.5) THEN
-            DO i = 1, nptmass
-               pradfac(i) = (xyzmh(5,listpm(i)) + (0.01*exp(-4.*
-     &              realtime/pi)))/xyzmh(5,listpm(i))
-            IF (pradfac(i).LT.1.001) pradfac(i) = 1.0
-            ENDDO
+      IF (initialptm.EQ.5 .AND. nptmass.GT.0) THEN
+         IF (realtime/pi.GT.10.) THEN
+            pradfac_sinks = 1.0
          ELSE
-            pradfac(:) = 0.0
+            pradfac_sinks= 1.0 + 
+     &           (pradfac_sinks_init-1.0)*EXP(-4.*realtime/pi)
          ENDIF
       ENDIF
-
 
       IF (itrace.EQ.'all') WRITE (iprint, 99002) nlst_in, nlst_end
 99002 FORMAT(' derivi_gradh ',I8, I8)
@@ -236,7 +228,7 @@ c
 
 c      IF(imhd.EQ.idim) THEN
       IF(.FALSE.) THEN
-         WRITE (*,*) 'Calling Hyper at realtime ',dt*itime/imaxstep+gt
+         WRITE (*,*) 'Calling Hyper at realtime ',realtime
 c         CALL divBdiffuse(dt,nlst_in,nlst_end,npart,llist,
 c     &        xyzmh,dumrho,Bxyz)
 
@@ -1086,7 +1078,7 @@ c         CALL quit(1)
 
 #ifdef RT
          IF (encal.EQ.'r') THEN
-c            WRITE (*,*) 'Calling ass at realtime ',dt*itime/imaxstep+gt
+c            WRITE (*,*) 'Calling ass at realtime ',realtime
             CALL ASS(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
      &           xyzmh,vxyzu,ekcle,dumrho,dedxyz,alphaMM)
          ELSEIF ((ibound.EQ.102 .OR. ibound.EQ.103 .OR. ibound.EQ.104

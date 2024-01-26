@@ -300,7 +300,8 @@ c
             CALL quit(0)
          ENDIF
       ENDIF
-      IF (iexf.EQ.7 .OR. (iexf.EQ.5 .AND. irotpot.EQ.1)) THEN
+      IF (iexf.EQ.7 .OR. 
+     &     (iexf.EQ.5 .AND. (ibound.EQ.102 .OR. ibound.EQ.103)) ) THEN
          READ (iterm, *) numplanet
          IF (numplanet.GT.nplanetmax) THEN
             WRITE (iprint,*) 'ERROR - numplanet.GT.nplanetmax'

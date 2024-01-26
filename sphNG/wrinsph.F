@@ -251,9 +251,8 @@ c
          WRITE (iterm, 88040) xmass
 88040    FORMAT(2X,1PE12.5,'  External Forces Mass')
       ENDIF
-      IF (iexf.EQ.7 .OR. (
-     &     (ibound.EQ.102 .OR. ibound.EQ.103)
-     &     .AND. initialptm.EQ.0)) THEN
+      IF (iexf.EQ.7 .OR. 
+     &     (iexf.EQ.5 .AND. (ibound.EQ.102 .OR. ibound.EQ.103)) ) THEN
          WRITE (iterm, 88100) numplanet
 88100    FORMAT(2X,I2,'  Number of planet potentials')
          DO i = 1, numplanet

@@ -1501,8 +1501,10 @@ c
                   hminbisec(ipart) = hi
                ENDIF
                hnew = 0.5*(hminbisec(ipart) + hmaxbisec(ipart))
-               write(iprint,*) 'bisection (',iteration,'): hnew =',
-     &              hnew,ipart,hi,func,hmaxbisec(ipart),hminbisec(ipart)
+               write(iprint,99100) iteration,hnew,ipart,nneighi,
+     &              hi,func,hmaxbisec(ipart),hminbisec(ipart)
+99100          FORMAT ('bisection (',I4,'): hnew =',1PE12.5,1X,I9,1X,I5,
+     &              4(1X,1PE12.5))
             ENDIF
 c
 c--Don't allow sudden jumps to huge numbers of neighbours

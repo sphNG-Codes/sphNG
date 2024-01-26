@@ -702,6 +702,11 @@ c--udist in top line substituted for 5.2*au (assumes density set at r=1.0)
 c               rhotemp = (75.*signorm*sqrt(1./rtemp)*udist**2/umass)/
 c     &              (6.*0.05*rtemp)
                xyzmh(5,i) = 1.2*(partm/rhotemp)**(1./3.)
+c
+c--Alter radius for M6 Qunitic kernel (without this is gets too many
+c     neighbours initially)
+c
+               IF (cnormk.LT.0.5/pi) xyzmh(5,i) = xyzmh(5,i)/3.0
             END DO
          ELSE
 c

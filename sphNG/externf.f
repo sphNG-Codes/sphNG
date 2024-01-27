@@ -153,8 +153,8 @@ c
 c         IF ((ibound.EQ.102 .OR. ibound.EQ.103 .OR. ibound.EQ.105)
          IF ((ibound.EQ.102 .OR. ibound.EQ.103)
      &        .AND. iphase(ipart).EQ.0) THEN
-            range = 0.005
-c            range = 0.05
+c            range = 0.005
+            range = 0.05*rmind
             rlmin = rmind - (2.*range)
             
             IF (d-rlmin.LE.2.*range) THEN

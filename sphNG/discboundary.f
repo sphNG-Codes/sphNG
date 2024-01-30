@@ -61,7 +61,13 @@ c FM: produce array of the boundary height for radii from rmin to rcyl
          IF (x .gt. 0.0 .AND. x.lt. 1.0) THEN
             zoverh(i) = sqrt(2.0)*abs(inverf(x))
          ENDIF
-         zoverh(i) = MAX(1.5, zoverh(i))
+c         zoverh(i) = MAX(1.5, zoverh(i))
+c
+c--Lower zoverh value to make it more likely that the SPH particles
+c     extend into the upper/lower boundary regions for the whole disc radius
+c
+         zoverh(i) = zoverh(i)/2.0
+         zoverh(i) = MAX(1.0, zoverh(i))
 c--This should be in H as above, NOT the value of H as below.
 c   zoverh(i) = MAX(hoverr*radius**(0.5*(tprof+3))*1.5, zoverh(i))
 

@@ -747,6 +747,9 @@ convertof: checksystem checkparams utils/convert_old_full.o wdump.o error.o
 movie3DRG: checksystem checkparams utils/movie3DRG/imcol3DNG_zoom_DT.o rdump.o error.o utils/movie3DRG/grid_P_DT.o utils/movie3DRG/buildcol.o utils/movie3DRG/origin.o
 	$(FC) $(FFLAGS) -o $@ utils/movie3DRG/imcol3DNG_zoom_DT.o rdump.o error.o utils/movie3DRG/grid_P_DT.o utils/movie3DRG/buildcol.o utils/movie3DRG/origin.o
 
+movie3DISM: checksystem checkparams utils/movie3DISM/imcol3DNG_zoom_ISM.o rdump.o error.o utils/movie3DISM/grid_P_ISM.o utils/movie3DISM/buildcol.o utils/movie3DISM/origin.o
+	$(FC) $(FFLAGS) -o $@ utils/movie3DISM/imcol3DNG_zoom_ISM.o rdump.o error.o utils/movie3DISM/grid_P_ISM.o utils/movie3DISM/buildcol.o utils/movie3DISM/origin.o
+
 # 2D movie processing
 
 imcol3DNG: checksystem checkparams utils/movie_col3DALL/imcol3DNG_follow_iunique.o rdump.o error.o utils/movie_col3DALL/buildcol.o utils/movie_col3DALL/grid_follow.o utils/movie_col3DALL/origin.o utils/movie_col3DALL/value.o

@@ -33,6 +33,7 @@ c      PARAMETER (maxline=27010)
       INCLUDE 'COMMONS/bodys'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/raddust'
+      INCLUDE 'COMMONS/gtime'
 
       REAL xmetallicity
       COMMON /chemmetal/ xmetallicity
@@ -82,9 +83,25 @@ c
      &     2.99792458E+10/(4.0*5.6704E-05)
 
       xmaxdens = -1.0
-      xmindens = 1.0E+20
       xmaxdens2 = -1.0
+      xmindens = 1.0E+20
       xmindens2 = 1.0E+20
+      IF (idustRT.GT.0) THEN
+         xmaxradD = -1.0
+         xmaxradT = -1.0
+         xmaxCplus = -1.0
+         xmaxCatomic = -1.0
+         xmaxCO = -1.0
+         xmaxHatomic = -1.0
+         xmaxHmol = -1.0
+         xminradD = 1.0E+20
+         xminradT = 1.0E+20
+         xminCplus = 1.0E+20
+         xminCatomic = 1.0E+20
+         xminCO = 1.0E+20
+         xminHatomic = 1.0E+20
+         xminHmol = 1.0E+20
+      ENDIF
 c
 c--Convert high density gas to look like a sink if not within 10 AU of sink
 c
@@ -354,7 +371,7 @@ c
          ifile1out = ifile2
       ENDIF
 
-      timeout = time
+      timeout = gt
       IF (idt.EQ.'t' .OR. xeye.EQ.0.) THEN
          xmaxdensout = xmaxdens2
          xmindensout = xmindens2
@@ -383,7 +400,7 @@ c
          filename = contour1(1:2)//'R'//contour1(4:13)
          print *,'Doing ',filename
          OPEN (18,file=filename, FORM = 'unformatted')
-         timeout = time
+         timeout = gt
          xmaxdensout = xmaxradT
          xmindensout = xminradT
          WRITE(18,IOSTAT=io) ilinex,iliney,timeout,xmaxdensout,
@@ -396,7 +413,7 @@ c
          filename = contour1(1:2)//'U'//contour1(4:13)
          print *,'Doing ',filename
          OPEN (18,file=filename, FORM = 'unformatted')
-         timeout = time
+         timeout = gt
          xmaxdensout = xmaxradD
          xmindensout = xminradD
          WRITE(18,IOSTAT=io) ilinex,iliney,timeout,xmaxdensout,
@@ -410,7 +427,7 @@ c
          print *,'Doing ',filename
          OPEN (18,file=filename, FORM = 'unformatted')
 c         OPEN (18,file=filename)
-         timeout = time
+         timeout = gt
          xmaxdensout = xmaxCplus
          xmindensout = xminCplus
          WRITE(18,IOSTAT=io) ilinex,iliney,timeout,xmaxdensout,
@@ -423,7 +440,7 @@ c
          filename = contour1(1:2)//'A'//contour1(4:13)
          print *,'Doing ',filename
          OPEN (18,file=filename, FORM = 'unformatted')
-         timeout = time
+         timeout = gt
          xmaxdensout = xmaxCatomic
          xmindensout = xminCatomic
          WRITE(18,IOSTAT=io) ilinex,iliney,timeout,xmaxdensout,
@@ -436,7 +453,7 @@ c
          filename = contour1(1:2)//'O'//contour1(4:13)
          print *,'Doing ',filename
          OPEN (18,file=filename, FORM = 'unformatted')
-         timeout = time
+         timeout = gt
          xmaxdensout = xmaxCO
          xmindensout = xminCO
          WRITE(18,IOSTAT=io) ilinex,iliney,timeout,xmaxdensout,
@@ -455,7 +472,7 @@ c
          filename = contour1(1:2)//'I'//contour1(4:13)
          print *,'Doing ',filename
          OPEN (18,file=filename, FORM = 'unformatted')
-         timeout = time
+         timeout = gt
          xmaxdensout = xmaxHatomic
          xmindensout = xminHatomic
          WRITE(18,IOSTAT=io) ilinex,iliney,timeout,xmaxdensout,
@@ -468,7 +485,7 @@ c
          filename = contour1(1:2)//'M'//contour1(4:13)
          print *,'Doing ',filename
          OPEN (18,file=filename, FORM = 'unformatted')
-         timeout = time
+         timeout = gt
          xmaxdensout = xmaxHmol
          xmindensout = xminHmol
          WRITE(18,IOSTAT=io) ilinex,iliney,timeout,xmaxdensout,

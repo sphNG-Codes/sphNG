@@ -523,9 +523,11 @@ c
             sinksize = sinksizestart*ratio**k
             wangledo = wangle + frac*(wangleend - wangle)
             hmin = hminstart + frac*(hminend - hminstart)
+            WRITE (*,*) 'Doing ',zobsdo,wangledo,xeyedo,ratio,k
+         ELSE
+            WRITE (*,*) 'Doing ',zobsdo,wangledo,xeyedo,k
          ENDIF
-         WRITE (*,*) 'Doing ',zobsdo,wangledo,xeyedo,ratio,k
-            print *,' using ',xmetallicity
+         print *,' Using metallicity: ',xmetallicity
 
          IF (xeyedo.EQ.0.0) THEN
             CALL grid (zobsdo,wangledo,16,17,xeyedo,idt,contour1)

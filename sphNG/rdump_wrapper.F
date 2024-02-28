@@ -302,7 +302,7 @@ c
             END DO
          ENDDO
       ENDIF
-      IF (idustFluid.EQ.1) THEN
+      IF (idustFluid.NE.0) THEN
          DO i = 1, npart
             tempsort(i) = dustvar(iorig(i))
          END DO

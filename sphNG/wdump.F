@@ -432,7 +432,7 @@ c
 
       IF (istellar_ionisation) nums(6) = nums(6) + 6
 
-      IF (idustFluid.EQ.1) nums(6) = nums(6) + 4
+      IF (idustFluid.NE.0) nums(6) = nums(6) + 4
 c
 c--Pablo: Change to include dust grain evol
 c
@@ -603,7 +603,7 @@ c--Default real
          END DO
       ENDIF
 
-      IF (idustFluid.EQ.1) THEN
+      IF (idustFluid.NE.0) THEN
 c
 c--Note dustfrac (epsilon) is dumped, but dustvar(eg. SQRT(epsilon*rho))
 c     is the variable that is integrated.  Also note that dustfluidvxyz 
@@ -611,8 +611,17 @@ c     is dumped to allow the dust and gas velocities to be computed,
 c     but it is not used in the integration at all.
 c
          WRITE (idisk1, ERR=100) tag('dustfrac')
-         WRITE (idisk1, ERR=100) (dustvar(isort(i))**2/rho(isort(i)), 
-     &        i=1,nprint)
+         IF (idustFluid.EQ.1) THEN ! dustvar=sqrt(epsilon*rho)
+            WRITE (idisk1, ERR=100) (dustvar(isort(i))**2/rho(isort(i)), 
+     &           i=1,nprint)
+         ELSEIF (ABS(idustFluid).EQ.2) THEN ! Ballabio et al. 2018
+            ! dustvar=sqrt(dust_epsilon/(1-dust_epsilon))
+            WRITE (idisk1, ERR=100) (dustvar(isort(i))**2/
+     &           (1+dustvar(isort(i))**2), i=1,nprint)
+         ELSE
+            WRITE (*,*) 'ERROR - idustFluid not valid ',idustFluid
+            CALL quit(0)
+         ENDIF
          tagarr(1:3) = (/'deltavx','deltavy','deltavz'/)
          DO j = 1, 3
             WRITE (idisk1, ERR=100) tag(tagarr(j))
@@ -621,7 +630,8 @@ c
          END DO
       ENDIF
 c
-c
+c--Outputs gas pressure gradient so that it can be used to set dust
+c     at terminal velocity initially for two-fluid dust.
 c
       IF (idustIMPL.EQ.1 .AND. imakedust) THEN
          tagarr(1:3) = (/'pgradx','pgrady','pgradz'/)

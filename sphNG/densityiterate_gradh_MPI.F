@@ -339,11 +339,11 @@ c            ENDIF
                gradB(k,ipart) = 0.
             END DO
          ENDIF
-         IF (idustFluid.EQ.1) THEN
+         IF (idustFluid.NE.0) THEN
             ddust(ipart) = 0.
             dustfluiddu(ipart) = 0.
          ENDIF
-         IF (idustFluid.EQ.1 .OR. imakedust) THEN
+         IF (idustFluid.NE.0 .OR. imakedust) THEN
             dustfluidvxyz(1:3,ipart) = 0.
          ENDIF
          IF (idimHY09.EQ.idim) THEN

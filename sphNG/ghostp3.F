@@ -87,7 +87,11 @@ c
          rhoi = rho(i)
          vsoundi = vsound(i)
          presi = pr(i)
-         IF (idustFluid.EQ.1) dustvari = dustvar(i)
+         IF (idustFluid.NE.0) dustvari = dustvar(i)
+c
+c--Fixed dustvar value at boundary ?
+c         IF (idustFluid.NE.0) dustvari = 0.100504
+
          IF (istellar_ionisation) THEN
             HIIioni = HIIion(i)
          ENDIF
@@ -135,7 +139,7 @@ c            print *,i,r2,hi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
             iphase(nptot) = 0
-            IF (idustFluid.EQ.1) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
             IF (istellar_ionisation) THEN
                HIIion(nptot) = HIIioni
             ENDIF

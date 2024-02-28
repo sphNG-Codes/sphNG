@@ -832,7 +832,7 @@ c--Default real
              END DO
           ENDIF
 
-          IF (idustFluid.EQ.1) THEN
+          IF (idustFluid.NE.0) THEN
              iwanted = iwanted + 4
 
              IF (nums1(6).LT.iwanted) THEN
@@ -856,7 +856,8 @@ c
 
              DO j = 1, 3
                 IF (tagged) READ (idisk1, END=100) tagi
-                READ (idisk1, END=100)
+                READ (idisk1, END=100) dustfluidvxyz(j,
+     &               icount+1:icount+nhydro)
              END DO
              CALL checktag('deltavz', tagi, ierr)
              IF (ierr.NE.0) THEN
@@ -947,10 +948,19 @@ c
 c--If one-fluid dust, need to set the dust variable which is evolved
 c     using the dust fraction AFTER the density, rho, is read in.
 c
-         IF (idustFluid.EQ.1) THEN
-            dustvar(icount+1:icount+nhydro) = 
-     &           SQRT(dustvar(icount+1:icount+nhydro)*
-     &           rho(icount+1:icount+nhydro))
+         IF (idustFluid.NE.0) THEN
+            IF (idustFluid.EQ.1) THEN
+               dustvar(icount+1:icount+nhydro) = 
+     &              SQRT(dustvar(icount+1:icount+nhydro)*
+     &              rho(icount+1:icount+nhydro))
+            ELSEIF (ABS(idustFluid).EQ.2) THEN
+               dustvar(icount+1:icount+nhydro) =
+     &              SQRT(dustvar(icount+1:icount+nhydro)/
+     &              (1.0-dustvar(icount+1:icount+nhydro)))
+            ELSE
+               WRITE (*,*) 'ERROR - Invalid idustFluid ',idustFluid
+               CALL quit(0)
+            ENDIF
          ENDIF
 
          iread = 1

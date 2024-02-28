@@ -2237,7 +2237,15 @@ c If this would create a dtmax lower than dtini, lower dtini to match
 c
 c--IF one-fluid dust, enter initial dust-to-gas ratio
 c
-      IF (idustFluid.EQ.1) THEN
+      IF (idustFluid.NE.0) THEN
+         radfrac = 1.0E+10
+         IF (igeom.EQ.10) THEN
+            WRITE (*, 99055)
+99055       FORMAT(' Enter the fraction sphere to have dust',
+     &           '(in to out) e.g. 0.9')
+            READ (iread, *) radfrac
+         ENDIF
+
          WRITE (*, 99043)
 99043    FORMAT(' Enter initial dust to gas ratio (rho_d/rho_g)')
          READ (iread, *) dust_to_gas
@@ -2280,18 +2288,34 @@ c
 c
 c--Set initial dust to gas ratio (to avoid divide by zero)
 c
-      IF (idustFluid.EQ.1) dustvar(1:npart) = 1.0
+      IF (idustFluid.NE.0) dustvar(1:npart) = 1.0
 
       IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim .OR. 
-     &     idustFluid.EQ.1) CALL hcalc
+     &     idustFluid.NE.0) CALL hcalc
 
 c
 c--Update initial dust to gas ratio
 c
-      IF (idustFluid.EQ.1) THEN
+      IF (idustFluid.NE.0) THEN
          DO i = 1, npart
             IF (iphase(i).EQ.0) THEN
-               dustvar(i) = SQRT(dust_epsilon*rho(i))
+               radius = SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2+xyzmh(3,i)**2)
+               IF (radius.LT.radfrac*rcyl) THEN
+                  dust_epsilon_here = dust_epsilon
+               ELSE
+                  dust_epsilon_here = 0.0001
+               ENDIF
+               IF (idustFluid.EQ.1) THEN
+                   ! sqrt(epsilon*rho) method
+                  dustvar(i) = SQRT(dust_epsilon_here*rho(i))
+               ELSEIF (ABS(idustFluid).EQ.2) THEN
+                  ! Ballabio et al. 2018 method
+                  dustvar(i) = SQRT(dust_epsilon_here/
+     &                 (1-dust_epsilon_here))
+               ELSE
+                  WRITE (*,*)'ERROR - Invalid idustFluid ',idustFluid
+                  CALL quit(0)
+               ENDIF
             ENDIF
          END DO
 c

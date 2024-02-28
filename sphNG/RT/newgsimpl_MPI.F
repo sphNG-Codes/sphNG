@@ -2368,7 +2368,7 @@ c
      $              ((rpall*dedxyz(3,i)*dedxyz(1,i))*dvdx(7,i))+
      $              ((rpall*dedxyz(3,i)*dedxyz(2,i))*dvdx(8,i))+
      $              ((rpdiag+rpall*dedxyz(3,i)**2)*dvdx(9,i)))
-            ENDIF
+            ENDIF ! gradEi2.EQ.0.0
 
             radpresdenom = gradvPi * EU0(1,i)
 
@@ -2391,7 +2391,7 @@ c
      &              dust_cooling,heatingISRi,dust_gas)
                gas_temp = EU0(2,i)/ekcle(3,i)
                xnH2 = rhoi*udens/(gmw*mH)
-            ENDIF
+            ENDIF ! idustRT.GT.0
 c
 c--For low densities and temperatures, use the form of the equations that
 c     includes the gas-dust coupling term.  Also explicitly set the gas
@@ -2460,7 +2460,7 @@ c     &            (0.4 + 2.0/(1.0+criticaln(i,gas_temp)/(2.0*xnH2)))*
 c     &                 eleccharge/rhoi/uergcc*utime
                ELSE
                   h2form = 0.
-               ENDIF
+               ENDIF ! iH2formation_heating
 
                dustgammaval = 0.
                dust_term = 0.
@@ -2494,7 +2494,7 @@ c
                         t_plus = t_found + 1.0
                      ELSE
                         t_plus = t_found * 1.01
-                     ENDIF
+                     ENDIF ! t_found.GT.10.
                      tdiff = t_plus - t_found
                      u_plus = getu(rhoreal4,t_plus)
 c
@@ -2544,7 +2544,7 @@ c     &                          eleccharge/rhoi/uergcc*utime
                         h2form1 = 0.
                         h2form2 = 0.
                         dh2form_dt = 0.
-                     ENDIF
+                     ENDIF ! iH2formation_heating
 c
 c--Photoelectric heating
 c
@@ -2597,7 +2597,7 @@ C$OMP CRITICAL(nrprint)
      &                       photoelectric1
 
 C$OMP END CRITICAL(nrprint)
-                     ENDIF
+                     ENDIF ! itry.EQ.2
 c
 c--Limit the change to be no larger than a certain fraction each iteration
 c
@@ -2606,7 +2606,7 @@ c
                         func = 0.3*derivative * t_found
                      ELSEIF (func/derivative / t_found.LT.-0.3) THEN
                         func = -0.3*derivative * t_found
-                     ENDIF
+                     ENDIF ! func/derivative / t_found .GT. 0.3
                      t_found = t_found - func/derivative
 
                      IF (t_found.LT.1.) THEN
@@ -2616,7 +2616,7 @@ c     &                          t_found+func/derivative,func,derivative,
 c     &                          func_old,- dti*h2form1,- dti*dh2form_dt
 cC$OMP END CRITICAL(nrprint)
                         t_found = 1.
-                     ENDIF
+                     ENDIF ! t_found.LT.1
 
                      u_found = getu(rhoreal4,t_found)
 c
@@ -2630,7 +2630,7 @@ c
                         cooling_line = cooling_line1
                         h2form = h2form1
                         GOTO 233
-                     ENDIF
+                     ENDIF ! ABS((t_found - t_last)/t_orig).LT.1E-3
                   END DO
 C$OMP CRITICAL(quart)
                   print *,"N-R failed for ieqtype = 3, try again"
@@ -2656,8 +2656,8 @@ C$OMP CRITICAL (moresweepset)
                      moresweep=.TRUE.
 C$OMP END CRITICAL (moresweepset)
                      GOTO 200
-                  ENDIF
-               ENDIF  !-Turn on/off N-R solve
+                  ENDIF ! itry.EQ.1
+               ENDIF  ! Turn on/off N-R solve
 c
 c--Replaces the gas-dust coupling term in the u equation by the dust-radiation
 c     term and assumes that T_g=T_d so that the dust-radiation term is
@@ -2706,7 +2706,7 @@ c     &              (0.4 + 2.0/(1.0+criticaln(i,gas_temp)/(2.0*xnH2)))*
 c     &                 eleccharge/rhoi/uergcc*utime
                ELSE
                   h2form = 0.
-               ENDIF
+               ENDIF ! iH2formation_heating
 
                photoelectric =
      &              photoelectric_heating(i,gas_temp,xnH2,metallicity)/
@@ -2731,7 +2731,12 @@ c
 
                dust_heating = 0.
                dust_term = 0.
-            ENDIF
+            ENDIF ! idustRT.GT.0 .AND. ((
+                  ! ABS(dust_tempi-(rhoi*EU0(1,i)/uradconst)**0.25).GT.1.0
+                  ! .AND.
+                  ! xnH2.LT.1.0E+11/metallicity)
+                  ! .OR. ieqtype.EQ.2)
+                
 c
 c--Now solve those equations...
 c
@@ -2786,8 +2791,9 @@ C$OMP END CRITICAL (moresweepset)
                   GOTO 200
                ELSE
                   GOTO 456
-               ENDIF
-            ENDIF
+               ENDIF ! ieqtype.EQ.0 .OR. ieqtype.GE.3
+            ENDIF ! u1term.GT.0.0 .AND. u0term.GT.0.0 .OR. 
+                  ! u1term.LT.0.0 .AND. u0term.LT.0.0
 
             u1term = u1term/u4term
             u0term = u0term/u4term
@@ -2817,11 +2823,13 @@ C$OMP END CRITICAL (moresweepset)
                   GOTO 200
                ELSE
                   GOTO 456
-               ENDIF
-            ENDIF
+               ENDIF ! ieqtype.EQ.0 .OR. ieqtype.GE.3
+            ENDIF ! moresweep2
 
  233        CONTINUE
-
+c
+c - Use solution of quartic to solve for E
+c
             E1i = (origEU(1,i)+dti*diffusion_numerator
      &           + gammaval*dti*U1i**4
      &           + dustgammaval*dti
@@ -2846,7 +2854,7 @@ C$OMP CRITICAL (moresweepset)
                PRINT *,"GSIMPL: U has gone negative ",i,xyzmh(1,i),
      &              xyzmh(2,i),xyzmh(3,i)
 C$OMP END CRITICAL (moresweepset)
-            ENDIF
+            ENDIF ! U1i.LE.0.0
 
             IF(E1i.LE.0.0) THEN
                IF (ieqtype.EQ.0 .OR. ieqtype.GT.3) THEN
@@ -2862,8 +2870,8 @@ C$OMP END CRITICAL (moresweepset)
                ELSE
                   WRITE (iprint,*) 'ERROR - ieqtype = ',ieqtype
                   CALL quit(1)
-               ENDIF
-            END IF
+               ENDIF ! ieqtype.EQ.0 .OR. ieqtype.GT.3
+            END IF ! E1i.LE.0.0
 c
 c--And the error is...
 c
@@ -2879,7 +2887,7 @@ c            IF (EU0(2,I)/ekcle(3,i).GT.1.E+30) THEN
                maxerrE2 = MAX(maxerrE2,xchange)
 
                residualE = origEU(1,i) + (dEcomb)*dti - E1i
-            ENDIF
+            ENDIF ! EU0(2,I)/ekcle(3,i).GT.0.0
 
 c            maxerrE2 = MAX(maxerrE2,ABS((origEU(1,i) + (dEcomb)*
 c     &           dti - EU0(1,I)) /EU0(1,I)))
@@ -2911,9 +2919,9 @@ C$OMP CRITICAL (storeUerror)
                   xpres_denominator = pres_denominator*EU0(2,I)
                   xtfour = tfour
 C$OMP END CRITICAL (storeUerror)
-               ENDIF
+               ENDIF ! maxerrU2.NE.maxerrU2old
                residualU = origEU(2,i)+(dUcomb)*dti - U1i
-            ENDIF
+            ENDIF ! EU0(2,I)/ekcle(3,i).GT.2000.0)
 c
 c--Copy values
 c
@@ -2929,12 +2937,12 @@ c
      &              ekcle(1,i),EU0(2,i),ekcle,rhoi,
      &              dust_kappai,dust_cooling,heatingISRi,dust_gas)
                dust_tk(2,i) = dust_kappai
-            ENDIF
+            ENDIF ! idustRT.GT.0      
 
  200        CONTINUE
-            ENDIF
+            ENDIF ! .NOT.boundaryparticle(i,xyzmh,rhoi)
 
-            ENDIF
+            ENDIF ! iphase(i).EQ.0
          END DO ! I-loop
 C$OMP END DO
 

@@ -39,8 +39,17 @@ c--For one fluid dust, need to reduce the gas density based on the
 c     dust fraction since the density is the total density, not the
 c     density of the gas
 c
-      IF (idustFluid.EQ.1) THEN
-         rho_gas = rho(ipart) - dustvar(ipart)**2
+      IF (idustFluid.NE.0) THEN
+         IF (idustFluid.EQ.1) THEN
+            !--sqrt(rho*epsilon) method
+            rho_gas = rho(ipart) - dustvar(ipart)**2
+         ELSEIF (ABS(idustFluid).EQ.2) THEN
+            !--sqrt(epsilon/(1-epsilon)) method
+            rho_gas = rho(ipart)/(1.0 + dustvar(ipart)**2)
+         ELSE
+            WRITE (*,*) 'ERROR - idustFluid ',idustFluid
+            CALL quit(0)
+         ENDIF
       ELSE
          rho_gas = rho(ipart)
       ENDIF

@@ -71,9 +71,18 @@ c
 c     NOTE: The one-fluid dust dissipation term is already computed
 c     correctly in forcei, so does NOT need to be corrected below.
 c
-      IF (idustFluid.EQ.1) THEN
-         one_over_1minus_epsilon = trho(ipart)/
-     &        (trho(ipart)-dustvar(ipart)**2)
+      IF (idustFluid.NE.0) THEN
+         IF (idustFluid.EQ.1) THEN
+            !--sqrt(rho*epsilon) method
+            one_over_1minus_epsilon = trho(ipart)/
+     &           (trho(ipart)-dustvar(ipart)**2)
+         ELSEIF (ABS(idustFluid).EQ.2) THEN
+            !--sqrt(epsilon/(1-epsilon)) method
+            one_over_1minus_epsilon = 1.0 + dustvar(ipart)**2
+         ELSE
+            WRITE (*,*) 'ERROR - idustFluid ',idustFluid
+            CALL quit(0)
+         ENDIF
          pdv = one_over_1minus_epsilon * pdv
          dq(ipart) = one_over_1minus_epsilon * dq(ipart)
       ENDIF
@@ -160,7 +169,7 @@ c
 c
 c  c) Heating from one-fluid dust if appropriate
 c
-            IF (idustFluid.EQ.1) THEN
+            IF (idustFluid.NE.0) THEN
                dvxyzu(4,ipart) = dvxyzu(4,ipart) + dustfluiddu(ipart)
             ENDIF
 c

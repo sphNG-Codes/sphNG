@@ -563,6 +563,11 @@ SRCRT= ass.f RT/newgsimpl_MPI.f RT/boundaryparticle.f quartic_gs1t.f \
 SRCNORT =
 RTFPPFLAGS=${FPP_SEP}-DRT
 
+# these are the extra routines required for implicit solve of one-fluid dust
+
+SRCID1= dust1_implicit.F quartic_dust1.f \
+	quadratic_dust1.F ass_dust1.F
+
 # these are the extra routines required for Monte-Carlo radiative transfer
 
 SRCTORUS= montecarloRT.F
@@ -600,7 +605,7 @@ RTBARFPPFLAGS=${RTFPPFLAGS} ${FPP_SEP}-DRTBAR
 
 # construct object files
 
-TOBJECTS = $(SRCMPI:.F=.o)  $(SRCNI:.F90=.o) $(SRCNS:.F90=.o) $(SOURCES:.f=.o) $(ZZFILE:.f=.o) $(SRCNONIDEAL:.F=.o)
+TOBJECTS = $(SRCMPI:.F=.o)  $(SRCNI:.F90=.o) $(SRCNS:.F90=.o) $(SOURCES:.f=.o) $(ZZFILE:.f=.o) $(SRCNONIDEAL:.F=.o) $(SRCID1:.f=.o)
 TOBJGRADHLF = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
 TOBJGRADHRK = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCRK:.f=.o) $(SRCNORT:.f=.o) $(ZEN_PIN)
 TOBJGRADHLFRT = $(TOBJECTS) $(SRCGRADH:.f=.o) $(SRCLF:.f=.o) $(SRCRT:.f=.o) $(ZEN_PIN)

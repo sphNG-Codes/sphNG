@@ -1531,7 +1531,13 @@ c
          CALL getused(tass2)
          tass = tass + (tass2 - tass1)
       ENDIF
-
+c
+c--Compute implicit one-fluid dust
+c
+      IF (idustFluid.EQ.-2) THEN
+         CALL ASS_DUST1(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
+     &         xyzmh,dustvar,dumrho)
+      ENDIF
 c
 c--Compute forces on EACH particle
 c

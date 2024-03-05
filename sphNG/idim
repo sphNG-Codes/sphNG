@@ -64,8 +64,8 @@ c      PARAMETER (istellarfeedback=6)
 c
 c--For MHD need to use imhd = idim
 c
-      PARAMETER (imhd = idim)
-c      PARAMETER (imhd = 1)
+c      PARAMETER (imhd = idim)
+      PARAMETER (imhd = 1)
 c
 c--Sets the number of variables in the magnetic field array
 c	Use 3 if only need Bxyz, use 4 if need psi as well for
@@ -76,9 +76,12 @@ c      PARAMETER (isubcycle_divB = 0)
       PARAMETER (imhdevol = 4)
       PARAMETER (isubcycle_divB = 1)
 c
-c--Allows semi-implicit dust drag to be used.  In combination, turning
-c     on idustIMPL and imakedust can be used to set two-fluid dust
-c     particles at terminal velocity initially.
+c--Allows semi-implicit dust drag to be used for two-fluid dust.  
+c     In combination, turning on idustIMPL=1 and imakedust
+c     can be used to set two-fluid dust particles at 
+c     terminal velocity initially.
+c        0 = NO implicit two dust scheme
+c        1 = implicit two fluid scheme
 c
 c      PARAMETER (idustIMPL = 1)
 c      PARAMETER (imakedust=.TRUE.)
@@ -92,9 +95,17 @@ c      PARAMETER (idustGROW = 1)
       PARAMETER (idustGROW = 0)
 c
 c--One-fluid dust
+c     NOTE: Postive numbers: explicit / negative numbers: implicit drag
 c
-c      PARAMETER (idustFluid = 1)
+c     0: no one-fluid dust
+c     1: dustvar = sqrt(epsilon*rho)
+c     2: dustvar = sqrt(epsilon/1-epsilon) Ballabio et al. 2018
+c     -2: dustvar=sqrt(epsilon/1-epsilon) Elsender & Bate 2024 implicit
+c
       PARAMETER (idustFluid = 0)
+c      PARAMETER (idustFluid = 1)
+c      PARAMETER (idustFluid = 2)
+c      PARAMETER (idustFluid = -2)
 c
 c--Hirashita & Yan (2009) type dust evolution (see Bate 2022)
 c
@@ -123,10 +134,11 @@ c
       PARAMETER (iradtrans2 = iradtrans + idim_MPI)
       PARAMETER (idim_h2_2 = idim_h2 + idim_MPI)
 
-      PARAMETER (idim_dustFluid = idustFluid*idim)
-      PARAMETER (idim_dustFluid2 = idustFluid*idim2)
+      PARAMETER (idim_dustFluid = MAX(MIN(ABS(idustFluid),1)*idim,1))
+      PARAMETER (idim_dustFluid2 = MAX(MIN(ABS(idustFluid),1)*idim2,1))
 c--idim_dustFluid3 can be used with imakedust to set two-fluid dust 
 c  in terminal velocity initially
-      PARAMETER (idim_dustFluid3 = MAX(idustFluid,idustIMPL)*idim2)
+      PARAMETER (idim_dustFluid3 = 
+     &		MAX( MAX( MIN(ABS(idustFluid),1), idustIMPL)*idim2, 1))
       PARAMETER (idim_grow = idustGROW*idim)
       PARAMETER (idim_grow2 = idustGROW*idim2)

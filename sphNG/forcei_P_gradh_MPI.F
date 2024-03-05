@@ -414,6 +414,7 @@ C$OMP& private(gas_accelxi,gas_accelyi,gas_accelzi)
 C$OMP& private(gas_accelxj,gas_accelyj,gas_accelzj)
 C$OMP& private(grav_accelxi,grav_accelyi,grav_accelzi)
 C$OMP& private(grav_accelxj,grav_accelyj,grav_accelzj)
+C$OMP& private(di,dj)
 #ifdef MPICOPY
 C$OMP& private(i,ierr)
 #endif
@@ -477,7 +478,6 @@ c         dha(1,ipart) = 0.0
          ptsnormi = 0.
 
          pdvi = 0.
-         IF (idustFluid.EQ.1) dudusti = 0.
          dqi = 0.
          dq_dragi = 0.
          
@@ -616,15 +616,19 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
 c
 c--For one-fluid dust evolution
 c
-         IF (idustFluid.EQ.1) THEN
-            dustvari = dustvar(ipart)
-            ddusti = 0.
-            ts_rhoi = stoppingtime(ipart)*rho1i
-         ENDIF
-         IF (idustFluid.EQ.1 .OR. imakedust) THEN
+         IF (idustFluid.NE.0 .OR. imakedust) THEN
             gradvdustxi = 0.
             gradvdustyi = 0.
             gradvdustzi = 0.
+         ENDIF
+         IF (idustFluid.NE.0) THEN
+            dudusti = 0.
+            ddusti = 0.
+            dustvari = dustvar(ipart)
+            ts_rhoi = stoppingtime(ipart,rhoi,dustvari)*rho1i
+            IF (ABS(idustFluid).EQ.2) THEN
+               di = stoppingtime(ipart,rhoi,dustvari)/(1.0+dustvari**2)
+            ENDIF
          ENDIF
 c
 c--Note that pressure term includes isotropic magnetic pressure.
@@ -1260,18 +1264,32 @@ c                        t12j = alphamean*grkern*f*(2.0*f - vsbar)*robar1
 c
 c--For one-fluid dust, evolve dust fraction
 c
-                  IF (idustFluid.EQ.1) THEN
-                     ts_rhoj = stoppingtime(j)*rho1j
-                     termdust = 0.5*(ts_rhoi+ts_rhoj)*
-     &                    grkern*rij1*
-     &                    (pr(ipart)-pr(j))
-                     termdustpmj = dustvar(j)*termdust*pmassj*rho1j
-                     ddusti = ddusti - termdustpmj
+                  IF (idustFluid.NE.0) THEN
+                     IF (idustFluid.EQ.1) THEN
+                        ts_rhoj = stoppingtime(j,rhoj,dustvar(j))*rho1j
+                        termdust = 0.5*(ts_rhoi+ts_rhoj)*
+     &                       grkern*rij1*
+     &                       (pr(ipart)-pr(j))
+                        termdustpmj = dustvar(j)*termdust*pmassj*rho1j
+                        ddusti = ddusti - termdustpmj
 
-                     dudusti = dudusti - termdustpmj*dustvari*
-     &                    (ui-uj)/(rhoi-dustvari**2)
+                        dudusti = dudusti - termdustpmj*dustvari*
+     &                       (ui-uj)/(rhoi-dustvari**2)
+                     ELSEIF (ABS(idustFluid).EQ.2) THEN
+                        dj = stoppingtime(j,rhoj,dustvar(j))/
+     &                       (1.0+dustvar(j)**2)
+                        termdust = 0.5*grkern*rij1*(pr(ipart)-pr(j))
+                        termdustpmj = 
+     &                       termdust*dustvar(j)*pmassj*rho1j*(di+dj)
+                        IF (idustFluid.EQ.2) THEN ! Only for explicit
+                           ddusti = ddusti - termdustpmj*rho1i*
+     &                          (1.0+dustvari**2)**2
+                        ENDIF
+                        dudusti = dudusti - termdustpmj*dustvari*
+     &                       (1.0+dustvari**2)*(ui-uj)
+                     ENDIF
                   ENDIF
-                  IF (idustFluid.EQ.1 .OR. imakedust) THEN
+                  IF (idustFluid.NE.0 .OR. imakedust) THEN
                      gradpi = gradpr*pmassj
                      gradvdustxi = gradvdustxi + gradpi*runix
                      gradvdustyi = gradvdustyi + gradpi*runiy
@@ -1441,23 +1459,40 @@ c                     ENDIF
 c
 c--For one-fluid dust, evolve dust fraction
 c
-                     IF (idustFluid.EQ.1) THEN
-                        ts_rhoj = stoppingtime(j)*rho1j
-                        termdust = 0.5*(ts_rhoi+ts_rhoj)*
-     &                       grkern*rij1*
-     &                    (pr(ipart)-pr(j))
-                        termdustpmi = dustvari*
-     &                       termdust*pmassi*rho1i
+                     IF (idustFluid.NE.0) THEN
 c
-c--Sign does not change because involves (Pi-Pj)*(ui-uj)
+c--Sign does not change for dudust term because involves (Pi-Pj)*(ui-uj)
 c
-                        one_over_rho_1minus_epsilon = 
-     &                       1./(rhoj-dustvar(j)**2)
-                        termdudustj = - termdustpmi*dustvar(j)*
-     &                       (ui-uj)*one_over_rho_1minus_epsilon
+                        IF (idustFluid.EQ.1) THEN
+                           termdust = 0.5*(ts_rhoi+ts_rhoj)*
+     &                          grkern*rij1*(pr(ipart)-pr(j))
+                           termdustpmi = termdust*
+     &                          dustvari*pmassi*rho1i
 
+                           one_over_rho_1minus_epsilon = 
+     &                          1./(rhoj-dustvar(j)**2)
+
+                           termdudustj = - termdustpmi*dustvar(j)*
+     &                          (ui-uj)*one_over_rho_1minus_epsilon
+                        ELSEIF (ABS(idustFluid).EQ.2) THEN
+                           termdust = 0.5*(di+dj)*(pr(ipart)-pr(j))*
+     &                          grkern*rij1
+                           termdustpmi = termdust*
+     &                          dustvari*pmassi*rho1i
+                           termdudustj = - termdustpmi*
+     &                          (1.+dustvar(j)**2)*dustvar(j)*(ui-uj)
+
+                           termdustpmi = termdustpmi*
+     &                          rho1j*(1.+dustvar(j)**2)**2
+
+                           one_over_rho_1minus_epsilon =
+     &                          (1.+dustvar(j)**2)/rhoj
+                        ENDIF
+c
+c--Term only to compute delta_v, or terminal velocity if imakedust
+c
                         gradpj_ts_over_1minus_epsilon = gradpr*pmassi*
-     &                       stoppingtime(j)*rhoj*
+     &                       stoppingtime(j,rhoj,dustvar(j))*rhoj*
      &                       one_over_rho_1minus_epsilon
                      ENDIF
                      IF (imakedust) THEN
@@ -1552,11 +1587,17 @@ c
 c
 c--For one-fluid dust, evolve dust fraction
 c
-                        IF (idustFluid.EQ.1) THEN
-                           ddust(j) = ddust(j) + termdustpmi
+                        IF (idustFluid.NE.0) THEN
+                           IF (idustFluid.EQ.1) THEN
+                              ddust(j) = ddust(j) + termdustpmi
+                           ELSEIF (ABS(idustFluid).EQ.2) THEN
+                              IF (idustFluid.EQ.2) THEN ! Only explicit
+                                 ddust(j) = ddust(j) + termdustpmi
+                              ENDIF
+                           ENDIF
                            dustfluiddu(j) = dustfluiddu(j) + termdudustj
                         ENDIF
-                        IF (idustFluid.EQ.1 .OR. imakedust) THEN
+                        IF (idustFluid.NE.0 .OR. imakedust) THEN
 c
 c--This is the for computing the velocity difference between gas & dust.
 c     It is not required for evolution, but is dumped to allow the 
@@ -1987,18 +2028,32 @@ c                        t12j = alphamean*grkern*f*(2.0*f - vsbar)*robar1
 c
 c--For one-fluid dust, evolve dust fraction
 c
-                     IF (idustFluid.EQ.1) THEN
-                        ts_rhoj = stoppingtime(j)*rho1j
-                        termdust = 0.5*(ts_rhoi+ts_rhoj)*grkern*rij1*
-     &                       (pr(ipart)-pr(j))
-                        termdustpmj = dustvar(j)*termdust*pmassj*rho1j
+                     IF (idustFluid.NE.0) THEN
+                        IF (idustFluid.EQ.1) THEN
+                           ts_rhoj=stoppingtime(j,rhoj,dustvar(j))*rho1j
+                           termdust = 0.5*(ts_rhoi+ts_rhoj)*grkern*rij1*
+     &                          (pr(ipart)-pr(j))
+                           termdustpmj =dustvar(j)*termdust*pmassj*rho1j
 
-                        ddusti = ddusti - termdustpmj
+                           ddusti = ddusti - termdustpmj
 
-                        dudusti = dudusti - termdustpmj*dustvari*
-     &                    (ui-uj)/(rhoi-dustvari**2)
+                           dudusti = dudusti - termdustpmj*dustvari*
+     &                          (ui-uj)/(rhoi-dustvari**2)
+                        ELSEIF (ABS(idustFluid).EQ.2) THEN
+                           dj = stoppingtime(j,rhoj,dustvar(j))/(1.+
+     &                          dustvar(j)**2)
+                           termdust = 0.5*grkern*rij1*(pr(ipart)-pr(j))
+                           termdustpmj = termdust*dustvar(j)*pmassj*
+     &                          rho1j*(di+dj)
+                           IF (idustFluid.EQ.2) THEN ! Only explicit
+                              ddusti = ddusti - termdustpmj*
+     &                             rho1i*(1.+dustvari**2)**2
+                           ENDIF
+                           dudusti = dudusti - termdustpmj*dustvari*
+     &                          (ui-uj)*(1.+dustvari**2)
+                        ENDIF
                      ENDIF
-                     IF (idustFluid.EQ.1 .OR. imakedust) THEN
+                     IF (idustFluid.NE.0 .OR. imakedust) THEN
                         gradpj = gradpr*pmassj
                         gradvdustxi = gradvdustxi + gradpj*runix
                         gradvdustyi = gradvdustyi + gradpj*runiy
@@ -2246,7 +2301,7 @@ c
      &              ekcle(4,ipart)/trho(ipart)*dedxyz(3,ipart)
             ENDIF
 c
-c--For one-fluid dust, evolve dust fraction
+c--For one-fluid dust, evolve dust fraction (ONLY for idustFluid=1)
 c
             IF (idustFluid.EQ.1 .AND. iphase(ipart).EQ.0) THEN
                ddusti = ddusti - 0.5*dustvari*divv(ipart)*rho1i
@@ -2306,9 +2361,16 @@ c
          IF (iexpan.GT.0) CALL homexp(ipart,ntot,realtime,vxyzu,forcexi,
      &        forceyi,forcezi) 
 
-         IF (idustFluid.EQ.1) THEN
-            ts_over_1minus_epsilon = 
-     &           stoppingtime(ipart)*rhoi/(rhoi-dustvari**2)
+         IF (idustFluid.NE.0) THEN
+            IF (idustFluid.EQ.1) THEN
+               ts_over_1minus_epsilon = 
+     &              stoppingtime(ipart,rhoi,dustvari)*rhoi/
+     &              (rhoi-dustvari**2)
+            ELSEIF (ABS(idustFluid).EQ.2) THEN
+               ts_over_1minus_epsilon =
+     &              stoppingtime(ipart,rhoi,dustvari)*(1.+dustvari**2)
+            ENDIF
+
             gradvdustxi = gradvdustxi*ts_over_1minus_epsilon
             gradvdustyi = gradvdustyi*ts_over_1minus_epsilon
             gradvdustzi = gradvdustzi*ts_over_1minus_epsilon
@@ -2357,11 +2419,13 @@ c            ENDIF
 c
 c--For one-fluid dust, evolve dust fraction
 c
-            IF (idustFluid.EQ.1) THEN
-               ddust(ipart) = ddust(ipart) + ddusti
+            IF (idustFluid.NE.0) THEN
+               IF (idustFluid.GT.0) THEN ! Only explicit
+                  ddust(ipart) = ddust(ipart) + ddusti
+               ENDIF
                dustfluiddu(ipart) = dustfluiddu(ipart) + dudusti
             ENDIF
-            IF (idustFluid.EQ.1 .OR. imakedust) THEN
+            IF (idustFluid.NE.0 .OR. imakedust) THEN
 c
 c--This is the for computing the velocity difference between gas & dust.
 c     It is not required for evolution, but is dumped to allow the 

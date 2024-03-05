@@ -44,7 +44,7 @@ c
       WRITE (iprint, 99010) __DATE__, __TIME__
 99010 FORMAT (1X, 'Built           : ', 2A12)
 
-      WRITE (iprint,*) '                  RUNNING WITH BINARY TREE'
+      WRITE (iprint,*) '                   RUNNING WITH BINARY TREE'
 
 #ifdef MPICOPY
       WRITE (iprint, *) 'Compiled using MPICOPY'
@@ -69,6 +69,22 @@ C$OMP END MASTER
 99201 FORMAT (' Running with ',I5,' openMP threads')
 C$OMP END PARALLEL
 #endif
+      IF (imhd.EQ.idim) WRITE (iprint, *) ' Compiled with MHD'
+      IF (iradtrans.EQ.idim) WRITE (iprint, *) 
+     &     'Compiled with radiative transfer'
+      IF (idustRT.NE.0) WRITE (iprint, *)
+     &     'Compiled with Bate & Keto (2015) RT+ISM'
+      IF (ioptimise_column.NE.0) WRITE (iprint, 99300) ioptimise_column
+99300 FORMAT(' Compiled with ioptimise_column = ',I1)
+      IF (istellarfeedback.NE.0) WRITE (iprint, 99310) istellarfeedback
+99310 FORMAT(' Compiled with istellarfeedback = ',I1)
+      IF (idustFluid.NE.0) WRITE (iprint, 99320) idustFluid
+99320 FORMAT (' Compiled with idustFluid = ',I2)
+      IF (idustIMPL.NE.0) WRITE (iprint, 99330) idustIMPL
+99330 FORMAT (' Compiled with idustIMPL = ',I2)
+      IF (idustIMPL.NE.0) WRITE (iprint, 99340) idustGROW
+99340 FORMAT (' Compiled with idustGROW = ',I2)
+
       IF (iprint.NE.istdout) THEN
         WRITE (iprint, 99003)namerun, job, iday, imon, iyear, ih, im, is
       ENDIF

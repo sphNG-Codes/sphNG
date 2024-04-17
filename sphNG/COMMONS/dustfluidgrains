@@ -1,0 +1,6 @@
+      REAL smincgs,smaxcgs,sindex
+      REAL sgrain, densgrain
+
+      COMMON /dustfluidgrains/ sgrain(ndusttypes),
+     &                        densgrain(ndusttypes),
+     &                        smincgs,smaxcgs,sindex

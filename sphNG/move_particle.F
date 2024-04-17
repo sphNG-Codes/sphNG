@@ -63,6 +63,10 @@ c************************************************************
       INCLUDE 'COMMONS/f2HY09'
       INCLUDE 'COMMONS/HY09check'
       INCLUDE 'COMMONS/HY09accel'
+      INCLUDE 'COMMONS/dustfluid'
+      INCLUDE 'COMMONS/dustfluidderiv'
+      INCLUDE 'COMMONS/dustfluidvelu'
+      INCLUDE 'COMMONS/tstopvar'
 
       IF (ito.EQ.ifrom) RETURN
 
@@ -125,6 +129,14 @@ c         h2mol(ito) = h2mol(ifrom)
          h2ratio(ito) = h2ratio(ifrom)
       ENDIF
       IF (idustIMPL.GT.0) dustnorm(ito) = dustnorm(ifrom)
+      IF (idustFluid.NE.0) THEN
+         dustvar(:,ito) = dustvar(:,ifrom)
+         dumdustvar(:,ito) = dumdustvar(:,ifrom)
+         f1dust(:,ito) = f1dust(:,ifrom)
+         f2dust(:,ito) = f2dust(:,ifrom)
+         dustfluidvxyz(:,:,ito) = dustfluidvxyz(:,:,ifrom)
+         stoppingtime(:,ito) = stoppingtime(:,ifrom)
+      ENDIF
       IF (idimHY09.EQ.idim) THEN
          HY09bin_rho(:,ito) = HY09bin_rho(:,ifrom)
          HY09bin_dumrho(:,ito) = HY09bin_dumrho(:,ifrom)

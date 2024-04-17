@@ -22,7 +22,7 @@ c************************************************************
       DIMENSION vxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
       DIMENSION Bevolxyz(imhdevol,imhd)
-      DIMENSION dustvar(idim_dustFluid)
+      DIMENSION dustvar(ndusttypes,idim_dustFluid)
 
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/densi'
@@ -44,6 +44,8 @@ c************************************************************
       INCLUDE 'COMMONS/nonideal'
       REAL    jcurrenti(3),nden_nimhdi(n_nden),eta_nimhdi(4)
 #endif
+
+      DIMENSION dustvari(ndusttypes)
 
       CHARACTER*7 where
       REAL*4 rhoreal4
@@ -84,13 +86,10 @@ c
          vyi = vxyzu(2,i)
          vzi = vxyzu(3,i)
          ui = vxyzu(4,i)
-         rhoi = rho(i)
+         rhoreal4 = rho(i)
          vsoundi = vsound(i)
          presi = pr(i)
-         IF (idustFluid.NE.0) dustvari = dustvar(i)
-c
-c--Fixed dustvar value at boundary ?
-c         IF (idustFluid.NE.0) dustvari = 0.100504
+         IF (idustFluid.NE.0) dustvari(:) = dustvar(:,i)
 
          IF (istellar_ionisation) THEN
             HIIioni = HIIion(i)
@@ -112,7 +111,6 @@ c         IF (idustFluid.NE.0) dustvari = 0.100504
          IF (r2.GT.rshell*rshell) inshell = inshell + 1
 
          IF (r2.GT.drmin2 .AND. r2.LT.drmax2) THEN
-c            print *,i,r2,hi
             hasghost(i) = .TRUE.
             nghost = nghost + 1
             nptot = MIN0(npart + nghost, idim)
@@ -135,11 +133,12 @@ c            print *,i,r2,hi
             vxyzu(2,nptot) = vyi - 2*vyr
             vxyzu(3,nptot) = vzi - 2*vzr
             vxyzu(4,nptot) = ui
-            rho(nptot) = rhoi
+            rho(nptot) = rhoreal4
             vsound(nptot) = vsoundi
             pr(nptot) = presi
             iphase(nptot) = 0
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
+
             IF (istellar_ionisation) THEN
                HIIion(nptot) = HIIioni
             ENDIF
@@ -152,7 +151,7 @@ c            print *,i,r2,hi
 
          IF (nghostold.NE.nghost) THEN
             IF (encal.EQ.'r') THEN
-               IF (rhoi.EQ.0.0) THEN
+               IF (rhoreal4.EQ.0.0) THEN
                   ekcle(3,nptot) = 1.5*Rg/(gmw*uergg)
                   vxyzu(4,nptot) = boundtemp*ekcle(3,nptot)
                   ekcle(1,nptot) = uradconst*(vxyzu(4,nptot)/
@@ -163,9 +162,9 @@ c            print *,i,r2,hi
                ELSE
                   ekcle(3,nptot) = 1.5*Rg/(gmw*uergg)
 c                  vxyzu(4,nptot) = boundtemp*ekcle(3,nptot)
-                  ekcle(1,nptot) = uradconst*(boundtemp)**4/rhoi
+                  ekcle(1,nptot) = uradconst*(boundtemp)**4/rhoreal4
                   ekcle(2,nptot) = getkappa(vxyzu(4,nptot),
-     &                 ekcle(3,nptot),rho(i))
+     &                 ekcle(3,nptot),rhoreal4)
                ENDIF
                ekcle(4,nptot) = ekcle(4,i)
                ekcle(5,nptot) = ekcle(5,i)

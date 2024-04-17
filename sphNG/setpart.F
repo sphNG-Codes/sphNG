@@ -69,10 +69,23 @@ c************************************************************
       INCLUDE 'COMMONS/potent'
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/dustfluid'
+      INCLUDE 'COMMONS/tstop'
+      INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/HY09dustprops'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
 #endif
+
+      INTERFACE initialise_dust
+         SUBROUTINE initialise_dust(dust_to_gas,dustfrac,ndust)
+         IMPLICIT NONE
+         INTEGER, INTENT(IN),  OPTIONAL :: ndust
+         REAL,    INTENT(OUT), OPTIONAL :: dustfrac(:)
+         REAL,    INTENT(OUT)           :: dust_to_gas
+         END SUBROUTINE initialise_dust
+      END INTERFACE initialise_dust
+
+      REAL    :: dustfrac(ndusttypes)
 
       INTEGER :: isettletest = 0
 
@@ -2238,18 +2251,34 @@ c
 c--IF one-fluid dust, enter initial dust-to-gas ratio
 c
       IF (idustFluid.NE.0) THEN
-         radfrac = 1.0E+10
+         radius_outer = 1.0E+20
          IF (igeom.EQ.10) THEN
             WRITE (*, 99055)
-99055       FORMAT(' Enter the fraction sphere to have dust',
-     &           '(in to out) e.g. 0.9')
-            READ (iread, *) radfrac
+99055       FORMAT(' Enter the outer radius to have a normal',
+     &           'dust to gas ratio (in code units)',/
+     &           'Beyond this, the dust fraction will be reduced',
+     &           'by a factor of 100.')
+            READ (iread, *) radius_outer
          ENDIF
+c
+c--Simple case of a single dust species and constant dust:gas ratio
+c
+c         WRITE (*, 99043)
+c99043    FORMAT(' Enter initial dust to gas ratio (rho_d/rho_g)')
+c         READ (iread, *) dust_to_gas
+c         dust_epsilon = 1.0/(1.0+1.0/dust_to_gas)
+c         gasdrag = .TRUE.
+c         iplanetesimal_info = 'p'
+c         idragscheme = 4
+c         K_code = 100.
+cc--Set to unity to avoid divide by zero in hcalc.
+c         dustvar(:,1:npart) = 1.0
 
-         WRITE (*, 99043)
-99043    FORMAT(' Enter initial dust to gas ratio (rho_d/rho_g)')
-         READ (iread, *) dust_to_gas
-         dust_epsilon = 1.0/(1.0+1.0/dust_to_gas)
+         CALL initialise_dust(dust_to_gas,dustfrac=dustfrac)
+
+         totgrainmass = dust_to_gas*totmas
+         print*,'Total solids/gas mass ratio ',totgrainmass/totmas
+         totmas = totmas + totgrainmass
       ENDIF
 c
 c--adjust smoothing lengths (also calculates initial density)
@@ -2286,49 +2315,59 @@ c
       n1 = n1tot
       n2 = n2tot
 c
+c--Set smoothing lengths and densities (required for one-fluid dust)
+c
 c--Set initial dust to gas ratio (to avoid divide by zero)
 c
-      IF (idustFluid.NE.0) dustvar(1:npart) = 1.0
+      IF (idustFluid.NE.0) dustvar(:,1:npart) = 1.0
 
       IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim .OR. 
      &     idustFluid.NE.0) CALL hcalc
-
 c
-c--Update initial dust to gas ratio
+c--Calculate the dust parameterisation variable.  This must be
+c     done after hcalc for idustFluid.EQ.1 because it depends on rho()
 c
       IF (idustFluid.NE.0) THEN
          DO i = 1, npart
             IF (iphase(i).EQ.0) THEN
                radius = SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2+xyzmh(3,i)**2)
-               IF (radius.LT.radfrac*rcyl) THEN
-                  dust_epsilon_here = dust_epsilon
+               IF (radius.LT.radius_outer) THEN
+                  dust_factor = 0.01
                ELSE
-                  dust_epsilon_here = 0.0001
+                  dust_factor = 1.0
                ENDIF
                IF (idustFluid.EQ.1) THEN
-                   ! sqrt(epsilon*rho) method
-                  dustvar(i) = SQRT(dust_epsilon_here*rho(i))
+                  !--sqrt(epsilon*rho) method
+                  dustvar(:,i) = SQRT(dustfrac(:)*dust_factor*rho(i))
                ELSEIF (ABS(idustFluid).EQ.2) THEN
-                  ! Ballabio et al. 2018 method
-                  dustvar(i) = SQRT(dust_epsilon_here/
-     &                 (1-dust_epsilon_here))
+                  !--sqrt(epsilon/(1-epsilon)) method
+                  dustvar(:,i) = SQRT(dustfrac(:)*dust_factor/
+     &                 (1.0-dustfrac(:)*dust_factor))
+               ELSEIF (idustFluid.EQ.3) THEN
+                  !--asin(sqrt(epsilon)) method                              
+                  dustvar(:,i) = ASIN(SQRT(dustfrac(:)*dust_factor))
+               ELSEIF (idustFluid.EQ.4) THEN
+                  !--epsilon method                              
+                  dustvar(:,i) = dustfrac(:)*dust_factor
                ELSE
                   WRITE (*,*)'ERROR - Invalid idustFluid ',idustFluid
                   CALL quit(0)
                ENDIF
             ENDIF
          END DO
+      ENDIF
 c
 c--For spherical dust diffusion test
 c
+      IF (idustFluid.NE.0) THEN
          IF (.FALSE.) THEN
             DO i = 1, npart
                radius = SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2+xyzmh(3,i)**2)
                IF (iphase(i).EQ.0) THEN
                   IF (radius.LT.0.25) THEN
-                     dustvar(i) =SQRT(0.9*(1.0-(radius/0.25)**2)*rho(i))
+                    dustvar(:,i)=SQRT(0.9*(1.0-(radius/0.25)**2)*rho(i))
                   ELSE
-                     dustvar(i) = 0.
+                     dustvar(:,i) = 0.
                   ENDIF
                ENDIF
             END DO
@@ -2378,6 +2417,9 @@ c
 c--Set dust distribution for HY09 dust
 c
       IF (idimHY09.EQ.idim) THEN
+
+         WRITE (*,*) 'Calling hy09dustset ',npart
+
          CALL hy09dustset(npart)
 #ifdef NONIDEAL
 c        HY09binsizes is already in cm

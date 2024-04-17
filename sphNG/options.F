@@ -54,6 +54,8 @@ c************************************************************
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/grain'
+      INCLUDE 'COMMONS/dustfluidgrains'
+      INCLUDE 'COMMONS/tstop'
 
       CHARACTER*1 iatomic_molecular
 c
@@ -291,13 +293,15 @@ c
       iandrea = 0
       IF (iexf.EQ.5 .OR. iexf.EQ.6 .OR. iexf.EQ.7 .OR. iexf.EQ.11) THEN
          READ (iterm, *) xmass
-         IF (iexf.EQ.11) THEN
-            centralmass = xmass
-         ELSEIF (centralmass.NE.xmass) THEN
-            WRITE (iprint,*) 'ERROR - xmass must equal centralmass'
-            WRITE (iprint,*) 'xmass is for gravity external force'
-            WRITE (iprint,*) 'centralmass is for thermal energy profile'
-            CALL quit(0)
+         IF (centralmass.NE.xmass) THEN
+            IF (iexf.EQ.11) THEN
+               centralmass = xmass
+            ELSE
+               WRITE (iprint,*) 'ERROR - xmass must equal centralmass'
+               WRITE (iprint,*) 'xmass is for gravity external force'
+               WRITE (iprint,*) 'centralmass for thermal energy profile'
+               CALL quit(0)
+            ENDIF
          ENDIF
       ENDIF
       IF (iexf.EQ.7 .OR. 
@@ -381,10 +385,14 @@ c
 c--Default planetesimal and dust values
 c
       n_planetesimal_types = 0
-      r_planetesimals(1:10) = 0.0
-      rho_planetesimals(1:10) = 0.0
+      IF (idustFluid.NE.0) THEN
+         sgrain = 0.
+         densgrain = 0.
+      ELSE
+         r_planetesimals(1:10) = 0.0
+         rho_planetesimals(1:10) = 0.0
+      ENDIF
       gasdrag = .FALSE.
-      idragscheme = 0
       prswitch = .FALSE.
 
       READ (iterm, 99006, END=260) iplanetesimal_info
@@ -392,15 +400,20 @@ c
       print *,'p value ',iplanetesimal_info
       IF (iplanetesimal_info.EQ.'p' .OR. iplanetesimal_info.EQ.'g') THEN
          READ (iterm, *, END=300) gasdrag
-         IF (gasdrag) THEN
-            READ (iterm, *, END=250) idragscheme
-            WRITE (*,*) 'Drag scheme is ',idragscheme
-         ENDIF         
+      ENDIF
+      IF (idustFluid.NE.0 .OR. gasdrag) THEN
+         READ (iterm, *, END=250) idragscheme
+         WRITE (*,*) 'Drag scheme is ',idragscheme
+         IF (idragscheme.EQ.4) THEN
+            READ (iterm, *, END=250) K_code
+         ENDIF
+      ENDIF
+      IF (gasdrag) THEN
          READ (iterm, *, END=400) prswitch
          IF (prswitch) READ (iterm, *) pbeta
       ENDIF
 
-      IF (iplanetesimal_info.EQ.'p') THEN
+      IF (iplanetesimal_info.EQ.'p' .AND. idragscheme.NE.4) THEN
          READ (iterm, *) n_planetesimal_types
          IF (n_planetesimal_types.GT.nplanetesimal_maxtype) THEN
             WRITE (*,*)

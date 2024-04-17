@@ -71,7 +71,8 @@ c************************************************************
       DIMENSION ireal(idim)
       DIMENSION ekcle(5,iradtrans2)
       DIMENSION Bevolxyz(imhdevol,imhd2),dBevolxyz(imhdevol,imhd3)
-      DIMENSION dustvar(idim_dustFluid2),ddust(idim_dustFluid2)
+      DIMENSION dustvar(ndusttypes,idim_dustFluid2)
+      DIMENSION ddust(ndusttypes,idim_dustFluid2)
       DIMENSION rgrain(idim_grow2),drgrain(idim_grow2)
 
       INCLUDE 'COMMONS/physcon'
@@ -127,6 +128,7 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/HY09accel'
       INCLUDE 'COMMONS/xforce'
+      INCLUDE 'COMMONS/dustfluidvelu'
 
       DIMENSION dedxyz(3,iradtrans2)
 #ifdef MPI
@@ -205,7 +207,7 @@ c
          CALL dust_implicit (dt,npart,ntot,xyzmh,vxyzu,rgrain,drgrain,
      &            nlst_in,nlst_end,itime,icall)
       ENDIF
-c
+
 c--Now calculate other quantities that are needed to calculate the forces 
 c     on particles (divv, graviational softening, curlv, etc).
 c
@@ -301,6 +303,7 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
       CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(nheatingISR, MPI_REAL4, iHREAL4, ierr)
       CALL MPI_TYPE_CONTIGUOUS(isizealphaMM,MPI_REAL4,ialphaREAL4,ierr)
+      CALL MPI_TYPE_CONTIGUOUS(ndusttypes, MPI_REAL8, idustREAL8, ierr)
 
       CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
       CALL MPI_TYPE_COMMIT(imhdevolREAL8,ierr)
@@ -310,6 +313,7 @@ c      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
       CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
       CALL MPI_TYPE_COMMIT(iHREAL4,ierr)
       CALL MPI_TYPE_COMMIT(ialphaREAL4,ierr)
+      CALL MPI_TYPE_COMMIT(idustREAL8,ierr)
 
 #ifdef MPIDEBUG
       print *,iproc,': START2 ',maxnneighsentback,nneighsentback(1),
@@ -416,6 +420,16 @@ c     &                  1,llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
 
                         ENDIF
 
+                        IF (idustFluid.NE.0) THEN
+
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &                  1,llistsentback(1,j+1),idustREAL8,indexMPI5,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &             llistsentback(1,j+1),idustREAL8,indexMPIdustvar,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPIdustvar,ierr)
+
+                        ENDIF
+
 c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
 c     &                  1,llistsentback(1,j+1),i2REAL4,indexMPI2r4,ierr)
                 CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
@@ -436,7 +450,9 @@ c     &                  1,llistsentback(1,j+1),MPI_INTEGER8,indexMPI_I8,ierr)
      &    listex,MPI_INTEGER8,indexMPI_I8,ierr)
 c     &    iorig(llistsentback(1,j+1)+1),MPI_INTEGER8,indexMPI_I8,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPI_I8,ierr)
-
+c
+c--Now actually send the quantities to neighbouring MPI processes
+c
                         CALL MPI_SEND(iunique,1,indexMPI_I8,j,200,
      &                       MPI_COMM_WORLD, ierr)
 
@@ -515,6 +531,15 @@ c     &    iorig(llistsentback(1,j+1)+1),MPI_INTEGER8,indexMPI_I8,ierr)
                               CALL MPI_TYPE_FREE(indexMPI2,ierr)
                               CALL MPI_TYPE_FREE(indexMPIH4,ierr)
                            ENDIF
+                        ENDIF
+
+                        IF (idustFluid.NE.0) THEN
+                           CALL MPI_SEND(dustvar,1,indexMPIdustvar,j,
+     &                          234,MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                           print *,iproc,' sent dustvar to ',j
+#endif
+                           CALL MPI_TYPE_FREE(indexMPIdustvar,ierr)
                         ENDIF
 
                         CALL MPI_TYPE_FREE(indexMPI_I8,ierr)
@@ -712,6 +737,21 @@ c     &                 istart+inumber)
 #endif
                      ENDIF
                   ENDIF
+
+                  IF (idustFluid.NE.0) THEN
+                     CALL MPI_RECV(dustvar(1,istart),inumber,idustREAL8,
+     &                    iprocrec, 234, MPI_COMM_WORLD,istatus,ierr)
+                     CALL MPI_GET_COUNT(istatus,idustREAL8,icheck,ierr)
+                     IF (icheck.NE.inumber) THEN
+                        WRITE (*,*) 'ERROR - icheck.NE.inumber 12 ',
+     &                       iproc
+                        CALL quit(1)
+                     ENDIF
+#ifdef MPIDEBUG
+                     print *,iproc,': got dustvar from ',iprocrec,
+     &                    icheck,istart
+#endif
+                  ENDIF
                ENDIF
                inumbertotal = inumbertotal + inumber
                inumberindiv(inumberreturned) = inumber
@@ -746,7 +786,15 @@ c
          END DO
          poten(jpart) = 0.0
          dq(jpart) = 0.0
-         IF (idimHY09.EQ.idim) gas_accel(:,jpart) = 0.
+         IF (idimHY09.EQ.idim) THEN
+            gas_accel(:,jpart) = 0.
+            grav_accel(:,jpart) = 0.
+         ENDIF
+         IF (idustFluid.NE.0) THEN
+            ddust(:,jpart) = 0.
+            dustfluiddu(jpart) = 0.
+            dustfluidvxyz(:,:,jpart) = 0.
+         ENDIF
          IF (imhd.EQ.idim) THEN
             DO k = 1, imhdevol
                dBevolxyz(k,jpart) = 0.
@@ -1532,12 +1580,156 @@ c
          tass = tass + (tass2 - tass1)
       ENDIF
 c
-c--Compute implicit one-fluid dust
+c--Compute implicit one-fluid dust - does not need to be done for setup
+c     or for restart (icall=1), or for particle injection (icall=4)
 c
-      IF (idustFluid.EQ.-2) THEN
-         CALL ASS_DUST1(nlst_in,nlst_end,llist,dt,itime,npart,ntot,
-     &         xyzmh,dustvar,dumrho)
+      IF (idustFluid.EQ.-2 .AND. (icall.EQ.2 .OR. icall.EQ.3)) THEN
+         CALL ASS_DUST1(dt,itime,npart,ntot,xyzmh,dustvar,dumrho)
+
+#ifdef MPI
+
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlst_in,nlst_end,vxyzu,dumrho,pr,vsound,llist,iphase)
+C$OMP& shared(ekcle,dustvar)
+C$OMP& private(i,ipart)
+      DO i = nlst_in, nlst_end
+         ipart = llist(i)
+         IF (iphase(ipart).EQ.0) 
+     &        CALL eospg(ipart,vxyzu,dumrho,pr,vsound,ekcle,dustvar)
+      END DO
+C$OMP END PARALLEL DO
+
+c
+c--Transfer new values of dustvar, pr, vsound
+c     to other MPI processes.
+c
+      inumbertotallocal = 0
+      inumberreturned = 0
+      DO i = 0, numproc - 1
+         IF (iproc.EQ.i) THEN
+            IF (nneighsentanyatall) THEN
+c
+c--Otherwise this process does not need to send any particle back!
+c
+c--Send active node data to be processed by other processes.  Data from all
+c     other processes is received before any processing is done.  This
+c     is because here it is assumed that the total number of remote particles
+c     on which forces need to be calculated by this MPI process is less
+c     than idim.
+c
+               DO j = 0, numproc - 1
+                  IF (j.NE.iproc) THEN
+c
+c--Only sends anything at all to another MPI process if it needs to (the
+c     other MPI process knows when it doesn't need to expect anything)
+c
+                     IF (nneighsentany(j+1)) THEN
+
+                        CALL MPI_TYPE_INDEXED(nneighsentback(j+1),
+     &                       lblocklengths,llistsentback(1,j+1),
+     &                       idustREAL8,indexMPIdustvar,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPIdustvar,ierr)
+
+                        CALL MPI_SEND(dustvar,1,indexMPIdustvar,j,
+     &                       234,MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                        print *,iproc,' sent dustvar (2) to ',j
+#endif
+                        CALL MPI_TYPE_FREE(indexMPIdustvar,ierr)
+
+
+                        CALL MPI_TYPE_INDEXED(nneighsentback(j+1),
+     &                       lblocklengths,llistsentback(1,j+1),
+     &                       MPI_REAL4,indexMPI_R4,ierr)
+                        CALL MPI_TYPE_COMMIT(indexMPI_R4,ierr)
+
+                        CALL MPI_SEND(pr,1,indexMPI_R4,j,212,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_SEND(vsound,1,indexMPI_R4,j,213,
+     &                       MPI_COMM_WORLD, ierr)
+
+                        CALL MPI_TYPE_FREE(indexMPI_R4,ierr)
+
+                     ENDIF
+                  ENDIF
+               END DO
+            ENDIF
+c
+c--Other processes receive the particles being sent
+c
+         ELSE
+            IF (inumberreturned.LT.inumofreturns .AND.
+     &           nneightogetback(i+1).GT.0) THEN
+               inumberreturned = inumberreturned + 1
+               istart = ntot + inumbertotallocal + 1
+#ifdef MPIDEBUGRT
+               print *,iproc,': rec dustvar, pr,vsound data ',
+     &              inumberreturned,inumofreturns,istart
+#endif
+               CALL MPI_RECV(dustvar(1,istart),idim,idustREAL8,
+     &              i, 234, MPI_COMM_WORLD,istatus,ierr)
+               CALL MPI_GET_COUNT(istatus,idustREAL8,inumber,ierr)
+               icheck = inumber
+               iprocrec = istatus(MPI_SOURCE)
+
+#ifdef MPIDEBUG
+               print *,iproc,': got dustvar from ',iprocrec,inumber
+#endif
+
+               CALL MPI_RECV(pr(istart), idim, MPI_REAL4,
+     &              iprocrec, 212, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
+               IF (icheck.NE.inumber) THEN
+                  WRITE (*,*) iproc,': ERROR - icheck.NE.inumber p2'
+                  CALL quit(1)
+               ENDIF
+
+               CALL MPI_RECV(vsound(istart), idim, MPI_REAL4,
+     &              iprocrec, 213, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus, MPI_REAL4, inumber, ierr)
+               IF (icheck.NE.inumber) THEN
+                  WRITE (*,*) iproc,': ERROR - icheck.NE.inumber cs2'
+                  CALL quit(1)
+               ENDIF
+
+               inumbertotallocal = inumbertotallocal + inumber
+               IF (inumberindiv(inumberreturned).NE.inumber) THEN
+                  WRITE (*,*) iproc,': ERR - inumberindiv ASD ',inumber,
+     &                 inumberindiv(inumberreturned),inumberreturned
+                  CALL quit(1)
+               ENDIF
+               IF (inumbercumm(inumberreturned).NE.istart) THEN
+                  WRITE (*,*) iproc,': ERR - inumbercumm ASD ',istart,
+     &                 inumbercumm(inumberreturned),inumberreturned
+                  CALL quit(1)
+               ENDIF
+               IF (inumberproc(inumberreturned).NE.iprocrec) THEN
+                  WRITE (*,*) iproc,': ERR - inumberproc ASD ',iprocrec,
+     &                 inumberproc(inumberreturned),inumberreturned
+                  CALL quit(1)
+               ENDIF
+            ENDIF
+         ENDIF
+      END DO
+      IF (inumbertotallocal.NE.inumbertotal) THEN
+         WRITE (*,*) iproc,': inumbertotallocal.NE.inumbertotal ',
+     &        inumbertotallocal,inumbertotal
+         CALL quit(1)
       ENDIF
+
+#endif
+
+
+      ENDIF ! implicit dust only
+
+
+
+
+
+
+
+
 c
 c--Compute forces on EACH particle
 c
@@ -1736,6 +1928,80 @@ c               print *,iproc,': got poten from ',iprocrec
      &                       gas_accel(k,jpos)
                      END DO
                   END DO
+
+                  CALL MPI_RECV(grav_accel(1,istartrec),
+     &                 3*maxnneighsentback,
+     &                 MPI_REAL8,iprocrec,37,MPI_COMM_WORLD,istatus,
+     &                 ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_REAL8,ireturned,ierr)
+                  IF (ireturned.NE.3*nneighsentback(iprocrec+1))
+     &                 THEN
+                     WRITE (*,*) 'ERROR - ireturned.NE.3*nnsentback',
+     &                    ' grav_accel ',
+     &                    nneighsentback(iprocrec+1),ireturned
+                     CALL quit(1)
+                  ENDIF
+#ifdef MPIDEBUG
+                  print *,iproc,': got grav_accel from ',iprocrec,
+     &                 ' put into ',llistsentback(1,iprocrec+1)+1
+#endif
+                  DO l = 1, nneighsentback(iprocrec+1)
+                     ipos = llistsentback(l,iprocrec+1)+1
+                     jpos = istartrec + l - 1
+                     DO k = 1, 3
+                        grav_accel(k,ipos) = grav_accel(k,ipos) + 
+     &                       grav_accel(k,jpos)
+                     END DO
+                  END DO
+               ENDIF
+
+               IF (idustFluid.NE.0) THEN
+                  CALL MPI_RECV(ddust(1,istartrec),
+     &                 ndusttypes*maxnneighsentback,
+     &                 MPI_REAL8,iprocrec,36,MPI_COMM_WORLD,istatus,
+     &                 ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_REAL8,ireturned,ierr)
+                  IF(ireturned.NE.ndusttypes*nneighsentback(iprocrec+1))
+     &                 THEN
+                     WRITE (*,*) 
+     &                    'ERROR - ireturned.NE.ndusttypes*nnsentback',
+     &                    ' ddust ',
+     &                    nneighsentback(iprocrec+1),ireturned
+                     CALL quit(1)
+                  ENDIF
+#ifdef MPIDEBUG
+                  print *,iproc,': got ddust from ',iprocrec,
+     &                 ' put into ',llistsentback(1,iprocrec+1)+1
+#endif
+                  DO l = 1, nneighsentback(iprocrec+1)
+                     ipos = llistsentback(l,iprocrec+1)+1
+                     jpos = istartrec + l - 1
+                     ddust(:,ipos) = ddust(:,ipos) + ddust(:,jpos)
+                  END DO
+
+                  CALL MPI_RECV(dustfluidvxyz(1,1,istartrec),
+     &                 3*ndusttypes*maxnneighsentback,
+     &                 MPI_REAL8,iprocrec,38,MPI_COMM_WORLD,istatus,
+     &                 ierr)
+                  CALL MPI_GET_COUNT(istatus,MPI_REAL8,ireturned,ierr)
+                  IF (ireturned.NE.3*ndusttypes*
+     &                 nneighsentback(iprocrec+1)) THEN
+                     WRITE (*,*) 
+     &                   'ERROR - ireturned.NE.3*ndusttypes*nnsentback',
+     &                    ' dustfluidvxyz ',
+     &                    nneighsentback(iprocrec+1),ireturned
+                     CALL quit(1)
+                  ENDIF
+#ifdef MPIDEBUG
+                  print *,iproc,': got dustfluidvxyz from ',iprocrec,
+     &                 ' put into ',llistsentback(1,iprocrec+1)+1
+#endif
+                  DO l = 1, nneighsentback(iprocrec+1)
+                     ipos = llistsentback(l,iprocrec+1)+1
+                     jpos = istartrec + l - 1
+                     dustfluidvxyz(:,:,ipos) = dustfluidvxyz(:,:,ipos) + 
+     &                    dustfluidvxyz(:,:,jpos)
+                  END DO
                ENDIF
 
 #ifdef MPIDEBUG
@@ -1779,6 +2045,16 @@ c
                   IF (idimHY09.EQ.idim) THEN
                      CALL MPI_SEND(gas_accel(1,istart),3*inumber,
      &                    MPI_REAL8,iprocsend,35,MPI_COMM_WORLD, ierr)
+                     CALL MPI_SEND(grav_accel(1,istart),3*inumber,
+     &                    MPI_REAL8,iprocsend,37,MPI_COMM_WORLD, ierr)
+                  ENDIF
+
+                  IF (idustFluid.NE.0) THEN
+                     CALL MPI_SEND(ddust(1,istart),ndusttypes*inumber,
+     &                    MPI_REAL8,iprocsend,36,MPI_COMM_WORLD, ierr)
+                     CALL MPI_SEND(dustfluidvxyz(1,1,istart),
+     &                    3*ndusttypes*inumber,
+     &                    MPI_REAL8,iprocsend,38,MPI_COMM_WORLD, ierr)
                   ENDIF
 #ifdef MPIDEBUG
                   print *,iproc,': sent forces and poten to ',iprocsend
@@ -1804,6 +2080,7 @@ c
          CALL quit(1)
       ENDIF
 
+      CALL MPI_TYPE_FREE(idustREAL8,ierr)
       CALL MPI_TYPE_FREE(ialphaREAL4,ierr)
       CALL MPI_TYPE_FREE(iHREAL4,ierr)
       CALL MPI_TYPE_FREE(i2REAL4,ierr)
@@ -1819,7 +2096,6 @@ c
 #endif
 
 #endif
-
 
 c
 c--Calculate source terms for variable viscosity and resistivity

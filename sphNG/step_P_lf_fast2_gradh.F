@@ -258,6 +258,7 @@ c
                   dumBevolxyz(k,i) = Bevolxyz(k,i)
                END DO
             ENDIF
+            IF (idustFluid.GE.1) dumdustvar(:,i) = dustvar(:,i)
          END DO
 c
 c--Set integer time to zero
@@ -1544,6 +1545,18 @@ c
      &                   alphaMM(l,k) + deltat*f1ha(1+l,k)),alphamin(l))
                      ENDDO
                    ENDIF
+                  IF (idustFluid.GE.1) dumdustvar(:,j) = dustvar(:,j)
+     &                  + deltat*f1dust(:,k)
+                  IF (imhd.EQ.idim) THEN
+                     DO l = 1, imhdevol
+                        dumBevolxyz(l,j) = Bevolxyz(l,j)
+     &                                   + deltat*f1Bxyz(l,j)
+                     END DO
+c
+c--In Terrence Tricco's resistivity switch the value is set, not integrated
+c
+                     dumalpha(isizealphaMM,j) = f1ha(isizealphaMM+1,k)
+                  ENDIF
                ENDIF
             END DO
 
@@ -1717,7 +1730,7 @@ c
 c--Redo ghosts
 c
             nghost = 0
-            CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+            CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
             ntot = npart + nghost
 c
 c--Set dummy's for new particles
@@ -1736,6 +1749,7 @@ c
                         dumalpha(k,j) = alphaMM(k,j)
                      ENDDO
                   ENDIF
+                  IF (idustFluid.GE.1) dumdustvar(:,j) = dustvar(:,j)
                ENDIF
             END DO
 c
@@ -1764,6 +1778,18 @@ c
                         dumalpha(l,j) = MAX(MIN(alphamax(l),
      &                   alphaMM(l,k) + deltat*f1ha(1+l,k)),alphamin(l))
                      ENDDO
+                  ENDIF
+                  IF (idustFluid.GE.1) dumdustvar(:,j) = dustvar(:,j)
+     &                 + deltat*f1dust(:,k)
+                  IF (imhd.EQ.idim) THEN
+                     DO l = 1, imhdevol
+                        dumBevolxyz(l,j) = Bevolxyz(l,j)
+     &                                   + deltat*f1Bxyz(l,j)
+                     END DO
+c
+c--In Terrence Tricco's resistivity switch the value is set, not integrated
+c
+                     dumalpha(isizealphaMM,j) = f1ha(isizealphaMM+1,k)
                   ENDIF
                ENDIF
             END DO

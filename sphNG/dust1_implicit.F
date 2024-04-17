@@ -12,9 +12,22 @@ c                                                          *
 c   DE 24/02/22                                            *
 c***********************************************************
 
+#ifdef MPIALL
+#define IMPLICITNONE
+#include "mpi_sup.h"
+#else
       IMPLICIT NONE
+#endif
 
       INCLUDE 'idim'
+
+#ifdef MPIALL
+      INCLUDE 'COMMONS/mpiall'
+      INCLUDE 'COMMONS/mpidebug'
+#endif
+#ifdef MPI
+      INCLUDE 'COMMONS/mpi'
+#endif
   
       INCLUDE 'COMMONS/call'
       INCLUDE 'COMMONS/cgas'
@@ -32,6 +45,8 @@ c***********************************************************
       INCLUDE 'COMMONS/table'
       INCLUDE 'COMMONS/timei'
       INCLUDE 'COMMONS/units'
+      INCLUDE 'COMMONS/dustfluidgrains'
+      INCLUDE 'COMMONS/dustimplstat'
 
       INTEGER nswmax
       PARAMETER (nswmax = 100)
@@ -41,16 +56,26 @@ c***********************************************************
       PARAMETER (lincrit = 0.0005)
  
       LOGICAL moresweep, moresweep2
-      REAL, DIMENSION(idim_dustFluid2) :: dustvar
-      REAL, DIMENSION(idim_dustFluid2) :: dustvarNew
+      REAL, DIMENSION(ndusttypes,idim_dustFluid2) :: dustvar
+      REAL, DIMENSION(ndusttypes,idim_dustFluid2) :: dustvarNew
       REAL, DIMENSION(5,mmax2) :: xyzmh
       REAL, DIMENSION(4,idim2) :: vxyzu
       REAL*4, DIMENSION(idim2) :: rho
 
+      REAL, DIMENSION(ndusttypes,idim_dustFluid2) :: ts_store
+
+      REAL, DIMENSION(ndusttypes,2,idim_dustFluid2) :: varidust
+
+      REAL, DIMENSION(ndusttypes) :: dustfraci, dustfracj
+      SAVE dustfraci, dustfracj
+C$OMP THREADPRIVATE(dustfraci, dustfracj)
+      REAL, DIMENSION(ndusttypes) :: term1, term2
+      SAVE term1, term2
+C$OMP THREADPRIVATE(term1, term2)
+
+      REAL ts_temp
       REAL rhoi, rhoj
       REAL pri, prj
-      REAL tsi, tsj
-      REAL maxerrS, maxerrSlast
       REAL dtimax, dtdo, dti
       REAL dtmax
       REAL rij, rij1, rij2
@@ -67,21 +92,19 @@ c***********************************************************
       REAL dWidrmjrhoj, dWjdrmjrhoj, dWidrmirhoj
       REAL dWidrmjrhojpr, dWidrmirhojpr, dWjdrmjrhojpr
       REAL pmi, pmj
-      REAL itime
-      REAL stoppingtime
-      REAL term1, term2
       REAL tempval1, tempval2
       REAL s4term, s3term, s2term, s1term, s0term
       REAL S1i
-      REAL maxerrE2
+      REAL maxerrS, maxerrSlast
       REAL errorS
       REAL gradhi, gradhj
-      REAL s
+      REAL vsoundi, vsoundj
+      REAL dustfracisum, dustfracjsum
 
+      INTEGER itime
       INTEGER nosweep
       INTEGER numcomp
-      INTEGER ipos
-      INTEGER i, j, k, n, l
+      INTEGER i, j, k, kk, n, l
       INTEGER ihasghost, ihasghostcount
       INTEGER ntot, npart
       INTEGER iparttree
@@ -90,6 +113,21 @@ c***********************************************************
       INTEGER ii, iii
       INTEGER iprint
       INTEGER nit
+      INTEGER iregime
+
+#ifdef MPIALL
+      REAL maxerrStot
+      LOGICAL moresweeptot
+#endif
+
+#ifdef MPI
+      INTEGER istart, istartrec, inumberreturned
+      INTEGER iprocrec, ireturned
+      INTEGER ipos, jpos, inumber, iprocsend, jjj
+      INTEGER inumbertotallocal
+      INTEGER idustREAL8, idust2REAL8,indexMPIDustVar
+#endif
+
 c-------------------------------------------------------
 c                        VARIABLES                     |
 c------------------------------------------------------|
@@ -98,10 +136,24 @@ c dustvar = Dust variable                              |
 c dustvarNew = Dust variable after implicit scheme     |
 c rhoi, rhoj = Density for i and j                     |
 c pri, prj = Pressure for i and j                      |
-c tsi, tsj = Stopping time for i and j                 |
 c                                                      |
 c-------------------------------------------------------
 
+#ifdef MPIALL
+      CALL MPI_TYPE_CONTIGUOUS(ndusttypes, MPI_REAL8, idustREAL8, ierr)
+      CALL MPI_TYPE_COMMIT(idustREAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(ndusttypes*2, MPI_REAL8,idust2REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(idust2REAL8, ierr)
+#endif
+
+c
+c--This routine only needs to be called during evolution
+c     (i.e. icall=2 or icall=3).
+c
+      IF (icall.NE.2 .AND. icall.NE.3) THEN
+         WRITE (*,*) 'ERROR - dust1_implicit called ',icall
+         CALL quit(0)
+      ENDIF
 c
 c--Set max time step
 c
@@ -114,58 +166,9 @@ c
 c--Things for convergence test
 c
       numcomp = 0
-      ipos = 1
-C$OMP PARALLEL default(none)
-C$OMP& shared(xmaxerr1old,ncompact)
-C$OMP& shared(varinew,ivar)
-C$OMP& shared(rho)
-C$OMP& private(i,n,k)
-C$OMP& private(rhoi,rhoj,tsi,tsj)
+      xmaxerr1old(:) = 0.0
 c
-c--Set up values that won't change during sweeps
-c
-C$OMP DO SCHEDULE(runtime)
-      DO i = 1, ntests
-         xmaxerr1old(i) = 0.0
-      END DO ! i = 1, ntests
-C$OMP END DO
-C$OMP DO SCHEDULE(runtime)
-      DO n = 1, ncompact
-         i = ivar(3,n)
-c         ido(i) = .FALSE.
-c         ido_j(i) = .FALSE.
-         DO k = 1, 2
-            varinew(k,i) = 0.0
-         END DO ! k = 1, 2
-      END DO ! n = 1, ncompact
-C$OMP END DO
-c C$OMP DO SCHEDULE(runtime)
-c
-c--Doing a loop to get the stopping time here (with rho) might be 
-c   faster?
-c
-c   Need to set up an array for the stopping time
-c
-c      DO n = 1, ncompact
-c         i = ivar(3,n)
-c         IF (iphase(i).EQ.0) THEN
-c            rhoi = rho(i)
-c            tsi(i) = stoppingtime(i,rhoi) ! need to get rhoi in here?  
-c            DO k = 1, ivar(1,n)
-c               icompact = ivar(2,n) + k
-c               j = ijvar(icompact)
-c                  IF (iphase(j).EQ.0) THEN
-c                     rhoj = rho(j)
-c                     tsj(j) = stoppingtime(j,rhoj)
-c                  ENDIF ! iphase(j).EQ.0
-c            END DO ! k = 1, ivar(1,n)
-c         ENDIF ! iphase(i).EQ.0
-c      END DO ! n = 1, ncompact
-c
-c C$OMP END DO
-C$OMP END PARALLEL
-c
-c - Initialise ghost counters
+c--Initialise ghost counters
 c
       ihasghostcount = 0
       ihasghost = 0
@@ -179,7 +182,7 @@ C$OMP& shared(vari,ivar,ijvar,varij,varij2)
 C$OMP& shared(grwij,dvtable,cnormk,radkernel)
 C$OMP& shared(ddvtable,ifullstep,iphase)
 C$OMP& shared(gradhs)
-C$OMP& shared(gamma)
+C$OMP& shared(gamma,vsound,ts_store,sgrain,densgrain)
 C$OMP& private(rij,rij2,rij1,hi,hj,hij,hi21,hj21,hi41,hj41)
 C$OMP& private(vi,v2i,vj,v2j,index,dxx,index1,dgrwdx)
 C$OMP& private(grwtij)
@@ -187,9 +190,11 @@ C$OMP& private(dWi,dWj,dWidrmjrhoj,dWjdrmjrhoj,dWidrmirhoj)
 C$OMP& private(dWidrmjrhojpr,dWidrmirhojpr,dWjdrmjrhojpr)
 C$OMP& private(iparttree,dx,dy,dz)
 C$OMP& private(pmi,pmj,rhoi,rhoj,pri,prj)
-C$OMP& private(dti,tsi,tsj)
+C$OMP& private(dti)
 C$OMP$ private(n,i,j,k,l,icompact)
 C$OMP& private(gradhi,gradhj)
+C$OMP& private(dustfracisum,dustfracjsum,ts_temp)
+C$OMP& private(iregime,vsoundi,vsoundj)
 
 C$OMP& reduction(+:ihasghostcount)
 
@@ -210,11 +215,13 @@ c
                iparttree = i + ntot + 2
             ELSE
                iparttree = i
-            ENDIF ! i.GT.ntot
+            ENDIF    ! i.GT.ntot
 c
 c--Set original and new values of dustvar
 c
-            dustvarNew(i) = dustvar(i)
+            DO l = 1, ndusttypes
+               dustvarNew(l,i) = dustvar(l,i)
+            END DO
 c
 c--Particle on this MPI process needs to be iterated over
 c
@@ -224,19 +231,15 @@ c
                ENDIF ! hasghost(i)
 c
 c--Set time interval over which particle needs to be evolved
+c     This routine only needs to be called during evolution
+c     (i.e. icall=2 or icall=3).
 c
-               IF (icall.EQ.1) THEN
-                  IF (isteps(i).EQ.0) THEN
-                     dti = dtdo*1.0d-12
-                  ELSE
-                     dti = dtimax*isteps(i)*1.0d-12
-                  ENDIF ! isteps(i).EQ.0
-               ELSEIF (ifullstep(i)) THEN
+               IF (ifullstep(i)) THEN
                   dti = dtimax*isteps(i)
                ELSE
                   dti = dtimax*isteps(i)/2.0
-               ENDIF    ! icall.EQ.1
-            ENDIF       ! n.LE.ncompactlocal
+               ENDIF
+            ENDIF    ! n.LE.ncompactlocal
 c
 c--Calculate quantites which do not change during iterations
 c
@@ -246,8 +249,25 @@ c
             hi41 = hi21*hi21
             rhoi = rho(i)
             pri = pr(i)
-            tsi = stoppingtime(i,rhoi,dustvarNew(i))
+            vsoundi = vsound(i)
 c            gradhi = gradhs(1,i)
+
+            !--calculate the stopping time for the dust
+c            tsi(:) = stoppingtime_old(i,rhoi,dustvarNew(:,i))
+            CALL dustvar2dustfrac(1.0/rhoi,dustvar(1,i),dustfraci,
+     &           dustfracisum)
+            DO l = 1, ndusttypes
+c            DO l = ndusttypes, ndusttypes
+               CALL get_ts(ts_temp,sgrain(l),densgrain(l),
+     &              rhoi*(1.-dustfracisum),rhoi*dustfracisum,
+     &              vsoundi,0.,iregime)            
+C$OMP ATOMIC WRITE
+               ts_store(l,i) = ts_temp
+            END DO
+
+c            print *,'sgrain ',i,sgrain(:)
+c            print *,'densgrain ',densgrain(:)
+c            print *,'rhoi,dfracisum,vsoundi ',rhoi,dustfracisum,vsoundi
 
             DO k = 1, ivar(1,n)
                icompact = ivar(2,n) + k
@@ -259,7 +279,9 @@ c
 c            
 c--Need to make sure s values are loaded for non-active neighbours
 c
-                  dustvarNew(j) = dustvar(j)
+                  DO l = 1, ndusttypes
+                     dustvarNew(l,j) = dustvar(l,j)
+                  END DO
 c
 c--Calculate other quantites
 c
@@ -273,11 +295,29 @@ c
                   pmj = xyzmh(4,j)
                   rhoj = rho(j)
                   prj = pr(j)
-                  tsj = stoppingtime(j,rhoj,dustvarNew(j))
+                  vsoundj = vsound(j)
                   hj = xyzmh(5,j)
                   hj21 = 1./(hj*hj)
                   hj41 = hj21*hj21
 c                  gradhj = gradhs(1,j)
+
+c
+c--Save the stopping times of the dust grains.  It is assumed they 
+c   won't change between iterations.  This is not quite true because
+c   the stopping time does depend on the dust density which can
+c   slowly change due to dust diffusion, but we assume this is small.
+c
+c                  tsj(:) = stoppingtime_old(j,rhoj,dustvarNew(:,j))
+                  CALL dustvar2dustfrac(1.0/rhoj,dustvarNew(1,j),
+     &                 dustfracj,dustfracjsum)
+                  DO l = 1, ndusttypes
+c                  DO l = ndusttypes, ndusttypes
+                     CALL get_ts(ts_temp,sgrain(l),densgrain(l),
+     &                    rhoj*(1.-dustfracjsum),rhoj*dustfracjsum,
+     &                    vsoundj,0.,iregime)
+C$OMP ATOMIC WRITE
+                     ts_store(l,j) = ts_temp
+                  END DO
 c
 c--Set kernel quantities
 c
@@ -332,12 +372,6 @@ c
                   varij(2,icompact) = dWidrmjrhojpr
                   varij(3,icompact) = dWidrmirhojpr
                   varij(4,icompact) = dWjdrmjrhojpr
-c
-c--Save the stopping times of the dust grains as they won't change
-c   between iterations as dustvar is not involved in their calculation
-c                  
-                  varij2(1,icompact) = tsi
-                  varij2(2,icompact) = tsj
                ENDIF            ! iphase(j).EQ.0
             END DO              ! k = 1, ivar(1,n)
 c
@@ -345,7 +379,6 @@ c--Store these values in an array so they are more readily available
 c   in the cache (this will speed things up)
 c
             vari(1,n) = dti
-c            PRINT*,'dti = ',vari(1,n),n
             vari(2,n) = rhoi
          ENDIF          ! iphase(i).EQ.0
       END DO            ! n = 1, ncompact
@@ -364,37 +397,52 @@ c
 c
 c--Set error to zero for this iteration
 c
+
+
+
+c         varidust(:,:,:) = 0.
+
+
+
+
          maxerrS = 0.0
 C$OMP PARALLEL default(none)
-C$OMP& shared(vari,ivar,ijvar,varij,varij2,varinew)
+C$OMP& shared(vari,ivar,ijvar,varij,varij2,varidust)
 C$OMP& shared(dustvarNew,dustvar)
-C$OMP& shared(npart,nghost,ncompact,ncompactlocal)
+C$OMP& shared(npart,ntot,nghost,ncompact,ncompactlocal)
 C$OMP& shared(xyzmh,rho)
 C$OMP& shared(itime,ireal,icall,iphase,ihasghost)
 C$OMP& shared(iscurrent)
 C$OMP& shared(maxerrSlast)
 C$OMP& shared(nosweep)
 C$OMP& shared(moresweep)
-c--ifdef MPI
-c--ifdef MPICOPY
-C$OMP& private(i,j,k,n,icompact)
-C$OMP& private(rhoi,rhoj,tsi,tsj,dti)
-C$OMP& private(term1,term2)
+C$OMP& shared(ts_store)
+#ifdef MPI
+C$OMP& shared(inumbertotal,numproc,iproc,inumofsends,maxnneighsentback)
+C$OMP& shared(istatus,ierr,nneighsentback,ipos,jpos,inumber)
+C$OMP& shared(istart,istartrec,inumberreturned,ireturned,iprocrec)
+C$OMP& shared(llistsentback,inumofreturns,inumberproc,inumbercumm)
+C$OMP& shared(inumberindiv,iprocsend)
+C$OMP& shared(idustREAL8,idust2REAL8,indexMPIDustVar)
+#endif
+C$OMP& private(i,j,k,kk,l,n,icompact)
+C$OMP& private(rhoi,rhoj,dti)
 C$OMP& private(dWidrmjrhojpr,dWidrmirhojpr,dWjdrmjrhojpr)
 C$OMP& private(tempval1,tempval2)
 C$OMP& private(moresweep2)
 C$OMP& private(s4term,s3term,s2term,s1term,s0term)
 C$OMP& private(S1i)
-
 C$OMP& reduction(MAX:maxerrS)
 c
-c--Set varinew to zero
+c--Set varidust to zero
 c
 C$OMP DO SCHEDULE(runtime)
          DO n = 1, ncompact
             i = ivar(3,n)
-            DO j = 1, 2
-               varinew(j,i) = 0.0
+            DO j = 1,2
+               DO l = 1, ndusttypes
+                  varidust(l,j,i) = 0.0
+               END DO
             END DO
          END DO ! n = 1, ncompact
 C$OMP END DO
@@ -404,7 +452,9 @@ c
 C$OMP DO SCHEDULE(runtime)
          DO i = npart + 1, npart + nghost*ihasghost
             j = ireal(i)
-            dustvarNew(i) = dustvarNew(j)
+            DO l = 1, ndusttypes
+               dustvarNew(l,i) = dustvarNew(l,j)
+            END DO
          END DO ! i = npart + 1, npart + nghost*ihasghost            
 C$OMP END DO
 c
@@ -413,8 +463,10 @@ c
 C$OMP DO SCHEDULE(runtime)
          DO n = 1, ncompact
             i = ivar(3,n)
+
             IF (iphase(i).EQ.0) THEN
                rhoi = vari(2,n)
+c               tsi(:) = ts_store(:,i)
 
 c--term1 is from the tsj sums: term1 = tsj*Lij*sj/(1+sj**2)
 c   term2 is from the tsi sums: term2 = Lij*sj
@@ -427,8 +479,10 @@ c                     a2 = dt*term1/rhoi + dt*tsi*term2/2/rhoi
 c                     a1 = 1
 c                     a0 = dt*term1/2/rhoi + dt*tsi*term2/2/rhoi + si(n)
 c
-               term1 = 0.0
-               term2 = 0.0
+               DO l = 1, ndusttypes
+                  term1(l) = 0.0
+                  term2(l) = 0.0
+               END DO
                DO k = 1, ivar(1,n)
                   icompact = ivar(2,n) + k
                   j = ijvar(icompact)
@@ -437,53 +491,145 @@ c
                      dWidrmjrhojpr = varij(2,icompact)
                      dWidrmirhojpr = varij(3,icompact)
                      dWjdrmjrhojpr = varij(4,icompact)
-                     tsi = varij2(1,icompact)
-                     tsj = varij2(2,icompact)
+c                     tsj(:) = ts_store(:,j)
 
-                     term1 = term1 + dWidrmjrhojpr*tsj*dustvarNew(j) /
-     &                          (1 + dustvarNew(j)**2)
-                     term2 = term2 + dWidrmjrhojpr*dustvarNew(j)*tsi
-                     IF (iscurrent(j)) THEN
-                        tempval1 = dWidrmirhojpr*tsi*dustvarNew(i)
-     &                          /(1 + dustvarNew(i)**2)
-                        tempval2 = dWidrmirhojpr*dustvarNew(i)*tsj
+                     DO l = 1, ndusttypes
+
+                      term1(l) = term1(l) + dWidrmjrhojpr*ts_store(l,j)*
+     &                       dustvarNew(l,j) /(1.0 + dustvarNew(l,j)**2)
+                        term2(l) = term2(l) + dWidrmjrhojpr*
+     &                       dustvarNew(l,j)*ts_store(l,i)
+                        IF (iscurrent(j)) THEN
+                           tempval1 = dWidrmirhojpr*ts_store(l,i)*
+     &                          dustvarNew(l,i)/(1.0+dustvarNew(l,i)**2)
+                           tempval2 = dWidrmirhojpr*
+     &                          dustvarNew(l,i)*ts_store(l,j)
 C$OMP ATOMIC
-                        varinew(1,j) = varinew(1,j) - tempval1
+                           varidust(l,1,j) = varidust(l,1,j)-tempval1
 C$OMP ATOMIC
-                        varinew(2,j) = varinew(2,j) - tempval2
-                     ELSE
-                        term1 = term1 + dWjdrmjrhojpr*tsj*dustvarNew(j)
-     &                          /(1 + dustvarNew(j)**2)
-                        term2 = term2 + dWjdrmjrhojpr*dustvarNew(j)*tsi
-                     ENDIF      ! iscurrent(j)
+                           varidust(l,2,j) = varidust(l,2,j)-tempval2
+                        ELSE
+                        term1(l) = term1(l)+dWjdrmjrhojpr*ts_store(l,j)*
+     &                       dustvarNew(l,j) /(1.0 + dustvarNew(l,j)**2)
+                           term2(l) = term2(l) + dWjdrmjrhojpr*
+     &                       dustvarNew(l,j)*ts_store(l,i)
+                        ENDIF   ! iscurrent(j)
+
+                     END DO
+
                   ENDIF         ! iphase(j).EQ.0
                END DO           ! k = 1, ivar(1,n) (j loop)
+               DO l = 1, ndusttypes
+c               DO l = ndusttypes, ndusttypes
 C$OMP ATOMIC
-            varinew(1,i) = varinew(1,i) + term1
+                  varidust(l,1,i) = varidust(l,1,i) + term1(l)
 C$OMP ATOMIC
-            varinew(2,i) = varinew(2,i) + term2
-c               PRINT*, 'term1,i = ',term1,i
+                  varidust(l,2,i) = varidust(l,2,i) + term2(l)
+               END DO
 c--At this point still need the factor of dt(/2)/rhoi
             ENDIF               ! iphase(i).EQ.0
          END DO                 ! n = 1, ncompact (i loop)
 C$OMP END DO
+
+#ifdef MPI
+c
+c--Need to add contributions to varidust() from other MPI processes
+c
+C$OMP SINGLE
+         istart = ntot + 1
+         istartrec = istart + inumbertotal
+         inumberreturned = 0
+         DO i = 0, numproc - 1
+            IF (iproc.EQ.i) THEN
+c
+c--Receive back varidust to be added on to local values
+c
+               DO j = 1, inumofsends
+#ifdef MPIDEBUG
+                  print *,iproc,': expecting to get ',inumofsends,
+     &                 ' varidust ',j
+#endif
+                  CALL MPI_RECV(varidust(1,1,istartrec),
+     &                 maxnneighsentback,idust2REAL8,
+     &                 MPI_ANY_SOURCE,153,MPI_COMM_WORLD,istatus,ierr)
+                  CALL MPI_GET_COUNT(istatus,idust2REAL8,ireturned,ierr)
+                  iprocrec = istatus(MPI_SOURCE)
+                  IF (ireturned.NE.nneighsentback(iprocrec+1)) THEN
+                     WRITE (*,*) 'ERROR - ireturned.NE.nelements',
+     &                    '*nnsentback varidust'
+                     CALL quit(1)
+                  ENDIF
+
+                  DO l = 1, nneighsentback(iprocrec+1)
+                     ipos = llistsentback(l,iprocrec+1)+1
+                     jpos = istartrec + l - 1
+
+                     DO k = 1, 2
+                        DO kk = 1, ndusttypes
+                           varidust(kk,k,ipos) = varidust(kk,k,ipos) + 
+     &                          varidust(kk,k,jpos)
+                        END DO
+                     END DO
+                  END DO
+
+#ifdef MPIDEBUG
+                  print *,iproc,': got varidust from ',iprocrec,
+     &                 ' put into ',llistsentback(1,iprocrec+1)+1
+#endif
+
+               END DO
+c
+c--Other processes send the values back
+c
+            ELSE
+               DO jjj = 1, inumofreturns
+                  IF (inumberproc(jjj).EQ.i) THEN
+                     istart = inumbercumm(jjj)
+                     inumber = inumberindiv(jjj)
+                     iprocsend = inumberproc(jjj)
+                     inumberreturned = inumberreturned + 1
+#ifdef MPIDEBUG
+                     print *,iproc,': sending varidust to ',iprocsend,
+     &                   ' istart ',istart,' returned ',inumberreturned,
+     &                   ' of ',inumofreturns
+#endif
+                     CALL MPI_SEND(varidust(1,1,istart),
+     &                    inumber,idust2REAL8,
+     &                    iprocsend,153,MPI_COMM_WORLD,ierr)
+c
+c--Only need to loop over jjj until found appropriate index for process 'i'
+c     then can jump out of loop
+c
+                     GOTO 7703
+                  ENDIF
+               END DO
+ 7703          CONTINUE
+            ENDIF
+c
+c--If there are no particles sent, don't need to do anything (no MPI_SEND
+c     because none will be expected)
+c
+         END DO
+C$OMP END SINGLE
+#endif
 
 c
 c--Particle I loop for calculating I only quantities
 c
 C$OMP DO SCHEDULE(runtime)
          DO n = 1, ncompactlocal
+            IF (moresweep) CYCLE
             i = ivar(3,n)
             IF (iphase(i).EQ.0) THEN
                rhoi = vari(2,n)
                dti = vari(1,n)
-               tsi = varij2(1,n)
-               tsj = varij2(2,n)
 
-               term1 = varinew(1,i)*dti
-               term2 = varinew(2,i)*dti
-c               PRINT*, 'term1 = ',term1,i
-c               PRINT*, 'term2 = ',term2,i
+               DO l = 1, ndusttypes
+                  term1(l) = varidust(l,1,i)*dti
+                  term2(l) = varidust(l,2,i)*dti
+               END DO
+c               PRINT*, 'term1 = ',i,dti,term1(:)
+c               PRINT*, 'term2 = ',i,dti,term2(:)
 c     
 c--Set quartic coefficients
 c     
@@ -491,38 +637,42 @@ c               IF (term1.EQ.0) THEN
 c                  PRINT*, 'ERROR - leading term in dust1_implicit is
 c     &                     zero'
 c                  PRINT*, 'dti = ',dti,i
-c                  PRINT*, 'varinew(1,i) = ',varinew(1,i), i
+c                  PRINT*, 'varidust(1,1,i) = ',varidust(1,1,i), i
 c                  PRINT*, 'rhoi = ',rhoi,i
 c                  CALL quit(1)
-c               ENDIF    
-               s4term = term1
-               s3term = 0.0
-               s2term = 2*term1 + term2
-               s1term = 1.0
-               s0term = term1 + term2 - dustvar(i)
-c               PRINT*, 's4term = ',s4term
-c               PRINT*, 's3term = ',s3term
-c               PRINT*, 's2term = ',s2term
-c               PRINT*, 's1term = ',s1term
-c               PRINT*, 's0term = ',s0term
+c               ENDIF
+               DO l = 1, ndusttypes
+                  IF (moresweep) CYCLE
+c               DO l = ndusttypes, ndusttypes
 c
 c--Set the moresweep input
 c
-               moresweep2 = .FALSE.
+                  moresweep2 = .FALSE.
+
+                  s4term = term1(l)
+                  s3term = 0.0
+                  s2term = 2*term1(l) + term2(l)
+                  s1term = 1.0
+                  s0term = term1(l) + term2(l) - dustvar(l,i)
+c               PRINT*, 's4term = ',i,s4term
+c               PRINT*, 's3term = ',i,s3term
+c               PRINT*, 's2term = ',i,s2term
+c               PRINT*, 's1term = ',i,s1term
+c               PRINT*, 's0term = ',i,s0term
 c
 c--Rescale so leading coefficient is 1
 c
-               IF (dustvarNew(i).GT.lincrit) THEN
-                  IF (s4term.NE.0.) THEN   
-                     s2term = s2term/s4term
-                     s1term = s1term/s4term
-                     s0term = s0term/s4term
-                     CALL quartic_dust1(s2term,s1term,s0term,
-     &                    dustvarNew(i),S1i,moresweep2,i,1)
+                  IF (dustvarNew(l,i).GT.lincrit) THEN
+                     IF (s4term.NE.0.) THEN   
+                        s2term = s2term/s4term
+                        s1term = s1term/s4term
+                        s0term = s0term/s4term
+                        CALL quartic_dust1(s2term,s1term,s0term,
+     &                       dustvarNew(l,i),S1i,moresweep2,i,1)
 c
 c--Solve the quartic, S1i is the solution
 c
-                     IF (moresweep2) THEN                    
+                        IF (moresweep2) THEN                    
 cC$OMP CRITICAL (isucceedprint)
 c                        PRINT *,"QUARTIC FAILED, RETURNED TO IMPLICIT"
 c                        PRINT *,"PRINTING PARTICLE QUANTITIES"
@@ -535,24 +685,25 @@ c                        PRINT *,"z = ",xyzmh(3,i)
 c                        PRINT *,"dti = ",dti
 c                        PRINT *,"tsi = ",tsi
 c                        PRINT *,"rhoi = ",rhoi
-c                        PRINT *,"Dust variable = ",dustvar(i)
+c                        PRINT *,"Dust variable = ",dustvar(:,i)
 c                        PRINT *,"Dust variable new = ",dustvarNew(i)
 c                        PRINT *,"S1i = ",S1i 
 cC$OMP END CRITICAL (isucceedprint)
 c                        CALL quit(1)
-C$OMP CRITICAL (moresweepset)
-                        moresweep =.TRUE.
-C$OMP END CRITICAL (moresweepset)
+cC$OMP CRITICAL (moresweepset)
+C$OMP ATOMIC WRITE                           
+                           moresweep =.TRUE.
+cC$OMP END CRITICAL (moresweepset)
+                           CYCLE
 
-c                        dustvarNew(i) = dustvar(i)         
+c                        dustvarNew(:,i) = dustvar(:,i)         
 c                           RETURN
 c                           EXIT
-                        CYCLE
-                     ENDIF
-                  ELSE
-                     CALL quadratic(s2term,s1term,s0term,dustvarNew(i),
-     &                    S1i,moresweep2,i)
-                     IF (moresweep2) THEN
+                        ENDIF
+                     ELSE
+                        CALL quadratic(s2term,s1term,s0term,
+     &                    dustvarNew(l,i),S1i,moresweep2,i)
+                        IF (moresweep2) THEN
 c                        PRINT *,"QUADRATIC FAILED, RETURN TO IMPLICIT"
 c                        PRINT *,"PRINTING PARTICLE QUANTITIES"
 c                        PRINT *,"Particle index = ",i
@@ -564,56 +715,81 @@ c                        PRINT *,"z = ",xyzmh(3,i)
 c                        PRINT *,"dti = ",dti
 c                        PRINT *,"tsi = ",tsi
 c                        PRINT *,"rhoi = ",rhoi
-c                        PRINT *,"Dust variable = ",dustvar(i)
+c                        PRINT *,"Dust variable = ",dustvar(:,i)
 c                        PRINT *,"Dust variable new = ",dustvarNew(i)
 c                        PRINT *,"S1i = ",S1i
-C$OMP CRITICAL (moresweepset)
-                        moresweep=.TRUE.
-C$OMP END CRITICAL (moresweepset)
-                        CYCLE
-                     ENDIF
-                  ENDIF   
-               ELSEIF (dustvarNew(i).LE.lincrit) THEN
-                  S1i = MAX(-s0term,0.) 
-               ENDIF
+cC$OMP CRITICAL (moresweepset)
+C$OMP ATOMIC WRITE                           
+                           moresweep=.TRUE.
+cC$OMP END CRITICAL (moresweepset)
+                           CYCLE
+                        ENDIF
+                     ENDIF   
+                  ELSEIF (dustvarNew(l,i).LE.lincrit) THEN
+                     S1i = MAX(-s0term,0.) 
+                  ENDIF
 c
 c--Tests for negativity
 c
-               IF (S1i.LT.0.0) THEN
+                  IF (S1i.LT.0.0) THEN
 C$OMP CRITICAL (moresweepset)
-                  PRINT*,"dust1_implicit: dustvar has gone negative",
-     &                 i,xyzmh(1,i),xyzmh(2,i),xyzmh(3,i)
-                  PRINT*,"dustvarNew(i) = ",dustvarNew(i)
-                  PRINT*,"S1i = ",S1i
+                     PRINT*,"dust1_implicit: dustvar has gone negative",
+     &                    l,i,xyzmh(1,i),xyzmh(2,i),xyzmh(3,i)
+                     PRINT*,"dustvarNew(l,i) = ",dustvarNew(l,i)
+                     PRINT*,"S1i = ",S1i
 C$OMP END CRITICAL (moresweepset)
-                  moresweep=.TRUE.
-                  CYCLE
-               ENDIF ! S1i.LE.0.0
+C$OMP ATOMIC WRITE                           
+                     moresweep=.TRUE.
+                     CYCLE
+                  ENDIF         ! S1i.LE.0.0
 c
 c--Error
 c
-               IF (S1i.GE.0.) THEN
-                  IF (dustvarNew(i).GT.lincrit) THEN
-                     maxerrS = MAX(maxerrS,ABS((dustvarNew(i)-S1i)/S1i))
-                     dustvarNew(i) = S1i
-                  ELSE
-                     maxerrS = MAX(maxerrS,ABS((dustvarNew(i)-S1i)/S1i))
-                     dustvarNew(i) = S1i
+                  IF (S1i.GE.0.) THEN
+                     IF (dustvarNew(l,i).GT.lincrit) THEN
+                        maxerrS = MAX(maxerrS,
+     &                       ABS((dustvarNew(l,i)-S1i)/S1i))
+                        dustvarNew(l,i) = S1i
+                     ELSE
+                        maxerrS = MAX(maxerrS,
+     &                       ABS((dustvarNew(l,i)-S1i)/S1i))
+                        dustvarNew(l,i) = S1i
+                     ENDIF
                   ENDIF
-               ENDIF
+               END DO ! l = 1, ndusttypes
+
 c               PRINT*, 'maxerrS = ',maxerrS   
             ENDIF ! iphase(i).EQ.0
+ 900        CONTINUE
           END DO ! n = 1, compactlocal
 C$OMP END DO
 
+          IF (.NOT.moresweep) THEN
+
 C$OMP DO SCHEDULE(runtime)
-         DO i = npart + 1, npart + nghost*ihasghost
-            j = ireal(i)
-            dustvarNew(i) = dustvarNew(j)
-         END DO
+             DO i = npart + 1, npart + nghost*ihasghost
+                j = ireal(i)
+                DO l = 1, ndusttypes
+                   dustvarNew(l,i) = dustvarNew(l,j)
+                END DO
+             END DO
 C$OMP END DO
 
+          ENDIF
 C$OMP END PARALLEL
+
+#ifdef MPIALL
+c
+c--Need to do global check for moresweep, and for maxerrE2, maxerrU2 to check
+c     for errors and convergence across all MPI processes
+c
+         CALL MPI_ALLREDUCE(moresweep,moresweeptot,1,MPI_LOGICAL,
+     &        MPI_LAND,MPI_COMM_WORLD,ierr)
+         moresweep = moresweeptot
+         CALL MPI_ALLREDUCE(maxerrS,maxerrStot,1,MPI_REAL8,MPI_MAX,
+     &        MPI_COMM_WORLD,ierr)
+         maxerrS = maxerrStot
+#endif
 
          IF (moresweep) GOTO 999
 c
@@ -644,7 +820,7 @@ c
                   numcomp = MAX(1,MOD(numcomp + 1,ntests + 1))
                   xmaxerrcomp1(numcomp) = maxerrS
                   PRINT *,"GSIMPL: Almost Non-convergence ",
-     &                maxerrE2,(xmaxerr1old(ii),ii=1,ntests)
+     &                maxerrS,(xmaxerr1old(ii),ii=1,ntests)
                ENDIF
             ENDIF ! nosweep.GT.10
             IF (itest.NE.1) THEN
@@ -653,11 +829,107 @@ c
                xmaxerr1old(itest) = maxerrS
             ENDIF ! itest.NE.1
          END DO ! itest = ntests, 1, -1
+
+#ifdef MPI
 c
-c--After this are MPI processes, then the end of
-c   iterations
+c--If another iteration is required, transfer new values of dustvarNew
+c     to other MPI processes
 c
-      END DO ! nosweep = 1, nswmax
+         inumbertotallocal = 0
+         inumberreturned = 0
+         DO i = 0, numproc - 1
+            IF (iproc.EQ.i) THEN
+               IF (nneighsentanyatall) THEN
+c
+c--Otherwise this process does not need to send any particle back!
+c
+c--Send active node data to be processed by other processes.  Data from al
+c     other processes is received before any processing is done.  This
+c     is because here it is assumed that the total number of remote particles
+c     on which forces need to be calculated by this MPI process is less
+c     than idim.
+c
+                  DO j = 0, numproc - 1
+                     IF (j.NE.iproc) THEN
+c
+c--Only sends anything at all to another MPI process if it needs to (the
+c     other MPI process knows when it doesn't need to expect anything)
+c
+                        IF (nneighsentany(j+1)) THEN
+#ifdef MPIDEBUG
+                           print *,iproc,': sending dustvarNew to ',j,
+     &                        ' starting at ',llistsentback(1,j+1),'+1 ',
+     &                        nneighsentback(j+1),' list '
+c     &             ,(llistsentback(kkk,j+1),kkk=1,nneighsentback(j+1))
+#endif
+c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
+c     &             1,llistsentback(1,j+1),idustREAL8,indexEU,ierr)
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &             llistsentback(1,j+1),idustREAL8,indexMPIDustVar,ierr)
+                CALL MPI_TYPE_COMMIT(indexMPIDustVar,ierr)
+
+                           CALL MPI_SEND(dustvarNew,1,indexMPIDustVar,j,
+     &                        154,MPI_COMM_WORLD, ierr)
+
+                           CALL MPI_TYPE_FREE(indexMPIDustVar,ierr)
+#ifdef MPIDEBUG
+                           print *,iproc,' sent dustvarNew'
+#endif
+                        ENDIF
+                     ENDIF
+                  END DO
+               ENDIF
+c
+c--Other processes receive the particles being sent
+c
+            ELSE
+               IF (inumberreturned.LT.inumofreturns .AND.
+     &              nneightogetback(i+1).GT.0) THEN
+                  inumberreturned = inumberreturned + 1
+#ifdef MPIDEBUG
+                  print *,iproc,': receiving dustvarNew data ',
+     &                 inumberreturned,inumofreturns
+#endif
+                  istart = ntot + inumbertotallocal + 1
+                  CALL MPI_RECV(dustvarNew(1,istart), idim, idustREAL8,
+     &                 i, 154, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus, idustREAL8, inumber, ierr)
+                  iprocrec = istatus(MPI_SOURCE)
+#ifdef MPIDEBUG
+                  print *,iproc,': got dustvarN from ',iprocrec,inumber
+#endif
+                  inumbertotallocal = inumbertotallocal + inumber
+                  IF (inumberindiv(inumberreturned).NE.inumber) THEN
+                     WRITE (*,*) iproc,': ERR - inumberindiv dust ',
+     &                    inumber,inumberindiv(inumberreturned),
+     &                    inumberreturned
+                     CALL quit(1)
+                  ENDIF
+
+                  IF (inumbercumm(inumberreturned).NE.istart) THEN
+                     WRITE (*,*) iproc,': ERR - inumbercum dust',istart,
+     &                    inumbercumm(inumberreturned),inumberreturned,
+     &                    ntot,inumbertotallocal
+                     CALL quit(1)
+                  ENDIF
+                  IF (inumberproc(inumberreturned).NE.iprocrec) THEN
+                     WRITE (*,*) iproc,': ERR - inumberproc dust',
+     &                    iprocrec,
+     &                    inumberproc(inumberreturned),inumberreturned
+                     CALL quit(1)
+                  ENDIF
+               ENDIF
+            ENDIF
+         END DO
+         IF (inumbertotallocal.NE.inumbertotal) THEN
+            WRITE (*,*) iproc,': inumbertotallocal.NE.inumbertotal ',
+     &           inumbertotallocal,inumbertotal
+            CALL quit(1)
+         ENDIF
+
+#endif
+
+      END DO ! nosweep = 1, nswmax  (i.e. the iterations loop)
 c
 c--Maximum number of iterations reached
 c
@@ -674,7 +946,19 @@ c
 c
 c--If convergence reached before max iterations
 c
-      PRINT*,'Suceeded with ',nosweep,' iterations error is ',maxerrS
+      ndustimpl_suc = ndustimpl_suc + 1
+      ndustimpl_tot = ndustimpl_tot + nosweep
+
+#ifdef MPI
+      IF (iproc.EQ.0) THEN
+#endif
+      PRINT 99100,itime,nosweep,maxerrS,moresweep
+99100 FORMAT('Succeeded at ',I10,' with ',I3,
+     &     ' iterations, error is ',1PE12.5,' ',L)
+#ifdef MPI
+      ENDIF
+#endif
+
 c
 c--If convergence max iterations reached
 c
@@ -688,17 +972,24 @@ c
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(ncompactlocal,ivar)
 C$OMP& shared(iphase,dustvar,dustvarNew)
-C$OMP& shared(xyzmh,vari)
-C$OMP& private(n,i,j)
+C$OMP& private(n,i,l)
       DO n = 1, ncompactlocal
          i = ivar(3,n)
          IF (iphase(i).EQ.0) THEN
-            dustvar(i) = dustvarNew(i)
+            DO l = 1, ndusttypes
+               dustvar(l,i) = dustvarNew(l,i)
+            END DO
          ENDIF
       END DO
 C$OMP END PARALLEL DO
 
 999   CONTINUE ! Return old values
+
+#ifdef MPIALL
+      CALL MPI_TYPE_FREE(idust2REAL8,ierr)
+      CALL MPI_TYPE_FREE(idustREAL8,ierr)
+#endif
+
       RETURN
-      
+
       END ! SUBROUTINE dust1_implicit

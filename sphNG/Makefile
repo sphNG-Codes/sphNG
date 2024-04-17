@@ -501,7 +501,7 @@ CPPFLAGS=${FPP_PREFIX}$(FPPFLAGS)
 
 FFLAGSKEEP := ${FFLAGS}
 
-KERNEL= ktable.f
+KERNEL= ktable_QuinticM6.f
 OBJKERNEL= $(KERNEL:.f=.o)
 
 # these are the sources common to all compilations
@@ -518,7 +518,7 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f \
 	dragtable.F endrun.f energ.f energ_cooling.f eospg.F error.f \
 	evol.f externf.f externBfield.f \
 	extract.f file.f gapfactor.f getneigh.f \
-	getcd.f getcv.f get1overmu.f getkappa.f \
+	getcv.f get1overmu.f getkappa.f \
 	gforsa_P.f gforsn_P.f gforspt_P.f \
 	ghostp.f ghostp1.f ghostp2.f ghostp3.F ghostp11.f ghostp100.f \
 	ghostp102.f ghostp104.f \
@@ -528,7 +528,8 @@ SOURCES= sph.F accrete_P.F addump.f angmom.f \
 	inopts.f insulate_TREE_P.F integs.F $(KERNEL) \
 	kill_particles.F labrun.F \
 	makedust.F makeplot.f mesop.f mhdparams_mhd.f \
-	modif.f move_particle.F mtree_P.f newrun.f options.f \
+	modif.f move_particle.F mtree_P.f newrun.f \
+	one_fluid_dust_utils.f one_fluid_dustvar_to_dustfrac.f options.f \
 	optimise_column_density.f phoenix.f phoenix2.f \
 	planetpotential.f planet_setup.f planetesimals.f planck.f \
 	potential.f preset.F prout.F polytrope.F Qv.f \
@@ -566,7 +567,7 @@ RTFPPFLAGS=${FPP_SEP}-DRT
 # these are the extra routines required for implicit solve of one-fluid dust
 
 SRCID1= dust1_implicit.F quartic_dust1.f \
-	quadratic_dust1.F ass_dust1.F
+	quadratic_dust1.f ass_dust1.F
 
 # these are the extra routines required for Monte-Carlo radiative transfer
 

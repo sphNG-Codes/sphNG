@@ -53,6 +53,7 @@ c************************************************************
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/grain'
+      INCLUDE 'COMMONS/tstop'
 c
 c--Allow for tracing flow
 c
@@ -324,20 +325,33 @@ c
 c
 c--Parameters for planetesimals and dust
 c
-      IF (iplanetesimal_info.EQ.'p' .OR. iplanetesimal_info.EQ.'g') THEN
+      IF (iplanetesimal_info.EQ.'p' .OR. iplanetesimal_info.EQ.'g'
+     &     .OR. idustFluid.NE.0) THEN
+         IF (idustFluid.NE.0) iplanetesimal_info = 'd'
          WRITE (iterm, 99006) iplanetesimal_info
-11000    FORMAT (A1,'     Planetesimal or dust grain info (p/g)')
-         WRITE (iterm, 11100) gasdrag
-11100    FORMAT(2X,L1, '   Explicit planetesimal-gas drag (T/F)')
-         IF (gasdrag) WRITE (iterm, 11110) idragscheme 
-11110    FORMAT(2X,I2, '  Drag scheme (0,1,2)')
-         WRITE (iterm, 11120) prswitch
-11120    FORMAT(2X, L1, '   PR-drag & rad. pres. switch')
-         IF (prswitch) WRITE (iterm, 11130) pbeta
-11130    FORMAT(2X,1PE12.5, ' Grain beta (Burns et al. 1979)')
+11000    FORMAT (A1,'     Planetesimal or dust grain info (p/g/d)')
+         IF (iplanetesimal_info.EQ.'p' .OR. iplanetesimal_info.EQ.'g')
+     &        THEN
+            WRITE (iterm, 11100) gasdrag
+11100       FORMAT(2X,L1, '   Explicit planetesimal-gas drag (T/F)')
+         ENDIF
+         IF (idustFluid.NE.0 .OR. gasdrag) THEN
+            WRITE (iterm, 11110) idragscheme
+11110       FORMAT(2X,I2, '  Drag scheme (0,1,2,3,4)')
+            IF (idragscheme.EQ.4) THEN
+               WRITE (iterm, 11115) K_code
+11115          FORMAT(2X,1PE12.5,'   Fixed drag coefficient')
+            ENDIF
+         ENDIF
+         IF (gasdrag) THEN
+            WRITE (iterm, 11120) prswitch
+11120       FORMAT(2X, L1, '   PR-drag & rad. pres. switch')
+            IF (prswitch) WRITE (iterm, 11130) pbeta
+11130       FORMAT(2X,1PE12.5, ' Grain beta (Burns et al. 1979)')
+         ENDIF
       ENDIF
 
-      IF (iplanetesimal_info.EQ.'p') THEN
+      IF (iplanetesimal_info.EQ.'p' .AND. idragscheme.NE.4) THEN
          WRITE (iterm, 11140) n_planetesimal_types
 11140    FORMAT(2X, I2, '  Number of planetesimal types')
          DO i = 1, n_planetesimal_types

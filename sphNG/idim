@@ -8,9 +8,9 @@
       INTEGER idustFluid, idim_dustFluid, idim_dustFluid2
       INTEGER idim_dustFluid3
       INTEGER idustGROW, idim_grow, idim_grow2
-      INTEGER idimHY09
-      REAL tiny
-      LOGICAL imakedust
+      INTEGER idimHY09, ndusttypes
+      REAL tiny, dustvarmin
+      LOGICAL imakedust, icoupled_HY09_dustFluid, ilimitdustflux
 
       PARAMETER (idim=2001000)
 
@@ -94,23 +94,61 @@ c
 c      PARAMETER (idustGROW = 1)
       PARAMETER (idustGROW = 0)
 c
-c--One-fluid dust
+c--ONE-FLUID DUST
+c
 c     NOTE: Postive numbers: explicit / negative numbers: implicit drag
 c
 c     0: no one-fluid dust
 c     1: dustvar = sqrt(epsilon*rho)
 c     2: dustvar = sqrt(epsilon/1-epsilon) Ballabio et al. 2018
 c     -2: dustvar=sqrt(epsilon/1-epsilon) Elsender & Bate 2024 implicit
+c     3: dustvar = asin(sqrt(epsilon))
+c     4: dustvar = epsilon
 c
       PARAMETER (idustFluid = 0)
 c      PARAMETER (idustFluid = 1)
 c      PARAMETER (idustFluid = 2)
 c      PARAMETER (idustFluid = -2)
+
+       PARAMETER (ndusttypes = 1)
+c       PARAMETER (ndusttypes = 10)
+c      PARAMETER (ndusttypes = 26)
+c
+c--For *explicit* evolution, this determines whether the dust evolution
+c      variable is allowed to go negative or not.  The implicit scheme
+c      avoids the possibility of negative values (Elsender & Bate 2024).
+c
+      PARAMETER (dustvarmin = -1.0E+20)
+c      PARAMETER (dustvarmin = 0.0)
+c
+c--For *explicit* evolution, optionally limit the dust flux (if ever
+c      used, only tends to be for discs, from Ballabio et al. 2018).
+c
+      PARAMETER (ilimitdustflux = .FALSE.)	
 c
 c--Hirashita & Yan (2009) type dust evolution (see Bate 2022)
 c
 c      PARAMETER (idimHY09 = idim)
       PARAMETER (idimHY09 = 1)
+c
+c--Whether the dust growth and one-fluid evolutions are coupled or not.
+c     FALSE: the dust growth operates on the INITIAL dust fractions for
+c        each SPH particle.  The one-fluid dust diffusion does not
+c        alter the dust density, only grain population growth occurs.
+c        Similarly, the dust diffusion happens based on the INITIAL
+c        dust size distributions.  So this is like running two separate
+c        simulations, one with growth but no diffusion, and one with
+c        diffusion but no growth.
+c
+c     TRUE: The dust growth and dust diffusion both occur together.
+c        The dust populations can move between SPH particles AND the
+c        dust populations also evolve due to grain growth.
+c
+      PARAMETER (icoupled_HY09_dustFluid = .TRUE.)
+c      PARAMETER (icoupled_HY09_dustFluid = .FALSE.)
+
+c
+c--END ONE-FLUID DUST
 c
 c--For chemistry need to use idim_h2 = idim
 c
@@ -128,6 +166,7 @@ c
       PARAMETER (imhdxsph=imhd)
 
       PARAMETER (isizealphaMM=imhd/idim+1)
+c      PARAMETER (isizealphaMM=2)   ! For debugging
 
       PARAMETER (imhd2 = imhd + idim_MPI)
       PARAMETER (imhd3 = imhd + 2*idim_MPI)

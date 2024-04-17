@@ -1,4 +1,4 @@
-      SUBROUTINE ghostp100(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
+      SUBROUTINE ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
 c************************************************************
 c                                                           *
 c  This subroutine computes the list of ghost particles for *
@@ -12,6 +12,7 @@ c************************************************************
       DIMENSION vxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
       DIMENSION Bevolxyz(imhdevol,imhd)
+      DIMENSION dustvar(ndusttypes,idim_dustFluid)
 
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/densi'
@@ -28,6 +29,7 @@ c************************************************************
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/eosq'
 
+      DIMENSION dustvari(ndusttypes)
       REAL*4 rhoreal4
 
       CHARACTER*7 where
@@ -68,6 +70,7 @@ c
          rhoi = rho(i)
          vsoundi = vsound(i)
          presi = pr(i)
+         IF (idustFluid.NE.0) dustvari(:) = dustvar(:,i)
 
          delta = 0.001*hi
          hi2 = hi*hi
@@ -104,6 +107,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          IF (rmind.GT.0) THEN
@@ -131,6 +135,7 @@ c
                   rho(nptot) = rhoi
                   vsound(nptot) = vsoundi
                   pr(nptot) = presi
+                  IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
                   iphase(nptot) = 0
                ENDIF
             ENDIF
@@ -161,6 +166,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          IF (ang1.LT.phimin) THEN
@@ -183,6 +189,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
 c

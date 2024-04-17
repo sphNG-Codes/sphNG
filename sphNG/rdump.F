@@ -76,6 +76,8 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/dustfluid'
       INCLUDE 'COMMONS/dustfluidvelu'
+      INCLUDE 'COMMONS/dustfluidgrains'
+      INCLUDE 'COMMONS/tstop'
       INCLUDE 'COMMONS/radsink'
       INCLUDE 'COMMONS/dustimplicit'
 #ifdef NONIDEAL
@@ -88,6 +90,13 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/HY09rho'
       INCLUDE 'COMMONS/HY09check'
       INCLUDE 'COMMONS/eosq'
+
+      INTERFACE set_grainsize
+         SUBROUTINE set_grainsize(smin,smax,grid)
+         REAL, INTENT(IN)  :: smin,smax
+         REAL, OPTIONAL, INTENT(OUT) :: grid(:)
+         END SUBROUTINE set_grainsize
+      END INTERFACE set_grainsize
 
       CHARACTER*100 fileident
       INTEGER*4 int1, int2, int1i, int2i, int3i
@@ -230,6 +239,8 @@ c--Default int
       ENDIF
       IF (tagged) READ (idisk1, END=100) ! skip tags
       in_HY09ndustbins = 1
+      idustFluid_in = 0
+      ndusttypes_in = 1
       IF (number.EQ.9+NTAB) THEN
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks,iyr,idum,(iv(i), i=1,NTAB)
@@ -252,6 +263,11 @@ c--Default int
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks,iyr,idum,(iv(i), i=1,NTAB), iplanetesimals,
      &        irotpot, idragscheme_in, in_HY09ndustbins
+      ELSEIF (number.EQ.15+NTAB) THEN
+         READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
+     &        nblocks,iyr,idum,(iv(i), i=1,NTAB), iplanetesimals,
+     &        irotpot, idragscheme_in, in_HY09ndustbins, idustFluid_in,
+     &        ndusttypes_in
       ELSEIF (number.EQ.7) THEN
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill,
      &        nblocks
@@ -259,6 +275,22 @@ c--Default int
          READ (idisk1, END=100) npart,n1,n2,nreassign,naccrete,nkill
          nblocks = 1
       ENDIF
+c
+c--Checks for consistency between compiled code and input dump file
+c
+      IF (idustFluid_in.NE.idustFluid) THEN
+         WRITE (*,*) 'ERROR - idustFluid different to dump file ',
+     &        idustFluid,idustFluid_in
+c         CALL quit(0)
+      ENDIF
+      IF (idustFluid.NE.0 .AND. (.NOT.imakedust)) THEN
+         IF (ndusttypes_in.NE.ndusttypes) THEN
+            WRITE (*,*) 'ERROR - ndusttypes different to dump file ',
+     &           ndusttypes,ndusttypes_in
+            CALL quit(0)
+         ENDIF         
+      ENDIF
+
       IF (npart.GT.idim .AND. 
      &     (nblocks.EQ.1 
 #ifndef MPI
@@ -324,6 +356,7 @@ c
          IF (idragscheme.NE.idragscheme_in) THEN
             WRITE (*,*) 'WARNING: dragscheme has changed ',idragscheme,
      &           idragscheme_in
+            CALL quit(0)
          ENDIF
       ENDIF
       CALL extract('dtmax',dtmaxdp,rheader,tagsreal,number,ierr)
@@ -416,6 +449,40 @@ c
 
          CALL hy09dustsetbins
       ENDIF
+c
+c--Check one-fluid multigrain matches that from the dump file
+c
+      IF ((idustFluid.NE.0) .AND. (.NOT.imakedust)) THEN
+         IF (ndusttypes.GT.1) THEN
+c            CALL extract('dustfracsum',dustfracsum,rheader,tagsreal,
+c     &           number,ierr)
+            CALL extract('smincgs',smincgs,rheader,tagsreal,number,ierr)
+            CALL extract('smaxcgs',smaxcgs,rheader,tagsreal,number,ierr)
+            CALL extract('sindex',sindex,rheader,tagsreal,number,ierr)
+            CALL extract('graindenscgs',graindens,rheader,tagsreal,
+     &                               number,ierr)
+            graindens = 3.0
+
+            print *,'grain info ',smincgs,smaxcgs,sindex,graindens
+
+            CALL set_grainsize(smincgs,smaxcgs)
+            densgrain(:) = graindens/udens
+
+c            sgrain(ndusttypes) = 1.0/udist
+
+         ELSE
+            CALL extract('grainsizecgs',grainsizecgs,rheader,tagsreal,
+     &                                 number,ierr)
+            CALL extract('graindenscgs',graindenscgs,rheader,tagsreal,
+     &                                 number,ierr)
+
+            print *,'grain info: s, rho_d ',grainsizecgs,graindenscgs
+
+            sgrain(:)    = grainsizecgs/udist
+            densgrain(:) = graindenscgs/udens
+         ENDIF
+      ENDIF
+
 c--real*4
       READ (idisk1, END=100) number
 c--real*8
@@ -831,9 +898,14 @@ c--Default real
                 READ (idisk1, END=100)
              END DO
           ENDIF
-
-          IF (idustFluid.NE.0) THEN
-             iwanted = iwanted + 4
+c
+c--One-fluid dust, including multigrain
+c
+          IF (idustFluid.NE.0 .AND. (.NOT.imakedust)) THEN
+             !--dustfrac, deltav, and tstop
+             iwanted = iwanted + 5*ndusttypes
+             !--dustfractot and deltavsum
+             IF (ndusttypes.GT.1) iwanted = iwanted + 4
 
              IF (nums1(6).LT.iwanted) THEN
                 WRITE (*,*) 'ERROR - nums1(6).LT.iwanted ',
@@ -841,30 +913,80 @@ c--Default real
                 CALL quit(0)
              ENDIF
 c
-c--Note dustfrac (=epsilon) is dumped, but dustvar (=SQRT(epsilon*rho)
-c     is the variable that is integrated.  Also note that dustfluidvxyz
-c     is dumped to allow the dust and gas velocities to be computed, 
-c     but it is not used in the integration at all.
+c--Note that dustfractot is dumped to allow the dust and gas velocities
+c     to be computed when using multigrain, but it is not used in 
+c     the integration at all.
+c     When only one grain type is used, dustfluidvxyz is dumped.
+c     But dustfluidvxyz is not dumped for multigrain because this would
+c     result in dump files that are too large.
 c
-             IF (tagged) READ (idisk1, END=100) tagi
-             CALL checktag('dustfrac', tagi, ierr)
-             IF (ierr.NE.0) THEN
-                PRINT *,'ERROR - dustfrac not found in dump file'
-                CALL quit(0)
-             ENDIF
-             READ (idisk1, END=100) dustvar(icount+1:icount+nhydro)
-
-             DO j = 1, 3
+             IF (ndusttypes.GT.1) THEN
                 IF (tagged) READ (idisk1, END=100) tagi
-                READ (idisk1, END=100) dustfluidvxyz(j,
-     &               icount+1:icount+nhydro)
-             END DO
-             CALL checktag('deltavz', tagi, ierr)
-             IF (ierr.NE.0) THEN
-                PRINT *,'ERROR - deltavz not found in dump file'
-                CALL quit(0)
+c                CALL checktag('dustfractot', tagi, ierr)
+                CALL checktag('dustfrac', tagi(1:8), ierr)
+                IF (ierr.NE.0) THEN
+                   PRINT *,'ERROR - dustfracsum not found in dump file'
+                   CALL quit(0)
+                ENDIF
+                READ (idisk1, END=100)
              ENDIF
-          ENDIF
+c
+c--Note dustfrac (=epsilon) is dumped, but dustvar (e.g. this might be
+c     SQRT(epsilon*rho) ) is the variable that is integrated.  However,
+c     typically dustvar can only be converted once rho is read below.  
+c
+             DO i = 1, ndusttypes
+                IF (tagged) READ (idisk1, END=100) tagi
+                CALL checktag('dustfrac', tagi, ierr)
+                IF (ierr.NE.0) THEN
+                   PRINT *,'ERROR - dustfrac not found in dump file'
+                   CALL quit(0)
+                ENDIF
+                READ (idisk1, END=100) dustvar(i,icount+1:icount+nhydro)
+             END DO
+c
+c--Again, deltavsum and dustfluidvxyz
+c     are dumped to allow the dust and gas velocities to be computed, 
+c     but they are not used in the integration at all.
+c
+             IF (ndusttypes.GT.1) THEN
+                DO j = 1, 3
+                   IF (tagged) READ (idisk1, END=100) tagi
+                   READ (idisk1, END=100)
+                END DO
+c                CALL checktag('deltavsumz', tagi, ierr)
+                CALL checktag('deltav', tagi(1:6), ierr)
+                IF (ierr.NE.0) THEN
+                   PRINT *,'ERROR - deltavsumz not found in dump file'
+                   CALL quit(0)
+                ENDIF
+             ENDIF
+
+             DO i = 1, ndusttypes
+                DO j = 1, 3
+                   IF (tagged) READ (idisk1, END=100) tagi
+                   READ (idisk1, END=100)
+                END DO
+                CALL checktag('deltavz', tagi, ierr)
+                IF (ierr.NE.0) THEN
+                   PRINT *,'ERROR - deltavz not found in dump file'
+                   CALL quit(0)
+                ENDIF
+             END DO
+c
+c--Note that stoppingtime
+c     is dumped for analysis, debugging, and/or comparisio
+c
+             DO i = 1, ndusttypes
+                IF (tagged) READ (idisk1, END=100) tagi
+                READ (idisk1, END=100)
+                CALL checktag('tstop', tagi, ierr)
+                IF (ierr.NE.0) THEN
+                   PRINT *,'ERROR - tstop not found in dump file'
+                   CALL quit(0)
+                ENDIF
+             ENDDO
+          ENDIF          
 c
 c--For imakedust when setting up dust at terminal velocity
 c
@@ -881,8 +1003,12 @@ c
                    READ (idisk1, END=100) tagi
                    CALL checktag(tagexp(j), tagi, ierr)
                 ENDIF
+                IF (ndusttypes.LT.1) THEN
+                   WRITE (*,*) 'ERROR - rdump - ndusttypes ',ndusttypes
+                   CALL quit(0)
+                ENDIF
                 READ (idisk1, END=100)
-     &               dustfluidvxyz(j,icount+1:icount+nhydro)
+     &               dustfluidvxyz(j,1,icount+1:icount+nhydro)
              END DO
           ENDIF
 c
@@ -914,14 +1040,35 @@ c--Read in dust grain distribution for HY09 model
 c
           IF (idimHY09.EQ.idim .AND. nums1(6).GT.iwanted) THEN
              DO j = 1, HY09_ndust_bins
-                iwanted = iwanted + 1
+ 700            iwanted = iwanted + 1
                 IF (tagged) THEN
                    READ (idisk1, END=100) tagi
                    CALL checktag('Dust:', tagi(1:5), ierr)
+c
+c--Start from dump that has idustFluid.NE.0 but don't read dustFluid
+c
+                   IF (ierr.EQ.1 .AND. idustFluid_in.NE.0 .AND.
+     &                  idustFluid.EQ.0) THEN
+                      READ (idisk1, END=100)
+                      GOTO 700
+                   ELSEIF (ierr.EQ.1) THEN
+                      WRITE (*,*) 'ERROR - reading HY09 Dust ',tagi
+                      CALL quit(0)
+                   ENDIF
                 ENDIF
                 READ (idisk1, END=100) 
      &               HY09bin_rho(j,icount+1:icount+nhydro)
              END DO
+
+
+
+c--Over-write dustfrac with HY09bin_rho
+
+c             dustvar(:,icount+1:icount+nhydro) = 
+c     &            HY09bin_rho(:,icount+1:icount+nhydro)
+
+
+
 
              iwanted = iwanted + 1
              IF (tagged) READ (idisk1, END=100) tagi
@@ -948,19 +1095,29 @@ c
 c--If one-fluid dust, need to set the dust variable which is evolved
 c     using the dust fraction AFTER the density, rho, is read in.
 c
-         IF (idustFluid.NE.0) THEN
-            IF (idustFluid.EQ.1) THEN
-               dustvar(icount+1:icount+nhydro) = 
-     &              SQRT(dustvar(icount+1:icount+nhydro)*
-     &              rho(icount+1:icount+nhydro))
-            ELSEIF (ABS(idustFluid).EQ.2) THEN
-               dustvar(icount+1:icount+nhydro) =
-     &              SQRT(dustvar(icount+1:icount+nhydro)/
-     &              (1.0-dustvar(icount+1:icount+nhydro)))
-            ELSE
-               WRITE (*,*) 'ERROR - Invalid idustFluid ',idustFluid
-               CALL quit(0)
-            ENDIF
+         IF (idustFluid.NE.0 .AND. (.NOT.imakedust)) THEN
+            DO i = 1, ndusttypes
+               IF (idustFluid.EQ.1) THEN
+                  !--sqrt(rho*epsilon) method
+                  dustvar(i,icount+1:icount+nhydro) = 
+     &                 SQRT(dustvar(i,icount+1:icount+nhydro)*
+     &                 rho(icount+1:icount+nhydro))
+               ELSEIF (ABS(idustFluid).EQ.2) THEN
+                  !--sqrt(epsilon/(1-epsilon)) method
+                  dustvar(i,icount+1:icount+nhydro) =
+     &                 SQRT(dustvar(i,icount+1:icount+nhydro)/
+     &                 (1.0-dustvar(i,icount+1:icount+nhydro)))
+               ELSEIF (idustFluid.EQ.3) THEN
+                  !--asin(sqrt(epsilon)) method
+                  dustvar(i,icount+1:icount+nhydro) =
+     &                 ASIN(SQRT(dustvar(i,icount+1:icount+nhydro)))
+               ELSEIF (idustFluid.EQ.4) THEN
+                  !--epsilon method
+               ELSE
+                  WRITE (*,*) 'ERROR - Invalid idustFluid ',idustFluid
+                  CALL quit(0)
+               ENDIF
+            END DO
          ENDIF
 
          iread = 1
@@ -1721,7 +1878,8 @@ c
                CALL split(npart,n1,nptmass,icount,nhydro,
      &              nlistinactive,isteps,iphase,
      &              xyzmh,vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,
-     &              iunique,ekcle,listpm,spinx,spiny,spinz,angaddx,
+     &              iunique,ekcle,dustvar,HY09bin_rho,HY09frac_h_moved,
+     &              listpm,spinx,spiny,spinz,angaddx,
      &              angaddy,angaddz,spinadx,spinady,spinadz,
      &              rgrain,listinactive)
             ELSEIF (mpitype.EQ.'b' .AND. numproc.EQ.nblocks/2) THEN
@@ -1932,7 +2090,8 @@ c============================================================
       SUBROUTINE split(npart,n1,nptmass,icount,nhydro,nlistinactive,
      &     isteps,iphase,
      &     xyzmh,vxyzu,rho,dgrav,Bevolxyz,Bxyz,gradhs,alphaMM,iunique,
-     &     ekcle,listpm,spinx,spiny,spinz,angaddx,angaddy,angaddz,
+     &     ekcle,dustvar,HY09bin_rho,HY09frac_h_moved,
+     &     listpm,spinx,spiny,spinz,angaddx,angaddy,angaddz,
      &     spinadx,spinady,spinadz,rgrain,listinactive)
 c************************************************************
 c                                                           *
@@ -1951,13 +2110,17 @@ c************************************************************
       INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/HY09dustprops'
 
       INTEGER*1 iphase(idim2)
       INTEGER*8 iunique(idim)
       REAL*4 rho(idim), dgrav(idim), gradhs(2,idim),
      &     alphaMM(isizealphaMM,idim)
       DIMENSION isteps(idim), xyzmh(5,idim), vxyzu(4,idim), 
-     &     Bevolxyz(imhdevol,imhd), Bxyz(3,imhd), ekcle(5,iradtrans)
+     &     Bevolxyz(imhdevol,imhd), Bxyz(3,imhd), ekcle(5,iradtrans),
+     &     dustvar(ndusttypes,idim_dustFluid),
+     &     HY09bin_rho(HY09_ndust_bins,idimHY09),
+     &     HY09frac_h_moved(idimHY09)
       DIMENSION rgrain(idim_grow)
       DIMENSION listpm(iptdim),spinx(iptdim),spiny(iptdim),
      &     spinz(iptdim),angaddx(iptdim),angaddy(iptdim),
@@ -2017,6 +2180,13 @@ c
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               IF (idustFluid.NE.0) THEN
+                  dustvar(:,icountnew) = dustvar(:,i)
+               ENDIF
+               IF (idimHY09.EQ.idim) THEN
+                  HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                  HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
+               ENDIF
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
@@ -2062,6 +2232,13 @@ c
                         Bxyz(j,icountnew) = Bxyz(j,i)
                      END DO
                   ENDIF
+                  IF (idustFluid.NE.0) THEN
+                     dustvar(:,icountnew) = dustvar(:,i)
+                  ENDIF
+                  IF (idimHY09.EQ.idim) THEN
+                     HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                     HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
+                  ENDIF
                   DO j = 1, isizealphaMM
                      alphaMM(j,icountnew) = alphaMM(j,i)
                   END DO
@@ -2099,6 +2276,13 @@ c
                      DO j = 1, 3
                         Bxyz(j,icountnew) = Bxyz(j,i)
                      END DO
+                  ENDIF
+                  IF (idustFluid.NE.0) THEN
+                     dustvar(:,icountnew) = dustvar(:,i)
+                  ENDIF
+                  IF (idimHY09.EQ.idim) THEN
+                     HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                     HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
                   ENDIF
                   DO j = 1, isizealphaMM
                      alphaMM(j,icountnew) = alphaMM(j,i)
@@ -2142,6 +2326,13 @@ c
                         Bxyz(j,icountnew) = Bxyz(j,i)
                      END DO
                   ENDIF
+                  IF (idustFluid.NE.0) THEN
+                     dustvar(:,icountnew) = dustvar(:,i)
+                  ENDIF
+                  IF (idimHY09.EQ.idim) THEN
+                     HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                     HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
+                  ENDIF
                   DO j = 1, isizealphaMM
                      alphaMM(j,icountnew) = alphaMM(j,i)
                   END DO
@@ -2179,6 +2370,13 @@ c
                      DO j = 1, 3
                         Bxyz(j,icountnew) = Bxyz(j,i)
                      END DO
+                  ENDIF
+                  IF (idustFluid.NE.0) THEN
+                     dustvar(:,icountnew) = dustvar(:,i)
+                  ENDIF
+                  IF (idimHY09.EQ.idim) THEN
+                     HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                     HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
                   ENDIF
                   DO j = 1, isizealphaMM
                      alphaMM(j,icountnew) = alphaMM(j,i)
@@ -2218,6 +2416,13 @@ c
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               IF (idustFluid.NE.0) THEN
+                  dustvar(:,icountnew) = dustvar(:,i)
+               ENDIF
+               IF (idimHY09.EQ.idim) THEN
+                  HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                  HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
+               ENDIF
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
@@ -2255,6 +2460,13 @@ c
                   DO j = 1, 3
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
+               ENDIF
+               IF (idustFluid.NE.0) THEN
+                  dustvar(:,icountnew) = dustvar(:,i)
+               ENDIF
+               IF (idimHY09.EQ.idim) THEN
+                  HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                  HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
                ENDIF
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
@@ -2298,6 +2510,13 @@ c
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               IF (idustFluid.NE.0) THEN
+                  dustvar(:,icountnew) = dustvar(:,i)
+               ENDIF
+               IF (idimHY09.EQ.idim) THEN
+                  HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                  HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
+               ENDIF
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
@@ -2335,6 +2554,13 @@ c
                   DO j = 1, 3
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
+               ENDIF
+               IF (idustFluid.NE.0) THEN
+                  dustvar(:,icountnew) = dustvar(:,i)
+               ENDIF
+               IF (idimHY09.EQ.idim) THEN
+                  HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                  HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
                ENDIF
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
@@ -2374,6 +2600,13 @@ c
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               IF (idustFluid.NE.0) THEN
+                  dustvar(:,icountnew) = dustvar(:,i)
+               ENDIF
+               IF (idimHY09.EQ.idim) THEN
+                  HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                  HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
+               ENDIF
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
@@ -2411,6 +2644,13 @@ c
                   DO j = 1, 3
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
+               ENDIF
+               IF (idustFluid.NE.0) THEN
+                  dustvar(:,icountnew) = dustvar(:,i)
+               ENDIF
+               IF (idimHY09.EQ.idim) THEN
+                  HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                  HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
                ENDIF
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
@@ -2450,6 +2690,13 @@ c
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               IF (idustFluid.NE.0) THEN
+                  dustvar(:,icountnew) = dustvar(:,i)
+               ENDIF
+               IF (idimHY09.EQ.idim) THEN
+                  HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                  HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
+               ENDIF
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
@@ -2487,6 +2734,13 @@ c
                   DO j = 1, 3
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
+               ENDIF
+               IF (idustFluid.NE.0) THEN
+                  dustvar(:,icountnew) = dustvar(:,i)
+               ENDIF
+               IF (idimHY09.EQ.idim) THEN
+                  HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                  HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
                ENDIF
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
@@ -2526,6 +2780,13 @@ c
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
                ENDIF
+               IF (idustFluid.NE.0) THEN
+                  dustvar(:,icountnew) = dustvar(:,i)
+               ENDIF
+               IF (idimHY09.EQ.idim) THEN
+                  HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                  HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
+               ENDIF
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
                END DO
@@ -2563,6 +2824,13 @@ c
                   DO j = 1, 3
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
+               ENDIF
+               IF (idustFluid.NE.0) THEN
+                  dustvar(:,icountnew) = dustvar(:,i)
+               ENDIF
+               IF (idimHY09.EQ.idim) THEN
+                  HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                  HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
                ENDIF
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)
@@ -2702,6 +2970,13 @@ c     &       print *,iproc,jvalue,numdiv(jvalue),lvalue,iprocvalue
                   DO j = 1, 3
                      Bxyz(j,icountnew) = Bxyz(j,i)
                   END DO
+               ENDIF
+               IF (idustFluid.NE.0) THEN
+                  dustvar(:,icountnew) = dustvar(:,i)
+               ENDIF
+               IF (idimHY09.EQ.idim) THEN
+                  HY09bin_rho(:,icountnew) = HY09bin_rho(:,i)
+                  HY09frac_h_moved(icountnew) = HY09frac_h_moved(i)
                ENDIF
                DO j = 1, isizealphaMM
                   alphaMM(j,icountnew) = alphaMM(j,i)

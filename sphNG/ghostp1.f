@@ -12,7 +12,7 @@ c************************************************************
       DIMENSION vxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
       DIMENSION Bevolxyz(imhdevol,imhd)
-      DIMENSION dustvar(idim_dustFluid)
+      DIMENSION dustvar(ndusttypes,idim_dustFluid)
 
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/densi'
@@ -27,6 +27,8 @@ c************************************************************
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/eosq'
+
+      DIMENSION dustvari(ndusttypes)
 
       CHARACTER*7 where
 
@@ -60,7 +62,7 @@ c
          rhoi = rho(i)
          vsoundi = vsound(i)
          presi = pr(i)
-         IF (idustFluid.NE.0) dustvari = dustvar(i)
+         IF (idustFluid.NE.0) dustvari(:) = dustvar(:,i)
 
          delta = 0.1*hi
 c
@@ -84,7 +86,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
 
@@ -106,7 +108,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
 c
@@ -130,7 +132,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
 
@@ -152,7 +154,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
 c
@@ -176,7 +178,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
 
@@ -198,7 +200,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
 c
@@ -232,7 +234,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmin2 + dymax2
@@ -254,7 +256,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dymin2
@@ -276,7 +278,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dymax2
@@ -298,7 +300,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
 
@@ -321,7 +323,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmin2 + dzmax2
@@ -343,7 +345,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dzmin2
@@ -365,7 +367,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dzmax2
@@ -387,7 +389,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
  
@@ -410,7 +412,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dzmin2 + dymax2
@@ -432,7 +434,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dzmax2 + dymin2
@@ -454,7 +456,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dzmax2 + dymax2
@@ -476,7 +478,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
 c
@@ -502,7 +504,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmin2 + dymin2 + dzmax2
@@ -525,7 +527,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmin2 + dymax2 + dzmin2
@@ -548,7 +550,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmin2 + dymax2 + dzmax2
@@ -571,7 +573,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dymin2 + dzmin2
@@ -594,7 +596,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dymin2 + dzmax2
@@ -617,7 +619,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dymax2 + dzmin2
@@ -640,7 +642,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          radius2 = dxmax2 + dymax2 + dzmax2
@@ -663,7 +665,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
 

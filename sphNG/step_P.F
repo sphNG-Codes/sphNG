@@ -7,7 +7,6 @@ c     a second-order Runge-Kutta-Fehlberg method.           *
 c                                                           *
 c************************************************************
 
-
 #ifdef MPIALL
 #include "mpi_sup.h"
 #endif
@@ -23,7 +22,6 @@ c************************************************************
 #ifdef MPI
       INCLUDE 'COMMONS/mpi'
 #endif
-
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/part'
@@ -109,6 +107,8 @@ c      INCLUDE 'COMMONS/neighbor_P'
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/dustfluid'
       INCLUDE 'COMMONS/dustfluidderiv'
+      INCLUDE 'COMMONS/dustfluidgrains'
+      INCLUDE 'COMMONS/tstopvar'
       INCLUDE 'COMMONS/timecrit'
       INCLUDE 'COMMONS/grain'
       INCLUDE 'COMMONS/compact'
@@ -121,6 +121,9 @@ c      INCLUDE 'COMMONS/neighbor_P'
 
       DIMENSION nsteplist(30)
       INTEGER*8 nneightotsave
+
+      INTEGER idustregime
+      REAL    dustfraci(ndusttypes),tsi(ndusttypes)
 
       REAL rmodall(15)
 
@@ -282,7 +285,7 @@ c
                IF (idim_grow.EQ.idim .AND. iphase(i).GE.11) THEN
                   dumrgrain(i) = rgrain(i)
                ENDIF
-               IF (idustFluid.NE.0) dumdustvar(i) = dustvar(i)
+               IF (idustFluid.NE.0) dumdustvar(:,i) = dustvar(:,i)
                IF (idimHY09.EQ.idim) THEN
                   HY09bin_dumrho(:,i) = HY09bin_rho(:,i)
                ENDIF
@@ -326,7 +329,7 @@ c
                   dumekcle(k,i) = ekcle(k,i)
                END DO
             ENDIF
-            IF (idustFluid.NE.0) dumdustvar(i) = dustvar(i)
+            IF (idustFluid.NE.0) dumdustvar(:,i) = dustvar(:,i)
             IF (imhd.EQ.idim) THEN
                DO k = 1, imhdevol
                   dumBevolxyz(k,i) = Bevolxyz(k,i)
@@ -457,7 +460,7 @@ c         DO i = 1, npart
             ENDIF
 
             IF (idustFluid.EQ.-2) THEN  ! For implicit one-fluid dust
-               dustvar(i) = dumdustvar(i)
+               dustvar(:,i) = dumdustvar(:,i)
             ENDIF
 
 c            gravx1(i) = gravx(i)
@@ -698,7 +701,7 @@ C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
 C$OMP& shared(dustvar,dumdustvar,f1dust)
-C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt)
+C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt,rho)
 C$OMP& private(j,k,deltat)
       DO j = 1, npart
          IF (iphase(j).GE.0) THEN
@@ -743,19 +746,55 @@ c                  dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
                dumrgrain(j) = rgrain(j) + deltat*f1rgrain(j)
                dumrgrain(j) = MAX(dumrgrain(j),rgrain_min)
             ENDIF
+
             IF (idustFluid.NE.0) THEN
                IF (idustFluid.EQ.-2) THEN ! Implicit
-                  dumdustvar(j) = dustvar(j)
-               ELSEIF (idustFluid.GT.0) THEN ! Explicit
-                  dumdustvar(j) = dustvar(j) + deltat*f1dust(j)
+                  dumdustvar(:,j) = dustvar(:,j)
+               ELSEIF (idustFluid.GE.1) THEN ! Explicit
+                  dumdustvar(:,j) =                       MAX(
+     &                 dustvar(:,j) + deltat*f1dust(:,j)  ,dustvarmin)
                ELSE
                   WRITE (*,*) 'ERROR - Incorrect idustFluid ',idustFluid
                   CALL quit(0)
                ENDIF
             ENDIF
-            IF (idimHY09.EQ.idim)
-     &           HY09bin_dumrho(:,j)= MAX(HY09bin_rho(:,j)+
-     &           deltat*f1HY09drhodt(:,j), 0.0)
+
+            IF (idimHY09.EQ.idim) THEN
+c--Don't update dust growth values from one-fluid values if the two
+c     schemes are decoupled
+               IF (.NOT.icoupled_HY09_dustFluid) THEN
+                  HY09bin_dumrho(:,j) = HY09bin_rho(:,j)
+               ELSEIF (idustFluid.EQ.1) THEN
+                  HY09bin_dumrho(:,j) = dumdustvar(:,j)**2/rho(j)
+               ELSEIF (ABS(idustFluid).EQ.2) THEN
+                  HY09bin_dumrho(:,j) = dumdustvar(:,j)**2/
+     &                 (1.0+dumdustvar(:,j)**2)
+               ELSEIF (idustFluid.EQ.3) THEN
+                  HY09bin_dumrho(:,j) = SIN(dumdustvar(:,j))**2
+               ELSEIF (idustFluid.EQ.4) THEN
+                  HY09bin_dumrho(:,j) = dumdustvar(:,j)
+               ELSE
+                  WRITE (*,*) 'ERROR - idustFluid ',idustFluid
+                  CALL quit(0)
+               ENDIF
+
+               HY09bin_dumrho(:,j)= MAX(HY09bin_dumrho(:,j)+
+     &              deltat*f1HY09drhodt(:,j), 0.0)
+
+c--Update values from dustfrac back to dumdustvar if schemes are coupled
+               IF (icoupled_HY09_dustFluid) THEN
+                  IF (idustFluid.EQ.1) THEN
+                     dumdustvar(:,j) = SQRT(HY09bin_dumrho(:,j)*rho(j))
+                  ELSEIF (ABS(idustFluid).EQ.2) THEN
+                     dumdustvar(:,j) = SQRT(HY09bin_dumrho(:,j)/
+     &                    (1.0-HY09bin_dumrho(:,j)))
+                  ELSEIF (idustFluid.EQ.3) THEN
+                     dumdustvar(:,j) = ASIN(SQRT(HY09bin_dumrho(:,j)))
+                  ELSEIF (idustFluid.EQ.4) THEN
+                     dumdustvar(:,j) = HY09bin_dumrho(:,j)
+                  ENDIF
+               ENDIF
+            ENDIF
             IF (imhd.EQ.idim) THEN
                DO k = 1, imhdevol
                   dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
@@ -781,7 +820,7 @@ C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
 C$OMP& shared(dustvar,dumdustvar,f1dust)
-C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt)
+C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt,rho)
 C$OMP& private(j,k,ipart,deltat)
                DO j = 1, nlstbins(i)
                   ipart = listbins(j,i)
@@ -830,20 +869,53 @@ c            dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                      ENDIF
                      IF (idustFluid.NE.0) THEN
                         IF (idustFluid.EQ.-2) THEN ! Implicit
-                           dumdustvar(ipart) = dustvar(ipart)
-                        ELSEIF (idustFluid.GT.0) THEN ! Explicit
-                           dumdustvar(ipart) = dustvar(ipart) +
-     &                          deltat*f1dust(ipart)
+                           dumdustvar(:,ipart) = dustvar(:,ipart)
+                        ELSEIF (idustFluid.GE.1) THEN ! Explicit
+                           dumdustvar(:,ipart) =                    MAX(
+     &                     dustvar(:,ipart)+deltat*f1dust(:,ipart)
+     &                          ,dustvarmin)
                         ELSE
                            WRITE (*,*) 'ERROR - idustFluid ',idustFluid
                            CALL quit(0)
                         ENDIF
                      ENDIF
-                     IF (idimHY09.EQ.idim)
-     &                    HY09bin_dumrho(:,ipart) = MAX(
-     &                    HY09bin_rho(:,ipart) +
-     &                    deltat*f1HY09drhodt(:,ipart), 0.0)
+                     IF (idimHY09.EQ.idim) THEN
+c--Don't update dust growth values from one-fluid values if the two
+c     schemes are decoupled
+               IF (.NOT.icoupled_HY09_dustFluid) THEN
+                  HY09bin_dumrho(:,ipart) = HY09bin_rho(:,ipart)
+               ELSEIF (idustFluid.EQ.1) THEN
+                  HY09bin_dumrho(:,ipart) = dumdustvar(:,ipart)**2/
+     &                 rho(ipart)
+               ELSEIF (ABS(idustFluid).EQ.2) THEN
+                  HY09bin_dumrho(:,ipart) = dumdustvar(:,ipart)**2/
+     &                 (1.0+dumdustvar(:,ipart)**2)
+               ELSEIF (idustFluid.EQ.3) THEN
+                  HY09bin_dumrho(:,ipart) = SIN(dumdustvar(:,ipart))**2
+               ELSEIF (idustFluid.EQ.4) THEN
+                  HY09bin_dumrho(:,ipart) = dumdustvar(:,ipart)
+               ENDIF
 
+                        HY09bin_dumrho(:,ipart) = MAX(
+     &                     HY09bin_dumrho(:,ipart) +
+     &                     deltat*f1HY09drhodt(:,ipart), 0.0)
+
+c--Update values from dustfrac back to dumdustvar
+               IF (icoupled_HY09_dustFluid) THEN
+                  IF (idustFluid.EQ.1) THEN
+                     dumdustvar(:,ipart) = SQRT(HY09bin_dumrho(:,ipart)*
+     &                    rho(ipart))
+                  ELSEIF (ABS(idustFluid).EQ.2) THEN
+                     dumdustvar(:,ipart) = SQRT(HY09bin_dumrho(:,ipart)/
+     &                    (1.0-HY09bin_dumrho(:,ipart)))
+                  ELSEIF (idustFluid.EQ.3) THEN
+                     dumdustvar(:,ipart) = 
+     &                    ASIN(SQRT(HY09bin_dumrho(:,ipart)))
+                  ELSEIF (idustFluid.EQ.4) THEN
+                     dumdustvar(:,ipart) = HY09bin_dumrho(:,ipart)
+                  ENDIF
+               ENDIF
+                     ENDIF
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, imhdevol
                            dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) 
@@ -867,7 +939,6 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nptmass,listpm,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,vsmooth)
 C$OMP& shared(dumxyzmh,dumvxyzu,iflagtree)
-C$OMP& shared(dustvar,dumdustvar,f1dust)
 C$OMP& private(i,k,ipart,deltat)
             DO i = 1, nptmass
                ipart = listpm(i)
@@ -950,9 +1021,10 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
             ENDIF
             IF (idustFluid.NE.0) THEN
                IF (idustFluid.EQ.-2) THEN ! Implicit
-                  dumdustvar(j) = dustvar(j)
-               ELSEIF (idustFluid.GT.0) THEN ! Explicit
-                  dumdustvar(j) = dustvar(j) + deltat*f1dust(k)
+                  dumdustvar(:,j) = dustvar(:,j)
+               ELSEIF (idustFluid.GE.1) THEN ! Explicit
+                  dumdustvar(:,j) =                       MAX(
+     &                 dustvar(:,j) + deltat*f1dust(:,k)  ,dustvarmin)
                ELSE
                   WRITE (*,*) 'ERROR - idustFluid ',idustFluid
                   CALL quit(0)
@@ -1357,18 +1429,48 @@ c
 c
 c--One-fluid dust
 c
-            IF (idustFluid.GT.0) THEN  ! Explicit one-fluid only
-               dustvar(i) = dustvar(i) +
-     &              dtf21*f1dust(i) + dtf22*f2dust(i)
+            IF (idustFluid.GE.1) THEN ! Explicit one-fluid only
+               dustvar(:,i) =                             MAX( 
+     &              dustvar(:,i) +
+     &              dtf21*f1dust(:,i) + dtf22*f2dust(:,i) ,dustvarmin)
             ENDIF
 c
 c--HY09 dust coagulation
 c
             IF (idimHY09.EQ.idim) THEN
+c--Don't update dust growth values from one-fluid values if the two
+c     schemes are decoupled
+               IF (icoupled_HY09_dustFluid) THEN
+                  IF (idustFluid.EQ.1) THEN
+                     HY09bin_rho(:,i) = dustvar(:,i)**2/rho(i)
+                  ELSEIF (ABS(idustFluid).EQ.2) THEN
+                     HY09bin_rho(:,i) = dustvar(:,i)**2/
+     &                    (1.0+dustvar(:,i)**2)
+                  ELSEIF (idustFluid.EQ.3) THEN
+                     HY09bin_rho(:,i) = SIN(dustvar(:,i))**2
+                  ELSEIF (idustFluid.EQ.4) THEN
+                     HY09bin_rho(:,i) = dustvar(:,i)
+                  ENDIF
+               ENDIF
+
                HY09bin_rho(:,i) = MAX(HY09bin_rho(:,i) +
      &           dtf21*f1HY09drhodt(:,i) + dtf22*f2HY09drhodt(:,i),0.0)
                HY09frac_h_moved(i) = HY09frac_h_moved(i) +
      &              dtf21*f1HY09vrel_h(i) + dtf22*f2HY09vrel_h(i)
+
+c--Update values from dustfrac back to dumdustvar
+               IF (icoupled_HY09_dustFluid) THEN
+                  IF (idustFluid.EQ.1) THEN
+                     dustvar(:,i) = SQRT(HY09bin_rho(:,i)*rho(i))
+                  ELSEIF (ABS(idustFluid).EQ.2) THEN
+                     dustvar(:,i) = SQRT(HY09bin_rho(:,i)/
+     &                    (1.0-HY09bin_rho(:,i)))
+                  ELSEIF (idustFluid.EQ.3) THEN
+                     dustvar(:,i) = ASIN(SQRT(HY09bin_rho(:,i)))
+                  ELSEIF (idustFluid.EQ.4) THEN
+                     dustvar(:,i) = HY09bin_rho(:,i)
+                  ENDIF
+               ENDIF
             ENDIF
 c
 c-MHD
@@ -1563,7 +1665,7 @@ C$OMP& shared(rgrain,f1rgrain,dumrgrain,rgrain_min)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
 C$OMP& shared(dustvar,dumdustvar,f1dust)
-C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt)
+C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt,rho)
 C$OMP& private(j,k,deltat)
       DO j = 1, npart
          IF (iphase(j).GE.0) THEN
@@ -1609,17 +1711,48 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,j)
             ENDIF
             IF (idustFluid.NE.0) THEN
                IF (idustFluid.EQ.-2) THEN ! Implicit
-                  dumdustvar(j) = dustvar(j)
-               ELSEIF (idustFluid.GT.0) THEN ! Explicit
-                  dumdustvar(j) = dustvar(j) + deltat*f1dust(j)
+                  dumdustvar(:,j) = dustvar(:,j)
+               ELSEIF (idustFluid.GE.1) THEN ! Explicit
+                  dumdustvar(:,j) =                      MAX(
+     &                 dustvar(:,j) + deltat*f1dust(:,j) ,dustvarmin)
                ELSE
                   WRITE (*,*) 'ERROR - idustFluid ',idustFluid
                   CALL quit(0)
                ENDIF
             ENDIF
-            IF (idimHY09.EQ.idim)
-     &           HY09bin_dumrho(:,j) = MAX(HY09bin_rho(:,j) +
-     &           deltat*f1HY09drhodt(:,j), 0.0)
+            IF (idimHY09.EQ.idim) THEN
+c--Don't update dust growth values from one-fluid values if the two
+c     schemes are decoupled
+               IF (.NOT.icoupled_HY09_dustFluid) THEN
+                  HY09bin_dumrho(:,j) = HY09bin_rho(:,j)
+               ELSEIF (idustFluid.EQ.1) THEN
+                  HY09bin_dumrho(:,j) = dumdustvar(:,j)**2/rho(j)
+               ELSEIF (ABS(idustFluid).EQ.2) THEN
+                  HY09bin_dumrho(:,j) = dumdustvar(:,j)**2/
+     &                 (1.0+dumdustvar(:,j)**2)
+               ELSEIF (idustFluid.EQ.3) THEN
+                  HY09bin_dumrho(:,j) = SIN(dumdustvar(:,j))**2
+               ELSEIF (idustFluid.EQ.4) THEN
+                  HY09bin_dumrho(:,j) = dumdustvar(:,j)
+               ENDIF
+
+               HY09bin_dumrho(:,j) = MAX(HY09bin_dumrho(:,j) +
+     &              deltat*f1HY09drhodt(:,j), 0.0)
+
+c--Update values from dustfrac back to dumdustvar
+               IF(icoupled_HY09_dustFluid) THEN
+                  IF (idustFluid.EQ.1) THEN
+                     dumdustvar(:,j) = SQRT(HY09bin_dumrho(:,j)*rho(j))
+                  ELSEIF (ABS(idustFluid).EQ.2) THEN
+                     dumdustvar(:,j) = SQRT(HY09bin_dumrho(:,j)/
+     &                    (1.0-HY09bin_dumrho(:,j)))
+                  ELSEIF (idustFluid.EQ.3) THEN
+                     dumdustvar(:,j) = ASIN(SQRT(HY09bin_dumrho(:,j)))
+                  ELSEIF (idustFluid.EQ.4) THEN
+                     dumdustvar(:,j) = HY09bin_dumrho(:,j)
+                  ENDIF
+               ENDIF
+            ENDIF
             IF (imhd.EQ.idim) THEN
                DO k = 1, imhdevol
                   dumBevolxyz(k,j) = Bevolxyz(k,j) + deltat*f1Bxyz(k,j)
@@ -1645,7 +1778,7 @@ C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
 C$OMP& shared(dustvar,dumdustvar,f1dust)
-C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt)
+C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt,rho)
 C$OMP& private(j,k,ipart,deltat)
                DO j = 1, nlstbins(i)
                   ipart = listbins(j,i)
@@ -1695,19 +1828,52 @@ c           dumvxyzu(4,ipart) = vxyzu(4,ipart) + deltat*f1vxyzu(4,ipart)
                      ENDIF
                      IF (idustFluid.NE.0) THEN
                         IF (idustFluid.EQ.-2) THEN ! Implicit
-                           dumdustvar(ipart) = dustvar(ipart)
-                        ELSEIF (idustFluid.GT.0) THEN ! Explicit
-                           dumdustvar(ipart) = dustvar(ipart) + 
-     &                          deltat*f1dust(ipart)
+                           dumdustvar(:,ipart) = dustvar(:,ipart)
+                        ELSEIF (idustFluid.GE.1) THEN ! Explicit
+                           dumdustvar(:,ipart) =                  MAX(
+     &                  dustvar(:,ipart) + deltat*f1dust(:,ipart) 
+     &                          ,dustvarmin)
                         ELSE
                            WRITE (*,*) 'ERROR - idustFluid ',idustFluid
                            CALL quit(0)
                         ENDIF
                      ENDIF
-                     IF (idimHY09.EQ.idim)
-     &                    HY09bin_dumrho(:,ipart) = MAX(
-     &                    HY09bin_rho(:,ipart) +
-     &                    deltat*f1HY09drhodt(:,ipart), 0.0)
+                     IF (idimHY09.EQ.idim) THEN
+c--Don't update dust growth values from one-fluid values if the two
+c     schemes are decoupled
+               IF (.NOT.icoupled_HY09_dustFluid) THEN
+                  HY09bin_dumrho(:,ipart) = HY09bin_rho(:,ipart)
+               ELSEIF (idustFluid.EQ.1) THEN
+                  HY09bin_dumrho(:,ipart) = dumdustvar(:,ipart)**2/
+     &                 rho(ipart)
+               ELSEIF (ABS(idustFluid).EQ.2) THEN
+                  HY09bin_dumrho(:,ipart) = dumdustvar(:,ipart)**2/
+     &                 (1.0+dumdustvar(:,ipart)**2)
+               ELSEIF (idustFluid.EQ.3) THEN
+                  HY09bin_dumrho(:,ipart) = SIN(dumdustvar(:,ipart))**2
+               ELSEIF (idustFluid.EQ.4) THEN
+                  HY09bin_dumrho(:,ipart) = dumdustvar(:,ipart)
+               ENDIF
+               
+               HY09bin_dumrho(:,ipart) = MAX(HY09bin_dumrho(:,ipart) +
+     &                 deltat*f1HY09drhodt(:,ipart), 0.0)
+
+c--Update values from dustfrac back to dumdustvar
+               IF (icoupled_HY09_dustFluid) THEN
+                  IF (idustFluid.EQ.1) THEN
+                     dumdustvar(:,ipart) = SQRT(HY09bin_dumrho(:,ipart)*
+     &                    rho(ipart))
+                  ELSEIF (ABS(idustFluid).EQ.2) THEN
+                     dumdustvar(:,ipart) = SQRT(HY09bin_dumrho(:,ipart)/
+     &                    (1.0-HY09bin_dumrho(:,ipart)))
+                  ELSEIF (idustFluid.EQ.3) THEN
+                     dumdustvar(:,ipart) = 
+     &                    ASIN(SQRT(HY09bin_dumrho(:,ipart)))
+                  ELSEIF (idustFluid.EQ.4) THEN
+                     dumdustvar(:,ipart) = HY09bin_dumrho(:,ipart)
+                  ENDIF
+               ENDIF ! icoupled_HY09_dustFluid
+                     ENDIF ! idimHY09.EQ.idim
                      IF (imhd.EQ.idim) THEN
                         DO k = 1, imhdevol
                            dumBevolxyz(k,ipart) = Bevolxyz(k,ipart) 
@@ -1814,9 +1980,10 @@ c               dumvxyzu(4,j) = vxyzu(4,j) + deltat*f1vxyzu(4,k)
             ENDIF
             IF (idustFluid.NE.0) THEN
                IF (idustFluid.EQ.-2) THEN ! Implicit
-                  dumdustvar(j) = dustvar(j)
-               ELSEIF (idustFluid.GT.0) THEN ! Explicit
-                  dumdustvar(j) = dustvar(j) + deltat*f1dust(k)
+                  dumdustvar(:,j) = dustvar(:,j)
+               ELSEIF (idustFluid.GE.1) THEN ! Explicit
+                  dumdustvar(:,j) =                      MAX(
+     &                 dustvar(:,j) + deltat*f1dust(:,k) ,dustvarmin)
                ELSE
                   WRITE (*,*) 'ERROR - Incorrect idustFluid ',idustFluid
                   CALL quit(0)                  
@@ -2008,12 +2175,13 @@ C$OMP& shared(pmass,ikilled,nactive,nkill,time,iorig,nlstacc,listacc)
 C$OMP& shared(istminold,listpm,coolingrate)
 C$OMP& shared(ifsvi,alphaMM,dumekcle,ekcle,iresist,etamhd,nptmass)
 C$OMP& shared(npart,rmind)
-C$OMP& shared(planetesimaltimestep,gasdrag,max_rplan,min_rplan)
+C$OMP& shared(ts_min,planetesimaltimestep,gasdrag,max_rplan,min_rplan)
 C$OMP& shared(rcyl,Bevolxyz,dumBevolxyz,planetesimalnorm)
 C$OMP& shared(xmass,overclean_fac,hdivbbmax_max,divcurlB)
 C$OMP& shared(dh2dt,icolumnsteps,icolumnnext)
-C$OMP& shared(dustvar,dumdustvar,f1dust,f2dust,dHIIdt,rhoi)
-C$OMP& shared(timestepcriterion)
+C$OMP& shared(dustvar,dumdustvar,f1dust,f2dust)
+C$OMP& shared(sgrain,densgrain,stoppingtime)
+C$OMP& shared(dHIIdt,timestepcriterion)
 C$OMP& shared(f1HY09drhodt,f2HY09drhodt,HY09bin_rho)
 C$OMP& shared(f1HY09vrel_h,f2HY09vrel_h)
 #ifdef MPICOPY
@@ -2032,6 +2200,7 @@ C$OMP& private(crstepi,rmodcr,force21,force22,force2,rmodcr2,rmod)
 C$OMP& private(stepi,ibin,factor,istep2,irat,r2,pmassi,rmodsg1,rmodsg2)
 C$OMP& private(Bxi,Byi,Bzi,xi,yi,zi,dti,dteta,rmodeta,etai,rmodcool)
 C$OMP& private(rmod_du1,rmod_du2,dtdust,rmoddust,rmodall,rmodgd)
+C$OMP& private(dustfraci,dustfracisum,tsi,tseff)
 C$OMP& private(dtclean_coef)
 C$OMP& reduction(MAX:istepmax)
 C$OMP& reduction(MIN:istepmin,istepmingas)
@@ -2144,7 +2313,7 @@ c
 c--For implicit one-fluid dust drag need to update dustvar here
 c
             IF (idustFluid.EQ.-2) THEN
-               dustvar(i) = dumdustvar(i)
+               dustvar(:,i) = dumdustvar(:,i)
             ENDIF
 
          ENDIF ! End iphase(i).EQ.0
@@ -2328,9 +2497,11 @@ c
 c
 c--Gas timestep from gas-dust drag
 c
-            IF (gasdrag .AND. planetesimalnorm(i).GT.0.0) THEN
-               rmodgd = 0.1*planetesimaltimestep(i)/planetesimalnorm(i)/
-     &              (dt*isteps(i)/imaxstep)
+c            IF (gasdrag .AND. planetesimalnorm(i).GT.0.0) THEN
+c               rmodgd = 0.1*planetesimaltimestep(i)/planetesimalnorm(i)/
+c     &              (dt*isteps(i)/imaxstep)
+            IF (gasdrag .AND. ts_min.GT.0.0) THEN
+               rmodgd = 0.3*ts_min/(dt*isteps(i)/imaxstep)
                rmod = MIN(rmod, rmodgd)
                rmodall(8) = rmodgd
             ENDIF
@@ -2392,10 +2563,13 @@ c
 c
 c--Dust timestep from gas-dust drag
 c
+c            IF (iphase(i).GE.11 .AND. gasdrag .AND.
+c     &           planetesimalnorm(i).GT.0.0) THEN
+c               rmodgd = 0.1*planetesimaltimestep(i)/planetesimalnorm(i)/
+c     &              (dt*isteps(i)/imaxstep)
             IF (iphase(i).GE.11 .AND. gasdrag .AND.
-     &           planetesimalnorm(i).GT.0.0) THEN
-               rmodgd = 0.1*planetesimaltimestep(i)/planetesimalnorm(i)/
-     &              (dt*isteps(i)/imaxstep)
+     &           ts_min.GT.0.0) THEN
+               rmodgd = 0.3*ts_min/(dt*isteps(i)/imaxstep)
             ELSE
                rmodgd = 1.0E10
             ENDIF
@@ -2453,23 +2627,25 @@ c--Constant resistivity
 c
 c--Timestep criterion for one-fluid dust
 c
-         IF (idustFluid.GT.0) THEN  ! Explicit one-fluid only
+         IF (idustFluid.GE.1) THEN ! Explicit one-fluid only
             IF (iphase(i).EQ.0) THEN
-               rhoi = rho(i)
-               IF (idustFluid.EQ.1) THEN
-                  !--sqrt(rho*epsilon) method
-                  dtdust = 0.3*(xyzmh(5,i)/vsound(i))**2/
-     &                 (dustvar(i)**2/rhoi*
-     &                 stoppingtime(i,rhoi,dustvar(i)))
-               ELSEIF (idustFluid.EQ.2) THEN
-                  !--sqrt(epsilon/(1-epsilon)) (Ballabio et al. 2018)
-                  dtdust = 0.3*(xyzmh(5,i)/vsound(i))**2/
-     &                 ((dustvar(i)**2/(1+dustvar(i)**2))*
-     &                 stoppingtime(i,rhoi,dustvar(i)))
+               CALL dustvar2dustfrac(1.0/rho(i),dustvar(:,i),dustfraci,
+     &              dustfracisum)
+!               DO l = 1,ndusttypes
+!                  CALL get_ts(tsi(l),sgrain(l),densgrain(l),
+!     &                     rho(i)*(1.-dustfracisum),rho(i)*dustfracisum,
+!     &                     vsound(i),0.,iregime)
+!               ENDDO
+               tsi(:) = stoppingtime(:,i)
+               tseff = (1.-dustfracisum)/dustfracisum
+     &                 *SUM(dustfraci(:)*tsi(:))
+               IF (dustfracisum.GT.0. .AND. tseff.GT.0.) THEN
+                  dtdust = 0.3*(xyzmh(5,i)/vsound(i))**2
+     &                     /(dustfracisum*tseff)
                ELSE
-                  WRITE (*,*) 'ERROR - idustFluid ', idustFluid
-                  CALL quit(0)
+                  dtdust = HUGE(dtdust)
                ENDIF
+
                rmoddust = dtdust/(dt*isteps(i)/imaxstep)
                rmod = MIN(rmod, rmoddust)
                rmodall(15) = rmoddust
@@ -2595,6 +2771,8 @@ C$OMP CRITICAL (writeiprint)
             WRITE (iprint,*)f2vxyzu(1,i),f2vxyzu(2,i),f2vxyzu(3,i)
             WRITE (iprint,*)rmod1,rmodcr,rmodcr2
             WRITE (iprint,*)rmod, rmodgd
+            WRITE (iprint,*)timestepcriterion(i)
+            WRITE (iprint,*)rmodall(:)
             WRITE (iprint,*)nneigh(i),rho(i)
             WRITE (iprint,*)errx,erry,errz
             WRITE (iprint,*)errvx,errvy,errvz,erru,errh
@@ -2653,8 +2831,8 @@ c
             IF (idim_grow.EQ.idim .AND. iphase(i).EQ.11) THEN
                f1rgrain(i) = f2rgrain(i)
             ENDIF
-            IF (idustFluid.GT.0) ! Explicit one-fluid only
-     &           f1dust(i) = f2dust(i)
+            IF (idustFluid.GE.1) ! Explicit one-fluid only
+     &           f1dust(:,i) = f2dust(:,i)
             IF (idimHY09.EQ.idim) THEN
                f1HY09drhodt(:,i) = f2HY09drhodt(:,i)
                f1HY09vrel_h(i) = f2HY09vrel_h(i)
@@ -3297,6 +3475,7 @@ c
                      dumalpha(isizealphaMM,j) = f1ha(isizealphaMM+l,k)
                      ENDIF
                   ENDIF
+                  IF (idustFluid.NE.0) dumdustvar(:,j) = dustvar(:,j)
                ENDIF
             END DO
 
@@ -3494,7 +3673,7 @@ c
 c--Redo ghosts
 c
             nghost = 0
-            CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+            CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
             ntot = npart + nghost
 c
 c--Set dummy's for new particles
@@ -3513,7 +3692,7 @@ c
                         dumalpha(k,j) = alphaMM(k,j)
                      ENDDO
                   ENDIF
-                  IF (idustFluid.NE.0) dumdustvar(j) = dustvar(j)
+                  IF (idustFluid.NE.0) dumdustvar(:,j) = dustvar(:,j)
                ENDIF
             END DO
 c
@@ -3550,9 +3729,11 @@ c
                   ENDIF
                   IF (idustFluid.NE.0) THEN
                      IF (idustFluid.EQ.-2) THEN ! Implicit
-                        dumdustvar(j) = dustvar(j)
-                     ELSEIF (idustFluid.GT.0) THEN ! Explicit
-                        dumdustvar(j) = dustvar(j) + deltat*f1dust(k)
+                        dumdustvar(:,j) = dustvar(:,j)
+                     ELSEIF (idustFluid.GE.1) THEN ! Explicit
+                        dumdustvar(:,j) =                       MAX(
+     &                       dustvar(:,j) + deltat*f1dust(:,k)
+     &                       ,dustvarmin)
                      ELSE
                         WRITE (*,*) 'ERROR - idustFluid ',idustFluid
                         CALL quit(0)

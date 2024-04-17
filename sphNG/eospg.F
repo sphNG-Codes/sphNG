@@ -10,7 +10,7 @@ c************************************************************
 
       REAL*4 rho,pr,vsound
       DIMENSION vxyzu(4,idim), rho(idim), pr(idim), vsound(idim)
-      DIMENSION ekcle(5,iradtrans),dustvar(idim_dustFluid)
+      DIMENSION ekcle(5,iradtrans),dustvar(ndusttypes,idim_dustFluid)
 
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/cgas'
@@ -23,6 +23,10 @@ c************************************************************
       INCLUDE 'COMMONS/physeos'
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/bodys'
+
+      DIMENSION dustfraci(ndusttypes)
+      SAVE dustfraci
+C$OMP THREADPRIVATE(dustfraci)
 
       CHARACTER*7 where
       REAL*4 rho_gas_r4
@@ -40,16 +44,9 @@ c     dust fraction since the density is the total density, not the
 c     density of the gas
 c
       IF (idustFluid.NE.0) THEN
-         IF (idustFluid.EQ.1) THEN
-            !--sqrt(rho*epsilon) method
-            rho_gas = rho(ipart) - dustvar(ipart)**2
-         ELSEIF (ABS(idustFluid).EQ.2) THEN
-            !--sqrt(epsilon/(1-epsilon)) method
-            rho_gas = rho(ipart)/(1.0 + dustvar(ipart)**2)
-         ELSE
-            WRITE (*,*) 'ERROR - idustFluid ',idustFluid
-            CALL quit(0)
-         ENDIF
+         CALL dustvar2dustfrac(1.0/rho(ipart),dustvar(:,ipart),
+     &        dustfraci(:),dustfracisum)
+         rho_gas = rho(ipart)*(1. - dustfracisum)
       ELSE
          rho_gas = rho(ipart)
       ENDIF

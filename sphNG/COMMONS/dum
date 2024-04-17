@@ -5,6 +5,6 @@
       COMMON /dum   / dumxyzmh(5,mmax2), dumvxyzu(4,idim2),
      &                dumekcle(5,iradtrans2),
      &                dumBevolxyz(imhdevol,imhd2),
-     &                dumdustvar(idim_dustfluid2),
+     &                dumdustvar(ndusttypes,idim_dustfluid2),
      &                dumrgrain(idim_grow), 
      &                dumalpha(isizealphaMM,idim2)

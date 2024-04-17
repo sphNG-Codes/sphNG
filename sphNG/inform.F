@@ -56,6 +56,9 @@ c************************************************************
       INCLUDE 'COMMONS/lyonfiles'
       INCLUDE 'COMMONS/HY09dustprops'
       INCLUDE 'COMMONS/HY09rho'
+      INCLUDE 'COMMONS/dustfluid'
+
+      DIMENSION dustfraci(ndusttypes)
 
       CHARACTER*7 where, where2
 c
@@ -129,6 +132,9 @@ c
       n1new_temp = 0
       n2new = 0
       n2new_temp = 0
+
+      dustmass1 = 0.
+
       DO i = 1, npart
          IF (iunique(iorig(i)).LE.n1 .AND. 
      &                    (iphase(i).EQ.0 .OR. iphase(i).GE.10)) THEN
@@ -184,6 +190,14 @@ c
                   tempgas = gmw*uergg/Rg*(gamma-1.0)*vxyzu(4,i)
                   tgmean1 = tgmean1 + tempgas
                   tgmax1 = MAX(tgmax1, tempgas)
+               ENDIF
+c
+c--Compute total one-fluid dust mass
+c
+               IF (idustFluid.NE.0) THEN
+                  CALL dustvar2dustfrac(1.0/rho(i),dustvar(:,i),
+     &                 dustfraci,dustfracisum)
+                  dustmass1 = dustmass1 + pmassi*dustfracisum
                ENDIF
             ENDIF
          ENDIF

@@ -3,7 +3,7 @@
 c************************************************************
 c                                                           *
 c  This subroutine handles the particle set up for          *
-c  planets alone, to ease my lifes difficulties.            *
+c  planets alone, to ease my life's difficulties.           *
 c                                                           *
 c  Ben Ayliffe - 17/03/2011                                 *
 c                                                           *
@@ -162,6 +162,18 @@ c---------------------------------------------------------------
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/dustfluid'
+      INCLUDE 'COMMONS/tstop'
+
+      INTERFACE initialise_dust
+         SUBROUTINE initialise_dust(dust_to_gas,dustfrac,ndust)
+         IMPLICIT NONE
+         INTEGER, INTENT(IN),  OPTIONAL :: ndust
+         REAL,    INTENT(OUT), OPTIONAL :: dustfrac(:)
+         REAL,    INTENT(OUT)           :: dust_to_gas
+         END SUBROUTINE initialise_dust
+      END INTERFACE initialise_dust
+
+      REAL    :: dustfrac(ndusttypes)
 
       REAL*8 inclination
       CHARACTER*1 iok, iwhat, idens
@@ -287,6 +299,8 @@ c            inclination = inclination*pi/180.
 
             WRITE (*,11207) i
             READ (*,*) planetradius(i)
+
+            xmass = 1.
 
             print *,'R_planet ',i,' initial inflated = ',
      &           planetradius(i)*pradfac(i,0.)
@@ -1367,15 +1381,27 @@ c
          dtmax = dtfrac*tcomp
          WRITE(*,*) 'setting dtmax = ',dtmax
       ENDIF
+
+      CALL preset(1)
 c
 c--IF one-fluid dust, enter initial dust-to-gas ratio
 c
       IF (idustFluid.NE.0) THEN
-         WRITE (*, 99043)
-99043    FORMAT(' Enter initial dust to gas ratio (rho_d/rho_g) and',//,
-     &        '   the fraction of radius to contain dust, e.g. 0.9')
-         READ (iread, *) dust_to_gas, radfrac
-         dust_epsilon = 1.0/(1.0+1.0/dust_to_gas)
+         radius_outer = 1.0E+20
+         IF (igeom.EQ.10) THEN
+            WRITE (*, 99055)
+99055              FORMAT(' Enter the outer radius to have a normal',
+     &           'dust to gas ratio (in code units)',/
+     &           'Beyond this, the dust fraction will be reduced',
+     &           'by a factor of 100.')
+            READ (iread, *) radius_outer
+         ENDIF
+
+         CALL initialise_dust(dust_to_gas,dustfrac=dustfrac)
+
+         totgrainmass = dust_to_gas*totmas
+         print*,'Total solids/gas mass ratio ',totgrainmass/totmas
+         totmas = totmas + totgrainmass
       ENDIF
 c
 c--adjust smoothing lengths (also calculates initial density)
@@ -1399,40 +1425,69 @@ c Set abundances of main species
       END DO
       END IF
 
-      CALL preset(1)
-
       IF (ibound.EQ.100) THEN
          gapfac = 0.0
          CALL gapfactor(variation, hmass, gapfac)
       ENDIF
 c
-c--Set initial dust to gas ratio (to avoid divide by zero)
-c
-      IF (idustFluid.NE.0) dustvar(1:npart) = 1.0
-
-      IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim .OR.
-     &     idustFluid.NE.0) CALL hcalc
-c
-c--Update initial dust to gas ratio
+c--Calculate the dust parameterisation variable.  This must be
+c     done after hcalc for idustFluid.EQ.1 because it depends on rho()
 c
       IF (idustFluid.NE.0) THEN
          DO i = 1, npart
             IF (iphase(i).EQ.0) THEN
                radius = SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2+xyzmh(3,i)**2)
-               IF (radius.LT.radfrac*rcyl) THEN
-                  dust_epsilon_here = dust_epsilon
+               IF (radius.GT.radius_outer) THEN
+                  dust_factor = 0.01
                ELSE
-                  dust_epsilon_here = 0.0001
+                  dust_factor = 1.0
                ENDIF
                IF (idustFluid.EQ.1) THEN
-                  dustvar(i) = SQRT(dust_epsilon_here*rho(i))
+c
+c--Temporary value (see below)
+c
+                  rho(i) = 1.
+
+                  !--sqrt(epsilon*rho) method
+                  dustvar(:,i) = SQRT(dustfrac(:)*dust_factor*rho(i))
                ELSEIF (ABS(idustFluid).EQ.2) THEN
-                  dustvar(i) = SQRT(dust_epsilon_here/
-     &                 (1.0 - dust_epsilon_here))
+                  !--sqrt(epsilon/(1-epsilon)) method
+                  dustvar(:,i) = SQRT(dustfrac(:)*dust_factor/
+     &                 (1.0-dustfrac(:)*dust_factor))
+               ELSEIF (idustFluid.EQ.3) THEN
+                  !--asin(sqrt(epsilon)) method
+                  dustvar(:,i) = ASIN(SQRT(dustfrac(:)*dust_factor))
+               ELSEIF (idustFluid.EQ.4) THEN
+                  !--epsilon method
+                  dustvar(:,i) = dustfrac(:)*dust_factor
                ELSE
-                  WRITE (*,*) 'ERROR - Invalid idustFluid ',idustFluid
+                  WRITE (*,*)'ERROR - Invalid idustFluid ',idustFluid
                   CALL quit(0)
                ENDIF
+            ENDIF
+         END DO
+      ENDIF
+c
+c--Set initial dust to gas ratio (to avoid divide by zero)
+c
+      IF (iok.EQ.'y' .OR. iok.EQ.'Y' .OR. imhd.EQ.idim .OR.
+     &     idustFluid.NE.0) CALL hcalc
+c
+c--Re-calculate the dust parameterisation variable if idustFluid.EQ.1.
+c     This must be done after hcalc for idustFluid.EQ.1 because it 
+c     depends on rho().
+c
+      IF (idustFluid.EQ.1) THEN
+         DO i = 1, npart
+            IF (iphase(i).EQ.0) THEN
+               radius = SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2+xyzmh(3,i)**2)
+               IF (radius.GT.radius_outer) THEN
+                  dust_factor = 0.01
+               ELSE
+                  dust_factor = 1.0
+               ENDIF
+               !--sqrt(epsilon*rho) method
+               dustvar(:,i) = SQRT(dustfrac(:)*dust_factor*rho(i))
             ENDIF
          END DO
       ENDIF

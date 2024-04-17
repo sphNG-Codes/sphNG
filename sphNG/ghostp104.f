@@ -1,4 +1,4 @@
-      SUBROUTINE ghostp104(npart, xyzmh, vxyzu, ekcle, Bevolxyz)
+      SUBROUTINE ghostp104(npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
 c************************************************************
 c                                                           *
 c  This subroutine computes the list of ghost particles for *
@@ -18,6 +18,7 @@ c************************************************************
       DIMENSION vxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
       DIMENSION Bevolxyz(imhdevol,imhd)
+      DIMENSION dustvar(ndusttypes,idim_dustFluid)
 
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/densi'
@@ -36,7 +37,7 @@ c************************************************************
       INCLUDE 'COMMONS/typef'
       INCLUDE 'COMMONS/rotat'
 
-c      REAL*4 rhoreal4
+      DIMENSION dustvari(ndusttypes)
 
       CHARACTER*7 where
 
@@ -83,6 +84,7 @@ c
          rhoi = rho(i)
          vsoundi = vsound(i)
          presi = pr(i)
+         IF (idustFluid.NE.0) dustvari(:) = dustvar(:,i)
          iphasei = iphase(i)
 
          r2 = xi**2 + yi**2
@@ -122,6 +124,7 @@ c            vxyzu(2,nptot) = 0.0
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = iphasei
          ENDIF
 
@@ -160,6 +163,7 @@ c                  vxyzu(2,nptot) = 0.0
                   rho(nptot) = rhoi
                   vsound(nptot) = vsoundi
                   pr(nptot) = presi
+                  IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
                   iphase(nptot) = iphasei
                ENDIF
             ENDIF
@@ -192,6 +196,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = iphasei
          ENDIF
          IF (ang1.LT.phimin) THEN
@@ -216,6 +221,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = iphasei
          ENDIF
 c
@@ -247,6 +253,7 @@ c
             vsound(nptot) = vsoundi
             pr(nptot) = presi
             iphase(nptot) = iphase(i)
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF
@@ -270,6 +277,7 @@ c
             vsound(nptot) = vsoundi
             pr(nptot) = presi
             iphase(nptot) = iphase(i)
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
          ENDIF

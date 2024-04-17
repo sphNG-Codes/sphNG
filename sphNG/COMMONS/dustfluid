@@ -1,2 +1,2 @@
       REAL dustvar
-      COMMON /dustfluid/ dustvar(idim_dustFluid)
+      COMMON /dustfluid/ dustvar(ndusttypes,idim_dustFluid)

@@ -15,7 +15,7 @@ c************************************************************
       DIMENSION vxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
       DIMENSION Bevolxyz(imhdevol,imhd)
-      DIMENSION dustvar(idim_dustFluid)
+      DIMENSION dustvar(ndusttypes,idim_dustFluid)
 
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/densi'
@@ -36,6 +36,8 @@ c************************************************************
       INCLUDE 'COMMONS/nonideal'
       REAL    jcurrenti(3),nden_nimhdi(n_nden),eta_nimhdi(4)
 #endif
+
+      DIMENSION dustvari(ndusttypes)
 
       CHARACTER*7 where
 
@@ -80,7 +82,7 @@ c
          rhoi = rho(i)
          vsoundi = vsound(i)
          presi = pr(i)
-         IF (idustFluid.NE.0) dustvari = dustvar(i)
+         IF (idustFluid.NE.0) dustvari(:) = dustvar(:,i)
 
          delta = 0.0
 
@@ -113,7 +115,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -142,7 +144,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -173,7 +175,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -202,7 +204,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -233,7 +235,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -262,7 +264,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -303,7 +305,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -332,7 +334,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -361,7 +363,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -390,7 +392,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -420,7 +422,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -449,7 +451,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -478,7 +480,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -507,7 +509,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -537,7 +539,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -566,7 +568,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -595,7 +597,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -624,7 +626,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -657,7 +659,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -687,7 +689,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -717,7 +719,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -747,7 +749,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -777,7 +779,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -807,7 +809,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -837,7 +839,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)
@@ -867,7 +869,7 @@ c
             iphase(nptot) = iphase(i)
             IF (imhd.EQ.idim) CALL copyBevol(nptot,i,Bevolxyz,
      &         xyzmh(1,nptot)-xi,xyzmh(2,nptot)-yi,xyzmh(3,nptot)-zi)
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
 #ifdef NONIDEAL
             jcurrent(1:3,nptot)        = jcurrenti(1:3)
             nden_nimhd(1:n_nden,nptot) = nden_nimhdi(1:n_nden)

@@ -12,7 +12,7 @@ c************************************************************
       DIMENSION vxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
       DIMENSION Bevolxyz(imhdevol,imhd)
-      DIMENSION dustvar(idim_dustFluid)
+      DIMENSION dustvar(ndusttypes,idim_dustFluid)
 
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/densi'
@@ -29,7 +29,7 @@ c************************************************************
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/eosq'
 
-c      REAL*4 rhoreal4
+      DIMENSION dustvari(ndusttypes)
 
       CHARACTER*7 where
 
@@ -66,7 +66,7 @@ c
          rhoi = rho(i)
          vsoundi = vsound(i)
          presi = pr(i)
-         IF (idustFluid.NE.0) dustvari = dustvar(i)
+         IF (idustFluid.NE.0) dustvari(:) = dustvar(:,i)
 
          r2 = xi**2 + yi**2 + zi**2
          r = SQRT(r2)
@@ -95,7 +95,7 @@ c
             rho(nptot) = rhoi
             vsound(nptot) = vsoundi
             pr(nptot) = presi
-            IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+            IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
             iphase(nptot) = 0
          ENDIF
          goto 234
@@ -124,7 +124,7 @@ c
                   rho(nptot) = rhoi
                   vsound(nptot) = vsoundi
                   pr(nptot) = presi
-                  IF (idustFluid.NE.0) dustvar(nptot) = dustvari
+                  IF (idustFluid.NE.0) dustvar(:,nptot) = dustvari(:)
                   iphase(nptot) = 0
                ENDIF
             ENDIF

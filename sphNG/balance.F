@@ -70,6 +70,10 @@ c************************************************************
       INCLUDE 'COMMONS/f2HY09'
       INCLUDE 'COMMONS/HY09check'
       INCLUDE 'COMMONS/HY09accel'
+      INCLUDE 'COMMONS/dustfluid'
+      INCLUDE 'COMMONS/dustfluidderiv'
+      INCLUDE 'COMMONS/dustfluidvelu'
+      INCLUDE 'COMMONS/tstopvar'
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
@@ -133,6 +137,15 @@ c
          inumreal = HY09_ndust_bins 
          CALL MPI_TYPE_CONTIGUOUS(inumreal,MPI_REAL8,iHY09REAL8,ierr)
          CALL MPI_TYPE_COMMIT(iHY09REAL8,ierr)
+      ENDIF
+
+      IF (idustFluid.NE.0) THEN
+         inumreal = ndusttypes
+         CALL MPI_TYPE_CONTIGUOUS(inumreal,MPI_REAL8,iFluidREAL8,ierr)
+         CALL MPI_TYPE_COMMIT(iFluidREAL8,ierr)
+         inumreal = ndusttypes*3
+         CALL MPI_TYPE_CONTIGUOUS(inumreal,MPI_REAL8,iFluid3REAL8,ierr)
+         CALL MPI_TYPE_COMMIT(iFluid3REAL8,ierr)
       ENDIF
 c
 c--Find particles that need to be transferred to each MPI process.
@@ -408,6 +421,21 @@ c     &       lsendlist, iHY09REAL8, indexMPIHY09, ierr)
      &                          indexMPIHY09, ierr)
                            CALL MPI_TYPE_COMMIT(indexMPIHY09,ierr)
                         ENDIF
+
+                        IF (idustFluid.NE.0) THEN
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1,
+c     &       lsendlist, iFluidREAL8, indexMPIFluid, ierr)
+                           CALL MPI_TYPE_INDEXED(numlist(j+1),
+     &                          lblocklengths, lsendlist, iFluidREAL8,
+     &                          indexMPIFluid, ierr)
+                           CALL MPI_TYPE_COMMIT(indexMPIFluid,ierr)
+c         CALL MPI_TYPE_CREATE_INDEXED_BLOCK(numlist(j+1), 1,
+c     &       lsendlist, iFluid3REAL8, indexMPIFluid3, ierr)
+                           CALL MPI_TYPE_INDEXED(numlist(j+1),
+     &                          lblocklengths, lsendlist, iFluid3REAL8,
+     &                          indexMPIFluid3, ierr)
+                           CALL MPI_TYPE_COMMIT(indexMPIFluid3,ierr)
+                        ENDIF
 c
 c--NOTE: itempsort is used to send iunique indexes of particles which 
 c     are not sorted like all the other arrays
@@ -624,9 +652,26 @@ c     &                          MPI_COMM_WORLD, ierr)
                            CALL MPI_SEND(HY09discflag,1,indexMPI1,j,
      &                          207,MPI_COMM_WORLD, ierr)
                         ENDIF
+
+                        IF (idustFluid.NE.0) THEN
+                           CALL MPI_SEND(dustvar,1,indexMPIFluid,
+     &                          j,208,MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(f1dust ,1,indexMPIFluid,
+     &                          j,209,MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(f2dust ,1,indexMPIFluid,
+     &                          j,210,MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(dustfluidvxyz,1,indexMPIFluid3,
+     &                          j,211,MPI_COMM_WORLD, ierr)
+                           CALL MPI_SEND(stoppingtime,1,indexMPIFluid,
+     &                          j,212,MPI_COMM_WORLD, ierr)
+                        ENDIF
 c
 c--Deallocate types
 c
+                        IF (idustFluid.NE.0) THEN
+                           CALL MPI_TYPE_FREE(indexMPIFluid3,ierr)
+                           CALL MPI_TYPE_FREE(indexMPIFluid,ierr)
+                        ENDIF
                         IF (idimHY09.EQ.idim) THEN
                            CALL MPI_TYPE_FREE(indexMPIHY09,ierr)
                         ENDIF
@@ -1422,6 +1467,49 @@ c                  ENDIF
                      CALL quit(1)
                   ENDIF
                ENDIF
+
+               IF (idustFluid.NE.0) THEN
+                  CALL MPI_RECV(dustvar(1,npartnew+1), idim, 
+     &                 iFluidREAL8,
+     &                 iprocrec, 208, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,iFluidREAL8,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igot dustvar'
+                     CALL quit(1)
+                  ENDIF
+                  CALL MPI_RECV(f1dust(1,npartnew+1), idim, 
+     &                 iFluidREAL8,
+     &                 iprocrec, 209, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,iFluidREAL8,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igot f1dust'
+                     CALL quit(1)
+                  ENDIF
+                  CALL MPI_RECV(f2dust(1,npartnew+1), idim, 
+     &                 iFluidREAL8,
+     &                 iprocrec, 210, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,iFluidREAL8,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igot f2dust'
+                     CALL quit(1)
+                  ENDIF
+                  CALL MPI_RECV(dustfluidvxyz(1,1,npartnew+1), idim, 
+     &                 iFluid3REAL8,
+     &                 iprocrec, 211, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,iFluid3REAL8,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igot dustfluidvxyz'
+                     CALL quit(1)
+                  ENDIF
+                  CALL MPI_RECV(stoppingtime(1,npartnew+1), idim, 
+     &                 iFluidREAL8,
+     &                 iprocrec, 212, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,iFluidREAL8,inumber,ierr)
+                  IF (inumber.NE.igotnumber) THEN
+                     WRITE (*,*) 'ERROR - balance igot stoppingtime'
+                     CALL quit(1)
+                  ENDIF
+               ENDIF
 #ifdef MPIDEBUGT
                print *,iproc,': Received transfer of ',inumber,' from ',
      &              iprocrec
@@ -1872,6 +1960,11 @@ c
       print *,iproc,': New value of npart, nptmass = ',npartnew, npart, 
      &     nptmassnew, nptmass
 
+      IF (idustFluid.NE.0) THEN
+         CALL MPI_TYPE_FREE(iFluid3REAL8,ierr)
+         CALL MPI_TYPE_FREE(iFluidREAL8,ierr)
+      ENDIF
+
       IF (idimHY09.EQ.idim) THEN
          CALL MPI_TYPE_FREE(iHY09REAL8,ierr)
       ENDIF
@@ -2044,6 +2137,7 @@ c
 c      n1 = n1 - (nlistinactiveold - nlistinactive)
       IF (iproc.EQ.0) WRITE (iprint,*) 'MOVE-POST ',npart,
      &     nlistinactive,nlistinactiveold
+      print *,iproc,': MOVE-POST ',npart,nlistinactive,nlistinactiveold
 c
 c--Test MPI decomposition: writes out particles assigned to each process
 c
@@ -2111,6 +2205,12 @@ c
                icolumnnext(i) = icolumnsteps(i)
             ENDIF
 
+            IF (isteps(i).LE.0) THEN
+               WRITE (*,*) 'ERROR - isteps(i).LE.0 ',i,iphase(i)
+               WRITE (iprint,*) 'ERROR - isteps(i).LE.0 ',i,iphase(i)
+               CALL quit(1)
+            ENDIF
+
             ibin = INT(LOG10(REAL(isteps(i)))/xlog2+0.5)
             IF (ibin.GT.nbinmax .OR. ibin.GT.30 .OR. ibin.LT.0) THEN
                WRITE (*,*) 'ERROR - ibin.GT.nbinmax B ',ibin
@@ -2133,7 +2233,7 @@ c
 c--Need to re-make ghosts and re-make tree
 c
       IF (ibound.GT.0) THEN
-         CALL ghostp(ntot,npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+         CALL ghostp(ntot,npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
 
          DO i = npart+1, ntot
             DO k = 1, 5
@@ -2156,15 +2256,18 @@ c
                   dumBevolxyz(k,i) = Bevolxyz(k,i)
                END DO
             ENDIF
+            IF (idustFluid.NE.0) dumdustvar(:,i) = dustvar(:,i)
          END DO
       ELSE
          nghost = 0
          ntot = npart + nghost
       ENDIF
-#ifdef MPIDEBUGT
+
       print *,iproc,': Balance is making tree ',ntot, npart
-#endif
+
       CALL insulate(1, 0, ntot, npart, dumxyzmh, f1vxyzu)
+
+      print *,iproc,': Balance has made tree ',ntot, npart
 c
 c--End of MPI-only section
 c

@@ -81,6 +81,9 @@ c#endif
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/dustfluid'
       INCLUDE 'COMMONS/dustfluidvelu'
+      INCLUDE 'COMMONS/dustfluidgrains'
+      INCLUDE 'COMMONS/tstop'
+      INCLUDE 'COMMONS/tstopvar'
       INCLUDE 'COMMONS/dustimplicit'
       INCLUDE 'COMMONS/grain'
       INCLUDE 'COMMONS/compv'
@@ -93,6 +96,11 @@ c#endif
 
       DIMENSION itempsort(idim)
 c      EQUIVALENCE (itempsort, next1)
+
+      DIMENSION dustfrac(ndusttypes,idim_dustFluid)
+      DIMENSION dustfracsum1(idim_dustFluid)
+      DIMENSION deltavsum(3,idim_dustFluid)
+      DIMENSION dustproperties(4)
 
       CHARACTER*7 where
       CHARACTER*100 fileident
@@ -238,26 +246,27 @@ c      n2tot = n2
 
 #ifdef MPIALL
 c  On MPI only iproc=0 writes the headers. 
-c  Other MPI processes skip forward to the lock and then write their data arrays
-c  On MPICOPY only iproc=0 writes anything and the corresponding ENDIF is at the
+c  Other MPI processes skip forward to the lock, then write their data arrays
+c  On MPICOPY only iproc=0 writes anything, the corresponding ENDIF is at the
 c  end of the subroutine.
       IF (iproc.EQ.0) THEN
 #endif
 c
 c--Default int
-      number = 13 + NTAB
+      number = 15 + NTAB
+c      number = 14 + NTAB
       WRITE (idisk1, ERR=100) number
 
       WRITE (idisk1, ERR=100) tag('nparttot'),tag('n1'),tag('n2'),
      &      tag('nreassigntot'),tag('naccretetot'),tag('nkilltot'),
      &      tag('nblocks'),tag('iyr'),tag('idum'),(tag('iv'),i=1,NTAB),
      &      tag('iplanetesimals'),tag('irotpot'),tag('idragscheme'),
-     &      tag('HY09_dust_bins')
+     &      tag('HY09_dust_bins'),tag('idustFluid'),tag('ndusttypes')
 
       WRITE (idisk1, ERR=100) nparttot,n1,n2,nreassigntot,
      &     naccretetot,nkilltot,nblocks,iyr,idum,
      &     (iv(i),i=1,NTAB), iplanetesimals, irotpot,
-     &     idragscheme, HY09_ndust_bins
+     &     idragscheme, HY09_ndust_bins, idustFluid, ndusttypes
       print *,'Wrote to dump file ',HY09_ndust_bins
 c--int*1, int*2, int*4
       number = 0
@@ -275,6 +284,25 @@ c
 c--Full dump
 c
       number = 46
+
+      IF (idustFluid.NE.0) THEN
+         IF (ndusttypes.GT.1) THEN
+            ndustheaders = 4
+            tagarr(1:ndustheaders) =
+     &         (/'smincgs  ','smaxcgs  ','sindex   ','graindenscgs'/)
+            dustproperties(1) = smincgs
+            dustproperties(2) = smaxcgs
+            dustproperties(3) = sindex
+            dustproperties(4) = densgrain(1)*udens
+         ELSE
+            ndustheaders = 2
+            tagarr(1:ndustheaders) =
+     &         (/'grainsizecgs','graindenscgs'/)
+            dustproperties(1) = sgrain(1)*udist
+            dustproperties(2) = densgrain(1)*udens
+         ENDIF
+      ENDIF
+      number = number + ndustheaders
 
       pmassinitial = 0.
       IF (ifulldump.NE.0) THEN
@@ -333,7 +361,8 @@ c      print *,'stuff ',gt, dtmax, gamma, rhozero, RK2
      &  tag('ymax'),tag('zmin'),tag('zmax'),tag('rmax'),tag('rcyl'),
      &  tag('HY09_size_min'),tag('HY09_size_max'),tag('HY09_cutoff'),
      &  tag('HY09_slope'),tag('HY09_dustdensity'),
-     &  tag('HY09dustgasratio'),tag('HY09_vcoag_coeff')
+     &  tag('HY09dustgasratio'),tag('HY09_vcoag_coeff'),
+     &  (tag(tagarr(i)),i=1,ndustheaders)
 
       WRITE (idisk1, ERR=100) gt, dtmax, gamma, rhozero, RK2,
      &     escaptot, tkintot, tgravtot, ttermtot, 
@@ -344,7 +373,8 @@ c      print *,'stuff ',gt, dtmax, gamma, rhozero, RK2
      &     coremass_orig, coremass, hfact, xmin, xmax, ymin, ymax,
      &     zmin, zmax, rmax, rcyl,
      &     HY09_size_min, HY09_size_max, HY09_cutoff, HY09_slope, 
-     &     HY09_dust_density, HY09_dustgas_ratio, HY09_vcoag_coeff
+     &     HY09_dust_density, HY09_dustgas_ratio, HY09_vcoag_coeff,
+     &     (dustproperties(i),i=1,ndustheaders)
 
 c--real*4
       number = 0
@@ -432,7 +462,13 @@ c
 
       IF (istellar_ionisation) nums(6) = nums(6) + 6
 
-      IF (idustFluid.NE.0) nums(6) = nums(6) + 4
+      IF (idustFluid.NE.0) THEN
+         !--dustfrac, deltav, and tstop
+         nums(6) = nums(6) + 5*ndusttypes
+
+         !--dustfracsum and deltavsum
+         IF (ndusttypes.GT.1) nums(6) = nums(6) + 4
+      ENDIF
 c
 c--Pablo: Change to include dust grain evol
 c
@@ -604,29 +640,93 @@ c--Default real
       ENDIF
 
       IF (idustFluid.NE.0) THEN
+         dustfrac     = 0.
+         DO k = 1, ndusttypes
+            IF (idustFluid.EQ.1) THEN
+               !--sqrt(rho*epsilon) method
+               dustfrac(k,1:nprint) = dustvar(k,isort(1:nprint))**2
+     &              /rho(isort(1:nprint))
+            ELSEIF (ABS(idustFluid).EQ.2) THEN
+               !--sqrt(epsilon/(1-epsilon)) method
+               dustfrac(k,1:nprint) = dustvar(k,isort(1:nprint))**2/
+     &              (1.0+dustvar(k,isort(1:nprint))**2)
+            ELSEIF (idustFluid.EQ.3) THEN
+               !--asin(sqrt(epsilon)) method
+               dustfrac(k,1:nprint) = SIN(dustvar(k,isort(1:nprint)))**2
+            ELSEIF (idustFluid.EQ.4) THEN
+               !--epsilon method
+               dustfrac(k,1:nprint) = dustvar(k,isort(1:nprint))
+            ELSE
+               WRITE (*,*) 'ERROR - idustFluid not valid ',idustFluid
+               CALL quit(0)
+            ENDIF
+         END DO
+c
+c--If BOTH idustFluid and idimHY09, then use the dust set up from HY09
+c
+         IF (idimHY09.EQ.idim .AND. gt.EQ.0.) THEN
+            dustfrac(:,1:nprint) = HY09bin_rho(:,isort(1:nprint))
+         ENDIF
+c
+c--Note that dustfracsum is dumped to allow the dust and gas velocities
+c     to be computed, but it is not used in the integration at all.
+c     NB:  Not using isort() as precomputed above.
+c
+         IF (ndusttypes.GT.1) THEN
+            WRITE (idisk1, ERR=100) tag('dustfractot')
+            WRITE (idisk1, ERR=100) (SUM(dustfrac(:,i)),i=1,nprint)
+         ENDIF
 c
 c--Note dustfrac (epsilon) is dumped, but dustvar(eg. SQRT(epsilon*rho))
-c     is the variable that is integrated.  Also note that dustfluidvxyz 
-c     is dumped to allow the dust and gas velocities to be computed, 
-c     but it is not used in the integration at all.
+c     is the variable that is integrated.  NB: Not using isort() as 
+c     precomputed above.
 c
-         WRITE (idisk1, ERR=100) tag('dustfrac')
-         IF (idustFluid.EQ.1) THEN ! dustvar=sqrt(epsilon*rho)
-            WRITE (idisk1, ERR=100) (dustvar(isort(i))**2/rho(isort(i)), 
-     &           i=1,nprint)
-         ELSEIF (ABS(idustFluid).EQ.2) THEN ! Ballabio et al. 2018
-            ! dustvar=sqrt(dust_epsilon/(1-dust_epsilon))
-            WRITE (idisk1, ERR=100) (dustvar(isort(i))**2/
-     &           (1+dustvar(isort(i))**2), i=1,nprint)
-         ELSE
-            WRITE (*,*) 'ERROR - idustFluid not valid ',idustFluid
-            CALL quit(0)
+         DO k = 1, ndusttypes
+            WRITE (idisk1, ERR=100) tag('dustfrac')
+            WRITE (idisk1, ERR=100) (dustfrac(k,i),i=1,nprint)
+         END DO
+c
+c--Note that deltavsum and dustfluidvxyz
+c     are dumped to allow the dust and gas velocities to be computed,
+c     but they are not used in the integration at all.
+c
+         IF (ndusttypes.GT.1) THEN
+            dustfracsum1   = 0.
+            deltavsum      = 0.
+            tagarr(1:3)    = (/'deltavsumx','deltavsumy','deltavsumz'/)
+            WHERE (SUM(dustfrac(:,1:nprint),1).GT.0.)
+               dustfracsum1(1:nprint) = 1./SUM(dustfrac(:,1:nprint),1)
+            END WHERE
+            DO i = 1,nprint
+               deltavsum(1,i) = dustfracsum1(i)*SUM(dustfrac(:,i)
+     &                          *dustfluidvxyz(1,:,isort(i)))
+               deltavsum(2,i) = dustfracsum1(i)*SUM(dustfrac(:,i)
+     &                          *dustfluidvxyz(2,:,isort(i)))
+               deltavsum(3,i) = dustfracsum1(i)*SUM(dustfrac(:,i)
+     &                          *dustfluidvxyz(3,:,isort(i)))
+            ENDDO
+            DO j = 1, 3
+               WRITE (idisk1, ERR=100) tag(tagarr(j))
+               WRITE (idisk1, ERR=100) (deltavsum(j,i),i=1,nprint)
+            ENDDO
          ENDIF
+c
          tagarr(1:3) = (/'deltavx','deltavy','deltavz'/)
-         DO j = 1, 3
-            WRITE (idisk1, ERR=100) tag(tagarr(j))
-            WRITE (idisk1, ERR=100) (dustfluidvxyz(j,isort(i)),
-     &           i=1,nprint)
+         DO k = 1, ndusttypes
+            DO j = 1, 3
+               WRITE (idisk1, ERR=100) tag(tagarr(j))
+               WRITE (idisk1, ERR=100) (dustfluidvxyz(j,k,isort(i)),
+     &              i=1,nprint)
+            END DO
+         END DO
+c
+c--Note that stoppingtime
+c     is dumped for analysis, debugging, and/or comparision
+c
+         DO k = 1, ndusttypes
+            WRITE (idisk1, ERR=100) tag('tstop')
+            WRITE (idisk1, ERR=100)
+     &           (stoppingtime(k,isort(i)),i=1,nprint)
          END DO
       ENDIF
 c
@@ -637,7 +737,7 @@ c
          tagarr(1:3) = (/'pgradx','pgrady','pgradz'/)
          DO j = 1, 3
             WRITE (idisk1, ERR=100) tag(tagarr(j))
-            WRITE (idisk1, ERR=100) (dustfluidvxyz(j,isort(i)),
+            WRITE (idisk1, ERR=100) (dustfluidvxyz(j,1,isort(i)),
      &           i=1,nprint)
          END DO         
       ENDIF
@@ -668,8 +768,35 @@ c
 c
 c--Name dust bin sizes in microns
 c
-            WRITE (tagwrite,99001) HY09binsizes(j)*1.0E+04
-99001       FORMAT ('Dust:',F9.4)
+            size_mu = HY09binsizes(j)*1.0E+04
+            IF (size_mu.LT.0.01) THEN
+               WRITE (tagwrite,99001) size_mu
+99001          FORMAT ('Dust:',F6.4)
+            ELSEIF (size_mu.LT.0.1) THEN
+               WRITE (tagwrite,99002) size_mu
+99002          FORMAT ('Dust:',F5.3)
+            ELSEIF (size_mu.LT.1.0) THEN
+               WRITE (tagwrite,99003) size_mu
+99003          FORMAT ('Dust:',F4.2)
+            ELSEIF (size_mu.LT.10.0) THEN
+               WRITE (tagwrite,99004) size_mu
+99004          FORMAT ('Dust:',F3.1)
+            ELSEIF (size_mu.LT.100.0) THEN
+               WRITE (tagwrite,99005) INT(size_mu)
+99005          FORMAT ('Dust:',I2) 
+            ELSEIF (size_mu.LT.1000.0) THEN
+               WRITE (tagwrite,99006) INT(size_mu)
+99006          FORMAT ('Dust:',I3) 
+            ELSEIF (size_mu.LT.10000.0) THEN
+               WRITE (tagwrite,99007) INT(size_mu)
+99007          FORMAT ('Dust:',I4) 
+            ELSEIF (size_mu.LT.1.0E+05) THEN
+               WRITE (tagwrite,99008) INT(size_mu)
+99008          FORMAT ('Dust:',I5) 
+            ELSE
+               WRITE (tagwrite,99009) INT(size_mu)
+99009          FORMAT ('Dust:',I6) 
+            ENDIF
             WRITE (idisk1, ERR=100) tag(tagwrite)
             WRITE (idisk1, ERR=100) (HY09bin_rho(j,isort(i)),i=1,nprint)
          END DO
@@ -686,6 +813,12 @@ c
             WRITE (idisk1, ERR=100) (grav_accel(j,isort(i)),
      &           i=1,nprint)
          END DO
+c         tagarr(1:3) = (/'gasaccelx','gasaccely','gasaccelz'/)
+c         DO j = 1, 3
+c            WRITE (idisk1, ERR=100) tag(tagarr(j))
+c            WRITE (idisk1, ERR=100) (gas_accel(j,isort(i)),
+c     &           i=1,nprint)
+c         END DO
 c
 c--Output the estimate of the relative grain speed relative to the gas
 c     for dust grains at the peak of the mass distribution.
@@ -1339,6 +1472,9 @@ c*********************************************************************
          fileident = fileident(1:27) // 'RT=on '
       ELSE
          fileident = fileident(1:27) // 'RT=off'
+      ENDIF
+      IF (idustFluid.NE.0) THEN
+         fileident = fileident(1:34) // '1dust'
       ENDIF
 
       END FUNCTION fileident

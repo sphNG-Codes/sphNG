@@ -3,6 +3,7 @@
 
       REAL r_planetesimals, rho_planetesimals, min_rplan, max_rplan
       REAL eccentricity_p, inclination_p, planetesimalmass, gasdist
+      REAL ts_min
       REAL*4 planetesimaltimestep,planetesimalnorm
       INTEGER nearestgas, n_planetesimal_types
       LOGICAL gasdrag
@@ -16,5 +17,5 @@
       COMMON /planetesimal / r_planetesimals(nplanetesimal_maxtype), 
      &                       rho_planetesimals(nplanetesimal_maxtype),
      &                       min_rplan, max_rplan, 
-     &                       eccentricity_p, inclination_p,
+     &                       eccentricity_p, inclination_p, ts_min,
      &                       planetesimalmass, gasdist(idim)

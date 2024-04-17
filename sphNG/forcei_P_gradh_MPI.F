@@ -36,7 +36,19 @@ c************************************************************
       DIMENSION dedxyz(3,iradtrans2)
       DIMENSION Bxyz(3,imhd2),dBxyz(imhdevol,imhd2)
       DIMENSION Bevolxyz(imhdevol,imhd3) ! needed for prediction only
-      DIMENSION dustvar(idim_dustFluid2),ddust(idim_dustFluid2)
+      DIMENSION dustvar(ndusttypes,idim_dustFluid2),dustvari(ndusttypes)
+      DIMENSION ddust(ndusttypes,idim_dustFluid2),ddusti(ndusttypes)
+
+      DIMENSION dudusti(ndusttypes),termdudustj(ndusttypes)
+      DIMENSION termdustpmi(ndusttypes),termdustpmj(ndusttypes)
+      DIMENSION dustfraci(ndusttypes),dustfracj(ndusttypes)
+      DIMENSION tsi(ndusttypes),tsj(ndusttypes)
+      DIMENSION epstsi(ndusttypes),epstsj(ndusttypes)
+      DIMENSION gradpj_ts_over_1minus_epsilon(ndusttypes)
+      DIMENSION ts_over_1minus_epsilon(ndusttypes)
+      DIMENSION gradvdustxi(ndusttypes)
+      DIMENSION gradvdustyi(ndusttypes)
+      DIMENSION gradvdustzi(ndusttypes)
 c
 c--Parameters for switching between different implementations of SPMHD.
 c     iMorris:   FALSE is standard
@@ -128,7 +140,9 @@ c
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/radtran3'
       INCLUDE 'COMMONS/pxpy'
+      INCLUDE 'COMMONS/dustfluidgrains'
       INCLUDE 'COMMONS/dustfluidvelu'
+      INCLUDE 'COMMONS/tstopvar'
       INCLUDE 'COMMONS/HY09accel'
 c
 c--Used for listparents list to keep a list of iupdated
@@ -199,6 +213,7 @@ c
 
       nlistupdated = 0
       realtime = dt*itime/imaxstep + gt
+      ts_min = 1.0E+30
 
 #ifdef MPI
 c
@@ -339,11 +354,13 @@ C$OMP& shared(varmhd,iupdated,listparents)
 C$OMP& shared(iscurrent,ireal,ibound,nlistupdated,iprocdebug,irotpot)
 C$OMP& shared(ivar,ijvar,Bextx,Bexty,Bextz,etamhd,iresist)
 C$OMP& shared(forcei_lock)
-C$OMP& shared(gasdrag,iregime)
+C$OMP& shared(gasdrag)
 C$OMP& shared(planetesimaltimestep,planetesimalnorm)
-C$OMP& shared(gasdist,nearestgas,idragscheme)
-C$OMP& shared(itot,dustvar,ddust,dustfluidvxyz,dustfluiddu)
+C$OMP& shared(gasdist,nearestgas)
+C$OMP& shared(itot,dustvar,ddust,dustfluidvxyz,dustfluiddu,stoppingtime)
 C$OMP& shared(gas_accel,grav_accel)
+C$OMP& shared(r_planetesimals,rho_planetesimals)
+C$OMP& shared(sgrain,densgrain)
 #ifdef DGRID
 C$OMP& shared(dragenergy,dragqchange,px,py,pz)
 #endif
@@ -363,7 +380,7 @@ C$OMP& private(poteni,dphiti,gradxi,gradyi,gradzi,artxi,artyi,artzi)
 C$OMP& private(gasdragxi,gasdragyi,gasdragzi,ig,f_drag_co,dvij)
 C$OMP& private(dv_cross_dx,rsub,fgd,prrho2i,prrho2j)
 C$OMP& private(rho_g,f_drag_i,ptsi,ptsj,ptsnormi,ptsnormj)
-C$OMP& private(pdvi,dqi,rhoi,pro2i,pro2j,vsoundi,k,j,hj,dx,dy,dz)
+C$OMP& private(pdvi,dqi,rhoi,pro2i,pro2j,vsoundi,k,j,l,hj,dx,dy,dz)
 #ifdef DGRID
 C$OMP& private(dragr,dragp,dragt,idragr,idragp,idragt)
 #endif
@@ -407,8 +424,11 @@ C$OMP& private(Bevoldotdv,termBpmi,termBpmj,termetapmj,termetapmi)
 C$OMP& private(dBxidealj,dByidealj,dBzidealj)
 C$OMP& private(dBxdissj,dBydissj,dBzdissj,dBxyz_xi,dBxyz_yi,dBxyz_zi)
 C$OMP& private(ioffset,etai,etaj,ui,uj,dqj)
-C$OMP& private(ddusti,ts_rhoi,ts_rhoj,termdust,termdustpmi,termdustpmj)
-C$OMP& private(dudusti,termdudustj,one_over_rho_1minus_epsilon,dustvari)
+C$OMP& private(ddusti,termdustpmi,termdustpmj)
+C$OMP& private(faci,facj,dustfraci,dustfracj,tsij,tsi,tsj)
+C$OMP& private(dustfracisum,dustfracjsum,dust_divisor)
+C$OMP& private(rhogas1i,rhogas1j,epstsi,epstsj,iregime)
+C$OMP& private(dudusti,termdudustj,dustvari)
 C$OMP& private(gradpj_ts_over_1minus_epsilon,ts_over_1minus_epsilon)
 C$OMP& private(gas_accelxi,gas_accelyi,gas_accelzi)
 C$OMP& private(gas_accelxj,gas_accelyj,gas_accelzj)
@@ -419,6 +439,7 @@ C$OMP& private(di,dj)
 C$OMP& private(i,ierr)
 #endif
 C$OMP& reduction(+:ioutmin,ioutsup,ioutinf)
+C$OMP& reduction(MIN:ts_min)
 C$OMP& reduction(MIN:inmin,inminsy)
 C$OMP& reduction(MAX:inmax,inmaxsy)
 
@@ -542,7 +563,7 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
          rhoi = trho(ipart) ! set rhoi here so we can define eta
          rho1i = 1./rhoi
          sqrtrho1i = SQRT(rho1i)
-         rho21i = rho1i*rho1i         
+         rho21i = rho1i*rho1i
 
          IF (imhd.EQ.idim .AND. iphase(ipart).EQ.0) THEN
             Bxi = Bxyz(1,ipart)
@@ -614,23 +635,6 @@ c         IF (ipart.GT.ntot) print *,iprocdebug,': D2 ',n
             etai = 0.
          ENDIF
 c
-c--For one-fluid dust evolution
-c
-         IF (idustFluid.NE.0 .OR. imakedust) THEN
-            gradvdustxi = 0.
-            gradvdustyi = 0.
-            gradvdustzi = 0.
-         ENDIF
-         IF (idustFluid.NE.0) THEN
-            dudusti = 0.
-            ddusti = 0.
-            dustvari = dustvar(ipart)
-            ts_rhoi = stoppingtime(ipart,rhoi,dustvari)*rho1i
-            IF (ABS(idustFluid).EQ.2) THEN
-               di = stoppingtime(ipart,rhoi,dustvari)/(1.0+dustvari**2)
-            ENDIF
-         ENDIF
-c
 c--Note that pressure term includes isotropic magnetic pressure.
 c     It also allows pressure to be negativ due to an external pressure
 c     boundary (allowing the pressure to be negative may be necessary
@@ -644,8 +648,40 @@ c         pro2i = max((pr(ipart) - pext + 0.5*(B2i-B2ext)),0.0)*rho21i
          vs2i = vsoundi**2 + B2i*rho1i
 c Note: vsi != vsigi; the latter includes a `projection' term
          vsi = SQRT(vs2i)
-
-c         IF (ipart.GT.ntot) print *,iprocdebug,': D3 ',n
+c
+c--For one-fluid dust evolution
+c
+         IF (idustFluid.NE.0 .OR. imakedust) THEN
+            gradvdustxi(:) = 0.
+            gradvdustyi(:) = 0.
+            gradvdustzi(:) = 0.
+         ENDIF
+         IF (idustFluid.NE.0) THEN
+            dudusti(:) = 0.
+            ddusti(:) = 0.
+            dustvari(:) = dustvar(:,ipart)
+            CALL dustvar2dustfrac(rho1i,dustvari,dustfraci,dustfracisum)
+            !--calculate the stopping time for the dust
+            DO l = 1, ndusttypes
+               CALL get_ts(tsi(l),sgrain(l),densgrain(l),
+     &              rhoi*(1.-dustfracisum),rhoi*dustfracisum,
+     &              vsoundi,0.,iregime)
+            END DO
+            !--flux limiter from Ballabio et al. (2018)
+            IF (ilimitdustflux) tsi(:) = MIN(tsi(:),hi/vsoundi)
+            stoppingtime(:,ipart) = tsi(:)
+            epstsi   = SUM(dustfraci(:)*tsi(:))
+            faci = 1.0/(1.0 - dustfracisum)
+            rhogas1i = rho1i*faci
+         ELSE
+            dustvari(:)  = 0.
+            dustfraci(:) = 0.
+            dustfracisum = 0.
+            epstsi       = 0.
+            rhogas1i     = rho1i
+            tsi(:)       = 0.
+            faci         = 1.
+         ENDIF
 c
 c--Loop over neighbors
 c
@@ -670,7 +706,7 @@ c
             dy = yi - xyzmh(2,j)
             dz = zi - xyzmh(3,j)
 #ifdef PERIODIC_NO_GHOSTS
-            IF (imhd.EQ.idim .AND, iphase(j).EQ.0) THEN
+            IF (imhd.EQ.idim .AND. iphase(j).EQ.0) THEN
                IF (varmhd.EQ.'eulr') THEN
                   dBevolx = Bevolxi - Bevolxyz(1,j)
                   dBevoly = Bevolyi - Bevolxyz(2,j)
@@ -762,7 +798,47 @@ c
             rho1j = 1./rhoj
             rho21j = rho1j*rho1j
             robar1 = 2./(rhoi + rhoj)
-
+c
+c--For one-fluid dust evolution
+c
+            IF (idustFluid.NE.0) THEN
+               IF (idustFluid.EQ.1) THEN
+                  !--sqrt(rho*epsilon) method
+                  dustfracj(:) = MIN(dustvar(:,j)**2*rho1j,1.)
+               ELSEIF (ABS(idustFluid).EQ.2) THEN
+                  !--sqrt(epsilon/(1-epsilon)) method
+                  dustfracj(:) = dustvar(:,j)**2/(1.0+dustvar(:,j)**2)
+               ELSEIF (idustFluid.EQ.3) THEN
+                  !--asin(sqrt(epsilon)) method
+                  dustfracj(:) = SIN(dustvar(:,j))**2
+               ELSEIF (idustFluid.EQ.4) THEN
+                  !--epsilon method
+                  dustfracj(:) = dustvar(:,j)
+               ENDIF
+               dustfracjsum = SUM(dustfracj)
+               !--calculate the stopping time for particle j
+               DO l = 1, ndusttypes
+                  CALL get_ts(tsj(l),sgrain(l),densgrain(l),
+     &                 rhoj*(1.-dustfracjsum),rhoj*dustfracjsum,
+     &                 vsoundj,0.,iregime)
+               END DO
+               !--flux limiter from Ballabio et al. (2018)
+               IF (ilimitdustflux) tsj(:) = MIN(tsj(:),hj/vsoundj)
+               stoppingtime(:,j) = tsj(:)
+               epstsj   = SUM(dustfracj(:)*tsj(:))
+               facj = 1.0/(1.0 - dustfracjsum)
+               rhogas1j = rho1j*facj
+            ELSE
+               dustfracj    = 0.
+               dustfracjsum = 0.
+               rhogas1j     = rho1j
+               epstsj       = 0.
+               tsj          = 0.
+               facj         = 1.
+            ENDIF
+c
+c--MHD
+c
             IF (imhd.EQ.idim) THEN
 #ifdef NONIDEAL
                dBnonideal = 0.
@@ -1266,34 +1342,103 @@ c--For one-fluid dust, evolve dust fraction
 c
                   IF (idustFluid.NE.0) THEN
                      IF (idustFluid.EQ.1) THEN
-                        ts_rhoj = stoppingtime(j,rhoj,dustvar(j))*rho1j
-                        termdust = 0.5*(ts_rhoi+ts_rhoj)*
-     &                       grkern*rij1*
-     &                       (pr(ipart)-pr(j))
-                        termdustpmj = dustvar(j)*termdust*pmassj*rho1j
-                        ddusti = ddusti - termdustpmj
-
-                        dudusti = dudusti - termdustpmj*dustvari*
-     &                       (ui-uj)/(rhoi-dustvari**2)
+                        !--sqrt(rho*epsilon) method
+                        termdustpmj(:) = 0.5*( (tsi(:)-epstsi)*rhogas1i
+     &                                     +(tsj(:)-epstsj)*rhogas1j )
+     &                                *(pr(ipart) - pr(j))*grkern*rij1
+     &                                *pmassj*dustvar(:,j)*rho1j
                      ELSEIF (ABS(idustFluid).EQ.2) THEN
-                        dj = stoppingtime(j,rhoj,dustvar(j))/
-     &                       (1.0+dustvar(j)**2)
-                        termdust = 0.5*grkern*rij1*(pr(ipart)-pr(j))
-                        termdustpmj = 
-     &                       termdust*dustvar(j)*pmassj*rho1j*(di+dj)
-                        IF (idustFluid.EQ.2) THEN ! Only for explicit
-                           ddusti = ddusti - termdustpmj*rho1i*
-     &                          (1.0+dustvari**2)**2
-                        ENDIF
-                        dudusti = dudusti - termdustpmj*dustvari*
-     &                       (1.0+dustvari**2)*(ui-uj)
+                        DO l = 1, ndusttypes
+                           IF (dustfraci(l).EQ.1.0) THEN
+                              PRINT *,'ERROR - divide by zero in force',
+     &                             ipart,dustfraci(l),l
+                              CALL quit(1)
+                           ENDIF
+                        END DO
+                        !--sqrt(epsilon/(1-epsilon)) method
+
+c                        IF (dvij.LT.0.1*vsbar) THEN
+c                        termdustpmj(:) = 0.5*   2.0*MIN(
+c     &                               (tsi(:)-epstsi)*(1.0-dustfraci(:))
+c     &                             , (tsj(:)-epstsj)*(1.0-dustfracj(:)))
+c     &                                *(pr(ipart) - pr(j))*grkern*rij1
+c     &                                *pmassj*dustvar(:,j)*rho1j
+c     &                                *rho1i/(1.0-dustfraci(:))**2
+
+                        termdustpmj(:) = 0.5*( 
+     &                               (tsi(:)-epstsi)*(1.0-dustfraci(:))
+     &                             + (tsj(:)-epstsj)*(1.0-dustfracj(:)))
+     &                                *(pr(ipart) - pr(j))*grkern*rij1
+     &                                *pmassj*dustvar(:,j)*rho1j
+     &                                *rho1i/(1.0-dustfraci(:))**2
+c
+c--Another method of averaging stopping times
+c
+c                        termdustpmj(:) = 0.5* 4*( 
+c     &                               (tsi(:)-epstsi)*(1.0-dustfraci(:))
+c     &                             * (tsj(:)-epstsj)*(1.0-dustfracj(:)))
+c     &                       /((tsi(:)-epstsi)*(1.0-dustfraci(:))+
+c     &                       (tsj(:)-epstsj)*(1.0-dustfracj(:)))
+c     &                                *(pr(ipart) - pr(j))*grkern*rij1
+c     &                                *pmassj*dustvar(:,j)*rho1j
+c     &                       *rho1i/(1.0-dustfraci(:))**2
+
+                     ELSEIF (idustFluid.EQ.3) THEN
+                        !--asin(sqrt(epsilon)) method 
+                        termdustpmj(:) = ((tsi(:)-epstsi)*rhogas1i*rho1j
+     &                                 +(tsj(:)-epstsj)*rhogas1j*rho1i )
+     &                                *(pr(ipart) - pr(j))*grkern*rij1
+     &                                *pmassj*SIN(dustvar(:,j))
+                        DO l = 1, ndusttypes
+                           IF (dustvari(l).EQ.0.) THEN
+                              termdustpmj(l) = termdustpmj(l)
+     &                                         /(2.*cos(dustvari(l)))
+                           ELSE
+                              dust_divisor = SIN(2.*dustvari(l))
+                              IF (dust_divisor.EQ.0.) THEN
+                              PRINT *,'ERROR - divide by zero in force',
+     &                                dust_divisor,dustvari(l)
+                                 CALL quit(1)
+                              ENDIF
+                              termdustpmj(l) = termdustpmj(l)
+     &                             *SIN(dustvari(l))/dust_divisor
+                           ENDIF
+                        END DO
+                     ELSEIF (idustFluid.EQ.4) THEN
+                        !--epsilon method
+                        termdustpmj(:) =
+     &                  (dustvari(:)*(tsi(:)-epstsi) + 
+     &                       dustvar(:,j)*(tsj(:)-epstsj))
+     &                                *(pr(ipart) - pr(j))*grkern*rij1
+     &                                *pmassj*rho1j*rho1i
+                     ENDIF
+
+                     IF (idustFluid.GE.1) ! Explicit only
+     &                    ddusti(:) = ddusti(:) - termdustpmj(:)
+
+                     IF (idustFluid.EQ.1) THEN
+                        !--sqrt(rho*epsilon) method
+                        dudusti(:) = dudusti(:) - termdustpmj(:)*
+     &                       dustvari(:)*(ui-uj)*rho1i/(1.-dustfracisum)
+                     ELSEIF (ABS(idustFluid).EQ.2) THEN
+                        !--sqrt(epsilon/(1-epsilon)) method
+                        dudusti(:) = dudusti(:) - termdustpmj(:)*
+     &                       dustvari(:)*(ui-uj)/(1.-dustfracisum)
+                     ELSEIF (idustFluid.EQ.3) THEN
+                        !--asin(sqrt(epsilon)) method
+                        dudusti(:) = dudusti(:) - 0.5*termdustpmj(:)
+     &                    *SIN(2.*dustvari(:))*(ui-uj)/(1.-dustfracisum)
+                     ELSEIF (idustFluid.EQ.4) THEN
+                        !--epsilon method
+                        dudusti(:) = 0.
+
                      ENDIF
                   ENDIF
                   IF (idustFluid.NE.0 .OR. imakedust) THEN
                      gradpi = gradpr*pmassj
-                     gradvdustxi = gradvdustxi + gradpi*runix
-                     gradvdustyi = gradvdustyi + gradpi*runiy
-                     gradvdustzi = gradvdustzi + gradpi*runiz
+                     gradvdustxi(:) = gradvdustxi(:) + gradpi*runix
+                     gradvdustyi(:) = gradvdustyi(:) + gradpi*runiy
+                     gradvdustzi(:) = gradvdustzi(:) + gradpi*runiz
                   ENDIF
 c
 c--This is the end of gas-gas interactions (i.e. iphase(i) and iphase(j) both 0)
@@ -1305,13 +1450,21 @@ c
                   IF (gasdrag .AND. (iphase(ipart).EQ.0 .AND.
      &                 iphase(j).EQ.11)) THEN
 
-                     f_drag_co = getcd(rhoi, dvij, vsoundi,
-     &                    ipart, idragscheme)
+c--Drag before multigrain implementation by Hutchison used getcd():
+c                     f_drag_co = getcd(rhoi, dvij, vsoundi,
+c     &                    ipart, idragscheme)
+c
+c                     f_drag_i = f_drag_co*projv*wtij*pmassj
+c
+c                     ptsi = ptsi +  pmassj*wtij/(rhoi*rhoi*f_drag_co/3.)
+c                     ptsnormi = ptsnormi +  pmassj*wtij/rhoi
 
-                     f_drag_i = f_drag_co*projv*wtij*pmassj
 
-                     ptsi = ptsi +  pmassj*wtij/(rhoi*rhoi*f_drag_co/3.)
-                     ptsnormi = ptsnormi +  pmassj*wtij/rhoi
+                     CALL get_ts(tsij,r_planetesimals(1),
+     &                           rho_planetesimals(1),rhoi,rhoj,
+     &                           vsoundi,dvij,iregime)
+                     f_drag_i = 3.*pmassj/((rhoi+rhoj)*tsij)*projv*wtij
+                     ts_min = MIN(ts_min,tsij)
 
                      gasdragxi = gasdragxi - f_drag_i*runix
                      gasdragyi = gasdragyi - f_drag_i*runiy
@@ -1450,53 +1603,117 @@ c
                         forcey = forcey + t12jpmassi*runiy
                         forcez = forcez + t12jpmassi*runiz
 
-c                     IF (j.EQ.0418) THEN
-c                        print *,' P0418dqj ',j,t12jpmassi,projv
-c                     ENDIF
-
                         dqj = dqj + t12jpmassi*projv
                      ENDIF
 c
 c--For one-fluid dust, evolve dust fraction
 c
                      IF (idustFluid.NE.0) THEN
+                        IF (idustFluid.EQ.1) THEN
+                           !--sqrt(rho*epsilon) method
+                           termdustpmi(:) =0.5*((tsi(:)-epstsi)*rhogas1i
+     &                                        +(tsj(:)-epstsj)*rhogas1j)
+     &                                  *(pr(ipart) - pr(j))*grkern*rij1
+     &                                  *pmassi*dustvari(:)*rho1i
+                        ELSEIF (ABS(idustFluid).EQ.2) THEN
+                           DO l = 1, ndusttypes
+                              IF (dustfracj(l).EQ.1.0) THEN
+                              PRINT *,'ERROR - divide by zero in force',
+     &                                j,dustfracj(l),l
+                                 CALL quit(1)
+                              ENDIF
+                           END DO
+                           !--sqrt(epsilon/(1-epsilon)) method
+c                        IF (dvij.LT.0.1*vsbar) THEN
+c                           termdustpmi(:) =0.5*   2.0*MIN( 
+c     &                               (tsi(:)-epstsi)*(1.0-dustfraci(:))
+c     &                             , (tsj(:)-epstsj)*(1.0-dustfracj(:)))
+c     &                                  *(pr(ipart) - pr(j))*grkern*rij1
+c     &                                  *pmassi*dustvari(:)*rho1i
+c     &                                  *rho1j/(1.0-dustfracj(:))**2
+
+                           termdustpmi(:) =0.5*(
+     &                               (tsi(:)-epstsi)*(1.0-dustfraci(:))
+     &                             + (tsj(:)-epstsj)*(1.0-dustfracj(:)))
+     &                                  *(pr(ipart) - pr(j))*grkern*rij1
+     &                                  *pmassi*dustvari(:)*rho1i
+     &                                  *rho1j/(1.0-dustfracj(:))**2
+
+c                           termdustpmi(:) =0.5* 4*(
+c     &                               (tsi(:)-epstsi)*(1.0-dustfraci(:))
+c     &                             * (tsj(:)-epstsj)*(1.0-dustfracj(:)))
+c     &                             /((tsi(:)-epstsi)*(1.0-dustfraci(:))
+c     &                             + (tsj(:)-epstsj)*(1.0-dustfracj(:)))
+c     &                                  *(pr(ipart) - pr(j))*grkern*rij1
+c     &                                  *pmassi*dustvari(:)*rho1i
+c     &                                  *rho1j/(1.0-dustfracj(:))**2
+c                           ELSE
+c                              termdustpmi(:) =0.
+c                           ENDIF
+                        ELSEIF (idustFluid.EQ.3) THEN
+                           !--asin(sqrt(epsilon)) method
+                          termdustpmi(:)=((tsi(:)-epstsi)*rhogas1i*rho1j
+     &                                  +(tsj(:)-epstsj)*rhogas1j*rho1i)
+     &                                  *(pr(ipart) - pr(j))*grkern*rij1
+     &                                  *pmassi*SIN(dustvari(:))
+                           DO l = 1, ndusttypes
+                              IF (dustvar(l,j).EQ.0.) then
+                                 termdustpmi(l) = termdustpmi(l)
+     &                                           /(2.*COS(dustvar(l,j)))
+                              ELSE
+                                 dust_divisor = SIN(2.*dustvar(l,j))
+                                 IF (dust_divisor.EQ.0.) then
+                                    PRINT*,'dividing by zero in force'
+                                    CALL quit(1)
+                                 ENDIF
+                                 termdustpmi(l) = termdustpmi(l)*
+     &                           SIN(dustvar(l,j))/dust_divisor
+                              ENDIF
+                           ENDDO
+                        ELSEIF (idustFluid.EQ.4) THEN
+                           !--epsilon method
+                           termdustpmi(:) =
+     &                     (dustvari(:)*(tsi(:)-epstsi) + 
+     &                          dustvar(:,j)*(tsj(:)-epstsj))
+     &                                  *(pr(ipart) - pr(j))*grkern*rij1
+     &                                  *pmassi*rho1i*rho1j
+
+                        ENDIF
 c
 c--Sign does not change for dudust term because involves (Pi-Pj)*(ui-uj)
 c
                         IF (idustFluid.EQ.1) THEN
-                           termdust = 0.5*(ts_rhoi+ts_rhoj)*
-     &                          grkern*rij1*(pr(ipart)-pr(j))
-                           termdustpmi = termdust*
-     &                          dustvari*pmassi*rho1i
-
-                           one_over_rho_1minus_epsilon = 
-     &                          1./(rhoj-dustvar(j)**2)
-
-                           termdudustj = - termdustpmi*dustvar(j)*
-     &                          (ui-uj)*one_over_rho_1minus_epsilon
+                           !--sqrt(rho*epsilon) method 
+                           termdudustj(:) = - termdustpmi*dustvar(:,j)*
+     &                          (ui-uj)*rho1j/(1.-dustfracjsum)
                         ELSEIF (ABS(idustFluid).EQ.2) THEN
-                           termdust = 0.5*(di+dj)*(pr(ipart)-pr(j))*
-     &                          grkern*rij1
-                           termdustpmi = termdust*
-     &                          dustvari*pmassi*rho1i
-                           termdudustj = - termdustpmi*
-     &                          (1.+dustvar(j)**2)*dustvar(j)*(ui-uj)
+                           !--sqrt(epsilon/(1-epsilon)) method
+                           termdudustj(:) = - termdustpmi*dustvar(:,j)*
+     &                          (ui-uj)/(1.-dustfracjsum)
+                        ELSEIF (idustFluid.EQ.3) THEN
+                           !--asin(sqrt(epsilon)) method
+                           termdudustj(:) = - 0.5*termdustpmi(:)*(ui-uj)
+     &                           *SIN(2.*dustvar(:,j))/(1.-dustfracjsum)
+                        ELSEIF (idustFluid.EQ.4) THEN
+                           !--epsilon method
+                           termdudustj(:) = 0.
 
-                           termdustpmi = termdustpmi*
-     &                          rho1j*(1.+dustvar(j)**2)**2
-
-                           one_over_rho_1minus_epsilon =
-     &                          (1.+dustvar(j)**2)/rhoj
                         ENDIF
-c
-c--Term only to compute delta_v, or terminal velocity if imakedust
-c
-                        gradpj_ts_over_1minus_epsilon = gradpr*pmassi*
-     &                       stoppingtime(j,rhoj,dustvar(j))*rhoj*
-     &                       one_over_rho_1minus_epsilon
+
+                        WHERE (dustfracj.GT.0.)
+                           gradpj_ts_over_1minus_epsilon(:) = gradpr*
+     &                         pmassi*tsj(:)/(1.-dustfracjsum)
+                        ELSEWHERE (dustfracj.EQ.0.)
+                           gradpj_ts_over_1minus_epsilon(:) = 0.
+                        END WHERE
                      ENDIF
                      IF (imakedust) THEN
-                        gradpj_ts_over_1minus_epsilon = gradpr*pmassi
+                        gradpj_ts_over_1minus_epsilon(:) = gradpr*pmassi
+                        IF (idustFluid.NE.1) THEN
+                           WRITE (*,*)'ERROR - imakedust & idustFluid ',
+     &                          idustFluid
+                           CALL quit(0)
+                        ENDIF
                      ENDIF
 c
 c--Store gas accelerations not experienced by dust
@@ -1516,10 +1733,11 @@ c
                   IF (gasdrag .AND. (iphase(ipart).EQ.0 .AND.
      &                 iphase(j).EQ.11)) THEN
 
-                     f_drag_i = f_drag_co*pmassi*projv*wtij
+c                     f_drag_i = f_drag_co*pmassi*projv*wtij
+c                     ptsj = ptsj + pmassi*wtij/(rhoi*rhoi*f_drag_co/3.)
+c                     ptsnormj = ptsnormj + pmassi*wtij/rhoi
 
-                     ptsj = ptsj + pmassi*wtij/(rhoi*rhoi*f_drag_co/3.)
-                     ptsnormj = ptsnormj + pmassi*wtij/rhoi
+                     f_drag_i = 3.*pmassi/((rhoi+rhoj)*tsij)*projv*wtij
 
                      forcex = forcex + f_drag_i*runix
                      forcey = forcey + f_drag_i*runiy
@@ -1542,7 +1760,7 @@ c
                      fxyzu(2,j) = fxyzu(2,j) + forcey
                      fxyzu(3,j) = fxyzu(3,j) + forcez
 
-                     dq(j) = dq(j) + dqj
+                     dq(j) = dq(j) + facj*dqj
 c
 c--Store gas accelerations not experienced by dust
 c
@@ -1588,14 +1806,11 @@ c
 c--For one-fluid dust, evolve dust fraction
 c
                         IF (idustFluid.NE.0) THEN
-                           IF (idustFluid.EQ.1) THEN
-                              ddust(j) = ddust(j) + termdustpmi
-                           ELSEIF (ABS(idustFluid).EQ.2) THEN
-                              IF (idustFluid.EQ.2) THEN ! Only explicit
-                                 ddust(j) = ddust(j) + termdustpmi
-                              ENDIF
+                           IF (idustFluid.GE.1) THEN ! Explicit only
+                              ddust(:,j) = ddust(:,j) + termdustpmi(:)
                            ENDIF
-                           dustfluiddu(j) = dustfluiddu(j) + termdudustj
+                           dustfluiddu(j) = dustfluiddu(j)
+     &                                      + SUM(termdudustj)
                         ENDIF
                         IF (idustFluid.NE.0 .OR. imakedust) THEN
 c
@@ -1605,12 +1820,12 @@ c     separate velocities of the gas and dust to be computed.
 c     Note that the momentum equation is -gradP/rho whereas this is 
 c     +gradP/rho
 c
-                           dustfluidvxyz(1,j) = dustfluidvxyz(1,j) - 
-     &                          gradpj_ts_over_1minus_epsilon*runix
-                           dustfluidvxyz(2,j) = dustfluidvxyz(2,j) - 
-     &                          gradpj_ts_over_1minus_epsilon*runiy
-                           dustfluidvxyz(3,j) = dustfluidvxyz(3,j) - 
-     &                          gradpj_ts_over_1minus_epsilon*runiz
+                           dustfluidvxyz(1,:,j) = dustfluidvxyz(1,:,j) - 
+     &                          gradpj_ts_over_1minus_epsilon(:)*runix
+                           dustfluidvxyz(2,:,j) = dustfluidvxyz(2,:,j) - 
+     &                          gradpj_ts_over_1minus_epsilon(:)*runiy
+                           dustfluidvxyz(3,:,j) = dustfluidvxyz(3,:,j) - 
+     &                          gradpj_ts_over_1minus_epsilon(:)*runiz
                         ENDIF
                      ENDIF
 #ifdef _OPENMP
@@ -2030,37 +2245,116 @@ c--For one-fluid dust, evolve dust fraction
 c
                      IF (idustFluid.NE.0) THEN
                         IF (idustFluid.EQ.1) THEN
-                           ts_rhoj=stoppingtime(j,rhoj,dustvar(j))*rho1j
-                           termdust = 0.5*(ts_rhoi+ts_rhoj)*grkern*rij1*
-     &                          (pr(ipart)-pr(j))
-                           termdustpmj =dustvar(j)*termdust*pmassj*rho1j
-
-                           ddusti = ddusti - termdustpmj
-
-                           dudusti = dudusti - termdustpmj*dustvari*
-     &                          (ui-uj)/(rhoi-dustvari**2)
+                           !--sqrt(rho*epsilon) method
+                           termdustpmj(:) =0.5*((tsi(:)-epstsi)*rhogas1i
+     &                                       +(tsj(:)-epstsj)*rhogas1j)
+     &                                  *(pr(ipart)-pr(j))*grkern*rij1
+     &                                  *pmassj*dustvar(:,j)*rho1j
                         ELSEIF (ABS(idustFluid).EQ.2) THEN
-                           dj = stoppingtime(j,rhoj,dustvar(j))/(1.+
-     &                          dustvar(j)**2)
-                           termdust = 0.5*grkern*rij1*(pr(ipart)-pr(j))
-                           termdustpmj = termdust*dustvar(j)*pmassj*
-     &                          rho1j*(di+dj)
-                           IF (idustFluid.EQ.2) THEN ! Only explicit
-                              ddusti = ddusti - termdustpmj*
-     &                             rho1i*(1.+dustvari**2)**2
-                           ENDIF
-                           dudusti = dudusti - termdustpmj*dustvari*
-     &                          (ui-uj)*(1.+dustvari**2)
+                           DO l = 1, ndusttypes
+                              IF (dustfraci(l).EQ.1.0) THEN
+                              PRINT *,'ERROR - divide by zero in force',
+     &                                ipart,dustfraci(l),l
+                                 CALL quit(1)
+                              ENDIF
+                           END DO
+                           !--sqrt(epsilon/(1-epsilon)) method
+
+c                           IF (dvij.LT.0.1*vsbar) THEN
+c                           termdustpmj(:) =0.5*   2.0*MIN(
+c     &                               (tsi(:)-epstsi)*(1.0-dustfraci(:))
+c     &                             , (tsj(:)-epstsj)*(1.0-dustfracj(:)))
+c     &                                  *(pr(ipart)-pr(j))*grkern*rij1
+c     &                                  *pmassj*dustvar(:,j)*rho1j
+c     &                                  *rho1i/(1.0-dustfraci(:))**2
+
+                           termdustpmj(:) =0.5*(
+     &                               (tsi(:)-epstsi)*(1.0-dustfraci(:))
+     &                             + (tsj(:)-epstsj)*(1.0-dustfracj(:)))
+     &                                  *(pr(ipart)-pr(j))*grkern*rij1
+     &                                  *pmassj*dustvar(:,j)*rho1j
+     &                                  *rho1i/(1.0-dustfraci(:))**2
+
+c                           termdustpmj(:) =0.5* 4*(
+c     &                               (tsi(:)-epstsi)*(1.0-dustfraci(:))
+c     &                             * (tsj(:)-epstsj)*(1.0-dustfracj(:)))
+c     &                             /((tsi(:)-epstsi)*(1.0-dustfraci(:))
+c     &                             + (tsj(:)-epstsj)*(1.0-dustfracj(:)))
+c     &                                  *(pr(ipart)-pr(j))*grkern*rij1
+c     &                                  *pmassj*dustvar(:,j)*rho1j
+c     &                          *rho1i/(1.0-dustfraci(:))**2
+c                           ELSE
+c                              termdustpmj(:) =0.
+c                           ENDIF
+                        ELSEIF (idustFluid.EQ.3) THEN
+                           !--asin(sqrt(epsilon)) method
+                          termdustpmj(:)=((tsi(:)-epstsi)*rhogas1i*rho1j
+     &                                  +(tsj(:)-epstsj)*rhogas1j*rho1i)
+     &                                  *(pr(ipart)-pr(j))*grkern*rij1
+     &                                  *pmassj*SIN(dustvar(:,j))
+                           DO l = 1, ndusttypes
+                              IF (dustvari(l).EQ.0.) THEN
+                                 termdustpmj(l) = termdustpmj(l)
+     &                                            /(2.*COS(dustvari(l)))
+                              ELSE
+                                 dust_divisor = SIN(2.*dustvari(l))
+                                 IF (dust_divisor.EQ.0.) THEN
+                              PRINT *,'ERROR - divide by zero in force',
+     &                                   dust_divisor,dustvari(l)
+                                    CALL quit(1)
+                                 ENDIF
+                                 termdustpmj(l) = termdustpmj(l)
+     &                                            *SIN(dustvari(l))
+     &                                            /dust_divisor
+                              ENDIF
+                           END DO
+                        ELSEIF (idustFluid.EQ.4) THEN
+                           !--epsilon method
+                           termdustpmj(:) =
+     &                     (dustvari(:)*(tsi(:)-epstsi) + 
+     &                          dustvar(:,j)*(tsj(:)-epstsj))
+     &                                  *(pr(ipart)-pr(j))*grkern*rij1
+     &                                  *pmassj*rho1j*rho1i
+                        ENDIF
+
+                        IF (idustFluid.GE.1) ! Explicit only
+     &                       ddusti(:) = ddusti(:) - termdustpmj(:)
+
+c-------------SINGLE ONE_FLUID------------------------------
+c                        dudusti = dudusti - termdustpmj*dustvari*
+c     &                            (ui-uj)*rho1i/(1.-dustfraci)
+c-------------SINGLE ONE_FLUID------------------------------
+                        IF (idustFluid.EQ.1) THEN
+                           !--sqrt(rho*epsilon) method 
+                           dudusti(:) = dudusti(:) - termdustpmj(:)
+     &                                  *dustvari(:)*(ui-uj)*rho1i
+     &                                  /(1.-dustfracisum)
+                        ELSEIF (ABS(idustFluid).EQ.2) THEN
+                           !--sqrt(epsilon/(1-epsilon)) method
+                           dudusti(:) = dudusti(:) - termdustpmj(:)
+     &                                  *dustvari(:)*(ui-uj)
+     &                                  /(1.-dustfracisum)
+                        ELSEIF (idustFluid.EQ.3) THEN
+                           !--asin(sqrt(epsilon)) method
+                           dudusti(:) = dudusti(:) - 0.5*termdustpmj(:)
+     &                                 *SIN(2.*dustvari(:))*(ui-uj)
+     &                                 /(1.-dustfracisum)
+                        ELSEIF (idustFluid.EQ.4) THEN
+                           !--epsilon method
+                           dudusti(:) = 0.
+
                         ENDIF
                      ENDIF
+
                      IF (idustFluid.NE.0 .OR. imakedust) THEN
                         gradpj = gradpr*pmassj
-                        gradvdustxi = gradvdustxi + gradpj*runix
-                        gradvdustyi = gradvdustyi + gradpj*runiy
-                        gradvdustzi = gradvdustzi + gradpj*runiz
+                        gradvdustxi(:) = gradvdustxi(:) + gradpj*runix
+                        gradvdustyi(:) = gradvdustyi(:) + gradpj*runiy
+                        gradvdustzi(:) = gradvdustzi(:) + gradpj*runiz
                      ENDIF
 c
-c--This is the end of gas-gas interactions (i.e. iphase(i) and iphase(j) both 0)
+c--This is the end of gas-gas interactions
+c     (i.e. iphase(i) and iphase(j) both 0)
 c
                   ENDIF
 c
@@ -2069,14 +2363,18 @@ c
                   IF (gasdrag .AND. (iphase(ipart).EQ.11 .AND.
      &                 iphase(j).EQ.0)) THEN
 
-                     f_drag_co = getcd(rhoj, dvij, vsoundj,
-     &                    j, idragscheme)
+c                     f_drag_co = getcd(rhoj, dvij, vsoundj,
+c     &                    j, idragscheme)
+c                     f_drag_i = f_drag_co*projv*wtij*pmassj
+c                     ptsi = ptsi +  pmassj*wtij/
+c     &                      (rhoj*rhoj*f_drag_co/3.)
+c                     ptsnormi = ptsnormi +  pmassj*wtij/rhoj
 
-                     f_drag_i = f_drag_co*projv*wtij*pmassj
-
-                     ptsi = ptsi +  pmassj*wtij/
-     &                      (rhoj*rhoj*f_drag_co/3.)
-                     ptsnormi = ptsnormi +  pmassj*wtij/rhoj
+                     CALL get_ts(tsij,r_planetesimals(1),
+     &                           rho_planetesimals(1),rhoj,rhoi,
+     &                           vsoundj,dvij,iregime)
+                     f_drag_i = 3.*pmassj/((rhoi+rhoj)*tsij)*projv*wtij
+                     ts_min = MIN(ts_min,tsij)
 
                      gasdragxi = gasdragxi - f_drag_i*runix
                      gasdragyi = gasdragyi - f_drag_i*runiy
@@ -2239,7 +2537,20 @@ c
             forceyi = forceyi + artyi
             forcezi = forcezi + artzi
          ENDIF
-         fxyzu(4,ipart) = pdvi
+c
+c--Prior to multigrain, the alteration of "pdv" and "dq" due to the
+c     dust fraction was done in energ.f.  But with multigrains, this
+c     involves a sum over dust types so is better done here in forcei.
+c     
+c     NOTE: At first glance it is not clear why this involves a
+c     correction of 1/(1-epsilon) where epsilon is the dust fraction
+c     (it appears to make the energy contribution larger).  However,
+c     this is because the pdv and dq calculations involve sums over
+c     terms that include m_b/rho^2.  So because the gas fraction
+c     changes as (1-epsilon) for both m_b and rho, this leads to a
+c     correction factor of 1/(1-epsilon) rather than (1-epsilon).
+c
+         fxyzu(4,ipart) = faci*pdvi
 c
 c--Store gas accelerations not experienced by dust
 c
@@ -2303,8 +2614,13 @@ c
 c
 c--For one-fluid dust, evolve dust fraction (ONLY for idustFluid=1)
 c
-            IF (idustFluid.EQ.1 .AND. iphase(ipart).EQ.0) THEN
-               ddusti = ddusti - 0.5*dustvari*divv(ipart)*rho1i
+            IF (idustFluid.NE.0 .AND. iphase(ipart).EQ.0) THEN
+               IF (idustFluid.EQ.1) THEN
+                  !--sqrt(rho*epsilon) method 
+               ddusti(:) = ddusti(:) - 0.5*dustvari(:)*rho1i*divv(ipart)
+               ELSE
+                  ! No terms for other parameterisations
+               ENDIF
             ENDIF
          ENDIF
 c
@@ -2360,20 +2676,19 @@ c--Homologous expansion or contraction
 c
          IF (iexpan.GT.0) CALL homexp(ipart,ntot,realtime,vxyzu,forcexi,
      &        forceyi,forcezi) 
-
+c
+c--For one-fluid dust, evolve dust fraction
+c
          IF (idustFluid.NE.0) THEN
-            IF (idustFluid.EQ.1) THEN
-               ts_over_1minus_epsilon = 
-     &              stoppingtime(ipart,rhoi,dustvari)*rhoi/
-     &              (rhoi-dustvari**2)
-            ELSEIF (ABS(idustFluid).EQ.2) THEN
-               ts_over_1minus_epsilon =
-     &              stoppingtime(ipart,rhoi,dustvari)*(1.+dustvari**2)
-            ENDIF
+            WHERE (dustfraci.GT.0.)
+               ts_over_1minus_epsilon(:) = tsi(:)/(1.-dustfracisum)
+            ELSEWHERE (dustfraci.EQ.0.)
+               ts_over_1minus_epsilon(:) = 0.
+            END WHERE
 
-            gradvdustxi = gradvdustxi*ts_over_1minus_epsilon
-            gradvdustyi = gradvdustyi*ts_over_1minus_epsilon
-            gradvdustzi = gradvdustzi*ts_over_1minus_epsilon
+            gradvdustxi(:) = gradvdustxi(:)*ts_over_1minus_epsilon(:)
+            gradvdustyi(:) = gradvdustyi(:)*ts_over_1minus_epsilon(:)
+            gradvdustzi(:) = gradvdustzi(:)*ts_over_1minus_epsilon(:)
          ENDIF
 c
 c--Add local values to global force
@@ -2410,20 +2725,15 @@ c
          ENDIF
 
          IF (iphase(ipart).EQ.0) THEN
-
-c            IF (ipart.EQ.0418 .AND. itime.GE.134217728) THEN
-c               print *,iproc,': P0418dqs ',dq(ipart),dqi
-c            ENDIF
-
-            dq(ipart) = dq(ipart) + dqi
+            dq(ipart) = dq(ipart) + faci*dqi
 c
 c--For one-fluid dust, evolve dust fraction
 c
             IF (idustFluid.NE.0) THEN
-               IF (idustFluid.GT.0) THEN ! Only explicit
-                  ddust(ipart) = ddust(ipart) + ddusti
+               IF (idustFluid.GE.1) THEN ! Only explicit
+                  ddust(:,ipart) = ddust(:,ipart) + ddusti(:)
                ENDIF
-               dustfluiddu(ipart) = dustfluiddu(ipart) + dudusti
+               dustfluiddu(ipart) = dustfluiddu(ipart) + SUM(dudusti)
             ENDIF
             IF (idustFluid.NE.0 .OR. imakedust) THEN
 c
@@ -2433,13 +2743,12 @@ c     separate velocities of the gas and dust to be computed.
 c     Note that the momentum equation is -gradP/rho whereas this is 
 c     +gradP/rho
 c
-c
-               dustfluidvxyz(1,ipart) = dustfluidvxyz(1,ipart) + 
-     &              gradvdustxi
-               dustfluidvxyz(2,ipart) = dustfluidvxyz(2,ipart) + 
-     &              gradvdustyi
-               dustfluidvxyz(3,ipart) = dustfluidvxyz(3,ipart) + 
-     &              gradvdustzi
+               dustfluidvxyz(1,:,ipart) = dustfluidvxyz(1,:,ipart) + 
+     &              gradvdustxi(:)
+               dustfluidvxyz(2,:,ipart) = dustfluidvxyz(2,:,ipart) + 
+     &              gradvdustyi(:)
+               dustfluidvxyz(3,:,ipart) = dustfluidvxyz(3,:,ipart) + 
+     &              gradvdustzi(:)
             ENDIF
 
 #ifdef DGRID
@@ -2694,7 +3003,7 @@ C$OMP DO SCHEDULE(runtime)
 C$OMP END DO
       ENDIF
 #endif
-#endif
+#endif  ! End MPICOPY
 
 C$OMP DO SCHEDULE(runtime)
 c
@@ -3010,7 +3319,7 @@ c************************************************************
       DIMENSION ekcle(5,iradtrans2)
       DIMENSION Bxyz(3,imhd2)
       DIMENSION Bevolxyz(imhdevol,imhd3)
-      DIMENSION dustvar(idim_dustFluid2)
+      DIMENSION dustvar(ndusttypes,idim_dustFluid2)
       
       IF (it1(j).EQ.imax) THEN
          deltat = dt*(itime - it0(j) - isteps(j)/2)/imaxstep

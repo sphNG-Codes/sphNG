@@ -14,7 +14,7 @@ c************************************************************
       DIMENSION vxyzu(4,idim)
       DIMENSION ekcle(5,iradtrans)
       DIMENSION Bevolxyz(imhdevol,imhd)
-      DIMENSION dustvar(idim_dustFluid)
+      DIMENSION dustvar(ndusttypes,idim_dustFluid)
 
       INCLUDE 'COMMONS/ghost'
       INCLUDE 'COMMONS/typef'
@@ -22,17 +22,18 @@ c************************************************************
       nghost = 0
       IF (ibound.EQ.1) CALL ghostp1(npart,xyzmh,vxyzu,ekcle,Bevolxyz,
      &     dustvar)
-      IF (ibound.EQ.2) CALL ghostp2(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+      IF (ibound.EQ.2) CALL ghostp2(npart,xyzmh,vxyzu,ekcle,Bevolxyz,
+     &     dustvar)
       IF (ibound.EQ.3 .OR. ibound.EQ.8 .OR. ibound/10.EQ.9) 
      &        CALL ghostp3(npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
       IF (ibound.EQ.100) 
-     &        CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+     &        CALL ghostp100(npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
       IF (ibound.EQ.11) 
      &        CALL ghostp11(npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
       IF (ibound.EQ.102 .OR. ibound.EQ.103) 
      &        CALL ghostp102(npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
       IF (ibound.EQ.104) 
-     &        CALL ghostp104(npart,xyzmh,vxyzu,ekcle,Bevolxyz)
+     &        CALL ghostp104(npart,xyzmh,vxyzu,ekcle,Bevolxyz,dustvar)
       ntot = npart + nghost
       
       RETURN

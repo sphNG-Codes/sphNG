@@ -41,8 +41,8 @@ c************************************************************
       DIMENSION listp(idim2)
       DIMENSION ekcle(5,iradtrans2)
       DIMENSION Bevol(imhdevol,imhd3),Bxyz(3,imhd2),
-     &     dBxyz(imhdevol,imhd2),dustvar(idim_dustFluid2),
-     &     ddust(idim_dustFluid2)
+     &     dBxyz(imhdevol,imhd2),dustvar(ndusttypes,idim_dustFluid2),
+     &     ddust(ndusttypes,idim_dustFluid2)
       DIMENSION rgrain(idim_grow2)
 
       PARAMETER (htol = 1.e-3)
@@ -99,6 +99,7 @@ c     that are neighbours of active particles for updating their densities etc
       INCLUDE 'COMMONS/sightlines'
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/dustfluidvelu'
+      INCLUDE 'COMMONS/tstopvar'
       INCLUDE 'COMMONS/HY09accel'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
@@ -264,7 +265,7 @@ C$OMP& shared(iphase,dBxyz,divcurlB,gradB,it0,itime,hfact)
 C$OMP& shared(curlv,gradhs,sightcolumns,hi_2back)
 C$OMP& shared(planetesimaltimestep,planetesimalnorm,iplanetesimals)
 C$OMP& shared(stellarrad,nptmasstot,ddust,dustfluiddu,dustfluidvxyz)
-C$OMP& shared(gas_accel)
+C$OMP& shared(stoppingtime,gas_accel)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend)
 #endif
@@ -340,11 +341,12 @@ c            ENDIF
             END DO
          ENDIF
          IF (idustFluid.NE.0) THEN
-            ddust(ipart) = 0.
+            ddust(:,ipart) = 0.
             dustfluiddu(ipart) = 0.
+            stoppingtime(:,ipart) = 0.
          ENDIF
          IF (idustFluid.NE.0 .OR. imakedust) THEN
-            dustfluidvxyz(1:3,ipart) = 0.
+            dustfluidvxyz(1:3,:,ipart) = 0.
          ENDIF
          IF (idimHY09.EQ.idim) THEN
             gas_accel(:,ipart) = 0.

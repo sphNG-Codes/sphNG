@@ -59,6 +59,7 @@ c      INCLUDE 'COMMONS/torq'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/grain'
       INCLUDE 'COMMONS/dustimplicit'
+      INCLUDE 'COMMONS/dustfluid'
 
       DIMENSION itempsort(idim)
 c
@@ -744,7 +745,7 @@ c
 c
 c--Must rebuild the ghosts and make the tree again after sorting
 c
-      CALL ghostp(ntot, npart, xyzmh, vxyzu, ekcle, Bevolxyz)
+      CALL ghostp(ntot, npart, xyzmh, vxyzu, ekcle, Bevolxyz, dustvar)
 
       DO i = 1, ntot
          DO j = 1, 5

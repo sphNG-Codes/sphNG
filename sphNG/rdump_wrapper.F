@@ -159,7 +159,6 @@ c
 c
 c--Sort particles based on their individual timesteps and x
 c
-
       CALL indexx(npart, llist, tempsort, iorig)
 
       DO i = 1, npart
@@ -303,11 +302,13 @@ c
          ENDDO
       ENDIF
       IF (idustFluid.NE.0) THEN
-         DO i = 1, npart
-            tempsort(i) = dustvar(iorig(i))
-         END DO
-         DO i = 1, npart
-            dustvar(i) = tempsort(i)
+         DO k = 1, ndusttypes
+            DO i = 1, npart
+               tempsort(i) = dustvar(k,iorig(i))
+            END DO
+            DO i = 1, npart
+               dustvar(k,i) = tempsort(i)
+            END DO
          END DO
       ENDIF
       IF (idimHY09.EQ.idim) THEN

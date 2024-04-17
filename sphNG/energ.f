@@ -28,7 +28,6 @@ c************************************************************
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/astrcon'
       INCLUDE 'COMMONS/tcooling'
-      INCLUDE 'COMMONS/dustfluid'
       INCLUDE 'COMMONS/dustfluidvelu'
 
       REAL omega1
@@ -52,40 +51,6 @@ c--pdv term is stored in dvxyzu(4,ipart) in forcei to use memory efficiently
 c
       pdv = dvxyzu(4,ipart)
       dvxyzu(4,ipart) = 0.0
-c
-c--If using one-fluid dust, need to modify pdv and dq because they have
-c     been calculated assuming each SPH particle is 100% gas.
-c
-c     NOTE: At first glance it is not clear why this involves a
-c     correction of 1/(1-epsilon) where epsilon is the dust fraction
-c     (it appears to make the energy contribution larger).  However,
-c     this is because the pdv and dq calculations involve sums over
-c     terms that include m_b/rho^2.  So because the gas fraction
-c     changes as (1-epsilon) for both m_b and rho, this leads to a
-c     correction factor of 1/(1-epsilon) rather than (1-epsilon).
-c
-c     NOTE: For MHD (both ideal and non-ideal) the energy dissipation
-c     terms are added into pdv in forcei, so these are also corrected
-c     here when using one-fluid dust (the same factor is required).
-c
-c     NOTE: The one-fluid dust dissipation term is already computed
-c     correctly in forcei, so does NOT need to be corrected below.
-c
-      IF (idustFluid.NE.0) THEN
-         IF (idustFluid.EQ.1) THEN
-            !--sqrt(rho*epsilon) method
-            one_over_1minus_epsilon = trho(ipart)/
-     &           (trho(ipart)-dustvar(ipart)**2)
-         ELSEIF (ABS(idustFluid).EQ.2) THEN
-            !--sqrt(epsilon/(1-epsilon)) method
-            one_over_1minus_epsilon = 1.0 + dustvar(ipart)**2
-         ELSE
-            WRITE (*,*) 'ERROR - idustFluid ',idustFluid
-            CALL quit(0)
-         ENDIF
-         pdv = one_over_1minus_epsilon * pdv
-         dq(ipart) = one_over_1minus_epsilon * dq(ipart)
-      ENDIF
 
       IF (iener.EQ.3) THEN
 c

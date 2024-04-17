@@ -1,0 +1,2 @@
+      REAL stoppingtime
+      COMMON /tstopvar/ stoppingtime(ndusttypes,idim_dustFluid2)

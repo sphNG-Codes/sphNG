@@ -1,8 +1,11 @@
       SUBROUTINE makedust
 c************************************************************
 c                                                           *
-c  This subroutine reads in an existing dump file and       *
-c     brings dead particles to life as dust particles.      *
+c  This subroutine makes dust particles for 2-fluid,        *
+c     gas and dust particle, simulations.                   *
+c                                                           *
+c     It can read in an existing dump file and bring        *
+c     dead particles to life as dust particles.             *
 c     Originally used to add dust to a settled disc.        *
 c                                                           *
 c     Alternately:                                          * 
@@ -314,7 +317,7 @@ c
                stopt = r_planetesimal*rho_planetesimal/
      &              (thermal_velocity(i)*rho(i))
          print *,'terminal ',stopt,r_planetesimal,rho_planetesimal
-               vxyzu(1:3,i) = vxyzu(1:3,i) + dustfluidvxyz(1:3,i)*stopt 
+               vxyzu(1:3,i) = vxyzu(1:3,i) +dustfluidvxyz(1:3,1,i)*stopt
                rho(i) = rho(i)*rho_dust_fac
             ELSEIF (iphase(i).EQ.0) THEN
                rho(i) = rho(i)*rho_gas_fac

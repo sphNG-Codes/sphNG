@@ -183,22 +183,14 @@ c
             Stokes_k = Stokes_k*freqJeanssoundcrossing/omega
          ENDIF
 c         vg2 = 1.0E-03*pi/8.0*vthermal**2
-c
-c--Ormel & Cuzzi, equation 28 (fully intermediate regime, needed for
-c     1.6*Stokes>Re^(-1/2) )
-c
-         epsilon = Stokes_j/Stokes_k
-         IF (epsilon.GT.1.) epsilon = 1./epsilon
-         IF (1.6*Stokes_max.GT.sqrt_inv_Re) THEN
-            vrel_turb2 = vrel_turb2 + vg2*vg2_coeff_disc_or_env*
-     &           ( 2.2 - epsilon + 2.0/(1.0+epsilon)*
-     &           (1.0/2.6 + epsilon**3/(1.6+ epsilon)))*Stokes_max
-         ENDIF
 
 c         vrel_turb2 = 1.0E-03*pi/8.0*vthermal**2*
 c     &        ABS( (Stokes-sqrt_inv_Re) + 
 c     & Stokes_k**2*(1.0/(Stokes_k+Stokes) -1.0/(Stokes_k+sqrt_inv_Re))+
 c     & Stokes_j**2*(1.0/(Stokes_j+Stokes) -1.0/(Stokes_j+sqrt_inv_Re)) )
+
+         epsilon = Stokes_j/Stokes_k
+         IF (epsilon.GT.1.) epsilon = 1./epsilon
 
 c--Ormel & Cuzzi, equation 26
 c         vrel_turb2 = 1.0E-03*pi/8.0*vthermal**2*
@@ -215,6 +207,18 @@ c--Ormel & Cuzzi, equation 26 (tightly coupled particles)
      &        Stokes_min**2*(1.0/(Stokes_min+sqrt_inv_Re) - 
      &        1.0/(1.0+Stokes_min)))/
      &        (Stokes_max+Stokes_min) )
+
+c
+c--Ormel & Cuzzi, equation 28 (fully intermediate regime, needed for
+c     1.6*Stokes>Re^(-1/2) )
+c
+         IF (1.6*Stokes_max.GT.sqrt_inv_Re) THEN
+c            vrel_turb2 = vrel_turb2 + vg2*vg2_coeff_disc_or_env*
+            vrel_turb2 = vg2*vg2_coeff_disc_or_env*
+     &           ( 2.2 - epsilon + 2.0/(1.0+epsilon)*
+     &           (1.0/2.6 + epsilon**3/(1.6+ epsilon)))*Stokes_max
+         ENDIF
+
       ELSE
          vrel_turb2 = 0.
       ENDIF

@@ -19,6 +19,8 @@ c
       INCLUDE 'COMMONS/cgas'
       INCLUDE 'COMMONS/eosq'
       INCLUDE 'COMMONS/HY09accel'
+      INCLUDE 'COMMONS/typef'
+      INCLUDE 'COMMONS/xforce'
 
       INTEGER nlst,npart,ntot
       INTEGER llist(idim)
@@ -52,6 +54,7 @@ C$OMP& shared(nlst,llist,iphase,rho,encal,xyzmh,vxyzu,ekcle)
 C$OMP& shared(HY09_bin_rho,HY09_drhodt,HY09binmass,HY09binmass_max)
 C$OMP& shared(udens,utime,udist,HY09vrel_h,HY09_dust_density)
 C$OMP& shared(gas_accel,grav_accel,HY09discflag,vsound)
+C$OMP& shared(iexf,xmass,umass)
 C$OMP& private(n,ipart,rhoi,radius,temperature,vthermal)
 C$OMP& private(vrel_press_coeff,vrel_rad_drift_coeff,omega,vg2)
 C$OMP& private(vrel_settling_coeff,freqJeanssoundcrossing)
@@ -75,8 +78,13 @@ c
 c--Pre-compute values that don't depend on grain size
 c
          rhoi = rho(ipart)
-         radius = SQRT(xyzmh(1,ipart)**2 + xyzmh(2,ipart)**2 + 
-     &        xyzmh(3,ipart)**2)
+         IF (iexf.EQ.11) THEN
+            radius = SQRT((5.0+xyzmh(1,ipart))**2 + xyzmh(2,ipart)**2 + 
+     &           xyzmh(3,ipart)**2)
+         ELSE
+            radius = SQRT(xyzmh(1,ipart)**2 + xyzmh(2,ipart)**2 +
+     &           xyzmh(3,ipart)**2)
+         ENDIF
          IF (encal.EQ.'r') THEN
             temperature = vxyzu(4,ipart)/ekcle(3,ipart)
          ELSE
@@ -127,7 +135,11 @@ c
 c
 c--Pre-compute quantities for turbulence relative velocities
 c
-         omega = SQRT(rgrav_accel_cgs/(radius*udist+solarr))
+         IF (iexf.EQ.11) THEN
+            omega = SQRT(gg*xmass*umass/(50.0*au)**3)
+         ELSE
+            omega = SQRT(rgrav_accel_cgs/(radius*udist+solarr))
+         ENDIF
          vg2 = pi/8.0*vthermal**2
          freqJeanssoundcrossing = 2.0*SQRT(gg*rhoi*udens/pi)
 c

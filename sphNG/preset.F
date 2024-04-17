@@ -62,6 +62,7 @@ c************************************************************
       INCLUDE 'COMMONS/planetesimal'
       INCLUDE 'COMMONS/pxpy'
       INCLUDE 'COMMONS/physcon'
+      INCLUDE 'COMMONS/tstop'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
       INCLUDE 'COMMONS/varmhd'
@@ -844,6 +845,32 @@ c
 #endif
       CALL nimhd_write_evheader(nimhdfile,iproc_in)
 #endif
+c
+c--For Epstein drag, need to know vthermal = SQRT(8*k_B*T/(pi*mu*m_H))
+c     This is very similar to vsound(), but needs to be modified
+c     by the factor coeff_gei_1 below.
+c     NOTE: It won't quite be right for encal.EQ.'v' or 'x' because
+c     the gamma value varies rather than being a constant.
+c
+      IF (encal.EQ.'i' .OR. encal.EQ.'t') THEN
+         coeff_gei_1 = SQRT(8.0/pi)
+         cste_mu     = SQRT(2./pi)
+      ELSE
+         coeff_gei_1 = SQRT(8./(pi*gamma))
+         cste_mu     = SQRT(2./(pi*gamma))
+      ENDIF
+c
+c--Compute effective surface density used to calculate mean free path
+c
+      cste_seff         = pi/SQRT(2.)*5./64.
+      mass_mol_gas      = (2.*mH)/umass
+      cross_section_gas = cross_section_H2_cgs/(udist*udist)
+      seff              = cste_seff*mass_mol_gas/cross_section_gas
+      IF (seff.LE.0.) THEN
+         WRITE (iprint,*) 'ERROR preset:effective surface density <=0 ',
+     &        seff,cste_seff,mass_mol_gas,cross_section_gas
+         CALL quit(0)
+      ENDIF
 
       IF (itrace.EQ.'all') WRITE(iprint,250)
  250  FORMAT(' exit subroutine preset')

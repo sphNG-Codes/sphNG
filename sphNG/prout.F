@@ -62,6 +62,7 @@ c************************************************************
       INCLUDE 'COMMONS/stellarradiation'
       INCLUDE 'COMMONS/HY09dustprops'
       INCLUDE 'COMMONS/HY09rho'
+      INCLUDE 'COMMONS/dustimplstat'
 #ifdef NONIDEAL
       INCLUDE 'COMMONS/nonideal'
 
@@ -144,6 +145,7 @@ c         n1tot = n1
             tdmin1tot = tdmin1
             h2mass1tot = h2mass1
          ENDIF
+         IF (idustFluid.NE.0) dustmasstot = dustmass1
 
 c         n2tot = n2
          cmx2tot = cmx2
@@ -319,6 +321,10 @@ c     &     MPI_COMM_WORLD,ierr)
      &           MPI_COMM_WORLD,ierr)
             CALL MPI_REDUCE(h2mass1,h2mass1tot,1,MPI_REAL8,
      &           MPI_SUM,0,MPI_COMM_WORLD,ierr)            
+         ENDIF
+         IF (idustFluid.NE.0) THEN
+            CALL MPI_REDUCE(dustmass1,dustmasstot,1,MPI_REAL8,
+     &           MPI_SUM,0,MPI_COMM_WORLD,ierr)
          ENDIF
 c
 c--n1 and n2 are kept as global constant values
@@ -813,6 +819,10 @@ c
 99122       FORMAT ('   Total dust/gas ratio: ',1PE14.5,' should be:',
      &           1PE14.5)
          ENDIF
+         IF (idustFluid.NE.0) THEN
+            WRITE (iprint,99124, ERR=100) dustmasstot
+99124       FORMAT (' Total 1-fluid dust mass: ',1PE14.5)
+         ENDIF
 c        Write energies for object 1; this is the same as total energies
 c        above if only one object present.
 c        Using short-hand notation to not confuse grepping with total
@@ -898,22 +908,34 @@ c
 c--RT stats
 c
          IF (iradtrans.EQ.idim.AND.encal.EQ.'r') THEN
-           WRITE(iprint, 98001)nintegsuc,nintegfail,
-     &        REAL(nintegtot)/(REAL(nintegsuc)+tiny),nrtnca,
-     &        nrtnc1,nrtnc2,nrtmaxit
-           nintegfail = 0
-           nintegsuc  = 0 
-           nrtnc1     = 0
-           nrtnc2     = 0
-           nrtnca     = 0
-           nrtmaxit   = 0
-           nintegtot  = 0
+            WRITE(iprint, 98020)nintegsuc,nintegfail,
+     &           REAL(nintegtot)/(REAL(nintegsuc)+tiny),nrtnca,
+     &           nrtnc1,nrtnc2,nrtmaxit
+            nintegfail = 0
+            nintegsuc  = 0 
+            nrtnc1     = 0
+            nrtnc2     = 0
+            nrtnca     = 0
+            nrtmaxit   = 0
+            nintegtot  = 0
          ENDIF
-98001 FORMAT(/, ' Implicit R-T (GSIMPL) :', /,
+98020    FORMAT(/, ' Implicit R-T (GSIMPL) :', /,
      &    ' Succeeded - ',I8,' Failed     - ',I8,' Av. iter. - ',F8.4,/,
      &    ' Failures:',12X,'Almost N-C - ', I8, ' N-C 1     - ', I8, /, 
      &    22X,'N-C 1-2    - ', I8, ' Max iter. - ', I8)
 #endif
+c
+c--Implicit one-fluid dust stats
+c
+         IF (idustFluid.EQ.-2) THEN
+            WRITE(iprint, 98030)ndustimpl_suc,ndustimpl_fail,
+     &           REAL(ndustimpl_tot)/(REAL(ndustimpl_suc)+tiny)
+            ndustimpl_fail = 0
+            ndustimpl_suc  = 0 
+            ndustimpl_tot  = 0
+         ENDIF
+98030    FORMAT(/, ' Implicit one-fluid dust :', /,
+     &    ' Succeeded - ',I8,' Failed     - ',I8,' Av. iter. - ',F8.4)
 c
 c--ptmass stats
 c

@@ -63,6 +63,7 @@ c************************************************************
       INCLUDE 'COMMONS/accstat'
       INCLUDE 'COMMONS/rtstat'
       INCLUDE 'COMMONS/makeplt'
+      INCLUDE 'COMMONS/dustimplstat'
 
       REAL*8 angmom
 
@@ -612,6 +613,12 @@ c
       nrtmaxit   = 0
       nintegtot  = 0
 #endif
+c
+c--Zero the one-fluid implicit dust counters
+c
+      ndustimpl_fail = 0
+      ndustimpl_suc  = 0
+      ndustimpl_tot  = 0
 c
 c--Zero the pointmass counters
 c

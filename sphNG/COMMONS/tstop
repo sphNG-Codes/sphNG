@@ -1,0 +1,18 @@
+      INTEGER idragscheme
+
+      REAL*8 K_code
+      REAL*8 cste_mu
+      REAL*8 coeff_gei_1
+      REAL*8 cste_seff
+      REAL*8 mass_mol_gas
+      REAL*8 cross_section_gas
+      REAL*8 seff
+
+      COMMON /tstop_i/ idragscheme
+      COMMON /tstop_r/ K_code,
+     &                 cste_mu,
+     &                 coeff_gei_1,
+     &                 cste_seff,
+     &                 mass_mol_gas,
+     &                 cross_section_gas,
+     &                 seff

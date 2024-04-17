@@ -436,11 +436,11 @@ c
 
          contrast = LOG10(contrast)
          ipower = - ABS(INT(ratio/contrast))
-         IF (ABS(ratio/contrast).LT.0.5) ipower = 1
+         IF (ratio/contrast.LT.0.5) ipower = 1
 c
 c--Limit the largest change in timestep to 2**5 = 32
 c
-         IF (ipower.GT.5) ipower = 5
+         IF (ipower.LT.-5) ipower = -5
 
          IF (dtminsync.GT.0.0) THEN
             WRITE (*, 99018) dtmaxsync, dtminsync, 10**contrast, 
@@ -471,11 +471,11 @@ c
 
          IF (ipower.GE.0 .AND. tstep/60.0.GT.720.0) THEN
 #ifdef MPIALL
-         IF (iproc.EQ.0) THEN
+            IF (iproc.EQ.0) THEN
 #endif
-            WRITE (iprint,99034) tstep/60.0
+               WRITE (iprint,99034) tstep/60.0
 #ifdef MPIALL
-         ENDIF
+            ENDIF
 #endif
             WRITE (*,99034) tstep/60.0
 99034       FORMAT('  Synct autochange since time ',1PE12.5)

@@ -128,7 +128,7 @@ c     that are neighbours of active particles for updating their densities etc
       REAL csbuff(numproc),dvxyzuinit(4,idim)
       INTEGER idispranks(numproc),ipsendbuf(numproc*numproc)
       INTEGER ipsendall(numproc,numproc),ipsendindx(numproc)
-      INTEGER listdistantgn(2*numproc)
+      INTEGER listdistantgn(ngrav_nodes),listsendgn(ngrav_nodes)
       LOGICAL order_comms
 #endif
 
@@ -456,40 +456,6 @@ c--build array of which ranks are sending to which
                CALL order_mpi_comms_else(ipsendall,ipsendindx)
             ENDIF
          ENDIF
-
-c--send gravity node data to all other MPI ranks
-c     store data beyond the root node
-c     currently only implemented for iptintree = 2
-c     i.e. all mass from distant ranks is in the tree (including sinks)
-         IF (nroot+numproc .GE. mmax) THEN
-            PRINT*,iproc,"ERROR: mmax exceeded domain_checking",
-     &           nroot,mmax
-            CALL quit(0)
-         ENDIF
-#ifdef MPIDEBUGDC
-c         WRITE(iprint,*) "gravity node data sent"
-c         WRITE(iprint,*) qrad(1:7,nroot)
-c         WRITE(iprint,*) xyzmh(1:5,nroot)
-#endif
-         irootdleft = isibdaupar(2,nroot)
-         irootdright = isibdaupar(1,irootdleft)
-c--gather all left daughters of root nodes after this rank's root node
-         CALL MPI_ALLGATHER(qrad(2,irootdleft),6,MPI_REAL4,
-     &        qrad(2,2*ntot+3),7,MPI_REAL4,MPI_COMM_WORLD,ierr)
-         CALL MPI_ALLGATHER(xyzmh(1,irootdleft),4,MPI_REAL8,
-     &        xyzmh(1,2*ntot+3),5,MPI_REAL8,MPI_COMM_WORLD,ierr)
-c--gather all right daughters of root nodes after left daughters
-         CALL MPI_ALLGATHER(qrad(2,irootdright),6,MPI_REAL4,
-     &        qrad(2,2*ntot+3+numproc),7,MPI_REAL4,MPI_COMM_WORLD,ierr)
-         CALL MPI_ALLGATHER(xyzmh(1,irootdright),4,MPI_REAL8,
-     &        xyzmh(1,2*ntot+3+numproc),5,MPI_REAL8,MPI_COMM_WORLD,ierr)
-#ifdef MPIDEBUGDC
-c         WRITE(iprint,*) "gravity node data received"
-c         DO i=1,numproc
-c            WRITE(iprint,*) qrad(1:7,2*ntot+2+i)
-c            WRITE(iprint,*) xyzmh(1:5,2*ntot+2+i)
-c         ENDDO
-#endif
       ENDIF
 #endif
 
@@ -641,24 +607,6 @@ c     those loops so needs to be done sooner
          ENDIF
       END DO
 C$OMP END PARALLEL DO
-
-      CALL MPI_TYPE_CONTIGUOUS(15, MPI_REAL8, i15REAL8, ierr)
-c      CALL MPI_TYPE_CONTIGUOUS(12, MPI_REAL8, i12REAL8, ierr)
-      CALL MPI_TYPE_CONTIGUOUS(8, MPI_REAL8, i8REAL8, ierr)
-      CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
-      CALL MPI_TYPE_CONTIGUOUS(imhdevol, MPI_REAL8, imhdevolREAL8,ierr)
-      CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
-      CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
-      CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
-
-      CALL MPI_TYPE_COMMIT(i15REAL8,ierr)
-c      CALL MPI_TYPE_COMMIT(i12REAL8,ierr)
-      CALL MPI_TYPE_COMMIT(i8REAL8,ierr)
-      CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
-      CALL MPI_TYPE_COMMIT(imhdevolREAL8,ierr)
-      CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
-      CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
-      CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
 
       CALL MPI_ALLREDUCE(nlstdo,nlstdo_tot,1,MPI_INTEGER,MPI_SUM,
      &     MPI_COMM_WORLD,ierr)
@@ -3169,6 +3117,7 @@ C$OMP END PARALLEL DO
       CALL MPI_TYPE_FREE(i8REAL8,ierr)
 c      CALL MPI_TYPE_FREE(i12REAL8,ierr)
       CALL MPI_TYPE_FREE(i15REAL8,ierr)
+      CALL MPI_TYPE_FREE(i7REAL4,ierr)
 
 #endif
 c

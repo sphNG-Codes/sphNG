@@ -181,3 +181,9 @@ c  in terminal velocity initially
      &		MAX( MAX( MIN(ABS(idustFluid),1), idustIMPL)*idim2, 1))
       PARAMETER (idim_grow = idustGROW*idim)
       PARAMETER (idim_grow2 = idustGROW*idim2)
+
+c
+c--Parameter used to extend iphase and qrad1 for domain checking
+c
+      INTEGER ngrav_nodes
+      PARAMETER (ngrav_nodes = 100000)

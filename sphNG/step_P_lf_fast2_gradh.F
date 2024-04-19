@@ -20,6 +20,7 @@ c************************************************************
 #ifdef MPI
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpidomains'
 #endif
 
       INCLUDE 'COMMONS/physcon'
@@ -128,6 +129,12 @@ c
       itreeupdate = .FALSE.
 #ifdef MPI
       print *,iproc,': ENTERED STEP ',npart,nparttot,nptmasstot
+#endif
+c
+c--initialise values of domain extents for the upcoming time-step
+c
+#ifdef MPI
+      IF (domain_checking) CALL reset_domain_extent
 #endif
 c
 c--Integration
@@ -534,10 +541,13 @@ C$OMP& shared(it0,itime,imaxdens,cnormk,iener)
 C$OMP& shared(iprint,nneigh,hmaximum,iphase,nptmass,listpm)
 C$OMP& shared(xmomsyn,ymomsyn,zmomsyn,pmass,listrealpm)
 C$OMP& shared(ifsvi,alphaMM,alphamax,alphamin,Bevolxyz,encal,gt)
-C$OMP& shared(pdvvisc,dumvxyzu)
+C$OMP& shared(pdvvisc,dumvxyzu,radkernel)
 C$OMP& shared(h2frac,dh2dt,HIIion,dHIIdt,deltaHII)
 C$OMP& private(i,j,k,dtfull,dthalf,delvx,delvy,delvz)
-C$OMP& private(iii,pmasspt)
+C$OMP& private(iii,pmasspt,k2,rcs,xyzki)
+#ifdef MPI
+C$OMP& reduction(MIN:domain_extent,de_cs_gas)
+#endif
 C$OMP& reduction(+:ioutmax)
       DO j = 1, nlst
          i = llist(j)
@@ -564,6 +574,21 @@ c
          DO k = 1, 3
             xyzmh(k,i) = xyzmh(k,i) + dtfull*vxyzu(k,i)
          END DO
+#ifdef MPI
+         IF (domain_checking) THEN
+            rcs = csgrowthlim * radkernel * xyzmh(5,i)
+            DO k=1, 3
+               k2 = k + 3
+               xyzki = xyzmh(k,i)
+               domain_extent(k) = MIN(domain_extent(k),xyzki)
+               domain_extent(k2) = MIN(domain_extent(k2),-xyzki)
+               IF (iphase(i) .EQ. 0 .OR. iphase(i) .GE. 10) THEN
+                  de_cs_gas(k) = MIN(de_cs_gas(k),xyzki-rcs)
+                  de_cs_gas(k2) = MIN(de_cs_gas(k2),-xyzki-rcs)
+               ENDIF
+            ENDDO
+         ENDIF
+#endif         
 c
 c--Update velocities further to "predict" velocities at t=n+1
 c
@@ -688,14 +713,26 @@ c
       numberparents = 0
 
       IF (itbinupdate.GE.nbinmax-1 .OR. ipartialrevtree.EQ.0) THEN
+#ifdef MPI
+c
+c--reset domain faces since looping over all particles
+c
+         IF (domain_checking) THEN
+            domain_extent =  1E30
+            de_cs_gas     =  1E30
+         ENDIF
+#endif
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,rho)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,alphamin)
-C$OMP& shared(encal,Bevolxyz)
+C$OMP& shared(encal,Bevolxyz,radkernel)
 C$OMP& shared(isibdaupar,iflagtree,imfac,numberparents,listparents)
-C$OMP& private(j,k,deltat,deltat2,iparent)
+#ifdef MPI
+C$OMP& reduction(MIN:domain_extent,de_cs_gas)
+#endif
+C$OMP& private(j,k,deltat,deltat2,iparent,k2,rcs,xyzkj)
          DO j = 1, npart
             IF (iphase(j).GE.0) THEN
                deltat = dt*(itime - it0(j))/imaxstep
@@ -709,7 +746,21 @@ c
                dumvxyzu(1:3,j) = vxyzu(1:3,j) + deltat2*f1vxyzu(1:3,j)
                dumxyzmh(1:3,j) = xyzmh(1:3,j) + deltat*dumvxyzu(1:3,j)
                dumvxyzu(1:3,j) = dumvxyzu(1:3,j) +deltat2*f1vxyzu(1:3,j)
-
+#ifdef MPI
+               IF (domain_checking) THEN
+                  rcs = csgrowthlim * radkernel * dumxyzmh(5,j)
+                  DO k = 1, 3
+                     k2 = k + 3
+                     xyzkj = dumxyzmh(k,j)
+                     domain_extent(k) = MIN(domain_extent(k),xyzkj)
+                     domain_extent(k2) = MIN(domain_extent(k2),-xyzkj)
+                     IF (iphase(j) .EQ. 0 .OR. iphase(j) .GE. 10) THEN
+                        de_cs_gas(k) = MIN(de_cs_gas(k),xyzkj-rcs)
+                        de_cs_gas(k2) = MIN(de_cs_gas(k2),-xyzkj-rcs)
+                     ENDIF
+                  ENDDO
+               ENDIF
+#endif
                dumxyzmh(4,j) = xyzmh(4,j)
 
                IF (iphase(j).EQ.0) THEN
@@ -756,10 +807,13 @@ C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,rho)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,alphamin)
-C$OMP& shared(encal,Bevolxyz)
+C$OMP& shared(encal,Bevolxyz,radkernel)
 C$OMP& shared(isibdaupar,iflagtree,imfac,npart)
 C$OMP& shared(numberparents,listparents)
-C$OMP& private(j,k,l,deltat,deltat2,iparent)
+#ifdef MPI
+C$OMP& reduction(MIN:domain_extent,de_cs_gas)
+#endif
+C$OMP& private(j,k,l,deltat,deltat2,iparent,k2,rcs,xyzkj)
             DO l = 1, nlstbins(i)
                j = listbins(l,i)
                IF (iphase(j).GE.0) THEN
@@ -773,6 +827,24 @@ c
                   dumvxyzu(1:3,j) = dumvxyzu(1:3,j) + 
      &                 deltat2*f1vxyzu(1:3,j)
 
+#ifdef MPI
+                  IF (domain_checking) THEN
+                     rcs = csgrowthlim * radkernel * dumxyzmh(5,j)
+                     DO k = 1, 3
+                        k2 = k + 3
+                        xyzkj = dumxyzmh(k,j)
+                        domain_extent(k) = MIN(domain_extent(k),xyzkj)
+                        domain_extent(k2) =MIN(domain_extent(k2),-xyzkj)
+                        IF (iphase(j) .EQ. 0 .OR.
+     &                       iphase(j) .GE. 10) THEN
+                           de_cs_gas(k) = MIN(de_cs_gas(k),xyzkj-rcs)
+                           de_cs_gas(k2) = MIN(de_cs_gas(k2),-xyzkj-rcs)
+                        ENDIF
+                     END DO
+                  ENDIF
+#endif
+
+                  
                   dumxyzmh(4,j) = xyzmh(4,j)
 
                   IF (iphase(j).EQ.0) THEN
@@ -826,10 +898,13 @@ C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,rho)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,alphamin)
-C$OMP& shared(encal,Bevolxyz)
+C$OMP& shared(encal,Bevolxyz,radkernel)
 C$OMP& shared(isibdaupar,iflagtree,imfac,npart)
 C$OMP& shared(numberparents,listparents,irevise,iprint)
-C$OMP& private(j,k,l,deltat,deltat2,iparent)
+#ifdef MPI
+C$OMP& reduction(MIN:domain_extent,de_cs_gas)
+#endif
+C$OMP& private(j,k,l,deltat,deltat2,iparent,k2,rcs,xyzkj)
             DO l = 1, nlstbins(i)
                j = listbins(l,i)
 
@@ -869,7 +944,22 @@ c
                   dumxyzmh(1:3,j) = xyzmh(1:3,j) +deltat*dumvxyzu(1:3,j)
                   dumvxyzu(1:3,j) = dumvxyzu(1:3,j) +
      &                 deltat2*f1vxyzu(1:3,j)
-
+#ifdef MPI
+                  IF (domain_checking) THEN
+                     rcs = csgrowthlim * radkernel * dumxyzmh(5,j)
+                     DO k = 1, 3
+                        k2 = k + 3
+                        xyzkj = dumxyzmh(k,j)
+                        domain_extent(k) = MIN(domain_extent(k),xyzkj)
+                        domain_extent(k2) =MIN(domain_extent(k2),-xyzkj)
+                        IF (iphase(j) .EQ. 0 .OR.
+     &                       iphase(j) .GE. 10) THEN
+                           de_cs_gas(k) = MIN(de_cs_gas(k),xyzkj-rcs)
+                           de_cs_gas(k2) = MIN(de_cs_gas(k2),-xyzkj-rcs)
+                        ENDIF
+                     END DO
+                  ENDIF
+#endif
                   dumxyzmh(4,j) = xyzmh(4,j)
 
                   IF (iphase(j).EQ.0) THEN
@@ -922,7 +1012,10 @@ C$OMP& shared(nptmass,listpm,itime,it0)
 C$OMP& shared(xyzmh,vxyzu,dumxyzmh,dumvxyzu)
 C$OMP& shared(isibdaupar,iflagtree,imfac)
 C$OMP& shared(numberparents,listparents,irevise)
-C$OMP& private(i,j,k,iparent)
+#ifdef MPI
+C$OMP& reduction(MIN:domain_extent)
+#endif
+C$OMP& private(i,j,k,iparent,k2,xyzkj)
          DO i = 1, nptmass
             j = listpm(i)
             IF (itime.NE.it0(j)) THEN
@@ -951,6 +1044,16 @@ c--Load dummy arrays
 c
             dumxyzmh(1:5,j) = xyzmh(1:5,j)
             dumvxyzu(1:3,j) = vxyzu(1:3,j)
+#ifdef MPI
+            IF (domain_checking) THEN
+               DO k = 1, 3
+                  k2 = k + 3
+                  xyzkj = dumxyzmh(k,j)
+                  domain_extent(k) = MIN(domain_extent(k),xyzkj)
+                  domain_extent(k2) = MIN(domain_extent(k2),-xyzkj)
+               END DO
+            ENDIF
+#endif
          END DO
 C$OMP END PARALLEL DO
       ENDIF

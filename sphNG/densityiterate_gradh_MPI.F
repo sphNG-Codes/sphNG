@@ -122,6 +122,13 @@ c     that are neighbours of active particles for updating their densities etc
       REAL*4 rhorec(ineighproc), dumrhorec(ineighproc), rhonextmax
       LOGICAL*1 isend(idim)
       INTEGER*8 iuniquesend(iptdim)
+
+      REAL de_all(6,numproc),csgas_all(6,numproc)
+      REAL csbuff(numproc),dvxyzuinit(4,idim)
+      INTEGER idispranks(numproc),ipsendbuf(numproc*numproc)
+      INTEGER ipsendall(numproc,numproc),ipsendindx(numproc)
+      INTEGER listdistantgn(ngrav_nodes),listsendgn(ngrav_nodes)
+      LOGICAL order_comms
 #endif
 
       IF (itrace.EQ.'all') WRITE (iprint, 99001)
@@ -258,6 +265,200 @@ C$OMP END PARALLEL DO
 
       nlstsend = nlstdo
 
+#ifdef MPI
+      CALL MPI_TYPE_CONTIGUOUS(15, MPI_REAL8, i15REAL8, ierr)
+c      CALL MPI_TYPE_CONTIGUOUS(12, MPI_REAL8, i12REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(8, MPI_REAL8, i8REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(5, MPI_REAL8, i5REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(imhdevol, MPI_REAL8, imhdevolREAL8,ierr)
+      CALL MPI_TYPE_CONTIGUOUS(4, MPI_REAL8, i4REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(3, MPI_REAL8, i3REAL8, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(2, MPI_REAL4, i2REAL4, ierr)
+      CALL MPI_TYPE_CONTIGUOUS(7, MPI_REAL4, i7REAL4, ierr)
+
+      CALL MPI_TYPE_COMMIT(i15REAL8,ierr)
+c      CALL MPI_TYPE_COMMIT(i12REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i8REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i5REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(imhdevolREAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i4REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i3REAL8,ierr)
+      CALL MPI_TYPE_COMMIT(i2REAL4,ierr)
+      CALL MPI_TYPE_COMMIT(i7REAL4,ierr)
+
+c--domain checking optimisations
+c     before iteration begins need to establish which
+c     MPI ranks this rank will send particles to
+c     others will receive gravity nodes instead (if igphi.EQ.1)
+      IF (domain_checking) THEN
+c--need to reverse the sign of the second half of domain extent arrays
+c     they are stored this way so that C$OMP& reduction(MIN:
+c     applies to the entirety of each array in step.
+         DO k=4,6
+            domain_extent(k) = -domain_extent(k)
+            de_cs_gas(k) = -de_cs_gas(k)
+         ENDDO
+         
+         CALL MPI_ALLGATHER(domain_extent,6,MPI_REAL8,
+     &        de_all,6,MPI_REAL8,MPI_COMM_WORLD,ierr)
+         CALL MPI_ALLGATHER(de_cs_gas,6,MPI_REAL8,
+     &        csgas_all,6,MPI_REAL8,MPI_COMM_WORLD,ierr)
+
+         nprocsend = 0
+         ipsendindx = 0
+         nldistantgn = 0
+         instart = 2*ntot+3
+c--pairwise sendrecv
+         DO ii=1,numproc-1
+            ipair = ipairwiseall(ii)
+            i = ipair + 1
+            cdist2 = MIN(cuboid_dist2(de_cs_gas,de_all(1:6,i)),
+     &           cuboid_dist2(domain_extent,csgas_all(1:6,i)))
+            IF (cdist2 .LT. tiny) THEN
+c--neighbouring rank so add it to list to send particles to
+               nprocsend = nprocsend + 1
+               ipsendindx(nprocsend) = i
+               CYCLE
+            ELSEIF (igphi .EQ. 1) THEN
+               idatsend = 0
+c--otherwise send gravity nodes in other direction
+               CALL grav_only_treef(de_all(1:6,i),xyzmh,acc,
+     &              npartsend,nbothsend,listsendgn(:),0.0)
+               IF (npartsend .GT. 0) THEN
+c--cannot send particle data so send all particless on rank
+c     this case probably arise with diagonally adjacent domains
+                  idatsend = 1
+#ifdef MPIDEBUGDC
+                  PRINT*,iproc,": WARNING - sending extra rank",i
+     &                 npartsend,nbothsend
+#endif
+               ELSEIF (nbothsend .LE. 0) THEN
+                  PRINT*,iproc,": ERROR - must send at least one node",
+     &                 npartsend,nbothsend
+                  CALL quit(1)
+               ELSEIF (instart+nbothsend.GE.mmax+ngrav_nodes) THEN
+                  PRINT*,': ERROR - ngrav_nodes too small',
+     &                 ntot,nbothrec
+                  CALL quit(1)
+               ELSEIF (nbothsend.GE.30) THEN
+                  WRITE(iprint,*)"sending 30+gnodes",nbothsend
+               ENDIF
+
+               CALL MPI_SENDRECV(idatsend,1,MPI_INTEGER,ipair,29,
+     &              idatrec, MPI_INTEGER, i5REAL8,
+     &              ipair, 29, MPI_COMM_WORLD, istatus, ierr)
+               CALL MPI_GET_COUNT(istatus,i5REAL8,nbothrec,ierr)
+
+               IF (idatsend .EQ. 1 .OR. idatrec .EQ. 1) THEN
+                  nprocsend = nprocsend + 1
+                  ipsendindx(nprocsend) = i
+                  CYCLE
+               ELSE
+                  CALL insert_sort(nbothsend,listsendgn(1:nbothsend))
+
+                  CALL MPI_TYPE_INDEXED(nbothsend,
+     &                 lblocklengths,listsendgn,
+     &                 i5REAL8,indexMPI5gn,ierr)
+                  CALL MPI_TYPE_COMMIT(indexMPI5gn,ierr)
+
+                  CALL MPI_TYPE_INDEXED(nbothsend,
+     &                 lblocklengths,listsendgn,
+     &                 i7REAL4,indexMPI_qrad,ierr)
+                  CALL MPI_TYPE_COMMIT(indexMPI_qrad,ierr)
+
+                  CALL MPI_SENDRECV(xyzmh,1,indexMPI5gn,ipair,28,
+     &                 xyzmh(1,instart), ngrav_nodes, i5REAL8,
+     &                 ipair, 28, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,i5REAL8,nbothrec,ierr)
+
+                  CALL MPI_SENDRECV(qrad,1,indexMPI_qrad,ipair,27,
+     &                 qrad(1,instart), ngrav_nodes, i7REAL4,
+     &                 ipair, 27, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,i7REAL4,nreccheck,ierr)
+                  IF (nbothrec.NE.nreccheck) THEN
+                     PRINT*,iproc,': ERROR - nbothrec.NE.nreccheck',
+     &                    nbothrec,nreccheck
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_TYPE_FREE(indexMPI5gn,ierr)
+                  CALL MPI_TYPE_FREE(indexMPI_qrad,ierr)
+
+                  DO nld=nldistantgn+1,nldistantgn+nbothrec
+                     listdistantgn(nld) = instart
+                     instart = instart + 1
+                  ENDDO
+                  nldistantgn = nldistantgn + nbothrec
+               ENDIF
+            ENDIF
+         ENDDO
+         CALL insert_sort(nprocsend,ipsendindx(1:nprocsend))
+
+c--reverse second half of domain extent arrays again         
+         DO k=4,6
+            domain_extent(k) = -domain_extent(k)
+            de_cs_gas(k) = -de_cs_gas(k)
+         ENDDO
+
+c--have to re-order MPI comms if any rank has changed its send list         
+         order_comms = .TRUE.
+         IF (nprocsend .EQ. nprocsendlast) THEN
+            order_comms = .FALSE.
+            DO i=1,nprocsend
+               IF (ipsendindx(i) .NE. ipsendlast(i)) THEN
+                  order_comms = .TRUE.
+                  EXIT
+               ENDIF
+            ENDDO
+         ENDIF
+         DO i=1,nprocsend
+            ipsendlast(i) = ipsendindx(i)
+         ENDDO
+         nprocsendlast = nprocsend
+            
+         CALL MPI_ALLREDUCE(MPI_IN_PLACE,order_comms,1,
+     &        MPI_INTEGER,MPI_LOR,MPI_COMM_WORLD,ierr)
+
+         IF (order_comms) THEN
+            CALL MPI_ALLGATHER(nprocsend,1,MPI_INTEGER,
+     &        nprocsendall,1,MPI_INTEGER,MPI_COMM_WORLD,ierr)
+            idispranks(1) = 0
+            DO i=1,numproc-1
+               idispranks(i+1) = idispranks(i) + nprocsendall(i)
+            ENDDO
+            CALL MPI_ALLGATHERV(ipsendindx,nprocsend,MPI_INTEGER,
+     &           ipsendbuf,nprocsendall,idispranks,
+     &           MPI_INTEGER,MPI_COMM_WORLD,ierr)
+
+c--build array of which ranks are sending to which
+            ipscount = 0
+            nprocrec = 0
+            iprec = 0
+            DO j=1,numproc
+               DO i=1,numproc
+                  IF (i .LE. nprocsendall(j)) THEN
+                     ipscount = ipscount + 1
+                     ipstemp = ipsendbuf(ipscount)
+                     ipsendall(i,j) = ipstemp
+                     IF (ipstemp .EQ. iproc+1) THEN
+                        nprocrec = nprocrec + 1
+                        iprec(nprocrec) = j
+                     ENDIF
+                  ELSE
+                     ipsendall(i,j) = 0
+                  ENDIF
+               ENDDO
+            ENDDO
+            IF (ideniteratebal) THEN
+               CALL order_mpi_comms_bal(ipsendall)
+            ELSE
+               CALL order_mpi_comms_else(ipsendall,ipsendindx)
+            ENDIF
+         ENDIF
+      ENDIF
+#endif
+
+>>>>>>> da3df6b... Removed infrastructure for treating domain gas and star/dust domain extents separately.
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none) 
 C$OMP& shared(nlstdo,ldolist,isucceed,xyzmh,hi_old,it1,isteps,imaxstep)
 C$OMP& shared(divv,rho,dumrho,nneigh,dvxyzu,rhomin,dt,imax,poten,dq)

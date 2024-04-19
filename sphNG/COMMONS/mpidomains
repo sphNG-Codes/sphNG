@@ -1,0 +1,18 @@
+      LOGICAL domain_checking
+      PARAMETER (domain_checking = .TRUE.)
+c
+c--factor that smoothing length can grow by over domain boundaries
+c
+      REAL csgrowthlim
+      PARAMETER (csgrowthlim = 2.0)
+
+c
+c--The domain arrays contain min and max x,y,z coords of the
+c      extent of cartesian aligned cuboids for each MPI domain.
+c      _cs_ denotes extent of compact support
+c      _star also applies to dust
+c      at some point it may be worth seeing if using REAL*4 is faster
+c
+      REAL domain_extent,de_cs_gas
+      
+      COMMON /domain_extent_com/ domain_extent(6),de_cs_gas(6)

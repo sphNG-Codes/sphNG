@@ -1,0 +1,5 @@
+      INTEGER iproc,numproc,nsplits_max,nkey,nparttot,nparttotorig
+      CHARACTER*1 mpitype
+
+      COMMON /mpimod/ iproc,numproc,nsplits_max,nkey,
+     &	     	      nparttot,nparttotorig,mpitype

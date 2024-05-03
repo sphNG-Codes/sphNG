@@ -1,5 +1,13 @@
-      INTEGER iread, iprint, iterm, idisk1, idisk2, idisk3, imaxrec,
+      INTEGER iread, iprint, iterm, idisk1, idisk2, idisk3,
      &        idragfile, itablerd, istderr, istdin, istdout
+c
+c--The mpi_modify utility needs imaxrec to be an 8 byte integer when
+c      idim > 85 million. Note, this is not compatible with older
+c      compilers (e.g. ifort 2018) and has not been tested for any
+c      other aspect of sphNG.
+c
+      INTEGER imaxrec
+c      INTEGER*8 imaxrec
 
       PARAMETER (iterm     = 19)
       PARAMETER (idisk1    = 11)

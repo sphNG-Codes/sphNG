@@ -301,6 +301,8 @@ c
             dustproperties(1) = sgrain(1)*udist
             dustproperties(2) = densgrain(1)*udens
          ENDIF
+      ELSE
+         ndustheaders = 0
       ENDIF
       number = number + ndustheaders
 

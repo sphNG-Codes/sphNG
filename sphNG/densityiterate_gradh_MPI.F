@@ -519,6 +519,7 @@ C$OMP& shared(stellarrad,nptmasstot,ddust,dustfluiddu,dustfluidvxyz)
 C$OMP& shared(stoppingtime,gas_accel,ntot,igphi)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend,nldistantgn,listdistantgn,dvxyzuinit)
+C$OMP& shared(sightcolinit)
 #endif
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend)
@@ -536,15 +537,24 @@ c
 #ifdef MPI
          lsendlist(n) = ipart - 1
          isend(n) = .TRUE.
-         IF (domain_checking .AND. igphi .GT. 0) THEN
+         IF (domain_checking) THEN
+            IF (igphi .GT. 0) THEN
 c--add foreign contributions for non-neighbouring MPI ranks
 c     these need only be calculated once and are reused at the end
 c     of each iteration if smoothing length is not set
-            dvxyzuinit(1:4,ipart) = 0.
-            CALL gforsn(ipart,ntot,nldistantgn,listdistantgn,xyzmh,
-     &           dvxyzuinit(1,ipart),dvxyzuinit(2,ipart),
-     &           dvxyzuinit(3,ipart),dvxyzuinit(4,ipart))
-            dvxyzuinit(4,ipart) = -dvxyzuinit(4,ipart)
+               dvxyzuinit(1:4,ipart) = 0.
+               CALL gforsn(ipart,ntot,nldistantgn,listdistantgn,xyzmh,
+     &              dvxyzuinit(1,ipart),dvxyzuinit(2,ipart),
+     &              dvxyzuinit(3,ipart),dvxyzuinit(4,ipart))
+               dvxyzuinit(4,ipart) = -dvxyzuinit(4,ipart)
+            ENDIF
+            IF (idustRT.GT.0 .AND. iradtrans.EQ.idim) THEN
+               sightcolumns(1:nsightlinesmax,1:2,ipart) = 0.
+               CALL column_density(ipart,itime,ntot,0,0,
+     &              nldistantgn,listdistantgn,xyzmh)
+               sightcolinit(1:nsightlinesmax,1:2,ipart) =
+     &              sightcolumns(1:nsightlinesmax,1:2,ipart)
+            ENDIF
          ENDIF
 #endif
          IF (iphase(ipart).EQ.0 .OR. iphase(ipart).GE.10) THEN
@@ -620,7 +630,7 @@ c            ENDIF
          IF (idimHY09.EQ.idim) THEN
             gas_accel(:,ipart) = 0.
          ENDIF
-         IF (idustRT.GT.0) THEN
+         IF (idustRT.GT.0 .AND. .NOT. domain_checking) THEN
 #ifdef MPI
             sightcolumns(1:nsightlinesmax,1:2,ipart) = 0.
 #endif
@@ -2246,7 +2256,7 @@ C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlstdo,ldolist,rho,dumrho,divv,curlv,gradhs,nneigh)
 C$OMP& shared(dvxyzu,poten,dust_tk,stellarrad,nptmasstot,igphi)
 #ifdef MPI
-C$OMP& shared(sightcolumns,dvxyzuinit)
+C$OMP& shared(sightcolumns,sightcolinit,dvxyzuinit)
 #endif
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend)
@@ -2282,8 +2292,13 @@ C$OMP& private(n,ipart,k)
                END DO
 #ifdef MPI
                DO k = 1, nsightlinesmax
-                  sightcolumns(k,1,ipart) = 0.
-                  sightcolumns(k,2,ipart) = 0.
+                  IF (domain_checking) THEN
+                     sightcolumns(k,1:2,ipart) =
+     &                    sightcolinit(k,1:2,ipart)
+                  ELSE
+                     sightcolumns(k,1,ipart) = 0.
+                     sightcolumns(k,2,ipart) = 0.
+                  ENDIF                     
                END DO
 #endif
             ENDIF

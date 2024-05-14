@@ -12,6 +12,7 @@ c
       REAL*8 sightline
       COMMON /sightlines/ sightline(3,nsightlinesmax), nsightlines
 
-      REAL*4 sightcolumns
+      REAL*4 sightcolumns,sightcolinit
       COMMON /colstore/ sightcolumns(nsightlinesmax,2,
-     &       3*idim_MPI*idustRT+1)
+     &       3*idim_MPI*idustRT+1),
+     &	     sightcolinit(nsightlinesmax,2,idim_MPI*idustRT+1)

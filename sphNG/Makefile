@@ -469,6 +469,10 @@ ifeq ($(mpicopy), yes)
     FPPFLAGS+=${FPP_SEP}-DMPICOPY
 endif
 
+ifeq ($(mpimod), yes)
+    FPPFLAGS+=${FPP_SEP}-DMPIMOD
+endif
+
 ifeq ($(mpidebug), yes)
     FPPFLAGS+=${FPP_SEP}-DMPIDEBUG
 endif
@@ -758,6 +762,11 @@ mpi_reduce: checksystem checkparams utils/mpi_reduce.o wdump.o rdump.o error.o c
 
 mpi_balance: checksystem checkparams utils/mpi_balance.o wdump.o rdump.o error.o classify_MPI.o file.o options.o chekopt.o balance.o
 	$(FC) $(FFLAGS) -o $@ utils/mpi_balance.o wdump.o rdump.o error.o classify_MPI.o file.o options.o chekopt.o balance.o
+
+# convert from any dump to 'b' with any number of ranks (compile in serial)
+
+mpi_modify: checksystem checkparams utils/mpi_modify.o wdump.o rdump.o indexx3.o zzibm.o error.o file.o
+	$(FC) $(FFLAGS) -o $@ utils/mpi_modify.o wdump.o rdump.o indexx3.o zzibm.o error.o file.o
 
 # convert from full to small dump file
 

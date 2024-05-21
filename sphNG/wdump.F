@@ -1,4 +1,5 @@
       SUBROUTINE wdump(idisk1)
+
 c************************************************************
 c                                                           *
 c  This routine ONLY writes a dump on disk                  *
@@ -27,6 +28,9 @@ c************************************************************
 #endif
 #ifdef MPI
       INCLUDE 'COMMONS/mpi'
+#endif
+#ifdef MPIMOD
+      INCLUDE 'COMMONS/mpimod'
 #endif
 
       INCLUDE 'COMMONS/units'
@@ -131,7 +135,6 @@ c
          CALL readmolfile(maxmols,mollist,dumpmols)
       end if
 #endif
- 
       tagarr = ''
 c
 c=-set nprint = npart by default
@@ -167,7 +170,12 @@ c
 c
 c--Write output file
 c
-#ifdef MPIALL
+#ifdef MPIMOD
+      ifulldump = 0
+      nblocks = numproc
+#endif
+
+#if defined MPIALL || MPIMOD
 c  On MPI only iproc=0 writes the file ident. 
       IF (iproc.EQ.0) THEN
 #endif
@@ -177,13 +185,15 @@ c  On MPI only iproc=0 writes the file ident.
       ELSE
          WRITE (idisk1, ERR=100) fileident('ST')
       ENDIF
-#ifdef MPIALL
+#if defined MPIALL || MPIMOD
       ENDIF
 #endif
 c
 c--Single values
 c
+#ifndef MPIMOD
       nparttot = npart
+#endif
 #ifdef MPI
 #ifdef MPIDEBUG
       print *,iproc,': Reduction '
@@ -244,7 +254,7 @@ c      n2tot = n2
       tmagtot = tmag
 #endif
 
-#ifdef MPIALL
+#if defined MPIALL || MPIMOD
 c  On MPI only iproc=0 writes the headers. 
 c  Other MPI processes skip forward to the lock, then write their data arrays
 c  On MPICOPY only iproc=0 writes anything, the corresponding ENDIF is at the
@@ -301,9 +311,10 @@ c
             dustproperties(1) = sgrain(1)*udist
             dustproperties(2) = densgrain(1)*udens
          ENDIF
+      ELSE
+         ndustheaders = 0
       ENDIF
       number = number + ndustheaders
-
       pmassinitial = 0.
       IF (ifulldump.NE.0) THEN
 c
@@ -386,7 +397,7 @@ c--real*8
       WRITE (idisk1, ERR=100)
      &      tag((/'udist ','umass ','utime ','umagfd'/))
       WRITE (idisk1, ERR=100) udist, umass, utime, umagfd
-#ifdef MPI
+#if defined MPI || MPIMOD
 c Note: this is MPI *not* MPIALL because for MPICOPY builds only iproc=0
 c       writes to the output file. A correspending #ifdef MPICOPY ENDIF
 c       is located at the end of this subroutine.
@@ -407,12 +418,12 @@ c     This code runs on all MPI processes
       IF (imhd.EQ.idim) number = 4
       nblockarrays = number*nblocks
 
-#ifdef MPI
+#if defined MPI || MPIMOD
 c     Only write the total number of arrays on first process.
       IF (iproc.EQ.0) THEN
 #endif
          WRITE (idisk1, ERR=100) nblockarrays
-#ifdef MPI
+#if defined MPI || MPIMOD
       ENDIF
 #endif
 
@@ -1394,8 +1405,14 @@ c
 c
 c--End of writing block quantities
 c
-      CALL FLUSH (idisk1)
-      CLOSE (idisk1)
+#ifdef MPIMOD
+      IF (iproc+1 .EQ. numproc) THEN
+#endif
+         CALL FLUSH (idisk1)
+         CLOSE (idisk1)
+#ifdef MPIMOD
+      ENDIF
+#endif
 #ifdef MPI
       IF (iproc.LT.numproc-1) THEN
 #ifdef MPIDEBUG

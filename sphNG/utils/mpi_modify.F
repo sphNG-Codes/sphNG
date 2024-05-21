@@ -8,7 +8,7 @@ c     Written by TB May 2024.
 c
 c--COMPILE:
 c     make mpi_modify mpimod=yes
-c     if there is spare memory you can add openmp=yes (see note 4)
+c     Can also use openmp=yes (see note 4)
 c     Do not compile with mpi=yes.
 c
 c--INPUTS:
@@ -19,6 +19,7 @@ c            -the output dump file name \newline
 c            -the number of output dumps required \newline
 c            -a space separated list of the desired number MPI ranks for
 c             each required output dump (binary numbers only).
+c         Example file in sphNG/utils
 c
 c--OUTPUTS:
 c     (1) file_names.txt, which contains a list of output dump files and
@@ -36,7 +37,7 @@ c         ~20 million. This typical limit is imposed by the maximum
 c         size of one MPI message.
 c     (3) For idim > 85 million you need to change the type of imaxrec
 c         in COMMONS/logun to INTEGER*8. This requires a compiler newer
-c         than 2018. Tested with intel 2020.
+c         than intel 2018. Tested with intel 2020 and 2023.
 c     (4) With openMP and large idim, the OMP_STACKSIZE needs to be
 c         high. 1 billion particles works with, export OMP_STACKSIZE=4G
 c         Note that this means that openMP will use 4 gigabytes of

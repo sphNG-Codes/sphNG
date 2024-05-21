@@ -1,5 +1,4 @@
       SUBROUTINE wdump(idisk1)
-
 c************************************************************
 c                                                           *
 c  This routine ONLY writes a dump on disk                  *
@@ -172,7 +171,6 @@ c--Write output file
 c
 #ifdef MPIMOD
       ifulldump = 0
-      nblocks = numproc
 #endif
 
 #if defined MPIALL || MPIMOD
@@ -252,6 +250,9 @@ c      n2tot = n2
       specangtot = specang
       ptmassintot = ptmassin
       tmagtot = tmag
+#endif
+#ifdef MPIMOD
+      nblocks = numproc
 #endif
 
 #if defined MPIALL || MPIMOD

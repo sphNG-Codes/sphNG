@@ -794,8 +794,13 @@ imcol3DNG: checksystem checkparams utils/movie_col3DALL/imcol3DNG_follow_iunique
 # Generate T vs rho chemistry pixel map
 
 pixmap: checksystem checkparams utils/image_pixmap.o rdump.o error.o utils/movie_col3DALL/origin.o unit.o
-	$(FC) $(FFLAGS) -o $@ utils/image_pixmap.o rdump.o error.o utils/movi\
-e_col3DALL/origin.o unit.o
+	$(FC) $(FFLAGS) -o $@ utils/image_pixmap.o rdump.o error.o utils/movie_col3DALL/origin.o unit.o
+
+pixmap_dust: checksystem checkparams utils/imagep3DNG_pixmap/imagep3DNG_pixmap_dust.o rdump.o error.o utils/movie_col3DALL/origin.o unit.o
+	$(FC) $(FFLAGS) -o $@ utils/imagep3DNG_pixmap/imagep3DNG_pixmap_dust.o rdump.o error.o utils/movie_col3DALL/origin.o unit.o
+
+pixmap_gas: checksystem checkparams utils/imagep3DNG_pixmap/imagep3DNG_pixmap_gas.o rdump.o error.o utils/movie_col3DALL/origin.o unit.o
+	$(FC) $(FFLAGS) -o $@ utils/imagep3DNG_pixmap/imagep3DNG_pixmap_gas.o rdump.o error.o utils/movie_col3DALL/origin.o unit.o
 
 # Disc parameter extraction
 

@@ -356,7 +356,7 @@ c
          IF (idragscheme.NE.idragscheme_in) THEN
             WRITE (*,*) 'WARNING: dragscheme has changed ',idragscheme,
      &           idragscheme_in
-            CALL quit(0)
+            IF (idragscheme.NE.0) CALL quit(0)
          ENDIF
       ENDIF
       CALL extract('dtmax',dtmaxdp,rheader,tagsreal,number,ierr)

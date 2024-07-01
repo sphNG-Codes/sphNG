@@ -14,6 +14,10 @@ c     This routine was a derivative of gforsa for           *
 c     calculating gravity from the tree leaves.             *
 c                                                           *
 c     THIS ROUTINE VECTORIZABLE.                            *
+c     Most of the calls to ACOS were vectorized by TB       *
+c     in June 2024. Further vectorization may be possible,  *
+c     however, it will not be as straightforward            *
+c     or as benefical.                                      *
 c                                                           *
 c************************************************************
 
@@ -55,8 +59,9 @@ c--The columndensity array needs to be thread private because treef_P.F
 c     which calls this subroutine is called by multiple OpenMP threads
 c
       DIMENSION columndensity(nsightlinesmax,2)
-      SAVE columndensity
-C$OMP THREADPRIVATE(columndensity)
+      DIMENSION centres(nsightlinesmax),cos_angle(nsightlinesmax)
+      SAVE columndensity,cos_angle,centres
+C$OMP THREADPRIVATE(columndensity,cos_angle,centres)
 
 c
 c--Stop for iptintree=2 because then sink particles are put in the tree
@@ -92,7 +97,9 @@ c
 c
 c--If doing half-timestep now, update icolumnnext to time of fullstep
 c
-         IF (icolumnnext(m).EQ.it1(m)) icolumnnext(m) = it2(m)
+         IF (m .LE. ntot) THEN
+            IF (icolumnnext(m).EQ.it1(m)) icolumnnext(m) = it2(m)
+         ENDIF
       ENDIF
 c
 c--Need for MPI code
@@ -183,15 +190,16 @@ c--HEALpix theta and phi are converted to Cartesian unit vector coordinates
 c     Angular distance between HEALpix vector and node distance is then
 c     cos(angle) = dot product of normalised vectors
 c
-               cos_angle = difx*sightline(1,k) + dify*sightline(2,k) + 
-     &              difz*sightline(3,k)
+               cos_angle(k) = difx*sightline(1,k) +
+     &              dify*sightline(2,k) + difz*sightline(3,k)
 c
 c--Ensure that cos_angle lies between -1 and 1 (rounding error can cause
 c     trouble because of the finite precision of the HEALpix vectors)
 c
-               cos_angle = MIN(1.0,MAX(-1.0,cos_angle))
-               centres = ACOS(cos_angle)
-
+               cos_angle(k) = MIN(1.0,MAX(-1.0,cos_angle(k)))
+               centres(k) = ACOS(cos_angle(k))
+            ENDDO
+            DO k = 1, nsightlines
 c
 c--Calculate overlap of two circles on the 'sky' -- the area of the HEALPix
 c     pixel (4*pi/nsightlines) and the area of the tree node
@@ -200,43 +208,43 @@ c
 c
 c--No overlap
 c
-               IF (angle_node+angle_pixel.LE.centres
-     &              .OR. cos_angle.LT.0) THEN
+               IF (angle_node+angle_pixel.LE.centres(k)
+     &              .OR. cos_angle(k).LT.0) THEN
                   GOTO 99
 c
 c--Node entirely within pixel
 c
-               ELSEIF (centres+angle_node.LE.angle_pixel) THEN
+               ELSEIF (centres(k)+angle_node.LE.angle_pixel) THEN
                   fraction = angle_node2/angle_pixel2
 c
 c--Pixel entirely within node
 c
-               ELSEIF (centres+angle_pixel.LE.angle_node) THEN
+               ELSEIF (centres(k)+angle_pixel.LE.angle_node) THEN
                   fraction = 1.0
 c
 c--Non-trivial overlap calculation
 c
                ELSE
-                  centres2 = centres**2
+                  centres2 = centres(k)**2
 
                   CBD = (angle_node2 + centres2 -angle_pixel2)/
-     &                 (2.0*angle_node*centres)
+     &                 (2.0*angle_node*centres(k))
                   IF (ABS(CBD).GT.1.) THEN 
                      print *,'ERROR - column_density.F 1 ',CBD
                      CALL quit(1)
                   ENDIF
                   CBD = ACOS(CBD)
                   CAD = (angle_pixel2 + centres2 -angle_node2)/
-     &                 (2.0*angle_pixel*centres)
+     &                 (2.0*angle_pixel*centres(k))
                   IF (ABS(CAD).GT.1.) THEN 
                      print *,'ERROR - column_density.F 2 ',CBD
                      CALL quit(1)
                   ENDIF
                   CAD = ACOS(CAD)
-                  value = (-centres+angle_node+angle_pixel)*
-     &                 (centres+angle_node-angle_pixel)*
-     &                 (centres-angle_node+angle_pixel)*
-     &                 (+centres+angle_node+angle_pixel)
+                  value = (-centres(k)+angle_node+angle_pixel)*
+     &                 (centres(k)+angle_node-angle_pixel)*
+     &                 (centres(k)-angle_node+angle_pixel)*
+     &                 (+centres(k)+angle_node+angle_pixel)
                   IF (value.LT.0.) THEN
                      print *,'ERROR - column_density.F 3 ',value
                      CALL quit(1)

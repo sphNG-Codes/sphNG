@@ -326,6 +326,8 @@ c     others will receive gravity nodes instead (if igphi.EQ.1)
          ipsendindx = 0
          nldistantgn = 0
          instart = 2*ntot+3
+         nsinknode = 0
+         isinknend = mmax + ngrav_nodes
 c--pairwise sendrecv
          DO ii=1,numproc-1
             ipair = ipairwiseall(ii)
@@ -396,19 +398,32 @@ c--not receiving gravity nodes therefore send all particles
                   PRINT*,iproc,": ERROR - must send at least one node",
      &                 npartsend,nbothsend
                   CALL quit(1)
-               ELSEIF (instart+nbothsend.GE.mmax+ngrav_nodes) THEN
+               ELSEIF (instart+nbothsend+nsinknode.GE.isinknend-1) THEN
                   PRINT*,': ERROR - ngrav_nodes too small',
      &                 ntot,nbothrec
                   CALL quit(1)
 c               ELSEIF (nbothsend.GE.30) THEN
 c                  WRITE(iprint,*)"sending 30+gnodes",nbothsend
                ENDIF
-
+c
 c--don't send gravity if no active paticles at target or                
 c     particles being sent
                IF (nlstdopair .LE. 0 .AND. nlstdopairrec .LE. 0) THEN
                   CYCLE
                ELSE
+c--Check if standalone tree node would ideally have been sub-divided
+                  IF (nptmass .GT. 0) THEN
+                     rr = point_cuboid_d2(xyzmh(1:3,nroot+1),
+     &                    deact_all(1:6,i))
+                     qrr = qrad(1,nroot+1)**2
+                     IF (0.7**2*rr.LT.qrr) THEN
+                        WRITE(iprint,*) "Normally would open node here",
+     &                       0.7**2*rr,qrr,rr
+                     ENDIF
+                     isendsink = 1
+                  ELSE
+                     isendsink = 0
+                  ENDIF
                   CALL insert_sort(nbothsend,listsendgn(1:nbothsend))
 
                   CALL MPI_TYPE_INDEXED(nbothsend,
@@ -436,6 +451,22 @@ c     particles being sent
                      CALL quit(1)
                   ENDIF
 
+c--receive sink node at end of qrad array.
+                  CALL MPI_SENDRECV(xyzmh(1,nroot+1),isendsink,
+     &                 i5REAL8,ipair,29,
+     &                 xyzmh(1,isinknend-nsinknode), 1, i5REAL8,
+     &                 ipair, 29, MPI_COMM_WORLD, istatus, ierr)
+                  CALL MPI_GET_COUNT(istatus,i5REAL8,isinkrec,ierr)
+                  IF (isinkrec .NE. 0 .AND. isinkrec .NE. 1) THEN
+                     PRINT*,iproc,': ERROR - isinkrec NE 1or0',isinkrec
+                     CALL quit(1)
+                  ENDIF
+
+                  CALL MPI_SENDRECV(qrad(1,nroot+1),isendsink,
+     &                 i7REAL4,ipair,30,
+     &                 qrad(1,isinknend-nsinknode), 1, i7real4,
+     &                 ipair, 30, MPI_COMM_WORLD, istatus, ierr)
+
                   CALL MPI_TYPE_FREE(indexMPI5gn,ierr)
                   CALL MPI_TYPE_FREE(indexMPI_qrad,ierr)
 
@@ -444,8 +475,14 @@ c     particles being sent
                      instart = instart + 1
                   ENDDO
                   nldistantgn = nldistantgn + nbothrec
+                  nsinknode = nsinknode + isinkrec
                ENDIF
             ENDIF
+         ENDDO
+         instart = nldistantgn
+         DO k=isinknend-nsinknode,isinknend
+            instart = instart + 1
+            listdistantgn(instart) = k
          ENDDO
          CALL insert_sort(nprocsend,ipsendindx(1:nprocsend))
          nprocsendmax = MAX(nprocsendmax,nprocsend)
@@ -519,7 +556,7 @@ C$OMP& shared(stellarrad,nptmasstot,ddust,dustfluiddu,dustfluidvxyz)
 C$OMP& shared(stoppingtime,gas_accel,ntot,igphi)
 #ifdef MPI
 C$OMP& shared(lsendlist,isend,nldistantgn,listdistantgn,dvxyzuinit)
-C$OMP& shared(sightcolinit)
+C$OMP& shared(sightcolinit,isinknend,nsinknode)
 #endif
 #ifdef MPICOPY
 C$OMP& shared(numberstart,numberend)
@@ -538,22 +575,28 @@ c
          lsendlist(n) = ipart - 1
          isend(n) = .TRUE.
          IF (domain_checking) THEN
-            IF (igphi .GT. 0) THEN
-c--add foreign contributions for non-neighbouring MPI ranks
-c     these need only be calculated once and are reused at the end
-c     of each iteration if smoothing length is not set
-               dvxyzuinit(1:4,ipart) = 0.
-               CALL gforsn(ipart,ntot,nldistantgn,listdistantgn,xyzmh,
-     &              dvxyzuinit(1,ipart),dvxyzuinit(2,ipart),
-     &              dvxyzuinit(3,ipart),dvxyzuinit(4,ipart))
-               dvxyzuinit(4,ipart) = -dvxyzuinit(4,ipart)
-            ENDIF
             IF (idustRT.GT.0 .AND. iradtrans.EQ.idim) THEN
                sightcolumns(1:nsightlinesmax,1:2,ipart) = 0.
                CALL column_density(ipart,itime,ntot,0,0,
      &              nldistantgn,listdistantgn,xyzmh)
                sightcolinit(1:nsightlinesmax,1:2,ipart) =
      &              sightcolumns(1:nsightlinesmax,1:2,ipart)
+            ENDIF
+            IF (igphi .GT. 0) THEN
+c--Add foreign gas graviy contributions for non-neighbouring MPI ranks.
+c     These need only be calculated once and are reused at the end
+c     of each iteration if smoothing length is not set
+               dvxyzuinit(1:4,ipart) = 0.
+               CALL gforsn(ipart,ntot,nldistantgn,listdistantgn,xyzmh,
+     &              dvxyzuinit(1,ipart),dvxyzuinit(2,ipart),
+     &              dvxyzuinit(3,ipart),dvxyzuinit(4,ipart))
+c--Separate call to gforsn for foreign sink particle nodes
+c     these could be combined but potential for vectorisation in gforsn
+c     since all nodes are contiguous in memory for each call.
+               CALL gforsn(ipart,ntot,nsinknode,listdistantgn,xyzmh,
+     &              dvxyzuinit(1,ipart),dvxyzuinit(2,ipart),
+     &              dvxyzuinit(3,ipart),dvxyzuinit(4,ipart))
+               dvxyzuinit(4,ipart) = -dvxyzuinit(4,ipart)
             ENDIF
          ENDIF
 #endif
@@ -891,10 +934,6 @@ c
      &                    ' xyzmh to ',jj,xyzmh(1,lsendlist(1)+1),
      &                    iphase(lsendlist(1)+1)
 #endif
-c
-c--Receive from the next rank to be ready rather than next rank
-c     in list.
-c
                      CALL MPI_RECV(nullmessagerec,0,MPI_INTEGER,
      &                    MPI_ANY_SOURCE,
      &                    987,MPI_COMM_WORLD,istatus,ierr)
@@ -1673,7 +1712,7 @@ c
 c--If individualtimesteps=2, then not all sink particles may have been
 c     transferred because some might not be being evolved this timestep.
 c
-         IF (individualtimesteps.NE.2) THEN 
+         IF (.NOT. domain_checking .AND. individualtimesteps.NE.2) THEN
             IF (iteration.EQ.1) THEN
                IF (nptmasslocal2.NE.nptmasstot) THEN
                   WRITE (*,*) 'ERROR - nptmasslocal2.NE.nptmasstot ',

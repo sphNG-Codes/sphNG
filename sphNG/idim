@@ -186,4 +186,4 @@ c
 c--Parameter used to extend iphase and qrad1 for domain checking
 c
       INTEGER ngrav_nodes
-      PARAMETER (ngrav_nodes = 100000)
+      PARAMETER (ngrav_nodes = MIN(100000,idim))

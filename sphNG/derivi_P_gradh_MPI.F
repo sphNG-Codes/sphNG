@@ -64,6 +64,7 @@ c************************************************************
 #endif
 #ifdef MPI
       INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpidomains'
 #endif
 
       DIMENSION xyzmh(5,mmax2),vxyzu(4,idim2),dvxyzu(4,idim3)
@@ -129,10 +130,12 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
       INCLUDE 'COMMONS/HY09accel'
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/dustfluidvelu'
+      INCLUDE 'COMMONS/treecom_P'
 
       DIMENSION dedxyz(3,iradtrans2)
 #ifdef MPI
       DIMENSION listex(idim)
+      REAL sink_com(3),diffxyz(3),diffxyz2(3)
 #endif
 
 c
@@ -168,6 +171,47 @@ c
 
       IF (itrace.EQ.'all') WRITE (iprint, 99002) nlst_in, nlst_end
 99002 FORMAT(' derivi_gradh ',I8, I8)
+#ifdef MPI
+c
+c--If using domain_checking code create an additional standalone
+c     treenode containing all sink particles on this rank
+c
+      IF (domain_checking .AND. nptmass .GT. 0) THEN
+         sink_com = 0.
+         totsinkmass = 0.
+c--Find centre of mass of all sinks
+         DO isink=1,nptmass
+            ipart = listpm(isink)
+            pmass = xyzmh(4,ipart)
+            totsinkmass = totsinkmass + pmass
+            sink_com = sink_com + pmass*xyzmh(1:3,ipart)
+         ENDDO
+         sink_com = sink_com / totsinkmass
+         nsinknode = nroot+1
+         xyzmh(1:3,nsinknode) = sink_com
+         xyzmh(4,nsinknode) = totsinkmass
+         xyzmh(5,nsinknode) = 0.
+         qrad(2:7,nsinknode) = 0.
+         rmax_sinknode = 0.
+c--Find quadrupole moments of the sink particle node
+         DO isink=1,nptmass
+            ipart = listpm(isink)
+            diffxyz = xyzmh(1:3,ipart) - sink_com
+            pmass = xyzmh(4,ipart)
+            diffxyz2 = diffxyz**2
+            qrad(2:4,nsinknode) = qrad(2:4,nsinknode) +
+     &           pmass * diffxyz2
+            rmaxsinknode = MAX(rmaxsinknode,SQRT(SUM(diffxyz2)))
+            qrad(5,nsinknode) = qrad(5,nsinknode) +
+     &           pmass * diffxyz(1) * diffxyz(2)
+            qrad(6,nsinknode) = qrad(6,nsinknode) +
+     &           pmass * diffxyz(2) * diffxyz(3)
+            qrad(7,nsinknode) = qrad(7,nsinknode) +
+     &           pmass * diffxyz(1) * diffxyz(3)
+         ENDDO
+         qrad(1,nsinknode) = rmaxsinknode
+      ENDIF
+#endif
 c
 c--Find self-consistent density and smoothing length for all the particles
 c     in the list.  Only calculate density etc for non-sinks.

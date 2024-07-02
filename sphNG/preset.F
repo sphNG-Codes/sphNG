@@ -823,11 +823,12 @@ c
      &           "ERROR: no domain_checking with ideniteratebal"
             CALL quit(1)
          ENDIF
-         IF (iptintree .NE. 2 .AND.
+         IF (iptintree .NE. 1 .AND.
      &        (initialptm .NE. 0 .OR. iptmass .NE. 0)) THEN
             WRITE(*,*) iproc,
-     &        "ERROR: domain_checking with sinks only with iptintree=2",
+     &        "ERROR: domain_checking with sinks only with iptintree=1",
      &        iptintree,initialptm,iptmass
+            CALL quit(1)
          ENDIF
       ENDIF
 #endif

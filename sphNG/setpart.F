@@ -343,35 +343,38 @@ c
 c--If stellar radiative feedback, need to set parameters, but with MPI
 c     only process 0 needs to do anything with the data.
 c
+      IF (istellar_radiation) THEN
 #ifdef MPI
-      IF (iproc.NE.0) THEN
-         nptmass = 0
-         nptmasstot = 1
-         READ (iread,*)
-         READ (iread,*)
-         READ (iread,*) junk
-      ELSE
-         nptmasstot = 1
+         IF (iproc.NE.0) THEN
+            nptmass = 0
+            nptmasstot = 1
+
+            READ (iread,*)
+            READ (iread,*)
+            READ (iread,*) junk
+         ELSE
+            nptmasstot = 1
 #endif MPI
-         WRITE (*,*) 'Number of point masses created: ',nptmass
+            WRITE (*,*) 'Number of point masses created: ',nptmass
 c
 c--Set stellar radius, temperature & ionising photon rate for ptmasses
 c
-         IF (istellar_radiation .AND. nptmass.GT.0) THEN
-            WRITE (*,*) 'Enter radius, effective temperature, and ',
-     &           'ionising flux from each sink particle'
-            DO i = 1, nptmass
-               READ (iread,*) stelrad
-               READ (iread,*) steltemp
-               stellar_radtempion(1,i) = stelrad
-               stellar_radtempion(2,i) = steltemp
-               READ (iread,*) flux
-               stellar_radtempion(3,i) = flux
-            END DO
-         ENDIF
+            IF (nptmass.GT.0) THEN
+               WRITE (*,*) 'Enter radius, effective temperature, and ',
+     &              'ionising flux from each sink particle'
+               DO i = 1, nptmass
+                  READ (iread,*) stelrad
+                  READ (iread,*) steltemp
+                  stellar_radtempion(1,i) = stelrad
+                  stellar_radtempion(2,i) = steltemp
+                  READ (iread,*) flux
+                  stellar_radtempion(3,i) = flux
+               END DO
+            ENDIF
 #ifdef MPI
-      ENDIF
+         ENDIF
 #endif MPI
+      ENDIF
 c
 c--Allow dynamic point mass creation
 c

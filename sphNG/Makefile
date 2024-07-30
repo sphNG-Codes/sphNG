@@ -26,7 +26,7 @@ DOUBLEPRECISION= yes
 #openmp = yes
 #mpi = yes
 # endian can be "BIG", "LITTLE" or anything else which has no effect
-#ENDIAN= default
+ENDIAN= BIG
 
 ##############################################################
 # preprocessor options 
@@ -132,7 +132,7 @@ ifeq ($(SYSTEM), Cosma8)
     endif
     FFLAGS= -O3 -march=core-avx2 -mcmodel=medium \
             -warn uninitialized -warn truncated_source\
-            -warn interfaces -nogen-interfaces
+            -warn interfaces -nogen-interfaces -Wl,--no-relax
 # -check_mpi
     OMPFLAG= -qopenmp
     DBLFLAG= -r8

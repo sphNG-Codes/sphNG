@@ -131,6 +131,7 @@ c     that are neighbours of active particles for updating their densities etc
       INTEGER ipsendall(numproc,numproc),ipsendindx(numproc)
       INTEGER listdistantgn(ngrav_nodes),listsendgn(ngrav_nodes)
       INTEGER nlstdoall(numproc)
+      INTEGER ipcount(numproc),ipcountorder(numproc)
       LOGICAL order_comms,igravreverse,igravrevrec
 #endif
 
@@ -485,6 +486,30 @@ c--receive sink node at end of qrad array.
             listdistantgn(instart) = k
          ENDDO
          CALL insert_sort(nprocsend,ipsendindx(1:nprocsend))
+c--sort send order such that common ranks are prioritised
+         IF (ideniteratebal) THEN
+            ipcount = 0
+            DO i=1,nprocsend
+               ipcount(ipsendindx(i)) = 1
+            ENDDO
+            CALL MPI_ALLREDUCE(MPI_IN_PLACE,ipcount,numproc,
+     &           MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
+            CALL insert_sort_index(numproc,ipcount,ipcountorder)
+            nloopmpi = ipcount(ipcountorder(1))
+            inow = 1
+            DO j=1,numproc
+               iindex = ipcountorder(j)
+               DO i=1,nprocsend
+                  ipsendi = ipsendindx(i)
+                  IF (iindex .EQ. ipsendi) THEN
+                     ipsendindx(i) = ipsendindx(inow)
+                     ipsendindx(inow) = ipsendi
+                     inow = inow + 1
+                     EXIT
+                  ENDIF
+               ENDDO
+            ENDDO
+         ENDIF
          nprocsendmax = MAX(nprocsendmax,nprocsend)
          nprocsendmin = MIN(nprocsendmin,nprocsend)
 
@@ -538,7 +563,7 @@ c--build array of which ranks are sending to which
                ENDDO
             ENDDO
             IF (ideniteratebal) THEN
-               CALL order_mpi_comms_bal(ipsendall)
+               CALL order_sendrecv(ipsendall)
             ELSE
                CALL order_mpi_comms_else(ipsendall,ipsendindx)
             ENDIF
@@ -830,6 +855,7 @@ c--There are two implementations, one for balanced jobs, one for unbalanced
 c
          nptmasslocal = nptmass
          nptmasslocal2 = nptmass
+         nlstsendholder = nlstsend
          DO ii = 1, nloopmpi
             IF (ideniteratebal) THEN
 c               IF (ii.EQ.numproc) GOTO 444
@@ -842,6 +868,9 @@ c               iahead = MOD(iproc+ii,numproc)
 c               ibehind = MOD(numproc+iproc-ii,numproc)
                iahead = ipsend(ii)
                ibehind = iprec(ii)
+               IF (iahead .EQ. MPI_PROC_NULL) THEN
+                  nlstsend = 0
+               ENDIF
 c     
 c--Send to node ahead, receive from node behind
 c
@@ -1408,7 +1437,8 @@ C$OMP DO SCHEDULE(runtime)
                   END DO
 C$OMP END DO
 C$OMP END PARALLEL
-               ENDIF   ! istellar_radiation
+               ENDIF            ! istellar_radiation
+               nlstsend = nlstsendholder
 c
 c--End circular send/receive
 c

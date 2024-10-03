@@ -58,17 +58,13 @@ c--domain checking must find comms order in first call to densityiterate
             ENDDO
          ENDIF
       ENDIF
-      
+
       END SUBROUTINE init_mpi_loops
 
-      
-c--communication ordering for SENDRECV implementation
-c     pairs all ranks that need to communicate while ensuring that
-c     no iteration in nloopmpi contains a rank more than once
-      SUBROUTINE order_mpi_comms_bal(ipsendall)
+      SUBROUTINE order_sendrecv(ipsendall)
 
 #include "mpi_sup.h"
-      
+
       IMPLICIT NONE
 
       INCLUDE 'idim'
@@ -78,7 +74,149 @@ c     no iteration in nloopmpi contains a rank more than once
 #ifdef MPIDEBUGDC
       INCLUDE 'COMMONS/logun'
 #endif
-      
+
+      INTEGER ipsendall(numproc,numproc),ipsendinit(numproc,numproc)
+      INTEGER ipavail(numproc,numproc),navail(numproc)
+      INTEGER indnrs(numproc),iplist(numproc),iplistorder(numproc)
+      INTEGER i,ii,j,jj,k
+      INTEGER nfilled,iswap,iptemp,ipsij,icount,nlideal
+      LOGICAL iswapped,inorec
+
+      ipsendinit = ipsendall
+      CALL insert_sort_index(numproc,nprocsendall,indnrs)
+
+#ifdef MPIDEBUGDC
+c      WRITE(iprint,*) "nloopmpi",nloopmpi,nprocsendall(indnrs(1))
+      WRITE (iprint,*) "START order_sendrecv",nloopmpi
+      CALL debug_order_comms(ipsendall,indnrs)
+#endif
+      nlideal = nloopmpi
+c
+c--This loop sorts the 2D array of rank send lists such that all
+c     communication cann occur using MPI_SENDRECV.
+      icount = 0
+      i = 0
+      navail = -1
+      DO WHILE (icount .LT. numproc)
+         i = i + 1
+         icount = 0
+         iplist = 0
+         nfilled = 0
+         inorec = .TRUE.
+         DO jj=1,numproc
+            j = indnrs(jj)
+            ipsij = ipsendall(i,j)
+c--if ij zero move to next row
+            IF (ipsij .EQ. 0) THEN
+               IF (j .EQ. iproc+1) ipsend(i) = MPI_PROC_NULL
+               icount = icount + 1
+               CYCLE
+            ENDIF
+c--check that this rank has ot already bee sent to
+            DO iswap=1,numproc
+c               IF (iswap .EQ. nloopmpi-i+2) THEN
+c                  DO ii=1,nloopmpi+1
+c                     IF (ipsendall(ii,j) .EQ. 0) THEN
+
+               IF (iswap .EQ. numproc) THEN
+#ifdef MPIDEBUGDC
+                  WRITE(iprint,*) " "
+                  CALL debug_order_comms(ipsendall,indnrs)
+                  WRITE(iprint,*) " "
+                  WRITE(iprint,*) "ERROR - nloopmpi limit",i,j,iswap
+#endif
+                  WRITE(*,*) iproc,"ERROR - nloopmpi limit",i,j,iswap
+                  CALL quit(1)
+               ENDIF
+               iswapped = .FALSE.
+               DO k=1,nfilled
+                  IF (ipsij .EQ. iplist(k)) THEN
+c--cannot send here so swap and update ipsij
+                     ipsendall(i,j) = ipsendall(i+iswap,j)
+                     ipsendall(i+iswap,j) = ipsij
+                     ipsij = ipsendall(i,j)
+                     iswapped = .TRUE.
+                     EXIT
+                  ENDIF
+               ENDDO
+               IF (iswapped) THEN
+                  IF (ipsij .EQ.0) THEN
+                     IF (j .EQ. iproc+1) ipsend(i) = MPI_PROC_NULL
+                     EXIT
+                  ELSE
+                     CYCLE
+                  ENDIF
+               ENDIF
+               IF (ipsij .EQ. j) THEN
+#ifdef MPIDEBUGDC
+                  CALL debug_order_comms(ipsendall,indnrs)
+                  WRITE(iprint,*)"ERROR - send to self",i,j,ipsij
+#endif
+                  WRITE(*,*) iproc,"ERROR - send to self",i,j,ipsij
+                  CALL quit(1)
+               ELSEIF (ipsij .EQ. iproc+1) THEN
+c--log sending rank with receiver
+                  iprec(i) = j-1
+                  inorec = .FALSE.
+               ELSEIF (j .EQ. iproc+1) THEN
+c--log recieving rank with sender
+                  ipsend(i) = ipsij-1
+               ENDIF
+               nfilled = nfilled + 1
+               iplist(nfilled) = ipsij
+               EXIT
+            ENDDO
+         ENDDO
+c--complete receive list
+         IF (inorec) iprec(i) = MPI_PROC_NULL
+c         DO j=1,numproc
+c            IF (ipsendall(i,j) .NE. 0) THEN
+      ENDDO
+      nloopmpi = i - 1
+
+#ifdef MPIDEBUGDC
+      WRITE(iprint,*) " "
+      WRITE (iprint,*) "END order_sendrecv",nloopmpi,nprocsend
+      CALL debug_order_comms(ipsendall,indnrs)
+      WRITE(iprint,*) " "
+99002 FORMAT (I6)
+      DO j=1,nloopmpi
+         WRITE(iprint,99002,advance="no") ipsend(j)
+      ENDDO
+      WRITE(iprint,*) " "
+      DO j=1,nloopmpi
+         WRITE(iprint,99002,advance="no") iprec(j)
+      ENDDO
+      WRITE(iprint,*) " "
+      WRITE(iprint,*) "nloopmpi",nloopmpi,nprocsendall(indnrs(1)),
+     &     nlideal,nloopmpi-MAX(nprocsendall(indnrs(1)),nlideal)
+#endif
+      DO j=1,numproc
+         IF (ipsendall(nloopmpi+1,j) .GT. 0) THEN
+            PRINT*,"ERROR - value above nloompi",ipsendall(nloopmpi+1,j)
+c            WRITE(iprint,*)"ERROR - value above",ipsendall(nloopmpi+1,j)
+         ENDIF
+      ENDDO
+
+      END SUBROUTINE order_sendrecv
+
+c--communication ordering for SENDRECV implementation
+c     pairs all ranks that need to communicate while ensuring that
+c     no iteration in nloopmpi contains a rank more than once
+      SUBROUTINE order_mpi_comms_bal(ipsendall)
+
+#include "mpi_sup.h"
+
+      IMPLICIT NONE
+
+      INCLUDE 'idim'
+      INCLUDE 'COMMONS/mpiall'
+      INCLUDE 'COMMONS/mpi'
+      INCLUDE 'COMMONS/mpidomains'
+#ifdef MPIDEBUGDC
+      INCLUDE 'COMMONS/logun'
+#endif
+
       INTEGER ipsendall(numproc,numproc),ipsendinit(numproc,numproc)
       INTEGER indnrs(numproc),iplist(numproc),iflist(numproc)
       INTEGER iplocstart,iplocend
@@ -95,11 +233,11 @@ c     no iteration in nloopmpi contains a rank more than once
       CALL debug_order_comms(ipsendall,indnrs)
 #endif
 
-c--This loop sorts the 2D array of rank send lists such that all      
+c--This loop sorts the 2D array of rank send lists such that all
 c     ranks are paired with no duplicates for any given cycle
       icompcount = 0
       DO i=1,numproc
-         IF (icompcount .EQ. numproc) EXIT         
+         IF (icompcount .EQ. numproc) EXIT
          icompcount = 0
          npresent = 0
          iplist = 0
@@ -113,7 +251,7 @@ c--if ij zero move to next row
                CYCLE
             ENDIF
             imark = 0
-c--check that column has not already been filled by its pair            
+c--check that column has not already been filled by its pair
             DO k=1,nfilled
                IF (iflist(k) .EQ. j) THEN
                   imark = 1
@@ -140,7 +278,7 @@ c     if this is not possible set ij to 0
                      CALL quit(0)
                   ENDIF
                ENDDO
-               
+
                IF (iswap .EQ. 0) THEN
                   IF (i .EQ. ii) THEN
                      EXIT
@@ -162,7 +300,7 @@ c     if this is not possible set ij to 0
 
 c--if ij was set to zero move to next column
             ipsij = ipsendall(i,j)
-            IF (ipsij .EQ. 0)THEN 
+            IF (ipsij .EQ. 0)THEN
                CYCLE
             ELSEIF (ipsendall(i,ipsij) .EQ. 0) THEN
                if (iproc.eq.0) PRINT*,"RANK SORT Warning A1",
@@ -205,7 +343,7 @@ c--set pair of current row directly
                   CALL quit(0)
                ENDIF
             ENDIF
-            
+
             npresent = npresent + 1
             iplist(npresent) = j
             DO k=1,nfilled
@@ -278,17 +416,17 @@ c     implementation currently requires it
          ENDIF
       ENDDO
       nloopmpi = nprocsend
-      
+
       END SUBROUTINE order_mpi_comms_bal
 
-      
+
 c--communication ordering for SEND implementation
-c     make groups of ranks that have no overlap in their communication. 
+c     make groups of ranks that have no overlap in their communication.
 c     these groups can send during the same iteration over nloopmpi.
       SUBROUTINE order_mpi_comms_else(ipsendall,ipsendindx)
 
 #include "mpi_sup.h"
-      
+
       IMPLICIT NONE
 
       INCLUDE 'idim'
@@ -298,15 +436,15 @@ c     these groups can send during the same iteration over nloopmpi.
 #ifdef MPIDEBUGDC
       INCLUDE 'COMMONS/logun'
 #endif
-      
+
       INTEGER ipsendall(numproc,numproc)
       INTEGER ipsendindx(numproc),indnrs(numproc),iplist(numproc)
       INTEGER i,i1,i2,j,jj,k,kk
       INTEGER isendorder
       INTEGER iplisti1,niplist,niplistnew,isendproctemp
       LOGICAL complete(numproc),break
-      
-c--sort ranks high to low over number of ranks to communicate with         
+
+c--sort ranks high to low over number of ranks to communicate with
       CALL insert_sort_index(numproc,nprocsendall,indnrs)
 #ifdef MPIDEBUGDC
       WRITE(iprint,*) " "
@@ -324,22 +462,22 @@ c--sort ranks high to low over number of ranks to communicate with
       ENDDO
 99004 FORMAT (1X,1(I3),"  ",1X,32(I3))
 99002 FORMAT (1X, 32(I3))
-#endif      
+#endif
       complete = .FALSE.
       nloopmpi = 0
       isendorder = 0
       DO WHILE (isendorder .LT. numproc)
-c--find an unassigned rank         
+c--find an unassigned rank
          DO jj=1,numproc
             j = indnrs(jj)
             IF (.NOT. complete(j)) EXIT
          ENDDO
-c--mark it as complete add send ranks to group list         
+c--mark it as complete add send ranks to group list
          isendorder = isendorder + 1
          complete(j) = .TRUE.
          niplist = nprocsendall(j)
          iplist(1:niplist) = ipsendall(1:niplist,j)
-#ifdef MPIDEBUGDC      
+#ifdef MPIDEBUGDC
          WRITE(iprint,*) ""
          WRITE(iprint,99002,advance="no") iplist(1:niplist)
 #endif
@@ -353,7 +491,7 @@ c--if sending
                PRINT*,iproc,"ERROR: sending and receiving comms"
                CALL quit(0)
             ENDIF
-c--elseif receiveing            
+c--elseif receiveing
          ELSEIF (j .EQ. iproc+1) THEN
             nloopmpi = nloopmpi + 1
             isendproc = nloopmpi - 1
@@ -369,7 +507,7 @@ c     or test previously for this cycle
             break = .FALSE.
 c--can rank k be added to the current group?
             DO i1=1,niplist
-               iplisti1 = iplist(i1) 
+               iplisti1 = iplist(i1)
                DO i2=1,nprocsendall(k)
                   IF (iplisti1 .EQ. ipsendall(i2,k)) THEN
                      break = .TRUE.
@@ -379,7 +517,7 @@ c--can rank k be added to the current group?
                IF (break) EXIT
             ENDDO
             IF (break) THEN
-c--rank k cannot be added to this group so iterate 
+c--rank k cannot be added to this group so iterate
                CYCLE
             ELSE
 c--add rank k to current group and its send ranks to this group's list
@@ -390,12 +528,12 @@ c--add rank k to current group and its send ranks to this group's list
                ENDIF
                iplist(niplist+1:niplistnew) =
      &              ipsendall(1:nprocsendall(k),k)
-#ifdef MPIDEBUGDC               
+#ifdef MPIDEBUGDC
                WRITE(iprint,99002,advance="no")
      &              ipsendall(1:nprocsendall(k),k)
 #endif
                niplist = niplistnew
-c--mark k as an assigned rank          
+c--mark k as an assigned rank
                isendorder = isendorder + 1
                complete(k) = .TRUE.
 c--if k communicates with this rank add to receive list
@@ -412,7 +550,7 @@ c--if k communicates with this rank add to receive list
             ENDIF
          ENDDO
       ENDDO
-      
+
       IF (isendorder .GT. numproc) THEN
          PRINT*,iproc,"ERROR: isendorder",isendorder,numproc
          CALL quit(0)
@@ -421,11 +559,11 @@ c         PRINT*,iproc,"ERROR: nloopmpi",nloopmpi,nprocsend
 c         CALL quit(0)
       ENDIF
 
-c--convert from fortran indexes to MPI ranks      
+c--convert from fortran indexes to MPI ranks
       DO j=1,nprocsend
          ipsend(j) = ipsendindx(j) - 1
       ENDDO
-      
+
 #ifdef MPIDEBUGDC
       WRITE(iprint,*) "order "
       WRITE(iprint,*) "isp,nloo,nps",isendproc,nloopmpi,nprocsend
@@ -440,7 +578,7 @@ c--convert from fortran indexes to MPI ranks
       SUBROUTINE debug_order_comms(ipsendall,indnrs)
 
 #include "mpi_sup.h"
-      
+
       IMPLICIT NONE
 
       INCLUDE 'idim'
@@ -448,11 +586,11 @@ c--convert from fortran indexes to MPI ranks
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpidomains'
       INCLUDE 'COMMONS/logun'
-      
+
       INTEGER ipsendall(numproc,numproc)
       INTEGER indnrs(numproc)
       INTEGER i,j
-      
+
 99004 FORMAT (1X,1(I4),"  ")
 99002 FORMAT (I4)
       WRITE (iprint,*)"nprocsendall - number of comms for each MPI rank"

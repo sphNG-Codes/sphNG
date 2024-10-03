@@ -818,11 +818,6 @@ c
 #ifdef MPI
       CALL init_mpi_loops
       IF (domain_checking) THEN
-         IF (ideniteratebal) THEN
-            WRITE(*,*) iproc,
-     &           "ERROR: no domain_checking with ideniteratebal"
-            CALL quit(1)
-         ENDIF
          IF (iptintree .NE. 1 .AND.
      &        (initialptm .NE. 0 .OR. iptmass .NE. 0)) THEN
             WRITE(*,*) iproc,

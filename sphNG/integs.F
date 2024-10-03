@@ -92,10 +92,12 @@ c
 
       IF (itiming) CALL getused(tsteponly1)
 
+#ifdef MPI
       IF (domain_checking) THEN
          nprocsendmax=0
          nprocsendmin=0
       ENDIF
+#endif
 
       CALL step(dt)
 

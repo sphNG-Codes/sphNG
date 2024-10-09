@@ -3260,11 +3260,12 @@ c
 
       IF (icall.NE.4) THEN
          IF (nlst_doing.GT.nptmasstot .OR. nptmasstot.NE.nptmasstotlast
-     &        .OR. iptintree.EQ.2 .OR. initialptm.EQ.5) THEN
+     &        .OR. iptintree.EQ.2 .OR. initialptm.EQ.5 .OR.
+     &        ipart.GT.npart) THEN
             CALL treef(ipart,itime,npart,ntot,xyzmh,acc,igphi,
      &           fsx,fsy,fsz,epot)
 
-            IF (iptintree.NE.2) THEN
+            IF (iptintree.NE.2 .AND. ipart.LE.npart) THEN
                IF (iphase(ipart).GE.1 .AND. iphase(ipart).LT.10) THEN
                   iptcur = listrealpm(ipart)
                   IF (listpm(iptcur).NE.ipart) THEN

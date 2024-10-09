@@ -99,7 +99,7 @@ c      END DO
 
 C$OMP PARALLEL default(none), shared(nlst,npart,ntot,acc,igphi)
 C$OMP& shared(llist,xyzmh,fxyzu,poten,iphase)
-C$OMP& shared(gravxyzpstore,ireset,neighb,itime)
+C$OMP& shared(ireset,neighb,itime)
 C$OMP& private(i,ipart,fsx,fsy,fsz,epot)
 C$OMP DO SCHEDULE(runtime)
          DO 100 i = 1, nlst
@@ -126,31 +126,9 @@ c
                fxyzu(3,ipart) = 0.
                poten(ipart) = 0.
             ENDIF
-
-            gravxyzpstore(1,ipart) = fsx
-            gravxyzpstore(2,ipart) = fsy
-            gravxyzpstore(3,ipart) = fsz
-            gravxyzpstore(4,ipart) = epot
  100     CONTINUE
 C$OMP END DO
 C$OMP END PARALLEL
-
-c         IF (icall.EQ.1) THEN
-c            DO i = 1, nlst
-c               ipart = llist(i)
-c               WRITE (44,66001) ipart,fxyzu(1,ipart),fxyzu(2,ipart),
-c     &              fxyzu(3,ipart),gravxyzstore(1,ipart),
-c     &              gravxyzstore(2,ipart),gravxyzstore(3,ipart)
-c66001          FORMAT(I7,6(1X,1PE12.5))
-c            END DO
-c         ELSE
-c            DO i = 1, nlst
-c               ipart = llist(i)
-c               WRITE (45,66001) ipart,fxyzu(1,ipart),fxyzu(2,ipart),
-c     &              fxyzu(3,ipart),gravxyzstore(1,ipart),
-c     &              gravxyzstore(2,ipart),gravxyzstore(3,ipart)
-c            END DO
-c         ENDIF
 
 c      DO i = 1, nlstbins(29)-1
 c         IF (listbins(i,29).NE.i+94296) THEN

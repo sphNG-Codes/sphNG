@@ -804,24 +804,25 @@ c
      &           HY09_ndust_bins
             DO i = 1, HY09_ndust_bins
                WRITE (iprint,99121, ERR=100) HY09binsizes(i)*1.0E+04,
-     &              HY09cen(i)/dlog_binsize
-#ifndef MPI
-               WRITE (100+irec,*) HY09binsizes(i)*1.0E+04,
-     &              HY09cen(i)/dlog_binsize
-#endif
+     &              HY09cen(i), HY09cen(i)/dlog_binsize
+c#ifndef MPI
+c               WRITE (100+irec,*) HY09binsizes(i)*1.0E+04,
+c     &              HY09cen(i), HY09cen(i)/dlog_binsize
+c#endif
             END DO
 
 99120       FORMAT (' Central dust properties (',I3,' bins):')
-99121       FORMAT ('   Dust size: ',F9.4,' micron:',1PE14.5)
+99121       FORMAT ('   Dust size: ',F9.4,' micron: ep_j:',1PE11.3,
+     &           ' ep_j/dln(binsize):',1PE11.3)
             WRITE (iprint,99122, ERR=100) 
      &           HY09cen_totaldens/(1.0-HY09cen_totaldens),
      &           HY09_dustgas_ratio
-99122       FORMAT ('   Total dust/gas ratio: ',1PE14.5,' should be:',
+99122       FORMAT ('   Total dust/gas ratio:   ',1PE14.5,' should be:',
      &           1PE14.5)
          ENDIF
          IF (idustFluid.NE.0) THEN
             WRITE (iprint,99124, ERR=100) dustmasstot
-99124       FORMAT (' Total 1-fluid dust mass: ',1PE14.5)
+99124       FORMAT ('   Total 1-fluid dust mass:',1PE14.5)
          ENDIF
 c        Write energies for object 1; this is the same as total energies
 c        above if only one object present.

@@ -240,6 +240,7 @@ c***************************************************************
 
          print *,'Hutchison min, max size ',smin,smax
          print *,'Hutchison grid bounds: ',grid(1:ndusttypes+1)
+         print *,'Hutchison pre-norm \epsilon_j: ',rhodusti
 
          !--Sum the contributions from each cell for total dust content
          rhodtot = SUM(rhodusti)
@@ -260,6 +261,10 @@ c***************************************************************
          ELSE
             exact = 1./power*(grid(ndusttypes+1)**power-grid(1)**power)
          ENDIF
+
+         print *,'Hutchison re-norm: ',rhodtot,dustfrac_tot,norm
+         print *,'Hutchison post norm \epsilon_j: ',dustfrac
+
          IF (ABS(rhodtot-exact)/exact.GT.tol) THEN
             PRINT*,'Piecewise integration of MRN distribution not',
      &             ' matching the exact solution!'

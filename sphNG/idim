@@ -11,6 +11,7 @@
       INTEGER idimHY09, ndusttypes
       REAL tiny, dustvarmin
       LOGICAL imakedust, icoupled_HY09_dustFluid, ilimitdustflux
+      LOGICAL iDumpDeltavTstop
 
       PARAMETER (idim=2001000)
 
@@ -110,9 +111,13 @@ c      PARAMETER (idustFluid = 1)
 c      PARAMETER (idustFluid = 2)
 c      PARAMETER (idustFluid = -2)
 
-       PARAMETER (ndusttypes = 1)
-c       PARAMETER (ndusttypes = 10)
+      PARAMETER (ndusttypes = 1)
+c      PARAMETER (ndusttypes = 10)
 c      PARAMETER (ndusttypes = 26)
+c
+c--Parameter for determining whether to dump dustFluid deltav's & tstop
+c
+      PARAMETER (iDumpDeltavTstop = .TRUE.)
 c
 c--For *explicit* evolution, this determines whether the dust evolution
 c      variable is allowed to go negative or not.  The implicit scheme

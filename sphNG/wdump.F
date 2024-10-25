@@ -476,7 +476,11 @@ c
 
       IF (idustFluid.NE.0) THEN
          !--dustfrac, deltav, and tstop
-         nums(6) = nums(6) + 5*ndusttypes
+         IF (iDumpDeltavTstop) THEN
+            nums(6) = nums(6) + 5*ndusttypes
+         ELSE
+            nums(6) = nums(6) + 1*ndusttypes
+         ENDIF
 
          !--dustfracsum and deltavsum
          IF (ndusttypes.GT.1) nums(6) = nums(6) + 4
@@ -723,23 +727,25 @@ c
             ENDDO
          ENDIF
 c
-         tagarr(1:3) = (/'deltavx','deltavy','deltavz'/)
-         DO k = 1, ndusttypes
-            DO j = 1, 3
-               WRITE (idisk1, ERR=100) tag(tagarr(j))
-               WRITE (idisk1, ERR=100) (dustfluidvxyz(j,k,isort(i)),
-     &              i=1,nprint)
+         IF (iDumpDeltavTstop) THEN
+            tagarr(1:3) = (/'deltavx','deltavy','deltavz'/)
+            DO k = 1, ndusttypes
+               DO j = 1, 3
+                  WRITE (idisk1, ERR=100) tag(tagarr(j))
+                  WRITE (idisk1, ERR=100) (dustfluidvxyz(j,k,isort(i)),
+     &                 i=1,nprint)
+               END DO
             END DO
-         END DO
 c
 c--Note that stoppingtime
 c     is dumped for analysis, debugging, and/or comparision
 c
-         DO k = 1, ndusttypes
-            WRITE (idisk1, ERR=100) tag('tstop')
-            WRITE (idisk1, ERR=100)
-     &           (stoppingtime(k,isort(i)),i=1,nprint)
-         END DO
+            DO k = 1, ndusttypes
+               WRITE (idisk1, ERR=100) tag('tstop')
+               WRITE (idisk1, ERR=100)
+     &              (stoppingtime(k,isort(i)),i=1,nprint)
+            END DO
+         ENDIF
       ENDIF
 c
 c--Outputs gas pressure gradient so that it can be used to set dust

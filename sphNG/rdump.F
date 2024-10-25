@@ -903,7 +903,11 @@ c--One-fluid dust, including multigrain
 c
           IF (idustFluid.NE.0 .AND. (.NOT.imakedust)) THEN
              !--dustfrac, deltav, and tstop
-             iwanted = iwanted + 5*ndusttypes
+             IF (iDumpDeltavTstop) THEN
+                iwanted = iwanted + 5*ndusttypes
+             ELSE
+                iwanted = iwanted + 1*ndusttypes
+             ENDIF
              !--dustfractot and deltavsum
              IF (ndusttypes.GT.1) iwanted = iwanted + 4
 
@@ -962,30 +966,32 @@ c                CALL checktag('deltavsumz', tagi, ierr)
                 ENDIF
              ENDIF
 
-             DO i = 1, ndusttypes
-                DO j = 1, 3
-                   IF (tagged) READ (idisk1, END=100) tagi
-                   READ (idisk1, END=100)
+             IF (iDumpDeltavTstop) THEN
+                DO i = 1, ndusttypes
+                   DO j = 1, 3
+                      IF (tagged) READ (idisk1, END=100) tagi
+                      READ (idisk1, END=100)
+                   END DO
+                   CALL checktag('deltavz', tagi, ierr)
+                   IF (ierr.NE.0) THEN
+                      PRINT *,'ERROR - deltavz not found in dump file'
+                      CALL quit(0)
+                   ENDIF
                 END DO
-                CALL checktag('deltavz', tagi, ierr)
-                IF (ierr.NE.0) THEN
-                   PRINT *,'ERROR - deltavz not found in dump file'
-                   CALL quit(0)
-                ENDIF
-             END DO
 c
 c--Note that stoppingtime
 c     is dumped for analysis, debugging, and/or comparisio
 c
-             DO i = 1, ndusttypes
-                IF (tagged) READ (idisk1, END=100) tagi
-                READ (idisk1, END=100)
-                CALL checktag('tstop', tagi, ierr)
-                IF (ierr.NE.0) THEN
-                   PRINT *,'ERROR - tstop not found in dump file'
-                   CALL quit(0)
-                ENDIF
-             ENDDO
+                DO i = 1, ndusttypes
+                   IF (tagged) READ (idisk1, END=100) tagi
+                   READ (idisk1, END=100)
+                   CALL checktag('tstop', tagi, ierr)
+                   IF (ierr.NE.0) THEN
+                      PRINT *,'ERROR - tstop not found in dump file'
+                      CALL quit(0)
+                   ENDIF
+                END DO
+             ENDIF
           ENDIF          
 c
 c--For imakedust when setting up dust at terminal velocity

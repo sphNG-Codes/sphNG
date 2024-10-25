@@ -62,6 +62,8 @@ c
       INCLUDE 'COMMONS/units'
       INCLUDE 'COMMONS/HY09dustprops'
       INCLUDE 'COMMONS/HY09accel'
+      INCLUDE 'COMMONS/dustfluidvelu'
+      INCLUDE 'COMMONS/typef'
 
       LOGICAL iBrownian, iDisc
       REAL HY09_vreldust,temperature,radius,rhoi,vthermal
@@ -98,7 +100,7 @@ c     &        gas_accel(3,ipart)**2)*udist/(utime**2)
 c
 c--Radial drift speed (assumes Stokes number <1)
 c
-      IF (.TRUE. .AND. iDisc) THEN
+      IF (.TRUE. .AND. iDisc .AND. iexf.NE.11) THEN
 c      IF (.TRUE. .AND. .NOT.iDisc) THEN
 c      IF (.FALSE.) THEN
          dlnPdlnr = -1.0
@@ -145,7 +147,10 @@ c     &        SQRT(gg*(solarm*(radius_use*udist/(0.1*pc))**3)/
 c
 c--Settling relative speed
 c
-      IF (.TRUE. .AND. iDisc) THEN
+      IF (iexf.EQ.11) THEN
+         vrel_settling = udist/utime*
+     &        (dustfluidvxyz(3,k,ipart) - dustfluidvxyz(3,j,ipart))
+      ELSEIF (.TRUE. .AND. iDisc) THEN
          vrel_settling = vrel_settling_coeff*(Stokes_k-Stokes_j)
       ELSE
          vrel_settling = 0.

@@ -158,14 +158,19 @@ c       acceleration), and the ratio of the tangential velocity to
 c       the circular orbital speed (defined by local gravitational 
 c       acceleration and radius).
 c
-         vel_dot_grav_accel = (vxyzu(1,ipart)*grav_accel(1,ipart) +
+         IF (iexf.EQ.11) THEN
+            ratio_vrad_to_vtan = 0.
+            ratio_vrad_to_cs = 0.
+         ELSE
+            vel_dot_grav_accel = (vxyzu(1,ipart)*grav_accel(1,ipart) +
      &        vxyzu(2,ipart)*grav_accel(2,ipart) +
      &        vxyzu(3,ipart)*grav_accel(3,ipart)) /
-     &        rgrav_accel_code_units
-         vel2 = vxyzu(1,ipart)**2 +vxyzu(2,ipart)**2 +vxyzu(3,ipart)**2
-         vel_tangential = SQRT( vel2 - vel_dot_grav_accel**2 )
-         ratio_vrad_to_vtan = vel_dot_grav_accel/vel_tangential
-         ratio_vrad_to_cs = vel_dot_grav_accel/vsound(ipart)
+     &           rgrav_accel_code_units
+            vel2 = vxyzu(1,ipart)**2+vxyzu(2,ipart)**2+vxyzu(3,ipart)**2
+            vel_tangential = SQRT( vel2 - vel_dot_grav_accel**2 )
+            ratio_vrad_to_vtan = vel_dot_grav_accel/vel_tangential
+            ratio_vrad_to_cs = vel_dot_grav_accel/vsound(ipart)
+         ENDIF
 c         ratio_vtan_to_circular_orbit = vel_tangential/
 c     &        SQRT(rgrav_accel_code_units*(radius+solarr/udist))
 c         HY09discflag(ipart) = ratio_vtan_to_circular_orbit
@@ -224,7 +229,7 @@ c--Find unused bins (optimises speed)
 c
          DO i = HY09_ndust_bins, 1, -1
             IF (HY09_bin_rho(i,ipart).GT.0.) THEN
-               iend = i+1
+               iend = MIN(i+1, HY09_ndust_bins)
                EXIT
             ENDIF
          END DO

@@ -187,6 +187,7 @@ c
       ENDIF
 #endif
 
+      realtime = gt
          IF (gt.EQ.0.0) THEN
             ibin = INT(LOG10(dt/dtini)/xlog2) + 1
             IF (ibin.LT.0 .OR. ibin.GE.30) THEN
@@ -376,7 +377,8 @@ c432    CONTINUE
 
 c      CALL test_vrel
 
-       IF (idimHY09.EQ.idim) CALL hy09dustevol(nlst,llist,npart,ntot,
+       IF (idimHY09.EQ.idim .AND. (iexf.NE.11 .OR. realtime.GE.351.0))
+     &      CALL hy09dustevol(nlst,llist,npart,ntot,
      &         dumxyzmh,dumvxyzu,dumekcle,HY09bin_dumrho,rho,
      &         f1HY09drhodt,f1HY09vrel_h)
 
@@ -692,6 +694,8 @@ c--Predict variables at t=time
 c
       IF (itiming) CALL getused(ts51)
 
+      realtime = dt*itime/imaxstep + gt
+
       IF (itbinupdate.GE.nbinmax-1 .OR. ipartialrevtree.EQ.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
@@ -700,7 +704,7 @@ C$OMP& shared(rgrain,f1rgrain,dumrgrain,rgrain_min)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
-C$OMP& shared(dustvar,dumdustvar,f1dust)
+C$OMP& shared(dustvar,dumdustvar,f1dust,realtime,iexf)
 C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt,rho)
 C$OMP& private(j,k,deltat)
       DO j = 1, npart
@@ -778,7 +782,8 @@ c     schemes are decoupled
                   CALL quit(0)
                ENDIF
 
-               HY09bin_dumrho(:,j)= MAX(HY09bin_dumrho(:,j)+
+               IF (iexf.NE.11 .OR. realtime.GE.351.0) 
+     &              HY09bin_dumrho(:,j)= MAX(HY09bin_dumrho(:,j)+
      &              deltat*f1HY09drhodt(:,j), 0.0)
 
 c--Update values from dustfrac back to dumdustvar if schemes are coupled
@@ -819,7 +824,7 @@ C$OMP& shared(rgrain,f1rgrain,dumrgrain,rgrain_min)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,Bevolxyz,dumekcle)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,dumBevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
-C$OMP& shared(dustvar,dumdustvar,f1dust)
+C$OMP& shared(dustvar,dumdustvar,f1dust,realtime,iexf)
 C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt,rho)
 C$OMP& private(j,k,ipart,deltat)
                DO j = 1, nlstbins(i)
@@ -896,7 +901,8 @@ c     schemes are decoupled
                   HY09bin_dumrho(:,ipart) = dumdustvar(:,ipart)
                ENDIF
 
-                        HY09bin_dumrho(:,ipart) = MAX(
+               IF (iexf.NE.11 .OR. realtime.GE.351.0)
+     &              HY09bin_dumrho(:,ipart) = MAX(
      &                     HY09bin_dumrho(:,ipart) +
      &                     deltat*f1HY09drhodt(:,ipart), 0.0)
 
@@ -1084,7 +1090,8 @@ c
      &     ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f2Bxyz,
      &     dumdustvar,f2dust)
 
-      IF (idimHY09.EQ.idim) CALL hy09dustevol(nlst,llist,npart,ntot,
+      IF (idimHY09.EQ.idim .AND. (iexf.EQ.11 .OR. realtime.GE.351.0))
+     &     CALL hy09dustevol(nlst,llist,npart,ntot,
      &     dumxyzmh,dumvxyzu,dumekcle,HY09bin_dumrho,rho,f2HY09drhodt,
      &     f2HY09vrel_h)
 c
@@ -1204,6 +1211,8 @@ c      ENDIF
          ts3 = ts3 + (ts32 - ts31)
       ENDIF
 
+      realtime = dt*itime/imaxstep + gt
+
       IF (itiming) CALL getused(ts71)
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst0,llist,iscurrent,dt,isteps,imaxstep,f21,f22)
@@ -1220,7 +1229,7 @@ C$OMP& shared(pdvvisc,alphamin,utime,h2frac,dh2dt,udens,rho)
 C$OMP& shared(HIIion,dHIIdt,stellarrad)
 C$OMP& shared(dustvar,f1dust,f2dust,deltaHII,rgrain_min,iorig,iunique)
 C$OMP& shared(HY09bin_rho,f1HY09drhodt,f2HY09drhodt,HY09frac_h_moved)
-C$OMP& shared(f1HY09vrel_h,f2HY09vrel_h)
+C$OMP& shared(f1HY09vrel_h,f2HY09vrel_h,realtime,iexf)
 C$OMP& private(i,j,k,dtfull,dtf21,dtf22,xold,yold,delvx,delvy,delvz)
 C$OMP& private(vxstore,vystore,dx,dy,delgx,delgy,delpx,delpy)
 C$OMP& private(delax,delay,extraxt,extrayt,extraxg,extrayg)
@@ -1453,10 +1462,12 @@ c     schemes are decoupled
                   ENDIF
                ENDIF
 
+               IF (iexf.NE.11 .OR. realtime.GE.351.0) THEN
                HY09bin_rho(:,i) = MAX(HY09bin_rho(:,i) +
      &           dtf21*f1HY09drhodt(:,i) + dtf22*f2HY09drhodt(:,i),0.0)
                HY09frac_h_moved(i) = HY09frac_h_moved(i) +
      &              dtf21*f1HY09vrel_h(i) + dtf22*f2HY09vrel_h(i)
+               ENDIF
 
 c--Update values from dustfrac back to dumdustvar
                IF (icoupled_HY09_dustFluid) THEN
@@ -1656,6 +1667,8 @@ c--Predict variables at t=time
 c
       IF (itiming) CALL getused(ts81)
 
+      realtime = dt*itime/imaxstep + gt
+
       IF (itbinupdate.GE.nbinmax-1 .OR. ipartialrevtree.EQ.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,it1,imaxstep,ireal)
@@ -1664,7 +1677,7 @@ C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(rgrain,f1rgrain,dumrgrain,rgrain_min)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
-C$OMP& shared(dustvar,dumdustvar,f1dust)
+C$OMP& shared(dustvar,dumdustvar,f1dust,realtime,iexf)
 C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt,rho)
 C$OMP& private(j,k,deltat)
       DO j = 1, npart
@@ -1736,7 +1749,8 @@ c     schemes are decoupled
                   HY09bin_dumrho(:,j) = dumdustvar(:,j)
                ENDIF
 
-               HY09bin_dumrho(:,j) = MAX(HY09bin_dumrho(:,j) +
+               IF (iexf.NE.11 .OR. realtime.GE.351.0)
+     &              HY09bin_dumrho(:,j) = MAX(HY09bin_dumrho(:,j) +
      &              deltat*f1HY09drhodt(:,j), 0.0)
 
 c--Update values from dustfrac back to dumdustvar
@@ -1777,7 +1791,7 @@ C$OMP& shared(rgrain,f1rgrain,dumrgrain,rgrain_min)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz,vsmooth)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,encal,Bevolxyz)
 C$OMP& shared(pdvvisc,iflagtree,alphamin)
-C$OMP& shared(dustvar,dumdustvar,f1dust)
+C$OMP& shared(dustvar,dumdustvar,f1dust,realtime,iexf)
 C$OMP& shared(HY09bin_dumrho,HY09bin_rho,f1HY09drhodt,rho)
 C$OMP& private(j,k,ipart,deltat)
                DO j = 1, nlstbins(i)
@@ -1855,7 +1869,8 @@ c     schemes are decoupled
                   HY09bin_dumrho(:,ipart) = dumdustvar(:,ipart)
                ENDIF
                
-               HY09bin_dumrho(:,ipart) = MAX(HY09bin_dumrho(:,ipart) +
+               IF (iexf.NE.11 .OR. realtime.GE.351.0)
+     &           HY09bin_dumrho(:,ipart) = MAX(HY09bin_dumrho(:,ipart) +
      &                 deltat*f1HY09drhodt(:,ipart), 0.0)
 
 c--Update values from dustfrac back to dumdustvar
@@ -2045,7 +2060,8 @@ c
      &     ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f2Bxyz,
      &     dumdustvar,f2dust)
 
-      IF (idimHY09.EQ.idim) CALL hy09dustevol(nlst,llist,npart,ntot,
+      IF (idimHY09.EQ.idim .AND. (iexf.NE.11 .OR. realtime.GE.351.0))
+     &     CALL hy09dustevol(nlst,llist,npart,ntot,
      &     dumxyzmh,dumvxyzu,dumekcle,HY09bin_dumrho,rho,f2HY09drhodt,
      &     f2HY09vrel_h)
 

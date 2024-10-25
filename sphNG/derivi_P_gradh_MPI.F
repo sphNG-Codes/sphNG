@@ -1583,7 +1583,8 @@ c
 c--Compute implicit one-fluid dust - does not need to be done for setup
 c     or for restart (icall=1), or for particle injection (icall=4)
 c
-      IF (idustFluid.EQ.-2 .AND. (icall.EQ.2 .OR. icall.EQ.3)) THEN
+      IF (idustFluid.EQ.-2 .AND. (icall.EQ.2 .OR. icall.EQ.3)
+     &     .AND. (iexf.NE.11 .OR. realtime.GT.351.0)) THEN
          CALL ASS_DUST1(dt,itime,npart,ntot,xyzmh,dustvar,dumrho)
 
 #ifdef MPI

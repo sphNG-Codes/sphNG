@@ -22,18 +22,18 @@ c
 c--Set min, max sizes and slope (in cm, or XX*1E-04 for microns)
 c
       HY09_size_min = 0.005 * 1.0E-04
-c      HY09_size_min = 0.0599 * 1.0E-04
+c      HY09_size_min = 0.0599 * 1.0E-04   ! for dust settling test
 
-c      HY09_size_max = 1670.0 * 1.0E-04
+c      HY09_size_max = 1670.0 * 1.0E-04   ! for dust settling test
       HY09_size_max = 1000.0 * 1.0E-04
 c      HY09_size_max = 100.0 * 1.0E-04
 
       HY09_cutoff   = 0.25 * 1.0E-04
-c      HY09_cutoff   = 1670.0 * 1.0E-04
+c      HY09_cutoff   = 1670.0 * 1.0E-04   ! for dust settling test
 
       HY09_slope    = -3.5
-      HY09_dust_density = 2.26
-c      HY09_dust_density = 3.0
+c      HY09_dust_density = 2.26
+      HY09_dust_density = 3.0
       HY09_dustgas_ratio = 0.01
       HY09_vcoag_coeff = 21.4 * (12.0)**(5./6.)/(3.4E+10)**(1./3.)/
      &     SQRT(HY09_dust_density)
@@ -81,6 +81,7 @@ c      gasdensity = 1.67E-24*(1.0+4*0.083)*num_dens_H
       print *,'xnorm, xint ',xnorm, xintegral
       xnorm = xnorm/xintegral
       bin_rho(:) = bin_rho(:)*xnorm
+      print *,'dust fracs ',bin_rho
 c
 c--Check total grain mass (g/cm^3)
 c
@@ -128,6 +129,19 @@ c--------------------------------------------------------------
          HY09binsize_bounds(i) = HY09binsize_bounds(i-1)*delta
          HY09binsizes(i) = 0.5*(HY09binsize_bounds(i-1) + 
      &        HY09binsize_bounds(i))
+c
+c--Below: Hutchison et al. (2016) uses binsize that is the geometric
+c     mean, whereas HY09 use arithmetic mean.  The arithmetic mean allows
+c     fewer bins to be used with HY09 grain growth because the sum of
+c     the grain masses needs to lie above the next bin minimum mass
+c     in order for grains to grow into that bin (otherwise it always
+c     stays with zero mass).  This is easier to satisfy with arithmetic
+c     binsizes than with geometric ones.
+c     Arithmetic mean requires:  delta < 1/[2/2^(1/3) - 1] = 1.702
+c     Geometric mean requires:   delta < [2^(1/3)]^2 = 1.5874
+c
+c         HY09binsizes(i) = EXP(0.5*(LOG(HY09binsize_bounds(i-1)) + 
+c     &        LOG(HY09binsize_bounds(i))))
          HY09binmass(i) = 4.0*pi/3.0*HY09binsizes(i)**3*
      &        HY09_dust_density
          HY09binmass_max(i) = 4.0*pi/3.0*HY09binsize_bounds(i)**3*

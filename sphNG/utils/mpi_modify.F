@@ -60,6 +60,7 @@ c
       INCLUDE '../COMMONS/files'
       INCLUDE '../COMMONS/logun'
       INCLUDE '../COMMONS/actio'
+      INCLUDE '../COMMONS/stepopt'
 
       REAL*8 umassi, udisti, utimei, umagfdi
       COMMON /unitsin/ umassi, udisti, utimei, umagfdi
@@ -168,6 +169,7 @@ c
          IF (iphase(i) .GE. 0) THEN
             nparttot = nparttot + 1
          ENDIF
+         iorig(i) = i
       END DO
       ALLOCATE(imap(nsplits_max,nparttot))
       nkey = 2**(nsplits_max+1)-1
@@ -338,6 +340,8 @@ c
       INCLUDE 'idim'
       INCLUDE 'COMMONS/mpimod'
       INCLUDE 'COMMONS/part'
+      INCLUDE 'COMMONS/ptmass'
+      INCLUDE 'COMMONS/phase'
       INCLUDE 'COMMONS/sort'
       INCLUDE 'COMMONS/files'
       INCLUDE 'COMMONS/logun'
@@ -351,6 +355,7 @@ c--With a bit of thinking this could be done without the inner loop.
 c     However, the loops are not expensive and this approach
 c     is the same as in the split() routine in rdump.F.
 c
+      nptmasscheck = 0
       DO iproc=0,numproc-1
          ipos = 1
          DO nb=1,nsplits
@@ -378,9 +383,17 @@ c--Check no block has too many particles.
             PRINT*,"npart too large to evolve with MPI",npart
             STOP
          ENDIF
+         nptmass = 0
          DO ipart=1,npart
-            isort(ipart) = imap(nsplits,ipart+isplitpos)
+            ip_orig = imap(nsplits,ipart+isplitpos)
+            isort(ipart) = ip_orig
+c--Re-write the sink mass indexed list for this MPI block.
+            IF (iphase(ip_orig).GT.0 .AND. iphase(ip_orig).LT.10) THEN
+               nptmass = nptmass + 1
+               listpm(nptmass) = ipart
+            ENDIF
          ENDDO
+         nptmasscheck = nptmasscheck + nptmass
 c
 c--Write this block to file.
 c
@@ -392,5 +405,10 @@ c
          CALL getused(t2)
          PRINT*,"block ",iproc+1," wdump time ",t2-t1
       ENDDO
+
+      IF (nptmasscheck .NE. nptmasstot) THEN
+         PRINT*,"ERROR - nptmass mismatch",nptmasstot,nptmasscheck
+         CALL quit(1)
+      ENDIF
 
       END SUBROUTINE write_mpi_dump

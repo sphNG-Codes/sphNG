@@ -26,7 +26,7 @@ DOUBLEPRECISION= yes
 #openmp = yes
 #mpi = yes
 # endian can be "BIG", "LITTLE" or anything else which has no effect
-ENDIAN= BIG
+#ENDIAN= BIG
 
 ##############################################################
 # preprocessor options 

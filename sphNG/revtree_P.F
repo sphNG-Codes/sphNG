@@ -69,10 +69,9 @@ C$OMP END DO
 C$OMP END PARALLEL
 
       DO ilevel = 1, nlevel
+         nnode_on_level = level(ilevel + 1)-level(ilevel)
 
-         IF ((level(ilevel + 1)-level(ilevel)).GT.16) THEN
-
-C$OMP PARALLEL default(none)
+C$OMP PARALLEL IF(nnode_on_level > 16) default(none)
 C$OMP& shared(ilevel,level,natom,isibdaupar)
 C$OMP& shared(qrad,xyzmh,imfac,h2frac)
 C$OMP& private(new,l,ll,fl,fll,emred,difx,dify,difz,rr,pmassl,pmassll)
@@ -131,11 +130,16 @@ C$OMP DO SCHEDULE(static)
 c
 c--Find radius
 c
-            rr = SQRT(difx**2 + dify**2 + difz**2) + tiny
-            IF (ll.EQ.0) THEN
-               qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr)
+            IF (ileveltreeacc .EQ. 1) THEN
+               rr = SQRT(difx**2 + dify**2 + difz**2) + tiny
+               IF (ll.EQ.0) THEN
+                  qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr)
+               ELSE
+                  qrad(1,new) = MAX(fll*rr+qrad(1,l), fl*rr+qrad(1,ll))
+               ENDIF
             ELSE
-               qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr + qrad(1,ll))
+               qrad(1,new) = tree_node_radius(isibdaupar,xyzmh,qrad,
+     &              new,l,ll,natom)
             ENDIF
             xyzmh(5,new) = MAX(xyzmh(5,l), smoothingll)
 c
@@ -173,103 +177,6 @@ c
          END DO
 C$OMP END DO
 C$OMP END PARALLEL
-
-         ELSE
-
-         DO new = level(ilevel), level(ilevel + 1) - 1
-
-            l = isibdaupar(2,new)
-            ll = isibdaupar(1,l)
-
-            IF (l.LE.natom) THEN
-               pmassl = imfac(l)*xyzmh(4,l)
-            ELSE
-               pmassl = xyzmh(4,l)
-            ENDIF
-            IF (ll.EQ.0) THEN
-               xll = 0.
-               yll = 0.
-               zll = 0.
-               pmassll = 0.
-               smoothingll = 0.
-            ELSE
-               IF (ll.LE.natom) THEN
-                  pmassll = imfac(ll)*xyzmh(4,ll)
-               ELSE
-                  pmassll = xyzmh(4,ll)
-               ENDIF
-               xll = xyzmh(1,ll)
-               yll = xyzmh(2,ll)
-               zll = xyzmh(3,ll)
-               smoothingll = xyzmh(5,ll)
-            ENDIF
-            xyzmh(4,new) = pmassl + pmassll
-
-            IF (xyzmh(4,new).NE.0) THEN
-               fl = pmassl/xyzmh(4,new)
-               fll = pmassll/xyzmh(4,new)
-            ELSE
-               fl = 0.5
-               fll = 0.5
-            ENDIF
-            emred = fl*fll*xyzmh(4,new)
-            difx = xll - xyzmh(1,l)
-            dify = yll - xyzmh(2,l)
-            difz = zll - xyzmh(3,l)
-            IF (fl.GT.fll) THEN
-               xyzmh(1,new) = xyzmh(1,l) + fll*difx
-               xyzmh(2,new) = xyzmh(2,l) + fll*dify
-               xyzmh(3,new) = xyzmh(3,l) + fll*difz
-            ELSE
-               xyzmh(1,new) = xll - fl*difx
-               xyzmh(2,new) = yll - fl*dify
-               xyzmh(3,new) = zll - fl*difz
-            ENDIF
-c
-c--Find radius
-c
-            rr = SQRT(difx**2 + dify**2 + difz**2) + tiny
-            IF (ll.EQ.0) THEN
-               qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr)
-            ELSE
-               qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr + qrad(1,ll))
-            ENDIF
-            xyzmh(5,new) = MAX(xyzmh(5,l), smoothingll)
-c
-c--Find quadrupole moments
-c
-            qrad(2,new) = (emred*difx)*difx
-            qrad(5,new) = (emred*difx)*dify
-            qrad(7,new) = (emred*difx)*difz
-            qrad(3,new) = (emred*dify)*dify
-            qrad(6,new) = (emred*dify)*difz
-            qrad(4,new) = (emred*difz)*difz
-            IF (l.GT.natom) THEN
-               qrad(2,new) = qrad(2,new) + qrad(2,l)
-               qrad(3,new) = qrad(3,new) + qrad(3,l)
-               qrad(4,new) = qrad(4,new) + qrad(4,l)
-               qrad(5,new) = qrad(5,new) + qrad(5,l)
-               qrad(6,new) = qrad(6,new) + qrad(6,l)
-               qrad(7,new) = qrad(7,new) + qrad(7,l)
-            ENDIF
-            IF (ll.GT.natom) THEN
-               qrad(2,new) = qrad(2,new) + qrad(2,ll)
-               qrad(3,new) = qrad(3,new) + qrad(3,ll)
-               qrad(4,new) = qrad(4,new) + qrad(4,ll)
-               qrad(5,new) = qrad(5,new) + qrad(5,ll)
-               qrad(6,new) = qrad(6,new) + qrad(6,ll)
-               qrad(7,new) = qrad(7,new) + qrad(7,ll)
-            ENDIF
-            IF (idustRT.GT.0) THEN
-               IF (ll.EQ.0) THEN
-                  h2frac(new) = h2frac(l)*fl
-               ELSE
-                  h2frac(new) = h2frac(l)*fl+h2frac(ll)*fll
-               ENDIF
-            ENDIF
-         END DO
-
-         ENDIF
       END DO
 
       IF (itiming) THEN
@@ -443,7 +350,6 @@ C$OMP& shared(iflagtree,ipar,nlevel,nlistpar,nlistparnew)
 C$OMP& private(i,new,l,ll,fl,fll,emred,difx,dify,difz,rr,iparent)
 C$OMP& private(pmassl,pmassll,oldmass,oldh,oldqrad)
 C$OMP& private(xll,yll,zll,smoothingll)
-
 C$OMP DO SCHEDULE(static)
          DO i = 1, nlistpar
 
@@ -521,12 +427,17 @@ c            print *,i
 c
 c--Find radius
 c
-            rr = SQRT(difx**2 + dify**2 + difz**2) + tiny
-            oldqrad = qrad(1,new)
-            IF (ll.EQ.0) THEN
-               qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr)
+            IF (ileveltreeacc .EQ. 1) THEN
+               rr = SQRT(difx**2 + dify**2 + difz**2) + tiny
+c               oldqrad = qrad(1,new)
+               IF (ll.EQ.0) THEN
+                  qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr)
+               ELSE
+                  qrad(1,new) = MAX(fll*rr+qrad(1,l), fl*rr+qrad(1,ll))
+               ENDIF
             ELSE
-               qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr + qrad(1,ll))
+               qrad(1,new) = tree_node_radius(isibdaupar,xyzmh,qrad,
+     &              new,l,ll,natom)
             ENDIF
             xyzmh(5,new) = MAX(xyzmh(5,l), smoothingll)
 c

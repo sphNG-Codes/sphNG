@@ -46,6 +46,15 @@ c        PARAMETER (ipartialrevtree=0)
         PARAMETER (ipartialrevtree=1)
 c        PARAMETER (ipartialrevtree=2)
 c
+c--Specify refinement level of node radii in tree qrad(1,n)
+c	 1: No additional accuracy mtree/revtree are fastest
+c	 Higher values -> slower mtree/revtree but increasing accuracy
+c	 Better accuracy speeds up densityiterate
+c
+	INTEGER ileveltreeacc,istacksizemrev
+	PARAMETER (ileveltreeacc = 1)
+	PARAMETER (istacksizemrev = 2**ileveltreeacc)
+c
 c--Allow controls individual timesteps
 c	 0 : all particles have single timestep
 c	 1 : gas particles have individual timesteps, sinks all on minimum

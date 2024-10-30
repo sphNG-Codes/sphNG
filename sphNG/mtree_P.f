@@ -422,8 +422,13 @@ C$OMP DO SCHEDULE(runtime)
 c
 c--Find radius and maximum h
 c
-               rr = SQRT(difx**2 + dify**2 + difz**2)
-               qrad(1,new) = MAX(fll*rr + qrad(1,l), fl*rr + qrad(1,ll))
+               IF (ileveltreeacc .EQ. 1) THEN
+                  rr = SQRT(difx**2 + dify**2 + difz**2)
+                  qrad(1,new) = MAX(fll*rr+qrad(1,l), fl*rr+qrad(1,ll))
+               ELSE
+                  qrad(1,new) = tree_node_radius(isibdaupar,xyzmh,qrad,
+     &                 new,l,ll,natom)
+               ENDIF
                IF (qrad(1,new).EQ.0.) THEN
                   print *,'ERROR - mtree node has zero size: ',new,l,ll,
      &                 natom,pmassl,pmassll,fl,fll,rr,
@@ -535,3 +540,59 @@ C$OMP END PARALLEL
 
       RETURN
       END
+
+
+c
+c--Walks the tree to a defined depth (ileveltreeacc). This allows the
+c     node radius to be refined to be less of an overestimate.
+c
+      FUNCTION tree_node_radius(isibdaupar,xyzmh,qrad,new,l,ll,natom)
+
+      IMPLICIT NONE
+
+      INCLUDE 'idim'
+      INCLUDE 'igrape'
+
+      INTEGER, DIMENSION(3,mmax), INTENT(IN) :: isibdaupar
+      REAL*4, DIMENSION(7,mmax), INTENT(IN) :: qrad
+      REAL, DIMENSION(5,mmax), INTENT(IN) :: xyzmh
+      INTEGER, INTENT(IN) :: new,l,ll,natom
+
+      INTEGER :: node,nd,istack,new_dau
+      REAL :: distmax,dist2,tree_node_radius
+
+      INTEGER, DIMENSION(istacksizemrev), SAVE :: nstack,ndepth
+      REAL, DIMENSION(3), SAVE :: xyznew
+C$OMP THREADPRIVATE(nstack,ndepth,xyznew)
+
+      distmax = 0.
+      xyznew = xyzmh(1:3,new)
+      nstack(1) = l
+      nstack(2) = ll
+      ndepth(1) = 1
+      ndepth(2) = 1
+      istack = 2
+      DO WHILE (istack.NE.0)
+         node = nstack(istack)
+         nd = ndepth(istack)
+         istack = istack - 1
+         IF (node.GT.natom .AND. nd.LT.ileveltreeacc) THEN
+            new_dau = isibdaupar(2,node)
+            istack = istack + 1
+            nstack(istack) = new_dau
+            ndepth(istack) = nd + 1
+            istack = istack + 1
+            nstack(istack) = isibdaupar(1,new_dau)
+            ndepth(istack) = nd + 1
+         ELSE
+            dist2 = SUM((xyznew - xyzmh(1:3,node))**2)
+            IF (node.GT.natom) THEN
+               distmax = MAX(distmax,SQRT(dist2)+qrad(1,node))
+            ELSE
+               distmax = MAX(distmax,SQRT(dist2))
+            ENDIF
+         ENDIF
+      ENDDO
+      tree_node_radius = distmax
+
+      END FUNCTION tree_node_radius

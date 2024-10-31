@@ -30,6 +30,9 @@ c************************************************************
       CHARACTER*7 where
 
       DATA where/'mtree'/
+
+      INTEGER levelcount(nmaxlevel),lc(nmaxlevel)
+      INTEGER inodeloc(idim)
 c
 c--Allow for tracing flow
 c
@@ -56,7 +59,10 @@ c99001 FORMAT (' entry subroutine mtree')
       nactive = nactatom
       nactold = 0
       newend = natom
+      niteration = 0
       nlevel = 0
+      levelnum(1:nnatom) = 0
+      levelcount(:) = 0
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(natom,npart,list,isibdaupar)
@@ -67,12 +73,14 @@ C$OMP& shared(nay,iphase)
 C$OMP& shared(ihash,nhash,key,nglob)
 C$OMP& private(l,new,n,ll,fl,fll,emred,difx,dify,difz,rr)
 C$OMP& shared(icbrt,icbrt1,xyzmap,level,imfac,levelnum)
-C$OMP& shared(next1,next2,next3,third,nactold,iprint,newold,nlevel)
+C$OMP& shared(next1,next2,next3,third,nactold,iprint,newold,niteration)
 C$OMP& shared(h2frac)
 C$OMP& private(m,np,mm,iz,iy,ix,nc,ddd,xnp,ynp,znp)
 C$OMP& private(lllx,llux,llly,lluy,lllz,lluz,llx,lux,lly,luy,llz,luz)
 C$OMP& private(jx,icjx,jy,icjy,jz,k,d,dmin,nwal)
 C$OMP& private(ibin,i,itemp,nj,ibin1,pmassl,pmassll)
+C$OMP& reduction(+:levelcount)
+C$OMP& reduction(MAX:nlevel)
 
 C$OMP DO SCHEDULE(runtime)
       DO j = 1, nactatom
@@ -381,7 +389,7 @@ C$OMP DO SCHEDULE(runtime)
       DO j = 1, nactive
          l = list(j)
          new = newend + j
-         IF (new.GT.mmax) CALL error(where, 3)
+         IF (new.GT.mmax-1) CALL error(where, 3)
          iused(j) = .FALSE.
          n = nay(j)
 
@@ -403,7 +411,11 @@ C$OMP DO SCHEDULE(runtime)
                ELSE
                   pmassll = xyzmh(4,ll)
                ENDIF
-               levelnum(new) = nlevel + 1
+c               levelnum(new) = niteration + 1
+               nodelevel = MAX(levelnum(l),levelnum(ll))+1
+               levelnum(new) = nodelevel
+               levelcount(nodelevel) = levelcount(nodelevel) + 1
+               nlevel = MAX(nlevel,nodelevel)
                xyzmh(4,new) = pmassl + pmassll
                IF (xyzmh(4,new).NE.0) THEN
                   fl = pmassl/xyzmh(4,new)
@@ -480,29 +492,11 @@ C$OMP SINGLE
          IF (iused(j)) THEN
             new = newold + j
             newend = newend + 1
-            levelnum(newend) = levelnum(new)
-            xyzmh(1,newend) = xyzmh(1,new)
-            xyzmh(2,newend) = xyzmh(2,new)
-            xyzmh(3,newend) = xyzmh(3,new)
-            xyzmh(4,newend) = xyzmh(4,new)
-            xyzmh(5,newend) = xyzmh(5,new)
-            qrad(1,newend) = qrad(1,new)
-            qrad(2,newend) = qrad(2,new)
-            qrad(3,newend) = qrad(3,new)
-            qrad(4,newend) = qrad(4,new)
-            qrad(5,newend) = qrad(5,new)
-            qrad(6,newend) = qrad(6,new)
-            qrad(7,newend) = qrad(7,new)
-            IF (idustRT.GT.0) h2frac(newend) =  h2frac(new)
-            isibdaupar(1,newend) = isibdaupar(1,new)
-            isibdaupar(2,newend) = isibdaupar(2,new)
-            isibdaupar(3,isibdaupar(2,newend)) = newend
-            isibdaupar(3,isibdaupar(1,isibdaupar(2,newend))) = newend
-            iflagtree(newend) = iflagtree(new)
+            CALL move_node(new,newend,xyzmh)
          ELSEIF (isibdaupar(1,list(j)).EQ.0) THEN
             list(nglob) = list(j)
             nglob = nglob + 1
-         ENDIF
+         ENDIF`
       END DO
 C$OMP END SINGLE
 
@@ -515,9 +509,9 @@ C$OMP END DO
 C$OMP SINGLE
       nglob = nglob + (newend - newold)
 
-      nlevel = nlevel + 1
-      IF (nlevel.GT.nmaxlevel) CALL error(where,4)
-      level(nlevel) = newold + 1
+      niteration = niteration + 1
+      IF (nlevel+1.GT.nmaxlevel) CALL error(where,4)
+c      level(niteration) = newold + 1
       nactold = nactive
       IF (nglob - 1.LE.idim) THEN
          nactive = nglob - 1
@@ -531,15 +525,118 @@ C$OMP END SINGLE
 
 C$OMP END PARALLEL
 
-      nlevel = nlevel + 1
-      IF (nlevel.GT.nmaxlevel) CALL error(where,4)
-      level(nlevel) = newend + 1
-      nlevel = nlevel - 1
+c      niteration = niteration + 1
+c      IF (nlevel.GT.nmaxlevel) CALL error(where,4)
+c      level(niteration) = newend + 1
+c      niteration = niteration - 1
 
       nroot = newend
+c
+c--Find the number of tree nodes on each level.
+c
+      ncpg = levelcount(nlevel)
+      lc(1) = 0
+      DO i=1,nlevel-1
+         lc(i+1) = lc(i) + levelcount(i)
+         level(i) = lc(i) + 1
+         ncpg = ncpg + levelcount(i)
+      ENDDO
+      level(nlevel) = lc(nlevel) + 1
+      level(nlevel+1) = level(nlevel) + levelcount(nlevel)
+c
+c--Re-order tree so that nodes on the same level are contiguous.
+c
+      istart = nnatom + 1
+      itemp = mmax
+      icount = 0
+      DO ilevel=1,nlevel
+         ilevelcount = 0
+         n_in_level = levelcount(ilevel)
+         igap = 0
+         iwrong = 0
+         iend = istart + n_in_level - 1
+c
+c--Find indices of nodes not in ilevel that are in assigned slots.
+c
+         DO inode=istart,iend
+            IF (levelnum(inode) .NE. ilevel) THEN
+               inodeloc(idim-igap) = inode
+               igap = igap + 1
+            ENDIF
+            IF (ilevelcount .EQ. n_in_level) EXIT
+         ENDDO
+c
+c--Find indices of nodes on ilevel that are beyond assigned slots.
+c
+         ilevelcount = n_in_level - igap
+         DO inode=iend+1,nroot
+            IF (levelnum(inode) .EQ. ilevel) THEN
+               ilevelcount = ilevelcount + 1
+               iwrong = iwrong + 1
+               inodeloc(iwrong) = inode
+            ENDIF
+            IF (ilevelcount .EQ. n_in_level) EXIT
+         ENDDO
+         IF (igap .NE. iwrong) THEN
+            WRITE(iprint,*)"igap.NE.iwrong",igap,iwrong
+            CALL quit(1)
+         ENDIF
+c
+c--Switch nodes into their assigned slots.
+c
+         DO i=1,igap
+            ngap = inodeloc(idim-i+1)
+            nwrong = inodeloc(i)
+            CALL move_node(ngap,itemp)
+            CALL move_node(nwrong,ngap)
+            CALL move_node(itemp,nwrong)
+            iwrong = iwrong - 1
+            icount = icount + 1
+         ENDDO
+         istart = istart + n_in_level
+      ENDDO
+      WRITE(iprint,*)"number of switched nodes",icount
 
       RETURN
       END
+
+
+c
+c--This routine moves a tree node from location ifrom to ito.
+c
+      SUBROUTINE move_node(ifrom,ito,xyzmh)
+
+      IMPLICIT NONE
+
+      INCLUDE 'idim'
+      INCLUDE 'COMMONS/treecom_P'
+      INCLUDE 'COMMONS/interstellar'
+
+      INTEGER, INTENT(IN) :: ifrom,ito
+      LOGICAL, INTENT(IN) :: iswitch
+      REAL, INTENT(IN) :: xyzmh(5,mmax2)
+
+      levelnum(ito) = levelnum(ifrom)
+      xyzmh(1,ito) = xyzmh(1,ifrom)
+      xyzmh(2,ito) = xyzmh(2,ifrom)
+      xyzmh(3,ito) = xyzmh(3,ifrom)
+      xyzmh(4,ito) = xyzmh(4,ifrom)
+      xyzmh(5,ito) = xyzmh(5,ifrom)
+      qrad(1,ito) = qrad(1,ifrom)
+      qrad(2,ito) = qrad(2,ifrom)
+      qrad(3,ito) = qrad(3,ifrom)
+      qrad(4,ito) = qrad(4,ifrom)
+      qrad(5,ito) = qrad(5,ifrom)
+      qrad(6,ito) = qrad(6,ifrom)
+      qrad(7,ito) = qrad(7,ifrom)
+      IF (idustRT.GT.0) h2frac(ito) =  h2frac(ifrom)
+      isibdaupar(1,ito) = isibdaupar(1,ifrom)
+      isibdaupar(2,ito) = isibdaupar(2,ifrom)
+      isibdaupar(3,isibdaupar(2,ito)) = ito
+      isibdaupar(3,isibdaupar(1,isibdaupar(2,ito))) = ito
+      iflagtree(ito) = iflagtree(ifrom)
+
+      END SUBROUTINE move_node
 
 
 c

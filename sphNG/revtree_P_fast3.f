@@ -21,6 +21,7 @@ c************************************************************
       INCLUDE 'COMMONS/nextmpt'
       INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/perform'
+      INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/timeextra'
 
       INTEGER numparentslevel(nmaxlevel)
@@ -38,7 +39,7 @@ c      IF (.TRUE.) THEN
       IF (itiming) CALL getused(revtreeptemp1)
 
 C$OMP PARALLEL default(none)
-C$OMP& shared(natom,npart,imfac)
+C$OMP& shared(natom,npart,imfac,h2frac)
 C$OMP& shared(nactatom,listmap,iphase)
 C$OMP& private(j,ipart)
 
@@ -52,6 +53,11 @@ C$OMP DO SCHEDULE(static)
          ELSE
             imfac(ipart) = 1
          ENDIF
+         IF (idustRT.GT.0) THEN
+            IF (ipart.GT.npart .OR. iphase(ipart).NE.0) THEN
+               h2frac(ipart) = 0.
+            ENDIF
+         ENDIF
       END DO
 C$OMP END DO
 C$OMP END PARALLEL
@@ -62,7 +68,7 @@ C$OMP END PARALLEL
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(ilevel,level,natom,isibdaupar)
-C$OMP& shared(qrad,xyzmh,imfac)
+C$OMP& shared(qrad,xyzmh,imfac,h2frac)
 C$OMP& private(new,l,ll,fl,fll,emred,difx,dify,difz,rr,pmassl,pmassll)
 
 C$OMP DO SCHEDULE(static)
@@ -133,6 +139,9 @@ c
                qrad(5,new) = qrad(5,new) + qrad(5,ll)
                qrad(6,new) = qrad(6,new) + qrad(6,ll)
                qrad(7,new) = qrad(7,new) + qrad(7,ll)
+            ENDIF
+            IF (idustRT.GT.0) THEN
+               h2frac(new) = h2frac(l)*fl+h2frac(ll)*fll
             ENDIF
          END DO
 C$OMP END DO
@@ -207,6 +216,9 @@ c
                qrad(5,new) = qrad(5,new) + qrad(5,ll)
                qrad(6,new) = qrad(6,new) + qrad(6,ll)
                qrad(7,new) = qrad(7,new) + qrad(7,ll)
+            ENDIF
+            IF (idustRT.GT.0) THEN
+               h2frac(new) = h2frac(l)*fl+h2frac(ll)*fll
             ENDIF
          END DO
 
@@ -317,7 +329,7 @@ c         IF (.FALSE.) THEN
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(natom,isibdaupar)
-C$OMP& shared(qrad,xyzmh,imfac)
+C$OMP& shared(qrad,xyzmh,imfac,h2frac)
 C$OMP& shared(iflagtree,ipar,numberstart,nroot,iprint)
 C$OMP& shared(numberparents,listparents,numnextlevel,list)
 C$OMP& shared(nlst,nptmass,itbinupdate,nlstacc)
@@ -415,6 +427,9 @@ c
                   qrad(5,new) = qrad(5,new) + qrad(5,ll)
                   qrad(6,new) = qrad(6,new) + qrad(6,ll)
                   qrad(7,new) = qrad(7,new) + qrad(7,ll)
+               ENDIF
+               IF (idustRT.GT.0) THEN
+                  h2frac(new) = h2frac(l)*fl+h2frac(ll)*fll
                ENDIF
 
                IF (new.NE.nroot) THEN

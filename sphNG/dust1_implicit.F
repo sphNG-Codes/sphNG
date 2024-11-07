@@ -857,8 +857,8 @@ c     other MPI process knows when it doesn't need to expect anything)
 c
                         IF (nneighsentany(j+1)) THEN
 #ifdef MPIDEBUG
-                           print *,iproc,': sending dustvarNew to ',j,
-     &                        ' starting at ',llistsentback(1,j+1),'+1 ',
+                          print *,iproc,': sending dustvarNew to ',j,
+    &                        ' starting at ',llistsentback(1,j+1),'+1 ',
      &                        nneighsentback(j+1),' list '
 c     &             ,(llistsentback(kkk,j+1),kkk=1,nneighsentback(j+1))
 #endif

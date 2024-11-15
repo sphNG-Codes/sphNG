@@ -4,6 +4,9 @@ c                                                           *
 c  Subroutine by W. Press.  Revises the tree structure.     *
 c     Assumes that only the positions have been altered     *
 c                                                           *
+c     Partial tree revision completed by TB December 2024   *
+c     This was started by MRB pre-2006                      *
+c                                                           *
 c************************************************************
 
       INCLUDE 'idim'
@@ -24,19 +27,17 @@ c************************************************************
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/timeextra'
 
-      INTEGER numparentslevel(nmaxlevel)
+      INTEGER iflag
 
       natom = nnatom
 
 c
 c--REVISE ENTIRE TREE (STANDARD REVTREE)
 c
-c      IF (nlst.GT.nnatom/5000 .OR. (.NOT. ipartialrevtree)) THEN
-c      IF (.TRUE.) THEN
-      IF (nlst-nptmass.GT.10000 .OR. itbinupdate.GE.nbinmax-1 .OR. 
-     &     ipartialrevtree.LE.1) THEN
+      IF (ifullrevision) THEN
 
       IF (itiming) CALL getused(revtreeptemp1)
+      nfullrev = nfullrev + 1
 
 C$OMP PARALLEL default(none)
 C$OMP& shared(natom,npart,imfac,h2frac)
@@ -162,119 +163,75 @@ c     AND ANY ACCRETED OR KILLED PARTICLES FROM THE LAST STEP
 c
       ELSE
 
+      IF (nlst.LE.nptmass .AND. iptintree.NE.2 .AND. nlstacc.LE.0) THEN
+         RETURN
+      ENDIF
       IF (itiming) CALL getused(revtreeptemp1)
+      npartialrev =  npartialrev + 1
 
-c      IF (itiming) THEN
-c         CALL getused(revtreeptemp2)
-c         revtreep3 = revtreep3 + (revtreeptemp2 - revtreeptemp1)
-c      ENDIF
-
-c      IF (itiming) THEN
-c         CALL getused(revtreeptemp2)
-c         revtreep4 = revtreep4 + (revtreeptemp2 - revtreeptemp1)
-c      ENDIF
-
-      IF (nlst.GT.nptmass .OR. iptintree.EQ.2 .OR. nlstacc.GT.0) THEN 
-
-         DO i = 1, nlstacc
-            ipart = listacc(i)
-            IF (ipart.LT.1 .OR. ipart.GT.npart) THEN
-               WRITE (iprint, *) 'ERROR - revtree listacc',
-     &                           ipart,nlstacc,i
-               CALL quit(1)
-            ENDIF
-            imfac(ipart) = 0
-            iparent = isibdaupar(3,ipart)
-            IF (.NOT.iflagtree(iparent)) THEN
-               iflagtree(iparent) = .TRUE.
-               numberparents = numberparents + 1
-               listparents(numberparents) = iparent
-            ENDIF
-         END DO
-         IF (itiming) THEN
-            CALL getused(revtreeptemp2)
-            revtreep5 = revtreep5 + (revtreeptemp2 - revtreeptemp1)
+      DO i = 1, nlstacc
+         ipart = listacc(i)
+         IF (ipart.LT.1 .OR. ipart.GT.npart) THEN
+            WRITE (iprint, *) 'ERROR - revtree listacc',
+     &           ipart,nlstacc,i
+            CALL quit(1)
          ENDIF
-
-C$OMP PARALLEL default(none)
-C$OMP& shared(numparentslevel,numberparents,levelnum)
-C$OMP& shared(listparents)
-C$OMP& private(i)
-C$OMP DO SCHEDULE(static)
-         DO i = 1, nmaxlevel
-            numparentslevel(i) = 0
-         END DO
-C$OMP END DO
-C$OMP END PARALLEL
-         
-cC$OMP DO SCHEDULE(static)
-         DO i = 1, numberparents
-            numparentslevel(levelnum(listparents(i))) = 
-     &           numparentslevel(levelnum(listparents(i))) + 1
-         END DO
-cC$OMP END DO
+         imfac(ipart) = 0
+         iparent = isibdaupar(3,ipart)
+         IF (.NOT.iflagtree(iparent)) THEN
+            iflagtree(iparent) = .TRUE.
+            numberparents = numberparents + 1
+            listparents(numberparents) = iparent
+         ENDIF
+      END DO
+      IF (itiming) THEN
+         CALL getused(revtreeptemp2)
+         revtreep5 = revtreep5 + (revtreeptemp2 - revtreeptemp1)
+      ENDIF
 c
 c--Level zero are leaves, not nodes, so start from nodes (level 1)
 c
-         nlevelupdate = 1
-         numberstart = 1
-
- 400     numnextlevel = numberparents
+      numberremaining = numberparents
+      nlevelupdate = 0
+         
+      DO WHILE (numberremaining .GT. 0)
+         nlevelupdate = nlevelupdate + 1
+         numlistpar = numberremaining
+         numberremaining = 0
+         numthislevel = 0
 c
-c--Need to sort by level in order to guarantee that a node's children are
-c     updated before the node is updated
+c--Find nodes to revise on this level
 c
-c--Modification 27/10/2006: Does not need to sort from 1 to numberparents
-c     since first bit has already been done (from numberstart)
-c     Note that called this way, the 'list' of indices starts from '1'
-c     rather than 'numberstart' so need to add numberstart-1 to get the
-c     correct index to the listparents array
-c
-c         CALL indexxi2parallel(numberparents-numberstart+1,
-c     &        listparents(numberstart),levelnum,list)
-c         CALL indexxi2(numberparents-numberstart+1,
-c     &        listparents(numberstart),levelnum,list)
-         CALL indexxi2(numberparents,listparents,levelnum,list)
-c         CALL indexxi2parallel(numberparents,listparents,levelnum,list)
+         DO i=1,numlistpar
+            ipart = listparents(i)
+            IF (levelnum(ipart) .EQ. nlevelupdate) THEN               
+               numthislevel = numthislevel + 1
+               list(numthislevel) = ipart
+            ELSE
+               numberremaining = numberremaining + 1
+               listparents(numberremaining) = ipart
+            ENDIF
+         ENDDO
 
-c         print *,' Sorted ',numberparents
-c         DO i = 1, numberparents
-c      print *,levelnum(listparents(list(i))),i,levelnum(listparents(i)),
-c     &           listparents(list(i)),listparents(i)
-c         END DO
-
-         numberend = numberstart + numparentslevel(nlevelupdate) - 1
-
-c         print *,' Numbers ',nlevelupdate,numberstart,numberend,
-c     &        numparentslevel(nlevelupdate) 
-c         DO i = 1, nmaxlevel
-c            IF (numparentslevel(i).NE.0) print *,i,numparentslevel(i)
-c         END DO
-
-C$OMP PARALLEL IF (numberend-numberstart > 2) default(none)
+C$OMP PARALLEL IF (numthislevel > 2) default(none)
 C$OMP& shared(natom,isibdaupar)
 C$OMP& shared(qrad,xyzmh,imfac,h2frac)
-C$OMP& shared(iflagtree,ipar,numberstart,nroot,iprint)
-C$OMP& shared(numberparents,listparents,numnextlevel,list)
+C$OMP& shared(iflagtree,numberparents,nroot,iprint)
+C$OMP& shared(numberremaining,listparents,numthislevel,list)
 C$OMP& shared(nlst,nptmass,itbinupdate,nlstacc)
-C$OMP& shared(levelnum,numparentslevel,nlevelupdate,numberend)
+C$OMP& shared(levelnum,nlevelupdate)
 C$OMP& private(new,l,ll,fl,fll,emred,difx,dify,difz,rr,iparent,i,j)
-C$OMP& private(pmassl,pmassll)
+C$OMP& private(pmassl,pmassll,iflag,numberadd)
 C$OMP& private(qrad1old,xold,yold,zold)
 
 C$OMP DO SCHEDULE(static)
-         DO i = numberstart, numberend
-c            new = listparents(list(i)+numberstart-1)
-            new = listparents(list(i))
+         DO i = 1, numthislevel
+            new = list(i)
 
             IF (.NOT.iflagtree(new)) THEN
                WRITE (iprint, *) 'ERROR - revtreeX1',new,i
                WRITE (iprint, *) nlst,nptmass,iptintree,itbinupdate,
-     &              nbinmax,nlstacc,numberparents,numberstart
-
-               DO j = MAX(1,i-10),numberparents
-                  WRITE (*,*) j,listparents(j),iflagtree(listparents(j))
-               END DO
+     &              nbinmax,nlstacc,numberremaining,numberparents
                CALL quit(1)
             ENDIF
 
@@ -362,71 +319,33 @@ c
             ENDIF
 
             IF (new.NE.nroot) THEN
-               IF ((xyzmh(1,new)-xold)**2 + (xyzmh(2,new)-yold)**2 +
-     &              (xyzmh(3,new)-zold)**2.GT.1.0E-6*qrad1old) THEN
-                  iparent = isibdaupar(3,new)
+               iparent = isibdaupar(3,new)
 
-                  IF (nlevelupdate.GE.levelnum(iparent)) THEN
-                     WRITE (*,*) 'ERROR revtree level ',nlevelupdate,
-     &                    levelnum(iparent),new,iparent,levelnum(new)
+               IF (nlevelupdate.GE.levelnum(iparent)) THEN
+                  WRITE (*,*) 'ERROR revtree level ',nlevelupdate,
+     &                 levelnum(iparent),new,iparent,levelnum(new)
+               ENDIF
+C$OMP ATOMIC CAPTURE
+               iflag = iflagtree(iparent)
+               iflagtree(iparent) = .TRUE.
+C$OMP END ATOMIC
+               IF (.NOT.iflag) THEN
+C$OMP ATOMIC CAPTURE
+                  numberremaining = numberremaining + 1
+                  numberadd = numberremaining
+C$OMP END ATOMIC
+                  IF (numberadd.GT.idim) THEN
+                     WRITE (*,*) 'parentlist5 ',
+     &                    numberremaining,idim
+                     CALL quit(1)
                   ENDIF
-
-C$OMP CRITICAL(parentlist5)
-                  IF (.NOT.iflagtree(iparent)) THEN
-                     iflagtree(iparent) = .TRUE.
-                     numparentslevel(levelnum(iparent)) =
-     &                    numparentslevel(levelnum(iparent)) + 1
-                     numnextlevel = numnextlevel + 1
-                     IF (numnextlevel.GT.idim) THEN
-                        WRITE (*,*) 'parentlist5 ',numnextlevel
-                        CALL quit(1)
-                     ENDIF
-                     listparents(numnextlevel) = iparent
-                  ENDIF
-C$OMP END CRITICAL(parentlist5)                     
+                  listparents(numberadd) = iparent
                ENDIF
             ENDIF
          END DO
 C$OMP END DO
 C$OMP END PARALLEL
-
-         numberstart = numberstart + numparentslevel(nlevelupdate)
-         numberparentsold = numberparents
-         numberparents = numnextlevel
-c
-c--Remove old parents from list so they don't have to be involved in the sort
-c
-C$OMP PARALLEL default(none)
-C$OMP& shared(numberstart,numberparentsold,numberparents,listparents)
-C$OMP& shared(list,key)
-C$OMP& private(i)
-
-C$OMP DO SCHEDULE(static)
-         DO i = numberstart, numberparentsold
-            key(i) = listparents(list(i))
-         END DO
-C$OMP END DO
-C$OMP DO SCHEDULE(static)
-         DO i = numberparentsold + 1, numberparents
-            key(i) = listparents(i)
-         END DO
-C$OMP END DO
-
-C$OMP DO SCHEDULE(static)
-         DO i = 1, numberparents - numberstart + 1
-            listparents(i) = key(i + numberstart - 1)
-         END DO
-C$OMP END DO
-C$OMP END PARALLEL
-         numberparents = numberparents - numberstart + 1
-         numberstart = 1
-c
-c--End remove old parents
-c
-         nlevelupdate = nlevelupdate + 1
-         IF (numberparents.GE.numberstart) GOTO 400
-
-      ENDIF
+      ENDDO
 
       IF (itiming) THEN
          CALL getused(revtreeptemp2)

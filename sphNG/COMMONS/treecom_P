@@ -9,15 +9,17 @@ c     to reflect new INT type
 c
       INTEGER*2 levelnum
       LOGICAL*1 iflagtree
+      LOGICAL ifullrevision
 
       INTEGER natom, nlevel, nactatom, nroot
       INTEGER numberparents, nlistupdated
       INTEGER isibdaupar, next1, next2, next3
       INTEGER key, ihash, list, nay, listmap, level
-      INTEGER listparents
+      INTEGER listparents, nfullrev, npartialrev, nmaketree
 
       COMMON /parms / natom, nlevel, nactatom, nroot
-     &               ,numberparents, nlistupdated
+     &               ,numberparents, nlistupdated, ifullrevision,
+     &		     nfullrev, npartialrev, nmaketree
       COMMON /datums/ qrad(7,mmax),isibdaupar(3,mmax),
      &                next1(idim),next2(idim),next3(idim),
      &                key(idim), ihash(mmax), 

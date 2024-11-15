@@ -52,6 +52,7 @@ c************************************************************
       INCLUDE 'COMMONS/initpt'
       INCLUDE 'COMMONS/interstellar'
       INCLUDE 'COMMONS/timecrit'
+      INCLUDE 'COMMONS/treecom_P'
 
       CHARACTER*80 outputstring
 
@@ -80,6 +81,10 @@ c
       numparticlesdone = 0
       inumfixed = 0
       inumrecalc = 0
+      nparentibin = 0
+      nfullrev = 0
+      npartialrev = 0
+      nmaketree = 0
 c
 c--Get time
 c
@@ -304,6 +309,8 @@ c
       CALL MPI_REDUCE(nghost,nghosttot,1,MPI_INTEGER,MPI_SUM,0,
      &   MPI_COMM_WORLD,ierr)
 #endif
+98400 FORMAT ('# tree updates - make, full, partial: ',I5,I10,I10)
+      WRITE (iprint,98400) nmaketree, nfullrev, npartialrev
 
       WRITE (iprint, 98001) tstep/60., nghosttot
 98001 FORMAT (' time used  : ', F8.3, ' min. , ghosts : ', I10)

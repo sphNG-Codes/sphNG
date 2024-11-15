@@ -93,7 +93,7 @@ c************************************************************
       INCLUDE 'COMMONS/grain'
 
       LOGICAL ifirst
-      LOGICAL icenter
+      LOGICAL icenter,iflag,ifindparents
       LOGICAL*1 irevise,iwillupdatetree,imaketree
       CHARACTER*7 where
       DATA ifirst/.true./
@@ -136,7 +136,6 @@ c---------- FIRST TIME AROUND ----------
 c
       IF (ifirst) THEN
          ifirst = .FALSE.
-
 #ifdef MPI
       IF (iproc.EQ.0) THEN
 #endif
@@ -511,6 +510,7 @@ c
             END DO
          ENDIF
       END DO
+      ibincurrent = nbinmax - itbinupdate
       itbinupdate = MIN(itbinupdate + 7, nbinmax)
 
 #ifdef MPIDEBUG
@@ -684,10 +684,19 @@ c
 c--Predict variables at t=time
 c
       IF (itiming) CALL getused(ts81)
-
+c
+c--Determine if partial tree revision may be viable
+c
       numberparents = 0
+      ifullrevision = .TRUE.
+      IF (ipartialrevtree.EQ.2 .AND. ibincurrent .GT. 7 .AND.
+     &        nparentibin(ibincurrent) .LT. npart/10) THEN
+         ifindparents = .TRUE.
+      ELSE
+         ifindparents = .FALSE.
+      ENDIF
 
-      IF (itbinupdate.GE.nbinmax-1 .OR. ipartialrevtree.EQ.0) THEN
+      IF (itbinupdate.GE.nbinmax-1  .OR. ipartialrevtree.EQ.0) THEN
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(npart,nghost,dt,itime,it0,imaxstep,ireal)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,rho)
@@ -749,7 +758,7 @@ c
          END DO
 C$OMP END PARALLEL DO
 
-      ELSEIF (nlst-nptmass.GT.10000 .OR. ipartialrevtree.EQ.1) THEN
+      ELSEIF (.NOT. ifindparents .OR. ipartialrevtree.EQ.1) THEN
          DO i = 1, itbinupdate
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
@@ -820,15 +829,17 @@ c--Sinks ALL on smallest timestep OR NOT
 c
 c      ELSEIF (nlst.GT.nptmass) THEN
       ELSEIF (nlst.GT.0) THEN
+         IF (ipartialrevtree.EQ.2) ifullrevision = .FALSE.
          DO i = 1, itbinupdate
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(i,nlstbins,listbins,dt,itime,it0,imaxstep)
 C$OMP& shared(xyzmh,vxyzu,f1vxyzu,f1ha,f1Bxyz,rho)
 C$OMP& shared(dumxyzmh,dumvxyzu,iphase,iener,dumBevolxyz)
 C$OMP& shared(ifsvi,dumalpha,alphaMM,alphamax,alphamin)
-C$OMP& shared(encal,Bevolxyz)
+C$OMP& shared(encal,Bevolxyz,ibincurrent)
 C$OMP& shared(isibdaupar,iflagtree,imfac,npart)
 C$OMP& shared(numberparents,listparents,irevise,iprint)
+C$OMP& private(iflag,numpartemp)
 C$OMP& private(j,k,l,deltat,deltat2,iparent)
             DO l = 1, nlstbins(i)
                j = listbins(l,i)
@@ -841,17 +852,21 @@ c
      &                 (iphase(j).EQ.0 .OR. iphase(j).GE.10 .OR.
      &                 iptintree.GE.1)) THEN
                      iparent = isibdaupar(3,j)
-C$OMP CRITICAL (parentlist1)
-                     IF (.NOT.iflagtree(iparent)) THEN
-                        iflagtree(iparent) = .TRUE.
+C$OMP ATOMIC CAPTURE
+                     iflag = iflagtree(iparent)
+                     iflagtree(iparent) = .TRUE.
+C$OMP END ATOMIC
+                     IF (.NOT.iflag) THEN
+C$OMP ATOMIC CAPTURE
                         numberparents = numberparents + 1
-                        IF (numberparents.GT.idim) THEN
-                         WRITE (iprint,*) 'numberparents ',numberparents
+                        numpartemp = numberparents
+C$OMP END ATOMIC
+                        IF (numpartemp.GT.idim) THEN
+                         WRITE (iprint,*) 'numberparents ',numpartemp
                            CALL quit(1)
                         ENDIF
-                        listparents(numberparents) = iparent
+                        listparents(numpartemp) = iparent
                      ENDIF
-C$OMP END CRITICAL (parentlist1)
                      IF (j.GT.npart .OR.
      &                  (iphase(j).GE.1 .AND. iphase(j).LT.10
      &                  .AND. iptintree.EQ.1)) THEN
@@ -922,7 +937,7 @@ C$OMP& shared(nptmass,listpm,itime,it0)
 C$OMP& shared(xyzmh,vxyzu,dumxyzmh,dumvxyzu)
 C$OMP& shared(isibdaupar,iflagtree,imfac)
 C$OMP& shared(numberparents,listparents,irevise)
-C$OMP& private(i,j,k,iparent)
+C$OMP& private(i,j,k,iparent,iflag,numpartemp)
          DO i = 1, nptmass
             j = listpm(i)
             IF (itime.NE.it0(j)) THEN
@@ -935,13 +950,17 @@ c     but only if point masses in the tree and all gravity done by tree
 c
             IF (irevise .AND. iptintree.EQ.2) THEN
                iparent = isibdaupar(3,j)
-C$OMP CRITICAL (parentlist2)
-               IF (.NOT.iflagtree(iparent)) THEN
-                  iflagtree(iparent) = .TRUE.
+C$OMP ATOMIC CAPTURE
+               iflag = iflagtree(iparent)
+               iflagtree(iparent) = .TRUE.
+C$OMP END ATOMIC
+               IF (.NOT.iflag) THEN
+C$OMP ATOMIC CAPTURE
                   numberparents = numberparents + 1
-                  listparents(numberparents) = iparent
+                  numpartemp = numberparents
+C$OMP END ATOMIC
+                  listparents(numpartemp) = iparent
                ENDIF
-C$OMP END CRITICAL (parentlist2)
                imfac(j) = 1
             ELSE
                imfac(j) = 0
@@ -963,7 +982,7 @@ C$OMP& shared(iphase,iener,ifsvi,dumalpha,alphaMM,alphamax,alphamin)
 C$OMP& shared(Bevolxyz,dumBevolxyz,rho)
 C$OMP& shared(isibdaupar,iflagtree,imfac,irevise)
 C$OMP& shared(numberparents,listparents)
-C$OMP& private(j,k,l,deltat,iparent)
+C$OMP& private(j,k,l,deltat,iparent,iflag,numpartemp)
          DO j = npart + 1, npart + nghost
             IF (iphase(j).GE.0) THEN
 c
@@ -971,14 +990,18 @@ c--Set flag to state that parent node in tree needs to be recalculated
 c
                IF (irevise) THEN
                   iparent = isibdaupar(3,j)
-C$OMP CRITICAL (parentlist3)
-                  IF (.NOT.iflagtree(iparent)) THEN
-                     iflagtree(iparent) = .TRUE.
+C$OMP ATOMIC CAPTURE
+                  iflag = iflagtree(iparent)
+                  iflagtree(iparent) = .TRUE.
+C$OMP END ATOMIC
+                  IF (.NOT.iflag) THEN
+C$OMP ATOMIC CAPTURE
                      numberparents = numberparents + 1
-                     listparents(numberparents) = iparent
+                     numpartemp = numberparents
+C$OMP END ATOMIC
+                     listparents(numpartemp) = iparent
+                     imfac(j) = 0
                   ENDIF
-C$OMP END CRITICAL (parentlist3)
-                  imfac(j) = 0
                ENDIF
 c
 c--Load predicted quantities into dummy arrays (note: does not use
@@ -1022,6 +1045,17 @@ c
          END DO
 C$OMP END PARALLEL DO
       ENDIF
+c
+c--Final decision on viability of partial tree revision
+c
+      IF (ipartialrevtree.EQ.2 .AND. .NOT. ifullrevision) THEN
+         nparentibin(ibincurrent) = numberparents
+         IF (numberparents .GE. npart/10) THEN
+            ifullrevision = .TRUE.
+            iflagtree(ntot+1:nroot) = .FALSE.
+         ENDIF
+      ENDIF
+
       IF (itiming) THEN
          CALL getused(ts82)
          ts8 = ts8 + (ts82 - ts81)
@@ -1379,6 +1413,7 @@ c
       ENDIF
 #endif
          iteighth = itime + imaxstep/8
+         nparentibin = 0
       ENDIF
 c
 c--Accrete particles near point mass, or create point mass

@@ -30,6 +30,8 @@ c************************************************************
       CHARACTER*7 where
 
       DATA where/'mtree'/
+
+      nmaketree = nmaketree + 1
 c
 c--Allow for tracing flow
 c

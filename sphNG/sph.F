@@ -579,6 +579,7 @@ c************************************************************
       INCLUDE 'COMMONS/savernd'
       INCLUDE 'COMMONS/rbnd'
       INCLUDE 'COMMONS/logun'
+      INCLUDE 'COMMONS/recor'
 
 #ifdef _OPENMP
       INCLUDE 'COMMONS/openmp_locks'
@@ -722,7 +723,7 @@ c
       CALL OMP_INIT_LOCK(revtree_lock)
 #endif
       nlistinactive = 0
-
+      ifulldump = 0
 c
 c--Get main option of job from command line argument
 c

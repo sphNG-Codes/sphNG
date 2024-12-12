@@ -1,2 +1,3 @@
-      INTEGER llist, nlst, nlst0
-      COMMON /curlist/llist(idim2), nlst, nlst0
+      INTEGER llist, nlst, nlst0, nlstlast, llistlast
+      COMMON /curlist/llist(idim2), llistlast(idim),
+     &	      nlst, nlst0, nlstlast

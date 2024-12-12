@@ -136,6 +136,9 @@ c---------- FIRST TIME AROUND ----------
 c
       IF (ifirst) THEN
          ifirst = .FALSE.
+
+         ibinlast = 0
+         nlstlast = 0
 #ifdef MPI
       IF (iproc.EQ.0) THEN
 #endif
@@ -926,6 +929,51 @@ c
             END DO
 C$OMP END PARALLEL DO
          END DO
+c
+c--Smoothing lengths are changed in densityiterate, not in step (above).
+c     This means that a partial revision sometimes needs to include
+c     the parents of particles that had their derivatives calculated
+c     on the previous timestep.
+c
+         IF (ibinlast < ibincurrent .AND. irevise .AND.
+     &        nlstlast .GT. 0) THEN
+C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
+C$OMP& shared(nlstlast,numberparents,npart,iprint)
+C$OMP& shared(llistlast,iphase,isibdaupar,iflagtree,listparents,imfac)
+C$OMP& private(l,j,iflag,numpartemp,iparent)
+            DO l=1,nlstlast
+               j = llistlast(l)
+c
+c--Set flag to state that parent node in tree needs to be recalculated
+c
+               IF ((iphase(j).EQ.0 .OR. iphase(j).GE.10 .OR.
+     &              iptintree.GE.1)) THEN
+                  iparent = isibdaupar(3,j)
+C$OMP ATOMIC CAPTURE
+                  iflag = iflagtree(iparent)
+                  iflagtree(iparent) = .TRUE.
+C$OMP END ATOMIC
+                  IF (.NOT.iflag) THEN
+C$OMP ATOMIC CAPTURE
+                     numberparents = numberparents + 1
+                     numpartemp = numberparents
+C$OMP END ATOMIC
+                     IF (numpartemp.GT.idim) THEN
+                        WRITE (iprint,*) 'numberparents ',numpartemp
+                        CALL quit(1)
+                     ENDIF
+                     listparents(numpartemp) = iparent
+                  ENDIF
+                  IF (j.GT.npart .OR.
+     &                 (iphase(j).GE.1 .AND. iphase(j).LT.10
+     &                 .AND. iptintree.EQ.1)) THEN
+                     imfac(j) = 0
+                  ELSE
+                     imfac(j) = 1
+                  ENDIF
+               ENDIF
+            ENDDO
+         ENDIF
       ELSE
 c
 c--Only update ptmasses, since nothing else is evolved
@@ -1113,6 +1161,18 @@ c
 c--Correct velocities (kick 1/2)
 c
       IF (itiming) CALL getused(ts111)
+c
+c--Store this steps particle list for the next step
+c     This does not need to be done for longest step bins
+c
+      ibinlast = ibincurrent
+      nlstlast = 0
+      IF (ibincurrent .GT. 6) THEN
+         nlstlast = nlst
+         DO j = 1, nlst
+            llistlast(j) = llist(j)
+         ENDDO
+      ENDIF
 C$OMP PARALLEL DO SCHEDULE(runtime) default(none)
 C$OMP& shared(nlst,llist,dt,isteps,imaxstep)
 C$OMP& shared(vxyzu,f1vxyzu,f2vxyzu,itime)

@@ -328,9 +328,9 @@ c
                   IF (ts.GT.0.0) THEN
                      beta = 1.0/(dumrho(ipart)+ dumrho(j))
                      IF (ifullstep(idust)) THEN
-                        chi = beta*(1.0-dexp(-deltat/ts))
+                        chi = beta*(1.0-EXP(-deltat/ts))
                      ELSE
-                        chi = beta*(1.0-dexp(-0.5*deltat/ts))
+                        chi = beta*(1.0-EXP(-0.5*deltat/ts))
                      ENDIF
                      lambda = (deltat+ts)*chi - deltat*beta
                   ELSE

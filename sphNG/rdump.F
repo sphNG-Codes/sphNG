@@ -197,7 +197,7 @@ c
 
       READ (idisk1, END=100) int1i,r1i,int2i,iversion,int3i
 
-      print *,'have read header'
+      print *,'have read header',int1i,r1i,int2i,iversion,int3i
 
       IF (int1i.NE.int1 .and. int1i.NE.int1alt) THEN
          WRITE (*,*) 'ERROR 1 in rdump: ENDIANNESS wrong?'
@@ -299,7 +299,7 @@ c         CALL quit(0)
      &     )
 #endif
      &     ) THEN
-         WRITE (*,*) 'ERROR in rdump: npart>idim'
+         WRITE (*,*) 'ERROR in rdump: npart>idim',npart,idim
          CALL quit(0)
       ENDIF
 c--int*1, int*2, int*4, int*8

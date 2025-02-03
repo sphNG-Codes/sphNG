@@ -59,11 +59,11 @@ c
 c We do this to avoid numerical problems at v. small abe
         phi = 1d20
       elseif (iphoto .eq. 0) then
-        phi = G0 * dsqrt(temp) / (yn * abe)
+        phi = G0 * sqrt(temp) / (yn * abe)
       else
         AV     = AV_conversion_factor * dust_to_gas_ratio * NH
-        G_dust = G0 * dexp(-2.5d0 * AV)
-        phi    = G_dust * dsqrt(temp) / (yn * abe)
+        G_dust = G0 * exp(-2.5d0 * AV)
+        phi    = G_dust * sqrt(temp) / (yn * abe)
       endif
 
       var1 = 5.087d2 * temp**1.586d-2

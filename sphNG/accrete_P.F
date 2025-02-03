@@ -796,7 +796,7 @@ c
          IF (istellar_radiation) THEN
             stellar_radtempion(1,nptmass) = solarr
             stellar_radtempion(2,nptmass) = 0.0
-            stellar_radtempion(3,nptmass) = 1.0E+49
+            stellar_radtempion(3,nptmass) = 1.0D+49
          ENDIF
 c
 c--DON'T set acceleration because leapfrog integrator uses this for 1/2 kick

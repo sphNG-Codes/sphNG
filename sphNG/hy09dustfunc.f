@@ -260,7 +260,7 @@ c
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/HY09dustprops'
 
-      REAL*8 HY09_vcoag
+      REAL HY09_vcoag
       INTEGER k,j
 
       HY09_vcoag =  HY09_vcoag_coeff*

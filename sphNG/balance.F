@@ -2293,8 +2293,10 @@ c************************************************************
       LOGICAL ifirst
       DATA ifirst/.TRUE./
 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
 #ifdef MPI
-      INCLUDE 'mpif.h'
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'
       INCLUDE 'COMMONS/mpisink'

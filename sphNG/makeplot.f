@@ -145,7 +145,7 @@ c
          veldisp = 0.
          nveldisp = 0
          DO i = 1, npart
-            r = DSQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2)
+            r = SQRT(xyzmh(1,i)**2 + xyzmh(2,i)**2)
             vr = (vxyzu(1,i)*xyzmh(1,i) + vxyzu(2,i)*xyzmh(2,i))/r
 c            IF (xyzmh(2,i).LT.0.) iphase(i) = -1
             IF (idesire.EQ.'a' .OR. idesire.EQ.'r') THEN

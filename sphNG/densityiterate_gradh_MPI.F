@@ -2036,14 +2036,14 @@ c
             IF (nneighsentback(i).GE.nneighsentbackold(i)+1) THEN
                newvalue = nneighsentbackold(i)
                DO k = nneighsentbackold(i)+1, nneighsentback(i)
-                  ifound = 0
+                  ifound = .FALSE.
                   DO n = 1, nlstsend
                      IF (llistsentback(k,i).EQ.lsendlist(n)) THEN
-                        ifound = 1
+                        ifound = .TRUE.
                         GOTO 29
                      ENDIF
                   END DO
- 29               IF (ifound.EQ.0) THEN
+ 29               IF (.NOT.ifound) THEN
                      newvalue = newvalue + 1
                      llistsentback(newvalue,i) = llistsentback(k,i)
                   ENDIF

@@ -300,7 +300,8 @@ c
          IF (ndusttypes.GT.1) THEN
             ndustheaders = 4
             tagarr(1:ndustheaders) =
-     &         (/'smincgs  ','smaxcgs  ','sindex   ','graindenscgs'/)
+     &           (/'smincgs     ','smaxcgs     ',
+     &           'sindex      ','graindenscgs'/)
             dustproperties(1) = smincgs
             dustproperties(2) = smaxcgs
             dustproperties(3) = sindex

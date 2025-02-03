@@ -50,6 +50,18 @@ ifeq ($(mpicopy), yes)
     mpiall=yes
 endif
 
+ifeq ($(SYSTEM), ftn)
+    FC= $(MPIDIR)ftn
+    FFLAGS= -fPIC -O3 -mcpu=neoverse-v2 -fallow-argument-mismatch
+    OMPFLAG= -fopenmp
+    DBLFLAG= -fdefault-real-8 -fdefault-double-8
+    DEBUGFLAG= -g
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -fconvert=big-endian
+    ENDIANFLAGLITTLE= -fconvert=little-endian
+    ZZFILE= zzibm.f
+endif
+
 ifeq ($(SYSTEM), ompi)
     FC= $(MPIDIR)mpif90
     FFLAGS= -DMPI -O3 -march=pentium4 -mtune=pentium4 -malign-double -Wno=155

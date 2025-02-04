@@ -260,8 +260,8 @@ c--Compute second terms -- NOTE: rhoi only appears once because the
 c     result (drhodt) is actually (drho/dt)/rho_G
 c
             sum = 0.
-            DO j = istart, iend
-               DO k = istart, iend
+            outer: DO j = istart, iend
+               inner: DO k = istart, iend
                   sum_mass = HY09binmass(k) + HY09binmass(j)
                   IF (sum_mass.GE.HY09binmass_max(i-1) .AND.
      &                 sum_mass.LT.HY09binmass_max(i)) THEN
@@ -275,9 +275,13 @@ c
 c--Original algorithm from HY09 below, doesn't conserve dust mass
 c
 c     &                    HY09_bin_rho(j,ipart)*HY09binmass(i)
+                  ELSEIF (sum_mass.GE.HY09binmass_max(i)) THEN
+                     EXIT inner
+                  ELSEIF (HY09binmass(j).GE.HY09binmass_max(i)) THEN
+                     EXIT outer
                   ENDIF
-               END DO
-            END DO
+               END DO inner
+            END DO outer
             HY09_drhodt(i,ipart) = HY09_drhodt(i,ipart) + 
      &           0.5*sum*rhoi
 

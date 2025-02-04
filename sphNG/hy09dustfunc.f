@@ -167,9 +167,32 @@ c      ELSEIF (.TRUE. .AND. iDisc) THEN
 c      ELSEIF (.TRUE. .AND. .NOT.iDisc) THEN
 c      ELSEIF (.FALSE.) THEN
 c
-c--Inverse square root of Reynolds numnber (assumed constant)
+c--Inverse square root of Reynolds numnber:
 c
-         sqrt_inv_Re = 1.0E-4
+         IF (.FALSE.) THEN
+            sqrt_inv_Re = 1.0E-4 ! Reynolds=10^8 is const (Bate 2022)
+c
+c--Reynolds number for disc
+c     Reynolds = alpha*cs*H/nu  with H=cs/omega and nu=cs*l_MFP/3
+c              = 3*alpha*cs/(l_MFP*omega)
+c     mean free path is l_MFP=1/[SQRT(2)*n*cross_section_H2_cgs]
+c     so Reynolds = 3*SQRT(2)*alpha*cs*n*cross_section_H2_cgs/omega
+c     and cs = vthermal*SQRT(pi/8) is isothermal sound speed
+c
+         ELSEIF (iDisc) THEN
+            sqrt_inv_Re = SQRT(omega/
+     &           (1.5*SQRT(pi)*vg2_coeff_disc_or_env*
+     &           vthermal*cross_section_H2_cgs *
+     &           (rhoi*udens/(gmw*mH))))
+c
+c--Reynolds number for Jeans unstable cloud
+c     Reynolds = 6.2E+07*SQRT(n_H/10^5 cm^-3)*SQRT(T/10 K)
+c     from Ormel et al (2009) & Lebreuilly et al. (2023)
+c
+         ELSE
+            sqrt_inv_Re = 1.27E-04*( (rhoi*udens/(gmw/2.0*mH*1.0E+05))*
+     &           (temperature/10.) )**(-0.25)
+         ENDIF
 
          IF (iDisc) THEN
             vg2_coeff_disc_or_env = 0.001

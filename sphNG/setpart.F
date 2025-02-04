@@ -2334,7 +2334,7 @@ c
          DO i = 1, npart
             IF (iphase(i).EQ.0) THEN
                radius = SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2+xyzmh(3,i)**2)
-               IF (radius.LT.radius_outer) THEN
+               IF (radius.GT.radius_outer) THEN
                   dust_factor = 0.01
                ELSE
                   dust_factor = 1.0

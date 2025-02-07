@@ -18,6 +18,7 @@
       INCLUDE 'COMMONS/physcon'
       INCLUDE 'COMMONS/table'
       INCLUDE 'COMMONS/timei'
+      INCLUDE 'COMMONS/logun'
       INCLUDE 'COMMONS/dustimplstat'
 
       REAL, DIMENSION(ndusttypes,idim_dustFluid2) :: dustvar
@@ -35,7 +36,6 @@
       INTEGER ifrac
       INTEGER Nstep
       INTEGER npart, ntot
-      INTEGER iprint
       INTEGER nit
       INTEGER itime
 

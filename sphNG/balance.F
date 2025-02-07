@@ -2287,15 +2287,16 @@ c     Code written by MRB (23/10/2007).                     *
 c                                                           *
 c************************************************************
 
+#ifdef MPIALL
+#include "mpi_sup.h"
+#endif
+
       INCLUDE 'idim'
       INCLUDE 'igrape'
 
       LOGICAL ifirst
       DATA ifirst/.TRUE./
 
-#ifdef MPIALL
-#include "mpi_sup.h"
-#endif
 #ifdef MPI
       INCLUDE 'COMMONS/mpiall'
       INCLUDE 'COMMONS/mpi'

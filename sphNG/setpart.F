@@ -115,6 +115,10 @@ c
       superposition = .FALSE.
 
       CALL ktable
+      IF (idustFluid.NE.0 .AND. selfnormkernel.NE.66.0) THEN
+         WRITE (*,*) 'ERROR - if idustFluid, use M6 Quintic kernel'
+         CALL quit(0)
+      ENDIF
 c
 c--Allow for tracing flow
 c

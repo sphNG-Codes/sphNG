@@ -345,7 +345,13 @@ c
       print *,iproc,': Preset E'
 #endif
 c Setpart has already called ktable for initial jobs
-      IF (ihopin.NE.1) CALL ktable
+      IF (ihopin.NE.1) THEN
+         CALL ktable
+         IF (idustFluid.NE.0 .AND. selfnormkernel.NE.66.0) THEN
+            WRITE (*,*) 'ERROR - if idustFluid, use M6 Quintic kernel'
+            CALL quit(0)
+         ENDIF
+      ENDIF
 c
 c--Read in tables of quantities
 c

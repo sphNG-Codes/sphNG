@@ -62,10 +62,13 @@ c***********************************************************
       REAL, DIMENSION(4,idim2) :: vxyzu
       REAL*4, DIMENSION(idim2) :: rho
 
-      REAL, DIMENSION(ndusttypes,idim_dustFluid2) :: ts_store
-
       REAL, DIMENSION(ndusttypes,2,idim_dustFluid2) :: varidust
 
+      REAL, DIMENSION(ndusttypes,idim_dustFluid2) :: ts_store
+
+      REAL, DIMENSION(ndusttypes) :: ts_storei,ts_storej
+      SAVE ts_storei,ts_storej
+C$OMP THREADPRIVATE(ts_storei,ts_storej)
       REAL, DIMENSION(ndusttypes) :: dustfraci, dustfracj
       SAVE dustfraci, dustfracj
 C$OMP THREADPRIVATE(dustfraci, dustfracj)
@@ -73,7 +76,7 @@ C$OMP THREADPRIVATE(dustfraci, dustfracj)
       SAVE term1, term2
 C$OMP THREADPRIVATE(term1, term2)
 
-      REAL ts_temp
+      REAL ts_temp,epstsi,epstsj
       REAL rhoi, rhoj
       REAL pri, prj
       REAL dtimax, dtdo, dti
@@ -193,7 +196,7 @@ C$OMP& private(pmi,pmj,rhoi,rhoj,pri,prj)
 C$OMP& private(dti)
 C$OMP$ private(n,i,j,k,l,icompact)
 C$OMP& private(gradhi,gradhj)
-C$OMP& private(dustfracisum,dustfracjsum,ts_temp)
+C$OMP& private(dustfracisum,dustfracjsum,ts_temp,epstsi,epstsj)
 C$OMP& private(iregime,vsoundi,vsoundj)
 
 C$OMP& reduction(+:ihasghostcount)
@@ -260,9 +263,14 @@ c            tsi(:) = stoppingtime_old(i,rhoi,dustvarNew(:,i))
 c            DO l = ndusttypes, ndusttypes
                CALL get_ts(ts_temp,sgrain(l),densgrain(l),
      &              rhoi*(1.-dustfracisum),rhoi*dustfracisum,
-     &              vsoundi,0.,iregime)            
+     &              vsoundi,0.,iregime)
+               ts_storei(l) = ts_temp
+            END DO
+            epstsi = SUM(dustfraci(:)*ts_storei(:))
+            ts_storei(:) = ts_storei(:) - epstsi
+            DO l = 1, ndusttypes
 C$OMP ATOMIC WRITE
-               ts_store(l,i) = ts_temp
+               ts_store(l,i) = ts_storei(l)
             END DO
 
 c            print *,'sgrain ',i,sgrain(:)
@@ -315,8 +323,13 @@ c                  DO l = ndusttypes, ndusttypes
                      CALL get_ts(ts_temp,sgrain(l),densgrain(l),
      &                    rhoj*(1.-dustfracjsum),rhoj*dustfracjsum,
      &                    vsoundj,0.,iregime)
+                     ts_storej(l) = ts_temp
+                  END DO
+                  epstsj   = SUM(dustfracj(:)*ts_storej(:))
+                  ts_storej(:) = ts_storej(:) - epstsj
+                  DO l = 1, ndusttypes
 C$OMP ATOMIC WRITE
-                     ts_store(l,j) = ts_temp
+                     ts_store(l,j) = ts_storej(l)
                   END DO
 c
 c--Set kernel quantities

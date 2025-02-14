@@ -3085,7 +3085,7 @@ c
 c--Applies to BOTH MPI and MPICOPY
 c
          CALL MPI_ALLREDUCE(moresweep,moresweeptot,1,MPI_LOGICAL,
-     &        MPI_LAND,MPI_COMM_WORLD,ierr)
+     &        MPI_LOR,MPI_COMM_WORLD,ierr)
          moresweep = moresweeptot
          CALL MPI_ALLREDUCE(maxerrE2,maxerrE2tot,1,MPI_REAL8,MPI_MAX,
      &        MPI_COMM_WORLD,ierr)

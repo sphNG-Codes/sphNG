@@ -36,6 +36,8 @@ c Units are always REAL*8
       REAL*8 uradconst,lightspeed
       LOGICAL  swapg,swape,NR
       DIMENSION z1(2),z2(2),z3(2),z4(2)
+      SAVE z1,z2,z3,z4
+C$OMP THREADPRIVATE(z1,z2,z3,z4)
 
                                 !QUARTIC4 - solver for trapezoidal T^4
       lightspeed = c /udist * utime

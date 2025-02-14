@@ -759,9 +759,8 @@ c
 c--Error
 c
                   IF (S1i.GE.0.) THEN
-                     IF (dustvarNew(l,i).GT.lincrit) THEN
-                        maxerrS = MAX(maxerrS,
-     &                       ABS((dustvarNew(l,i)-S1i)/S1i))
+                     IF (S1i.EQ.0.) THEN
+                        maxerrS = MAX(maxerrS,ABS(dustvarNew(l,i)-S1i))
                         dustvarNew(l,i) = S1i
                      ELSE
                         maxerrS = MAX(maxerrS,
@@ -797,7 +796,7 @@ c--Need to do global check for moresweep, and for maxerrE2, maxerrU2 to check
 c     for errors and convergence across all MPI processes
 c
          CALL MPI_ALLREDUCE(moresweep,moresweeptot,1,MPI_LOGICAL,
-     &        MPI_LAND,MPI_COMM_WORLD,ierr)
+     &        MPI_LOR,MPI_COMM_WORLD,ierr)
          moresweep = moresweeptot
          CALL MPI_ALLREDUCE(maxerrS,maxerrStot,1,MPI_REAL8,MPI_MAX,
      &        MPI_COMM_WORLD,ierr)

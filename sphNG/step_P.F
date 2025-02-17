@@ -1090,7 +1090,7 @@ c
      &     ntot,ireal,dumalpha,dumekcle,dumBevolxyz,f2Bxyz,
      &     dumdustvar,f2dust)
 
-      IF (idimHY09.EQ.idim .AND. (iexf.EQ.11 .OR. realtime.GE.351.0))
+      IF (idimHY09.EQ.idim .AND. (iexf.NE.11 .OR. realtime.GE.351.0))
      &     CALL hy09dustevol(nlst,llist,npart,ntot,
      &     dumxyzmh,dumvxyzu,dumekcle,HY09bin_dumrho,rho,f2HY09drhodt,
      &     f2HY09vrel_h)

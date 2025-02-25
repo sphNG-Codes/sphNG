@@ -289,6 +289,8 @@ c
                IF (idustFluid.NE.0) dumdustvar(:,i) = dustvar(:,i)
                IF (idimHY09.EQ.idim) THEN
                   HY09bin_dumrho(:,i) = HY09bin_rho(:,i)
+                  f1HY09drhodt(:,i) = 0.
+                  f2HY09drhodt(:,i) = 0.
                ENDIF
                IF (imhd.EQ.idim) THEN
                   DO k = 1, imhdevol

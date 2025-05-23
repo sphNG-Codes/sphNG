@@ -50,6 +50,15 @@ c
       ELSE
          vthermal_coef = SQRT(8.0/pi/gamma)
       ENDIF
+c========================================================================
+c
+c   Dust diffusion done separately, using dustfrac rather than dustvar
+c      and converting back to dustvar (Bate, Hutchison & Elsender 2025)
+c
+c========================================================================
+
+c      GOTO 250
+
 c
 c--Keep original version of dustvar
 c
@@ -61,10 +70,79 @@ C$OMP& private(i,n)
 C$OMP DO SCHEDULE(static)
       DO n = 1, ncompact
          i = ivar(3,n)
+         IF (iphase(i).EQ.0) dustvarsave(:,i) = dustvar(:,i)
+      END DO ! n = 1, ncompact
+C$OMP END DO
+C$OMP END PARALLEL
+c
+c--Loop until has arrived at a solution to the implicit 1fluid dust
+c
+      Nstep = 1
+      DO
+         moresweep = .FALSE.
+c
+c--Split required timestep up into Nstep steps and integrate dustvar
+c
+         increment = 1
+         ifrac = 0
+         DO k = 1, Nstep
+            ifrac = ifrac + increment
+            dtdo = increment*dt/Nstep
+            CALL dust1_diffusion_implicit(dtdo,itime,npart,ntot,
+     &            xyzmh,rho,dustvar,nit,errorS,moresweep)
 
-         IF (iphase(i).EQ.0) THEN
-            dustvarsave(:,i) = dustvar(:,i)
-         ENDIF ! iphase(i).EQ.0
+            IF (moresweep) THEN
+               WRITE (iprint,39000) Nstep, ncompact, errorS
+39000          FORMAT('Dust diffusion failed - increasing Nstep',
+     &              2(I8,1X),1PE10.3)
+               ndustdiff_fail = ndustdiff_fail + 1
+               GOTO 500
+            ENDIF ! moresweep
+
+            IF (ifrac.EQ.Nstep) GOTO 250
+         END DO ! k = 1, Nstep
+c
+c--Integration failed, increase number of sub-steps and restore
+c     initial state
+c
+500      CONTINUE
+         Nstep = Nstep * 2
+         PRINT *, 'ASS_DUST1-Diff Nstep doubled = ',Nstep,' at ',itime
+         IF (Nstep.GT.1000000) THEN
+            WRITE (iprint,*) 'ERROR: diffusion subcycle: Nsteps > 10^6'
+            CALL quit(1)
+         ENDIF ! Nstep.GT.1000000
+C$OMP PARALLEL default(none)
+C$OMP& shared(ivar,ncompact)
+C$OMP& shared(dustvar,dustvarsave)
+C$OMP& shared(iphase)
+C$OMP& private(i,n)
+C$OMP DO SCHEDULE (static)
+            DO n = 1, ncompact
+               i = ivar(3,n)
+
+               IF (iphase(i).EQ.0) THEN
+                  dustvar(:,i) = dustvarsave(:,i)
+               ENDIF
+            END DO ! n = 1, ncompact
+C$OMP END DO
+C$OMP END PARALLEL
+      END DO ! This is a do while loop
+
+250   CONTINUE
+
+c
+c--Keep original version of dustvar
+c
+C$OMP PARALLEL default(none)
+C$OMP& shared(ivar, ncompact)
+C$OMP& shared(dustvar,dustvarsave)
+C$OMP& shared(iphase)
+C$OMP& private(i,n)
+C$OMP DO SCHEDULE(static)
+      DO n = 1, ncompact
+         i = ivar(3,n)
+         IF (iphase(i).EQ.0) dustvarsave(:,i) = dustvar(:,i)
       END DO ! n = 1, ncompact
 C$OMP END DO
 C$OMP END PARALLEL
@@ -85,11 +163,10 @@ c
             CALL dust1_implicit(dtdo,itime,npart,ntot,
      &            xyzmh,rho,dustvar,nit,errorS,moresweep)
 
-c            print *,'After dust1_implicit ',itime,ifrac,Nstep,moresweep
             IF (moresweep) THEN
                WRITE (iprint,38000) Nstep, ncompact, errorS
-38000          FORMAT('Integration failed - increasing Nstep',2(I8,1X),
-     &         1PE10.3)
+38000          FORMAT('Dust dynamics failed - increasing Nstep',
+     &              2(I8,1X),1PE10.3)
                ndustimpl_fail = ndustimpl_fail + 1
                GOTO 300
             ENDIF ! moresweep
@@ -102,9 +179,9 @@ c     initial state
 c
 300      CONTINUE
          Nstep = Nstep * 2
-         PRINT *, 'ASS_DUST1 Nstep doubling = ',Nstep,' at ',itime
+         PRINT *, 'ASS_DUST1-Dy Nstep doubled = ',Nstep,' at ',itime
          IF (Nstep.GT.1000000) THEN
-            WRITE (iprint,*) 'ERROR in 1fluid subscycle: Nsteps > 10^6'
+            WRITE (iprint,*) 'ERROR: dynamics subcycle: Nsteps > 10^6'
             CALL quit(1)
          ENDIF ! Nstep.GT.1000000
 C$OMP PARALLEL default(none)
@@ -113,20 +190,20 @@ C$OMP& shared(dustvar,dustvarsave)
 C$OMP& shared(iphase)
 C$OMP& private(i,n)
 C$OMP DO SCHEDULE (static)
-            DO n = 1, ncompact
-               i = ivar(3,n)
+         DO n = 1, ncompact
+            i = ivar(3,n)
 
-               IF (iphase(i).EQ.0) THEN
-                  dustvar(:,i) = dustvarsave(:,i)
-               ENDIF ! (iphase(i).EQ.0)
-            ENDDO ! n = 1, ncompact
+            IF (iphase(i).EQ.0) THEN
+               dustvar(:,i) = dustvarsave(:,i)
+            ENDIF
+         END DO ! n = 1, ncompact
 C$OMP END DO
 C$OMP END PARALLEL
       END DO ! This is a do while loop
 
 150   CONTINUE
+c      GOTO 250
 
-c      PRINT *, 'ASS_DUST1 Nstep = ', Nstep
 
       RETURN
 

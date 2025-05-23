@@ -9,7 +9,7 @@
       INTEGER idim_dustFluid3
       INTEGER idustGROW, idim_grow, idim_grow2
       INTEGER idimHY09, ndusttypes
-      REAL tiny, dustvarmin
+      REAL tiny, dustvarmin, alphaSS_const
       LOGICAL imakedust, icoupled_HY09_dustFluid, ilimitdustflux
       LOGICAL iDumpDeltavTstop
 
@@ -115,6 +115,11 @@ c      PARAMETER (idustFluid = -2)
 c      PARAMETER (ndusttypes = 10)
 c      PARAMETER (ndusttypes = 26)
 c
+c--Parameter for alpha_SS viscosity assumed for dust growth & diffusion
+c      in a protostellar disc
+c
+      PARAMETER (alphaSS_const = 0.001)
+c
 c--Parameter for determining whether to dump dustFluid deltav's & tstop
 c
       PARAMETER (iDumpDeltavTstop = .TRUE.)
@@ -123,8 +128,8 @@ c--For *explicit* evolution, this determines whether the dust evolution
 c      variable is allowed to go negative or not.  The implicit scheme
 c      avoids the possibility of negative values (Elsender & Bate 2024).
 c
-      PARAMETER (dustvarmin = -1.0E+20)
-c      PARAMETER (dustvarmin = 0.0)
+c      PARAMETER (dustvarmin = -1.0E+20)
+      PARAMETER (dustvarmin = 0.0)
 c
 c--For *explicit* evolution, optionally limit the dust flux (if ever
 c      used, only tends to be for discs, from Ballabio et al. 2018).

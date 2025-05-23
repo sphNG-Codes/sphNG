@@ -26,7 +26,7 @@ DOUBLEPRECISION= yes
 #openmp = yes
 #mpi = yes
 # endian can be "BIG", "LITTLE" or anything else which has no effect
-#ENDIAN= BIG
+ENDIAN= LITTLE
 
 ##############################################################
 # preprocessor options 
@@ -538,7 +538,7 @@ CPPFLAGS=${FPP_PREFIX}$(FPPFLAGS)
 
 FFLAGSKEEP := ${FFLAGS}
 
-KERNEL= ktable.f
+KERNEL= ktable_QuinticM6.f
 OBJKERNEL= $(KERNEL:.f=.o)
 
 # these are the sources common to all compilations
@@ -603,7 +603,7 @@ RTFPPFLAGS=${FPP_SEP}-DRT
 
 # these are the extra routines required for implicit solve of one-fluid dust
 
-SRCID1= dust1_implicit.F quartic_dust1.f \
+SRCID1= dust1_implicit.F dust1_diffusion_implicit.F quartic_dust1.f \
 	quadratic_dust1.f ass_dust1.F
 
 # these are the extra routines required for Monte-Carlo radiative transfer

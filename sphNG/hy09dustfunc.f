@@ -166,6 +166,24 @@ c--From Adriens literature review -- equal mass particles
 c      ELSEIF (.TRUE. .AND. iDisc) THEN
 c      ELSEIF (.TRUE. .AND. .NOT.iDisc) THEN
 c      ELSEIF (.FALSE.) THEN
+
+         IF (iDisc) THEN
+            vg2_coeff_disc_or_env = alphaSS_const
+         ELSE
+c
+c--For envelope turbulence, redefine Vg2 and Stokes numbers from
+c     those used for disc turbulence.  Means that from this point on
+c     in this subroutine, the Stokes numbers will be either disc
+c     or envelope values (prior to this point all numbers are for
+c     disc turbulence).
+c
+            vg2_coeff_disc_or_env = 1.5
+            Stokes_max = Stokes_max*freqJeanssoundcrossing/omega
+            Stokes_j = Stokes_j*freqJeanssoundcrossing/omega
+            Stokes_k = Stokes_k*freqJeanssoundcrossing/omega
+         ENDIF
+c         vg2 = 1.0E-03*pi/8.0*vthermal**2
+
 c
 c--Inverse square root of Reynolds numnber:
 c
@@ -193,24 +211,6 @@ c
             sqrt_inv_Re = 1.27E-04*( (rhoi*udens/(gmw/2.0*mH*1.0E+05))*
      &           (temperature/10.) )**(-0.25)
          ENDIF
-
-         IF (iDisc) THEN
-            vg2_coeff_disc_or_env = 0.001
-c            vg2_coeff_disc_or_env = 1.5
-         ELSE
-c
-c--For envelope turbulence, redefine Vg2 and Stokes numbers from
-c     those used for disc turbulence.  Means that from this point on
-c     in this subroutine, the Stokes numbers will be either disc
-c     or envelope values (prior to this point all numbers are for
-c     disc turbulence).
-c
-            vg2_coeff_disc_or_env = 1.5
-            Stokes_max = Stokes_max*freqJeanssoundcrossing/omega
-            Stokes_j = Stokes_j*freqJeanssoundcrossing/omega
-            Stokes_k = Stokes_k*freqJeanssoundcrossing/omega
-         ENDIF
-c         vg2 = 1.0E-03*pi/8.0*vthermal**2
 
 c         vrel_turb2 = 1.0E-03*pi/8.0*vthermal**2*
 c     &        ABS( (Stokes-sqrt_inv_Re) + 
@@ -292,6 +292,7 @@ c
      &     (HY09binsizes(k)*HY09binsizes(j)/
      &     (HY09binsizes(k) + HY09binsizes(j)))**(-5.0/6.0)
 
+c      HY09_vcoag = 1.0E+05
 c      HY09_vcoag = 1.0E+10
 
       RETURN

@@ -817,7 +817,7 @@ c#endif
             WRITE (iprint,99122, ERR=100) 
      &           HY09cen_totaldens/(1.0-HY09cen_totaldens),
      &           HY09_dustgas_ratio
-99122       FORMAT ('   Total dust/gas ratio:   ',1PE14.5,' should be:',
+99122       FORMAT ('   Total dust/gas ratio:   ',1PE14.5,' initially:',
      &           1PE14.5)
          ENDIF
          IF (idustFluid.NE.0) THEN
@@ -921,8 +921,8 @@ c
             nintegtot  = 0
          ENDIF
 98020    FORMAT(/, ' Implicit R-T (GSIMPL) :', /,
-     &    ' Succeeded - ',I8,' Failed     - ',I8,' Av. iter. - ',F8.4,/,
-     &    ' Failures:',12X,'Almost N-C - ', I8, ' N-C 1     - ', I8, /, 
+     &    ' RT-Succeeded -',I8,' Failed    -',I8,' Av. iter. - ',F8.4,/,
+     &    ' RT-Failures:',11X,'Almost N-C -', I8,' N-C 1     - ',I8, /, 
      &    22X,'N-C 1-2    - ', I8, ' Max iter. - ', I8)
 #endif
 c
@@ -934,9 +934,16 @@ c
             ndustimpl_fail = 0
             ndustimpl_suc  = 0 
             ndustimpl_tot  = 0
+            WRITE(iprint, 98040)ndustdiff_suc,ndustdiff_fail,
+     &           REAL(ndustdiff_tot)/(REAL(ndustdiff_suc)+tiny)
+            ndustdiff_fail = 0
+            ndustdiff_suc  = 0
+            ndustdiff_tot  = 0
          ENDIF
-98030    FORMAT(/, ' Implicit one-fluid dust :', /,
-     &    ' Succeeded - ',I8,' Failed     - ',I8,' Av. iter. - ',F8.4)
+98030    FORMAT(/, ' Implicit one-fluid dust dynamics        :', /,
+     &    ' Dy-Succeeded -',I8,' Failed    -',I8,' Av. iter. - ',F8.4)
+98040    FORMAT(/, ' Implicit one-fluid dust alpha diffusion :', /,
+     &    ' Df-Succeeded -',I8,' Failed    -',I8,' Av. iter. - ',F8.4)
 c
 c--ptmass stats
 c

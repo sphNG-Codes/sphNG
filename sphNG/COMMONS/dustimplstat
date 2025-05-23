@@ -1,3 +1,4 @@
       INTEGER ndustimpl_fail,ndustimpl_suc,ndustimpl_tot
       COMMON /dustimplstat/ ndustimpl_fail,ndustimpl_suc,ndustimpl_tot
-
+      INTEGER ndustdiff_fail,ndustdiff_suc,ndustdiff_tot
+      COMMON /dustdiffstat/ ndustdiff_fail,ndustdiff_suc,ndustdiff_tot

@@ -619,6 +619,9 @@ c
       ndustimpl_fail = 0
       ndustimpl_suc  = 0
       ndustimpl_tot  = 0
+      ndustdiff_fail = 0
+      ndustdiff_suc  = 0
+      ndustdiff_tot  = 0
 c
 c--Zero the pointmass counters
 c

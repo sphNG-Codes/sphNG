@@ -476,6 +476,8 @@ c            sgrain(ndusttypes) = 1.0/udist
             CALL extract('graindenscgs',graindenscgs,rheader,tagsreal,
      &                                 number,ierr)
 
+c            grainsizecgs = 0.1
+
             print *,'grain info: s, rho_d ',grainsizecgs,graindenscgs
 
             sgrain(:)    = grainsizecgs/udist
@@ -908,8 +910,8 @@ c
              ELSE
                 iwanted = iwanted + 1*ndusttypes
              ENDIF
-             !--dustfractot and deltavsum
-             IF (ndusttypes.GT.1) iwanted = iwanted + 4
+             !--dustfractot and deltavsum, omega_disc
+             IF (ndusttypes.GT.1) iwanted = iwanted + 5
 
              IF (nums1(6).LT.iwanted) THEN
                 WRITE (*,*) 'ERROR - nums1(6).LT.iwanted ',
@@ -991,8 +993,17 @@ c
                       CALL quit(0)
                    ENDIF
                 END DO
+             ENDIF ! iDumpDeltavTstop
+             IF (ndusttypes.GT.1) THEN
+                IF (tagged) READ (idisk1, END=100) tagi
+                CALL checktag('omegadisc', tagi, ierr)
+                IF (ierr.NE.0) THEN
+                   PRINT *,'ERROR - omegadisc not found in dump file'
+                   CALL quit(0)
+                ENDIF
+                READ (idisk1, END=100)
              ENDIF
-          ENDIF          
+          ENDIF
 c
 c--For imakedust when setting up dust at terminal velocity
 c

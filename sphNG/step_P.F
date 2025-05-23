@@ -386,6 +386,7 @@ c      CALL test_vrel
 
 c         WRITE (*,*) 'passed 3'
 
+c         CALL wdump_wrapper(idisk1)
 c         CALL quit(1)
 
 c         IF (icall.EQ.1) THEN
@@ -465,6 +466,12 @@ c         DO i = 1, npart
 
             IF (idustFluid.EQ.-2) THEN  ! For implicit one-fluid dust
                dustvar(:,i) = dumdustvar(:,i)
+            ENDIF
+
+            IF (idustFluid.NE.0) THEN
+               IF (i.GT.npart) THEN
+                  omega_disc(i) = omega_disc(ireal(i))
+               ENDIF
             ENDIF
 
 c            gravx1(i) = gravx(i)

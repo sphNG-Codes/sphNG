@@ -40,6 +40,9 @@ c************************************************************
       INCLUDE 'COMMONS/ptmass'
       INCLUDE 'COMMONS/stepopt'
       INCLUDE 'COMMONS/timei'
+      INCLUDE 'COMMONS/xforce'
+      INCLUDE 'COMMONS/HY09accel'
+      INCLUDE 'COMMONS/tstopvar'
 
 c      DATA epsil2/1.E-4/
 c
@@ -66,12 +69,15 @@ C$OMP& shared(dh2dt,dust_tk,vxyzu,ekcle,utime,udens,icall)
 C$OMP& shared(dHIIdt,umass,nptmasstot,stellarrad,ih2pos)
 C$OMP& shared(stellar_xyzmhrti,HIIion)
 C$OMP& shared(dtmax,imaxstep,isteps)
+C$OMP& shared(grav_accel,omega_disc,iexf,xmass,udist)
 C$OMP& private(ipart,k,dti)
 C$OMP& private(hi,hi1,rhoi,rho1i,vsoundi)
 C$OMP& private(fi,tdecay1,source)
 C$OMP& private(Bxi,Byi,Bzi,B2i)
 C$OMP& private(vsigi,vs2i,dB2,psi,gradBmag)
 C$OMP& private(dust_temp,gas_temp,xnH2,isink,h2_over_dist2,recomb)
+C$OMP& private(rgrav_accel_code_units,radius,vel_dot_grav_accel)
+C$OMP& private(vel2,vel_tangential,ratio_vrad_to_vtan,ratio_vrad_to_cs)
       DO n = nlst_in, nlst_end
          ipart = ivar(3,n)
          
@@ -144,6 +150,88 @@ c
      &                 - HIIion(ipart)**2  * recomb
                ENDIF
 
+            ENDIF
+c
+c--For dust diffusion in disc, need omega_disc values
+c
+            IF (idustFluid.NE.0) THEN
+               IF (iexf.EQ.11) THEN ! For dust settling test only
+                  omega_disc(ipart) = SQRT(xmass/((5.0)**3))
+               ELSE
+c
+c--The rgrav_accel is equal to Omega*v_Keplerian
+c     Note: this is not properly defined until forcei has been called
+c     but this is okay because dust evolution is not called for icall=1
+c
+                  rgrav_accel_code_units = SQRT(grav_accel(1,ipart)**2 +
+     &                 grav_accel(2,ipart)**2 +
+     &                 grav_accel(3,ipart)**2)
+                  IF (rgrav_accel_code_units.EQ.0.) THEN
+                     WRITE (*,*) 'ERROR - DissSour - rgrav_accel.EQ.0.'
+                     CALL quit(0)
+                  ENDIF
+                  radius = SQRT(xyzmh(1,ipart)**2 + xyzmh(2,ipart)**2
+     &                 + xyzmh(3,ipart)**2)
+                  omega_disc(ipart) = SQRT(rgrav_accel_code_units/
+     &                 (radius + tiny))
+c
+c--Determine whether or not particle is in a disc (determines whether
+c     or not the relative velocities for dust grain growth include:
+c       pressure gradient driven terminal velocity (envelope only)
+c       turbulent relative velocities (disc only)
+c       radial drift (disc only)
+c     Based on ratio of radial velocity to tangential velocity (with
+c       the direction being defined by the local gravitational 
+c       acceleration), and the ratio of the tangential velocity to
+c       the circular orbital speed (defined by local gravitational 
+c       acceleration and radius).
+c
+                  vel_dot_grav_accel = (
+     &                 vxyzu(1,ipart)*grav_accel(1,ipart) +
+     &                 vxyzu(2,ipart)*grav_accel(2,ipart) +
+     &                 vxyzu(3,ipart)*grav_accel(3,ipart)) /
+     &                 rgrav_accel_code_units
+                  vel2 = vxyzu(1,ipart)**2 + vxyzu(2,ipart)**2 +
+     &                 vxyzu(3,ipart)**2
+                  vel_tangential = SQRT( vel2 - vel_dot_grav_accel**2 )
+                  ratio_vrad_to_vtan = vel_dot_grav_accel/vel_tangential
+                  ratio_vrad_to_cs = vel_dot_grav_accel/vsound(ipart)
+
+c         ratio_vtan_to_circular_orbit = vel_tangential/
+c     &        SQRT(rgrav_accel_code_units*(radius+solarr/udist))
+c         HY09discflag(ipart) = ratio_vtan_to_circular_orbit
+c
+c--Disc flag is that ABS(ratio_vrad_to_vtan).LT.0.5
+c     I also tried: ratio_vtan_to_circular_orbit.GT.0.6 and
+c     ABS(ratio_vrad_to_vtan).LT.0.5
+c     but the additional criterion only helps at the outer boundary
+c     of the cloud where dust coagulation is negligible anyway.
+c     This seems to provide good disc extraction, for example, 
+c     excluding particles in the high "atmosphere" of a disc.
+c
+c         IF (ratio_vtan_to_circular_orbit.GT.0.6) THEN
+                  IF (ABS(ratio_vrad_to_vtan).GT.0.5) THEN
+                     omega_disc(ipart) = 1.0E-10
+c
+c     As pointed out in Bate (2022), when including envelope turbulence
+c     in non-rotating cloud calculations it is unreasonable to have the 
+c     first hydrostatic core have envelope-type turbulence rather than
+c     more quiescent disc-type turbulence, so the additional criteria
+c     below was added to use disc-type turbulence if the radial
+c     velocity is smaller than 10% of the sound speed.  This selects
+c     the first hydrostatic core in non-rotating calculations as being
+c     disc-type turbulence.
+c
+                  ELSEIF (ABS(ratio_vrad_to_cs).GT.0.1) THEN
+                     omega_disc(ipart) = 2.0E-10
+c
+c     Disc scale height must be less than 100 au for any reasonable disc
+c
+                  ELSEIF (vsound(ipart)/omega_disc(ipart).GT.
+     &                    100.0*au/udist) THEN
+                     omega_disc(ipart) = 3.0E-10
+                  ENDIF
+               ENDIF
             ENDIF
 #ifdef RT
 c

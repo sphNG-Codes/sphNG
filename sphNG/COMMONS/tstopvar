@@ -1,2 +1,4 @@
       REAL stoppingtime
       COMMON /tstopvar/ stoppingtime(ndusttypes,idim_dustFluid2)
+      REAL omega_disc
+      COMMON /omegad  / omega_disc(idim_dustFluid2)

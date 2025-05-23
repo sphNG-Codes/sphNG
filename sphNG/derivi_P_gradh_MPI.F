@@ -129,6 +129,7 @@ c     Bxyz is stored here for calculation of energy & writing to dump file
       INCLUDE 'COMMONS/HY09accel'
       INCLUDE 'COMMONS/xforce'
       INCLUDE 'COMMONS/dustfluidvelu'
+      INCLUDE 'COMMONS/tstopvar'
 
       DIMENSION dedxyz(3,iradtrans2)
 #ifdef MPI
@@ -409,10 +410,6 @@ c     &                  1,llistsentback(1,j+1),i3REAL8,indexMPI3,ierr)
                               CALL MPI_TYPE_COMMIT(indexMPI4,ierr)
 
                 CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
-     &                  llistsentback(1,j+1),MPI_REAL8,indexMPIR,ierr)
-                              CALL MPI_TYPE_COMMIT(indexMPIR,ierr)
-
-                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
      &                  llistsentback(1,j+1),inimhdREAL8,indexMPIinimhd,
      &                  ierr)
                               CALL MPI_TYPE_COMMIT(indexMPIinimhd,ierr)
@@ -428,6 +425,9 @@ c     &                  1,llistsentback(1,j+1),idustREAL8,indexMPI5,ierr)
      &             llistsentback(1,j+1),idustREAL8,indexMPIdustvar,ierr)
                         CALL MPI_TYPE_COMMIT(indexMPIdustvar,ierr)
 
+                CALL MPI_TYPE_INDEXED(nneighsentback(j+1),lblocklengths,
+     &                  llistsentback(1,j+1),MPI_REAL8,indexMPIR,ierr)
+                              CALL MPI_TYPE_COMMIT(indexMPIR,ierr)
                         ENDIF
 
 c               CALL MPI_TYPE_CREATE_INDEXED_BLOCK(nneighsentback(j+1),
@@ -494,7 +494,6 @@ c
                            print *,iproc,' sent nden_nimhd to ',j
 #endif
                            CALL MPI_TYPE_FREE(indexMPI4,ierr)
-                           CALL MPI_TYPE_FREE(indexMPIR,ierr)
                            CALL MPI_TYPE_FREE(indexMPIinimhd,ierr)
 #endif
                            CALL MPI_TYPE_FREE(indexMPI3,ierr)
@@ -539,7 +538,13 @@ c
 #ifdef MPIDEBUG
                            print *,iproc,' sent dustvar to ',j
 #endif
+                           CALL MPI_SEND(omega_disc,1,indexMPIR,j,
+     &                          235,MPI_COMM_WORLD, ierr)
+#ifdef MPIDEBUG
+                           print *,iproc,' sent omega_disc to ',j
+#endif
                            CALL MPI_TYPE_FREE(indexMPIdustvar,ierr)
+                           CALL MPI_TYPE_FREE(indexMPIR,ierr)
                         ENDIF
 
                         CALL MPI_TYPE_FREE(indexMPI_I8,ierr)
@@ -749,6 +754,19 @@ c     &                 istart+inumber)
                      ENDIF
 #ifdef MPIDEBUG
                      print *,iproc,': got dustvar from ',iprocrec,
+     &                    icheck,istart
+#endif
+
+                   CALL MPI_RECV(omega_disc(istart),inumber,MPI_REAL8,
+     &                    iprocrec, 235, MPI_COMM_WORLD,istatus,ierr)
+                     CALL MPI_GET_COUNT(istatus,MPI_REAL8,icheck,ierr)
+                     IF (icheck.NE.inumber) THEN
+                        WRITE (*,*) 'ERROR - icheck.NE.inumber 13 ',
+     &                       iproc
+                        CALL quit(1)
+                     ENDIF
+#ifdef MPIDEBUG
+                     print *,iproc,': got omega_disc from ',iprocrec,
      &                    icheck,istart
 #endif
                   ENDIF

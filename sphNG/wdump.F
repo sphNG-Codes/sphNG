@@ -483,8 +483,8 @@ c
             nums(6) = nums(6) + 1*ndusttypes
          ENDIF
 
-         !--dustfracsum and deltavsum
-         IF (ndusttypes.GT.1) nums(6) = nums(6) + 4
+         !--dustfracsum and deltavsum, omega_disc
+         IF (ndusttypes.GT.1) nums(6) = nums(6) + 5
       ENDIF
 c
 c--Pablo: Change to include dust grain evol
@@ -746,6 +746,13 @@ c
                WRITE (idisk1, ERR=100)
      &              (stoppingtime(k,isort(i)),i=1,nprint)
             END DO
+         ENDIF
+c
+c--Output omega_disc for diagnostics only
+c
+         IF (ndusttypes.GT.1) THEN
+            WRITE (idisk1, ERR=100) tag('omegadisc')
+            WRITE (idisk1, ERR=100) (omega_disc(isort(i)),i=1,nprint)
          ENDIF
       ENDIF
 c

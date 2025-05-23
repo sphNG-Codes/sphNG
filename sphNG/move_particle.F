@@ -136,6 +136,7 @@ c         h2mol(ito) = h2mol(ifrom)
          f2dust(:,ito) = f2dust(:,ifrom)
          dustfluidvxyz(:,:,ito) = dustfluidvxyz(:,:,ifrom)
          stoppingtime(:,ito) = stoppingtime(:,ifrom)
+         omega_disc(ito) = omega_disc(ifrom)
       ENDIF
       IF (idimHY09.EQ.idim) THEN
          HY09bin_rho(:,ito) = HY09bin_rho(:,ifrom)

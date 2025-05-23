@@ -91,7 +91,7 @@ c************************************************************
 
       CHARACTER*60 filevelx, filevely, filevelz
       CHARACTER*1 iok, iok2, iwhat, idens, ipres, icentral, irotatey
-      CHARACTER*1 ien, irotref, uort, ipreseq
+      CHARACTER*1 ien, irotref, uort, ipreseq, idustsin
       LOGICAL     superposition
 
 #ifdef MPI
@@ -2335,6 +2335,13 @@ c--Calculate the dust parameterisation variable.  This must be
 c     done after hcalc for idustFluid.EQ.1 because it depends on rho()
 c
       IF (idustFluid.NE.0) THEN
+         IF (igeom.EQ.1 .AND. iexf.EQ.11) THEN
+            WRITE (*,*) 'Apply x-axis sinusoid to dust fraction (y/n)?'
+            READ (iread, 99004) idustsin
+         ELSE
+            idustsin = 'n'
+         ENDIF
+
          DO i = 1, npart
             IF (iphase(i).EQ.0) THEN
                radius = SQRT(xyzmh(1,i)**2+xyzmh(2,i)**2+xyzmh(3,i)**2)
@@ -2343,6 +2350,14 @@ c
                ELSE
                   dust_factor = 1.0
                ENDIF
+
+               IF (idustsin.EQ.'y' .OR. idustsin.EQ.'Y') THEN
+                  IF (iphase(i).EQ.0) THEN
+                     dust_factor = dust_factor*
+     &                    (1.0+0.5*SIN(2.0*pi*xyzmh(1,i)))
+                  ENDIF
+               ENDIF
+
                IF (idustFluid.EQ.1) THEN
                   !--sqrt(epsilon*rho) method
                   dustvar(:,i) = SQRT(dustfrac(:)*dust_factor*rho(i))

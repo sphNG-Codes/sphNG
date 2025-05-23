@@ -51,7 +51,7 @@ c***********************************************************
       INTEGER nswmax
       PARAMETER (nswmax = 100)
       REAL tol
-      PARAMETER (tol = 0.001)
+      PARAMETER (tol = 1.0E-04)
       REAL lincrit
       PARAMETER (lincrit = 0.0005)
  
@@ -88,7 +88,6 @@ C$OMP THREADPRIVATE(term1, term2)
       REAL vi, v2i
       REAL vj, v2j
       REAL grwtij
-      REAL index, index1
       REAL dxx, dx, dy, dz
       REAL dgrwdx
       REAL dWi, dWj
@@ -98,15 +97,15 @@ C$OMP THREADPRIVATE(term1, term2)
       REAL tempval1, tempval2
       REAL s4term, s3term, s2term, s1term, s0term
       REAL S1i
-      REAL maxerrS, maxerrSlast
+      REAL maxerrS, maxerrSlast, errornorm, maxerrlocal
       REAL errorS
       REAL gradhi, gradhj
       REAL vsoundi, vsoundj
       REAL dustfracisum, dustfracjsum
 
+      INTEGER index, index1
       INTEGER itime
       INTEGER nosweep
-      INTEGER numcomp
       INTEGER i, j, k, kk, n, l
       INTEGER ihasghost, ihasghostcount
       INTEGER ntot, npart
@@ -165,11 +164,6 @@ c
 c--Set more sweep logical
 c
       moresweep = .FALSE.
-c
-c--Things for convergence test
-c
-      numcomp = 0
-      xmaxerr1old(:) = 0.0
 c
 c--Initialise ghost counters
 c
@@ -253,7 +247,7 @@ c
             rhoi = rho(i)
             pri = pr(i)
             vsoundi = vsound(i)
-c            gradhi = gradhs(1,i)
+            gradhi = gradhs(1,i)
 
             !--calculate the stopping time for the dust
 c            tsi(:) = stoppingtime_old(i,rhoi,dustvarNew(:,i))
@@ -307,7 +301,7 @@ c
                   hj = xyzmh(5,j)
                   hj21 = 1./(hj*hj)
                   hj41 = hj21*hj21
-c                  gradhj = gradhs(1,j)
+                  gradhj = gradhs(1,j)
 
 c
 c--Save the stopping times of the dust grains.  It is assumed they 
@@ -347,7 +341,7 @@ c
                      IF (index1.GT.itable) index1 = itable
                      dgrwdx = (grwij(index1) - grwij(index))*ddvtable
                      grwtij = (grwij(index) + dgrwdx*dxx)*cnormk
-                     dWi = grwtij*hi41!*gradhi
+                     dWi = grwtij*hi41*gradhi
                   ELSE
                      dWi = 0.
                   ENDIF         ! vi.LT.radkernel
@@ -361,7 +355,7 @@ c
                      IF (index1.GT.itable) index1 = itable 
                      dgrwdx = (grwij(index1) - grwij(index))*ddvtable
                      grwtij = (grwij(index) + dgrwdx*dxx)*cnormk
-                     dWj = grwtij*hj41!*gradhj
+                     dWj = grwtij*hj41*gradhj
                      ELSE
                      dWj = 0. 
                   ENDIF         ! vj.LT.radkernel
@@ -444,7 +438,7 @@ C$OMP& private(dWidrmjrhojpr,dWidrmirhojpr,dWjdrmjrhojpr)
 C$OMP& private(tempval1,tempval2)
 C$OMP& private(moresweep2)
 C$OMP& private(s4term,s3term,s2term,s1term,s0term)
-C$OMP& private(S1i)
+C$OMP& private(S1i,errornorm,maxerrlocal)
 C$OMP& reduction(MAX:maxerrS)
 c
 c--Set varidust to zero
@@ -641,8 +635,8 @@ C$OMP DO SCHEDULE(runtime)
                   term1(l) = varidust(l,1,i)*dti
                   term2(l) = varidust(l,2,i)*dti
                END DO
-c               PRINT*, 'term1 = ',i,dti,term1(:)
-c               PRINT*, 'term2 = ',i,dti,term2(:)
+c               PRINT*, 'term1 = ',i,term1(:)
+c               PRINT*, 'term2 = ',i,term2(:)
 c     
 c--Set quartic coefficients
 c     
@@ -760,13 +754,23 @@ c--Error
 c
                   IF (S1i.GE.0.) THEN
                      IF (S1i.EQ.0.) THEN
-                        maxerrS = MAX(maxerrS,ABS(dustvarNew(l,i)-S1i))
-                        dustvarNew(l,i) = S1i
+                        maxerrlocal = ABS(dustvarNew(l,i)-S1i)
+c                        dustvarNew(l,i) = S1i
+c                        maxerrS = MAX(maxerrS,ABS(dustvarNew(l,i)-S1i))
+c                     IF (dustvarNew(l,i).EQ.0.) THEN
+c                        maxerrS = MAX(maxerrS,S1i)
+c                        dustvarNew(l,i) = S1i
+c                     ELSEIF (S1i.EQ.0.) THEN
+c                        maxerrS = MAX(maxerrS,dustvarNew(l,i))
+c                        dustvarNew(l,i) = S1i
                      ELSE
-                        maxerrS = MAX(maxerrS,
-     &                       ABS((dustvarNew(l,i)-S1i)/S1i))
-                        dustvarNew(l,i) = S1i
+                        maxerrlocal = ABS((dustvarNew(l,i)-S1i)/S1i)
+c                        maxerrS = MAX(maxerrS,
+c     &                       ABS((dustvarNew(l,i)-S1i)/S1i))
+c                        dustvarNew(l,i) = S1i
                      ENDIF
+                     maxerrS = MAX(maxerrS,maxerrlocal)
+                     dustvarNew(l,i) = S1i
                   ENDIF
                END DO ! l = 1, ndusttypes
 
@@ -811,37 +815,6 @@ c
             GOTO 150
          ENDIF
          maxerrSlast = maxerrS
-c
-c--Test for convergence to non-zero value (incorrect minimum)
-c     Must have equal value at least twice to stop detecting up and down
-c     as non-convergence
-c
-         DO itest = ntests,1,-1
-            IF (nosweep.GT.10) THEN
-               IF (maxerrS.GT.0.99999*xmaxerr1old(itest).AND.
-     &              maxerrS.LT.1.00001*xmaxerr1old(itest)) THEN
-                  DO iii = 1, numcomp
-                     IF (maxerrS.GT.0.99999*xmaxerrcomp1(iii).AND.
-     &                    maxerrS.LT.1.00001*xmaxerrcomp1(iii)) THEN
-                         PRINT *,"GSIMPL: Non-convergence1 ",maxerrS,
-     &                   xmaxerrcomp1(iii),(xmaxerr1old(ii),ii=1,ntests)
-                         moresweep = .TRUE.
-                        GOTO 998
-                     ENDIF 
-                  END DO ! iii = 1, numcomp
-                  numcomp = MAX(1,MOD(numcomp + 1,ntests + 1))
-                  xmaxerrcomp1(numcomp) = maxerrS
-                  PRINT *,"GSIMPL: Almost Non-convergence ",
-     &                maxerrS,(xmaxerr1old(ii),ii=1,ntests)
-               ENDIF
-            ENDIF ! nosweep.GT.10
-            IF (itest.NE.1) THEN
-               xmaxerr1old(itest) = xmaxerr1old(itest-1)
-            ELSE
-               xmaxerr1old(itest) = maxerrS
-            ENDIF ! itest.NE.1
-         END DO ! itest = ntests, 1, -1
-
 #ifdef MPI
 c
 c--If another iteration is required, transfer new values of dustvarNew
@@ -948,7 +921,7 @@ c
       WRITE (iprint,99001) nswmax, maxerrS
 99001 FORMAT('DUST1-IMPL: Warning. Maximum iterations reached ',
      &     I5,(1X,1PE12.5))
-      PRINT *,"GSIMPL: Warning. Maximum iterations reached"
+      PRINT *,"DUST1-IMPL: Warning. Maximum iterations reached"
       moresweep = .TRUE.
       GOTO 998
 c
@@ -965,8 +938,8 @@ c
       IF (iproc.EQ.0) THEN
 #endif
       PRINT 99100,itime,nosweep,maxerrS,moresweep
-99100 FORMAT('Succeeded at ',I10,' with ',I3,
-     &     ' iterations, error is ',1PE12.5,' ',L)
+99100 FORMAT('Dust1-Dyn Succeeded at ',I10,' with ',I3,
+     &     ' iterations, error: ',1PE12.5,' ',L)
 #ifdef MPI
       ENDIF
 #endif
@@ -976,8 +949,6 @@ c--If convergence max iterations reached
 c
 998   CONTINUE
 
-      nit = nosweep
-      errorS = maxerrS
 c
 c--Return everything
 c
@@ -996,6 +967,9 @@ C$OMP& private(n,i,l)
 C$OMP END PARALLEL DO
 
 999   CONTINUE ! Return old values
+
+      nit = nosweep
+      errorS = maxerrS
 
 #ifdef MPIALL
       CALL MPI_TYPE_FREE(idust2REAL8,ierr)

@@ -40,10 +40,21 @@ c************************************************************
       INTEGER istack, nlistga, nlistgn
 
       PARAMETER (istacksize=200)
-      DIMENSION nstack(istacksize), listga(idim), listgn(idim)
-      SAVE nstack, listga, listgn
-C$OMP THREADPRIVATE(nstack,listga,listgn)
+c      DIMENSION nstack(istacksize), listga(idim), listgn(idim)
+c      SAVE nstack, listga, listgn
+cC$OMP THREADPRIVATE(nstack,listga,listgn)
+      INTEGER nstack, listga, listgn
 
+      COMMON /nstack_cmn/ nstack(istacksize)
+      COMMON /listga_cmn/ listga(idim)
+      COMMON /listgn_cmn/ listgn(idim)
+
+      SAVE /nstack_cmn/, /listga_cmn/, /listgn_cmn/
+C$OMP THREADPRIVATE(/nstack_cmn/)
+C$OMP THREADPRIVATE(/listga_cmn/)
+C$OMP THREADPRIVATE(/listgn_cmn/)
+
+      
       CHARACTER*7 where
 
       DATA where/'treef'/

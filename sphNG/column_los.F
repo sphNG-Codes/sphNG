@@ -48,15 +48,33 @@ c
 c--These arrays needs to be thread private because treef_P.F
 c     which calls this subroutine is called by multiple OpenMP threads
 c     
-      DIMENSION listnodes(idim), indx(idim)
-      DIMENSION distance2(idim), dimpact2(idim)
-      DIMENSION column_to_sinks(4,iptdim)
-c      DIMENSION sinksightline(3)
-      SAVE listnodes, indx, distance2, dimpact2
-      SAVE column_to_sinks
-C$OMP THREADPRIVATE(column_to_sinks,listnodes,indx)
-C$OMP THREADPRIVATE(distance2,dimpact2)
+c      DIMENSION listnodes(idim), indx(idim)
+c      DIMENSION distance2(idim), dimpact2(idim)
+c      DIMENSION column_to_sinks(4,iptdim)
+cc      DIMENSION sinksightline(3)
+c      SAVE listnodes, indx, distance2, dimpact2
+c      SAVE column_to_sinks
+cC$OMP THREADPRIVATE(column_to_sinks,listnodes,indx)
+cC$OMP THREADPRIVATE(distance2,dimpact2)
+c
+      INTEGER listnodes, indx
+      REAL distance2, dimpact2
+      REAL column_to_sinksc
 
+      COMMON /list_cmn/ listnodes(idim)
+      COMMON /indx_cmn/ indx(idim)
+      COMMON /dist_cmn/ distance2(idim)
+      COMMON /dimp_cmn/ dimpact2(idim)
+      COMMON /cols_cmn/ column_to_sinks(4, iptdim)
+
+      SAVE /list_cmn/, /indx_cmn/, /dist_cmn/, /dimp_cmn/, /cols_cmn/
+C$OMP THREADPRIVATE(/list_cmn/)
+C$OMP THREADPRIVATE(/indx_cmn/)
+C$OMP THREADPRIVATE(/dist_cmn/)
+C$OMP THREADPRIVATE(/dimp_cmn/)
+C$OMP THREADPRIVATE(/cols_cmn/)
+
+      
       PARAMETER (ntable=1000)
       COMMON /columnkernel/ coltable(ntable)
       COMMON /columnkerneln2/ coltable_n2(ntable), coltable_n2y2(ntable)

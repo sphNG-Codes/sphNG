@@ -444,6 +444,23 @@ ifeq ($(SYSTEM), ifort)
     ZZFILE= zzibm.f
 endif
 
+ifeq ($(SYSTEM), ifx)
+    FC= ifx
+    FFLAGS= -O3 -xHost -mcmodel=medium \
+            -warn uninitialized -warn truncated_source \
+            -warn interfaces -nogen-interfaces 
+    OMPFLAG= -qopenmp
+    DBLFLAG= -real-size 64
+    DEBUGFLAG= -check all -traceback -g -fpe0 -fstack-protector -heap-arrays -O0
+    KNOWN_SYSTEM=yes
+    ENDIANFLAGBIG= -convert big_endian
+    ENDIANFLAGLITTLE= -convert little_endian
+    IPOFLAG= -ipo
+# or use setenv F_UFMTENDIAN=big:45 at runtime (e.g. for unit 45 only)
+    ZZFILE= zzibm.f
+endif
+
+
 # Set other optional flags depending on settings
 
 ifeq ($(DEBUG), yes)

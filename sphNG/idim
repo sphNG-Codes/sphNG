@@ -106,15 +106,15 @@ c     -2: dustvar=sqrt(epsilon/1-epsilon) Elsender & Bate 2024 implicit
 c     3: dustvar = asin(sqrt(epsilon))
 c     4: dustvar = epsilon
 c
-c      PARAMETER (idustFluid = 0)
+      PARAMETER (idustFluid = 0)
 c      PARAMETER (idustFluid = 1)
 c      PARAMETER (idustFluid = 2)
-      PARAMETER (idustFluid = -2)
+c      PARAMETER (idustFluid = -2)
 
-c      PARAMETER (ndusttypes = 1)
+      PARAMETER (ndusttypes = 1)
 c      PARAMETER (ndusttypes = 10)
 c      PARAMETER (ndusttypes = 26)
-      PARAMETER (ndusttypes = 53)
+c      PARAMETER (ndusttypes = 53)
 c
 c--Parameter for alpha_SS viscosity assumed for dust growth & diffusion
 c      in a protostellar disc
@@ -139,8 +139,8 @@ c
 c
 c--Hirashita & Yan (2009) type dust evolution (see Bate 2022)
 c
-      PARAMETER (idimHY09 = idim)
-c      PARAMETER (idimHY09 = 1)
+c      PARAMETER (idimHY09 = idim)
+      PARAMETER (idimHY09 = 1)
 c
 c--Whether the dust growth and one-fluid evolutions are coupled or not.
 c     FALSE: the dust growth operates on the INITIAL dust fractions for

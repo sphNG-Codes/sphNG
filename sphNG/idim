@@ -30,21 +30,21 @@ c      PARAMETER (nlmax = 90)
 c
 c--For radiative transfer need to use iradtrans = idim
 c
-c      PARAMETER (iradtrans = idim)
-      PARAMETER (iradtrans = 1)
+      PARAMETER (iradtrans = idim)
+c      PARAMETER (iradtrans = 1)
 c
 c--For radiative transfer that separates gas and dust need idustRT = 1
 c
-c      PARAMETER (idustRT = 1)
-      PARAMETER (idustRT = 0)
+      PARAMETER (idustRT = 1)
+c      PARAMETER (idustRT = 0)
 c
 c--With idustRT = 1, the ioptimise_column parameter determines whether the
 c	column densities are calculated every (half-)timestep (0), 
 c	or less frequently (=1) [ever full timestep or even less often].
 c	Tolerence is set in column_density.F file.
 c
-c      PARAMETER (ioptimise_column = 1)
-      PARAMETER (ioptimise_column = 0)
+      PARAMETER (ioptimise_column = 1)
+c      PARAMETER (ioptimise_column = 0)
 c
 c--Type of stellar evolution and feedback
 c     0: No stellar feedback
@@ -106,14 +106,15 @@ c     -2: dustvar=sqrt(epsilon/1-epsilon) Elsender & Bate 2024 implicit
 c     3: dustvar = asin(sqrt(epsilon))
 c     4: dustvar = epsilon
 c
-      PARAMETER (idustFluid = 0)
+c      PARAMETER (idustFluid = 0)
 c      PARAMETER (idustFluid = 1)
 c      PARAMETER (idustFluid = 2)
-c      PARAMETER (idustFluid = -2)
+      PARAMETER (idustFluid = -2)
 
-      PARAMETER (ndusttypes = 1)
+c      PARAMETER (ndusttypes = 1)
 c      PARAMETER (ndusttypes = 10)
 c      PARAMETER (ndusttypes = 26)
+      PARAMETER (ndusttypes = 53)
 c
 c--Parameter for alpha_SS viscosity assumed for dust growth & diffusion
 c      in a protostellar disc
@@ -122,7 +123,7 @@ c
 c
 c--Parameter for determining whether to dump dustFluid deltav's & tstop
 c
-      PARAMETER (iDumpDeltavTstop = .TRUE.)
+      PARAMETER (iDumpDeltavTstop = .FALSE.)
 c
 c--For *explicit* evolution, this determines whether the dust evolution
 c      variable is allowed to go negative or not.  The implicit scheme
@@ -138,8 +139,8 @@ c
 c
 c--Hirashita & Yan (2009) type dust evolution (see Bate 2022)
 c
-c      PARAMETER (idimHY09 = idim)
-      PARAMETER (idimHY09 = 1)
+      PARAMETER (idimHY09 = idim)
+c      PARAMETER (idimHY09 = 1)
 c
 c--Whether the dust growth and one-fluid evolutions are coupled or not.
 c     FALSE: the dust growth operates on the INITIAL dust fractions for

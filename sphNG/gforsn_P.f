@@ -46,8 +46,10 @@ c
 
          IF (iphase(m).GE.1 .AND. iphase(m).LT.10 .AND. 
      &        rr.LT.ptsoft**2) THEN
-            WRITE (*,*) 'ptsoft gforsn ',m,rr,ptsoft
-            CALL quit(0) 
+c            WRITE (*,*) 'ptsoft gforsn ',m,rr,ptsoft
+c            CALL quit(0)
+            WRITE (*,*) 'ERROR - ptsoft gforsn ',m,SQRT(rr),ptsoft
+            IF (rr.LT.ptsoft**2/4.0) CALL quit(0)
          ENDIF
 
 c

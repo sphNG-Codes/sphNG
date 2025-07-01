@@ -1,6 +1,6 @@
       INTEGER icompactmax,ivar,ijvar,ncompact,ncompactlocal
 
-      PARAMETER (icompactmax=60*idim2)
+      PARAMETER (icompactmax=300*idim2)
 
       COMMON /compact/ ivar(3,idim2),ijvar(icompactmax), ncompact, 
      &                 ncompactlocal

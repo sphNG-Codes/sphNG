@@ -1,5 +1,5 @@
       LOGICAL irtnoisy
-      PARAMETER (irtnoisy = .TRUE.)
+      PARAMETER (irtnoisy = .FALSE.)
 
       INTEGER nintegfail,nintegsuc,nrtnc1,nrtnc2,nrtnca
       INTEGER nrtmaxit,nintegtot

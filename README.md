@@ -15,7 +15,9 @@ Thomas Bending email: t.j.r.bending@exeter.ac.uk
 # Codes
 
 A. GPU implementation of the radiative transfer (RT) calculations. The most expensive OpenMP loop in the code calculates RT using the flux-limited diffusion approximation and using an iterative solver.
+
 B. Neighbour finding.
+
 C. Standalone SPH density solver.
 
 # Problems 

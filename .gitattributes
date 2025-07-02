@@ -1,6 +1,0 @@
-dependency_data/BonnorEbert.txt filter=lfs diff=lfs merge=lfs -text
-dependency_data/cube_v1.dat filter=lfs diff=lfs merge=lfs -text
-dependency_data/cube_v2.dat filter=lfs diff=lfs merge=lfs -text
-dependency_data/cube_v3.dat filter=lfs diff=lfs merge=lfs -text
-dependency_data/setup.txt filter=lfs diff=lfs merge=lfs -text
-dependency_data/tables filter=lfs diff=lfs merge=lfs -text

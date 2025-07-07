@@ -555,7 +555,7 @@ CPPFLAGS=${FPP_PREFIX}$(FPPFLAGS)
 
 FFLAGSKEEP := ${FFLAGS}
 
-KERNEL= ktable_QuinticM6.f
+KERNEL= ktable.f
 OBJKERNEL= $(KERNEL:.f=.o)
 
 # these are the sources common to all compilations
